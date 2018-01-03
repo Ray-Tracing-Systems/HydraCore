@@ -1,0 +1,230 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Файлы исходного кода">
+      <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
+      <Extensions>cpp;c;cc;cxx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
+    </Filter>
+    <Filter Include="Заголовочные файлы">
+      <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
+      <Extensions>h;hh;hpp;hxx;hm;inl;inc;xsd</Extensions>
+    </Filter>
+    <Filter Include="Файлы ресурсов">
+      <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
+      <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
+    </Filter>
+    <Filter Include="core">
+      <UniqueIdentifier>{b8b1e03a-696b-47aa-b8a5-9091a30d3cc6}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="HWLayer">
+      <UniqueIdentifier>{309d30c1-1123-432b-b6f6-cb339974a002}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="CPULayer">
+      <UniqueIdentifier>{725d90eb-5b90-4a42-a5d0-db73c42c808a}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="GPULayer">
+      <UniqueIdentifier>{4e1eac9b-abfc-425c-b8c5-2af3e70c9d5e}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="core\shaders">
+      <UniqueIdentifier>{5b3d17b2-8b30-4939-ba2c-3c7911b6d6bf}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="RenderDriverRTE.h">
+      <Filter>Заголовочные файлы</Filter>
+    </ClInclude>
+    <ClInclude Include="IBVHBuilderAPI.h">
+      <Filter>Заголовочные файлы</Filter>
+    </ClInclude>
+    <ClInclude Include="globals.h">
+      <Filter>core</Filter>
+    </ClInclude>
+    <ClInclude Include="cfetch.h">
+      <Filter>core</Filter>
+    </ClInclude>
+    <ClInclude Include="ctrace.h">
+      <Filter>core</Filter>
+    </ClInclude>
+    <ClInclude Include="clight.h">
+      <Filter>core</Filter>
+    </ClInclude>
+    <ClInclude Include="cmaterial.h">
+      <Filter>core</Filter>
+    </ClInclude>
+    <ClInclude Include="crandom.h">
+      <Filter>core</Filter>
+    </ClInclude>
+    <ClInclude Include="IHWLayer.h">
+      <Filter>HWLayer</Filter>
+    </ClInclude>
+    <ClInclude Include="CPUExp_bxdf.h">
+      <Filter>CPULayer</Filter>
+    </ClInclude>
+    <ClInclude Include="CPUExp_Integrators.h">
+      <Filter>CPULayer</Filter>
+    </ClInclude>
+    <ClInclude Include="IMemoryStorage.h">
+      <Filter>Заголовочные файлы</Filter>
+    </ClInclude>
+    <ClInclude Include="MemoryStorageCPU.h">
+      <Filter>Заголовочные файлы</Filter>
+    </ClInclude>
+    <ClInclude Include="AbstractMaterial.h">
+      <Filter>Заголовочные файлы</Filter>
+    </ClInclude>
+    <ClInclude Include="FastList.h">
+      <Filter>HWLayer</Filter>
+    </ClInclude>
+    <ClInclude Include="globals_sys.h">
+      <Filter>Заголовочные файлы</Filter>
+    </ClInclude>
+    <ClInclude Include="GPUOCLLayer.h">
+      <Filter>GPULayer</Filter>
+    </ClInclude>
+    <ClInclude Include="bitonic_sort_gpu.h">
+      <Filter>GPULayer</Filter>
+    </ClInclude>
+    <ClInclude Include="cl_scan_gpu.h">
+      <Filter>GPULayer</Filter>
+    </ClInclude>
+    <ClInclude Include="MemoryStorageOCL.h">
+      <Filter>Заголовочные файлы</Filter>
+    </ClInclude>
+    <ClInclude Include="cbidir.h">
+      <Filter>core</Filter>
+    </ClInclude>
+    <ClInclude Include="HDRImageLite.h">
+      <Filter>Заголовочные файлы</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="RenderDriverRTE.cpp">
+      <Filter>Файлы исходного кода</Filter>
+    </ClCompile>
+    <ClCompile Include="BVHBuilderLoaderWin.cpp">
+      <Filter>Файлы исходного кода</Filter>
+    </ClCompile>
+    <ClCompile Include="CPUExp_Integrators_Common.cpp">
+      <Filter>CPULayer</Filter>
+    </ClCompile>
+    <ClCompile Include="CPUExp_Integrators_MLT.cpp">
+      <Filter>CPULayer</Filter>
+    </ClCompile>
+    <ClCompile Include="CPUExp_Integrators_PT.cpp">
+      <Filter>CPULayer</Filter>
+    </ClCompile>
+    <ClCompile Include="CPUExp_IntegratorSSS.cpp">
+      <Filter>CPULayer</Filter>
+    </ClCompile>
+    <ClCompile Include="CPUExpLayer.cpp">
+      <Filter>CPULayer</Filter>
+    </ClCompile>
+    <ClCompile Include="qmc_sobol_niederreiter.cpp">
+      <Filter>CPULayer</Filter>
+    </ClCompile>
+    <ClCompile Include="MemoryStorageCPU.cpp">
+      <Filter>Файлы исходного кода</Filter>
+    </ClCompile>
+    <ClCompile Include="IHWLayerDataAssembler.cpp">
+      <Filter>HWLayer</Filter>
+    </ClCompile>
+    <ClCompile Include="CPUBilateralFilter2D.cpp">
+      <Filter>CPULayer</Filter>
+    </ClCompile>
+    <ClCompile Include="globals_sys.cpp">
+      <Filter>Заголовочные файлы</Filter>
+    </ClCompile>
+    <ClCompile Include="PlainLightConverter.cpp">
+      <Filter>Файлы исходного кода</Filter>
+    </ClCompile>
+    <ClCompile Include="PlainMaterialConverter.cpp">
+      <Filter>Файлы исходного кода</Filter>
+    </ClCompile>
+    <ClCompile Include="GPUOCLData.cpp">
+      <Filter>GPULayer</Filter>
+    </ClCompile>
+    <ClCompile Include="GPUOCLKernels.cpp">
+      <Filter>GPULayer</Filter>
+    </ClCompile>
+    <ClCompile Include="GPUOCLLayer.cpp">
+      <Filter>GPULayer</Filter>
+    </ClCompile>
+    <ClCompile Include="GPUOCLLayerMLT.cpp">
+      <Filter>GPULayer</Filter>
+    </ClCompile>
+    <ClCompile Include="GPUOCLTests.cpp">
+      <Filter>GPULayer</Filter>
+    </ClCompile>
+    <ClCompile Include="bitonic_sort_gpu.cpp">
+      <Filter>GPULayer</Filter>
+    </ClCompile>
+    <ClCompile Include="cl_scan_gpu.cpp">
+      <Filter>GPULayer</Filter>
+    </ClCompile>
+    <ClCompile Include="MemoryStorageOCL.cpp">
+      <Filter>Файлы исходного кода</Filter>
+    </ClCompile>
+    <ClCompile Include="RenderDriverRTE_PdfTables.cpp">
+      <Filter>Файлы исходного кода</Filter>
+    </ClCompile>
+    <ClCompile Include="IESRender.cpp">
+      <Filter>Файлы исходного кода</Filter>
+    </ClCompile>
+    <ClCompile Include="RenderDriverRTE_AuxTextures.cpp">
+      <Filter>Файлы исходного кода</Filter>
+    </ClCompile>
+    <ClCompile Include="Bitmap.cpp">
+      <Filter>Файлы исходного кода</Filter>
+    </ClCompile>
+    <ClCompile Include="RenderDriverRTE_AlphaTestTable.cpp">
+      <Filter>Файлы исходного кода</Filter>
+    </ClCompile>
+    <ClCompile Include="RenderDriverRTE_DebugBVH.cpp">
+      <Filter>Файлы исходного кода</Filter>
+    </ClCompile>
+    <ClCompile Include="CPUExp_Integrators_LT.cpp">
+      <Filter>CPULayer</Filter>
+    </ClCompile>
+    <ClCompile Include="CPUExp_Integrators_TwoWay.cpp">
+      <Filter>CPULayer</Filter>
+    </ClCompile>
+    <ClCompile Include="CPUExp_Integrators_ThreeWay.cpp">
+      <Filter>CPULayer</Filter>
+    </ClCompile>
+    <ClCompile Include="CPUExp_Integrators_SBDPT.cpp">
+      <Filter>CPULayer</Filter>
+    </ClCompile>
+    <ClCompile Include="CPUExp_Integrators_MMLT.cpp">
+      <Filter>CPULayer</Filter>
+    </ClCompile>
+    <ClCompile Include="CPUExp_Integrators_ThreeWayBlendMMLT.cpp">
+      <Filter>CPULayer</Filter>
+    </ClCompile>
+    <ClCompile Include="CPUExp_GBuffer.cpp">
+      <Filter>CPULayer</Filter>
+    </ClCompile>
+    <ClCompile Include="CPUExp_Integrators_MMLTDebug.cpp">
+      <Filter>CPULayer</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="shaders\image.cl">
+      <Filter>core\shaders</Filter>
+    </None>
+    <None Include="shaders\mlt.cl">
+      <Filter>core\shaders</Filter>
+    </None>
+    <None Include="shaders\screen.cl">
+      <Filter>core\shaders</Filter>
+    </None>
+    <None Include="shaders\sort.cl">
+      <Filter>core\shaders</Filter>
+    </None>
+    <None Include="shaders\trace.cl">
+      <Filter>core\shaders</Filter>
+    </None>
+    <None Include="shaders\material.cl">
+      <Filter>core\shaders</Filter>
+    </None>
+  </ItemGroup>
+</Project>

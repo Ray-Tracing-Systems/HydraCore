@@ -1,0 +1,781 @@
+#include "globals.h"
+#include "crandom.h"
+#include "cfetch.h"
+
+//#define USE_SCR_SHIFT 
+#define SCR_SHIFT_NUM 4
+#define SCR_SHIFT_ID  0
+
+
+#ifdef USE_SCR_SHIFT
+
+ID_CALL void PlaneHammersleyDev(__private float *result, int n)
+{
+  for (int k = 0; k<n; k++)
+  {
+    float u = 0;
+    int kk = k;
+
+    for (float p = 0.5f; kk; p *= 0.5f, kk >>= 1)
+      if (kk & 1)                           // kk mod 2 == 1
+        u += p;
+
+    float v = (k + 0.5f) / n;
+
+    result[2 * k + 0] = u;
+    result[2 * k + 1] = v;
+  }
+}
+
+#endif
+
+__kernel void MakeEyeRays(int offset,
+                          __global float4* out_pos,
+                          __global float4* out_dir,
+                          int w, int h,
+                          __global const EngineGlobals* a_globals)
+{
+
+  int tid = GLOBAL_ID_X;
+  if (tid + offset >= w*h)
+    return;
+
+  ushort2 screenPos;
+  screenPos.y = (tid + offset) / w;
+  screenPos.x = (tid + offset) - screenPos.y*w;
+
+  float4x4 a_mViewProjInv  = make_float4x4(a_globals->mProjInverse);
+  float4x4 a_mWorldViewInv = make_float4x4(a_globals->mWorldViewInverse);
+
+  float3 ray_pos = make_float3(0.0f, 0.0f, 0.0f);
+  float3 ray_dir = EyeRayDir(screenPos.x, screenPos.y, w, h, a_mViewProjInv);
+
+  ray_dir        = tiltCorrection(ray_pos, ray_dir, a_globals);
+
+  matrix4x4f_mult_ray3(a_mWorldViewInv, &ray_pos, &ray_dir);
+
+  out_pos[tid] = to_float4(ray_pos, 1.0f);
+  out_dir[tid] = to_float4(ray_dir, 0.0f);
+}
+
+inline int packXYForCPU(int x, int y) { return (y << 16) | (x & 0x0000FFFF); }
+
+__kernel void MakeEyeRaysUnifiedSampling(__global float4* out_pos, __global float4* out_dir, __global RandomGen* out_gens, 
+                                         int w, int h, int a_size,
+                                         __global const EngineGlobals* a_globals, 
+                                         __global uint*                a_flags,
+                                         __global float4*              out_color,
+                                         __global float4*              out_thoroughput,
+                                         __global float4*              out_fog,
+                                         __global HitMatRef*           out_hitMat,
+                                         __global int2*                out_zind,
+                                         __global float*               out_pixw, 
+                                         __constant ushort*            a_mortonTable256,
+                                         __constant unsigned int*      a_qmcTable, 
+                                         int a_passNumberForQmc, int a_packIndexForCPU)
+{
+  int tid = GLOBAL_ID_X;
+  if (tid >= a_size)
+    return;
+
+  // (1) generate 4 random floats
+  //
+  RandomGen gen = out_gens[tid];
+  const float2 mutateScale  = make_float2(a_globals->varsF[HRT_MLT_SCREEN_SCALE_X], a_globals->varsF[HRT_MLT_SCREEN_SCALE_Y]);
+  const unsigned int qmcPos = tid + a_passNumberForQmc * a_size;
+  const float4 lensOffs     = rndLens(&gen, 0, mutateScale, a_qmcTable, qmcPos);
+  out_gens[tid] = gen;
+
+  // (2) generate random camera sample
+  //
+  float  fx, fy;
+  float3 ray_pos, ray_dir;
+  MakeEyeRayFromF4Rnd(lensOffs, a_globals,
+                      &ray_pos, &ray_dir, &fx, &fy);
+
+  int x = (int)(fx + 0.5f);
+  int y = (int)(fy + 0.5f);
+
+  if (x >= w) x = w - 1;
+  if (y >= h) y = h - 1;
+
+  out_pos [tid] = to_float4(ray_pos, fx);
+  out_dir [tid] = to_float4(ray_dir, fy);
+
+  if (out_pixw != 0) // bilinear filter is used
+  {
+    const int px = (int)(fx + 0.5f);
+    const int py = (int)(fy + 0.5f);
+
+    const float fx  = fabs(fx - (float)px);
+    const float fy  = fabs(fy - (float)py);
+    const float fx1 = 1.0f - fx;
+    const float fy1 = 1.0f - fy;
+    
+    const float w1  = fx1 * fy1;
+    const float w2  = fx * fy1;
+    const float w3  = fx1 * fy;
+    const float w4  = fx * fy;
+
+    const int zid1 = (int)ZIndex(px + 0, py + 0, a_mortonTable256); // const int offset0 = py_w0 * w + px_w0;
+    const int zid2 = (int)ZIndex(px + 0, py + 1, a_mortonTable256); // const int offset1 = py_w0 * w + px_w1;
+    const int zid3 = (int)ZIndex(px + 1, py + 0, a_mortonTable256); // const int offset2 = py_w1 * w + px_w0;
+    const int zid4 = (int)ZIndex(px + 1, py + 1, a_mortonTable256); // const int offset3 = py_w1 * w + px_w1; 
+
+    out_zind[tid + 0 * a_size] = make_int2(zid1, tid + 0 * a_size);
+    out_zind[tid + 1 * a_size] = make_int2(zid2, tid + 1 * a_size);
+    out_zind[tid + 2 * a_size] = make_int2(zid3, tid + 2 * a_size);
+    out_zind[tid + 3 * a_size] = make_int2(zid4, tid + 3 * a_size);
+
+    out_pixw[tid + 0 * a_size] = w1;
+    out_pixw[tid + 1 * a_size] = w2;
+    out_pixw[tid + 2 * a_size] = w3;
+    out_pixw[tid + 3 * a_size] = w4;
+  }
+  else
+  {
+    const int zid = a_packIndexForCPU ? packXYForCPU(x,y) : (int)ZIndex(x, y, a_mortonTable256);
+    out_zind[tid] = make_int2(zid, tid);
+  }
+
+  // clear all other per-ray data
+  //
+  HitMatRef data3;
+  data3.m_data    = 0; 
+  data3.accumDist = 0.0f;
+
+  a_flags        [tid] = 0;
+  out_color      [tid] = make_float4(0.0f, 0.0f, 0.0f, 0.0f);
+  out_thoroughput[tid] = make_float4(1.0f, 1.0f, 1.0f, 1.0f);
+  out_fog        [tid] = make_float4(0.0f, 0.0f, 0.0f, 0.0f);
+  out_hitMat     [tid] = data3;
+}
+
+
+__kernel void ContribSampleToScreen(const __global float4* in_color, const __global int2* a_indices, const __global float* a_weights, __constant ushort* a_mortonTable256,
+                                    const int a_samplesNum, const int w, const int h, const float a_spp, const float a_gammaInv,
+                                    __global  float4* out_colorHDR, __global uint* out_colorLDR)
+{
+  const int x = GLOBAL_ID_X;
+  const int y = GLOBAL_ID_Y;
+
+  if (x >= w || y >= h)
+    return;
+
+  const int pxZIndex = ZIndex(x, y, a_mortonTable256);
+
+  // (1) run binary search to find pair in a_indices where val.x == pixelIndex // no bilinear2D.
+  //
+  const int samNum = (a_weights == 0) ? a_samplesNum : a_samplesNum * 4;
+  const int beginX = binarySearchForLeftRange (a_indices, samNum, pxZIndex);
+  const int endX   = samNum - 1;
+
+  float4 color = make_float4(0, 0, 0, 0);
+  
+  if (beginX != -1)
+  {
+    int i            = beginX;
+    int2 xOldNewPair = a_indices[i];
+
+    if (a_weights == 0)
+    {
+      while (i <= endX && xOldNewPair.x == pxZIndex)
+      {
+        color += in_color[xOldNewPair.y];
+        i++;
+        xOldNewPair = (i <= endX) ? a_indices[i] : xOldNewPair;
+      }
+    }
+    else
+    {
+      while (i <= endX && xOldNewPair.x == pxZIndex)
+      {
+        color += in_color[xOldNewPair.y]*a_weights[xOldNewPair.y];
+        i++;
+        xOldNewPair = (i <= endX) ? a_indices[i] : xOldNewPair;
+      }
+    }
+  }
+
+  // (2) save HDR image
+  //
+  const float4 newColor = out_colorHDR[Index2D(x, y, w)] + color;
+  out_colorHDR[Index2D(x, y, w)] = newColor;
+
+  const float sppp       = (float)(a_samplesNum) / (float)(w*h);
+  const float scaleConst = 1.0f / (a_spp + sppp);
+
+  // (3) save LDR image
+  //
+  if (out_colorLDR != 0)
+  {
+    float4 color2;
+    color2.x = pow(scaleConst*newColor.x, a_gammaInv);
+    color2.y = pow(scaleConst*newColor.y, a_gammaInv);
+    color2.z = pow(scaleConst*newColor.z, a_gammaInv);
+    color2.w = pow(scaleConst*newColor.w, a_gammaInv);
+    out_colorLDR[Index2D(x, y, w)] = RealColorToUint32(ToneMapping4(color2));
+  }
+}
+
+__kernel void PackIndexToColorW(const __global int2* a_indices, __global float4* out_color, const int iNumElements)
+{
+  int tid = GLOBAL_ID_X;
+  if (tid >= iNumElements)
+    return;
+
+  int2 index = a_indices[tid];
+  out_color[tid].w = as_float(index.x);
+}
+
+__kernel void RealColorToRGB256(__global   float4* in_color,
+                                __global   uint*   out_color, 
+                                int                a_width, 
+                                int                a_height,
+                                __constant ushort* a_mortonTable256, 
+                                float  a_gamma)
+{
+  uint x = GLOBAL_ID_X;
+  uint y = GLOBAL_ID_Y;
+
+  if (x >= a_width || y >= a_height)
+    return;
+
+  float4 color = in_color[Index2D(x, y, a_width)];
+    
+  float gammaPow = 1.0f / a_gamma;  // gamma correction
+
+  color.x = pow(color.x, gammaPow);
+  color.y = pow(color.y, gammaPow);
+  color.z = pow(color.z, gammaPow);
+  color.w = pow(color.w, gammaPow);
+
+  out_color[Index2D(x, y, a_width)] = RealColorToUint32(ToneMapping4(color));
+} 
+
+__kernel void FillColor(__global uint* out, int iNumElements)
+{
+  int tid = GLOBAL_ID_X;
+  if (tid >= iNumElements)
+    return;
+
+  out[tid] = 0xFF00FFFF;
+}
+
+
+__kernel void MemSetu32(__global uint* out, uint a_value, int iNumElements)
+{
+  int tid = GLOBAL_ID_X;
+  if (tid >= iNumElements)
+    return;
+
+  out[tid] = a_value;
+}
+
+
+__kernel void MemSetf4(__global float4* out, float4 a_value, int iNumElements, int iOffset)
+{
+  int tid = GLOBAL_ID_X;
+  if (tid >= iNumElements)
+    return;
+
+  out[tid + iOffset] = a_value;
+}
+
+__kernel void MemCopyu32(__global uint* in_buff, uint a_offset1, __global uint* out_buff, uint a_offset2, int iNumElements)
+{
+  int tid = GLOBAL_ID_X;
+  if (tid >= iNumElements)
+    return;
+
+  out_buff[tid + a_offset2] = in_buff[tid + a_offset1];
+}
+
+
+__kernel void SimpleReductionTest(__global int* a_data, int iNumElements)
+{ 
+  int tid = GLOBAL_ID_X;
+  if (tid >= iNumElements)
+    return;
+
+  __local int sArray[CMP_RESULTS_BLOCK_SIZE];
+
+  // reduce all thisRayIsDead to shared allBlockRaysAreDead
+  //
+
+  sArray[LOCAL_ID_X] = a_data[tid];
+  SYNCTHREADS_LOCAL;
+
+  for (uint c = CMP_RESULTS_BLOCK_SIZE / 2; c>0; c /= 2)
+  {
+    if (LOCAL_ID_X < c)
+      sArray[LOCAL_ID_X] += sArray[LOCAL_ID_X + c];
+    SYNCTHREADS_LOCAL;
+  }
+
+  if (LOCAL_ID_X == 0)
+    a_data[tid] = sArray[0];
+
+}
+
+
+__kernel void ReductionFloat4AvgSqrt256(__global const float4* in_data, __global float4* out_data, int iNumElements)
+{
+  int tid = GLOBAL_ID_X;
+
+  __local float4 sArray[256];
+
+  if (tid < iNumElements)
+  {
+    float4 data = in_data[tid];
+
+    data.x = sqrt(data.x);
+    data.y = sqrt(data.y);
+    data.z = sqrt(data.z);
+    data.w = sqrt(data.w);
+
+    sArray[LOCAL_ID_X] = data;
+  }
+  else
+    sArray[LOCAL_ID_X] = make_float4(0, 0, 0, 0);
+
+  SYNCTHREADS_LOCAL;
+
+  for (uint c = 256 / 2; c>0; c /= 2)
+  {
+    if (LOCAL_ID_X < c)
+      sArray[LOCAL_ID_X] += sArray[LOCAL_ID_X + c];
+    SYNCTHREADS_LOCAL;
+  }
+
+  if (LOCAL_ID_X == 0)
+    out_data[tid / 256] = sArray[0] * (1.0f / 256.0f);
+}
+
+__kernel void ReductionFloat4Avg256(__global const float4* in_data, __global float4* out_data, int iNumElements)
+{
+  int tid = GLOBAL_ID_X;
+ 
+  float4 data = make_float4(0, 0, 0, 0);
+
+  if (tid < iNumElements)
+    data = in_data[tid];
+
+  if (!isfinite(data.x)) data.x = 0.0f;
+  if (!isfinite(data.y)) data.y = 0.0f;
+  if (!isfinite(data.z)) data.z = 0.0f;
+  if (!isfinite(data.w)) data.w = 0.0f;
+  
+  __local float4 sArray[256];
+  sArray[LOCAL_ID_X] = data;
+  SYNCTHREADS_LOCAL;
+
+  for (uint c = 256 / 2; c>0; c /= 2)
+  {
+    if (LOCAL_ID_X < c)
+      sArray[LOCAL_ID_X] += sArray[LOCAL_ID_X + c];
+    SYNCTHREADS_LOCAL;
+  }
+
+  if (LOCAL_ID_X == 0)
+    out_data[tid / 256] = sArray[0] * (1.0f / 256.0f);
+}
+
+
+
+__kernel void ReductionFloat4Avg64(__global const float4* in_data, __global float4* out_data, int iNumElements)
+{
+  int tid = GLOBAL_ID_X;
+
+  __local float4 sArray[64];
+
+  if (tid < iNumElements)
+    sArray[LOCAL_ID_X] = in_data[tid];
+  else
+    sArray[LOCAL_ID_X] = make_float4(0, 0, 0, 0);
+
+  SYNCTHREADS_LOCAL;
+
+  for (uint c = 64 / 2; c>0; c /= 2)
+  {
+    if (LOCAL_ID_X < c)
+      sArray[LOCAL_ID_X] += sArray[LOCAL_ID_X + c];
+    SYNCTHREADS_LOCAL;
+  }
+
+  if (LOCAL_ID_X == 0)
+    out_data[tid / 64] = sArray[0] * (1.0f / 64.0f);
+}
+
+
+__kernel void ReductionFloat4Avg16(__global const float4* in_data, __global float4* out_data, int iNumElements)
+{
+  int tid = GLOBAL_ID_X;
+
+  __local float4 sArray[16];
+
+  if (tid < iNumElements)
+    sArray[LOCAL_ID_X] = in_data[tid];
+  else
+    sArray[LOCAL_ID_X] = make_float4(0, 0, 0, 0);
+
+  SYNCTHREADS_LOCAL;
+
+  for (uint c = 16 / 2; c>0; c /= 2)
+  {
+    if (LOCAL_ID_X < c)
+      sArray[LOCAL_ID_X] += sArray[LOCAL_ID_X + c];
+    SYNCTHREADS_LOCAL;
+  }
+
+  if (LOCAL_ID_X == 0)
+    out_data[tid / 16] = sArray[0] * (1.0f / 16.0f);
+}
+
+__kernel void ReductionGBuffer16(__global const float4* in_data, __global float4* out_data, int iNumElements)
+{
+  int tid  = GLOBAL_ID_X;
+  if (tid >= iNumElements)
+    return;
+
+  GBuffer1 buffRes;
+
+  buffRes.depth = 0.0f;
+  buffRes.norm  = make_float3(0, 0, 0);
+  buffRes.rgba  = make_float4(0, 0, 0, 0);
+  buffRes.matId = -1;
+
+  int normalCounter = 0;
+  int depthCounter = 0;
+
+  for (int i = 0; i < 16; i++)
+  {
+    int tid2 = tid * 16 + i;
+
+    GBuffer1 buffSpp = unpackGBuffer1(in_data[tid2]);
+
+    if (buffSpp.depth < 1000000000.0f - 100.0f)
+    {
+      buffRes.depth += buffSpp.depth;
+      depthCounter++;
+    }
+
+    if (dot(buffSpp.norm, buffSpp.norm) > 1e-5f)
+    {
+      buffRes.norm += buffSpp.norm;
+      normalCounter++;
+    }
+
+    buffRes.rgba += buffSpp.rgba;
+
+    if (buffSpp.matId != -1)
+      buffRes.matId = buffSpp.matId;
+  }
+
+  // #TODO: add correct reduction of matId based on max spp for target material
+ 
+  buffRes.depth *= (1.0f / fmax((float)depthCounter, 1.0f));
+  buffRes.norm  *= (1.0f / fmax((float)normalCounter, 1.0f));
+  buffRes.rgba  *= (1.0f / 16.0f);
+
+  out_data[tid] = packGBuffer1(buffRes);
+}
+
+
+__kernel void GetAlphaToGBuffer(__global float4* out_data, __global const float4* in_data, int iNumElements)
+{
+  int tid = GLOBAL_ID_X;
+  if (tid >= iNumElements)
+    return;
+
+  GBuffer1 buffRes  = unpackGBuffer1(out_data[tid]);
+  float3 alphaColor = to_float3(in_data[tid]);
+  buffRes.rgba.w    = 1.0f - dot(alphaColor, make_float3(0.35f, 0.51f, 0.14f));
+  out_data[tid]     = packGBuffer1(buffRes);
+}
+
+
+__kernel void FloatToHalf(__global float* a_inData, __global half* a_outData, int iNumElements, int iOffset)
+{
+  int tid = GLOBAL_ID_X;
+  if (tid >= iNumElements)
+    return;
+
+  float data = clamp(a_inData[tid + iOffset], 0.0f, 65504.0f); // 65504.0f
+
+  vstore_half(data, tid + iOffset, a_outData);
+}
+
+
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+
+__kernel void ScanTest(__global int* a_inData, __global int* a_outData, int a_size)
+{ 
+  int tid = GLOBAL_ID_X;
+
+  const int size = 256;
+  __local int l_Data[512];
+
+
+  int idata = a_inData[tid];
+  int odata = 0;
+  PREFIX_SUMM_MACRO(idata, odata, l_Data, size);
+
+  if (tid < a_size)
+    a_outData[tid] = odata;
+}
+
+__kernel void CompactTest(__global int* a_inData, __global int* a_outData, int a_size)
+{
+  int tid = GLOBAL_ID_X;
+
+  __local int l_Data[512];
+
+  int idata = a_inData[tid];
+  int odata = 0;
+
+  PREFIX_SUMM_MACRO(idata, odata, l_Data, 256);
+
+  // perform compaction
+  //
+  
+  SYNCTHREADS_LOCAL;
+  if (idata != 0 && (odata - 1) < 256 && (odata - 1) >= 0)
+    l_Data[odata-1] = LOCAL_ID_X;
+  SYNCTHREADS_LOCAL;
+
+  odata = l_Data[LOCAL_ID_X];
+  
+  if (tid < a_size)
+    a_outData[tid] = odata;
+
+}
+
+__kernel void Texture2DTest(texture2d_t a_tex, __global float* a_outData, int a_w, int a_h)
+{
+  int x = GLOBAL_ID_X;
+  int y = GLOBAL_ID_Y;
+
+  if (x >= a_w || y >= a_h)
+    return;
+
+  float fx = (float)x / (float)a_w;
+  float fy = (float)y / (float)a_h;
+
+  float4 texColor4 = make_float4(2, 2, 2, 2);
+
+  a_outData[y*a_w + x] = texColor4.x;
+}
+
+
+__kernel void MakeEyeRaysSPP(__global const ushort2* in_xy, 
+                             __global float4* out_pos,
+                             __global float4* out_dir,
+                             int w, int h, int b_size,
+                             __global const float2* a_sppPos,
+                             __global const EngineGlobals* a_globals)
+{
+
+  int tid = GLOBAL_ID_X;
+  
+  ushort2 screenPos = in_xy[tid / b_size];
+  float2  sppPos    = a_sppPos[LOCAL_ID_X];
+
+  float4x4 a_mViewProjInv  = make_float4x4(a_globals->mProjInverse);
+  float4x4 a_mWorldViewInv = make_float4x4(a_globals->mWorldViewInverse);
+
+#ifdef USE_SCR_SHIFT
+  {
+    float shiftPos[SCR_SHIFT_NUM * 2];
+    PlaneHammersleyDev(shiftPos, SCR_SHIFT_NUM);
+
+    sppPos.x = shiftPos[SCR_SHIFT_ID * 2 + 0];
+    sppPos.y = shiftPos[SCR_SHIFT_ID * 2 + 1];
+  }
+#endif
+
+  float3 ray_pos = make_float3(0.0f, 0.0f, 0.0f);
+  float3 ray_dir = EyeRayDir((float)(screenPos.x) + sppPos.x - 0.5f, (float)(screenPos.y) + sppPos.y - 0.5f, w, h, a_mViewProjInv);
+
+  ray_dir        = tiltCorrection(ray_pos, ray_dir, a_globals);
+
+  matrix4x4f_mult_ray3(a_mWorldViewInv, &ray_pos, &ray_dir);
+
+  out_pos[tid] = to_float4(ray_pos, 1.0f);
+  out_dir[tid] = to_float4(ray_dir, 0.0f);
+}
+
+
+__kernel void ReadNormalsAndDepth(__global const float4* in_posNorm, __global const Lite_Hit* in_hits, __global float4* a_color, int iNumElements)
+{
+  int tid = GLOBAL_ID_X;
+  if (tid >= iNumElements)
+    return;
+
+  Lite_Hit hit = in_hits[tid];
+  float3 norm  = normalize(decodeNormal(as_int(in_posNorm[tid].w)));
+
+  if (HitNone(hit))
+  {
+    norm  = make_float3(0, 0, 0);
+    hit.t = 1000000000.0f;
+  }
+
+  a_color[tid] = to_float4(norm, hit.t);
+}
+
+
+__kernel void MaxPixelSize256(__global const Lite_Hit*  in_hits,
+                              __global const HitMatRef* in_matData,
+                              __global const EngineGlobals* a_globals, 
+                              __global float* a_result)
+{
+  int tid = GLOBAL_ID_X;
+
+  float3 color = make_float3(0, 0, 0);
+  Lite_Hit hit = in_hits[tid];
+
+  float pixelSize = 0.0f;
+
+  if (HitNone(hit))
+  {
+    float2 pp = projectedPixelSize(in_matData[tid].accumDist, a_globals);
+    pixelSize = fmax(fmax(pp.x, pp.y), 0.0f);
+  }
+
+  __local float sArray[256];
+  sArray[LOCAL_ID_X] = pixelSize;
+  SYNCTHREADS_LOCAL;
+
+  for (uint c = 256 / 2; c>0; c /= 2)
+  {
+    if (LOCAL_ID_X < c)
+      sArray[LOCAL_ID_X] = fmax(sArray[LOCAL_ID_X], sArray[LOCAL_ID_X + c]);
+    SYNCTHREADS_LOCAL;
+  }
+
+  if (LOCAL_ID_X == 0)
+    a_result[tid/256] = sArray[0];
+}
+
+
+
+__kernel void AppendBadPixels64(__global int* pAppendOffset, 
+                                __global const float4* in_data1,
+                                __global const float4* in_data2,
+                                __global float4*  out_data1, 
+                                __global float4*  out_data2,
+                                __global ushort2* in_pxCoord,
+                                __global ushort2* out_pxCoord,
+                                __global const EngineGlobals* a_globals,
+                                int a_maxBufferSize)
+  //                              __global float* a_debugData)
+{
+  int tid = GLOBAL_ID_X;
+  
+  float currSampleDist = fmax(in_data1[tid].w, 0.0f);
+
+  float2    pp = projectedPixelSize(currSampleDist, a_globals);
+  float ppSize = (currSampleDist > 0.0f) ? 64.0f*fmax(fmax(pp.x, pp.y), 0.0f) : 1000000000.0f; // ??????
+
+  __local float sArray[64];
+
+  sArray[LOCAL_ID_X] = 0.0f;
+  
+  for (int i = 0; i < 64;i++)
+    sArray[LOCAL_ID_X] += pixelsDiff(in_data1[tid], in_data1[(tid / 64) * 64 + i], ppSize);
+
+  SYNCTHREADS_LOCAL;
+
+  //a_debugData[tid] = sArray[LOCAL_ID_X];
+
+  for (uint c = 64 / 2; c>0; c /= 2)
+  {
+    if (LOCAL_ID_X < c)
+      sArray[LOCAL_ID_X] += sArray[LOCAL_ID_X + c];
+    SYNCTHREADS_LOCAL;
+  }
+
+  bool pixelIsBad = (sArray[0] > 64.0f*2.0f);
+
+  __local int blockOffset;
+  if (LOCAL_ID_X == 0 && pixelIsBad)
+    blockOffset = atomic_add(pAppendOffset, 64);
+
+  SYNCTHREADS_LOCAL;
+
+  // store pixels data in buffer if they are bad ...
+  //
+  if (pixelIsBad && blockOffset < a_maxBufferSize)
+  {
+    out_data1[blockOffset + LOCAL_ID_X] = in_data1[tid];
+    out_data2[blockOffset + LOCAL_ID_X] = in_data2[tid];
+  
+    if (LOCAL_ID_X == 0)
+      out_pxCoord[blockOffset / 64] = in_pxCoord[tid / 64];
+  }
+  
+
+}
+
+__kernel void BlendFrameBuffers(__global float4* out_dst, __global const float4* in_src1, __global const float4* in_src2, 
+                               float4 k1, float4 k2, int iNumElements)
+{
+  int tid = GLOBAL_ID_X;
+  if (tid >= iNumElements)
+    return;
+
+  out_dst[tid] = in_src1[tid] * k1 + in_src2[tid] * k2;
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+__kernel void TestAtomicsInt(__global int4* pValues, int iNumElements)
+{
+  int tid = GLOBAL_ID_X;
+  if (tid >= iNumElements)
+    return;
+
+  uint offset = (tid * (tid * tid * 15731 + 74323) + 871483) % (uint)(iNumElements);
+
+  __global int* ptr = (__global int*)(pValues + offset);
+
+  atomic_add(ptr + 0, 1);
+  atomic_add(ptr + 0, 2);
+  atomic_add(ptr + 0, 3);
+}
+
+
+__kernel void TestAtomicsFloat(__global float4* pValues, int iNumElements)
+{
+  int tid = GLOBAL_ID_X;
+  if (tid >= iNumElements)
+    return;
+
+  uint offset = (tid * (tid * tid * 15731 + 74323) + 871483) % (uint)(iNumElements);
+
+  __global float* ptr = (__global float*)(pValues + offset);
+
+  atomic_addf(ptr + 0, 1.0f);
+  atomic_addf(ptr + 1, 2.0f);
+  atomic_addf(ptr + 2, 3.0f);
+}
+
+// change 12.12.2017 16:04;
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+

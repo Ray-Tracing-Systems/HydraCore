@@ -1,0 +1,60 @@
+set(CMAKE_CXX_STANDARD 14)
+
+set(SOURCE_FILES
+    AbstractMaterial.h
+    Bitmap.cpp
+    bitonic_sort_gpu.cpp
+    bitonic_sort_gpu.h
+    cfetch.h
+    clight.h
+    cl_scan_gpu.cpp
+    cl_scan_gpu.h
+    cmaterial.h
+    CPUBilateralFilter2D.cpp
+    CPUExp_bxdf.h
+    CPUExp_Integrator_PTFull.cpp
+    CPUExp_Integrators_Common.cpp
+    CPUExp_Integrators.h
+    CPUExp_Integrators_LT.cpp
+    CPUExp_Integrators_MLT.cpp
+    CPUExp_Integrators_PT.cpp
+    CPUExp_Integrators_SBDPT.cpp
+    CPUExp_IntegratorSSS.cpp
+    CPUExp_Integrators_ThreeWay.cpp
+    CPUExp_Integrators_TwoWay.cpp
+    CPUExpLayer.cpp
+    crandom.h
+    ctrace.h
+    FastList.h
+    globals.h
+    globals_sys.cpp
+    globals_sys.h
+    GPUOCLData.cpp
+    GPUOCLKernels.cpp
+    GPUOCLLayer.cpp
+    GPUOCLLayer.h
+    GPUOCLLayerMLT.cpp
+    GPUOCLTests.cpp
+    IBVHBuilderAPI.h
+    IESRender.cpp
+    IHWLayerDataAssembler.cpp
+    IHWLayer.h
+    IMemoryStorage.h
+    MemoryStorageCPU.cpp
+    MemoryStorageCPU.h
+    MemoryStorageOCL.cpp
+    MemoryStorageOCL.h
+    PlainLightConverter.cpp
+    PlainMaterialConverter.cpp
+    qmc_sobol_niederreiter.cpp
+    RenderDriverRTE_AlphaTestTable.cpp
+    RenderDriverRTE_AuxTextures.cpp
+    RenderDriverRTE.cpp
+    RenderDriverRTE_DebugBVH.cpp
+    RenderDriverRTE.h
+    RenderDriverRTE_PdfTables.cpp
+    RenderDriverRTE_TiledPT.cpp
+    )
+
+ADD_LIBRARY(hydra_drv STATIC ${SOURCE_FILES})
+

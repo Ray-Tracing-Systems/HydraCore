@@ -1,0 +1,387 @@
+\title{Правила кодирования на С/С++}
+\author{Ray Tracing Systems}
+\date{\today}
+
+\documentclass[12pt]{article}
+
+\usepackage[
+  a4paper, mag=1000, includefoot,
+  left=3cm, right=1cm, top=2cm, bottom=2cm, headsep=1cm, footskip=1cm
+]{geometry}
+\usepackage[T2A]{fontenc}
+\usepackage[cp1251]{inputenc}
+\usepackage[english,russian]{babel} 	
+\usepackage{float}
+\usepackage[section]{placeins}
+
+\usepackage{hyperref}
+\hypersetup{pdfborder={0 0 0}, colorlinks=true, urlcolor=blue} % Specify a color for hyperlinks
+\usepackage{todonotes} % Required for the boxes that questions appear in
+\usepackage{tocloft} % Required to give customize the table of contents to display questions
+\usepackage{enumitem}
+
+
+\renewcommand{\baselinestretch}{1.25}
+
+\usepackage{listings}
+
+\usepackage{xcolor} % for setting colors
+
+\definecolor{darkgreen}{rgb}{0.0, 0.65, 0.0}
+
+% set the default code style
+\lstset{
+	frame=tb, % draw a frame at the top and bottom of the code block
+	tabsize=4, % tab space width
+	showstringspaces=false, % don't mark spaces in strings
+	numbers=left, % display line numbers on the left
+	commentstyle=\color{darkgreen}, % comment color
+	keywordstyle=\color{blue},  % keyword color
+	stringstyle =\color{red}    % string color
+}
+
+% Create the command used for removed procs
+\newcommand{\listreqname}{}
+\newlistof{req}{def2}{\listreqname}
+
+
+\newcommand{\reqirenment}[1]{%
+	\refstepcounter{req}%
+	\par\noindent 
+	\phantomsection % Needed for hyperref compatibility with the \addcontensline command
+	%\addcontentsline{def2}{figure}{#1} % Adds the question to the list of questions
+	\addcontentsline{def2}{figure}
+	{\protect\numberline{\thesection.\thereq}#1}\par
+	\todo[inline, color=green!25]{\textbf{Правило\_\thesection.\thereq:} \textbf{#1} \hyperref[ruleslist]{(наверх)}} % Uses the todonotes package to create a fancy box to put the question
+	\vspace{1em} % White space after the question before the start of the answer
+}
+
+
+
+\newcommand{\exception}[1]{%
+	\refstepcounter{req}%
+	\par\noindent 
+	\phantomsection % Needed for hyperref compatibility with the \addcontensline command
+	%\addcontentsline{def2}{figure}{#1} % Adds the question to the list of questions
+	\addcontentsline{def2}{figure}
+	{\protect\numberline{\thesection.\thereq}#1}\par
+	\todo[inline, color=red!25]{\textbf{Правило-исключение\_\thesection.\thereq:} \textbf{#1} \hyperref[ruleslist]{(наверх)}} % Uses the todonotes package to create a fancy box to put the question
+	\vspace{1em} % White space after the question before the start of the answer
+}
+
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+Данные правила кодирования приняты в проекте Hydra Renderer в целях улучшения читабельности кода всеми участниками проекта. Правила оформлены в виде требований, но при этом носят рекомендательный характер. Отступления от правил допускаются в ситуациях когда это улучшает читабельность кода или необходмо отделить от общего кода какую-то его часть или Вам кажется что так лучше. 
+
+Помните, что правила кодирования должны помогать понять сложный и неочевидный код. В простых случаях, для небольших функций не нужно следовать правилам в слепую.
+
+\end{abstract}
+
+\section{Cписок правил}\label{ruleslist}
+
+\listofreq
+
+
+\section{Общие правила кодирования на С++}\label{general}
+
+
+\reqirenment{namesCamelCase}
+\begin{itemize}
+
+\item Локальные переменные функций \textbf{должны} использовать соглашение об именовании \textit{lowerCamelCase} (листинг \ref{examplebasic}).
+
+\item Все типы данных \textbf{должны} использовать соглашение об именовании \textit{UpperCamelCase} (листинг \ref{examplebasic}).
+
+\item Обычные функций \textbf{должны} использовать соглашение об именовании \textit{UpperCamelCase} (листинг \ref{examplebasic}). См. \hyperref[c99func]{исключение} для функций ядра.
+
+\end{itemize}
+
+\begin{lstlisting}[language=C++, caption={Почти правильный пример}]
+int main(int argc, char** argv)
+{
+  int someVariable = ComputeSomeValue();
+  Foo foo          = ComputeFoo(); 
+  return 0;
+}
+\end{lstlisting}\label{examplebasic}
+
+\reqirenment{alwaysConst}
+
+Модификатор \textit{const} \textbf{должен} использоваться всегда когда это возможно (листинг \ref{examplebasic2}).
+
+\begin{itemize}
+  \item Для локальных переменных
+  \item Для аргументов функций 
+  \item Для функций-членов классов не изменяющих данные объекта this.
+\end{itemize}
+
+\begin{lstlisting}[language=C++, caption={Правильный пример}]
+int main(const int argc, const char** argv)
+{
+  const int someVariable = ComputeSomeValue();
+  const Foo foo          = ComputeFoo(); 
+  return 0;
+}
+\end{lstlisting}\label{examplebasic2}
+
+\reqirenment{globalConstDefine}
+
+\begin{itemize}
+	\item Глобальные константы используют верхний регистр и подчёркивания - \newline \#define \textit{SOME\_MAX\_VALUE} 1000.
+	\item Для объявления глобальных констант \textbf{рекомендуется} иcпользовать препроцессор (для совместимости с GPU). 
+\end{itemize}
+
+\reqirenment{prefix}
+
+Для того чтобы быстро определять к чему относится переменная в \underline{большом} коде принимаются следующие соглашения (листинг \ref{exampleprefix}):
+
+\begin{itemize}
+	
+\item Переменные-указатели \textbf{должны} иметь префикс p.
+\item Глобальные переменные \textbf{должны} иметь префикс g\_.
+\item Члены класса (но не структур!) \textbf{должны} иметь префикс m\_. Для относительно-небольших классов данное правило можно не соблюдать.
+\item Аргументы функций \textbf{должны} иметь префикс a\_.
+
+\end{itemize}
+
+Для аргументов функций префикс a\_ можно опускать если, это просто функция (а не функция-член класса) и она имеет длинну не более 50 строк. Аналогично для членов класса. Префикс m\_ можно опустить если класс относительно-небольшой.
+
+
+\begin{lstlisting}[language=C++, caption={Пример на префиксы и пустую строку после if}]
+
+const Foo* g_pFoo = nullptr;
+
+void MyCppClass::DoSomething(const Foo* a_pFoo, const Object& a_object)
+{
+  m_pFoo = a_pFoo;       // store pointer in local member
+  if(g_pFoo == nullptr)
+    g_pFoo = m_pFoo;     // store pointer in global variable
+                         // please note empty line here !!!
+  m_pFoo->DoSomethingWithObject(a_object);
+}
+\end{lstlisting}\label{exampleprefix}
+
+\reqirenment{procedureInOut1}
+
+По возможности следует избегать выходных параметров функций. 
+
+\reqirenment{procedureInOut2}
+
+Выходные параметры функции \textbf{должны} быть объявлены в конце, на следующей строчке после входных параметров. Это относится \textit{как к объявлению так и к вызову функции}. 
+
+\begin{lstlisting}[language=C++, caption={Пример кода с выходными параметрами}]
+float3 BSDF::Evaluate(const Scene &a_scene, const float3 &a_rayDir, 
+                      float *a_directPdfW, float *a_reversePdfW) const
+{
+	float3 result(0);
+	if(a_directPdfW)  (*a_directPdfW)  = 0;
+	if(a_reversePdfW) (*a_reversePdfW) = 0;
+    // ...
+	return result;
+}
+
+...
+
+float directPdfW, reversePdfW;
+float3 color = bsdf->Evaluate(scene, ray_dir,  // line break here!
+                              &directPdfW, &reversePdfW);  
+                              
+float3 contrib = color*(1.0f/fmax(directPdfW,epsilon));                              
+\end{lstlisting}\label{inoutparamsf}
+
+\reqirenment{dereferencePointer}
+
+Разыменование указателя должно быть заключено в круглые скобки.
+
+\begin{lstlisting}[language=C++, caption={Пример разыменования указателя}]
+float3 MyFunction(float *a_reversePdfW) const
+{
+  // ... 
+  (*a_reversePdfW) = 0; // note "(" and ")"
+  // ... 
+}                              
+\end{lstlisting}\label{derefp}
+
+\reqirenment{emptyLine}
+
+После операторов циклов и условий if \textbf{должна} cтоять пустая строка (листинг \ref{exampleprefix}).
+
+\begin{lstlisting}[language=C++, caption={Пустые строки после циклов и if-ов}]
+void LoopDemo(const Foo* a_pFoo, const Object& a_object)
+{
+	m_pFoo = a_pFoo;       
+	if(g_pFoo == nullptr)
+	{
+	  g_pFoo = m_pFoo;  
+	  g_pFoo->Init();  
+	}
+	                     // please note empty line here !!!
+	m_pFoo->DoSomethingWithObject(a_object);
+	for(int i=0;i<10;i++)
+	  m_pFoo->DoSomethingElse(a_object);
+	                     // please note empty line here !!!
+    m_pFoo->DestroyTheWorld();
+}
+
+\end{lstlisting}\label{exampleloop}
+
+
+\reqirenment{alignBlocks}
+
+Для множества иддущих подряд операторов присвавания предусмотрено объединение их в блоки следующим образом:
+
+\begin{itemize}
+	
+	\item Идущие подряд несколко операторов присваивания \textbf{должны} быть выровнены по опрератору присваивания аналогично листингу \ref{exampleassign}.
+	\item Если имя переменной слишком длинное, \textbf{следует} сделать отступ в виде пустой строки, отделив таким образом этот оператор в отдельный блок присваиваний.
+	\item Дополнительное выравнивание по именам не обязательно.
+	
+\end{itemize}
+
+
+\begin{lstlisting}[language=C++, caption={Явное приведение в стиле С++}]
+void AssignDemo(const Foo* a_pFoo, const Object& a_object)
+{
+  const Object objectCopy = a_object;
+  const Foo*   pFoo       = a_pFoo;
+  const int    myIntVal   = ComputeSomeThingInteger();
+  const float  myFloatVal = ComputeSomeThingReal();
+                                // please note empty line here !!!
+  const float myVeryLongName = ComputeSomeThingReal();
+}
+\end{lstlisting}\label{exampleassign}
+
+
+\reqirenment{loopVector\_size\_t}
+
+\begin{itemize}
+
+\item Циклы for итерирующие std::vector \textbf{должны} иметь тип индекса size\_t.
+\item Либо в случае когда это необходимо (например при использовании OpenMP) должно быть осуществено явное приведение значения v.size() в int.
+
+\end{itemize}
+
+
+\begin{lstlisting}[language=C++, caption={Пример итерирования вектора}]
+void IterateVector(const std::vector<float>& myArray)
+{
+  // we break rule for argument naming myArray btw ... 
+  // but this is ok :)
+  
+  for(size_t i=0;i<myArray.size();i++)
+    SomeCheapOperation(myArray[i]);
+    
+  #pragma omp parallel for
+  for(int i=0;i<int(myArray.size());i++)
+    SomeCostlyOperation(myArray[i]);
+    
+}
+\end{lstlisting}\label{loopvector}
+
+\reqirenment{tabspaces}
+
+
+\begin{itemize}
+	
+	\item В исходном коде \textbf{не должен} использоваться символ табуляции. 
+	\item Табуляция \textbf{должна} заменяться пробелами.
+	\item Размер табуляции \textbf{должен} быть равен 2 пробелам.
+	
+\end{itemize}
+
+\newpage
+
+\section{Правила безопасного кодирования на С++}\label{safety}
+
+\reqirenment{stringCStrExpression}
+
+Запрещается вызывать метод std::string::c\_str() для выражений со строками (листинг \ref{stringdemo}).
+
+\begin{lstlisting}[language=C++, caption={Пример итерирования вектора}]
+void StringDemo(const std::atring& a, const std::atring& b)
+{
+  printf( (a+b).c_str() ); // неправильно
+  
+  const std::string c = a + b;
+  printf( c.c_str() );     // правильно
+}
+\end{lstlisting}\label{stringdemo}
+
+
+\reqirenment{compareFloat}
+
+Числа с плавающей точкой \textbf{не должны} сравниваться на строгое равенство или неравенство.
+
+\reqirenment{floatForLoop}
+
+Счетчик цикла for \textbf{не должен} быть переменной с плавающей точкой. Для аналогичной функциональности следует использовать цикл while.
+
+\reqirenment{restrictedForIndex}
+Счетчик цикла for \textbf{запрещается} изменять внутри цикла. Для аналогичной функциональности следует использовать цикл while.
+
+\reqirenment{newDelete}
+
+Операторы new и delete \textbf{должны} встречаться только в парах на одном и том же уровне вложенности, если выделение памяти/создание объекта происходит при помощи обычных указателей (а не умных).
+
+\reqirenment{factorySharedPtr}
+
+Фабричные функции \textbf{должны} возвращать только shared\_ptr<Object>. Запрещается возращать указатель на память, выделенную внутри функции.
+
+\reqirenment{typeCastCpp}
+
+\textbf{Любые} преобразование типов \textbf{должны} быть сделано явно с помощью операции приведения типов в стиле С++ (листинг \ref{examplecast}).
+
+\begin{lstlisting}[language=C++, caption={Выравнивание операторов присваивания}]
+void CastDemo(const Object& a_object)
+{
+  const Foo   objectCopy = Foo(a_object);
+  const int   myIntVal   = ... ;
+  const float myFloatVal = float(myIntVal);
+  const uint8_t myByte   = uint8_t(myIntVal);
+}
+\end{lstlisting}\label{examplecast}
+
+\reqirenment{operatorBrackets}
+
+Порядок выполнения операций в выражении \textbf{должен} быть явно определен с помощью скобок везде кроме очевидных выражений с операторами + - * /.
+
+
+
+\newpage
+
+\section{Правила-исключения для кодирования в ядре на С99}\label{core}
+
+\exception{pureFunctions}\label{c99func}
+
+Функции не имеющие побочных состояний называются чистыми. Чистые функции, написанные на C99 и используемые в ядре \textbf{должны} использовать соглашение \textit{lowerCamelCase} (листинг \ref{examplebasiccore}).
+
+\begin{lstlisting}[language=C++, caption={Пример вызова чистых функций на С99}]
+int main(const int argc, const char** argv)
+{
+  // ... some code 
+  
+  const int numLayers = materialNumComponents(pMaterial, ...);
+  const Foo foo       = lightComputeFoo(pLight, ...); 
+  return 0;
+}
+\end{lstlisting}\label{examplebasiccore}
+
+
+\exception{typeCastC}
+
+В ядре \textbf{любые} преобразование типов \textbf{должны} быть сделано явно с помощью операции приведения типов в стиле С (листинг \ref{examplecastc}).
+
+\begin{lstlisting}[language=C++, caption={Явное приведение в стиле Си}]
+void CastDemo(const Object& a_object)
+{
+  const int   myIntVal   = ... ;
+  const float myFloatVal = (float)myIntVal;
+  const uint8_t myByte   = (uint8_t)myIntVal;
+}
+\end{lstlisting}\label{examplecastc}
+
+
+\end{document}

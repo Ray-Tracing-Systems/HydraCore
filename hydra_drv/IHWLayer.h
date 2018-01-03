@@ -1,0 +1,331 @@
+#pragma once
+
+#include <cstdint>
+
+#ifndef ABSTRACT_MATERIAL_GUARDIAN
+  #include "AbstractMaterial.h"
+#endif
+
+#include <vector>
+#include <unordered_map>
+#include <stack>
+
+#include "FastList.h"
+#include "IBVHBuilderAPI.h"
+#include "IMemoryStorage.h"
+
+#include "../../HydraAPI/hydra_api/HydraAPI.h"
+#include "../../HydraAPI/hydra_api/HydraInternal.h"
+
+typedef void(*RTE_PROGRESSBAR_CALLBACK)(const wchar_t* message, float a_progress);
+
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+struct AllRenderVarialbes
+{
+  AllRenderVarialbes()
+  {
+    memset(m_varsI, 0, sizeof(int)*GMAXVARS);
+    memset(m_varsF, 0, sizeof(int)*GMAXVARS);
+    m_flags = 0;
+
+    m_varsF[HRT_ABLOW_SCALE_X] = 1.0f;
+    m_varsF[HRT_ABLOW_SCALE_Y] = 1.0f;
+
+    m_varsF[HRT_MLT_PLARGE]      = 0.05f;
+    m_varsI[HRT_MLT_MAX_NUMBERS] = 128;
+    m_varsI[HRT_MLT_ITERS_MULT]  = 2;
+    m_varsI[HRT_MLT_BURN_ITERS]  = 128;
+  }
+
+  int          m_varsI[GMAXVARS];
+  float        m_varsF[GMAXVARS];
+  unsigned int m_flags;
+
+  void SetVariableI(int a_name, int a_val);
+  void SetVariableF(int a_name, float a_val);
+  void SetFlags(unsigned int bits, unsigned int a_value);
+
+  bool shadePassEnable(int a_bounceNumNoRegenerate);
+};
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+struct InputGeom
+{
+  const float4* vertPos;
+  const float4* vertNorm;
+  const float2* vertTexCoord;
+  const float4* vertTangent;
+  size_t vertNum;
+
+  const unsigned int* indices;         // of size == numIndices
+  const unsigned int* materialIndices; // of size == numIndices/3
+  size_t numIndices;
+};
+
+
+struct InputGeomBVH
+{
+  const BVHNode* nodes;
+  size_t numNodes;
+
+  const char* primListData;
+  size_t primListSizeInBytes;
+
+  size_t triNumInList;
+
+};
+
+
+struct MegaTexData
+{
+  int w, h;
+  const char* data;
+  bool    outOfCore;          // must be explicitly set if GPU have insuffitient memory fro current texture
+  float4* lookUpTable;
+  int     lookUpTableSize;
+  int2*   resTable;
+};
+
+
+struct LightMeshData
+{
+  float4* positions;
+  float2* texCoords;
+  float2* intervals;
+  size_t  size;
+};
+
+
+
+class IHWLayer
+{
+public:
+
+  IHWLayer() : m_progressBar(nullptr), m_avgSpp(0.0f), m_width(0), m_height(0), m_pExternalImage(nullptr) { memset(&m_globsBuffHeader, 0, sizeof(EngineGlobals)); }
+  virtual ~IHWLayer();
+
+  virtual void Clear(CLEAR_FLAGS a_flags)   = 0;
+
+  virtual IMemoryStorage* CreateMemStorage(uint64_t a_maxSizeInBytes, const char* a_name) = 0;
+  virtual void ResizeTablesForEngineGlobals(int32_t a_geomNum, int32_t a_imgNum, int32_t a_matNum, int32_t a_lightNum);
+
+  virtual void PrepareEngineGlobals(); ///< copy constant to linear device memory for further usage them by the compute core
+  virtual void PrepareEngineTables();  ///< copy tables   to linear device memory for further usage them by the compute core
+
+  virtual void SetCamMatrices(float mProjInverse[16], float mWorldViewInverse[16], float mProj[16], float mWorldView[16], float a_aspect, float a_fovX);
+
+  virtual void SetAllBVH4(const ConvertionResult& a_convertedBVH, IBVHBuilder2* a_inBuilderAPI, int a_flags) = 0;
+  virtual void SetAllInstMatrices(const float4x4* a_matrices, int32_t a_matrixNum) = 0;
+  virtual void SetAllInstLightInstId(const int32_t* a_lightInstIds, int32_t a_instNum) = 0;
+  virtual void SetAllPODLights(PlainLight* a_lights2, size_t a_number);
+
+  virtual void SetAllLightsSelectTable(const float* a_table, int32_t a_tableSize);
+
+  // render state
+  //
+
+  virtual void SetAllFlagsAndVars(const AllRenderVarialbes& a_vars);
+  virtual AllRenderVarialbes GetAllFlagsAndVars() const;
+
+  // rendering and other
+  //
+
+  virtual void BeginTracingPass()  = 0;
+  virtual void EndTracingPass()    = 0;
+  virtual void FinishAll() {}
+
+  virtual void InitPathTracing(int seed) = 0;
+  virtual void ClearAccumulatedColor() = 0;
+
+  // Other
+  //
+  virtual void ResetPerfCounters() = 0;
+
+  virtual void ResizeScreen(int w, int h, int a_flags) { m_width = w; m_height = h; }
+
+  virtual void GetLDRImage(uint32_t* data, int width, int height) const = 0;
+  virtual void GetHDRImage(float4* data, int width, int height) const = 0;
+
+  virtual size_t GetAvaliableMemoryAmount(bool allMem = false) = 0;
+  virtual size_t GetMicroThreadsNumber() = 0;
+
+  virtual MRaysStat GetRaysStat() = 0;
+
+  virtual const HRRenderDeviceInfoListElem* ListDevices() const { return nullptr; }
+
+  // crappy shit
+  //
+  virtual void SetRaysPerPixel(int a_num) { }
+  virtual int  GetRaysPerPixel() const { return 1; }
+
+  // programible and custom pipeline
+  //
+  virtual void SetNamedBuffer(const char* a_name, void* a_data, size_t a_size) {}
+  virtual void CallNamedFunc(const char* a_name, const char* a_args) {}
+
+  virtual void RenderFullScreenBuffer(const char* a_dataName, float4* a_data, int width, int height, int a_spp) 
+  {
+    std::vector<ushort2> pixels(m_width*m_height);
+    for (int y = 0; y < height; y++)
+    {
+      for (int x = 0; x < m_width; x++)
+        pixels[y*m_width + x] = ushort2(x, y);
+    }
+
+    renderSubPixelData(a_dataName, pixels, a_spp, a_data, nullptr);
+  }
+
+  virtual bool ImplementPhotonMapping() const { return false; }
+  virtual bool StoreCPUData()           const { return false; }
+
+  // color accumulators, MLT
+  //             
+  virtual bool   FrameBuff_IsAllocated(int a_id) const { if (a_id == 0) return true; else return false; }
+  virtual void   FrameBuff_Alloc(int a_id) { }
+  virtual void   FrameBuff_Free(int a_id) { }
+  virtual void   FrameBuff_SetRenderTarget(int a_id) {}
+  virtual void   FrameBuff_Blend(int a_buffRes, int a_buff1, int a_buff2, float4 k1, float4 k2) {}
+  virtual void   FrameBuff_Clear(int a_id) {}
+  virtual float4 FrameBuff_AverageColor(int a_id) { return float4(0, 0, 0, 0); }
+  virtual float4 FrameBuff_AverageSqrtColor(int a_id) { return float4(0, 0, 0, 0); }
+
+  virtual bool   MLT_IsAllocated() const { return true; }
+  virtual int    MLT_Alloc(int a_maxBounce) { return 0; }
+  virtual void   MLT_Free() {}
+
+  virtual void   MLT_Init(int a_seed)  { }
+  virtual float4 MLT_Burn(int a_iters) { return float4(1, 1, 1, 1); }
+  virtual void   MLT_DoPass() {}
+
+  virtual void   MLT_DoPassDebug() {}
+
+  virtual void   SetProgressBarCallback(RTE_PROGRESSBAR_CALLBACK a_pFunc) { m_progressBar = a_pFunc; }
+
+  virtual float  GetAvgSPP() const { return float(m_avgSpp); }
+
+  // normalmap and aux computations
+  //
+  virtual std::vector<uchar4> NormalMapFromDisplacement(int w, int h, const uchar4* a_data, float bumpAmt, bool invHeight, float smoothLvl) { return std::vector<uchar4>(); }
+
+  virtual void SetExternalImageAccumulator(IHRSharedAccumImage* a_pImage) { m_pExternalImage = a_pImage;}
+
+protected:
+
+  virtual void renderSubPixelData(const char* a_dataName, const std::vector<ushort2>& a_pixels, int spp, float4* a_pixValues, float4* a_subPixValues) {}
+
+  int m_width;
+  int m_height;
+  double m_avgSpp;
+
+  AllRenderVarialbes m_vars;
+
+  std::stack<AllRenderVarialbes> m_varsStack;
+  std::stack<unsigned int>       m_flagsStack;
+
+  EngineGlobals m_globsBuffHeader;
+  RTE_PROGRESSBAR_CALLBACK m_progressBar;
+  IHRSharedAccumImage*     m_pExternalImage;
+
+  struct SpherePdfTableCPU
+  {
+    SpherePdfTableCPU(){}
+    SpherePdfTableCPU(int a_x, int a_y, const std::vector<float2>& a_intervals) : pdfSizeX(a_x), pdfSizeY(a_y), intervals(a_intervals) {}
+
+    std::vector<float2> intervals;
+
+    int    pdfSizeX;
+    int    pdfSizeY;
+  };
+
+  std::vector<int> m_cdataPrepared;
+
+  std::unordered_map<std::string, IMemoryStorage*> m_allMemStorages;
+  std::vector<int>                                 m_geomTable;
+  std::vector<float>                               m_lightSelectTable;
+  
+};
+
+
+size_t CalcConstGlobDataOffsets(EngineGlobals* pGlobals);
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+IHWLayer* CreateOclImpl(int w, int h, int a_flags, int a_deviceId);
+IHWLayer* CreateCPUExpImpl(int w, int h, int a_flags);
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+#include "CPUExp_Integrators.h"
+
+class CPUSharedData : public IHWLayer
+{
+
+public:
+
+  typedef IHWLayer Base;
+
+  CPUSharedData(int w, int h, int a_flags);
+  ~CPUSharedData();
+
+  void SetAllBVH4(const ConvertionResult& a_convertedBVH, IBVHBuilder2* a_inBuilderAPI, int a_flags) override;
+  void SetAllInstMatrices(const float4x4* a_matrices, int32_t a_matrixNum);
+  void SetAllInstLightInstId(const int32_t* a_lightInstIds, int32_t a_instNum);
+
+  void PrepareEngineGlobals();
+  void PrepareEngineTables();
+
+  std::vector<uchar4> NormalMapFromDisplacement(int w, int h, const uchar4* a_data, float bumpAmt, bool invHeight, float smoothLvl);
+
+protected:
+
+  SceneBVHData  m_scnBVH;
+  SceneMTexData m_scnTexts;
+  Integrator*   m_pIntegrator;
+  IBVHBuilder2* m_pBVHBuilder;
+
+  const int32_t*  m_instLightInstId;
+  const float4x4* m_instMatrices;
+  int32_t         m_instMatrixNum;
+
+  // temp and test members
+  //
+  struct TempBvhData
+  {
+    TempBvhData() : haveInst(true), smoothOpacity(false) {}
+    std::vector<BVHNode> m_bvh;
+    std::vector<float4>  m_tris;
+    std::vector<uint2>   m_atbl;
+    bool haveInst;
+    bool smoothOpacity;
+  };
+
+  TempBvhData m_bvhTrees[MAXBVHTREES];
+  int m_bvhTreesNum;
+  int m_createFlags;
+
+  SceneGeomPointers CollectPointersForCPUIntegrator();
+
+};
+
+
+enum {GPU_RT_MEMORY_SAFE_MODE          = 1, 
+      GPU_RT_MEMORY_FULL_SIZE_MODE     = 2,
+      GPU_RT_NOWINDOW                  = 4,
+      GPU_RT_HW_LAYER_OCL              = 8,
+      GPU_RT_HW_LIST_OCL_DEVICES       = 16,
+      GPU_RT_LITE_CORE                 = 64,
+      GPU_RT_CLEAR_SHADER_CACHE        = 256,
+      GPU_RT_HW_LAYER_CPU_EXPERIMENTAL = 512,
+      GPU_RT_HW_LAYER_CPU_HYBRID       = 1024,
+      CPU_RT_PURE_CL                   = 2048,
+      GPU_ALLOC_LDR_FOR_DEBUG          = 4096,
+      GPU_ALLOC_FOR_COMPACT_MLT        = 8192,
+      GPU_MLT_ENABLED_AT_START         = 16384, //#NOTE: don't move this value !!!
+      GPU_RT_DO_NOT_PRINT_PASS_NUMBER  = 32768
+      };

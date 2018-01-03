@@ -1,0 +1,10 @@
+set(CMAKE_CXX_STANDARD 14)
+
+set(SOURCE_FILES
+    IESNA.H
+    IESNA.C
+    IES_READ.C
+    )
+
+ADD_LIBRARY(ies_parser STATIC ${SOURCE_FILES})
+
