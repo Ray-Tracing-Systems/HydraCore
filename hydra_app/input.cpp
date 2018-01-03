@@ -13,30 +13,13 @@ Input::Input()
 
   //inLibraryPath = "temp/";
   //inLibraryPath = "tests/test_35";
-  //inLibraryPath = "tests/test_42";      ///< cornell box with teapot
-  //inLibraryPath = "tests/test_52";
-  //inLibraryPath = "tests/test_59";      ///< water
-  //inLibraryPath = "tests/test_59dima";
-  //inLibraryPath = "tests/test_62";      ///< cornell box with glossy back wall
-  //inLibraryPath = "tests/test_61_small3";
-  //inLibraryPath = "tests/test_63_v1";
-  //inLibraryPath = "tests/test_63_v2"; ///< cornell box with glass torus
-  //inLibraryPath = "tests/test_63_v3"; ///< cornell box with mirror torus
-  //inLibraryPath = "tests/test_223_small";
-  //inLibraryPath = "tests/cornell_normalmaps3";
-
-  //inLibraryPath = "tests/hydra_benchmark_07";
-  //inLibraryPath = "tests/hydra_benchmark_02";
-  //inLibraryPath = "tests/bathtoom_2sphere_lights";
-
-  inLibraryPath = "D:/PROG/[Graphics]/HydraAPI/main/tests/test_39";
+  inLibraryPath = "tests/test_42";      ///< cornell box with teapot
+  
+  //inLibraryPath = "D:/PROG/[Graphics]/HydraAPI/main/tests/test_39";
   //inLibraryPath = "D:/PROG/HydraAPI/main/tests/test_72";
   //inLibraryPath = "D:/PROG/HydraAPI/main/tests_f/test_004";
   //inLibraryPath = "C:/[Hydra]/pluginFiles/scenelib";
-
-  //inLibraryPath   = "D:/temp/bathroom_scenelib";
-
-  
+ 
   inDeviceId = 1;
   enableMLT  = false;
 
