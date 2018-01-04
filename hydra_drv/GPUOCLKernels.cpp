@@ -411,7 +411,7 @@ void GPUOCLLayer::runKernel_ShadowTrace2(cl_mem a_rpos, cl_mem a_rdir, cl_mem a_
           CHECK_CL(clSetKernelArg(kernY, 2, sizeof(cl_mem), (void*)&m_rays.lsam1));
           CHECK_CL(clSetKernelArg(kernY, 3, sizeof(cl_mem), (void*)&m_rays.lsam2));
           CHECK_CL(clSetKernelArg(kernY, 4, sizeof(cl_mem), (void*)&m_rays.lshadow));
-          CHECK_CL(clSetKernelArg(kernY, 5, sizeof(cl_mem), (void*)&m_rays.lshadowTrans));
+          CHECK_CL(clSetKernelArg(kernY, 5, sizeof(cl_mem), (void*)nullptr));
           CHECK_CL(clSetKernelArg(kernY, 6, sizeof(cl_mem), (void*)&m_rays.hitPrimSize));
 
           CHECK_CL(clSetKernelArg(kernY, 7, sizeof(cl_int), (void*)&runId));
@@ -432,7 +432,7 @@ void GPUOCLLayer::runKernel_ShadowTrace2(cl_mem a_rpos, cl_mem a_rdir, cl_mem a_
           CHECK_CL(clSetKernelArg(kernY, 2, sizeof(cl_mem), (void*)&m_rays.lsam1));
           CHECK_CL(clSetKernelArg(kernY, 3, sizeof(cl_mem), (void*)&m_rays.lsam2));
           CHECK_CL(clSetKernelArg(kernY, 4, sizeof(cl_mem), (void*)&m_rays.lshadow));
-          CHECK_CL(clSetKernelArg(kernY, 5, sizeof(cl_mem), (void*)&m_rays.lshadowTrans));
+          CHECK_CL(clSetKernelArg(kernY, 5, sizeof(cl_mem), (void*)nullptr));
           CHECK_CL(clSetKernelArg(kernY, 6, sizeof(cl_mem), (void*)&m_rays.hitPrimSize));
 
           CHECK_CL(clSetKernelArg(kernY, 7, sizeof(cl_int), (void*)&runId));

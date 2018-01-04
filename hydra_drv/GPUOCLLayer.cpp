@@ -58,9 +58,11 @@ void GPUOCLLayer::CL_BUFFERS_RAYS::free()
 
   if (lsam1)           clReleaseMemObject(lsam1);
   if (lsam2)           clReleaseMemObject(lsam2);
+  if (lsam3)           clReleaseMemObject(lsam3);
+  if (lsam4)           clReleaseMemObject(lsam4);
   if (lsamProb)        clReleaseMemObject(lsamProb);
   if (lshadow)         clReleaseMemObject(lshadow);
-  if (lshadowTrans)    clReleaseMemObject(lshadowTrans);
+
   if (fogAtten)        clReleaseMemObject(fogAtten);
   if (samZindex)       clReleaseMemObject(samZindex);
   if (pixWeights)      clReleaseMemObject(pixWeights);
@@ -89,9 +91,10 @@ void GPUOCLLayer::CL_BUFFERS_RAYS::free()
 
   lsam1        = 0;
   lsam2        = 0;
+  lsam3        = 0;
+  lsam4        = 0;
   lsamProb     = 0;
   lshadow      = 0;
-  lshadowTrans = 0;
   fogAtten     = 0;
   samZindex    = 0;
   pixWeights   = 0;
@@ -152,11 +155,13 @@ void GPUOCLLayer::CL_BUFFERS_RAYS::resize(cl_context ctx, cl_command_queue cmdQu
   if (ciErr1 != CL_SUCCESS)
     RUN_TIME_ERROR("Error in resize rays buffers");
 
-  lsam1    = clCreateBuffer(ctx, CL_MEM_READ_WRITE | shareFlags, 4 * sizeof(cl_float)*MEGABLOCKSIZE, NULL, &ciErr1);
-  lsam2    = clCreateBuffer(ctx, CL_MEM_READ_WRITE | shareFlags, 4 * sizeof(cl_float)*MEGABLOCKSIZE, NULL, &ciErr1);
-  lsamProb = clCreateBuffer(ctx, CL_MEM_READ_WRITE, 1 * sizeof(cl_float)*MEGABLOCKSIZE, NULL, &ciErr1);
-  lshadow  = clCreateBuffer(ctx, CL_MEM_READ_WRITE | shareFlags, 4 * sizeof(cl_ushort)*MEGABLOCKSIZE, NULL, &ciErr1);
+  lsam1    = clCreateBuffer(ctx, CL_MEM_READ_WRITE | shareFlags, 4 * sizeof(cl_float)*MEGABLOCKSIZE, NULL, &ciErr1);   // float4
+  lsam2    = clCreateBuffer(ctx, CL_MEM_READ_WRITE | shareFlags, 4 * sizeof(cl_float)*MEGABLOCKSIZE, NULL, &ciErr1);   // float4
+  lsam3    = clCreateBuffer(ctx, CL_MEM_READ_WRITE | shareFlags, 4 * sizeof(cl_float)*MEGABLOCKSIZE, NULL, &ciErr1);   // float4
+  lsam4    = clCreateBuffer(ctx, CL_MEM_READ_WRITE | shareFlags, 4 * sizeof(cl_float)*MEGABLOCKSIZE, NULL, &ciErr1);   // float4
 
+  lsamProb = clCreateBuffer(ctx, CL_MEM_READ_WRITE,              1 * sizeof(cl_float)*MEGABLOCKSIZE, NULL, &ciErr1);   // float1
+  lshadow  = clCreateBuffer(ctx, CL_MEM_READ_WRITE | shareFlags, 4 * sizeof(cl_ushort)*MEGABLOCKSIZE, NULL, &ciErr1);  // float2
   fogAtten = clCreateBuffer(ctx, CL_MEM_READ_WRITE, 4 * sizeof(cl_float)*MEGABLOCKSIZE, NULL, &ciErr1);
 
   if (false) // USE_BILINEAR_2D_SAMPLING
@@ -173,10 +178,6 @@ void GPUOCLLayer::CL_BUFFERS_RAYS::resize(cl_context ctx, cl_command_queue cmdQu
   if (ciErr1 != CL_SUCCESS)
     RUN_TIME_ERROR("Error in resize rays buffers");
 
-  lshadowTrans = clCreateBuffer(ctx, CL_MEM_READ_WRITE | shareFlags, TRANSPARENCY_LIST_SIZE * sizeof(cl_int)*MEGABLOCKSIZE, NULL, &ciErr1);
-
-  if (ciErr1 != CL_SUCCESS)
-    RUN_TIME_ERROR("Error in resize rays buffer lshadowTrans");
 
   std::cout << "[cl_core]: MEGABLOCK SIZE = " << MEGABLOCKSIZE << std::endl;
 }

@@ -9,6 +9,8 @@ __kernel void LightSampleForwardKernel(__global float4*        restrict a_rpos,
                                        
                                        __global float4*        restrict out_data1,
                                        __global float4*        restrict out_data2,
+                                       __global float4*        restrict out_data3,
+                                       __global float4*        restrict out_data4,
 
                                        __global int*           restrict out_flags,         // just for clearing them
                                        __global float4*        restrict out_color,         // just for clearing them
@@ -48,9 +50,14 @@ __kernel void LightSampleForwardKernel(__global float4*        restrict a_rpos,
   LightSampleForward(pLight, rands1, rands2, a_globals, a_texStorage1, a_pdfStorage,
                      &sample);
 
-
   // (2) put light sample to global memory
   //
+  const int isPoint = sample.isPoint ? 1 : 0;
+
+  out_data1[tid] = to_float4(sample.pos,   sample.pdfA);        // float3 pos; float  pdfA;     => float4 (1)
+  out_data2[tid] = to_float4(sample.dir,   sample.pdfW);        // float3 dir; float  pdfW;     => float4 (2)
+  out_data3[tid] = to_float4(sample.norm,  sample.cosTheta);    // float3 norm; float cosTheta; => float4 (3)
+  out_data4[tid] = to_float4(sample.color, as_float(isPoint));  // float3 color;bool  isPoint;  => float4 (4)
 
   // (3) clear temporary per ray data
   //
