@@ -352,6 +352,7 @@ protected:
     CLProgram sort;
     CLProgram imagep;
     CLProgram material;
+    CLProgram lightp;
 
   } m_progs;
 

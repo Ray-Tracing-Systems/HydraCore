@@ -223,6 +223,7 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="shaders\image.cl" />
+    <None Include="shaders\light.cl" />
     <None Include="shaders\material.cl" />
     <None Include="shaders\mlt.cl" />
     <None Include="shaders\screen.cl" />

@@ -55,7 +55,7 @@ void GPUOCLLayer::runKernel_MakeEyeRaysAndClearUnified(cl_mem a_rpos, cl_mem a_r
 
 void GPUOCLLayer::runKernel_MakeLightRays(cl_mem a_rpos, cl_mem a_rdir, size_t a_size)
 {
-  cl_kernel makeRaysKern = m_progs.screen.kernel("LightSampleForwardKernel");
+  cl_kernel makeRaysKern = m_progs.lightp.kernel("LightSampleForwardKernel");
   size_t localWorkSize   = CMP_RESULTS_BLOCK_SIZE;
   int iSize              = int(a_size);
   a_size                 = roundBlocks(a_size, int(localWorkSize));
@@ -319,7 +319,7 @@ void GPUOCLLayer::runKernel_ShadowTrace2(cl_mem a_rpos, cl_mem a_rdir, cl_mem a_
 {
   bool transparensyShadowEnabled = false; // !(m_vars.m_flags & HRT_ENABLE_PT_CAUSTICS);
 
-  cl_kernel kernX = m_progs.material.kernel("LightSample");
+  cl_kernel kernX = m_progs.lightp.kernel("LightSample");
   cl_kernel kernT = m_progs.material.kernel("TransparentShadowKenrel");
   cl_kernel kernZ = m_progs.material.kernel("Shade");
   cl_kernel kernN = m_progs.trace.kernel("NoShadow");

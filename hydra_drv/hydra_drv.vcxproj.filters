@@ -226,5 +226,8 @@
     <None Include="shaders\material.cl">
       <Filter>core\shaders</Filter>
     </None>
+    <None Include="shaders\light.cl">
+      <Filter>core\shaders</Filter>
+    </None>
   </ItemGroup>
 </Project>

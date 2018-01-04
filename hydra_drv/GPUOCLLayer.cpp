@@ -579,6 +579,7 @@ GPUOCLLayer::GPUOCLLayer(int w, int h, int a_flags, int a_deviceId) : Base(w, h,
   std::string soshaderpath = "../hydra_drv/shaders/sort.cl";   // !!!! the hole in security !!!
   std::string ishaderpath  = "../hydra_drv/shaders/image.cl";  // !!!! the hole in security !!!
   std::string mshaderpath  = "../hydra_drv/shaders/mlt.cl";         // !!!! the hole in security !!!
+  std::string lshaderpath  = "../hydra_drv/shaders/light.cl";    // !!!! the hole in security !!!
   std::string yshaderpath  = "../hydra_drv/shaders/material.cl";    // !!!! the hole in security !!!
 
   const std::string installPath2 = "C:/[Hydra]/bin2/";
@@ -588,6 +589,7 @@ GPUOCLLayer::GPUOCLLayer(int w, int h, int a_flags, int a_deviceId) : Base(w, h,
   if (!isFileExists(soshaderpath)) soshaderpath = installPath2 + "shaders/sort.cl";
   if (!isFileExists(ishaderpath))  ishaderpath  = installPath2 + "shaders/image.cl";
   if (!isFileExists(mshaderpath))  mshaderpath  = installPath2 + "shaders/mlt.cl";
+  if (!isFileExists(lshaderpath))  lshaderpath  = installPath2 + "shaders/light.cl";
   if (!isFileExists(yshaderpath))  yshaderpath  = installPath2 + "shaders/material.cl";
 
   std::string devHash = deviceHash(m_globals.device, m_globals.platform);
@@ -602,6 +604,7 @@ GPUOCLLayer::GPUOCLLayer(int w, int h, int a_flags, int a_deviceId) : Base(w, h,
   std::string soshaderpathBin = installPath2 + "shadercache/" + "sortxx_" + devHash + ".bin";
   std::string ioshaderpathBin = installPath2 + "shadercache/" + "imagex_" + devHash + ".bin";
   std::string moshaderpathBin = installPath2 + "shadercache/" + "mltxxx_" + devHash + ".bin";
+  std::string loshaderpathBin = installPath2 + "shadercache/" + "lightx_" + devHash + ".bin";
   std::string yoshaderpathBin = installPath2 + "shadercache/" + "matsxx_" + devHash + ".bin";
 
   bool inDevelopment = true;
@@ -616,10 +619,10 @@ GPUOCLLayer::GPUOCLLayer(int w, int h, int a_flags, int a_deviceId) : Base(w, h,
   {
     std::remove(sshaderpathBin.c_str());
     std::remove(tshaderpathBin.c_str());
-    //std::remove(vshaderpathBin.c_str());
     std::remove(soshaderpathBin.c_str());
     std::remove(ioshaderpathBin.c_str());
     std::remove(moshaderpathBin.c_str());
+    std::remove(loshaderpathBin.c_str());
     std::remove(yoshaderpathBin.c_str());
   }
 
@@ -650,6 +653,9 @@ GPUOCLLayer::GPUOCLLayer(int w, int h, int a_flags, int a_deviceId) : Base(w, h,
 
   std::cout << "[cl_core]: building " << tshaderpath.c_str() << "    ..." << std::endl;
   m_progs.trace  = CLProgram(m_globals.device, m_globals.ctx, tshaderpath.c_str(), options.c_str(), HydraInstallPath(), loadEncrypted, tshaderpathBin, SAVE_BUILD_LOG);
+
+  std::cout << "[cl_core]: building " << lshaderpath.c_str() << "    ..." << std::endl;
+  m_progs.lightp = CLProgram(m_globals.device, m_globals.ctx, lshaderpath.c_str(), options.c_str(), HydraInstallPath(), loadEncrypted, loshaderpathBin, SAVE_BUILD_LOG);
 
   std::cout << "[cl_core]: building " << yshaderpath.c_str() << " ..." << std::endl;
   m_progs.material = CLProgram(m_globals.device, m_globals.ctx, yshaderpath.c_str(), options.c_str(), HydraInstallPath(), loadEncrypted, yoshaderpathBin, SAVE_BUILD_LOG);

@@ -60,18 +60,20 @@ __kernel void MakeEyeRays(int offset,
 
 inline int packXYForCPU(int x, int y) { return (y << 16) | (x & 0x0000FFFF); }
 
-__kernel void MakeEyeRaysUnifiedSampling(__global float4* out_pos, __global float4* out_dir, __global RandomGen* out_gens, 
+__kernel void MakeEyeRaysUnifiedSampling(__global float4*              restrict out_pos, 
+                                         __global float4*              restrict out_dir, 
+                                         __global RandomGen*           restrict out_gens,
                                          int w, int h, int a_size,
-                                         __global const EngineGlobals* a_globals, 
-                                         __global uint*                a_flags,
-                                         __global float4*              out_color,
-                                         __global float4*              out_thoroughput,
-                                         __global float4*              out_fog,
-                                         __global HitMatRef*           out_hitMat,
-                                         __global int2*                out_zind,
-                                         __global float*               out_pixw, 
-                                         __constant ushort*            a_mortonTable256,
-                                         __constant unsigned int*      a_qmcTable, 
+                                         __global const EngineGlobals* restrict a_globals, 
+                                         __global uint*                restrict a_flags,
+                                         __global float4*              restrict out_color,
+                                         __global float4*              restrict out_thoroughput,
+                                         __global float4*              restrict out_fog,
+                                         __global HitMatRef*           restrict out_hitMat,
+                                         __global int2*                restrict out_zind,
+                                         __global float*               restrict out_pixw, 
+                                         __constant ushort*            restrict a_mortonTable256,
+                                         __constant unsigned int*      restrict a_qmcTable, 
                                          int a_passNumberForQmc, int a_packIndexForCPU)
 {
   int tid = GLOBAL_ID_X;
