@@ -150,7 +150,8 @@ protected:
   void AddContributionToScreenGPU(cl_mem in_color, cl_mem in_indices, cl_mem pixWeights, int a_size, int a_width, int a_height, int a_spp,
                                   cl_mem out_colorHDR, cl_mem out_colorLDR);
 
-  void AddContributionToScreenCPU(cl_mem in_indices, int a_size, int a_width, int a_height, float4* out_color);
+  void AddContributionToScreenCPU(cl_mem in_color, cl_mem in_indices, int a_size, int a_width, int a_height, float4* out_color);
+  void AddContributionToScreen(cl_mem in_color);
 
   std::vector<uchar4> NormalMapFromDisplacement(int w, int h, const uchar4* a_data, float bumpAmt, bool invHeight, float smoothLvl);
   void Denoise(cl_mem textureIn, cl_mem textureOut, int w, int h, float smoothLvl);
@@ -165,7 +166,6 @@ protected:
   void debugSaveRaysText(const char* a_fileName, cl_mem rpos, cl_mem rdir);
   void debugSaveFloat4Text(const char* a_fileName, cl_mem data);
   
-
   //
   //
   int    m_initFlags;
@@ -376,6 +376,7 @@ protected:
 
   void runKernel_InitRandomGen(cl_mem a_buffer, size_t a_size, int a_seed);
   void runKernel_MakeEyeRaysAndClearUnified(cl_mem a_rpos, cl_mem a_rdir, cl_mem a_zindex, cl_mem a_pixWeights, size_t a_size, int a_passNumber);
+  void runKernel_MakeLightRays(cl_mem a_rpos, cl_mem a_rdir, size_t a_size);
  
   void runKernel_Trace(cl_mem a_rpos, cl_mem a_rdir, cl_mem a_hits, size_t a_size);
   void runKernel_ComputeHit(cl_mem a_rpos, cl_mem a_rdir, size_t a_size);

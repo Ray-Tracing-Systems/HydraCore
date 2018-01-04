@@ -53,6 +53,16 @@ void GPUOCLLayer::runKernel_MakeEyeRaysAndClearUnified(cl_mem a_rpos, cl_mem a_r
   waitIfDebug(__FILE__, __LINE__);
 }
 
+void GPUOCLLayer::runKernel_MakeLightRays(cl_mem a_rpos, cl_mem a_rdir, size_t a_size)
+{
+  cl_kernel makeRaysKern = m_progs.screen.kernel("LightSampleForwardKernel");
+  size_t localWorkSize   = CMP_RESULTS_BLOCK_SIZE;
+  int iSize              = int(a_size);
+  a_size                 = roundBlocks(a_size, int(localWorkSize));
+
+
+}
+
 void RoundBlocks2D(size_t global_item_size[2], size_t local_item_size[2])
 {
   global_item_size[0] = roundBlocks(global_item_size[0], int(local_item_size[0]));

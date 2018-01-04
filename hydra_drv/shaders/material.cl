@@ -4,6 +4,35 @@
 #include "cmaterial.h"
 #include "clight.h"
 
+__kernel void LightSampleForwardKernel(__global const float4*  restrict a_rpos,
+                                       __global const float4*  restrict a_rdir,
+                                       __global const uint*    restrict a_flags,
+                                       __global RandomGen*     restrict out_gens,
+                                       
+                                       __global const float4*  restrict in_hitPosNorm,
+                                       __global float4*        restrict out_data1,
+                                       __global float4*        restrict out_data2,
+                                       __global float*         restrict out_lightPickProb,
+                                       
+                                       __global const float4*  restrict a_texStorage1,  // 
+                                       __global const float4*  restrict a_texStorage2,  //
+                                       __global const float4*  restrict a_pdfStorage,   //
+                                       
+                                       const int iNumElements,
+                                       
+                                       __global const EngineGlobals* restrict a_globals)
+{
+
+  int tid = GLOBAL_ID_X;
+  if (tid >= iNumElements)
+    return;
+
+
+
+
+}
+
+
 
 __kernel void LightSample(__global const float4*  restrict a_rpos,
                           __global const float4*  restrict a_rdir,

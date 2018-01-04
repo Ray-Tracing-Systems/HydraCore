@@ -604,7 +604,7 @@ GPUOCLLayer::GPUOCLLayer(int w, int h, int a_flags, int a_deviceId) : Base(w, h,
   std::string moshaderpathBin = installPath2 + "shadercache/" + "mltxxx_" + devHash + ".bin";
   std::string yoshaderpathBin = installPath2 + "shadercache/" + "matsxx_" + devHash + ".bin";
 
-  bool inDevelopment = false;
+  bool inDevelopment = true;
   #ifdef _DEBUG
   inDevelopment = true;
   #endif
@@ -1043,7 +1043,10 @@ void GPUOCLLayer::BeginTracingPass()
   {
     // (1) Generate random rays and generate multiple references via Z-index
     //
-    runKernel_MakeEyeRaysAndClearUnified(m_rays.rayPos, m_rays.rayDir, m_rays.samZindex, m_rays.pixWeights, m_rays.MEGABLOCKSIZE, m_passNumber);
+    if (m_vars.m_flags & HRT_FORWARD_TRACING)
+      runKernel_MakeLightRays(m_rays.rayPos, m_rays.rayDir, m_rays.MEGABLOCKSIZE);
+    else
+      runKernel_MakeEyeRaysAndClearUnified(m_rays.rayPos, m_rays.rayDir, m_rays.samZindex, m_rays.pixWeights, m_rays.MEGABLOCKSIZE, m_passNumber);
 
     // (2) Compute sample colors
     //
@@ -1051,32 +1054,40 @@ void GPUOCLLayer::BeginTracingPass()
 
     // (3) accumulate colors
     //
-    if (m_screen.m_cpuFrameBuffer)
-    {
-      float4* resultPtr = nullptr;
-      int width         = m_width;
-      int height        = m_height;
-
-      if (m_pExternalImage != nullptr)
-      {
-        resultPtr = (float4*)m_pExternalImage->ImageData(0);
-        width     = m_pExternalImage->Header()->width;
-        height    = m_pExternalImage->Header()->height;
-      }
-      else
-        resultPtr = &m_screen.color0CPU[0];
-
-      AddContributionToScreenCPU(m_rays.samZindex, int(m_rays.MEGABLOCKSIZE), width, height, resultPtr);
-    }
-    else
-      AddContributionToScreenGPU(m_rays.pathResultColor, m_rays.samZindex, m_rays.pixWeights, int(m_rays.MEGABLOCKSIZE), m_width, m_height, m_passNumber,
-                                 m_screen.color0, m_screen.pbo);
+    if ((m_vars.m_flags & HRT_FORWARD_TRACING) == 0)
+      AddContributionToScreen(m_rays.pathResultColor);
 
   }
   else if(!m_screen.m_cpuFrameBuffer)
   { 
     DrawNormals();
   }
+}
+
+
+void GPUOCLLayer::AddContributionToScreen(cl_mem in_color)
+{
+  if (m_screen.m_cpuFrameBuffer)
+  {
+    float4* resultPtr = nullptr;
+    int width = m_width;
+    int height = m_height;
+
+    if (m_pExternalImage != nullptr)
+    {
+      resultPtr = (float4*)m_pExternalImage->ImageData(0);
+      width = m_pExternalImage->Header()->width;
+      height = m_pExternalImage->Header()->height;
+    }
+    else
+      resultPtr = &m_screen.color0CPU[0];
+
+    AddContributionToScreenCPU(in_color, m_rays.samZindex, int(m_rays.MEGABLOCKSIZE), width, height, 
+                               resultPtr);
+  }
+  else
+    AddContributionToScreenGPU(in_color, m_rays.samZindex, m_rays.pixWeights, int(m_rays.MEGABLOCKSIZE), m_width, m_height, m_passNumber,
+                               m_screen.color0, m_screen.pbo);
 }
 
 /**
@@ -1107,7 +1118,7 @@ void AddSamplesContribution(float4* out_color, const float4* colors, int a_size,
   }
 }
 
-void GPUOCLLayer::AddContributionToScreenCPU(cl_mem in_indices, int a_size, int a_width, int a_height, float4* out_color)
+void GPUOCLLayer::AddContributionToScreenCPU(cl_mem in_color, cl_mem in_indices, int a_size, int a_width, int a_height, float4* out_color)
 {
   // (1) compute compressed index in color.w; use runKernel_MakeEyeRaysAndClearUnified for that task if CPU FB is enabled!!!
   //
@@ -1117,7 +1128,7 @@ void GPUOCLLayer::AddContributionToScreenCPU(cl_mem in_indices, int a_size, int 
   cl_int iNumElements    = cl_int(a_size);
   size_t size            = roundBlocks(size_t(a_size), int(szLocalWorkSize));
 
-  cl_mem in_color  = m_rays.pathResultColor;
+  //cl_mem in_color  = m_rays.pathResultColor;
   cl_mem old_color = m_rays.pathResultColor2;
 
   CHECK_CL(clSetKernelArg(kern, 0, sizeof(cl_mem), (void*)&in_indices));
