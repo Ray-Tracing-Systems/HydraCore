@@ -10,7 +10,6 @@ __kernel void LightSampleForwardKernel(__global float4*        restrict a_rpos,
                                        __global float4*        restrict out_data1,
                                        __global float4*        restrict out_data2,
                                        __global float4*        restrict out_data3,
-                                       __global float4*        restrict out_data4,
 
                                        __global int*           restrict out_flags,         // just for clearing them
                                        __global float4*        restrict out_color,         // just for clearing them
@@ -18,13 +17,10 @@ __kernel void LightSampleForwardKernel(__global float4*        restrict a_rpos,
                                        __global float4*        restrict out_fog,           // just for clearing them
                                        __global HitMatRef*     restrict out_hitMat,        // just for clearing them
                                                                                         
-
-                                       __global const float4*  restrict a_texStorage1,  // 
-                                       __global const float4*  restrict a_pdfStorage,   //
-                                       
-                                       const int iNumElements,
-                                       
-                                       __global const EngineGlobals* restrict a_globals)
+                                       __global const float4*  restrict a_texStorage1,     // 
+                                       __global const float4*  restrict a_pdfStorage, 
+                                       __global const EngineGlobals* restrict a_globals,
+                                       const int iNumElements)
 {
 
   int tid = GLOBAL_ID_X;
@@ -41,8 +37,8 @@ __kernel void LightSampleForwardKernel(__global float4*        restrict a_rpos,
   out_gens[tid]       = gen;
 
   float lightPickProb = 1.0f;
-  const int lightId = SelectRandomLightFwd(rands3, a_globals,
-                                           &lightPickProb);
+  const int lightId   = SelectRandomLightFwd(rands3, a_globals,
+                                             &lightPickProb);
    
   __global const PlainLight* pLight = lightAt(a_globals, lightId);
   
@@ -50,14 +46,15 @@ __kernel void LightSampleForwardKernel(__global float4*        restrict a_rpos,
   LightSampleForward(pLight, rands1, rands2, a_globals, a_texStorage1, a_pdfStorage,
                      &sample);
 
+  const float invPdf = 1.0f / (lightPickProb*fmax(sample.pdfA*sample.pdfW, DEPSILON2));
+
   // (2) put light sample to global memory
   //
-  const int isPoint = sample.isPoint ? 1 : 0;
+  const float isPoint = sample.isPoint ? 1.0f : -1.0f;
 
-  out_data1[tid] = to_float4(sample.pos,   sample.pdfA);        // float3 pos; float  pdfA;     => float4 (1)
-  out_data2[tid] = to_float4(sample.dir,   sample.pdfW);        // float3 dir; float  pdfW;     => float4 (2)
-  out_data3[tid] = to_float4(sample.norm,  sample.cosTheta);    // float3 norm; float cosTheta; => float4 (3)
-  out_data4[tid] = to_float4(sample.color, as_float(isPoint));  // float3 color;bool  isPoint;  => float4 (4)
+  out_data1[tid] = to_float4(sample.pos,   sample.pdfA*isPoint); // float3 pos; float  pdfA;     => float4 (1) and isPoint as sign!
+  out_data2[tid] = to_float4(sample.dir,   sample.pdfW);         // float3 dir; float  pdfW;     => float4 (2)
+  out_data3[tid] = to_float4(sample.norm,  sample.cosTheta);     // float3 norm; float cosTheta; => float4 (3)
 
   // (3) clear temporary per ray data
   //
@@ -66,7 +63,7 @@ __kernel void LightSampleForwardKernel(__global float4*        restrict a_rpos,
   data3.accumDist = 0.0f;
 
   out_flags      [tid] = 0;
-  out_color      [tid] = make_float4(0.0f, 0.0f, 0.0f, 0.0f);
+  out_color      [tid] = to_float4(sample.color*invPdf, 0.0f);
   out_thoroughput[tid] = make_float4(1.0f, 1.0f, 1.0f, 1.0f);
   out_fog        [tid] = make_float4(0.0f, 0.0f, 0.0f, 0.0f);
   out_hitMat     [tid] = data3;
@@ -83,7 +80,9 @@ __kernel void LightSample(__global const float4*  restrict a_rpos,
                           __global const float4*  restrict in_hitPosNorm,
                           __global float4*        restrict out_data1,
                           __global float4*        restrict out_data2,
-                          __global float*         restrict out_lightPickProb,            
+                          __global float*         restrict out_lightPickProb,  
+                          __global float4*        restrict out_srpos,
+                          __global float4*        restrict out_srdir,
                                                  
                           __global const float4*  restrict a_texStorage1,  // 
                           __global const float4*  restrict a_texStorage2,  //
@@ -143,9 +142,11 @@ __kernel void LightSample(__global const float4*  restrict a_rpos,
   if (a_globals->lightsNum == 0)
     return;
 
-  float3 hitPos  = to_float3(in_hitPosNorm[tid]);
-  float3 ray_pos = to_float3(a_rpos[tid]);
-  float3 ray_dir = to_float3(a_rdir[tid]);
+  const float4 data1   = in_hitPosNorm[tid];
+  const float3 hitPos  = to_float3(data1);
+  const float3 hitNorm = normalize(decodeNormal(as_int(data1.w)));
+  const float3 ray_pos = to_float3(a_rpos[tid]);
+  const float3 ray_dir = to_float3(a_rdir[tid]);
 
   RandomGen gen       = out_gens[tid];
   gen.maxNumbers      = a_globals->varsI[HRT_MLT_MAX_NUMBERS];
@@ -153,8 +154,8 @@ __kernel void LightSample(__global const float4*  restrict a_rpos,
   const float2 rands2 = rndFloat2_Pseudo(&gen);
   out_gens[tid]       = gen;
 
-  ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-  //  
+  // (1) generate light sample
+  //
   float lightPickProb = 1.0f;
   const int lightOffset = SelectRandomLightRev(rands2, hitPos, a_globals,
                                                &lightPickProb);
@@ -171,8 +172,17 @@ __kernel void LightSample(__global const float4*  restrict a_rpos,
   out_data1[tid]         = make_float4(explicitSam.pos.x, explicitSam.pos.y, explicitSam.pos.z, explicitSam.pdf);
   out_data2[tid]         = make_float4(explicitSam.color.x, explicitSam.color.y, explicitSam.color.z, explicitSam.maxDist);
   out_lightPickProb[tid] = lightPickProb;
-}
 
+  // (2) generate shadow ray
+  //
+  const float3 shadowRayDir = normalize(explicitSam.pos - hitPos);
+  const float3 shadowRayPos = OffsRayPos(hitPos, hitNorm, shadowRayDir);
+  const float maxDist       = length(shadowRayPos - explicitSam.pos); // recompute max dist based on real (shifted with offset) shadowRayPos
+
+  out_srpos[tid] = to_float4(shadowRayPos, maxDist);
+  out_srdir[tid] = to_float4(shadowRayDir, 0.0f);   // or explicitSam.cosAtLight
+
+}
 
 // change 04.01.2018 20:43;
 

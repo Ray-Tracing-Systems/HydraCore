@@ -310,12 +310,9 @@ __kernel void NoShadow(__global ushort4* a_shadow, int a_size)
 
 
 __kernel void BVH4TraversalShadowKenrel(__global const uint*         restrict in_flags,
-                                        __global const float4*       restrict in_hitPosNorm,
-                                        __global const float4*       restrict a_data1,
-                                        __global const float4*       restrict a_data2,
+                                        __global const float4*       restrict in_sraypos,
+                                        __global const float4*       restrict in_sraydir,
                                         __global       ushort4*      restrict a_shadow,
-                                        __global       int*          restrict a_transpL,
-                                        __global const float*        restrict a_hitPolySize,
                                        int a_runId,    
                                        int a_size,                    
                                        __global const float4*        restrict a_bvh,
@@ -372,35 +369,14 @@ __kernel void BVH4TraversalShadowKenrel(__global const uint*         restrict in
 
   if (!disableThread && activeAfterCompaction)
   {
-    float4 data1 = a_data1[tid];
-    float4 data2 = a_data2[tid];
+    const float4 data1        = in_sraypos[tid];
+    const float4 data2        = in_sraydir[tid];
+    const float3 shadowRayPos = to_float3(data1);
+    const float3 shadowRayDir = to_float3(data2);
+    const float  maxDist      = data1.w;
 
-    ShadowSample explicitSam;
-
-    explicitSam.pos     = to_float3(data1);
-    explicitSam.color   = to_float3(data2);
-    explicitSam.pdf     = data1.w > 0 ? data1.w : 1.0f;
-    explicitSam.maxDist = data2.w;
-    explicitSam.isPoint = (data1.w <= 0);
-
-    const float4 data         = in_hitPosNorm[tid];
-    const float3 hitPos       = to_float3(data);
-    const float3 hitNorm      = normalize(decodeNormal(as_int(data.w)));
-
-    const float  epsilon      = GEPSILON*fmax(maxcomp(hitPos), 1.0f);
-    const float  polySizeEps  = fmin(fmax(PEPSILON*a_hitPolySize[tid], epsilon), PG_SCALE*epsilon);
-    
-    const float3 shadowRayDir = normalize(explicitSam.pos - hitPos); // explicitSam.direction;
-    const float  offsetSign   = (dot(shadowRayDir, hitNorm) >= 0.0f) ? 1.0f : -1.0f;
-    const float3 shadowRayPos = hitPos + epsilon*shadowRayDir + polySizeEps*hitNorm*offsetSign;
-    
-    explicitSam.maxDist       = length(shadowRayPos - explicitSam.pos); // recompute max dist based on real (shidted with offset) shadowRayPos
-
-    Lite_Hit hit = Make_Lite_Hit(explicitSam.maxDist, -1);
-
-    hit = BVH4Traverse(shadowRayPos, shadowRayDir, 0.0f, hit, a_bvh, a_tris);
-
-    const float3 shadow = (HitSome(hit) && hit.t > 0.0f && hit.t < explicitSam.maxDist*0.999f) ? make_float3(0.0f, 0.0f, 0.0f) : make_float3(1.0f, 1.0f, 1.0f);
+    const Lite_Hit hit  = BVH4Traverse(shadowRayPos, shadowRayDir, 0.0f, Make_Lite_Hit(maxDist, -1), a_bvh, a_tris);
+    const float3 shadow = (HitSome(hit) && hit.t > 0.0f && hit.t < maxDist*0.999f) ? make_float3(0.0f, 0.0f, 0.0f) : make_float3(1.0f, 1.0f, 1.0f);
     
     a_shadow[tid] = compressShadow(shadow);
   }
@@ -408,12 +384,9 @@ __kernel void BVH4TraversalShadowKenrel(__global const uint*         restrict in
 }
 
 __kernel void BVH4TraversalInstShadowKenrel(__global const uint*         restrict in_flags,
-                                            __global const float4*       restrict in_hitPosNorm,
-                                            __global const float4*       restrict a_data1,
-                                            __global const float4*       restrict a_data2,
+                                            __global const float4*       restrict in_sraypos,
+                                            __global const float4*       restrict in_sraydir,
                                             __global       ushort4*      restrict a_shadow,
-                                            __global       int*          restrict a_transpL,
-                                            __global const float*        restrict a_hitPolySize,
                                             int a_runId,
                                             int a_size,                    
                                             __global const float4*        restrict a_bvh,
@@ -454,45 +427,24 @@ __kernel void BVH4TraversalInstShadowKenrel(__global const uint*         restric
 
   if (!disableThread && activeAfterCompaction)
   {
-    float4 data1 = a_data1[tid];
-    float4 data2 = a_data2[tid];
+    const float4 data1        = in_sraypos[tid];
+    const float4 data2        = in_sraydir[tid];
+    const float3 shadowRayPos = to_float3(data1);
+    const float3 shadowRayDir = to_float3(data2);
+    const float  maxDist      = data1.w;
 
-    ShadowSample explicitSam;
-
-    explicitSam.pos     = to_float3(data1);
-    explicitSam.color   = to_float3(data2);
-    explicitSam.pdf     = data1.w > 0 ? data1.w : 1.0f;
-    explicitSam.maxDist = data2.w;
-    explicitSam.isPoint = (data1.w <= 0);
-
-    const float4 data         = in_hitPosNorm[tid];
-    const float3 hitPos       = to_float3(data);
-    const float3 hitNorm      = normalize(decodeNormal(as_int(data.w)));
-
-    const float  epsilon      = GEPSILON*fmax(maxcomp(hitPos), 1.0f);
-    const float  polySizeEps  = fmin(fmax(PEPSILON*a_hitPolySize[tid], epsilon), PG_SCALE*epsilon);
-    
-    const float3 shadowRayDir = normalize(explicitSam.pos - hitPos); // explicitSam.direction;
-    const float  offsetSign   = (dot(shadowRayDir, hitNorm) >= 0.0f) ? 1.0f : -1.0f;
-    const float3 shadowRayPos = hitPos + epsilon*shadowRayDir + polySizeEps*hitNorm*offsetSign;
-    
-    explicitSam.maxDist       = length(shadowRayPos - explicitSam.pos); // recompute max dist based on real (shidted with offset) shadowRayPos
-
-    const Lite_Hit hit  = Make_Lite_Hit(explicitSam.maxDist*0.999f, -1);
+    const Lite_Hit hit  = Make_Lite_Hit(maxDist*0.999f, -1);
     const float3 shadow = BVH4InstTraverseShadow(shadowRayPos, shadowRayDir, 0.0f, hit, a_bvh, a_tris);
-    
+                        
     a_shadow[tid] = compressShadow(shadow);
   }
 
 }
 
 __kernel void BVH4TraversalInstShadowKenrelAS(__global const uint*         restrict in_flags,
-                                              __global const float4*       restrict in_hitPosNorm,
-                                              __global const float4*       restrict a_data1,
-                                              __global const float4*       restrict a_data2,
+                                              __global const float4*       restrict in_sraypos,
+                                              __global const float4*       restrict in_sraydir,
                                               __global       ushort4*      restrict a_shadow,
-                                              __global       int*          restrict a_transpL,
-                                              __global const float*        restrict a_hitPolySize,
                                               int a_runId,
                                               int a_size,                    
                                               __global const float4*        restrict a_bvh,
@@ -535,31 +487,13 @@ __kernel void BVH4TraversalInstShadowKenrelAS(__global const uint*         restr
 
   if (!disableThread && activeAfterCompaction)
   {
-    float4 data1 = a_data1[tid];
-    float4 data2 = a_data2[tid];
+    const float4 data1        = in_sraypos[tid];
+    const float4 data2        = in_sraydir[tid];
+    const float3 shadowRayPos = to_float3(data1);
+    const float3 shadowRayDir = to_float3(data2);
+    const float  maxDist      = data1.w;
 
-    ShadowSample explicitSam;
-
-    explicitSam.pos     = to_float3(data1);
-    explicitSam.color   = to_float3(data2);
-    explicitSam.pdf     = data1.w > 0 ? data1.w : 1.0f;
-    explicitSam.maxDist = data2.w;
-    explicitSam.isPoint = (data1.w <= 0);
-
-    const float4 data         = in_hitPosNorm[tid];
-    const float3 hitPos       = to_float3(data);
-    const float3 hitNorm      = normalize(decodeNormal(as_int(data.w)));
-
-    const float  epsilon      = GEPSILON*fmax(maxcomp(hitPos), 1.0f);
-    const float  polySizeEps  = fmin(fmax(PEPSILON*a_hitPolySize[tid], epsilon), PG_SCALE*epsilon);
-    
-    const float3 shadowRayDir = normalize(explicitSam.pos - hitPos); // explicitSam.direction;
-    const float  offsetSign   = (dot(shadowRayDir, hitNorm) >= 0.0f) ? 1.0f : -1.0f;
-    const float3 shadowRayPos = hitPos + epsilon*shadowRayDir + polySizeEps*hitNorm*offsetSign;
-    
-    explicitSam.maxDist       = length(shadowRayPos - explicitSam.pos); // recompute max dist based on real (shidted with offset) shadowRayPos
-
-    const float3 shadow = BVH4InstTraverseShadowAlphaS(shadowRayPos, shadowRayDir, 0.0f, explicitSam.maxDist*0.999f, a_bvh, a_tris, a_alpha, a_texStorage, a_globals);
+    const float3 shadow = BVH4InstTraverseShadowAlphaS(shadowRayPos, shadowRayDir, 0.0f, maxDist*0.999f, a_bvh, a_tris, a_alpha, a_texStorage, a_globals);
     
     a_shadow[tid] = compressShadow(shadow);
   }

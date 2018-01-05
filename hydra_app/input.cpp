@@ -16,7 +16,7 @@ Input::Input()
   inLibraryPath = "tests/test_42";      ///< cornell box with teapot
   
   //inLibraryPath = "D:/PROG/[Graphics]/HydraAPI/main/tests/test_39";
-  //inLibraryPath = "D:/PROG/HydraAPI/main/tests/test_72";
+  //inLibraryPath = "D:/PROG/HydraAPI/main/tests_f/test_119";
   //inLibraryPath = "D:/PROG/HydraAPI/main/tests_f/test_004";
   //inLibraryPath = "C:/[Hydra]/pluginFiles/scenelib";
  

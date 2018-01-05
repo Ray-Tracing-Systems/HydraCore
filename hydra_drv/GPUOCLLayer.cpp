@@ -59,7 +59,10 @@ void GPUOCLLayer::CL_BUFFERS_RAYS::free()
   if (lsam1)           clReleaseMemObject(lsam1);
   if (lsam2)           clReleaseMemObject(lsam2);
   if (lsam3)           clReleaseMemObject(lsam3);
-  if (lsam4)           clReleaseMemObject(lsam4);
+
+  if (shadowRayPos)    clReleaseMemObject(shadowRayPos);
+  if (shadowRayDir)    clReleaseMemObject(shadowRayDir);
+ 
   if (lsamProb)        clReleaseMemObject(lsamProb);
   if (lshadow)         clReleaseMemObject(lshadow);
 
@@ -92,7 +95,8 @@ void GPUOCLLayer::CL_BUFFERS_RAYS::free()
   lsam1        = 0;
   lsam2        = 0;
   lsam3        = 0;
-  lsam4        = 0;
+  shadowRayPos = 0;
+  shadowRayDir = 0;
   lsamProb     = 0;
   lshadow      = 0;
   fogAtten     = 0;
@@ -158,7 +162,9 @@ void GPUOCLLayer::CL_BUFFERS_RAYS::resize(cl_context ctx, cl_command_queue cmdQu
   lsam1    = clCreateBuffer(ctx, CL_MEM_READ_WRITE | shareFlags, 4 * sizeof(cl_float)*MEGABLOCKSIZE, NULL, &ciErr1);   // float4
   lsam2    = clCreateBuffer(ctx, CL_MEM_READ_WRITE | shareFlags, 4 * sizeof(cl_float)*MEGABLOCKSIZE, NULL, &ciErr1);   // float4
   lsam3    = clCreateBuffer(ctx, CL_MEM_READ_WRITE | shareFlags, 4 * sizeof(cl_float)*MEGABLOCKSIZE, NULL, &ciErr1);   // float4
-  lsam4    = clCreateBuffer(ctx, CL_MEM_READ_WRITE | shareFlags, 4 * sizeof(cl_float)*MEGABLOCKSIZE, NULL, &ciErr1);   // float4
+
+  shadowRayPos = clCreateBuffer(ctx, CL_MEM_READ_WRITE | shareFlags, 4 * sizeof(cl_float)*MEGABLOCKSIZE, NULL, &ciErr1);   // float4
+  shadowRayDir = clCreateBuffer(ctx, CL_MEM_READ_WRITE | shareFlags, 4 * sizeof(cl_float)*MEGABLOCKSIZE, NULL, &ciErr1);   // float4
 
   lsamProb = clCreateBuffer(ctx, CL_MEM_READ_WRITE,              1 * sizeof(cl_float)*MEGABLOCKSIZE, NULL, &ciErr1);   // float1
   lshadow  = clCreateBuffer(ctx, CL_MEM_READ_WRITE | shareFlags, 4 * sizeof(cl_ushort)*MEGABLOCKSIZE, NULL, &ciErr1);  // float2
@@ -1048,6 +1054,8 @@ void GPUOCLLayer::BeginTracingPass()
   m_timer.start();
   if (m_vars.m_flags & HRT_UNIFIED_IMAGE_SAMPLING)
   {
+    //m_vars.m_flags |= HRT_FORWARD_TRACING;
+
     // (1) Generate random rays and generate multiple references via Z-index
     //
     if (m_vars.m_flags & HRT_FORWARD_TRACING)
@@ -1057,7 +1065,7 @@ void GPUOCLLayer::BeginTracingPass()
 
     // (2) Compute sample colors
     //
-    trace1D(m_rays.rayPos, m_rays.rayDir, m_rays.pathResultColor, m_rays.MEGABLOCKSIZE);
+    Trace1D(m_rays.rayPos, m_rays.rayDir, m_rays.pathResultColor, m_rays.MEGABLOCKSIZE);
 
     // (3) accumulate colors
     //
@@ -1089,7 +1097,7 @@ void GPUOCLLayer::AddContributionToScreen(cl_mem in_color)
     else
       resultPtr = &m_screen.color0CPU[0];
 
-    AddContributionToScreenCPU(in_color, m_rays.samZindex, int(m_rays.MEGABLOCKSIZE), width, height, 
+    AddContributionToScreenCPU(m_rays.samZindex, int(m_rays.MEGABLOCKSIZE), width, height, 
                                resultPtr);
   }
   else
@@ -1125,7 +1133,7 @@ void AddSamplesContribution(float4* out_color, const float4* colors, int a_size,
   }
 }
 
-void GPUOCLLayer::AddContributionToScreenCPU(cl_mem in_color, cl_mem in_indices, int a_size, int a_width, int a_height, float4* out_color)
+void GPUOCLLayer::AddContributionToScreenCPU(cl_mem in_indices, int a_size, int a_width, int a_height, float4* out_color)
 {
   // (1) compute compressed index in color.w; use runKernel_MakeEyeRaysAndClearUnified for that task if CPU FB is enabled!!!
   //
@@ -1135,7 +1143,7 @@ void GPUOCLLayer::AddContributionToScreenCPU(cl_mem in_color, cl_mem in_indices,
   cl_int iNumElements    = cl_int(a_size);
   size_t size            = roundBlocks(size_t(a_size), int(szLocalWorkSize));
 
-  //cl_mem in_color  = m_rays.pathResultColor;
+  cl_mem in_color  = m_rays.pathResultColor;
   cl_mem old_color = m_rays.pathResultColor2;
 
   CHECK_CL(clSetKernelArg(kern, 0, sizeof(cl_mem), (void*)&in_indices));
@@ -1207,7 +1215,7 @@ void GPUOCLLayer::EndTracingPass()
 }
 
 
-void GPUOCLLayer::trace1D(cl_mem a_rpos, cl_mem a_rdir, cl_mem a_outColor, size_t a_size)
+void GPUOCLLayer::Trace1D(cl_mem a_rpos, cl_mem a_rdir, cl_mem a_outColor, size_t a_size)
 {
   // trace rays
   //
@@ -1260,10 +1268,20 @@ void GPUOCLLayer::trace1D(cl_mem a_rpos, cl_mem a_rdir, cl_mem a_outColor, size_
       timeForHit       = m_timer.getElapsed() - timeForHitStart;
     }
 
-    if (m_vars.shadePassEnable(bounce)) // -- pass shadow color instead of pathShadeColor second time
-      runKernel_ShadowTrace(a_rpos, a_rdir, m_rays.pathShadeColor, a_size, (bounce == measureBounce)); 
+    if (m_vars.m_flags & HRT_FORWARD_TRACING)
+    {
+      // (1) run_kernel_EyeShadowTrace()
+
+      // (2) contrib to screen GPU
+    }
     else
-      memsetf4(m_rays.pathShadeColor, make_float4(0,0,0,0), a_size);
+    {
+      if (m_vars.shadePassEnable(bounce)) // -- pass shadow color instead of pathShadeColor second time
+        runKernel_ShadowTrace(a_rpos, a_rdir, m_rays.pathShadeColor, a_size, (bounce == measureBounce));
+      else
+        memsetf4(m_rays.pathShadeColor, make_float4(0, 0, 0, 0), a_size);
+    }
+
 
     if (m_vars.m_varsI[HRT_ENABLE_MRAYS_COUNTERS] && bounce == measureBounce)
     {

@@ -110,8 +110,8 @@ void IntegratorThreeWay::DoLightPath()
   PerThread().selectedLightIdFwd = lightId;
 
   PerRayAcc acc0;
-  float3 color     = sample.color/(lightPickProb*sample.pdfA*sample.pdfW);
-  acc0.pdfLightWP  = sample.pdfW/sample.cosTheta;
+  float3 color     = sample.color/fmax(lightPickProb*sample.pdfA*sample.pdfW, DEPSILON2);
+  acc0.pdfLightWP  = sample.pdfW/ fmax(sample.cosTheta, DEPSILON);
   acc0.pdfCameraWP = 1.0f;
   acc0.pdfGTerm    = 1.0f;
   acc0.pdfCamA0    = 1.0f;

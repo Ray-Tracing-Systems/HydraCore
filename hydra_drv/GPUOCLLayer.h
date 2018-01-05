@@ -144,13 +144,13 @@ protected:
   void float2half(const float* a_inData, size_t a_size, std::vector<cl_half>& a_out);
 
   void trace1DPrimaryOnly(cl_mem a_rpos, cl_mem a_rdir, cl_mem a_outColor, size_t a_size, size_t a_offset);
-  void trace1D(cl_mem a_rpos, cl_mem a_rdir, cl_mem a_outColor, size_t a_size);
+  void Trace1D(cl_mem a_rpos, cl_mem a_rdir, cl_mem a_outColor, size_t a_size);
 
   void DrawNormals();
   void AddContributionToScreenGPU(cl_mem in_color, cl_mem in_indices, cl_mem pixWeights, int a_size, int a_width, int a_height, int a_spp,
                                   cl_mem out_colorHDR, cl_mem out_colorLDR);
 
-  void AddContributionToScreenCPU(cl_mem in_color, cl_mem in_indices, int a_size, int a_width, int a_height, float4* out_color);
+  void AddContributionToScreenCPU(cl_mem in_indices, int a_size, int a_width, int a_height, float4* out_color);
   void AddContributionToScreen(cl_mem in_color);
 
   std::vector<uchar4> NormalMapFromDisplacement(int w, int h, const uchar4* a_data, float bumpAmt, bool invHeight, float smoothLvl);
@@ -235,7 +235,7 @@ protected:
   {
     CL_BUFFERS_RAYS() : rayPos(0), rayDir(0), hits(0), rayFlags(0), hitPosNorm(0), hitTexCoord(0), hitMatId(0), hitTangent(0), hitFlatNorm(0), hitPrimSize(0), hitNormUncompressed(0),
                         pathThoroughput(0), pathMisDataPrev(0), pathShadeColor(0), pathResultColor(0), pathResultColor2(0), randGenState(0), pathResultColorCPU(0),
-                        lsam1(0), lsam2(0), lsamProb(0), lshadow(0), fogAtten(0), samZindex(0), pixWeights(0), MEGABLOCKSIZE(0) {}
+                        lsam1(0), lsam2(0), lsam3(0), shadowRayPos(0), shadowRayDir(0), lsamProb(0), lshadow(0), fogAtten(0), samZindex(0), pixWeights(0), MEGABLOCKSIZE(0) {}
 
     void free();
     void resize(cl_context ctx, cl_command_queue cmdQueue, size_t a_size, bool a_cpuShare, bool a_cpuFB);
@@ -264,7 +264,9 @@ protected:
     cl_mem lsam1;
     cl_mem lsam2;
     cl_mem lsam3;
-    cl_mem lsam4;
+
+    cl_mem shadowRayPos;
+    cl_mem shadowRayDir;
 
     cl_mem lsamProb;
     cl_mem lshadow;
@@ -386,7 +388,8 @@ protected:
   void runKernel_NextBounce(cl_mem a_rpos, cl_mem a_rdir, cl_mem a_outColor, size_t a_size);
   void runKernel_NextTransparentBounce(cl_mem a_rpos, cl_mem a_rdir, cl_mem a_outColor, size_t a_size);
 
-  void runKernel_ShadowTrace(cl_mem a_rpos, cl_mem a_rdir, cl_mem a_outColor, size_t a_size, bool a_measureTime = false);
+  void runKernel_ShadowTrace (cl_mem a_rpos, cl_mem a_rdir, cl_mem a_outColor, size_t a_size, bool a_measureTime = false);
+  void runKernel_ShadowTrace1(cl_mem a_rpos, cl_mem a_rdir, cl_mem a_outShadow, size_t a_size);
   void runKernel_ShadowTrace2(cl_mem a_rpos, cl_mem a_rdir, cl_mem a_outColor, size_t a_size, bool a_measureTime);
 
   // MLT

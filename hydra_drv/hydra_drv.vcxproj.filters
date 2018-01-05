@@ -197,9 +197,6 @@
     <ClCompile Include="CPUExp_Integrators_MMLT.cpp">
       <Filter>CPULayer</Filter>
     </ClCompile>
-    <ClCompile Include="CPUExp_Integrators_ThreeWayBlendMMLT.cpp">
-      <Filter>CPULayer</Filter>
-    </ClCompile>
     <ClCompile Include="CPUExp_GBuffer.cpp">
       <Filter>CPULayer</Filter>
     </ClCompile>

@@ -185,7 +185,6 @@
     <ClCompile Include="CPUExp_Integrators_PT.cpp" />
     <ClCompile Include="CPUExp_Integrators_SBDPT.cpp" />
     <ClCompile Include="CPUExp_Integrators_ThreeWay.cpp" />
-    <ClCompile Include="CPUExp_Integrators_ThreeWayBlendMMLT.cpp" />
     <ClCompile Include="CPUExp_Integrators_TwoWay.cpp" />
     <ClCompile Include="globals_sys.cpp" />
     <ClCompile Include="GPUOCLData.cpp" />
