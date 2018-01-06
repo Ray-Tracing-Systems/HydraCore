@@ -79,7 +79,8 @@ __kernel void ConnectToEyeKernel(__global const uint*          restrict a_flags,
                                  __global const float4*        restrict a_texStorage2,
                                  __constant ushort*            restrict a_mortonTable256,
                                  
-                                 __global float4*              restrict a_colorAndIndex,
+                                 __global const float4*        restrict a_colorIn,
+                                 __global float4*              restrict a_colorOut,
                                  __global int2*                restrict out_zind,
                                  
                                  float mLightSubPathCount,
@@ -140,7 +141,7 @@ __kernel void ConnectToEyeKernel(__global const uint*          restrict a_flags,
   // pixel integral is actually defined. We also divide by the number of samples
   // this technique makes, which is equal to the number of light sub-paths
   //
-  const float3 a_accColor  = to_float3(a_colorAndIndex[tid]);
+  const float3 a_accColor  = to_float3(a_colorIn[tid]);
   const float3 shadowColor = decompressShadow(in_shadow[tid]);
   const float3 sampleColor = 1.0f*shadowColor*(a_accColor*colorConnect) * (imageToSurfaceFactor / mLightSubPathCount);
   
@@ -157,7 +158,7 @@ __kernel void ConnectToEyeKernel(__global const uint*          restrict a_flags,
   if(out_zind != 0)
     out_zind[tid] = make_int2(zid, tid);
   
-  a_colorAndIndex[tid] = to_float4(sampleColor, as_float(zid));
+  a_colorOut[tid] = to_float4(sampleColor, as_float(zid));
 
 }
 

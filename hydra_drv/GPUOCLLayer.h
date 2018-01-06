@@ -392,7 +392,7 @@ protected:
   void runShadePass(cl_mem a_rpos, cl_mem a_rdir, cl_mem a_outColor, size_t a_size, bool a_measureTime);
 
   void runKernel_EyeShadowRays(cl_mem a_rpos, cl_mem a_rdir, size_t a_size);
-  void runKernel_ProjectSamplesToScreen(cl_mem a_rpos, cl_mem a_rdir, cl_mem a_colorsAndIndex, cl_mem a_zindex, size_t a_size, int a_currBounce);
+  void runKernel_ProjectSamplesToScreen(cl_mem a_rpos, cl_mem a_rdir, cl_mem a_colorsIn, cl_mem a_colorsOut, cl_mem a_zindex, size_t a_size, int a_currBounce);
 
   // MLT
   //

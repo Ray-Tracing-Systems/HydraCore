@@ -1054,7 +1054,7 @@ void GPUOCLLayer::BeginTracingPass()
   m_timer.start();
   if (m_vars.m_flags & HRT_UNIFIED_IMAGE_SAMPLING)
   {
-    // m_vars.m_flags |= HRT_FORWARD_TRACING;
+    m_vars.m_flags |= HRT_FORWARD_TRACING;
 
     // (1) Generate random rays and generate multiple references via Z-index
     //
@@ -1274,10 +1274,10 @@ void GPUOCLLayer::Trace1D(cl_mem a_rpos, cl_mem a_rdir, cl_mem a_outColor, size_
 
       runKernel_ShadowTrace(m_rays.shadowRayPos, m_rays.shadowRayDir, m_rays.lshadow, a_size);
 
-      runKernel_ProjectSamplesToScreen(m_rays.shadowRayPos, m_rays.shadowRayDir, 
-                                       a_outColor, m_rays.samZindex, a_size, bounce);
+      runKernel_ProjectSamplesToScreen(m_rays.shadowRayPos, m_rays.shadowRayDir, a_outColor, 
+                                       m_rays.pathShadeColor, m_rays.samZindex, a_size, bounce);
 
-      AddContributionToScreenGPU(a_outColor, m_rays.samZindex, nullptr, int(m_rays.MEGABLOCKSIZE), m_width, m_height, m_passNumber,
+      AddContributionToScreenGPU(m_rays.pathShadeColor, m_rays.samZindex, nullptr, int(m_rays.MEGABLOCKSIZE), m_width, m_height, m_passNumber,
                                  m_screen.color0, m_screen.pbo);
     }
     else
