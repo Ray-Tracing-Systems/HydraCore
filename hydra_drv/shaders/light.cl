@@ -3,8 +3,8 @@
 #include "crandom.h"
 #include "clight.h"
 
-__kernel void LightSampleForwardKernel(__global float4*        restrict a_rpos,
-                                       __global float4*        restrict a_rdir,
+__kernel void LightSampleForwardKernel(__global float4*        restrict out_rpos,
+                                       __global float4*        restrict out_rdir,
                                        __global RandomGen*     restrict out_gens,
                                        
                                        __global float4*        restrict out_data1,
@@ -55,6 +55,9 @@ __kernel void LightSampleForwardKernel(__global float4*        restrict a_rpos,
   out_data1[tid] = to_float4(sample.pos,   sample.pdfA*isPoint); // float3 pos; float  pdfA;     => float4 (1) and isPoint as sign!
   out_data2[tid] = to_float4(sample.dir,   sample.pdfW);         // float3 dir; float  pdfW;     => float4 (2)
   out_data3[tid] = to_float4(sample.norm,  sample.cosTheta);     // float3 norm; float cosTheta; => float4 (3)
+
+  out_rpos [tid] = to_float4(sample.pos, 0.0f);                  // #TODO: do we really need so many out buffers ?
+  out_rdir [tid] = to_float4(sample.dir, 0.0f);                  // #TODO: do we really need so many out buffers ?
 
   // (3) clear temporary per ray data
   //

@@ -435,7 +435,7 @@ protected:
 
   bool testSimpleReduction();
   void testDumpRays(const char* a_fNamePos, const char* a_fnameDir);
-  void testDumpPosNorm(const char* a_fNamePos, const char* a_fnameDir);
+  void debugDumpF4Buff(const char* a_fNamePos, cl_mem a_buff);
 
   bool m_clglSharing;
 

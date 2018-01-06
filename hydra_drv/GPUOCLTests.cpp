@@ -232,13 +232,15 @@ void GPUOCLLayer::testDumpRays(const char* a_fNamePos, const char* a_fnameDir)
   fout2.close();
 }
 
-void GPUOCLLayer::testDumpPosNorm(const char* a_fNamePos, const char* a_fnameDir)
+void GPUOCLLayer::debugDumpF4Buff(const char* a_fNamePos, cl_mem a_buff)
 {
-  std::vector<float4> temp(m_rays.MEGABLOCKSIZE);
+  int size = int(m_rays.MEGABLOCKSIZE);
 
-  CHECK_CL(clEnqueueReadBuffer(m_globals.cmdQueue, m_rays.hitPosNorm, CL_TRUE, 0, m_rays.MEGABLOCKSIZE*sizeof(float4), &temp[0], 0, NULL, NULL));
+  std::vector<float4> temp(size);
+  CHECK_CL(clEnqueueReadBuffer(m_globals.cmdQueue, a_buff, CL_TRUE, 0, size*sizeof(float4), &temp[0], 0, NULL, NULL));
 
   std::ofstream fout(a_fNamePos, std::ios::binary);
+  fout.write((const char*)&size, sizeof(int));
   fout.write((const char*)&temp[0], temp.size()*sizeof(float4));
   fout.close();
 }

@@ -1059,7 +1059,11 @@ void GPUOCLLayer::BeginTracingPass()
     // (1) Generate random rays and generate multiple references via Z-index
     //
     if (m_vars.m_flags & HRT_FORWARD_TRACING)
+    {
       runKernel_MakeLightRays(m_rays.rayPos, m_rays.rayDir, m_rays.MEGABLOCKSIZE);
+      //debugDumpF4Buff("z_rpos.array4f", m_rays.rayPos);
+      //debugDumpF4Buff("z_rdir.array4f", m_rays.rayDir);
+    }
     else
       runKernel_MakeEyeRaysAndClearUnified(m_rays.rayPos, m_rays.rayDir, m_rays.samZindex, m_rays.pixWeights, m_rays.MEGABLOCKSIZE, m_passNumber);
 
@@ -1271,6 +1275,8 @@ void GPUOCLLayer::Trace1D(cl_mem a_rpos, cl_mem a_rdir, cl_mem a_outColor, size_
     if (m_vars.m_flags & HRT_FORWARD_TRACING)
     {
       runKernel_EyeShadowRays(m_rays.shadowRayPos, m_rays.shadowRayDir, a_size);
+      //debugDumpF4Buff("z_rpos.array4f", m_rays.shadowRayPos);
+      //debugDumpF4Buff("z_rdir.array4f", m_rays.shadowRayDir);
 
       runKernel_ShadowTrace(m_rays.shadowRayPos, m_rays.shadowRayDir, m_rays.lshadow, a_size);
 
