@@ -334,7 +334,7 @@ void GPUOCLLayer::runKernel_NextTransparentBounce(cl_mem a_rpos, cl_mem a_rdir, 
   waitIfDebug(__FILE__, __LINE__);
 }
 
-void GPUOCLLayer::runKernel_ShadowTrace1(cl_mem a_rpos, cl_mem a_rdir, cl_mem a_outShadow, size_t a_size)
+void GPUOCLLayer::runKernel_ShadowTrace(cl_mem a_rpos, cl_mem a_rdir, cl_mem a_outShadow, size_t a_size)
 {
   size_t localWorkSize = 256;
   int    isize         = int(a_size);
@@ -389,7 +389,7 @@ void GPUOCLLayer::runKernel_ShadowTrace1(cl_mem a_rpos, cl_mem a_rdir, cl_mem a_
   }
 }
 
-void GPUOCLLayer::runKernel_ShadowTrace2(cl_mem a_rpos, cl_mem a_rdir, cl_mem a_outColor, size_t a_size, bool a_measureTime)
+void GPUOCLLayer::runShadePass(cl_mem a_rpos, cl_mem a_rdir, cl_mem a_outColor, size_t a_size, bool a_measureTime)
 {
   bool transparensyShadowEnabled = false; // !(m_vars.m_flags & HRT_ENABLE_PT_CAUSTICS);
 
@@ -461,7 +461,7 @@ void GPUOCLLayer::runKernel_ShadowTrace2(cl_mem a_rpos, cl_mem a_rdir, cl_mem a_
 
     if (traceShadows)
     {
-      runKernel_ShadowTrace1(m_rays.shadowRayPos, m_rays.shadowRayDir, m_rays.lshadow, a_size);
+      runKernel_ShadowTrace(m_rays.shadowRayPos, m_rays.shadowRayDir, m_rays.lshadow, a_size);
     }
     else
     {
@@ -516,11 +516,12 @@ void GPUOCLLayer::runKernel_ShadowTrace2(cl_mem a_rpos, cl_mem a_rdir, cl_mem a_
 
 }
 
-void GPUOCLLayer::runKernel_ShadowTrace(cl_mem a_rpos, cl_mem a_rdir, cl_mem a_outColor, size_t a_size, bool a_measureTime)
+
+void GPUOCLLayer::runKernel_EyeShadowRays(cl_mem a_rpos, cl_mem a_rdir, size_t a_size)
 {
-  //memsetu32(m_rays.lshadowTrans, -1, TRANSPARENCY_LIST_SIZE*m_rays.MEGABLOCKSIZE);
-  runKernel_ShadowTrace2(a_rpos, a_rdir, a_outColor, a_size, a_measureTime);
+
 }
+
 
 void GPUOCLLayer::runKernel_InitRandomGen(cl_mem a_buffer, size_t a_size, int a_seed)
 {

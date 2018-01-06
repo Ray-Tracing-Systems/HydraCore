@@ -86,8 +86,8 @@ static inline float2 clipSpaceToScreenSpace(float4 a_pos, const float fw, const 
 static inline float2 worldPosToScreenSpace(float3 a_wpos, __global const EngineGlobals* a_globals)
 {
   const float4 posWorldSpace  = to_float4(a_wpos, 1.0f);
-  const float4 posCamSpace    = mul(make_float4x4(a_globals->mWorldView), posWorldSpace);
-  const float4 posNDC         = mul(make_float4x4(a_globals->mProj),      posCamSpace);
+  const float4 posCamSpace    = mul4x4x4(make_float4x4(a_globals->mWorldView), posWorldSpace);
+  const float4 posNDC         = mul4x4x4(make_float4x4(a_globals->mProj),      posCamSpace);
   const float4 posClipSpace   = posNDC*(1.0f / fmax(posNDC.w, DEPSILON));
   const float2 posScreenSpace = clipSpaceToScreenSpace(posClipSpace, a_globals->varsF[HRT_WIDTH_F], a_globals->varsF[HRT_HEIGHT_F]);
   return posScreenSpace;
@@ -123,7 +123,7 @@ static void ConnectEyeP(const PathVertex a_lv, int a_ltDepth, float a_mLightSubP
   {
     (*pX)         = -1;
     (*pY)         = -1;
-    (*a_outColor) = float3(0, 0, 0);
+    (*a_outColor) = make_float3(0, 0, 0);
     return;
   }
 
@@ -132,7 +132,7 @@ static void ConnectEyeP(const PathVertex a_lv, int a_ltDepth, float a_mLightSubP
   float  pdfRevW = 1.0f;
   float3 colorConnect = make_float3(1, 1, 1);
   {
-    const PlainMaterial* pHitMaterial = materialAt(a_globals, a_mltStorage, a_lv.hit.matId);
+    __global const PlainMaterial* pHitMaterial = materialAt(a_globals, a_mltStorage, a_lv.hit.matId);
 
     ShadeContext sc;
     sc.wp = a_lv.hit.pos;
@@ -144,8 +144,7 @@ static void ConnectEyeP(const PathVertex a_lv, int a_ltDepth, float a_mLightSubP
     sc.bn = a_lv.hit.biTangent;
     sc.tc = a_lv.hit.texCoord;
 
-    auto colorAndPdf = materialEval(pHitMaterial, &sc, false, true,
-                                    a_globals, a_texStorage1, a_texStorage2);
+    BxDFResult colorAndPdf = materialEval(pHitMaterial, &sc, false, true, a_globals, a_texStorage1, a_texStorage2);
 
     colorConnect     = colorAndPdf.brdf + colorAndPdf.btdf;
     pdfRevW          = colorAndPdf.pdfRev;
@@ -179,8 +178,8 @@ static void ConnectEyeP(const PathVertex a_lv, int a_ltDepth, float a_mLightSubP
   {
     const float2 posScreenSpace = worldPosToScreenSpace(a_lv.hit.pos, a_globals);
     
-    int x = int(posScreenSpace.x + 0.5f);
-    int y = int(posScreenSpace.y + 0.5f);
+    int x = (int)(posScreenSpace.x + 0.5f);
+    int y = (int)(posScreenSpace.y + 0.5f);
     
     if (x < 0) x = 0;
     if (y < 0) y = 0;
@@ -228,7 +227,7 @@ static float3 ConnectShadowP(PathVertex a_cv, const int a_camDepth, __global con
 {
   const float3 shadowRayDir = normalize(a_explicitSam.pos - a_cv.hit.pos); // explicitSam.direction;
   
-  const PlainMaterial* pHitMaterial = materialAt(a_globals, a_mltStorage, a_cv.hit.matId);
+  __global const PlainMaterial* pHitMaterial = materialAt(a_globals, a_mltStorage, a_cv.hit.matId);
   
   ShadeContext sc;
   sc.wp = a_cv.hit.pos;
@@ -293,16 +292,16 @@ static float3 ConnectEndPointsP(const PathVertex a_lv, const PathVertex a_cv, co
                                 __global PdfVertex* a_pdfArray)
 {
   if (!a_lv.valid || !a_cv.valid)
-    return float3(0, 0, 0);
+    return make_float3(0, 0, 0);
 
   const float3 diff = a_cv.hit.pos - a_lv.hit.pos;
   const float dist2 = fmax(dot(diff, diff), DEPSILON2);
-  const float  dist = sqrtf(dist2);
+  const float  dist = sqrt(dist2);
   const float3 lToC = diff / dist; // normalize(a_cv.hit.pos - a_lv.hit.pos)
 
   const float3 shadowRayDir = lToC; // explicitSam.direction;
 
-  float3 lightBRDF(0,0,0);
+  float3 lightBRDF = make_float3(0,0,0);
   float  lightVPdfFwdW = 0.0f;
   float  lightVPdfRevW = 0.0f;
   float  signOfNormalL = 1.0f;
@@ -317,8 +316,8 @@ static float3 ConnectEndPointsP(const PathVertex a_lv, const PathVertex a_cv, co
     sc.bn = a_lv.hit.biTangent;
     sc.tc = a_lv.hit.texCoord;
 
-    const PlainMaterial* pHitMaterial = materialAt(a_globals, a_mltStorage, a_lv.hit.matId);
-    auto evalData = materialEval(pHitMaterial, &sc, false, true, /* global data --> */ a_globals, a_texStorage1, a_texStorage2);
+    __global const PlainMaterial* pHitMaterial = materialAt(a_globals, a_mltStorage, a_lv.hit.matId);
+    BxDFResult evalData = materialEval(pHitMaterial, &sc, false, true, /* global data --> */ a_globals, a_texStorage1, a_texStorage2);
     lightBRDF     = evalData.brdf + evalData.btdf;
     lightVPdfFwdW = evalData.pdfFwd;
     lightVPdfRevW = evalData.pdfRev;
@@ -328,7 +327,7 @@ static float3 ConnectEndPointsP(const PathVertex a_lv, const PathVertex a_cv, co
       signOfNormalL = -1.0f;
   }
 
-  float3 camBRDF(0, 0, 0);
+  float3 camBRDF = make_float3(0, 0, 0);
   float  camVPdfRevW = 0.0f;
   float  camVPdfFwdW = 0.0f;
   float  signOfNormalC = 1.0f;
@@ -343,8 +342,8 @@ static float3 ConnectEndPointsP(const PathVertex a_lv, const PathVertex a_cv, co
     sc.bn = a_cv.hit.biTangent;
     sc.tc = a_cv.hit.texCoord;
 
-    const PlainMaterial* pHitMaterial = materialAt(a_globals, a_mltStorage, a_cv.hit.matId);
-    auto evalData = materialEval(pHitMaterial, &sc, false, false, /* global data --> */ a_globals, a_texStorage1, a_texStorage2);
+    __global const PlainMaterial* pHitMaterial = materialAt(a_globals, a_mltStorage, a_cv.hit.matId);
+    BxDFResult evalData = materialEval(pHitMaterial, &sc, false, false, /* global data --> */ a_globals, a_texStorage1, a_texStorage2);
     camBRDF       = evalData.brdf + evalData.btdf;
     camVPdfRevW   = evalData.pdfFwd;
     camVPdfFwdW   = evalData.pdfRev;
@@ -396,6 +395,47 @@ static float3 ConnectEndPointsP(const PathVertex a_lv, const PathVertex a_cv, co
   //}
 
   return bsdfClamping(lightBRDF*camBRDF*GTerm); // fmin(GTerm,1000.0f);
+}
+
+
+
+
+static inline float3 environmentColor(float3 rayDir, MisData misPrev, unsigned int flags, 
+                                      __global const EngineGlobals* a_globals, 
+                                      __global const float4*        a_mltStorage, 
+                                      __global const float4*        a_pdfStorage, 
+                                      texture2d_t                   a_shadingTexture)
+{
+  if (a_globals->skyLightId == -1)
+    return make_float3(0, 0, 0);
+
+  unsigned int rayBounceNum  = unpackBounceNum(flags);
+  unsigned int diffBounceNum = unpackBounceNumDiff(flags);
+
+  __global const PlainLight* pEnvLight = lightAt(a_globals, a_globals->skyLightId); // in_lights + a_globals->skyLightId;
+
+  float3 envColor = skyLightGetIntensityTexturedENV(pEnvLight, rayDir, a_globals, a_pdfStorage, a_shadingTexture);
+
+  // //////////////////////////////////////////////////////////////////////////////////////////////
+
+  if (rayBounceNum > 0 && !(a_globals->g_flags & HRT_STUPID_PT_MODE) && (misPrev.isSpecular == 0))
+  {
+    float lgtPdf    = lightPdfSelectRev(pEnvLight)*skyLightEvalPDF(pEnvLight, make_float3(0, 0, 0), rayDir, a_globals, a_pdfStorage);
+    float bsdfPdf   = misPrev.matSamplePdf;
+    float misWeight = misWeightHeuristic(bsdfPdf, lgtPdf); // (bsdfPdf*bsdfPdf) / (lgtPdf*lgtPdf + bsdfPdf*bsdfPdf);
+
+    envColor *= misWeight;
+  }
+
+  __global const PlainMaterial* pPrevMaterial = materialAtOffset(a_mltStorage, misPrev.prevMaterialOffset); // in_plainData + misPrev.prevMaterialOffset;
+
+  bool disableCaustics = (diffBounceNum > 0) && !(a_globals->g_flags & HRT_ENABLE_PT_CAUSTICS) && materialCastCaustics(pPrevMaterial); // and prev material cast caustics
+  if (disableCaustics)
+    envColor = make_float3(0, 0, 0);
+
+  // \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
+
+  return envColor;
 }
 
 

@@ -3,6 +3,7 @@
 #include "crandom.h"
 #include "cmaterial.h"
 #include "clight.h"
+#include "cbidir.h"
 
 static inline ushort4 compressShadow(float3 shadow)
 {

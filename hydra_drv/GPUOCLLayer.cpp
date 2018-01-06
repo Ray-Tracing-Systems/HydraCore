@@ -1270,14 +1270,19 @@ void GPUOCLLayer::Trace1D(cl_mem a_rpos, cl_mem a_rdir, cl_mem a_outColor, size_
 
     if (m_vars.m_flags & HRT_FORWARD_TRACING)
     {
-      // (1) run_kernel_EyeShadowTrace()
+      runKernel_EyeShadowRays(m_rays.shadowRayPos, m_rays.shadowRayDir, a_size);
 
-      // (2) contrib to screen GPU
+      runKernel_ShadowTrace(m_rays.shadowRayPos, m_rays.shadowRayDir, m_rays.lshadow, a_size);
+
+      // (3) kill samples that are not visiable, create z indices in m_rays.samZindex ... 
+
+      AddContributionToScreenGPU(a_outColor, m_rays.samZindex, nullptr, int(m_rays.MEGABLOCKSIZE), m_width, m_height, m_passNumber,
+                                 m_screen.color0, m_screen.pbo);
     }
     else
     {
       if (m_vars.shadePassEnable(bounce)) // -- pass shadow color instead of pathShadeColor second time
-        runKernel_ShadowTrace(a_rpos, a_rdir, m_rays.pathShadeColor, a_size, (bounce == measureBounce));
+        runShadePass(a_rpos, a_rdir, m_rays.pathShadeColor, a_size, (bounce == measureBounce));
       else
         memsetf4(m_rays.pathShadeColor, make_float4(0, 0, 0, 0), a_size);
     }

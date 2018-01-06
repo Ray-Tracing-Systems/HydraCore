@@ -1825,50 +1825,6 @@ static inline int SelectRandomLightFwd(float2 a_r, __global const EngineGlobals*
 }
 
 
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-#include "cmaterial.h"
-
-static inline float3 environmentColor(float3 rayDir, MisData misPrev, unsigned int flags, 
-                                      __global const EngineGlobals* a_globals, 
-                                      __global const float4* a_mltStorage, 
-                                      __global const float4* a_pdfStorage, 
-                                      texture2d_t a_shadingTexture)
-{
-  if (a_globals->skyLightId == -1)
-    return make_float3(0, 0, 0);
-
-  unsigned int rayBounceNum  = unpackBounceNum(flags);
-  unsigned int diffBounceNum = unpackBounceNumDiff(flags);
-
-  __global const PlainLight* pEnvLight = lightAt(a_globals, a_globals->skyLightId); // in_lights + a_globals->skyLightId;
-
-  float3 envColor = skyLightGetIntensityTexturedENV(pEnvLight, rayDir, a_globals, a_pdfStorage, a_shadingTexture);
-
-  // //////////////////////////////////////////////////////////////////////////////////////////////
-
-  if (rayBounceNum > 0 && !(a_globals->g_flags & HRT_STUPID_PT_MODE) && (misPrev.isSpecular == 0))
-  {
-    float lgtPdf    = lightPdfSelectRev(pEnvLight)*skyLightEvalPDF(pEnvLight, make_float3(0, 0, 0), rayDir, a_globals, a_pdfStorage);
-    float bsdfPdf   = misPrev.matSamplePdf;
-    float misWeight = misWeightHeuristic(bsdfPdf, lgtPdf); // (bsdfPdf*bsdfPdf) / (lgtPdf*lgtPdf + bsdfPdf*bsdfPdf);
-
-    envColor *= misWeight;
-  }
-
-  __global const PlainMaterial* pPrevMaterial = materialAtOffset(a_mltStorage, misPrev.prevMaterialOffset); // in_plainData + misPrev.prevMaterialOffset;
-
-  bool disableCaustics = (diffBounceNum > 0) && !(a_globals->g_flags & HRT_ENABLE_PT_CAUSTICS) && materialCastCaustics(pPrevMaterial); // and prev material cast caustics
-  if (disableCaustics)
-    envColor = make_float3(0, 0, 0);
-
-  // \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
-
-  return envColor;
-}
 
 
 #endif

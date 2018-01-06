@@ -388,9 +388,10 @@ protected:
   void runKernel_NextBounce(cl_mem a_rpos, cl_mem a_rdir, cl_mem a_outColor, size_t a_size);
   void runKernel_NextTransparentBounce(cl_mem a_rpos, cl_mem a_rdir, cl_mem a_outColor, size_t a_size);
 
-  void runKernel_ShadowTrace (cl_mem a_rpos, cl_mem a_rdir, cl_mem a_outColor, size_t a_size, bool a_measureTime = false);
-  void runKernel_ShadowTrace1(cl_mem a_rpos, cl_mem a_rdir, cl_mem a_outShadow, size_t a_size);
-  void runKernel_ShadowTrace2(cl_mem a_rpos, cl_mem a_rdir, cl_mem a_outColor, size_t a_size, bool a_measureTime);
+  void runKernel_ShadowTrace(cl_mem a_rpos, cl_mem a_rdir, cl_mem a_outShadow, size_t a_size);
+  void runShadePass(cl_mem a_rpos, cl_mem a_rdir, cl_mem a_outColor, size_t a_size, bool a_measureTime);
+
+  void runKernel_EyeShadowRays(cl_mem a_rpos, cl_mem a_rdir, size_t a_size);
 
   // MLT
   //
