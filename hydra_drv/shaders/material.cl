@@ -107,9 +107,7 @@ __kernel void ConnectToEyeKernel(__global const uint*          restrict a_flags,
   const float imageToSurfaceFactor = data2.w;          // compute it in MakeEyeShadowRays kernel
 
   const float3 hitNorm = to_float3(in_normalsFull[tid]);
-
-  const int matId = GetMaterialId(in_matData[tid]);
-  __global const PlainMaterial* pHitMaterial = materialAt(a_globals, a_mtlStorage, matId);
+  const int matId      = GetMaterialId(in_matData[tid]);
 
   float  signOfNormal  = 1.0f; 
   float  pdfImplicit0W = 1.0f;
@@ -138,7 +136,6 @@ __kernel void ConnectToEyeKernel(__global const uint*          restrict a_flags,
     BxDFResult matRes = materialEval(pHitMaterial, &sc, false, true, /* global data --> */ a_globals, a_texStorage1, a_texStorage2);
     colorConnect = matRes.brdf + matRes.btdf; 
   }
-
   
   // We divide the contribution by surfaceToImageFactor to convert the (already
   // divided) pdf from surface area to image plane area, w.r.t. which the
@@ -683,11 +680,9 @@ __kernel void NextBounce(__global   float4*        restrict a_rpos,
       }
     }
 
-
-    if (!(a_globals->g_flags & (HRT_DIFFUSE_PHOTON_TRACING | HRT_CAUSTIC_PHOTON_TRACING)))
+    if ((a_globals->g_flags & HRT_FORWARD_TRACING) != 0)
     {
-      if (a_globals->varsI[HRT_RENDER_LAYER] == LAYER_INCOMING_RADIANCE && (a_globals->varsI[HRT_RENDER_LAYER_DEPTH] == rayBounceNum) &&
-        !(a_globals->g_flags & (HRT_DIFFUSE_PHOTON_TRACING | HRT_CAUSTIC_PHOTON_TRACING))) // no shade need when compute irradiance, no shade when trace photons
+      if (a_globals->varsI[HRT_RENDER_LAYER] == LAYER_INCOMING_RADIANCE && (a_globals->varsI[HRT_RENDER_LAYER_DEPTH] == rayBounceNum)) // no shade need when compute irradiance, no shade when trace photons
         outPathColor += make_float3(0, 0, 0);
       else
         outPathColor += to_float3(shadeData);

@@ -548,7 +548,7 @@ void GPUOCLLayer::runKernel_ProjectSamplesToScreen(cl_mem a_rpos, cl_mem a_rdir,
   a_size               = roundBlocks(a_size, int(localWorkSize));
 
   cl_float mLightSubPathCount = cl_float(m_rays.MEGABLOCKSIZE);  
-  cl_int currBounce           = a_currBounce;  
+  cl_int currBounce           = a_currBounce+1;  
 
   CHECK_CL(clSetKernelArg(kern, 0, sizeof(cl_mem), (void*)&m_rays.rayFlags));
   CHECK_CL(clSetKernelArg(kern, 1, sizeof(cl_mem), (void*)&m_rays.rayDir));

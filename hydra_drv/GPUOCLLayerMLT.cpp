@@ -349,7 +349,7 @@ float4 GPUOCLLayer::MLT_Burn(int a_iters)
     m_mlt.pssVector = m_mlt.xVector;
     {
       runKernel_MLTMakeEyeRaysFromPrimeSpaceSample(MUTATE_LAZY_NO, pass*int(m_rays.MEGABLOCKSIZE), m_rays.rayPos, m_rays.rayDir, m_mlt.rstateCurr, m_mlt.pssVector, m_mlt.xColor, 0, m_rays.MEGABLOCKSIZE);
-      Trace1D(m_rays.rayPos, m_rays.rayDir, m_mlt.xColor, m_rays.MEGABLOCKSIZE);
+      trace1D(m_rays.rayPos, m_rays.rayDir, m_mlt.xColor, m_rays.MEGABLOCKSIZE);
     }
     m_mlt.pssVector = 0;
 
@@ -400,7 +400,7 @@ float4 GPUOCLLayer::MLT_Burn(int a_iters)
   // eval xColor
   //
   runKernel_MLTMakeEyeRaysFromPrimeSpaceSample(MUTATE_LAZY_NO, 0, m_rays.rayPos, m_rays.rayDir, m_mlt.rstateCurr, m_mlt.xVector, m_mlt.xColor, 0, m_rays.MEGABLOCKSIZE);
-  Trace1D(m_rays.rayPos, m_rays.rayDir, m_mlt.xColor, m_rays.MEGABLOCKSIZE);
+  trace1D(m_rays.rayPos, m_rays.rayDir, m_mlt.xColor, m_rays.MEGABLOCKSIZE);
 
   m_mlt.timer.start();
   m_mlt.mppDone = 0;
@@ -476,7 +476,7 @@ void GPUOCLLayer::MLT_DoPass()
 
   runKernel_MLTMakeEyeRaysFromPrimeSpaceSample(mutateLazy, 0, m_rays.rayPos, m_rays.rayDir, m_mlt.rstateCurr, m_mlt.pssVector, m_mlt.yColor, 0, m_rays.MEGABLOCKSIZE);
 
-  Trace1D(m_rays.rayPos, m_rays.rayDir, m_mlt.yColor, m_rays.MEGABLOCKSIZE);
+  trace1D(m_rays.rayPos, m_rays.rayDir, m_mlt.yColor, m_rays.MEGABLOCKSIZE);
 
   m_mlt.pssVector = 0;
 
