@@ -55,6 +55,10 @@ __kernel void MakeEyeShadowRays(__global const uint*          restrict a_flags,
   float signOfNormal = 1.0f;
   if ((materialGetFlags(pHitMaterial) & PLAIN_MATERIAL_HAVE_BTDF) != 0 && dot(camDir, hitNorm) < -0.01f)
     signOfNormal = -1.0f;
+  
+  //const float4x4 mWorldViewInv = make_float4x4(a_globals->mWorldViewInverse);
+  //camDir                       = mul(mWorldViewInv, make_float3(0, 0, 0));
+  // camDir = make_float3(0, 1, 0);
 
   out_sraypos[tid] = to_float4(hitPos + epsilonOfPos(hitPos)*signOfNormal*hitNorm, zDepth); // OffsRayPos(hitPos, hitNorm, camDir);
   out_sraydir[tid] = to_float4(camDir, imageToSurfaceFactor);

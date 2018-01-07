@@ -224,7 +224,7 @@ void GPUOCLLayer::UpdateConstants()
   const size_t constantsSize = sizeof(EngineGlobals);
   int* pbuff = &m_cdataPrepared[0];
   memcpy(pbuff, &m_globsBuffHeader, constantsSize);
-  CHECK_CL(clEnqueueWriteBuffer(m_globals.cmdQueue, m_scene.allGlobsData, CL_FALSE, 0, constantsSize, &m_cdataPrepared[0], 0, NULL, NULL));
+  CHECK_CL(clEnqueueWriteBuffer(m_globals.cmdQueue, m_scene.allGlobsData, CL_TRUE, 0, constantsSize, &m_cdataPrepared[0], 0, NULL, NULL));
 }
 
 void GPUOCLLayer::SetAllFlagsAndVars(const AllRenderVarialbes& a_vars)
