@@ -174,7 +174,7 @@ static void ConnectEyeP(const PathVertex a_lv, int a_ltDepth, float a_mLightSubP
   const int width  = (int)(a_globals->varsF[HRT_WIDTH_F]);
   const int height = (int)(a_globals->varsF[HRT_HEIGHT_F]);
 
-  if (dot(sampleColor, sampleColor) > 1e-6f) // add final result to image
+  if (dot(sampleColor, sampleColor) > 1e-12f) // add final result to image
   {
     const float2 posScreenSpace = worldPosToScreenSpace(a_lv.hit.pos, a_globals);
     

@@ -1059,7 +1059,7 @@ void GPUOCLLayer::BeginTracingPass()
     // (1) Generate random rays and generate multiple references via Z-index
     //
     if (m_vars.m_flags & HRT_FORWARD_TRACING)
-      runKernel_MakeLightRays(m_rays.rayPos, m_rays.rayDir, m_rays.MEGABLOCKSIZE);
+      runKernel_MakeLightRays(m_rays.rayPos, m_rays.rayDir, m_rays.pathResultColor, m_rays.MEGABLOCKSIZE);
     else
       runKernel_MakeEyeRaysAndClearUnified(m_rays.rayPos, m_rays.rayDir, m_rays.samZindex, m_rays.pixWeights, m_rays.MEGABLOCKSIZE, m_passNumber);
 
@@ -1274,13 +1274,14 @@ void GPUOCLLayer::trace1D(cl_mem a_rpos, cl_mem a_rdir, cl_mem a_outColor, size_
 
       runKernel_ShadowTrace(m_rays.shadowRayPos, m_rays.shadowRayDir, m_rays.lshadow, a_size);
 
-      runKernel_ProjectSamplesToScreen(m_rays.shadowRayPos, m_rays.shadowRayDir, a_outColor, 
+      runKernel_ProjectSamplesToScreen(m_rays.shadowRayPos, m_rays.shadowRayDir, a_rdir, a_outColor,
                                        m_rays.pathShadeColor, m_rays.samZindex, a_size, bounce);
 
       AddContributionToScreenGPU(m_rays.pathShadeColor, m_rays.samZindex, nullptr, int(m_rays.MEGABLOCKSIZE), m_width, m_height, m_passNumber,
                                  m_screen.color0, m_screen.pbo);
 
       // memsetf4(m_rays.pathShadeColor, make_float4(0, 0, 0, 0), a_size); // just clear pathShadeColor because runKernel_NextBounce will add it 
+      break;
     }
     else
     {

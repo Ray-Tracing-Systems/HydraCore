@@ -25,7 +25,9 @@ static inline float3 decompressShadow(ushort4 shadowCompressed)
 
 __kernel void MakeEyeShadowRays(__global const uint*          restrict a_flags,
                                 __global const float4*        restrict in_hitPosNorm,
+                                __global const float4*        restrict in_normalsFull,
                                 __global const HitMatRef*     restrict in_matData,
+
                                 __global const float4*        restrict a_mtlStorage,
                                 __global const EngineGlobals* restrict a_globals,
   
@@ -41,9 +43,8 @@ __kernel void MakeEyeShadowRays(__global const uint*          restrict a_flags,
   if (!rayIsActiveU(flags))
     return;
 
-  const float4 data    = in_hitPosNorm[tid];
-  const float3 hitPos  = to_float3(data);
-  const float3 hitNorm = normalize(decodeNormal(as_int(data.w))); //#TODO: try to replace this with precise normal from separate buffer
+  const float3 hitPos  = to_float3(in_hitPosNorm[tid]);
+  const float3 hitNorm = to_float3(in_normalsFull[tid]); 
 
   float3 camDir; float zDepth;
   const float imageToSurfaceFactor = CameraImageToSurfaceFactor(hitPos, hitNorm, a_globals,
@@ -56,10 +57,6 @@ __kernel void MakeEyeShadowRays(__global const uint*          restrict a_flags,
   if ((materialGetFlags(pHitMaterial) & PLAIN_MATERIAL_HAVE_BTDF) != 0 && dot(camDir, hitNorm) < -0.01f)
     signOfNormal = -1.0f;
   
-  //const float4x4 mWorldViewInv = make_float4x4(a_globals->mWorldViewInverse);
-  //camDir                       = mul(mWorldViewInv, make_float3(0, 0, 0));
-  // camDir = make_float3(0, 1, 0);
-
   out_sraypos[tid] = to_float4(hitPos + epsilonOfPos(hitPos)*signOfNormal*hitNorm, zDepth); // OffsRayPos(hitPos, hitNorm, camDir);
   out_sraydir[tid] = to_float4(camDir, imageToSurfaceFactor);
 }
@@ -99,24 +96,23 @@ __kernel void ConnectToEyeKernel(__global const uint*          restrict a_flags,
   if (!rayIsActiveU(flags))
     return;
 
-  const float4 data1 = in_hitPosNorm[tid];
-  const float4 data2 = in_sraydir[tid];
+  const float3 hitPos  = to_float3(in_hitPosNorm[tid]); //  
+  const float3 hitNorm = to_float3(in_normalsFull[tid]);
+  const float4 data2   = in_sraydir[tid];
 
-  const float3 hitPos              = to_float3(data1); //  
   const float3 camDir              = to_float3(data2); // compute it in MakeEyeShadowRays kernel
   const float imageToSurfaceFactor = data2.w;          // compute it in MakeEyeShadowRays kernel
 
-  const float3 hitNorm = to_float3(in_normalsFull[tid]);
+  //float3 camDir; float zDepth;
+  //const float imageToSurfaceFactor = CameraImageToSurfaceFactor(hitPos, hitNorm, a_globals,
+  //                                                              &camDir, &zDepth);
+
   const int matId      = GetMaterialId(in_matData[tid]);
 
-  float  signOfNormal  = 1.0f; 
-  float  pdfImplicit0W = 1.0f;
   float3 colorConnect  = make_float3(1,1,1);
   if(a_currBounce > 0) // if 0, this is light surface
   {
     __global const PlainMaterial* pHitMaterial = materialAt(a_globals, a_mtlStorage, matId);
-    if ((materialGetFlags(pHitMaterial) & PLAIN_MATERIAL_HAVE_BTDF) != 0 && dot(camDir, hitNorm) < -0.01f)
-      signOfNormal = -1.0f;
       
     const Hit_Part4 btanAndN = in_hitTangent[tid];
     const float2 hitTexCoord = in_hitTexCoord[tid];
@@ -136,7 +132,8 @@ __kernel void ConnectToEyeKernel(__global const uint*          restrict a_flags,
     BxDFResult matRes = materialEval(pHitMaterial, &sc, false, true, /* global data --> */ a_globals, a_texStorage1, a_texStorage2);
     colorConnect = matRes.brdf + matRes.btdf; 
   }
-  
+
+
   // We divide the contribution by surfaceToImageFactor to convert the (already
   // divided) pdf from surface area to image plane area, w.r.t. which the
   // pixel integral is actually defined. We also divide by the number of samples
@@ -144,10 +141,13 @@ __kernel void ConnectToEyeKernel(__global const uint*          restrict a_flags,
   //
   const float3 a_accColor  = to_float3(a_colorIn[tid]);
   const float3 shadowColor = decompressShadow(in_shadow[tid]);
-  const float3 sampleColor = 1.0f*shadowColor*(a_accColor*colorConnect) * (imageToSurfaceFactor / mLightSubPathCount);
+  float3 sampleColor       = shadowColor*(a_accColor*colorConnect) * (imageToSurfaceFactor / mLightSubPathCount);
   
-  int x = -1, y = -1;
-  if (dot(sampleColor, sampleColor) > 1e-20f) // add final result to image
+  if (!isfinite(sampleColor.x) || !isfinite(sampleColor.y) || !isfinite(sampleColor.z) || imageToSurfaceFactor <= 0.0f)
+    sampleColor = make_float3(0, 0, 0);
+
+  int x = 65535, y = 65535;
+  if (dot(sampleColor, sampleColor) > 1e-12f) // add final result to image
   {
     const float2 posScreenSpace = worldPosToScreenSpace(hitPos, a_globals);
 
@@ -680,14 +680,8 @@ __kernel void NextBounce(__global   float4*        restrict a_rpos,
       }
     }
 
-    if ((a_globals->g_flags & HRT_FORWARD_TRACING) != 0)
-    {
-      if (a_globals->varsI[HRT_RENDER_LAYER] == LAYER_INCOMING_RADIANCE && (a_globals->varsI[HRT_RENDER_LAYER_DEPTH] == rayBounceNum)) // no shade need when compute irradiance, no shade when trace photons
-        outPathColor += make_float3(0, 0, 0);
-      else
-        outPathColor += to_float3(shadeData);
-    }
-
+    if ((a_globals->g_flags & HRT_FORWARD_TRACING) == 0)
+      outPathColor += to_float3(shadeData);
    
     if (!isThinGlass)                                    // THIS IS A VERY HUGE HACK  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     {

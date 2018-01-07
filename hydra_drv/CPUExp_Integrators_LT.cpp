@@ -69,7 +69,7 @@ void IntegratorLT::DoLightPath(int iterId)
     SurfaceHit dummyHit;
     dummyHit.pos    = sample.pos;
     dummyHit.normal = sample.norm;
-    ConnectEye(dummyHit, sample.pos, sample.dir, sample.color*invPdf, 0);
+    ConnectEye(dummyHit, sample.dir, sample.color*invPdf, 0);
   }
 
   TraceLightPath(sample.pos, sample.dir, 1, sample.color*invPdf);
@@ -86,7 +86,7 @@ void IntegratorLT::TraceLightPath(float3 ray_pos, float3 ray_dir, int a_currDept
 
   auto surfElem = surfaceEval(ray_pos, ray_dir, hit);
 
-  ConnectEye(surfElem, ray_pos, ray_dir, a_accColor, a_currDepth);
+  ConnectEye(surfElem, ray_dir, a_accColor, a_currDepth);
 
   // next bounce
   //
@@ -102,7 +102,7 @@ void IntegratorLT::TraceLightPath(float3 ray_pos, float3 ray_dir, int a_currDept
   TraceLightPath(nextRay_pos, nextRay_dir, a_currDepth + 1, cosLightNext*matSam.color*a_accColor*(1.0f / fmax(matSam.pdf, DEPSILON)));
 }
 
-void IntegratorLT::ConnectEye(SurfaceHit a_hit, float3 ray_pos, float3 ray_dir, float3 a_accColor, int a_currBounce)
+void IntegratorLT::ConnectEye(SurfaceHit a_hit, float3 ray_dir, float3 a_accColor, int a_currBounce)
 {
   // We put the virtual image plane at such a distance from the camera origin
   // that the pixel area is one and thus the image plane sampling pdf is 1.
@@ -117,7 +117,6 @@ void IntegratorLT::ConnectEye(SurfaceHit a_hit, float3 ray_pos, float3 ray_dir, 
     return;
 
   float  signOfNormal  = 1.0f; 
-  float  pdfImplicit0W = 1.0f;
   float3 colorConnect  = make_float3(1,1,1);
   if(a_currBounce > 0) // if 0, this is light surface
   {
@@ -159,8 +158,8 @@ void IntegratorLT::ConnectEye(SurfaceHit a_hit, float3 ray_pos, float3 ray_dir, 
     {
       const float2 posScreenSpace = worldPosToScreenSpace(a_hit.pos, m_pGlobals);
 
-      int x = int(posScreenSpace.x + 0.5f);
-      int y = int(posScreenSpace.y + 0.5f);
+      const int x = int(posScreenSpace.x + 0.5f);
+      const int y = int(posScreenSpace.y + 0.5f);
 
       if(x >=0 && x <= m_width-1 && y >=0 && y <= m_height-1)
       { 

@@ -518,7 +518,7 @@ protected:
   //
   void DoLightPath(int iterId);
   void TraceLightPath(float3 ray_pos, float3 ray_dir, int a_currDepthm, float3 a_accColor);
-  void ConnectEye(SurfaceHit a_hit, float3 ray_pos, float3 ray_dir, float3 a_accColor, int a_currBounce);
+  void ConnectEye(SurfaceHit a_hit, float3 ray_dir, float3 a_accColor, int a_currBounce);
 
   float   mLightSubPathCount; ///< piece of shit from smallVCM
 

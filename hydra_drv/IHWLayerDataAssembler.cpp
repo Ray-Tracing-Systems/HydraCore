@@ -94,31 +94,8 @@ void IHWLayer::SetCamMatrices(float mProjInverse[16], float mWorldViewInverse[16
 
   float w = float(m_width);
   float h = float(m_height);
-
-  // calc and set FOV and width
-  //
-  // float4x4 a_mViewProjInv = make_float4x4(mProjInverse);
-  //   
-  // float3 dir0 = EyeRayDir(1.0f, 1.0f, w, h, a_mViewProjInv);
-  // float3 dir1 = EyeRayDir(2.0f, 1.0f, w, h, a_mViewProjInv);
-  // float3 dir2 = EyeRayDir(1.0f, 2.0f, w, h, a_mViewProjInv);
-  // 
-  // float cosAlphaX = dot(dir1, dir0);
-  // float cosAlphaY = dot(dir2, dir0);
-  // 
-  // float sinAlphaX = sqrtf(1.0f - cosAlphaX*cosAlphaX);
-  // float sinAlphaY = sqrtf(1.0f - cosAlphaY*cosAlphaY);
-  // 
+ 
   AllRenderVarialbes vars = this->GetAllFlagsAndVars();
-   
-  // vars.m_varsF[HRT_FOV_X] = sinAlphaX*w;
-  // vars.m_varsF[HRT_FOV_Y] = sinAlphaY*h;
-  // 
-  // if (vars.m_varsF[HRT_FOV_X] < 1e-5f || vars.m_varsF[HRT_FOV_Y] < 1e-5f) // this is strange but happends for some projection matrices
-  // {
-  //   vars.m_varsF[HRT_FOV_X] = a_aspectX;
-  //   vars.m_varsF[HRT_FOV_Y] = a_aspectX*(h/w);
-  // }
 
   vars.m_varsF[HRT_FOV_X] = a_fovX;
   vars.m_varsF[HRT_FOV_Y] = a_fovX/a_aspectX;

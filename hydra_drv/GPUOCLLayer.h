@@ -381,7 +381,7 @@ protected:
 
   void runKernel_InitRandomGen(cl_mem a_buffer, size_t a_size, int a_seed);
   void runKernel_MakeEyeRaysAndClearUnified(cl_mem a_rpos, cl_mem a_rdir, cl_mem a_zindex, cl_mem a_pixWeights, size_t a_size, int a_passNumber);
-  void runKernel_MakeLightRays(cl_mem a_rpos, cl_mem a_rdir, size_t a_size);
+  void runKernel_MakeLightRays(cl_mem a_rpos, cl_mem a_rdir, cl_mem a_outColor, size_t a_size);
  
   void runKernel_Trace(cl_mem a_rpos, cl_mem a_rdir, cl_mem a_hits, size_t a_size);
   void runKernel_ComputeHit(cl_mem a_rpos, cl_mem a_rdir, size_t a_size);
@@ -392,7 +392,7 @@ protected:
   void runShadePass(cl_mem a_rpos, cl_mem a_rdir, cl_mem a_outColor, size_t a_size, bool a_measureTime);
 
   void runKernel_EyeShadowRays(cl_mem a_rpos, cl_mem a_rdir, size_t a_size);
-  void runKernel_ProjectSamplesToScreen(cl_mem a_rpos, cl_mem a_rdir, cl_mem a_colorsIn, cl_mem a_colorsOut, cl_mem a_zindex, size_t a_size, int a_currBounce);
+  void runKernel_ProjectSamplesToScreen(cl_mem a_rpos, cl_mem a_rdir, cl_mem a_rdir2, cl_mem a_colorsIn, cl_mem a_colorsOut, cl_mem a_zindex, size_t a_size, int a_currBounce);
 
   // MLT
   //
