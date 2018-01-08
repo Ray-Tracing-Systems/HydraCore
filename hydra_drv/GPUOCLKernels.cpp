@@ -132,8 +132,6 @@ void GPUOCLLayer::AddContributionToScreenGPU(cl_mem in_color, cl_mem in_indices,
 
   CHECK_CL(clEnqueueNDRangeKernel(m_globals.cmdQueue, contribKern, 2, NULL, global_item_size, local_item_size, 0, NULL, NULL));
   waitIfDebug(__FILE__, __LINE__);
-
-  m_spp += float(double(a_size) / double(a_width*a_height));
 }
 
 

@@ -709,12 +709,9 @@ __kernel void NextBounce(__global   float4*        restrict a_rpos,
 
     float4 nextPathColor;
 
-    if (a_globals->g_flags & (HRT_DIFFUSE_PHOTON_TRACING | HRT_CAUSTIC_PHOTON_TRACING)) // photon maps
+    if (a_globals->g_flags & HRT_FORWARD_TRACING) // photon maps
     { 
-      if (rayBounceNum == 0)
-        nextPathColor = shadeData*to_float4(outPathThroughput*fogAtten, 1.0f);
-      else
-        nextPathColor = a_color[tid]*to_float4(outPathThroughput*fogAtten, 1.0f);
+      nextPathColor   = a_color[tid]*to_float4(outPathThroughput*fogAtten, 1.0f);
       nextPathColor.w = 1.0f;
     }
     else

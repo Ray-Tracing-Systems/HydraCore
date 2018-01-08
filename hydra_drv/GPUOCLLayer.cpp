@@ -1072,6 +1072,7 @@ void GPUOCLLayer::BeginTracingPass()
     if ((m_vars.m_flags & HRT_FORWARD_TRACING) == 0)
       AddContributionToScreen(m_rays.pathResultColor);
 
+    m_spp += float(double(m_rays.MEGABLOCKSIZE) / double(m_width*m_height));
   }
   else if(!m_screen.m_cpuFrameBuffer)
   { 
@@ -1103,6 +1104,7 @@ void GPUOCLLayer::AddContributionToScreen(cl_mem in_color)
   else
     AddContributionToScreenGPU(in_color, m_rays.samZindex, m_rays.pixWeights, int(m_rays.MEGABLOCKSIZE), m_width, m_height, m_passNumber,
                                m_screen.color0, m_screen.pbo);
+
 }
 
 /**
@@ -1177,8 +1179,6 @@ void GPUOCLLayer::AddContributionToScreenCPU(cl_mem in_indices, int a_size, int 
       }
     }
 
-    m_spp += float(double(a_size) / double(a_width*a_height));
-
     CHECK_CL(clEnqueueUnmapMemObject(m_globals.cmdQueueDevToHost, m_rays.pathResultColorCPU, colors, 0, 0, 0));
   }
 
@@ -1239,7 +1239,7 @@ void GPUOCLLayer::trace1D(cl_mem a_rpos, cl_mem a_rdir, cl_mem a_outColor, size_
   float timeForHit = 0.0f;
 
   int measureBounce = m_vars.m_varsI[HRT_MEASURE_RAYS_TYPE];
-  int maxBounce     = 1; // m_vars.m_varsI[HRT_TRACE_DEPTH];
+  int maxBounce     = m_vars.m_varsI[HRT_TRACE_DEPTH];
 
   for (int bounce = 0; bounce < maxBounce; bounce++)
   {
@@ -1281,8 +1281,6 @@ void GPUOCLLayer::trace1D(cl_mem a_rpos, cl_mem a_rdir, cl_mem a_outColor, size_
                                  m_screen.color0, m_screen.pbo);
 
       memsetf4(m_rays.pathShadeColor, make_float4(0, 0, 0, 0), a_size);
-
-      //break;
     }
     else
     {
