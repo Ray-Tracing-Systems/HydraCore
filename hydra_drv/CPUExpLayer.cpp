@@ -154,7 +154,6 @@ void CPUExpLayer::InitPathTracing(int seed)
 void CPUExpLayer::ClearAccumulatedColor()                                                                      
 {
   m_pIntegrator->ClearAccumulatedColor();
-  m_avgSpp = 0;
 }
 
 void CPUExpLayer::renderSubPixelData(const char* a_dataName, const std::vector<ushort2>& a_pixels, int a_spp, float4* a_pixValues, float4* a_subPixValues)

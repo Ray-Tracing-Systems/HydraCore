@@ -522,7 +522,6 @@ void GPUOCLLayer::MLT_DoPass()
   }
 
   m_mlt.mppDone += ( double(m_rays.MEGABLOCKSIZE) / double(m_width*m_height) );
-  m_avgSpp = m_mlt.mppDone;
 
   if ((m_mlt.mppDone > 16) && (int(m_mlt.mppDone) % 256 == 0) && (round(m_mlt.mppDone) == m_mlt.mppDone))
     std::cout << "[mlt_timer]: " << m_mlt.mppDone << " spp, time = " << m_mlt.timer.getElapsed() << std::endl;

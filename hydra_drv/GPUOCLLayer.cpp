@@ -946,7 +946,7 @@ void GPUOCLLayer::GetHDRImage(float4* data, int width, int height) const
   if (m_passNumber - 1 <= 0 || m_spp <= 1e-5f) // remember about pipelined copy!!
     return;
 
-  const float normConst = 1.0f / m_spp; // / float(m_passNumber - 1); // remember about pipelined copy!!
+  const float normConst = (1.0f / m_spp);
 
   if (m_screen.m_cpuFrameBuffer)
   {
@@ -976,10 +976,10 @@ void GPUOCLLayer::ClearAccumulatedColor()
   if (m_screen.m_cpuFrameBuffer && m_screen.color0CPU.size() != 0)
     memset(&m_screen.color0CPU[0], 0, m_width*m_height * sizeof(float4));
   else if(m_screen.color0 != nullptr)
-    memsetf4(m_screen.color0, make_float4(0, 0, 0, 1.0f), m_width*m_height); // #TODO: change this for 2D memset to support large resolutions!!!!
+    memsetf4(m_screen.color0, make_float4(0, 0, 0, 0.0f), m_width*m_height); // #TODO: change this for 2D memset to support large resolutions!!!!
 
   m_mlt.mppDone = 0.0;
-  m_avgSpp = 0.0f;
+  m_spp         = 0.0f;
 }
 
 MRaysStat GPUOCLLayer::GetRaysStat()
@@ -1051,11 +1051,11 @@ void GPUOCLLayer::DrawNormals()
 
 void GPUOCLLayer::BeginTracingPass()
 {
+  m_vars.m_flags |= HRT_FORWARD_TRACING;
+
   m_timer.start();
   if (m_vars.m_flags & HRT_UNIFIED_IMAGE_SAMPLING)
   {
-    m_vars.m_flags |= HRT_FORWARD_TRACING;
-
     // (1) Generate random rays and generate multiple references via Z-index
     //
     if (m_vars.m_flags & HRT_FORWARD_TRACING)
@@ -1086,14 +1086,14 @@ void GPUOCLLayer::AddContributionToScreen(cl_mem in_color)
   if (m_screen.m_cpuFrameBuffer)
   {
     float4* resultPtr = nullptr;
-    int width = m_width;
-    int height = m_height;
+    int width         = m_width;
+    int height        = m_height;
 
     if (m_pExternalImage != nullptr)
     {
       resultPtr = (float4*)m_pExternalImage->ImageData(0);
-      width = m_pExternalImage->Header()->width;
-      height = m_pExternalImage->Header()->height;
+      width     = m_pExternalImage->Header()->width;
+      height    = m_pExternalImage->Header()->height;
     }
     else
       resultPtr = &m_screen.color0CPU[0];
@@ -1280,7 +1280,7 @@ void GPUOCLLayer::trace1D(cl_mem a_rpos, cl_mem a_rdir, cl_mem a_outColor, size_
       AddContributionToScreenGPU(m_rays.pathShadeColor, m_rays.samZindex, nullptr, int(m_rays.MEGABLOCKSIZE), m_width, m_height, m_passNumber,
                                  m_screen.color0, m_screen.pbo);
 
-      memsetf4(m_rays.pathShadeColor, make_float4(0, 0, 0, 0), a_size);
+      // memsetf4(m_rays.pathShadeColor, make_float4(0, 0, 0, 0), a_size);
     }
     else
     {
@@ -1453,7 +1453,7 @@ void GPUOCLLayer::renderSubPixelData(const char* a_dataName, const std::vector<u
     renderSubPixelDataBlock(a_dataName, &a_pixels[pixelsOffsetBegin], pixelsNum, spp, a_pixValues + pixelsOffsetBegin, subPixValues, tempData);
   }
 
- 
+  
 
 }
 

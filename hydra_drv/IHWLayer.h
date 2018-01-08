@@ -101,7 +101,7 @@ class IHWLayer
 {
 public:
 
-  IHWLayer() : m_progressBar(nullptr), m_avgSpp(0.0f), m_width(0), m_height(0), m_pExternalImage(nullptr) { memset(&m_globsBuffHeader, 0, sizeof(EngineGlobals)); }
+  IHWLayer() : m_progressBar(nullptr), m_width(0), m_height(0), m_pExternalImage(nullptr) { memset(&m_globsBuffHeader, 0, sizeof(EngineGlobals)); }
   virtual ~IHWLayer();
 
   virtual void Clear(CLEAR_FLAGS a_flags)   = 0;
@@ -201,8 +201,6 @@ public:
 
   virtual void   SetProgressBarCallback(RTE_PROGRESSBAR_CALLBACK a_pFunc) { m_progressBar = a_pFunc; }
 
-  virtual float  GetAvgSPP() const { return float(m_avgSpp); }
-
   // normalmap and aux computations
   //
   virtual std::vector<uchar4> NormalMapFromDisplacement(int w, int h, const uchar4* a_data, float bumpAmt, bool invHeight, float smoothLvl) { return std::vector<uchar4>(); }
@@ -215,7 +213,6 @@ protected:
 
   int m_width;
   int m_height;
-  double m_avgSpp;
 
   AllRenderVarialbes m_vars;
 

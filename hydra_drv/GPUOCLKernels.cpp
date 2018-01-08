@@ -93,7 +93,6 @@ void RoundBlocks2D(size_t global_item_size[2], size_t local_item_size[2])
 void GPUOCLLayer::AddContributionToScreenGPU(cl_mem in_color, cl_mem in_indices, cl_mem in_pixWeights, int a_size, int a_width, int a_height, int a_spp,
                                              cl_mem out_colorHDR, cl_mem out_colorLDR)
 {
-
   // (3) sort references
   //
   BitonicCLArgs sortArgs;
@@ -546,7 +545,7 @@ void GPUOCLLayer::runKernel_ProjectSamplesToScreen(cl_mem a_rpos, cl_mem a_rdir,
   cl_int isize         = cl_int(a_size);
   a_size               = roundBlocks(a_size, int(localWorkSize));
 
-  cl_float mLightSubPathCount = cl_float(m_width)*cl_float(m_height); // cl_float(m_rays.MEGABLOCKSIZE);
+  cl_float mLightSubPathCount = cl_float(m_width*m_height); // cl_float(m_rays.MEGABLOCKSIZE);
   cl_int currBounce           = a_currBounce+1;  
 
   CHECK_CL(clSetKernelArg(kern, 0, sizeof(cl_mem), (void*)&m_rays.rayFlags));

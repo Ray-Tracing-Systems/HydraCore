@@ -900,7 +900,7 @@ void RenderDriverRTE::Draw()
   }
   else
   {
-    auto flagsAndVars = m_pHWLayer->GetAllFlagsAndVars();
+    auto flagsAndVars    = m_pHWLayer->GetAllFlagsAndVars();
     flagsAndVars.m_flags = flagsAndVars.m_flags & ~HRT_UNIFIED_IMAGE_SAMPLING;
     m_pHWLayer->SetAllFlagsAndVars(flagsAndVars);
 
