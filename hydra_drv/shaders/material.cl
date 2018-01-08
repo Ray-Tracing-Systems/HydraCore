@@ -59,6 +59,12 @@ __kernel void MakeEyeShadowRays(__global const uint*          restrict a_flags,
   
   out_sraypos[tid] = to_float4(hitPos + epsilonOfPos(hitPos)*signOfNormal*hitNorm, zDepth); // OffsRayPos(hitPos, hitNorm, camDir);
   out_sraydir[tid] = to_float4(camDir, imageToSurfaceFactor);
+
+  // // debug constants
+  // //
+  // const float4x4 mWorldViewInv = make_float4x4(a_globals->mWorldViewInverse);
+  // const float3   camPos = mul(mWorldViewInv, make_float3(0, 0, 0));
+  // out_sraydir[tid] = to_float4(camPos, a_globals->imagePlaneDist);
 }
 
 
@@ -94,7 +100,12 @@ __kernel void ConnectToEyeKernel(__global const uint*          restrict a_flags,
 
   uint flags = a_flags[tid];
   if (!rayIsActiveU(flags))
+  {
+    if (out_zind != 0)
+      out_zind[tid] = make_int2(0xFFFFFFFF, tid);
+    a_colorOut[tid] = make_float4(0,0,0,as_float(0xFFFFFFFF));
     return;
+  }
 
   const float3 hitPos  = to_float3(in_hitPosNorm[tid]); //  
   const float3 hitNorm = to_float3(in_normalsFull[tid]);
@@ -133,7 +144,6 @@ __kernel void ConnectToEyeKernel(__global const uint*          restrict a_flags,
     colorConnect = matRes.brdf + matRes.btdf; 
   }
 
-
   // We divide the contribution by surfaceToImageFactor to convert the (already
   // divided) pdf from surface area to image plane area, w.r.t. which the
   // pixel integral is actually defined. We also divide by the number of samples
@@ -159,7 +169,7 @@ __kernel void ConnectToEyeKernel(__global const uint*          restrict a_flags,
   if(out_zind != 0)
     out_zind[tid] = make_int2(zid, tid);
   
-  a_colorOut[tid] = to_float4(sampleColor, as_float(zid));
+  a_colorOut[tid] = to_float4(sampleColor, as_float(packXY1616(x,y)));
 
 }
 

@@ -58,8 +58,6 @@ __kernel void MakeEyeRays(int offset,
   out_dir[tid] = to_float4(ray_dir, 0.0f);
 }
 
-inline int packXYForCPU(int x, int y) { return (y << 16) | (x & 0x0000FFFF); }
-
 __kernel void MakeEyeRaysUnifiedSampling(__global float4*              restrict out_pos, 
                                          __global float4*              restrict out_dir, 
                                          __global RandomGen*           restrict out_gens,
@@ -136,7 +134,7 @@ __kernel void MakeEyeRaysUnifiedSampling(__global float4*              restrict 
   }
   else
   {
-    const int zid = a_packIndexForCPU ? packXYForCPU(x,y) : (int)ZIndex(x, y, a_mortonTable256);
+    const int zid = a_packIndexForCPU ? packXY1616(x,y) : (int)ZIndex(x, y, a_mortonTable256);
     out_zind[tid] = make_int2(zid, tid);
   }
 

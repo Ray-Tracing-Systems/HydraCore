@@ -1239,7 +1239,7 @@ void GPUOCLLayer::trace1D(cl_mem a_rpos, cl_mem a_rdir, cl_mem a_outColor, size_
   float timeForHit = 0.0f;
 
   int measureBounce = m_vars.m_varsI[HRT_MEASURE_RAYS_TYPE];
-  int maxBounce     = m_vars.m_varsI[HRT_TRACE_DEPTH];
+  int maxBounce     = 1; // m_vars.m_varsI[HRT_TRACE_DEPTH];
 
   for (int bounce = 0; bounce < maxBounce; bounce++)
   {
@@ -1280,8 +1280,9 @@ void GPUOCLLayer::trace1D(cl_mem a_rpos, cl_mem a_rdir, cl_mem a_outColor, size_
       AddContributionToScreenGPU(m_rays.pathShadeColor, m_rays.samZindex, nullptr, int(m_rays.MEGABLOCKSIZE), m_width, m_height, m_passNumber,
                                  m_screen.color0, m_screen.pbo);
 
-      // memsetf4(m_rays.pathShadeColor, make_float4(0, 0, 0, 0), a_size); // just clear pathShadeColor because runKernel_NextBounce will add it 
-      break;
+      memsetf4(m_rays.pathShadeColor, make_float4(0, 0, 0, 0), a_size);
+
+      //break;
     }
     else
     {

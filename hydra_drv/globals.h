@@ -1804,7 +1804,7 @@ static inline float colorSquareMax3(float3 calcColor)
   return fmax(calcColorSqr.x, fmax(calcColorSqr.y, calcColorSqr.z));
 }
 
-IDH_CALL float colorSquareMax4(float4 calcColor)
+static inline float colorSquareMax4(float4 calcColor)
 {
   float4 calcColorSqr;
 
@@ -1820,7 +1820,7 @@ IDH_CALL float colorSquareMax4(float4 calcColor)
 // Unpolarized fresnel reflection term for dielectric materials
 // this formula is simplified and should be checked 
 //
-IDH_CALL float fresnelCoeffSimple(float cosThetaI, float a_eta)
+static inline float fresnelCoeffSimple(float cosThetaI, float a_eta)
 {
   float g = sqrt(a_eta*a_eta - 1.0f + cosThetaI * cosThetaI);
   float t1 = (g - cosThetaI) / (g + cosThetaI);
@@ -1833,7 +1833,7 @@ IDH_CALL float fresnelCoeffSimple(float cosThetaI, float a_eta)
 //	and the paper "Derivation of Refraction Formulas" by Paul S. Heckbert.
 //
 
-IDH_CALL float fresnelDielectric(float cosTheta1, float cosTheta2, float etaExt, float etaInt)
+static inline float fresnelDielectric(float cosTheta1, float cosTheta2, float etaExt, float etaInt)
 {
   float Rs = (etaExt * cosTheta1 - etaInt * cosTheta2) / (etaExt * cosTheta1 + etaInt * cosTheta2);
   float Rp = (etaInt * cosTheta1 - etaExt * cosTheta2) / (etaInt * cosTheta1 + etaExt * cosTheta2);
@@ -1841,7 +1841,7 @@ IDH_CALL float fresnelDielectric(float cosTheta1, float cosTheta2, float etaExt,
   return (Rs * Rs + Rp * Rp) / 2.0f;
 }
 
-IDH_CALL float fresnelConductor(float cosTheta, float eta, float roughness)
+static inline float fresnelConductor(float cosTheta, float eta, float roughness)
 {
   float tmp = (eta*eta + roughness*roughness) * (cosTheta * cosTheta);
   float rParl2 = (tmp - (eta * (2.0f * cosTheta)) + 1.0f) / (tmp + (eta * (2.0f * cosTheta)) + 1.0f);
@@ -1851,7 +1851,7 @@ IDH_CALL float fresnelConductor(float cosTheta, float eta, float roughness)
 }
 
 
-IDH_CALL float fresnelReflectionCoeff(float cosTheta1, float etaExt, float etaInt)
+static inline float fresnelReflectionCoeff(float cosTheta1, float etaExt, float etaInt)
 {
   // Swap the indices of refraction if the interaction starts
   // at the inside of the object
@@ -1881,18 +1881,18 @@ IDH_CALL float fresnelReflectionCoeff(float cosTheta1, float etaExt, float etaIn
   return fresnelDielectric(fabs(cosTheta1), cosTheta2, etaInt, etaExt);
 }
 
-IDH_CALL float fresnelReflectionCoeffMentalLike(float cosTheta, float refractIOR)
+static inline float fresnelReflectionCoeffMentalLike(float cosTheta, float refractIOR)
 {
   return fresnelReflectionCoeff(fabs(cosTheta), 1.0f, refractIOR);
 }
 
 
-IDH_CALL float contribFunc(float3 color)
+static inline float contribFunc(float3 color)
 {
   return fmax(0.33334f*(color.x + color.y + color.z), 0.0f);
 }
 
-
+static inline int packXY1616(int x, int y) { return (y << 16) | (x & 0x0000FFFF); }
 
 // CPU and CUDA only code 
 //
