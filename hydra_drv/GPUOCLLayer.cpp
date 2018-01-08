@@ -1079,7 +1079,7 @@ void GPUOCLLayer::BeginTracingPass()
 }
 
 
-void GPUOCLLayer::AddContributionToScreen(cl_mem in_color)
+void GPUOCLLayer::AddContributionToScreen(cl_mem& in_color)
 {
   if (m_screen.m_cpuFrameBuffer)
   {
@@ -1096,13 +1096,15 @@ void GPUOCLLayer::AddContributionToScreen(cl_mem in_color)
     else
       resultPtr = &m_screen.color0CPU[0];
 
-    AddContributionToScreenCPU(m_rays.samZindex, int(m_rays.MEGABLOCKSIZE), width, height, 
+    AddContributionToScreenCPU(in_color, m_rays.samZindex, int(m_rays.MEGABLOCKSIZE), width, height,
                                resultPtr);
   }
   else
     AddContributionToScreenGPU(in_color, m_rays.samZindex, m_rays.pixWeights, int(m_rays.MEGABLOCKSIZE), m_width, m_height, m_passNumber,
                                m_screen.color0, m_screen.pbo);
 
+  if (m_vars.m_flags & HRT_UNIFIED_IMAGE_SAMPLING)
+    m_passNumber++;
 }
 
 /**
@@ -1133,23 +1135,27 @@ void AddSamplesContribution(float4* out_color, const float4* colors, int a_size,
   }
 }
 
-void GPUOCLLayer::AddContributionToScreenCPU(cl_mem in_indices, int a_size, int a_width, int a_height, float4* out_color)
+void GPUOCLLayer::AddContributionToScreenCPU(cl_mem& in_color, cl_mem in_indices, int a_size, int a_width, int a_height, float4* out_color)
 {
   // (1) compute compressed index in color.w; use runKernel_MakeEyeRaysAndClearUnified for that task if CPU FB is enabled!!!
   //
-  cl_kernel kern = m_progs.screen.kernel("PackIndexToColorW");
+
+  //cl_mem in_color  = m_rays.pathAccColor;
+  cl_mem old_color = m_rays.pathAuxColor;
 
   size_t szLocalWorkSize = 256;
   cl_int iNumElements    = cl_int(a_size);
   size_t size            = roundBlocks(size_t(a_size), int(szLocalWorkSize));
 
-  cl_mem in_color  = m_rays.pathAccColor;
-  cl_mem old_color = m_rays.pathAuxColor;
+  if ((m_vars.m_flags & HRT_FORWARD_TRACING) == 0) // lt already pack index to color, so, don't do that again!!!
+  {
+    cl_kernel kern = m_progs.screen.kernel("PackIndexToColorW");
 
-  CHECK_CL(clSetKernelArg(kern, 0, sizeof(cl_mem), (void*)&in_indices));
-  CHECK_CL(clSetKernelArg(kern, 1, sizeof(cl_mem), (void*)&in_color));
-  CHECK_CL(clSetKernelArg(kern, 2, sizeof(cl_int), (void*)&iNumElements));
-  CHECK_CL(clEnqueueNDRangeKernel(m_globals.cmdQueue, kern, 1, NULL, &size, &szLocalWorkSize, 0, NULL, NULL));
+    CHECK_CL(clSetKernelArg(kern, 0, sizeof(cl_mem), (void*)&in_indices));
+    CHECK_CL(clSetKernelArg(kern, 1, sizeof(cl_mem), (void*)&in_color));
+    CHECK_CL(clSetKernelArg(kern, 2, sizeof(cl_int), (void*)&iNumElements));
+    CHECK_CL(clEnqueueNDRangeKernel(m_globals.cmdQueue, kern, 1, NULL, &size, &szLocalWorkSize, 0, NULL, NULL));
+  }
 
   clFlush(m_globals.cmdQueue);
 
@@ -1169,7 +1175,7 @@ void GPUOCLLayer::AddContributionToScreenCPU(cl_mem in_indices, int a_size, int 
     {
       AddSamplesContribution(out_color, colors, size, a_width, a_height);
 
-      if (m_pExternalImage != nullptr)
+      if (m_pExternalImage != nullptr) //#TODO: if ((m_vars.m_flags & HRT_FORWARD_TRACING) == 0) IT IS DIFFERENT FOR LT !!!!!!!!!!
       {
         m_pExternalImage->Header()->counterRcv++;
         m_pExternalImage->Header()->spp += float(double(a_size) / double(a_width*a_height));
@@ -1187,8 +1193,8 @@ void GPUOCLLayer::AddContributionToScreenCPU(cl_mem in_indices, int a_size, int 
   //
   {
     cl_mem temp          = m_rays.pathAuxColor;
-    m_rays.pathAuxColor  = m_rays.pathAccColor;
-    m_rays.pathAccColor  = temp;
+    m_rays.pathAuxColor  = in_color;
+    in_color             = temp;
   }
 }
 
@@ -1208,8 +1214,6 @@ void GPUOCLLayer::EndTracingPass()
     std::cout.precision(precOld);
   }
 
-  if (m_vars.m_flags & HRT_UNIFIED_IMAGE_SAMPLING)
-    m_passNumber++;
 }
 
 
@@ -1275,8 +1279,10 @@ void GPUOCLLayer::trace1D(cl_mem a_rpos, cl_mem a_rdir, cl_mem a_outColor, size_
       runKernel_ProjectSamplesToScreen(m_rays.shadowRayPos, m_rays.shadowRayDir, a_rdir, a_outColor,
                                        m_rays.pathShadeColor, m_rays.samZindex, a_size, bounce);
 
-      AddContributionToScreenGPU(m_rays.pathShadeColor, m_rays.samZindex, nullptr, int(m_rays.MEGABLOCKSIZE), m_width, m_height, m_passNumber,
-                                 m_screen.color0, m_screen.pbo);
+      AddContributionToScreen(m_rays.pathShadeColor);
+
+      //AddContributionToScreenGPU(m_rays.pathShadeColor, m_rays.samZindex, nullptr, int(m_rays.MEGABLOCKSIZE), m_width, m_height, m_passNumber,
+        //                         m_screen.color0, m_screen.pbo);
 
       // memsetf4(m_rays.pathShadeColor, make_float4(0, 0, 0, 0), a_size);
     }
