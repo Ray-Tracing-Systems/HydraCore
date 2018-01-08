@@ -51,10 +51,10 @@ void GPUOCLLayer::CL_BUFFERS_RAYS::free()
   if (pathMisDataPrev) clReleaseMemObject(pathMisDataPrev);
   if (pathShadeColor)  clReleaseMemObject(pathShadeColor);
 
-  if (pathResultColor)    clReleaseMemObject(pathResultColor);
-  if (pathResultColor2)   clReleaseMemObject(pathResultColor2);
+  if (pathAccColor)    clReleaseMemObject(pathAccColor);
+  if (pathAuxColor)   clReleaseMemObject(pathAuxColor);
   if (randGenState)       clReleaseMemObject(randGenState);
-  if (pathResultColorCPU) clReleaseMemObject(pathResultColorCPU);
+  if (pathAuxColorCPU) clReleaseMemObject(pathAuxColorCPU);
 
   if (lsam1)           clReleaseMemObject(lsam1);
   if (lsam2)           clReleaseMemObject(lsam2);
@@ -87,10 +87,10 @@ void GPUOCLLayer::CL_BUFFERS_RAYS::free()
   pathMisDataPrev = 0;
   pathShadeColor  = 0;
   
-  pathResultColor    = 0;
-  pathResultColor2   = 0;
+  pathAccColor    = 0;
+  pathAuxColor   = 0;
   randGenState       = 0;
-  pathResultColorCPU = 0;
+  pathAuxColorCPU = 0;
 
   lsam1        = 0;
   lsam2        = 0;
@@ -139,7 +139,7 @@ void GPUOCLLayer::CL_BUFFERS_RAYS::resize(cl_context ctx, cl_command_queue cmdQu
   if (ciErr1 != CL_SUCCESS)
     RUN_TIME_ERROR("Error in resize rays buffers");
 
-  pathResultColor = clCreateBuffer(ctx, CL_MEM_READ_WRITE, 4 * sizeof(cl_float)*MEGABLOCKSIZE, NULL, &ciErr1);
+  pathAccColor = clCreateBuffer(ctx, CL_MEM_READ_WRITE, 4 * sizeof(cl_float)*MEGABLOCKSIZE, NULL, &ciErr1);
   randGenState    = clCreateBuffer(ctx, CL_MEM_READ_WRITE, 1 * sizeof(RandomGen)*MEGABLOCKSIZE, NULL, &ciErr1);
 
   if (ciErr1 != CL_SUCCESS)
@@ -147,13 +147,13 @@ void GPUOCLLayer::CL_BUFFERS_RAYS::resize(cl_context ctx, cl_command_queue cmdQu
 
   if (a_cpuFB)
   {
-    pathResultColor2   = clCreateBuffer(ctx, CL_MEM_READ_WRITE, 4 * sizeof(cl_float)*MEGABLOCKSIZE, NULL, &ciErr1);
-    pathResultColorCPU = clCreateBuffer(ctx, CL_MEM_WRITE_ONLY | CL_MEM_ALLOC_HOST_PTR, 4 * sizeof(cl_float)*MEGABLOCKSIZE, NULL, &ciErr1);
+    pathAuxColor   = clCreateBuffer(ctx, CL_MEM_READ_WRITE, 4 * sizeof(cl_float)*MEGABLOCKSIZE, NULL, &ciErr1);
+    pathAuxColorCPU = clCreateBuffer(ctx, CL_MEM_WRITE_ONLY | CL_MEM_ALLOC_HOST_PTR, 4 * sizeof(cl_float)*MEGABLOCKSIZE, NULL, &ciErr1);
   }
   else
   {
-    pathResultColor2   = nullptr;
-    pathResultColorCPU = nullptr;
+    pathAuxColor   = nullptr;
+    pathAuxColorCPU = nullptr;
   }
 
   if (ciErr1 != CL_SUCCESS)
@@ -1051,26 +1051,24 @@ void GPUOCLLayer::DrawNormals()
 
 void GPUOCLLayer::BeginTracingPass()
 {
-  m_vars.m_flags |= HRT_FORWARD_TRACING;
-
   m_timer.start();
   if (m_vars.m_flags & HRT_UNIFIED_IMAGE_SAMPLING)
   {
     // (1) Generate random rays and generate multiple references via Z-index
     //
     if (m_vars.m_flags & HRT_FORWARD_TRACING)
-      runKernel_MakeLightRays(m_rays.rayPos, m_rays.rayDir, m_rays.pathResultColor, m_rays.MEGABLOCKSIZE);
+      runKernel_MakeLightRays(m_rays.rayPos, m_rays.rayDir, m_rays.pathAccColor, m_rays.MEGABLOCKSIZE);
     else
-      runKernel_MakeEyeRaysAndClearUnified(m_rays.rayPos, m_rays.rayDir, m_rays.samZindex, m_rays.pixWeights, m_rays.MEGABLOCKSIZE, m_passNumber);
+      runKernel_MakeEyeRays(m_rays.rayPos, m_rays.rayDir, m_rays.samZindex, m_rays.pixWeights, m_rays.MEGABLOCKSIZE, m_passNumber);
 
     // (2) Compute sample colors
     //
-    trace1D(m_rays.rayPos, m_rays.rayDir, m_rays.pathResultColor, m_rays.MEGABLOCKSIZE);
+    trace1D(m_rays.rayPos, m_rays.rayDir, m_rays.pathAccColor, m_rays.MEGABLOCKSIZE);
 
     // (3) accumulate colors
     //
     if ((m_vars.m_flags & HRT_FORWARD_TRACING) == 0)
-      AddContributionToScreen(m_rays.pathResultColor);
+      AddContributionToScreen(m_rays.pathAccColor);
 
     m_spp += float(double(m_rays.MEGABLOCKSIZE) / double(m_width*m_height));
   }
@@ -1145,8 +1143,8 @@ void GPUOCLLayer::AddContributionToScreenCPU(cl_mem in_indices, int a_size, int 
   cl_int iNumElements    = cl_int(a_size);
   size_t size            = roundBlocks(size_t(a_size), int(szLocalWorkSize));
 
-  cl_mem in_color  = m_rays.pathResultColor;
-  cl_mem old_color = m_rays.pathResultColor2;
+  cl_mem in_color  = m_rays.pathAccColor;
+  cl_mem old_color = m_rays.pathAuxColor;
 
   CHECK_CL(clSetKernelArg(kern, 0, sizeof(cl_mem), (void*)&in_indices));
   CHECK_CL(clSetKernelArg(kern, 1, sizeof(cl_mem), (void*)&in_color));
@@ -1159,9 +1157,9 @@ void GPUOCLLayer::AddContributionToScreenCPU(cl_mem in_indices, int a_size, int 
   //
   if (m_passNumber != 0)
   {
-    CHECK_CL(clEnqueueCopyBuffer(m_globals.cmdQueueDevToHost, old_color, m_rays.pathResultColorCPU, 0, 0, a_size * sizeof(float4), 0, nullptr, nullptr));
+    CHECK_CL(clEnqueueCopyBuffer(m_globals.cmdQueueDevToHost, old_color, m_rays.pathAuxColorCPU, 0, 0, a_size * sizeof(float4), 0, nullptr, nullptr));
     cl_int ciErr1  = 0;
-    float4* colors = (float4*)clEnqueueMapBuffer(m_globals.cmdQueueDevToHost, m_rays.pathResultColorCPU, CL_TRUE, CL_MAP_READ, 0, a_size * sizeof(float4), 0, 0, 0, &ciErr1);
+    float4* colors = (float4*)clEnqueueMapBuffer(m_globals.cmdQueueDevToHost, m_rays.pathAuxColorCPU, CL_TRUE, CL_MAP_READ, 0, a_size * sizeof(float4), 0, 0, 0, &ciErr1);
 
     bool lockSuccess = (m_pExternalImage == nullptr);
     if (m_pExternalImage != nullptr)
@@ -1179,7 +1177,7 @@ void GPUOCLLayer::AddContributionToScreenCPU(cl_mem in_indices, int a_size, int 
       }
     }
 
-    CHECK_CL(clEnqueueUnmapMemObject(m_globals.cmdQueueDevToHost, m_rays.pathResultColorCPU, colors, 0, 0, 0));
+    CHECK_CL(clEnqueueUnmapMemObject(m_globals.cmdQueueDevToHost, m_rays.pathAuxColorCPU, colors, 0, 0, 0));
   }
 
   clFinish(m_globals.cmdQueueDevToHost);
@@ -1188,9 +1186,9 @@ void GPUOCLLayer::AddContributionToScreenCPU(cl_mem in_indices, int a_size, int 
   // (3) swap color buffers
   //
   {
-    cl_mem temp             = m_rays.pathResultColor2;
-    m_rays.pathResultColor2 = m_rays.pathResultColor;
-    m_rays.pathResultColor  = temp;
+    cl_mem temp          = m_rays.pathAuxColor;
+    m_rays.pathAuxColor  = m_rays.pathAccColor;
+    m_rays.pathAccColor  = temp;
   }
 }
 

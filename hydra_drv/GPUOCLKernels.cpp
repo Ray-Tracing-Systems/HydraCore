@@ -16,7 +16,7 @@ void GPUOCLLayer::waitIfDebug(const char* file, int line) const
 }
 
 
-void GPUOCLLayer::runKernel_MakeEyeRaysAndClearUnified(cl_mem a_rpos, cl_mem a_rdir, cl_mem a_zindex, cl_mem a_pixWeights, size_t a_size, int a_passNumber)
+void GPUOCLLayer::runKernel_MakeEyeRays(cl_mem a_rpos, cl_mem a_rdir, cl_mem a_zindex, cl_mem a_pixWeights, size_t a_size, int a_passNumber)
 {
   cl_kernel makeRaysKern = m_progs.screen.kernel("MakeEyeRaysUnifiedSampling");
   size_t localWorkSize   = CMP_RESULTS_BLOCK_SIZE;
@@ -37,7 +37,7 @@ void GPUOCLLayer::runKernel_MakeEyeRaysAndClearUnified(cl_mem a_rpos, cl_mem a_r
   CHECK_CL(clSetKernelArg(makeRaysKern, 6, sizeof(cl_mem), (void*)&m_scene.allGlobsData));
 
   CHECK_CL(clSetKernelArg(makeRaysKern, 7, sizeof(cl_mem), (void*)&m_rays.rayFlags));          // pass this data to clear them only!
-  CHECK_CL(clSetKernelArg(makeRaysKern, 8, sizeof(cl_mem), (void*)&m_rays.pathResultColor));   // pass this data to clear them only!
+  CHECK_CL(clSetKernelArg(makeRaysKern, 8, sizeof(cl_mem), (void*)&m_rays.pathAccColor));   // pass this data to clear them only!
   CHECK_CL(clSetKernelArg(makeRaysKern, 9, sizeof(cl_mem), (void*)&m_rays.pathThoroughput));   // pass this data to clear them only!
   CHECK_CL(clSetKernelArg(makeRaysKern,10, sizeof(cl_mem), (void*)&m_rays.fogAtten));          // pass this data to clear them only!
   CHECK_CL(clSetKernelArg(makeRaysKern,11, sizeof(cl_mem), (void*)&m_rays.hitMatId));          // pass this data to clear them only!

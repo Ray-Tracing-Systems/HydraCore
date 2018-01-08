@@ -6,7 +6,6 @@ Input::Input()
   enableOpenGL1 = false;
   noWindow      = false;
   exitStatus    = false;
-  enableABConn  = false;
 
   runTests      = false;
   inTestsFolder = L"../../HydraAPI/main/";
@@ -32,9 +31,10 @@ Input::Input()
 
   // dynamic data
   //
-  pathTracingEnabled = false;
-  cameraFreeze       = false;
-  inSeed             = clock();
+  pathTracingEnabled  = false;
+  lightTracingEnabled = false;
+  cameraFreeze        = false;
+  inSeed              = clock();
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -151,10 +151,10 @@ void Input::ParseCommandLineParams(const std::unordered_map<std::string, std::st
 
 
   ReadStringCmd(a_params, "-inputlib", &inLibraryPath);
-  ReadStringCmd(a_params, "-imageB",   &inImageBName);
-  ReadStringCmd(a_params, "-mutexB",   &inMutexBName);
-  ReadStringCmd(a_params, "-imageA",   &inImageAName);
-  ReadStringCmd(a_params, "-mutexA",   &inMutexAName);
+  // ReadStringCmd(a_params, "-imageB",   &inImageBName);
+  // ReadStringCmd(a_params, "-mutexB",   &inMutexBName);
+  // ReadStringCmd(a_params, "-imageA",   &inImageAName);
+  // ReadStringCmd(a_params, "-mutexA",   &inMutexAName);
   
   ReadStringCmd(a_params, "-out",      &outLDRImage); 
   ReadStringCmd(a_params, "-logdir",   &inLogDirCust);

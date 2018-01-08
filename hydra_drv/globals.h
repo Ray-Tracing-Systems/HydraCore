@@ -406,6 +406,7 @@ enum FLAG_BITS{HRT_COMPUTE_SHADOWS                 = 1,
                HRT_PT_SECONDARY_AND_GLOSSY         = 64, 
                HRT_STORE_SUBPIXELS                 = 128,
                HRT_FORWARD_TRACING                 = 256, /// tracing from light to eye; otherwise from eye to light.
+               HRT_DRAW_LIGHT_LT                   = 512,
     
                HRT_STORE_RAY_SAMPLES               = 8192,
                HRT_ENABLE_MLT                      = 16384,

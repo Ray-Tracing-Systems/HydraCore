@@ -17,10 +17,6 @@ struct Input
   bool listDevicesAndExit;
 
   std::string   inLibraryPath;
-  std::string   inImageBName;
-  std::string   inMutexBName;
-  std::string   inImageAName;
-  std::string   inMutexAName;
   std::string   outLDRImage;
   std::string   inLogDirCust;
 
@@ -41,8 +37,8 @@ struct Input
   //
 
   bool pathTracingEnabled;
+  bool lightTracingEnabled;
   bool cameraFreeze;
-  bool enableABConn;
 
   void ParseCommandLineParams(const std::unordered_map<std::string, std::string>& a_params);
 };

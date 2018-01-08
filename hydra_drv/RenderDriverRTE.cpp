@@ -48,6 +48,7 @@ RenderDriverRTE::RenderDriverRTE(const wchar_t* a_options, int w, int h, int a_d
   m_initFlags |= a_flags;
 
   m_usePT      = false;
+  m_useLT      = false;
   m_ptInitDone = false;
   m_legacy.m_lastSeed = GetTickCount();
   m_legacy.updateProgressCall = &UpdateProgress;
@@ -195,12 +196,25 @@ bool RenderDriverRTE::UpdateSettings(pugi::xml_node a_settingsNode)
   if (a_settingsNode.child(L"method_primary") != nullptr)
   {
     if (std::wstring(a_settingsNode.child(L"method_primary").text().as_string()) == L"pathtracing")
+    {
       m_usePT = true;
-    else
+      m_useLT = false;
+    }
+    else if (std::wstring(a_settingsNode.child(L"method_primary").text().as_string()) == L"lighttracing")
+    {
       m_usePT = false;
+      m_useLT = true;
+    }
+    else
+    {
+      m_useLT = false;
+      m_usePT = false;
+    }
   }
   else
+  {
     m_usePT = true;
+  }
 
   if (a_settingsNode.child(L"trace_depth") != nullptr)
     vars.m_varsI[HRT_TRACE_DEPTH] = a_settingsNode.child(L"trace_depth").text().as_int();
@@ -883,7 +897,7 @@ void RenderDriverRTE::Draw()
 
   m_pHWLayer->PrepareEngineGlobals();
 
-  if (m_usePT)
+  if (m_usePT || m_useLT)
   {
     if (!m_ptInitDone)
     {
@@ -892,6 +906,18 @@ void RenderDriverRTE::Draw()
  
       auto flagsAndVars = m_pHWLayer->GetAllFlagsAndVars();
       flagsAndVars.m_flags |= HRT_UNIFIED_IMAGE_SAMPLING;
+
+      if (m_useLT)
+      {
+        flagsAndVars.m_flags |= HRT_FORWARD_TRACING;
+        flagsAndVars.m_flags |= HRT_DRAW_LIGHT_LT;
+      }
+      else
+      {
+        flagsAndVars.m_flags &= (~HRT_FORWARD_TRACING);
+        flagsAndVars.m_flags &= (~HRT_DRAW_LIGHT_LT);
+      }
+
       m_pHWLayer->SetAllFlagsAndVars(flagsAndVars);
     }
 

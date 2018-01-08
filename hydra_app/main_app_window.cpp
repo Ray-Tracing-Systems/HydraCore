@@ -221,6 +221,8 @@ static void Draw(void)
 
     if(g_input.pathTracingEnabled)
       settingsNode.child(L"method_primary").text() = L"pathtracing";
+    else if(g_input.lightTracingEnabled)
+      settingsNode.child(L"method_primary").text() = L"lighttracing";
     else
       settingsNode.child(L"method_primary").text() = L"raytracing";
   }
@@ -327,8 +329,15 @@ static void key(GLFWwindow* window, int k, int s, int action, int mods)
     break;
 
   case GLFW_KEY_P:
-    g_input.pathTracingEnabled = !g_input.pathTracingEnabled;
-    g_input.cameraFreeze = !g_input.pathTracingEnabled;
+    g_input.pathTracingEnabled  = !g_input.pathTracingEnabled;
+    g_input.cameraFreeze        = !g_input.cameraFreeze;
+    g_input.lightTracingEnabled = false;
+    break;
+
+  case GLFW_KEY_L:
+    g_input.lightTracingEnabled = !g_input.lightTracingEnabled;
+    g_input.cameraFreeze        = !g_input.cameraFreeze;
+    g_input.pathTracingEnabled  = false;
     break;
 
   default:

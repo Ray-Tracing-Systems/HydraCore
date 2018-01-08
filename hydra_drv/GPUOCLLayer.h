@@ -234,7 +234,7 @@ protected:
   struct CL_BUFFERS_RAYS
   {
     CL_BUFFERS_RAYS() : rayPos(0), rayDir(0), hits(0), rayFlags(0), hitPosNorm(0), hitTexCoord(0), hitMatId(0), hitTangent(0), hitFlatNorm(0), hitPrimSize(0), hitNormUncompressed(0),
-                        pathThoroughput(0), pathMisDataPrev(0), pathShadeColor(0), pathResultColor(0), pathResultColor2(0), randGenState(0), pathResultColorCPU(0),
+                        pathThoroughput(0), pathMisDataPrev(0), pathShadeColor(0), pathAccColor(0), pathAuxColor(0), randGenState(0), pathAuxColorCPU(0),
                         lsam1(0), lsam2(0), lsam3(0), shadowRayPos(0), shadowRayDir(0), lsamProb(0), lshadow(0), fogAtten(0), samZindex(0), pixWeights(0), MEGABLOCKSIZE(0) {}
 
     void free();
@@ -256,9 +256,9 @@ protected:
     cl_mem pathThoroughput;
     cl_mem pathMisDataPrev;
     cl_mem pathShadeColor;
-    cl_mem pathResultColor;
-    cl_mem pathResultColor2;
-    cl_mem pathResultColorCPU;
+    cl_mem pathAccColor;
+    cl_mem pathAuxColor;
+    cl_mem pathAuxColorCPU;
     cl_mem randGenState;
 
     cl_mem lsam1;
@@ -380,7 +380,7 @@ protected:
   MRaysStat m_stat;
 
   void runKernel_InitRandomGen(cl_mem a_buffer, size_t a_size, int a_seed);
-  void runKernel_MakeEyeRaysAndClearUnified(cl_mem a_rpos, cl_mem a_rdir, cl_mem a_zindex, cl_mem a_pixWeights, size_t a_size, int a_passNumber);
+  void runKernel_MakeEyeRays(cl_mem a_rpos, cl_mem a_rdir, cl_mem a_zindex, cl_mem a_pixWeights, size_t a_size, int a_passNumber);
   void runKernel_MakeLightRays(cl_mem a_rpos, cl_mem a_rdir, cl_mem a_outColor, size_t a_size);
  
   void runKernel_Trace(cl_mem a_rpos, cl_mem a_rdir, cl_mem a_hits, size_t a_size);

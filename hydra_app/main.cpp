@@ -126,15 +126,6 @@ int main(int argc, const char** argv)
       std::cerr << "[main]: freopen failed!" << std::endl;
   }
 
-  if ((g_input.inImageAName != "") && (g_input.inImageBName != ""))
-  {
-    std::ostream* pLog = &std::cerr;
-    g_input.enableABConn = true;
-    g_input.noWindow     = true;
-  }
-  else
-    g_input.enableABConn = false;
-
 
   // init and call one of main loops depen on mode
   //
