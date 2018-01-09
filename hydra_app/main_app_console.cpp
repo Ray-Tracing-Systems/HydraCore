@@ -3,6 +3,9 @@
 
 #include "main.h"
 
+#include <chrono>
+#include <thread>
+
 using pugi::xml_node;
 using pugi::xml_attribute;
 using namespace HydraXMLHelpers;
@@ -83,7 +86,7 @@ bool InitSceneLibAndRTE(HRCameraRef& a_camRef, HRSceneInstRef& a_scnRef, HRRende
 {
   hrErrorCallerPlace(L"InitSceneLibAndRTE");
 
-  std::wstring libraryPath = s2ws(g_input.inLibraryPath);
+  const std::wstring libraryPath = s2ws(g_input.inLibraryPath);
 
   int32_t stateId = hrSceneLibraryOpen(libraryPath.c_str(), HR_OPEN_EXISTING);
   if (stateId < 0)
@@ -230,7 +233,7 @@ void console_main(std::shared_ptr<IHRRenderDriver> a_pDetachedRenderDriverPointe
     if (g_state == STATE_RENDER)
       Draw(a_pDetachedRenderDriverPointer);
     else
-      Sleep(50);
+      std::this_thread::sleep_for(std::chrono::milliseconds(50));
   }
 
   

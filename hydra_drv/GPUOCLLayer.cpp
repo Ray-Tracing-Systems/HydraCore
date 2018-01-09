@@ -614,7 +614,7 @@ GPUOCLLayer::GPUOCLLayer(int w, int h, int a_flags, int a_deviceId) : Base(w, h,
   std::string loshaderpathBin = installPath2 + "shadercache/" + "lightx_" + devHash + ".bin";
   std::string yoshaderpathBin = installPath2 + "shadercache/" + "matsxx_" + devHash + ".bin";
 
-  bool inDevelopment = true;
+  bool inDevelopment = false;
   #ifdef _DEBUG
   inDevelopment = true;
   #endif
@@ -685,6 +685,9 @@ GPUOCLLayer::GPUOCLLayer(int w, int h, int a_flags, int a_deviceId) : Base(w, h,
 
     if (!isFileExists(tshaderpathBin))
       m_progs.trace.saveBinary(tshaderpathBin);
+
+    if (!isFileExists(loshaderpathBin))
+      m_progs.lightp.saveBinary(loshaderpathBin);
 
     if (!isFileExists(yoshaderpathBin))
       m_progs.material.saveBinary(yoshaderpathBin);
@@ -758,7 +761,7 @@ void GPUOCLLayer::ResizeScreen(int width, int height, int a_flags)
 
   //
   //
-  m_screen.m_cpuFrameBuffer = false; // m_initFlags or a_flags & some flag
+  m_screen.m_cpuFrameBuffer = true; // m_initFlags or a_flags & some flag
 
   cl_int ciErr1 = CL_SUCCESS;
 
@@ -823,8 +826,8 @@ void GPUOCLLayer::ResizeScreen(int width, int height, int a_flags)
   // estimate mem taken
   //
   m_memoryTaken[MEM_TAKEN_SCREEN] = 0;
-  m_memoryTaken[MEM_TAKEN_SCREEN] += (sizeof(cl_float) * 4)*width*height;                                                                               // full screen size
-  m_memoryTaken[MEM_TAKEN_SCREEN] += m_rays.MEGABLOCKSIZE*(4 + 4 + 2 + 1 + 4 + 2 + 1 + 2 + 1 + 4 + 2 + 4 + 4 + 4 + 2 + 4 + 4 + 1 + 2)*sizeof(cl_float); // allocated per ray data buffer size
+  m_memoryTaken[MEM_TAKEN_SCREEN] += (sizeof(cl_float) * 4)*width*height;                                                                               // #TODO: FIX THAT !!! full screen size
+  m_memoryTaken[MEM_TAKEN_SCREEN] += m_rays.MEGABLOCKSIZE*(4 + 4 + 2 + 1 + 4 + 2 + 1 + 2 + 1 + 4 + 2 + 4 + 4 + 4 + 2 + 4 + 4 + 1 + 2)*sizeof(cl_float); // #TODO: FIX THAT !!! allocated per ray data buffer size
 
   const float scaleX = float(width) / 1024.0f;
   const float scaleY = float(height) / 1024.0f;
@@ -875,8 +878,8 @@ void GPUOCLLayer::GetLDRImage(uint* data, int width, int height) const
   cl_mem tempLDRBuff     = m_screen.pbo;
   bool needToFreeLDRBuff = false;
 
-  const float gammaInv = 1.0f / m_vars.m_varsF[HRT_IMAGE_GAMMA];
-  const int size       = m_width*m_height;
+  const float gammaInv   = 1.0f / m_vars.m_varsF[HRT_IMAGE_GAMMA];
+  const int size         = m_width*m_height;
 
   if (m_screen.m_cpuFrameBuffer) 
   {
@@ -959,6 +962,54 @@ void GPUOCLLayer::GetHDRImage(float4* data, int width, int height) const
     for (size_t i = 0; i < (width*height); i++)
       data[i] = data[i] * normConst;
   }
+}
+
+void GPUOCLLayer::ContribToExternalImageAccumulator(IHRSharedAccumImage* a_pImage)
+{
+  if (!m_screen.m_cpuFrameBuffer)
+  {
+    std::cerr << "GPUOCLLayer::ContribToExternalImageAccumulator: m_cpuFrameBuffer == false" << std::endl;
+    return;
+  }
+
+  float* input = (float*)&m_screen.color0CPU[0];
+  if (input == nullptr)
+  {
+    std::cerr << "GPUOCLLayer::ContribToExternalImageAccumulator: nullptr internal image" << std::endl;
+    return;
+  }
+
+  if (a_pImage == nullptr)
+  {
+    std::cerr << "GPUOCLLayer::ContribToExternalImageAccumulator: nullptr external image" << std::endl;
+    return;
+  }
+
+  const bool lockSuccess = a_pImage->Lock(100); // can wait 100 ms for success lock
+
+  if (lockSuccess)
+  {
+    float* output  = a_pImage->ImageData(0);
+    const int size = m_width*m_height;
+
+    #pragma omp parallel for
+    for (int i = 0; i < size; i++)
+    {
+      const __m128 color1 = _mm_load_ps(input  + i * 4);
+      const __m128 color2 = _mm_load_ps(output + i * 4);
+      _mm_store_ps(output + i * 4, _mm_add_ps(color1, color2));
+    }
+
+    a_pImage->Header()->counterRcv++;
+    a_pImage->Header()->spp += m_spp;
+    a_pImage->Unlock();
+
+    // clear internal image
+    //
+    m_spp = 0.0f;
+    memset(input, 0, size_t(size) * sizeof(float4)); // #TODO: if slow replace with parallal _mm_store_ps
+  }
+
 }
 
 
@@ -1103,8 +1154,7 @@ void GPUOCLLayer::AddContributionToScreen(cl_mem& in_color)
     AddContributionToScreenGPU(in_color, m_rays.samZindex, m_rays.pixWeights, int(m_rays.MEGABLOCKSIZE), m_width, m_height, m_passNumber,
                                m_screen.color0, m_screen.pbo);
 
-  if (m_vars.m_flags & HRT_UNIFIED_IMAGE_SAMPLING)
-    m_passNumber++;
+  m_passNumber++;
 }
 
 /**
@@ -1280,11 +1330,6 @@ void GPUOCLLayer::trace1D(cl_mem a_rpos, cl_mem a_rdir, cl_mem a_outColor, size_
                                        m_rays.pathShadeColor, m_rays.samZindex, a_size, bounce);
 
       AddContributionToScreen(m_rays.pathShadeColor);
-
-      //AddContributionToScreenGPU(m_rays.pathShadeColor, m_rays.samZindex, nullptr, int(m_rays.MEGABLOCKSIZE), m_width, m_height, m_passNumber,
-        //                         m_screen.color0, m_screen.pbo);
-
-      // memsetf4(m_rays.pathShadeColor, make_float4(0, 0, 0, 0), a_size);
     }
     else
     {

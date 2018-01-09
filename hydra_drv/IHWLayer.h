@@ -205,7 +205,9 @@ public:
   //
   virtual std::vector<uchar4> NormalMapFromDisplacement(int w, int h, const uchar4* a_data, float bumpAmt, bool invHeight, float smoothLvl) { return std::vector<uchar4>(); }
 
-  virtual void SetExternalImageAccumulator(IHRSharedAccumImage* a_pImage) { m_pExternalImage = a_pImage;}
+  virtual void SetExternalImageAccumulator(IHRSharedAccumImage* a_pImage) { m_pExternalImage = a_pImage; } ///< pass accumulator to the HWLayer and contribute to implicit during each pass. for PT and MMLT.
+
+  virtual void ContribToExternalImageAccumulator(IHRSharedAccumImage* a_pImage) { }                        ///< explicit 'rare' contribution (used by LT and BPT).
 
 protected:
 
@@ -324,5 +326,6 @@ enum {GPU_RT_MEMORY_SAFE_MODE          = 1,
       GPU_ALLOC_LDR_FOR_DEBUG          = 4096,
       GPU_ALLOC_FOR_COMPACT_MLT        = 8192,
       GPU_MLT_ENABLED_AT_START         = 16384, //#NOTE: don't move this value !!!
-      GPU_RT_DO_NOT_PRINT_PASS_NUMBER  = 32768
+      GPU_RT_DO_NOT_PRINT_PASS_NUMBER  = 32768,
+      GPU_RT_ALLOC_INTERNAL_IMAGEB     = 65536, //#NOTE: don't move this value !!!
       };

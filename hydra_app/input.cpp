@@ -12,9 +12,9 @@ Input::Input()
 
   //inLibraryPath = "temp/";
   //inLibraryPath = "tests/test_35";
-  inLibraryPath = "tests/test_42";      ///< cornell box with teapot
+  //inLibraryPath = "tests/test_42";      ///< cornell box with teapot
   
-  //inLibraryPath = "D:/PROG/[Graphics]/HydraAPI/main/tests/test_39";
+  inLibraryPath = "D:/PROG/HydraAPI/main/tests/test_39";
   //inLibraryPath = "D:/PROG/HydraAPI/main/tests_f/test_119";
   //inLibraryPath = "D:/PROG/HydraAPI/main/tests_f/test_004";
   //inLibraryPath = "C:/[Hydra]/pluginFiles/scenelib";
@@ -135,9 +135,10 @@ static std::string ReadStringCmd(const std::unordered_map<std::string, std::stri
 
 void Input::ParseCommandLineParams(const std::unordered_map<std::string, std::string>& a_params)
 {
-  ReadBoolCmd(a_params,   "-nowindow",     &noWindow);
-  ReadBoolCmd(a_params,   "-enable_mlt",   &enableMLT);
+  ReadBoolCmd(a_params,   "-nowindow",        &noWindow);
+  ReadBoolCmd(a_params,   "-enable_mlt",      &enableMLT);
   ReadBoolCmd(a_params,   "-cl_list_devices", &listDevicesAndExit);
+  ReadBoolCmd(a_params,   "-alloc_image_b",   &allocInternalImageB);
  
   if (listDevicesAndExit)
     noWindow = true;

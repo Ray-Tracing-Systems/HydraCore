@@ -132,8 +132,6 @@ protected:
   IMemoryStorage* m_pMaterialStorage;
   IMemoryStorage* m_pPdfStorage;
 
-  IHRSharedAccumImage* m_pExternalImage;
-
   std::vector<int> m_geomTable;
   std::vector<int> m_texTable;
   std::vector<int> m_texTableAux;
@@ -148,6 +146,9 @@ protected:
 
   using DefferedMaterialDataTuple = std::tuple<std::shared_ptr<RAYTR::IMaterial>, pugi::xml_node>;
   std::unordered_map<int, DefferedMaterialDataTuple > m_blendsToUpdate;
+
+  IHRSharedAccumImage* m_pAccumImage;
+  int m_drawPassNumber;
 
   float4x4 m_modelViewInv;
   float4x4 m_projInv;

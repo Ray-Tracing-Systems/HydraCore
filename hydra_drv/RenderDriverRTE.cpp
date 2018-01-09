@@ -19,7 +19,7 @@ void UpdateProgress(const wchar_t* a_message, float a_progress)
 RenderDriverRTE::RenderDriverRTE(const wchar_t* a_options, int w, int h, int a_devId, int a_flags, IHRSharedAccumImage* a_sharedImage) : m_pBVH(nullptr), m_pHWLayer(nullptr),
                                                                                                                                          m_pTexStorage(nullptr), m_pTexStorageAux(nullptr), 
                                                                                                                                          m_pGeomStorage(nullptr), m_pMaterialStorage(nullptr), 
-                                                                                                                                         m_pPdfStorage(nullptr)
+                                                                                                                                         m_pPdfStorage(nullptr), m_pAccumImage(nullptr)
 {
   m_alreadyDeleted = false;
   m_msg = L"";
@@ -83,23 +83,32 @@ RenderDriverRTE::RenderDriverRTE(const wchar_t* a_options, int w, int h, int a_d
 
   m_needToFreeCPUMem = (m_devId >= 0); // not a CPU device!!!
  
-  ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////// 
   ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-  m_pExternalImage = a_sharedImage;
-
-  if (m_pExternalImage != nullptr)
+  if (a_sharedImage != nullptr)
   {
-    auto pHeader = m_pExternalImage->Header();
+    auto pHeader = a_sharedImage->Header();
 
     if (pHeader->width != w || pHeader->height != h)
     {
-      std::cout << "input    (w,h) = " << "(" << w << "," << h << ")" << std::endl;
-      std::cout << "external (w,h) = " << "(" << pHeader->width << "," << pHeader->height << ")" << std::endl;
+      std::cout << "[sharedimage]: input    (w,h) = " << "(" << w << "," << h << ")" << std::endl;
+      std::cout << "[sharedimage]: external (w,h) = " << "(" << pHeader->width << "," << pHeader->height << ")" << std::endl;
     }
   }
 
-  m_pHWLayer->SetExternalImageAccumulator(m_pExternalImage);
+  if (a_flags & GPU_RT_ALLOC_INTERNAL_IMAGEB) // light tracing or bpt is enabled. 
+  {
+    m_pAccumImage = a_sharedImage;                              // we will manage image contribution on the level of render driver;
+    m_pHWLayer->SetExternalImageAccumulator(nullptr);           // 
+  }
+  else
+  {
+    m_pAccumImage = nullptr;                                    // we will manage image contribution on the level of HWLayer;
+    m_pHWLayer->SetExternalImageAccumulator(a_sharedImage);     // 
+  }
+
+  m_drawPassNumber = 0;
 
   ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -264,9 +273,6 @@ RenderDriverRTE::~RenderDriverRTE()
     m_pBVH->Destroy();
     m_pBVH = nullptr;
   }
-
-  //delete m_pExternalImage;  // !We do not own this pointer, remember that!!!
-  m_pExternalImage = nullptr;
 
   m_alreadyDeleted = true;
 }
@@ -919,10 +925,26 @@ void RenderDriverRTE::Draw()
       }
 
       m_pHWLayer->SetAllFlagsAndVars(flagsAndVars);
+      m_drawPassNumber = 0;
     }
 
     m_pHWLayer->BeginTracingPass();
     m_pHWLayer->EndTracingPass();
+
+    //imageB to imageA contribution
+    //
+    if (m_useLT && m_pAccumImage != nullptr)
+    {
+      const double freq = double(m_width*m_height)/double(1024*1024); 
+      int freqInt = int(freq) + 1;   
+      if (freqInt < 2) 
+        freqInt = 2;
+
+      if (m_drawPassNumber % freqInt == 0 && m_drawPassNumber > 0)
+        m_pHWLayer->ContribToExternalImageAccumulator(m_pAccumImage);
+    }
+
+    m_drawPassNumber++;
   }
   else
   {

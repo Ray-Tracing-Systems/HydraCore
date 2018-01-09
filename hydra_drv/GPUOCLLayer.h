@@ -56,6 +56,9 @@ public:
 
   void ResizeScreen(int w, int h, int a_flags);
 
+  void ContribToExternalImageAccumulator(IHRSharedAccumImage* a_pImage);
+
+
   size_t GetMicroThreadsNumber();
   size_t GetAvaliableMemoryAmount(bool allMem);
   size_t GetMemoryTaken();

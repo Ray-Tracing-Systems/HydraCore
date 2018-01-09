@@ -13,6 +13,7 @@ struct Input
   bool exitStatus;
   bool enableOpenGL1;
   bool enableMLT;
+  bool allocInternalImageB;
   bool runTests;     ///< run all functional tests from HydraAPI folder 
   bool listDevicesAndExit;
 
