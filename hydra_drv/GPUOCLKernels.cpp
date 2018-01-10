@@ -66,7 +66,7 @@ void GPUOCLLayer::runKernel_MakeLightRays(cl_mem a_rpos, cl_mem a_rdir, cl_mem a
 
   CHECK_CL(clSetKernelArg(makeRaysKern, 3, sizeof(cl_mem), (void*)&m_rays.lsam1));
   CHECK_CL(clSetKernelArg(makeRaysKern, 4, sizeof(cl_mem), (void*)&m_rays.lsam2));
-  CHECK_CL(clSetKernelArg(makeRaysKern, 5, sizeof(cl_mem), (void*)&m_rays.lsam3));
+  CHECK_CL(clSetKernelArg(makeRaysKern, 5, sizeof(cl_mem), (void*)&m_rays.hitNormUncompressed)); // lsam3
 
   CHECK_CL(clSetKernelArg(makeRaysKern, 6, sizeof(cl_mem), (void*)&m_rays.rayFlags));
   CHECK_CL(clSetKernelArg(makeRaysKern, 7, sizeof(cl_mem), (void*)&a_outColor));
@@ -513,7 +513,8 @@ void GPUOCLLayer::runShadePass(cl_mem a_rpos, cl_mem a_rdir, cl_mem a_outColor, 
 
 }
 
-void GPUOCLLayer::runKernel_EyeShadowRays(cl_mem a_rpos, cl_mem a_rdir, size_t a_size)
+void GPUOCLLayer::runKernel_EyeShadowRays(cl_mem a_hitpos, cl_mem a_hitNorm,
+                                          cl_mem a_rpos, cl_mem a_rdir, size_t a_size)
 {
   cl_kernel kernMakeRays = m_progs.material.kernel("MakeEyeShadowRays");
 
@@ -522,8 +523,8 @@ void GPUOCLLayer::runKernel_EyeShadowRays(cl_mem a_rpos, cl_mem a_rdir, size_t a
   a_size                 = roundBlocks(a_size, int(localWorkSize));
 
   CHECK_CL(clSetKernelArg(kernMakeRays, 0, sizeof(cl_mem), (void*)&m_rays.rayFlags));
-  CHECK_CL(clSetKernelArg(kernMakeRays, 1, sizeof(cl_mem), (void*)&m_rays.hitPosNorm));
-  CHECK_CL(clSetKernelArg(kernMakeRays, 2, sizeof(cl_mem), (void*)&m_rays.hitNormUncompressed));
+  CHECK_CL(clSetKernelArg(kernMakeRays, 1, sizeof(cl_mem), (void*)&a_hitpos));
+  CHECK_CL(clSetKernelArg(kernMakeRays, 2, sizeof(cl_mem), (void*)&a_hitNorm));
   CHECK_CL(clSetKernelArg(kernMakeRays, 3, sizeof(cl_mem), (void*)&m_rays.hitMatId));
   CHECK_CL(clSetKernelArg(kernMakeRays, 4, sizeof(cl_mem), (void*)&m_scene.storageMat));
   CHECK_CL(clSetKernelArg(kernMakeRays, 5, sizeof(cl_mem), (void*)&m_scene.allGlobsData));
@@ -536,7 +537,7 @@ void GPUOCLLayer::runKernel_EyeShadowRays(cl_mem a_rpos, cl_mem a_rdir, size_t a
   waitIfDebug(__FILE__, __LINE__);
 }
 
-void GPUOCLLayer::runKernel_ProjectSamplesToScreen(cl_mem a_rpos, cl_mem a_rdir, cl_mem a_rdir2, cl_mem a_colorsIn,
+void GPUOCLLayer::runKernel_ProjectSamplesToScreen(cl_mem a_hitPos, cl_mem a_hitNorm, cl_mem a_rdir, cl_mem a_rdir2, cl_mem a_colorsIn,
                                                    cl_mem a_colorsOut, cl_mem a_zindex, size_t a_size, int a_currBounce)
 {
   cl_kernel kern       = m_progs.material.kernel("ConnectToEyeKernel");
@@ -553,12 +554,12 @@ void GPUOCLLayer::runKernel_ProjectSamplesToScreen(cl_mem a_rpos, cl_mem a_rdir,
   CHECK_CL(clSetKernelArg(kern, 2, sizeof(cl_mem), (void*)&a_rdir));
   CHECK_CL(clSetKernelArg(kern, 3, sizeof(cl_mem), (void*)&m_rays.lshadow));
 
-  CHECK_CL(clSetKernelArg(kern, 4, sizeof(cl_mem), (void*)&m_rays.hitPosNorm));
+  CHECK_CL(clSetKernelArg(kern, 4, sizeof(cl_mem), (void*)&a_hitPos));
   CHECK_CL(clSetKernelArg(kern, 5, sizeof(cl_mem), (void*)&m_rays.hitTexCoord));
   CHECK_CL(clSetKernelArg(kern, 6, sizeof(cl_mem), (void*)&m_rays.hitFlatNorm));
   CHECK_CL(clSetKernelArg(kern, 7, sizeof(cl_mem), (void*)&m_rays.hitMatId));
   CHECK_CL(clSetKernelArg(kern, 8, sizeof(cl_mem), (void*)&m_rays.hitTangent));
-  CHECK_CL(clSetKernelArg(kern, 9, sizeof(cl_mem), (void*)&m_rays.hitNormUncompressed));
+  CHECK_CL(clSetKernelArg(kern, 9, sizeof(cl_mem), (void*)&a_hitNorm));
 
   CHECK_CL(clSetKernelArg(kern, 10, sizeof(cl_mem), (void*)&m_scene.storageMat));
   CHECK_CL(clSetKernelArg(kern, 11, sizeof(cl_mem), (void*)&m_scene.allGlobsData));

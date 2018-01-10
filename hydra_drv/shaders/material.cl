@@ -59,12 +59,6 @@ __kernel void MakeEyeShadowRays(__global const uint*          restrict a_flags,
   
   out_sraypos[tid] = to_float4(hitPos + epsilonOfPos(hitPos)*signOfNormal*hitNorm, zDepth); // OffsRayPos(hitPos, hitNorm, camDir);
   out_sraydir[tid] = to_float4(camDir, imageToSurfaceFactor);
-
-  // // debug constants
-  // //
-  // const float4x4 mWorldViewInv = make_float4x4(a_globals->mWorldViewInverse);
-  // const float3   camPos = mul(mWorldViewInv, make_float3(0, 0, 0));
-  // out_sraydir[tid] = to_float4(camPos, a_globals->imagePlaneDist);
 }
 
 
@@ -114,15 +108,10 @@ __kernel void ConnectToEyeKernel(__global const uint*          restrict a_flags,
   const float3 camDir              = to_float3(data2); // compute it in MakeEyeShadowRays kernel
   const float imageToSurfaceFactor = data2.w;          // compute it in MakeEyeShadowRays kernel
 
-  //float3 camDir; float zDepth;
-  //const float imageToSurfaceFactor = CameraImageToSurfaceFactor(hitPos, hitNorm, a_globals,
-  //                                                              &camDir, &zDepth);
-
-  const int matId      = GetMaterialId(in_matData[tid]);
-
   float3 colorConnect  = make_float3(1,1,1);
   if(a_currBounce > 0) // if 0, this is light surface
   {
+    const int matId = GetMaterialId(in_matData[tid]);
     __global const PlainMaterial* pHitMaterial = materialAt(a_globals, a_mtlStorage, matId);
       
     const Hit_Part4 btanAndN = in_hitTangent[tid];

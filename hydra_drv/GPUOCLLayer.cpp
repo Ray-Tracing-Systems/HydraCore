@@ -58,7 +58,6 @@ void GPUOCLLayer::CL_BUFFERS_RAYS::free()
 
   if (lsam1)           clReleaseMemObject(lsam1);
   if (lsam2)           clReleaseMemObject(lsam2);
-  if (lsam3)           clReleaseMemObject(lsam3);
 
   if (shadowRayPos)    clReleaseMemObject(shadowRayPos);
   if (shadowRayDir)    clReleaseMemObject(shadowRayDir);
@@ -94,7 +93,7 @@ void GPUOCLLayer::CL_BUFFERS_RAYS::free()
 
   lsam1        = 0;
   lsam2        = 0;
-  lsam3        = 0;
+
   shadowRayPos = 0;
   shadowRayDir = 0;
   lsamProb     = 0;
@@ -161,7 +160,6 @@ void GPUOCLLayer::CL_BUFFERS_RAYS::resize(cl_context ctx, cl_command_queue cmdQu
 
   lsam1    = clCreateBuffer(ctx, CL_MEM_READ_WRITE | shareFlags, 4 * sizeof(cl_float)*MEGABLOCKSIZE, NULL, &ciErr1);   // float4
   lsam2    = clCreateBuffer(ctx, CL_MEM_READ_WRITE | shareFlags, 4 * sizeof(cl_float)*MEGABLOCKSIZE, NULL, &ciErr1);   // float4
-  lsam3    = clCreateBuffer(ctx, CL_MEM_READ_WRITE | shareFlags, 4 * sizeof(cl_float)*MEGABLOCKSIZE, NULL, &ciErr1);   // float4
 
   shadowRayPos = clCreateBuffer(ctx, CL_MEM_READ_WRITE | shareFlags, 4 * sizeof(cl_float)*MEGABLOCKSIZE, NULL, &ciErr1);   // float4
   shadowRayDir = clCreateBuffer(ctx, CL_MEM_READ_WRITE | shareFlags, 4 * sizeof(cl_float)*MEGABLOCKSIZE, NULL, &ciErr1);   // float4
@@ -614,7 +612,7 @@ GPUOCLLayer::GPUOCLLayer(int w, int h, int a_flags, int a_deviceId) : Base(w, h,
   std::string loshaderpathBin = installPath2 + "shadercache/" + "lightx_" + devHash + ".bin";
   std::string yoshaderpathBin = installPath2 + "shadercache/" + "matsxx_" + devHash + ".bin";
 
-  bool inDevelopment = false;
+  bool inDevelopment = true;
   #ifdef _DEBUG
   inDevelopment = true;
   #endif
@@ -1108,7 +1106,23 @@ void GPUOCLLayer::BeginTracingPass()
     // (1) Generate random rays and generate multiple references via Z-index
     //
     if (m_vars.m_flags & HRT_FORWARD_TRACING)
+    {
       runKernel_MakeLightRays(m_rays.rayPos, m_rays.rayDir, m_rays.pathAccColor, m_rays.MEGABLOCKSIZE);
+
+      if (m_vars.m_flags & HRT_DRAW_LIGHT_LT)
+      {
+        runKernel_EyeShadowRays(m_rays.lsam1, m_rays.hitNormUncompressed,
+                                m_rays.shadowRayPos, m_rays.shadowRayDir, m_rays.MEGABLOCKSIZE);
+        
+        runKernel_ShadowTrace(m_rays.shadowRayPos, m_rays.shadowRayDir, 
+                              m_rays.lshadow, m_rays.MEGABLOCKSIZE);
+         
+        runKernel_ProjectSamplesToScreen(m_rays.lsam1, m_rays.hitNormUncompressed, m_rays.shadowRayDir, nullptr, m_rays.pathAccColor, // m_rays.rayDir not used in this call
+                                         m_rays.pathShadeColor, m_rays.samZindex, m_rays.MEGABLOCKSIZE, -1);
+        
+        AddContributionToScreen(m_rays.pathShadeColor);
+      }
+    }
     else
       runKernel_MakeEyeRays(m_rays.rayPos, m_rays.rayDir, m_rays.samZindex, m_rays.pixWeights, m_rays.MEGABLOCKSIZE, m_passNumber);
 
@@ -1322,11 +1336,13 @@ void GPUOCLLayer::trace1D(cl_mem a_rpos, cl_mem a_rdir, cl_mem a_outColor, size_
 
     if (m_vars.m_flags & HRT_FORWARD_TRACING)
     {
-      runKernel_EyeShadowRays(m_rays.shadowRayPos, m_rays.shadowRayDir, a_size);
+      runKernel_EyeShadowRays(m_rays.hitPosNorm, m_rays.hitNormUncompressed, 
+                              m_rays.shadowRayPos, m_rays.shadowRayDir, a_size);
 
-      runKernel_ShadowTrace(m_rays.shadowRayPos, m_rays.shadowRayDir, m_rays.lshadow, a_size);
+      runKernel_ShadowTrace(m_rays.shadowRayPos, m_rays.shadowRayDir, 
+                            m_rays.lshadow, a_size);
 
-      runKernel_ProjectSamplesToScreen(m_rays.shadowRayPos, m_rays.shadowRayDir, a_rdir, a_outColor,
+      runKernel_ProjectSamplesToScreen(m_rays.hitPosNorm, m_rays.hitNormUncompressed, m_rays.shadowRayDir, a_rdir, a_outColor,
                                        m_rays.pathShadeColor, m_rays.samZindex, a_size, bounce);
 
       AddContributionToScreen(m_rays.pathShadeColor);
