@@ -704,7 +704,7 @@ static inline void MakeEyeRayFromF4Rnd(float4 lensOffs, __global const EngineGlo
   {
     const float tFocus         = a_globals->varsF[HRT_DOF_FOCAL_PLANE_DIST] / (-ray_dir.z);
     const float3 focusPosition = ray_pos + ray_dir*tFocus;
-    const float2 xy            = a_globals->varsF[HRT_DOF_LENS_RADIUS] * MapSamplesToDisc(1.0f*make_float2(lensOffs.z, lensOffs.w));
+    const float2 xy            = a_globals->varsF[HRT_DOF_LENS_RADIUS] * MapSamplesToDisc(2.0f*make_float2(lensOffs.z - 1.0f, lensOffs.w - 1.0f));
     ray_pos.x += xy.x;
     ray_pos.y += xy.y;
 
