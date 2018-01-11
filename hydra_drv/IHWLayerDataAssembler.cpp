@@ -159,14 +159,22 @@ void IHWLayer::ResizeTablesForEngineGlobals(int32_t a_geomNum, int32_t a_imgNum,
   m_globsBuffHeader.lightsSize           = int ( (sizeof(PlainLight)*a_lightNum) / sizeof(int) );
 }
 
-void IHWLayer::SetAllLightsSelectTable(const float* a_table, int32_t a_tableSize)
+void IHWLayer::SetAllLightsSelectTable(const float* a_table, int32_t a_tableSize, bool a_fwd)
 {
-  m_globsBuffHeader.lightSelectorTableSizeRev = a_tableSize; 
-  m_globsBuffHeader.lightSelectorTableSizeFwd = a_tableSize; 
-
-  m_lightSelectTable.resize(a_tableSize);
-  if(a_tableSize > 0)
-    memcpy(&m_lightSelectTable[0], a_table, a_tableSize * sizeof(float));
+  if (a_fwd)
+  {
+    m_globsBuffHeader.lightSelectorTableSizeFwd = a_tableSize;
+    m_lightSelectTableFwd.resize(a_tableSize);
+    if (a_tableSize > 0)
+      memcpy(&m_lightSelectTableFwd[0], a_table, a_tableSize * sizeof(float));
+  }
+  else
+  {
+    m_globsBuffHeader.lightSelectorTableSizeRev = a_tableSize;
+    m_lightSelectTableRev.resize(a_tableSize);
+    if (a_tableSize > 0)
+      memcpy(&m_lightSelectTableRev[0], a_table, a_tableSize * sizeof(float));
+  }
 }
 
 void memcpyu32_cpu(int* buff1, uint a_offset1, int* buff2, uint a_offset2, size_t a_size)
@@ -226,10 +234,10 @@ void IHWLayer::PrepareEngineTables()
   if (pdfsTable.size() > 0)
     memcpy(pbuff + m_globsBuffHeader.pdfTableTableOffset,  &pdfsTable[0], sizeof(int)*pdfsTable.size());
 
-  if (m_lightSelectTable.size() > 0)
+  if (m_lightSelectTableRev.size() > 0)
   {
-    memcpy(pbuff + m_globsBuffHeader.lightSelectorTableOffsetRev, &m_lightSelectTable[0], sizeof(float)*m_lightSelectTable.size());
-    memcpy(pbuff + m_globsBuffHeader.lightSelectorTableOffsetFwd, &m_lightSelectTable[0], sizeof(float)*m_lightSelectTable.size());
+    memcpy(pbuff + m_globsBuffHeader.lightSelectorTableOffsetRev, &m_lightSelectTableRev[0], sizeof(float)*m_lightSelectTableRev.size());
+    memcpy(pbuff + m_globsBuffHeader.lightSelectorTableOffsetFwd, &m_lightSelectTableFwd[0], sizeof(float)*m_lightSelectTableFwd.size());
   }
 }
 
@@ -271,8 +279,6 @@ void IHWLayer::SetAllPODLights(PlainLight* a_lights2, size_t a_number)
   m_globsBuffHeader.skyLightId = skyLightOffset;
   m_globsBuffHeader.lightsNum  = int(a_number);
   m_globsBuffHeader.sunNumber  = 0;
-  
-
 
 }
 

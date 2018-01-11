@@ -561,7 +561,7 @@ void RenderDriverRTE::UpdatePdfTablesForLight(int32_t a_lightId)
 
 }
 
-std::vector<float> RenderDriverRTE::CalcLightPickProbTable(std::vector<PlainLight>& a_inOutLights)
+std::vector<float> RenderDriverRTE::CalcLightPickProbTable(std::vector<PlainLight>& a_inOutLights, const bool a_fwd)
 {
   std::vector<float> pickProb(a_inOutLights.size());
 
@@ -610,15 +610,17 @@ std::vector<float> RenderDriverRTE::CalcLightPickProbTable(std::vector<PlainLigh
     if (lightFlags(&a_inOutLights[i]) & LIGHT_DO_NOT_SAMPLE_ME)
       pp = 0.0f;
 
-    if (lightType(&a_inOutLights[i]) & PLAIN_LIGHT_TYPE_SKY_DOME)
+    if (lightType(&a_inOutLights[i]) == PLAIN_LIGHT_TYPE_SKY_DOME)
     {
-      if(disableSky.find(int(i)) != disableSky.end())
+      if(disableSky.find(int(i)) != disableSky.end() || a_fwd)
         pp = 0.0f;
     }
 
-    a_inOutLights[i].data[PLIGHT_PICK_PROB_REV] = pp; // override light pick probability here! Store it in the light.
-    a_inOutLights[i].data[PLIGHT_PICK_PROB_FWD] = pp; // override light pick probability here! Store it in the light.
-
+    if(a_fwd)
+      a_inOutLights[i].data[PLIGHT_PICK_PROB_FWD] = pp; // override light pick probability here! Store it in the light.
+    else
+      a_inOutLights[i].data[PLIGHT_PICK_PROB_REV] = pp; // override light pick probability here! Store it in the light.
+    
     pickProb[i] = pp;
   }
 

@@ -215,7 +215,7 @@ protected:
 
   void BuildSkyPortalsDependencyDummyInstances(); ///< fix m_instLightInstId (instance light copies) to make sky lights and sky portals working, piece of shit 
 
-  std::vector<float> CalcLightPickProbTable(std::vector<PlainLight>& a_inOutLights);
+  std::vector<float> CalcLightPickProbTable(std::vector<PlainLight>& a_inOutLights, const bool a_fwd = false);
 
   /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 

@@ -738,9 +738,14 @@ void RenderDriverRTE::EndScene() // #TODO: add dirty flags (???) to update only 
   {
     m_pHWLayer->SetAllInstLightInstId(&m_instLightInstId[0], int32_t(m_instLightInstId.size()));
 
-    const std::vector<float> pickProb = CalcLightPickProbTable(m_lightsInstanced);
-    const std::vector<float> table    = PrefixSumm(pickProb);
-    m_pHWLayer->SetAllLightsSelectTable(&table[0], int32_t(table.size()));
+    const std::vector<float> pickProbRev = CalcLightPickProbTable(m_lightsInstanced, false);
+    const std::vector<float> pickProbFwd = CalcLightPickProbTable(m_lightsInstanced, true);
+
+    const std::vector<float> tableRev    = PrefixSumm(pickProbRev);
+    const std::vector<float> tableFwd    = PrefixSumm(pickProbFwd);
+
+    m_pHWLayer->SetAllLightsSelectTable(&tableRev[0], int32_t(tableRev.size()), false);
+    m_pHWLayer->SetAllLightsSelectTable(&tableFwd[0], int32_t(tableFwd.size()), true);
     m_pHWLayer->SetAllPODLights(&m_lightsInstanced[0], m_lightsInstanced.size());
   }
   else

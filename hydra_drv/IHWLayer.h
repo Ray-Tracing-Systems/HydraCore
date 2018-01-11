@@ -119,7 +119,7 @@ public:
   virtual void SetAllInstLightInstId(const int32_t* a_lightInstIds, int32_t a_instNum) = 0;
   virtual void SetAllPODLights(PlainLight* a_lights2, size_t a_number);
 
-  virtual void SetAllLightsSelectTable(const float* a_table, int32_t a_tableSize);
+  virtual void SetAllLightsSelectTable(const float* a_table, int32_t a_tableSize, bool a_fwd = false);
 
   // render state
   //
@@ -240,8 +240,8 @@ protected:
 
   std::unordered_map<std::string, IMemoryStorage*> m_allMemStorages;
   std::vector<int>                                 m_geomTable;
-  std::vector<float>                               m_lightSelectTable;
-  
+  std::vector<float>                               m_lightSelectTableRev;
+  std::vector<float>                               m_lightSelectTableFwd;
 };
 
 

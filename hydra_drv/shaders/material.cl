@@ -145,6 +145,13 @@ __kernel void ConnectToEyeKernel(__global const uint*          restrict a_flags,
   if (!isfinite(sampleColor.x) || !isfinite(sampleColor.y) || !isfinite(sampleColor.z) || imageToSurfaceFactor <= 0.0f)
     sampleColor = make_float3(0, 0, 0);
 
+  if(a_currBounce <= 0)
+  {
+    const int lightType = as_int(in_hitPosNorm[tid].w);
+    if (lightType == PLAIN_LIGHT_TYPE_DIRECT || lightType == PLAIN_LIGHT_TYPE_SKY_DOME)
+      sampleColor = make_float3(0, 0, 0);
+  }
+
   int x = 65535, y = 65535;
   if (dot(sampleColor, sampleColor) > 1e-12f) // add final result to image
   {
