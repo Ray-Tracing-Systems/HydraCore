@@ -712,8 +712,8 @@ static inline void MakeEyeRayFromF4Rnd(float4 lensOffs, __global const EngineGlo
   }
 
   matrix4x4f_mult_ray3(a_mWorldViewInv, &ray_pos, &ray_dir);
-  (*pX)      = lensOffs.x*(fwidth);
-  (*pY)      = lensOffs.y*(fheight);
+  (*pX)      = lensOffs.x*fwidth;
+  (*pY)      = lensOffs.y*fheight;
 
   (*pRayPos) = ray_pos;
   (*pRayDir) = ray_dir;

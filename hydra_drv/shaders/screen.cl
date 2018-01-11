@@ -93,19 +93,22 @@ __kernel void MakeEyeRaysUnifiedSampling(__global float4*              restrict 
   MakeEyeRayFromF4Rnd(lensOffs, a_globals,
                       &ray_pos, &ray_dir, &fx, &fy);
 
-  int x = (int)(fx + 0.5f);
-  int y = (int)(fy + 0.5f);
+  int x = (int)(fx);
+  int y = (int)(fy);
 
   if (x >= w) x = w - 1;
   if (y >= h) y = h - 1;
+
+  if (x < 0)  x = 0;
+  if (y < 0)  y = 0;
 
   out_pos [tid] = to_float4(ray_pos, fx);
   out_dir [tid] = to_float4(ray_dir, fy);
 
   if (out_pixw != 0) // bilinear filter is used
   {
-    const int px = (int)(fx + 0.5f);
-    const int py = (int)(fy + 0.5f);
+    const int px = (int)(fx);
+    const int py = (int)(fy);
 
     const float fx  = fabs(fx - (float)px);
     const float fy  = fabs(fy - (float)py);

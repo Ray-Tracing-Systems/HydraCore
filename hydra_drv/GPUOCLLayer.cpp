@@ -1274,7 +1274,7 @@ void GPUOCLLayer::EndTracingPass()
   if (m_passNumber % 4 == 0 && m_passNumber > 0)
   {
     auto precOld = std::cout.precision(2);
-    std::cout << "spp =\t" << m_spp << "\tspeed = " << float(m_rays.MEGABLOCKSIZE) / (1e6f*time) << "\tM(samples)/s         \r";
+    std::cout << "spp =\t" << int(m_spp) << "\tspeed = " << float(m_rays.MEGABLOCKSIZE) / (1e6f*time) << " M(samples)/s         \r";
     std::cout.precision(precOld);
   }
 

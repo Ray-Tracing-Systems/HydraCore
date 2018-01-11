@@ -150,8 +150,8 @@ __kernel void ConnectToEyeKernel(__global const uint*          restrict a_flags,
   {
     const float2 posScreenSpace = worldPosToScreenSpace(hitPos, a_globals);
 
-    x = (int)(posScreenSpace.x + 0.5f);
-    y = (int)(posScreenSpace.y + 0.5f);
+    x = (int)(posScreenSpace.x);
+    y = (int)(posScreenSpace.y);
   }
 
   const int zid = (int)ZIndex(x, y, a_mortonTable256);
