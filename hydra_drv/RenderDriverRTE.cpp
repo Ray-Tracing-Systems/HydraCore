@@ -725,7 +725,7 @@ void RenderDriverRTE::EndScene() // #TODO: add dirty flags (???) to update only 
   //
   auto vars = m_pHWLayer->GetAllFlagsAndVars();
   vars.m_varsF[HRT_BSPHERE_CENTER_X] = m_sceneBoundingSphere.x;
-  vars.m_varsF[HRT_BSPHERE_CENTER_Z] = m_sceneBoundingSphere.y;
+  vars.m_varsF[HRT_BSPHERE_CENTER_Y] = m_sceneBoundingSphere.y;
   vars.m_varsF[HRT_BSPHERE_CENTER_Z] = m_sceneBoundingSphere.z;
   vars.m_varsF[HRT_BSPHERE_RADIUS  ] = m_sceneBoundingSphere.w;
   m_pHWLayer->SetAllFlagsAndVars(vars);
