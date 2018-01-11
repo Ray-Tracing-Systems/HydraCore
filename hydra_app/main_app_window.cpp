@@ -274,8 +274,8 @@ static void Draw(void)
     if (saveImages > saveImageLast)
     {
       std::wstringstream fname1, fname2;
-      fname1 << L"C:/[Hydra]/rendered_images/a_" << time << L".png";
-      fname2 << L"C:/[Hydra]/rendered_images/b_" << time << L".hdr";
+      fname1 << L"C:/[Hydra]/rendered_images/a_" << int(time) << L".png";
+      fname2 << L"C:/[Hydra]/rendered_images/b_" << int(time) << L".hdr";
       const std::wstring outStr1 = fname1.str();
       const std::wstring outStr2 = fname2.str();
       hrRenderSaveFrameBufferLDR(renderRef, outStr1.c_str());

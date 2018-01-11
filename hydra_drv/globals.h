@@ -1564,7 +1564,7 @@ IDH_CALL float3 MapSampleToModifiedCosineDistribution(float r1, float r2, float3
 
 
 /**
-\brief transform float2 sample in rect [-1,1]x[-1,1] to disc centered at (0,0) with radius == 1. 
+\brief  transform float2 sample in rect [-1,1]x[-1,1] to disc centered at (0,0) with radius == 1. 
 \param  xy - input sample in rect [-1,1]x[-1,1]
 \return position in disc
 
