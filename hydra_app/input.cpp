@@ -14,10 +14,10 @@ Input::Input()
   //inLibraryPath = "tests/test_35";
   //inLibraryPath = "tests/test_42";      ///< cornell box with teapot
   
-  //inLibraryPath = "D:/PROG/HydraAPI/main/tests/test_39";
+  inLibraryPath = "D:/PROG/HydraAPI/main/tests/test_76";
   //inLibraryPath = "D:/PROG/HydraAPI/main/tests_f/test_004";
   //inLibraryPath = "D:/PROG/HydraAPI/main/tests_f/test_205";
-  inLibraryPath = "C:/[Hydra]/pluginFiles/scenelib";
+  //inLibraryPath = "C:/[Hydra]/pluginFiles/scenelib";
  
   inDeviceId = 1;
   enableMLT  = false;
