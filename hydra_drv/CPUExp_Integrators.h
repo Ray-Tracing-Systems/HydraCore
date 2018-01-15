@@ -583,7 +583,7 @@ protected:
   // light path
   //
   void DoLightPath();
-  void TraceLightPath(float3 ray_pos, float3 ray_dir, int a_currDepthm, float a_prevLightCos, float a_prevPdfW, 
+  void TraceLightPath(float3 ray_pos, float3 ray_dir, int a_currDepthm, float a_prevLightCos, 
                       PerRayAcc* a_pAccData, float3 a_color);
 
   void ConnectEye(SurfaceHit a_hit, float3 ray_pos, float3 ray_dir, int a_currBounce, 
@@ -754,5 +754,3 @@ float3 EstimateAverageBrightnessRGB(const HDRImage4f& a_color);
 float  EstimateAverageBrightness   (const HDRImage4f& a_color);
 float3 EstimateAverageBrightnessRGB(const std::vector<float4>& a_color);
 float  EstimateAverageBrightness   (const std::vector<float4>& a_color);
-
-MisData makeInitialMisData();

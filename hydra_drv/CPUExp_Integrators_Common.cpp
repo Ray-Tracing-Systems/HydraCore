@@ -259,16 +259,6 @@ float3 IntegratorCommon::PathTrace(float3 a_rpos, float3 a_rdir, MisData a_prevS
     return float3(0, 0, 1);
 }
 
-MisData makeInitialMisData()
-{
-  MisData data;
-  data.isSpecular         = true;
-  data.lightPickProb      = 0.0f;
-  data.matSamplePdf       = 1.0f;
-  data.prevMaterialOffset = -1;
-  return data;
-}
-
 void IntegratorCommon::DoPass(std::vector<uint>& a_imageLDR)
 {
   if (m_width*m_height != a_imageLDR.size())

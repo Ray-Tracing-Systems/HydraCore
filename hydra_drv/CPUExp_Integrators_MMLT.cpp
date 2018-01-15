@@ -918,7 +918,6 @@ PathVertex IntegratorMMLT::CameraPath(float3 ray_pos, float3 ray_dir, float3 a_p
 
   MisData thisBounce;
   thisBounce.isSpecular         = isPureSpecular(matSam);
-  thisBounce.lightPickProb      = 1.0f;
   thisBounce.matSamplePdf       = matSam.pdf;
   thisBounce.prevMaterialOffset = -1;
 
@@ -1138,7 +1137,6 @@ float3 IntegratorMMLT::PathTraceDirectLight(float3 ray_pos, float3 ray_dir, MisD
   MisData currMis;
   currMis.isSpecular         = isPureSpecular(matSam);
   currMis.matSamplePdf       = matSam.pdf;
-  currMis.lightPickProb      = lightPickProb;
   currMis.prevMaterialOffset = surfElem.matId; // not needed actually
 
   const bool proceedTrace = m_splitDLByGrammar ? flagsHaveOnlySpecular(flags) : true;

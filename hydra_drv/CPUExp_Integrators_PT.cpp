@@ -199,7 +199,6 @@ float3 IntegratorMISPT::PathTrace(float3 ray_pos, float3 ray_dir, MisData misPre
   MisData currMis;
   currMis.isSpecular         = isPureSpecular(matSam);
   currMis.matSamplePdf       = matSam.pdf;
-  currMis.lightPickProb      = lightPickProb;
   currMis.prevMaterialOffset = surfElem.matId; // not needed actually
 
   flags = flagsNextBounceLite(flags, matSam, m_pGlobals);

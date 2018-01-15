@@ -115,11 +115,11 @@ void IntegratorThreeWay::DoLightPath()
 
   //SaveLightSample(sample);
 
-  TraceLightPath(sample.pos, sample.dir, 1, sample.cosTheta, sample.pdfW, 
+  TraceLightPath(sample.pos, sample.dir, 1, sample.cosTheta, 
                  &acc0, color);
 }
 
-void IntegratorThreeWay::TraceLightPath(float3 ray_pos, float3 ray_dir, int a_currDepth, float a_prevLightCos, float a_prevPdf, 
+void IntegratorThreeWay::TraceLightPath(float3 ray_pos, float3 ray_dir, int a_currDepth, float a_prevLightCos, 
                                         PerRayAcc* a_pAccData, float3 a_color)
 {
   if (a_currDepth >= m_maxDepth)
@@ -188,7 +188,7 @@ void IntegratorThreeWay::TraceLightPath(float3 ray_pos, float3 ray_dir, int a_cu
 
   a_color *= matSam.color*cosNext* (1.0f / fmax(matSam.pdf, DEPSILON));
 
-  TraceLightPath(nextRay_pos, nextRay_dir, a_currDepth + 1, cosNext, matSam.pdf, 
+  TraceLightPath(nextRay_pos, nextRay_dir, a_currDepth + 1, cosNext, 
                  a_pAccData, a_color);
 }
 
@@ -375,8 +375,6 @@ float3  IntegratorThreeWay::PathTraceAcc(float3 ray_pos, float3 ray_dir, const f
   float lightPickProb = 1.0f;
   int lightOffset = SelectRandomLightRev(rndFloat2_Pseudo(&gen), surfElem.pos, m_pGlobals,
                                          &lightPickProb);
-  
-  thisBounce.lightPickProb = lightPickProb;
 
   if ((!m_computeIndirectMLT || a_currDepth > 0) && lightOffset >= 0) // if need to sample direct light ?
   {

@@ -1347,15 +1347,23 @@ static inline bool isEyeRay(uint a_flags)
 typedef struct MisDataT
 {
   float matSamplePdf;
-  float lightPickProb;
+  float cosThetaPrev;
   int   prevMaterialOffset;
   int   isSpecular;
 
 } MisData;
 
+static inline MisData makeInitialMisData()
+{
+  MisData data;
+  data.isSpecular = true;
+  data.matSamplePdf = 1.0f;
+  data.prevMaterialOffset = -1;
+  data.cosThetaPrev = 1.0f;
+  return data;
+}
 
-
-IDH_CALL uint encodeNormal(float3 n)
+static inline uint encodeNormal(float3 n)
 {
   short x = (short)(n.x*32767.0f);
   short y = (short)(n.y*32767.0f);
@@ -1368,7 +1376,7 @@ IDH_CALL uint encodeNormal(float3 n)
   return (sx | sy);
 }
 
-IDH_CALL float3 decodeNormal(uint a_data)
+static inline float3 decodeNormal(uint a_data)
 {
   const float divInv = 1.0f / 32767.0f;
 

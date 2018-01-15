@@ -699,7 +699,6 @@ __kernel void NextBounce(__global   float4*        restrict a_rpos,
       
       misNext.matSamplePdf       = brdfSample.pdf;
       misNext.isSpecular         = (int)isPureSpecular(brdfSample);
-      misNext.lightPickProb      = shadeData.w;
       misNext.prevMaterialOffset = matOffset;
 
       a_misDataPrev[tid]         = misNext;

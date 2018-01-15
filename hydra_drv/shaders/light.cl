@@ -11,6 +11,7 @@ __kernel void LightSampleForwardKernel(__global float4*        restrict out_rpos
                                        __global float4*        restrict out_data2,
                                        __global float4*        restrict out_data3,
                                        __global PerRayAcc*     restrict out_pdfAcc,
+                                       __global MisData*       restrict out_cosAndOther,
 
                                        __global int*           restrict out_flags,         // just for clearing them
                                        __global float4*        restrict out_color,         // just for clearing them
@@ -53,9 +54,9 @@ __kernel void LightSampleForwardKernel(__global float4*        restrict out_rpos
   //
   const float isPoint = sample.isPoint ? 1.0f : -1.0f;
 
-  out_data1[tid] = to_float4(sample.pos,  as_float(lightType(pLight))); // #NOTE: shitty code; pack light type to 4-th channel; sample.pdfA*isPoint; float3 pos; float  pdfA; => float4 (1) and isPoint as sign!
-  out_data2[tid] = to_float4(sample.dir,  sample.pdfW);         // float3 dir; float  pdfW;     => float4 (2)
-  out_data3[tid] = to_float4(sample.norm, sample.cosTheta);     // float3 norm; float cosTheta; => float4 (3)
+  out_data1[tid] = to_float4(sample.pos,  as_float(lightType(pLight)));
+  out_data2[tid] = to_float4(sample.dir,  sample.pdfA);          
+  out_data3[tid] = to_float4(sample.norm, as_float(lightId));    
 
   out_rpos [tid] = to_float4(sample.pos, 0.0f);                 // #TODO: do we really need so many out buffers ?
   out_rdir [tid] = to_float4(sample.dir, 0.0f);                 // #TODO: do we really need so many out buffers ?
@@ -63,6 +64,12 @@ __kernel void LightSampleForwardKernel(__global float4*        restrict out_rpos
   PerRayAcc acc0  = InitialPerParAcc();
   acc0.pdfLightWP = sample.pdfW / fmax(sample.cosTheta, DEPSILON);
   out_pdfAcc[tid] = acc0;
+
+  // store sample.cosTheta like 'a_prevLightCos' as argument (per bounce) 
+  //
+  MisData misdata      = makeInitialMisData();
+  misdata.cosThetaPrev = sample.cosTheta;
+  out_cosAndOther[tid] = misdata;
 
   // (3) clear temporary per ray data
   //

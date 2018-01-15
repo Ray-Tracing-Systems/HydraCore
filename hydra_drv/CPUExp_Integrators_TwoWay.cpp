@@ -319,7 +319,6 @@ float3 IntegratorTwoWay::PathTraceAcc(float3 ray_pos, float3 ray_dir, const Surf
 
   MisData thisBounce;
   thisBounce.isSpecular         = isPureSpecular(matSam);
-  thisBounce.lightPickProb      = 1.0f;
   thisBounce.matSamplePdf       = matSam.pdf;
   thisBounce.prevMaterialOffset = -1;
 
