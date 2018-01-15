@@ -238,7 +238,7 @@ protected:
   {
     CL_BUFFERS_RAYS() : rayPos(0), rayDir(0), hits(0), rayFlags(0), hitPosNorm(0), hitTexCoord(0), hitMatId(0), hitTangent(0), hitFlatNorm(0), hitPrimSize(0), hitNormUncompressed(0),
                         pathThoroughput(0), pathMisDataPrev(0), pathShadeColor(0), pathAccColor(0), pathAuxColor(0), randGenState(0), pathAuxColorCPU(0),
-                        lsam1(0), lsam2(0), shadowRayPos(0), shadowRayDir(0), lsamProb(0), lshadow(0), fogAtten(0), samZindex(0), pixWeights(0), MEGABLOCKSIZE(0) {}
+                        lsam1(0), lsam2(0), shadowRayPos(0), shadowRayDir(0), accPdf(0), lsamProb(0), lshadow(0), fogAtten(0), samZindex(0), pixWeights(0), MEGABLOCKSIZE(0) {}
 
     void free();
     void resize(cl_context ctx, cl_command_queue cmdQueue, size_t a_size, bool a_cpuShare, bool a_cpuFB);
@@ -266,9 +266,9 @@ protected:
 
     cl_mem lsam1;
     cl_mem lsam2;
-
     cl_mem shadowRayPos;
     cl_mem shadowRayDir;
+    cl_mem accPdf; 
 
     cl_mem lsamProb;
     cl_mem lshadow;

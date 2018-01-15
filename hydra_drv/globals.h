@@ -2215,14 +2215,12 @@ typedef struct ShadowSampleT
 \brief Per ray accumulated (for all bounces) data. 
 
 */
-typedef struct PerRayAccT
+typedef struct ALIGN_S(16) PerRayAccT
 {
   float  pdfGTerm;    ///< accumulated G term equal to product of G(x1,x2,x3) for all bounces
   float  pdfLightWP;  ///< accumulated probability per projected solid angle for light path
   float  pdfCameraWP; ///< accumulated probability per projected solid angle for camera path
   float  pdfCamA0;    ///< equal to pdfWP[0]*G[0] (if [0] means light)
-
-  float  pdfSelectRev;
 
 } PerRayAcc;
 
@@ -2248,7 +2246,6 @@ static inline PerRayAcc InitialPerParAcc()
   res.pdfLightWP   = 1.0f;
   res.pdfCameraWP  = 1.0f;
   res.pdfCamA0     = 1.0f;
-  res.pdfSelectRev = 1.0f;
   return res;
 }
 

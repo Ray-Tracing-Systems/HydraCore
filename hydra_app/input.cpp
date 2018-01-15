@@ -12,8 +12,9 @@ Input::Input()
 
   //inLibraryPath = "temp/";
   //inLibraryPath = "tests/test_35";
-  inLibraryPath = "tests/test_42";      ///< cornell box with teapot
-  
+  //inLibraryPath = "tests/test_42";      ///< cornell box with teapot
+  inLibraryPath = "D:/[archive]/2017/HydraAPP/hydra_app/tests/test_223_small";
+
   //inLibraryPath = "D:/PROG/HydraAPI/main/tests/test_39";
   //inLibraryPath = "D:/PROG/HydraAPI/main/tests_f/test_004";
   //inLibraryPath = "D:/PROG/HydraAPI/main/tests_f/test_205";

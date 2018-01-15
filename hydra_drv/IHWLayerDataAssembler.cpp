@@ -397,12 +397,11 @@ void CPUSharedData::PrepareEngineGlobals()
     //m_pIntegrator = new IntegratorMISPT(m_width, m_height, (EngineGlobals*)&m_cdataPrepared[0], m_createFlags);          
     //m_pIntegrator = new IntegratorPSSMLT(m_width, m_height, (EngineGlobals*)&m_cdataPrepared[0], m_createFlags);            
 
-    m_pIntegrator = new IntegratorLT(m_width, m_height, (EngineGlobals*)&m_cdataPrepared[0]);
+    //m_pIntegrator = new IntegratorLT(m_width, m_height, (EngineGlobals*)&m_cdataPrepared[0]);
     //m_pIntegrator = new IntegratorTwoWay(m_width, m_height, (EngineGlobals*)&m_cdataPrepared[0]); 
-    //m_pIntegrator = new IntegratorThreeWay(m_width, m_height, (EngineGlobals*)&m_cdataPrepared[0]);
+    m_pIntegrator = new IntegratorThreeWay(m_width, m_height, (EngineGlobals*)&m_cdataPrepared[0]);
     //m_pIntegrator = new IntegratorSBDPT(m_width, m_height, (EngineGlobals*)&m_cdataPrepared[0]);
     //m_pIntegrator = new IntegratorMMLT(m_width, m_height, (EngineGlobals*)&m_cdataPrepared[0]);
-    //m_pIntegrator = new IntegratorThreeWayBlendMMLT(m_width, m_height, (EngineGlobals*)&m_cdataPrepared[0]);
 
     // if (m_vars.m_flags & HRT_ENABLE_MLT)
     //   m_pIntegrator = new IntegratorPSSMLT(m_width, m_height, (EngineGlobals*)&m_cdataPrepared[0], m_createFlags);

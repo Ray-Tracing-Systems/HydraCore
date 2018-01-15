@@ -1087,7 +1087,7 @@ static inline void LightSampleForward(__global const PlainLight* pLight, const f
 
 }
 
-static inline float lightPdfSelectFwd(__global const PlainLight* pLight, __global const EngineGlobals* a_globals)
+static inline float lightPdfSelectFwd(__global const PlainLight* pLight)
 {
   return pLight->data[PLIGHT_PICK_PROB_FWD];
 }
@@ -1098,7 +1098,7 @@ static inline LightPdfFwd lightPdfFwd(__global const PlainLight* pLight, const f
   LightPdfFwd res;
   res.pdfA     = 1.0f / pLight->data[PLIGHT_SURFACE_AREA];
   res.pdfW     = fmax(a_cosTheta*INV_PI, 0.0f);
-  res.pickProb = lightPdfSelectFwd(pLight, a_globals);
+  res.pickProb = lightPdfSelectFwd(pLight);
 
   const int ltype = as_int(pLight->data[PLIGHT_TYPE]);
 

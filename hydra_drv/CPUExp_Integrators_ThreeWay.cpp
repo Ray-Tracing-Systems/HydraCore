@@ -109,12 +109,9 @@ void IntegratorThreeWay::DoLightPath()
   PerThread().pdfLightA0         = sample.pdfA;  // #TODO: move this to some other structure
   PerThread().selectedLightIdFwd = lightId;
 
-  PerRayAcc acc0;
+  PerRayAcc acc0   = InitialPerParAcc();
   float3 color     = sample.color/fmax(lightPickProb*sample.pdfA*sample.pdfW, DEPSILON2);
-  acc0.pdfLightWP  = sample.pdfW/ fmax(sample.cosTheta, DEPSILON);
-  acc0.pdfCameraWP = 1.0f;
-  acc0.pdfGTerm    = 1.0f;
-  acc0.pdfCamA0    = 1.0f;
+  acc0.pdfLightWP  = sample.pdfW/fmax(sample.cosTheta, DEPSILON);
 
   //SaveLightSample(sample);
 
@@ -153,7 +150,6 @@ void IntegratorThreeWay::TraceLightPath(float3 ray_pos, float3 ray_dir, int a_cu
   {
     a_pAccData->pdfCamA0     = GTerm; // spetial case, multyply it by pdf later ... 
     const PlainLight* pLight = lightAt(m_pGlobals, PerThread().selectedLightIdFwd);
-    a_pAccData->pdfSelectRev = lightPdfSelectRev(pLight);
   }
 
   ConnectEye(surfElem, ray_pos, ray_dir, a_currDepth, 
@@ -238,8 +234,8 @@ void IntegratorThreeWay::ConnectEye(SurfaceHit a_hit, float3 ray_pos, float3 ray
   const float cancelImplicitLightHitPdf = (1.0f / fmax(pdfCamA0, DEPSILON2));
 
   const PlainLight* pLight     = lightAt(m_pGlobals, PerThread().selectedLightIdFwd);
-  const float lightPickProbFwd = lightPdfSelectFwd(pLight, m_pGlobals);
-  const float lightPickProbRev = a_pAccData->pdfSelectRev;
+  const float lightPickProbFwd = lightPdfSelectFwd(pLight);
+  const float lightPickProbRev = lightPdfSelectRev(pLight);  
 
   // We put the virtual image plane at such a distance from the camera origin
   // that the pixel area is one and thus the image plane sampling pdf is 1.
@@ -422,13 +418,13 @@ float3  IntegratorThreeWay::PathTraceAcc(float3 ray_pos, float3 ray_dir, const f
     
     const LightPdfFwd lPdfFwd = lightPdfFwd(pLight, shadowRayDir, cosAtLight, m_pGlobals, m_texStorage, m_pdfStorage);
     
-    float pdfFwdA1 = 1.0f;  // madness of IBPT. 
-    if (a_currDepth > 0)    // Imagine ray that hit light source after (second???) bounce (or first ???). pdfAccFwdA = pdfLightA*PdfLightW*GTermShadow.
-      pdfFwdA1 = bsdfFwdWP; // 
+    float pdfFwdWP1 = 1.0f;  // madness of IBPT. 
+    if (a_currDepth > 0)     // Imagine ray that hit light source after (second???) bounce (or first ???). pdfAccFwdA = pdfLightA*PdfLightW*GTermShadow.
+      pdfFwdWP1 = bsdfFwdWP; // 
     
-    float pdfAccFwdA = 1.0f*pdfFwdA1 * (prevData.pdfLightWP *prevData.pdfGTerm)*((lPdfFwd.pdfW / fmax(cosAtLight, DEPSILON))*GTermShadow)*(lPdfFwd.pdfA*lPdfFwd.pickProb);
-    float pdfAccRevA = cameraPdfA    * (prevData.pdfCameraWP*prevData.pdfGTerm)*bsdfRevWP*GTermShadow;
-    float pdfAccExpA = cameraPdfA    * (prevData.pdfCameraWP*prevData.pdfGTerm)*(lPdfFwd.pdfA*lightPickProb);
+    float pdfAccFwdA = pdfFwdWP1  * (prevData.pdfLightWP *prevData.pdfGTerm)*((lPdfFwd.pdfW / fmax(cosAtLight, DEPSILON))*GTermShadow)*(lPdfFwd.pdfA*lPdfFwd.pickProb);
+    float pdfAccRevA = cameraPdfA * (prevData.pdfCameraWP*prevData.pdfGTerm)*bsdfRevWP*GTermShadow;
+    float pdfAccExpA = cameraPdfA * (prevData.pdfCameraWP*prevData.pdfGTerm)*(lPdfFwd.pdfA*lightPickProb);
     if (explicitSam.isPoint)
       pdfAccRevA = 0.0f;
     
@@ -502,12 +498,7 @@ float3  IntegratorThreeWay::PathTraceAcc(float3 ray_pos, float3 ray_dir, const f
 float3 IntegratorThreeWay::PathTrace(float3 ray_pos, float3 ray_dir)
 {
   SurfaceHit firstHit;
-  PerRayAcc  acc;
-  acc.pdfCameraWP = 1.0f;
-  acc.pdfLightWP  = 1.0f;
-  acc.pdfGTerm    = 1.0f;
-
-  //m_debugFirstBounceDiffuse = false;
+  PerRayAcc  acc = InitialPerParAcc();
 
   return PathTraceAcc(ray_pos, ray_dir, 1.0f, makeInitialMisData(), 0, 0,
                       &firstHit, &acc);

@@ -52,8 +52,8 @@ void GPUOCLLayer::CL_BUFFERS_RAYS::free()
   if (pathShadeColor)  clReleaseMemObject(pathShadeColor);
 
   if (pathAccColor)    clReleaseMemObject(pathAccColor);
-  if (pathAuxColor)   clReleaseMemObject(pathAuxColor);
-  if (randGenState)       clReleaseMemObject(randGenState);
+  if (pathAuxColor)    clReleaseMemObject(pathAuxColor);
+  if (randGenState)    clReleaseMemObject(randGenState);
   if (pathAuxColorCPU) clReleaseMemObject(pathAuxColorCPU);
 
   if (lsam1)           clReleaseMemObject(lsam1);
@@ -61,7 +61,8 @@ void GPUOCLLayer::CL_BUFFERS_RAYS::free()
 
   if (shadowRayPos)    clReleaseMemObject(shadowRayPos);
   if (shadowRayDir)    clReleaseMemObject(shadowRayDir);
- 
+  if (accPdf)          clReleaseMemObject(accPdf);
+
   if (lsamProb)        clReleaseMemObject(lsamProb);
   if (lshadow)         clReleaseMemObject(lshadow);
 
@@ -161,8 +162,9 @@ void GPUOCLLayer::CL_BUFFERS_RAYS::resize(cl_context ctx, cl_command_queue cmdQu
   lsam1    = clCreateBuffer(ctx, CL_MEM_READ_WRITE | shareFlags, 4 * sizeof(cl_float)*MEGABLOCKSIZE, NULL, &ciErr1);   // float4
   lsam2    = clCreateBuffer(ctx, CL_MEM_READ_WRITE | shareFlags, 4 * sizeof(cl_float)*MEGABLOCKSIZE, NULL, &ciErr1);   // float4
 
-  shadowRayPos = clCreateBuffer(ctx, CL_MEM_READ_WRITE | shareFlags, 4 * sizeof(cl_float)*MEGABLOCKSIZE, NULL, &ciErr1);   // float4
-  shadowRayDir = clCreateBuffer(ctx, CL_MEM_READ_WRITE | shareFlags, 4 * sizeof(cl_float)*MEGABLOCKSIZE, NULL, &ciErr1);   // float4
+  shadowRayPos = clCreateBuffer(ctx, CL_MEM_READ_WRITE | shareFlags, 4 * sizeof(cl_float)*MEGABLOCKSIZE, NULL, &ciErr1);  // float4
+  shadowRayDir = clCreateBuffer(ctx, CL_MEM_READ_WRITE | shareFlags, 4 * sizeof(cl_float)*MEGABLOCKSIZE, NULL, &ciErr1);  // float4
+  accPdf       = clCreateBuffer(ctx, CL_MEM_READ_WRITE | shareFlags, sizeof(PerRayAcc)*MEGABLOCKSIZE, NULL, &ciErr1);     // sizeof(PerRayAcc) == sizeof(float4)
 
   if (ciErr1 != CL_SUCCESS)
     RUN_TIME_ERROR("Error in resize rays buffers");
@@ -1112,7 +1114,7 @@ void GPUOCLLayer::BeginTracingPass()
     {
       runKernel_MakeLightRays(m_rays.rayPos, m_rays.rayDir, m_rays.pathAccColor, m_rays.MEGABLOCKSIZE);
 
-      if ((m_vars.m_flags & HRT_DRAW_LIGHT_LT) ) // && m_screen.m_cpuFrameBuffer // because GPU contributio for LT could be very expensieve (imagine point light)
+      if ((m_vars.m_flags & HRT_DRAW_LIGHT_LT) ) //  // because GPU contributio for LT could be very expensieve (imagine point light)
       {
         runKernel_EyeShadowRays(m_rays.lsam1, m_rays.hitNormUncompressed,
                                 m_rays.shadowRayPos, m_rays.shadowRayDir, m_rays.MEGABLOCKSIZE, 0);
