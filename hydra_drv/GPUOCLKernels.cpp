@@ -514,7 +514,7 @@ void GPUOCLLayer::runShadePass(cl_mem a_rpos, cl_mem a_rdir, cl_mem a_outColor, 
 }
 
 void GPUOCLLayer::runKernel_EyeShadowRays(cl_mem a_hitpos, cl_mem a_hitNorm,
-                                          cl_mem a_rpos, cl_mem a_rdir, size_t a_size)
+                                          cl_mem a_rpos, cl_mem a_rdir, size_t a_size, int a_haveMaterials)
 {
   cl_kernel kernMakeRays = m_progs.material.kernel("MakeEyeShadowRays");
 
@@ -532,6 +532,7 @@ void GPUOCLLayer::runKernel_EyeShadowRays(cl_mem a_hitpos, cl_mem a_hitNorm,
   CHECK_CL(clSetKernelArg(kernMakeRays, 6, sizeof(cl_mem), (void*)&a_rpos));
   CHECK_CL(clSetKernelArg(kernMakeRays, 7, sizeof(cl_mem), (void*)&a_rdir));
   CHECK_CL(clSetKernelArg(kernMakeRays, 8, sizeof(cl_int), (void*)&isize));
+  CHECK_CL(clSetKernelArg(kernMakeRays, 9, sizeof(cl_int), (void*)&a_haveMaterials));
 
   CHECK_CL(clEnqueueNDRangeKernel(m_globals.cmdQueue, kernMakeRays, 1, NULL, &a_size, &localWorkSize, 0, NULL, NULL));
   waitIfDebug(__FILE__, __LINE__);

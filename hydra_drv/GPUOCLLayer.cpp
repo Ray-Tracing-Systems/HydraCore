@@ -164,6 +164,9 @@ void GPUOCLLayer::CL_BUFFERS_RAYS::resize(cl_context ctx, cl_command_queue cmdQu
   shadowRayPos = clCreateBuffer(ctx, CL_MEM_READ_WRITE | shareFlags, 4 * sizeof(cl_float)*MEGABLOCKSIZE, NULL, &ciErr1);   // float4
   shadowRayDir = clCreateBuffer(ctx, CL_MEM_READ_WRITE | shareFlags, 4 * sizeof(cl_float)*MEGABLOCKSIZE, NULL, &ciErr1);   // float4
 
+  if (ciErr1 != CL_SUCCESS)
+    RUN_TIME_ERROR("Error in resize rays buffers");
+
   lsamProb = clCreateBuffer(ctx, CL_MEM_READ_WRITE,              1 * sizeof(cl_float)*MEGABLOCKSIZE, NULL, &ciErr1);   // float1
   lshadow  = clCreateBuffer(ctx, CL_MEM_READ_WRITE | shareFlags, 4 * sizeof(cl_ushort)*MEGABLOCKSIZE, NULL, &ciErr1);  // float2
   fogAtten = clCreateBuffer(ctx, CL_MEM_READ_WRITE, 4 * sizeof(cl_float)*MEGABLOCKSIZE, NULL, &ciErr1);
@@ -612,7 +615,7 @@ GPUOCLLayer::GPUOCLLayer(int w, int h, int a_flags, int a_deviceId) : Base(w, h,
   std::string loshaderpathBin = installPath2 + "shadercache/" + "lightx_" + devHash + ".bin";
   std::string yoshaderpathBin = installPath2 + "shadercache/" + "matsxx_" + devHash + ".bin";
 
-  bool inDevelopment = true;
+  bool inDevelopment = false;
   #ifdef _DEBUG
   inDevelopment = true;
   #endif
@@ -1112,7 +1115,7 @@ void GPUOCLLayer::BeginTracingPass()
       if (m_vars.m_flags & HRT_DRAW_LIGHT_LT)
       {
         runKernel_EyeShadowRays(m_rays.lsam1, m_rays.hitNormUncompressed,
-                                m_rays.shadowRayPos, m_rays.shadowRayDir, m_rays.MEGABLOCKSIZE);
+                                m_rays.shadowRayPos, m_rays.shadowRayDir, m_rays.MEGABLOCKSIZE, 0);
         
         runKernel_ShadowTrace(m_rays.shadowRayPos, m_rays.shadowRayDir, 
                               m_rays.lshadow, m_rays.MEGABLOCKSIZE);
@@ -1337,7 +1340,7 @@ void GPUOCLLayer::trace1D(cl_mem a_rpos, cl_mem a_rdir, cl_mem a_outColor, size_
     if (m_vars.m_flags & HRT_FORWARD_TRACING)
     {
       runKernel_EyeShadowRays(m_rays.hitPosNorm, m_rays.hitNormUncompressed, 
-                              m_rays.shadowRayPos, m_rays.shadowRayDir, a_size);
+                              m_rays.shadowRayPos, m_rays.shadowRayDir, a_size, 1);
 
       runKernel_ShadowTrace(m_rays.shadowRayPos, m_rays.shadowRayDir, 
                             m_rays.lshadow, a_size);

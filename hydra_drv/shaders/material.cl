@@ -33,7 +33,7 @@ __kernel void MakeEyeShadowRays(__global const uint*          restrict a_flags,
   
                                 __global float4* restrict out_sraypos,
                                 __global float4* restrict out_sraydir,
-                                 int iNumElements)
+                                 int iNumElements, int haveMaterials)
 {
   int tid = GLOBAL_ID_X;
   if (tid >= iNumElements)
@@ -45,18 +45,22 @@ __kernel void MakeEyeShadowRays(__global const uint*          restrict a_flags,
 
   const float3 hitPos  = to_float3(in_hitPosNorm[tid]);
   const float3 hitNorm = to_float3(in_normalsFull[tid]); 
-
+  
   float3 camDir; float zDepth;
   const float imageToSurfaceFactor = CameraImageToSurfaceFactor(hitPos, hitNorm, a_globals,
                                                                 &camDir, &zDepth);
-  
-  const int matId = GetMaterialId(in_matData[tid]);
-  __global const PlainMaterial* pHitMaterial = materialAt(a_globals, a_mtlStorage, matId);
 
   float signOfNormal = 1.0f;
-  if ((materialGetFlags(pHitMaterial) & PLAIN_MATERIAL_HAVE_BTDF) != 0 && dot(camDir, hitNorm) < -0.01f)
-    signOfNormal = -1.0f;
-  
+
+  if (haveMaterials == 1)
+  {
+    const int matId = GetMaterialId(in_matData[tid]);
+    __global const PlainMaterial* pHitMaterial = materialAt(a_globals, a_mtlStorage, matId);
+
+    if ((materialGetFlags(pHitMaterial) & PLAIN_MATERIAL_HAVE_BTDF) != 0 && dot(camDir, hitNorm) < -0.01f)
+      signOfNormal = -1.0f;
+  }
+
   out_sraypos[tid] = to_float4(hitPos + epsilonOfPos(hitPos)*signOfNormal*hitNorm, zDepth); // OffsRayPos(hitPos, hitNorm, camDir);
   out_sraydir[tid] = to_float4(camDir, imageToSurfaceFactor);
 }
@@ -1066,7 +1070,7 @@ __kernel void GetGBufferFirstBounce(__global const uint*      a_flags,
   a_color[tid]   = packGBuffer1(buffData);
 }
 
-// change 11.01.2018 13:44;
+// change 14.01.2018 16:12;
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////

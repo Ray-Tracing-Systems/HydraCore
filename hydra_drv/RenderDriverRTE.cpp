@@ -998,11 +998,25 @@ void RenderDriverRTE::InstanceMeshes(int32_t a_mesh_id, const float* a_matrices,
   if (m_pBVH == nullptr)
     return;
 
-  int32_t meshId = a_mesh_id;
+  const int32_t meshId = a_mesh_id;
+
+  if (meshId >= m_geomTable.size())
+  {
+    std::cerr << " RenderDriverRTE::InstanceMeshes, bad mesh id = " << meshId << std::endl;
+    return;
+  }
+
+  const auto offset = m_geomTable[meshId];
+  if (offset < 0)
+  {
+    std::cerr << " RenderDriverRTE::InstanceMeshes, invalid mesh, offset = " << offset << std::endl;
+    return;
+  }
+
   IBVHBuilder2::InstanceInputData input;
 
   const int4* ldata        = (const int4*)m_pGeomStorage->GetBegin();
-  const PlainMesh* pHeader = (const PlainMesh*)(ldata + m_geomTable[meshId]);
+  const PlainMesh* pHeader = (const PlainMesh*)(ldata + offset);
   
   input.vert4f     = (const float*)meshVerts(pHeader);
   input.indices    = meshTriIndices(pHeader);
