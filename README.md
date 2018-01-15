@@ -14,8 +14,8 @@ This repo contain the last one.
 2. Build HydraAPI with visual studio 2015 or later under windows.
 3. Clone HydraCore repo in the same folder (to form 'myfolder/HydraCore').
 4. Build HydraCore with visual studio 2015 or later under windows.
-5. Set 'inLibraryPath = "tests/test_42";' inside input.cpp
-6. Set 'inDevelopment = true' inside 'GPUOCLLayer.cpp' to disable internal shader cache (note that nvidia use its' own shader cache!!!).
+5. Set 'inLibraryPath = "tests/test_42";' inside input.cpp; Set 'inDeviceId = 0' (or other, depends on your OpenCL HW);
+6. Set 'inDevelopment = true' inside 'GPUOCLLayer.cpp' to disable internal shader cache (note that nvidia use its' own shader cache!!!). 
 7. If you want to fly around scene set 'm_screen.m_cpuFrameBuffer = false;' to enable gpu frame buffer.
 8. Press 'P' for Path Tracing, 'L' for light tracing.
 
