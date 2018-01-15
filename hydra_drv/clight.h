@@ -1621,8 +1621,8 @@ static inline bool mltStrageCondition(const int flags, const int a_gflags, const
     const uint rayBounceNumDiff   = unpackBounceNumDiff(flags);
 
     const uint otherRayFlags      = unpackRayFlags(flags);
-    const bool wasGlossyOrDiffuse = (otherRayFlags & RAY_GRAMMAR_DIFFUSE_REFLECTION) || (otherRayFlags & RAY_GRAMMAR_GLOSSY_REFLECTION);
-    const bool wasDiffuse         = (otherRayFlags & RAY_GRAMMAR_DIFFUSE_REFLECTION) != 0;
+    const bool wasGlossyOrDiffuse = (otherRayFlags & RAY_EVENT_D) || (otherRayFlags & RAY_EVENT_G);
+    const bool wasDiffuse         = (otherRayFlags & RAY_EVENT_D) != 0;
 
     if (a_gflags & HRT_PT_SECONDARY_AND_GLOSSY)
     {

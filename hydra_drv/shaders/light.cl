@@ -121,7 +121,7 @@ __kernel void LightSample(__global const float4*  restrict a_rpos,
   if (!rayIsActiveU(flags))
     return;
 
-  const bool wasGlossyOrDiffuse = (unpackRayFlags(flags) & RAY_GRAMMAR_GLOSSY_REFLECTION) || (unpackRayFlags(flags) & RAY_GRAMMAR_DIFFUSE_REFLECTION);
+  const bool wasGlossyOrDiffuse = (unpackRayFlags(flags) & RAY_EVENT_G) || (unpackRayFlags(flags) & RAY_EVENT_D);
   const uint rayBounceNum       = unpackBounceNum(flags);
 
   if (a_globals->g_flags & HRT_PT_PRIMARY_AND_REFLECTIONS)

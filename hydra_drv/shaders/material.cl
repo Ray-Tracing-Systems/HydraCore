@@ -216,7 +216,7 @@ __kernel void Shade(__global const float4*    restrict a_rpos,
     return;
   }
 
-  const bool wasGlossyOrDiffuse = (unpackRayFlags(flags) & RAY_GRAMMAR_GLOSSY_REFLECTION) || (unpackRayFlags(flags) & RAY_GRAMMAR_DIFFUSE_REFLECTION);
+  const bool wasGlossyOrDiffuse = (unpackRayFlags(flags) & RAY_EVENT_G) || (unpackRayFlags(flags) & RAY_EVENT_D);
   const uint rayBounceNum       = unpackBounceNum(flags);
 
   if (a_globals->g_flags & HRT_PT_PRIMARY_AND_REFLECTIONS)
@@ -500,7 +500,7 @@ __kernel void NextBounce(__global   float4*        restrict a_rpos,
           
           const MisData misPrev         = a_misDataPrev[tid];
           const uint otherRayFlags      = unpackRayFlags(flags);
-          const bool wasGlossyOrDiffuse = (otherRayFlags & RAY_GRAMMAR_DIFFUSE_REFLECTION) || (otherRayFlags & RAY_GRAMMAR_GLOSSY_REFLECTION);
+          const bool wasGlossyOrDiffuse = (otherRayFlags & RAY_EVENT_D) || (otherRayFlags & RAY_EVENT_G);
           
           if (a_globals->g_flags & HRT_PT_PRIMARY_AND_REFLECTIONS)
           {
@@ -533,7 +533,7 @@ __kernel void NextBounce(__global   float4*        restrict a_rpos,
       {
         const MisData misPrev         = a_misDataPrev[tid];
         const uint otherRayFlags      = unpackRayFlags(flags);
-        const bool wasGlossyOrDiffuse = (otherRayFlags & RAY_GRAMMAR_DIFFUSE_REFLECTION) || (otherRayFlags & RAY_GRAMMAR_GLOSSY_REFLECTION);
+        const bool wasGlossyOrDiffuse = (otherRayFlags & RAY_EVENT_D) || (otherRayFlags & RAY_EVENT_G);
     
         if (((misPrev.isSpecular == 0) && wasGlossyOrDiffuse) || rayBounceNum <= 1 || !wasGlossyOrDiffuse)
           outPathColor = make_float3(0, 0, 0);
@@ -671,7 +671,7 @@ __kernel void NextBounce(__global   float4*        restrict a_rpos,
     //
     {
       const uint otherRayFlags      = unpackRayFlags(flags);
-      const bool wasGlossyOrDiffuse = (otherRayFlags & RAY_GRAMMAR_GLOSSY_REFLECTION) || (otherRayFlags & RAY_GRAMMAR_DIFFUSE_REFLECTION);
+      const bool wasGlossyOrDiffuse = (otherRayFlags & RAY_EVENT_G) || (otherRayFlags & RAY_EVENT_D);
       const bool isGlossyOrDiffuse  = (isDiffuse(brdfSample) || isGlossy(brdfSample));
 
       if (a_globals->g_flags & HRT_PT_PRIMARY_AND_REFLECTIONS)
@@ -857,7 +857,7 @@ __kernel void TransparentShadowKenrel(__global const uint*     in_flags,
   if (!rayIsActiveU(flags))
    return;
 
-  const bool wasGlossyOrDiffuse = (unpackRayFlags(flags) & RAY_GRAMMAR_GLOSSY_REFLECTION) || (unpackRayFlags(flags) & RAY_GRAMMAR_DIFFUSE_REFLECTION);
+  const bool wasGlossyOrDiffuse = (unpackRayFlags(flags) & RAY_EVENT_G) || (unpackRayFlags(flags) & RAY_EVENT_D);
   const uint rayBounceNum       = unpackBounceNum(flags);
 
   if (a_globals->g_flags & HRT_PT_PRIMARY_AND_REFLECTIONS)

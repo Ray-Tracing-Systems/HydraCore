@@ -126,7 +126,6 @@ __kernel void BVH4TraversalInstKernelAS(__global const float4* restrict  rpos,  
 
 }
 
-
 static inline float4x4 fetchMatrix(const Lite_Hit hit, __global const float4* in_matrices)
 {
   float4x4 res;
@@ -177,8 +176,8 @@ __kernel void ComputeHit(__global const float4*   restrict rpos,
     out_hitPosNorm[tid] = make_float4(0, 0, 0, 0);
 
     uint rayOtherFlags = unpackRayFlags(flags);
-    rayOtherFlags |= RAY_GRAMMAR_OUT_OF_SCENE;
-    out_flags[tid] = packRayFlags(flags, rayOtherFlags);
+    rayOtherFlags     |= RAY_GRAMMAR_OUT_OF_SCENE;
+    out_flags[tid]     = packRayFlags(flags, rayOtherFlags);
     return;
   }
 
@@ -350,7 +349,7 @@ __kernel void BVH4TraversalShadowKenrel(__global const uint*         restrict in
 
   bool disableThread = !rayIsActiveU(flags);
   
-  const bool wasGlossyOrDiffuse = (unpackRayFlags(flags) & RAY_GRAMMAR_GLOSSY_REFLECTION) || (unpackRayFlags(flags) & RAY_GRAMMAR_DIFFUSE_REFLECTION);
+  const bool wasGlossyOrDiffuse = (unpackRayFlags(flags) & RAY_EVENT_G) || (unpackRayFlags(flags) & RAY_EVENT_D);
   const uint rayBounceNum       = unpackBounceNum(flags);
 
   if (a_globals->g_flags & HRT_PT_PRIMARY_AND_REFLECTIONS)
@@ -402,7 +401,7 @@ __kernel void BVH4TraversalInstShadowKenrel(__global const uint*         restric
 
   bool disableThread = !rayIsActiveU(flags);
   
-  const bool wasGlossyOrDiffuse = (unpackRayFlags(flags) & RAY_GRAMMAR_GLOSSY_REFLECTION) || (unpackRayFlags(flags) & RAY_GRAMMAR_DIFFUSE_REFLECTION);
+  const bool wasGlossyOrDiffuse = (unpackRayFlags(flags) & RAY_EVENT_G) || (unpackRayFlags(flags) & RAY_EVENT_D);
   const uint rayBounceNum       = unpackBounceNum(flags);
 
   if (a_globals->g_flags & HRT_PT_PRIMARY_AND_REFLECTIONS)
@@ -462,7 +461,7 @@ __kernel void BVH4TraversalInstShadowKenrelAS(__global const uint*         restr
 
   bool disableThread = !rayIsActiveU(flags);
   
-  const bool wasGlossyOrDiffuse = (unpackRayFlags(flags) & RAY_GRAMMAR_GLOSSY_REFLECTION) || (unpackRayFlags(flags) & RAY_GRAMMAR_DIFFUSE_REFLECTION);
+  const bool wasGlossyOrDiffuse = (unpackRayFlags(flags) & RAY_EVENT_G) || (unpackRayFlags(flags) & RAY_EVENT_D);
   const uint rayBounceNum       = unpackBounceNum(flags);
 
   if (a_globals->g_flags & HRT_PT_PRIMARY_AND_REFLECTIONS)

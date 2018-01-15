@@ -615,7 +615,7 @@ GPUOCLLayer::GPUOCLLayer(int w, int h, int a_flags, int a_deviceId) : Base(w, h,
   std::string loshaderpathBin = installPath2 + "shadercache/" + "lightx_" + devHash + ".bin";
   std::string yoshaderpathBin = installPath2 + "shadercache/" + "matsxx_" + devHash + ".bin";
 
-  bool inDevelopment = false;
+  bool inDevelopment = true;
   #ifdef _DEBUG
   inDevelopment = true;
   #endif
@@ -762,7 +762,7 @@ void GPUOCLLayer::ResizeScreen(int width, int height, int a_flags)
 
   //
   //
-  m_screen.m_cpuFrameBuffer = true; // m_initFlags or a_flags & some flag
+  m_screen.m_cpuFrameBuffer = false; // m_initFlags or a_flags & some flag
 
   cl_int ciErr1 = CL_SUCCESS;
 
@@ -1112,7 +1112,7 @@ void GPUOCLLayer::BeginTracingPass()
     {
       runKernel_MakeLightRays(m_rays.rayPos, m_rays.rayDir, m_rays.pathAccColor, m_rays.MEGABLOCKSIZE);
 
-      if (m_vars.m_flags & HRT_DRAW_LIGHT_LT)
+      if ((m_vars.m_flags & HRT_DRAW_LIGHT_LT) ) // && m_screen.m_cpuFrameBuffer // because GPU contributio for LT could be very expensieve (imagine point light)
       {
         runKernel_EyeShadowRays(m_rays.lsam1, m_rays.hitNormUncompressed,
                                 m_rays.shadowRayPos, m_rays.shadowRayDir, m_rays.MEGABLOCKSIZE, 0);

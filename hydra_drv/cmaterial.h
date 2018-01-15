@@ -2345,13 +2345,13 @@ static inline unsigned int flagsNextBounce(unsigned int flags, const MatSample a
     otherFlags |= RAY_IS_DEAD;
 
   if (isGlossy(a_matSample))
-    otherFlags |= RAY_GRAMMAR_GLOSSY_REFLECTION;
+    otherFlags |= RAY_EVENT_G;
 
   if (isPureSpecular(a_matSample))
-    otherFlags |= RAY_GRAMMAR_SPECULAR;
+    otherFlags |= RAY_EVENT_S;
 
   if (isDiffuse(a_matSample))
-    otherFlags |= RAY_GRAMMAR_DIFFUSE_REFLECTION;
+    otherFlags |= RAY_EVENT_D;
 
   // specific render layer output
 
@@ -2384,13 +2384,13 @@ static inline unsigned int flagsNextBounceLite(unsigned int flags, const MatSamp
     otherFlags |= RAY_IS_DEAD;
 
   if (isGlossy(a_matSample))
-    otherFlags |= RAY_GRAMMAR_GLOSSY_REFLECTION;
+    otherFlags |= RAY_EVENT_G;
 
   if (isPureSpecular(a_matSample))
-    otherFlags |= RAY_GRAMMAR_SPECULAR;
+    otherFlags |= RAY_EVENT_S;
 
   if (isDiffuse(a_matSample))
-    otherFlags |= RAY_GRAMMAR_DIFFUSE_REFLECTION;
+    otherFlags |= RAY_EVENT_D;
 
   return packRayFlags(flags, otherFlags);
 }
@@ -2399,8 +2399,8 @@ static inline bool flagsHaveOnlySpecular(const unsigned int flags)
 {
   const unsigned int otherFlags = unpackRayFlags(flags);
 
-  return ( (otherFlags & RAY_GRAMMAR_GLOSSY_REFLECTION)  == 0) && 
-         ( (otherFlags & RAY_GRAMMAR_DIFFUSE_REFLECTION) == 0) ;
+  return ( (otherFlags & RAY_EVENT_G)  == 0) && 
+         ( (otherFlags & RAY_EVENT_D) == 0) ;
 }
 
 

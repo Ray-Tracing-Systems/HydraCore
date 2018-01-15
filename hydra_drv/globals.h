@@ -1317,16 +1317,11 @@ static inline bool isDiffuse     (const MatSample a_sample) { return (a_sample.f
 static inline bool isGlossy      (const MatSample a_sample) { return (a_sample.flags & RAY_EVENT_G) != 0; }
 
 enum {
-  RAY_GRAMMAR_SPECULAR             = RAY_EVENT_S,
-  RAY_GRAMMAR_DIFFUSE_REFLECTION   = RAY_EVENT_D,
-  RAY_GRAMMAR_GLOSSY_REFLECTION    = RAY_EVENT_G,
   RAY_GRAMMAR_DIRECT_LIGHT         = 64,
   RAY_GRAMMAR_OUT_OF_SCENE         = 128,
-  RAY_IS_DEAD2                     = 256,
+  RAY_DUMMY_FLAG_NOT_USED          = 256,
   RAY_HIT_SURFACE_FROM_OTHER_SIDE  = 2048,
   RAY_IS_DEAD                      = 4096,  // set when ray had account environment or died on the surface
-  RAY_REGENERATE_IMMEDIATELY       = 8192,  // set when ray must be regenerated in next kernel call when path regeneration is enabled
-  RAY_DEAD_BLOCK                   = 16384, // set when ray must be regenerated in next kernel call when path regeneration is enabled
 };
 
 static inline uint unpackRayFlags(uint a_flags)                       { return ((a_flags & 0xFFFF0000) >> 16); } 
@@ -1344,7 +1339,7 @@ static inline bool rayIsActiveU(uint     a_flags) { return ( ((a_flags & 0xFFFF0
 static inline bool isEyeRay(uint a_flags)
 {
   const uint otherFlags = unpackRayFlags(a_flags);
-  const bool haveSomeNonSpecularReflections = (otherFlags & RAY_GRAMMAR_DIFFUSE_REFLECTION) || (otherFlags & RAY_GRAMMAR_GLOSSY_REFLECTION);
+  const bool haveSomeNonSpecularReflections = (otherFlags & RAY_EVENT_D) || (otherFlags & RAY_EVENT_G);
   return (unpackBounceNum(a_flags) == 0) || !haveSomeNonSpecularReflections;
   // return (unpackBounceNum(a_flags) == 0);
 }
