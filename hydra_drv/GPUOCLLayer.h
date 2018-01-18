@@ -268,7 +268,7 @@ protected:
     cl_mem lsam2;
     cl_mem shadowRayPos;
     cl_mem shadowRayDir;
-    cl_mem accPdf; 
+    cl_mem accPdf;        ///< accumulated pdf weights for 3-way bogolepov light transport
 
     cl_mem lsamProb;
     cl_mem lshadow;

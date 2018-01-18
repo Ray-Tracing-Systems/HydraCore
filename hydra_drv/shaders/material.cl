@@ -331,6 +331,7 @@ __kernel void NextBounce(__global   float4*        restrict a_rpos,
                          __global ushort4*         restrict a_shadow,
                          __global float4*          restrict a_fog,
                          __global const float4*    restrict in_shadeColor,
+                         __global PerRayAcc*       restrict a_pdfAcc,
 
                          __global const float4*    restrict a_texStorage1,    
                          __global const float4*    restrict a_texStorage2,
@@ -556,30 +557,23 @@ __kernel void NextBounce(__global   float4*        restrict a_rpos,
   RandomGen gen  = out_gens[tid];
   gen.maxNumbers = a_globals->varsI[HRT_MLT_MAX_NUMBERS];
 
+  //float cosPrev = 1.0f, cosCurr = 1.0f, cosNext = 1.0f, dist = 1.0f;
+
   if (rayIsActiveU(flags))
   {
-    matOffset    = materialOffset(a_globals, GetMaterialId(in_matData[tid]));
+    matOffset = materialOffset(a_globals, GetMaterialId(in_matData[tid]));
   
     BRDFSelector mixSelector = materialRandomWalkBRDF(pHitMaterial, &gen, qmcVec, ray_dir, hitNorm, hitTexCoord, a_globals, a_texStorage1, unpackBounceNum(flags), false, false);
   
-    uint rayBounceNum = unpackBounceNum(flags);
-    if ((a_globals->varsI[HRT_RENDER_LAYER] == LAYER_INCOMING_RADIANCE) && (a_globals->varsI[HRT_RENDER_LAYER_DEPTH] == rayBounceNum)) // piss way (render incoming radiance)
-    {
-      pHitMaterial        = materialAtOffset(a_mtlStorage, a_globals->varsI[HRT_WHITE_DIFFUSE_OFFSET]);
-      mixSelector.w       = 1.0f;
-      thisBounceIsDiffuse = true;
-    }
-    else                                               // normal execution way
-    {
-			// this is needed component for mis further (misNext.prevMaterialOffset = matOffset;)
-      matOffset           = matOffset    + mixSelector.localOffs*(sizeof(PlainMaterial)/sizeof(float4));
-      pHitMaterial        = pHitMaterial + mixSelector.localOffs;
-      thisBounceIsDiffuse = materialHasDiffuse(pHitMaterial);
-    }
-  
+    const  uint rayBounceNum = unpackBounceNum(flags);
+   
+    matOffset           = matOffset    + mixSelector.localOffs*(sizeof(PlainMaterial)/sizeof(float4));
+    pHitMaterial        = pHitMaterial + mixSelector.localOffs;
+    thisBounceIsDiffuse = materialHasDiffuse(pHitMaterial);
+
     const float3 shadow = decompressShadow(a_shadow[tid]);
   
-    // sample material
+    /////////////////////////////////////////////////////////////////////////////// begin sample material
     {
       ShadeContext sc;
   
@@ -600,6 +594,7 @@ __kernel void NextBounce(__global   float4*        restrict a_rpos,
 
       isThinGlass = isPureSpecular(brdfSample) && (rayBounceNum > 0) && !(a_globals->g_flags & HRT_ENABLE_PT_CAUSTICS) && (materialGetType(pHitMaterial) == PLAIN_MAT_CLASS_THIN_GLASS); // materialIsTransparent(pHitMaterial);
     }
+    /////////////////////////////////////////////////////////////////////////////// end   sample material
   
     const float selectorPdf = mixSelector.w;
     const float invPdf      = 1.0f / fmax(brdfSample.pdf*selectorPdf, DEPSILON);
@@ -611,28 +606,39 @@ __kernel void NextBounce(__global   float4*        restrict a_rpos,
     if (!isfinite(outPathThroughput.y)) outPathThroughput.y = 0.0f;
     if (!isfinite(outPathThroughput.z)) outPathThroughput.z = 0.0f;
   
+    const float3 nextRay_dir = brdfSample.direction;
+    const float3 nextRay_pos = OffsRayPos(hitPos, hitNorm, brdfSample.direction);
+
+    // // values that bidirectional techniques needs
+    // //
+    // cosPrev = fabs(a_misDataPrev[tid].cosThetaPrev);
+    // cosCurr = fabs(-dot(ray_dir, hitNorm));
+    // cosNext = fabs(+dot(nextRay_dir, hitNorm));
+    // dist    = length(hitPos - ray_pos);
+
     // calc new ray
     //    
-    ray_dir = brdfSample.direction;
-    ray_pos = OffsRayPos(hitPos, hitNorm, brdfSample.direction); 
+    ray_dir = nextRay_dir;
+    ray_pos = nextRay_pos;
   }
   
-
+  /////////////////////////////////////////////////////////////////////////////////////////////////////////////// begin russian roulette
   const float pabsorb = probabilityAbsorbRR(flags, a_globals->g_flags);
   
-  float rrChoice = 0.0f;
-  if(pabsorb > 0.0f)
-    rrChoice = rndFloat1_Pseudo(&gen);
-   
-  out_gens[tid] = gen;
-  
-  if (pabsorb >= 0.1f)
+  if (pabsorb > 0.0f)
   {
+    float rrChoice = 0.0f;
+    if (pabsorb > 0.0f)
+      rrChoice = rndFloat1_Pseudo(&gen);
+
+    out_gens[tid] = gen;
+
     if (rrChoice < pabsorb)
       outPathThroughput = make_float3(0.0f, 0.0f, 0.0f);
     else
-      outPathThroughput = outPathThroughput*(1.0f / (1.0f - pabsorb));
-  } 
+      outPathThroughput = outPathThroughput * (1.0f / (1.0f - pabsorb));
+  }
+  /////////////////////////////////////////////////////////////////////////////////////////////////////////////// end   russian roulette
 
   float3 oldPathThroughput = make_float3(1,1,1);
   float3 newPathThroughput = make_float3(1,1,1);
@@ -649,8 +655,8 @@ __kernel void NextBounce(__global   float4*        restrict a_rpos,
 		const float3 fogAtten  = attenuationStep(pHitMaterial, dist, gotOutside, a_fog + tid);
     /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-    uint rayBounceNum  = unpackBounceNum(flags);
-    uint diffBounceNum = unpackBounceNumDiff(flags);
+    const uint rayBounceNum  = unpackBounceNum(flags);
+    const uint diffBounceNum = unpackBounceNumDiff(flags);
 
     float4 shadeData  = in_shadeColor[tid];
 
@@ -665,7 +671,6 @@ __kernel void NextBounce(__global   float4*        restrict a_rpos,
 
     if (a_globals->varsI[HRT_RENDER_LAYER] == LAYER_SECONDARY && rayBounceNum == 0)
       shadeData = make_float4(0, 0, 0, 0);
-
 
     // split primary and secondary lighting
     //
@@ -689,11 +694,9 @@ __kernel void NextBounce(__global   float4*        restrict a_rpos,
           shadeData = make_float4(0, 0, 0, 0);
       }
     }
-
-    if ((a_globals->g_flags & HRT_FORWARD_TRACING) == 0)
-      outPathColor += to_float3(shadeData);
    
-    if (!isThinGlass)                                    // THIS IS A VERY HUGE HACK  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    ///////////////////////////////////////////////  THIS IS A VERY HUGE HACK  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!  //#TODO: remove this isThinGlass crap??
+    if (!isThinGlass)  
     {
       MisData misNext            = a_misDataPrev[tid];
       
@@ -703,6 +706,7 @@ __kernel void NextBounce(__global   float4*        restrict a_rpos,
 
       a_misDataPrev[tid]         = misNext;
     }
+    /////////////////////////////////////////////// \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
 
     flags = flagsNextBounce(flags, brdfSample, a_globals);
 
@@ -712,13 +716,24 @@ __kernel void NextBounce(__global   float4*        restrict a_rpos,
     { 
       nextPathColor   = a_color[tid]*to_float4(outPathThroughput*fogAtten, 1.0f);
       nextPathColor.w = 1.0f;
+
+      //PerRayAcc accPdf = a_pdfAcc[tid];
+      //{ 
+      //  const float GTerm   = (cosPrev*cosCurr / fmax(dist*dist, DEPSILON2));
+      //  const int currDepth = rayBounceNum + 1;
+      //
+      //  accPdf.pdfGTerm *= GTerm;
+      //  if (currDepth == 1)
+      //    accPdf.pdfCamA0 = GTerm; // spetial case, multyply it by pdf later ... 
+      //}
+      //a_pdfAcc[tid] = accPdf;
     }
     else
     { 
+      outPathColor   += to_float3(shadeData);
       nextPathColor   = a_color[tid] + to_float4(oldPathThroughput*outPathColor, 0.0f);
       nextPathColor.w = 1.0f;
     }
-
 
     if (maxcomp(newPathThroughput) < 0.00001f || hitLightSource)
       flags = packRayFlags(flags, unpackRayFlags(flags) | RAY_IS_DEAD);
@@ -774,7 +789,6 @@ __kernel void NextTransparentBounce(__global   float4*    a_rpos,
     a_thoroughput[tid] = make_float4(0.0f, 0.0f, 0.0f, 0.0f);
   }
   */
-  
   
   if (unpackRayFlags(flags) & RAY_GRAMMAR_OUT_OF_SCENE) // if hit environment
   {
@@ -1069,7 +1083,7 @@ __kernel void GetGBufferFirstBounce(__global const uint*      a_flags,
   a_color[tid]   = packGBuffer1(buffData);
 }
 
-// change 14.01.2018 16:12;
+// change 18.01.2018 19:35;
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////

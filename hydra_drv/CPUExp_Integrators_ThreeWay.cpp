@@ -147,10 +147,7 @@ void IntegratorThreeWay::TraceLightPath(float3 ray_pos, float3 ray_dir, int a_cu
 
   a_pAccData->pdfGTerm *= GTerm;
   if (a_currDepth == 1)
-  {
-    a_pAccData->pdfCamA0     = GTerm; // spetial case, multyply it by pdf later ... 
-    const PlainLight* pLight = lightAt(m_pGlobals, PerThread().selectedLightIdFwd);
-  }
+    a_pAccData->pdfCamA0 = GTerm; // spetial case, multyply it by pdf later ... 
 
   ConnectEye(surfElem, ray_pos, ray_dir, a_currDepth, 
              a_pAccData, a_color);
@@ -181,7 +178,6 @@ void IntegratorThreeWay::TraceLightPath(float3 ray_pos, float3 ray_dir, int a_cu
   {
     a_pAccData->pdfCameraWP *= 1.0f;
     a_pAccData->pdfLightWP  *= 1.0f;
-
     //if (a_currDepth == 1)
       //a_pAccData->pdfCameraWP = 0.0f;
   }

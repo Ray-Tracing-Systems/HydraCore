@@ -249,6 +249,7 @@ void GPUOCLLayer::runKernel_ComputeHit(cl_mem a_rpos, cl_mem a_rdir, size_t a_si
     CHECK_CL(clSetKernelArg(kernHit, 10, sizeof(cl_mem), (void*)&m_rays.hitMatId));
     CHECK_CL(clSetKernelArg(kernHit, 11, sizeof(cl_mem), (void*)&m_rays.hitTangent));
     CHECK_CL(clSetKernelArg(kernHit, 12, sizeof(cl_mem), (void*)&m_rays.hitNormUncompressed));
+
     CHECK_CL(clSetKernelArg(kernHit, 13, sizeof(cl_mem), (void*)&m_scene.allGlobsData));
     CHECK_CL(clSetKernelArg(kernHit, 14, sizeof(cl_int), (void*)&isize));
   }
@@ -285,18 +286,19 @@ void GPUOCLLayer::runKernel_NextBounce(cl_mem a_rpos, cl_mem a_rdir, cl_mem a_ou
     CHECK_CL(clSetKernelArg(kernX, 13, sizeof(cl_mem), (void*)&m_rays.lshadow));              // a_shadow
     CHECK_CL(clSetKernelArg(kernX, 14, sizeof(cl_mem), (void*)&m_rays.fogAtten));             // a_fog
     CHECK_CL(clSetKernelArg(kernX, 15, sizeof(cl_mem), (void*)&m_rays.pathShadeColor));       // in_shadeColor
+    CHECK_CL(clSetKernelArg(kernX, 16, sizeof(cl_mem), (void*)&m_rays.accPdf));               // a_pdfAcc
 
-    CHECK_CL(clSetKernelArg(kernX, 16, sizeof(cl_mem), (void*)&m_scene.storageTex));  
-    CHECK_CL(clSetKernelArg(kernX, 17, sizeof(cl_mem), (void*)&m_scene.storageTexAux));
-    CHECK_CL(clSetKernelArg(kernX, 18, sizeof(cl_mem), (void*)&m_scene.storageMat));
-    CHECK_CL(clSetKernelArg(kernX, 19, sizeof(cl_mem), (void*)&m_scene.storagePdfs));
-    CHECK_CL(clSetKernelArg(kernX, 20, sizeof(cl_mem), (void*)&m_scene.instLightInst));
-    CHECK_CL(clSetKernelArg(kernX, 21, sizeof(cl_mem), (void*)&m_rays.hits));
+    CHECK_CL(clSetKernelArg(kernX, 17, sizeof(cl_mem), (void*)&m_scene.storageTex));  
+    CHECK_CL(clSetKernelArg(kernX, 18, sizeof(cl_mem), (void*)&m_scene.storageTexAux));
+    CHECK_CL(clSetKernelArg(kernX, 19, sizeof(cl_mem), (void*)&m_scene.storageMat));
+    CHECK_CL(clSetKernelArg(kernX, 20, sizeof(cl_mem), (void*)&m_scene.storagePdfs));
+    CHECK_CL(clSetKernelArg(kernX, 21, sizeof(cl_mem), (void*)&m_scene.instLightInst));
+    CHECK_CL(clSetKernelArg(kernX, 22, sizeof(cl_mem), (void*)&m_rays.hits));
 
-    CHECK_CL(clSetKernelArg(kernX, 22, sizeof(cl_int), (void*)&isize));
-    CHECK_CL(clSetKernelArg(kernX, 23, sizeof(cl_mem), (void*)&m_scene.allGlobsData));
-    CHECK_CL(clSetKernelArg(kernX, 24, sizeof(cl_mem), (void*)&m_mlt.pssVector));
-    CHECK_CL(clSetKernelArg(kernX, 25, sizeof(cl_mem), (void*)&m_mlt.yOldNewId));
+    CHECK_CL(clSetKernelArg(kernX, 23, sizeof(cl_int), (void*)&isize));
+    CHECK_CL(clSetKernelArg(kernX, 24, sizeof(cl_mem), (void*)&m_scene.allGlobsData));
+    CHECK_CL(clSetKernelArg(kernX, 25, sizeof(cl_mem), (void*)&m_mlt.pssVector));
+    CHECK_CL(clSetKernelArg(kernX, 26, sizeof(cl_mem), (void*)&m_mlt.yOldNewId));
   }
 
   CHECK_CL(clEnqueueNDRangeKernel(m_globals.cmdQueue, kernX, 1, NULL, &a_size, &localWorkSize, 0, NULL, NULL));

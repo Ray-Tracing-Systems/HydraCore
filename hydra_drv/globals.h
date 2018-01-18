@@ -1762,19 +1762,19 @@ IDH_CALL float probabilityAbsorbRR(uint a_flags, uint a_globalFlags)
   if (a_globalFlags & HRT_ENABLE_MLT) // metropolis don't use roultte
     return 0.0f;
 
-  uint diffBounceNum = unpackBounceNumDiff(a_flags);
-  uint otherFlags    = unpackRayFlags(a_flags);
+  const uint diffBounceNum = unpackBounceNumDiff(a_flags);
+  const uint otherFlags    = unpackRayFlags(a_flags);
 
   float pabsorb = 0.0f;
 
   if (diffBounceNum >= 4)
     pabsorb = 0.50f;
   else if (diffBounceNum >= 3)
-    pabsorb = 0.375f;
-  else if (diffBounceNum >= 2)
     pabsorb = 0.25f;
+  else
+    pabsorb = 0.0f;
 
-  return fmin(pabsorb, 0.65f);
+  return pabsorb;
 }
 
 static inline float MonteCarloVariance(float3 avgColor, float sqrColor, int nSamples)
