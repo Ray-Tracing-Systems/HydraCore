@@ -1,7 +1,4 @@
-#include "../clew/clew.h"
-
-//#include <CL/cl.h>
-//#include <CL/cl_gl.h>
+#include "../../HydraAPI/clew/clew.h"
 
 #include <iostream>
 #include <fstream>

@@ -764,7 +764,7 @@ void GPUOCLLayer::ResizeScreen(int width, int height, int a_flags)
 
   //
   //
-  m_screen.m_cpuFrameBuffer = false; // m_initFlags or a_flags & some flag
+  m_screen.m_cpuFrameBuffer = true; // m_initFlags or a_flags & some flag
 
   cl_int ciErr1 = CL_SUCCESS;
 

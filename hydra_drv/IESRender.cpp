@@ -10,7 +10,7 @@ static const float DEG_TO_RAD = M_PI / 180.0f;
 namespace oldies
 {
   extern "C" {
-  #include "../ies_parser/IESNA.H"
+  #include "../../HydraAPI/ies_parser/IESNA.H"
   };
 };
 

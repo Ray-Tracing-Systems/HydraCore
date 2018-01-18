@@ -9,7 +9,7 @@
 #include <map>
 #include <string>
 
-#include "../clew/clew.h"
+#include "../../HydraAPI/clew/clew.h"
 
 
 #if defined (__APPLE__) || defined(MACOSX)

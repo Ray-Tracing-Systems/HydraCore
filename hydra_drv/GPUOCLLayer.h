@@ -7,7 +7,7 @@
 
 #include "IHWLayer.h"
 
-#include "../clew/clew.h"
+#include "../../HydraAPI/clew/clew.h"
 #include "../vsgl3/clHelper.h"
 #include "../vsgl3/Timer.h"
 

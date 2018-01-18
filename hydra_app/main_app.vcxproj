@@ -169,17 +169,17 @@
     <ClInclude Include="Timer.h" />
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\..\HydraAPI\clew\clew.vcxproj">
+      <Project>{5f13e40f-c0f1-4ef4-a775-ab8bc703de88}</Project>
+    </ProjectReference>
     <ProjectReference Include="..\..\HydraAPI\hydra_api\HydraNewAPI1.vcxproj">
       <Project>{c05ff9ea-3d61-48b7-abea-4353253691dc}</Project>
     </ProjectReference>
-    <ProjectReference Include="..\clew\clew.vcxproj">
-      <Project>{5f13e40f-c0f1-4ef4-a775-ab8bc703de88}</Project>
+    <ProjectReference Include="..\..\HydraAPI\ies_parser\ies_parser.vcxproj">
+      <Project>{1d53b494-4b7e-464b-82a1-a2052240f6ef}</Project>
     </ProjectReference>
     <ProjectReference Include="..\hydra_drv\hydra_drv.vcxproj">
       <Project>{cb095789-f909-46dc-b9d6-9160ba7c508c}</Project>
-    </ProjectReference>
-    <ProjectReference Include="..\ies_parser\ies_parser.vcxproj">
-      <Project>{1d53b494-4b7e-464b-82a1-a2052240f6ef}</Project>
     </ProjectReference>
     <ProjectReference Include="..\vsgl3\vsgl3.vcxproj">
       <Project>{2758dd4a-78f6-452f-bbf5-4e86b46bd2ea}</Project>

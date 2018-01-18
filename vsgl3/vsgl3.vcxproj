@@ -135,11 +135,11 @@
     <ClInclude Include="Timer.h" />
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\..\HydraAPI\clew\clew.vcxproj">
+      <Project>{5f13e40f-c0f1-4ef4-a775-ab8bc703de88}</Project>
+    </ProjectReference>
     <ProjectReference Include="..\..\HydraAPI\hydra_api\HydraNewAPI1.vcxproj">
       <Project>{c05ff9ea-3d61-48b7-abea-4353253691dc}</Project>
-    </ProjectReference>
-    <ProjectReference Include="..\clew\clew.vcxproj">
-      <Project>{5f13e40f-c0f1-4ef4-a775-ab8bc703de88}</Project>
     </ProjectReference>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

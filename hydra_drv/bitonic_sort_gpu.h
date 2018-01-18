@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../clew/clew.h"
+#include "../../HydraAPI/clew/clew.h"
 
 struct BitonicCLArgs
 {
