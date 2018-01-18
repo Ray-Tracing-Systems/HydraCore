@@ -17,8 +17,8 @@ Input::Input()
 
   //inLibraryPath = "D:/PROG/HydraAPI/main/tests/test_39";
   //inLibraryPath = "D:/PROG/HydraAPI/main/tests_f/test_004";
-  inLibraryPath = "D:/PROG/HydraAPI/main/tests_f/test_228";
-  //inLibraryPath = "C:/[Hydra]/pluginFiles/scenelib";
+  //inLibraryPath = "D:/PROG/HydraAPI/main/tests_f/test_228";
+  inLibraryPath = "C:/[Hydra]/pluginFiles/scenelib";
  
   inDeviceId = 1;
   cpuFB      = true;

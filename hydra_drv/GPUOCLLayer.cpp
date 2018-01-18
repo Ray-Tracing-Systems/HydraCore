@@ -776,6 +776,8 @@ void GPUOCLLayer::ResizeScreen(int width, int height, int a_flags)
 
     if(m_pExternalImage == nullptr)
       m_screen.color0CPU.resize(width*height);
+
+    std::cout << "[cl_core]: use CPU framebuffer" << std::endl;
   }
   else
   {
@@ -793,6 +795,8 @@ void GPUOCLLayer::ResizeScreen(int width, int height, int a_flags)
       m_screen.pbo = nullptr;
     else
       m_screen.pbo = clCreateBuffer(m_globals.ctx, CL_MEM_READ_WRITE, sizeof(cl_uint)*width*height, NULL, &ciErr1);
+
+    std::cout << "[cl_core]: use GPU framebuffer" << std::endl;
   }
 
   if (ciErr1 != CL_SUCCESS)

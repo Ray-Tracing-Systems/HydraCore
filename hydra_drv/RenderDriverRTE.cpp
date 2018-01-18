@@ -945,6 +945,8 @@ void RenderDriverRTE::Draw()
       int freqInt = int(freq) + 1;   
       if (freqInt < 2) 
         freqInt = 2;
+      if (m_gpuFB)
+        freqInt *= 2;
 
       if (m_drawPassNumber % freqInt == 0 && m_drawPassNumber > 0)
         m_pHWLayer->ContribToExternalImageAccumulator(m_pAccumImage);
