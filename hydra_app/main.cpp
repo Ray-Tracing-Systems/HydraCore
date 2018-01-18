@@ -167,6 +167,9 @@ int main(int argc, const char** argv)
       if (g_pExternalImage != nullptr && g_input.allocInternalImageB)
         flags |= GPU_RT_ALLOC_INTERNAL_IMAGEB;
 
+      if (g_input.cpuFB)
+        flags |= GPU_RT_CPU_FRAMEBUFFER;
+
       pDriver = std::shared_ptr<IHRRenderDriver>(CreateDriverRTE(L"", g_input.winWidth, g_input.winHeight, g_input.inDeviceId, flags, g_pExternalImage));
 
       std::cout << "[main]: detached render driver was created for [console_main]" << std::endl;

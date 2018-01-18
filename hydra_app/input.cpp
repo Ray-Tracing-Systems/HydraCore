@@ -21,6 +21,7 @@ Input::Input()
   //inLibraryPath = "C:/[Hydra]/pluginFiles/scenelib";
  
   inDeviceId = 1;
+  cpuFB      = true;
   enableMLT  = false;
 
   winWidth   = 1024;
@@ -137,6 +138,7 @@ static std::string ReadStringCmd(const std::unordered_map<std::string, std::stri
 void Input::ParseCommandLineParams(const std::unordered_map<std::string, std::string>& a_params)
 {
   ReadBoolCmd(a_params,   "-nowindow",        &noWindow);
+  ReadBoolCmd(a_params,   "-cpu_fb",          &cpuFB);
   ReadBoolCmd(a_params,   "-enable_mlt",      &enableMLT);
   ReadBoolCmd(a_params,   "-cl_list_devices", &listDevicesAndExit);
   ReadBoolCmd(a_params,   "-alloc_image_b",   &allocInternalImageB);
@@ -160,7 +162,6 @@ void Input::ParseCommandLineParams(const std::unordered_map<std::string, std::st
   
   ReadStringCmd(a_params, "-out",      &outLDRImage); 
   ReadStringCmd(a_params, "-logdir",   &inLogDirCust);
-
 
 }
 

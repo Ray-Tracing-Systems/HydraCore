@@ -325,7 +325,8 @@ enum {GPU_RT_MEMORY_SAFE_MODE          = 1,
       CPU_RT_PURE_CL                   = 2048,
       GPU_ALLOC_LDR_FOR_DEBUG          = 4096,
       GPU_ALLOC_FOR_COMPACT_MLT        = 8192,
-      GPU_MLT_ENABLED_AT_START         = 16384, //#NOTE: don't move this value !!!
+      GPU_MLT_ENABLED_AT_START         = 16384, 
       GPU_RT_DO_NOT_PRINT_PASS_NUMBER  = 32768,
-      GPU_RT_ALLOC_INTERNAL_IMAGEB     = 65536, //#NOTE: don't move this value !!!
+      GPU_RT_ALLOC_INTERNAL_IMAGEB     = 65536,
+      GPU_RT_CPU_FRAMEBUFFER           = 65536*2,
       };

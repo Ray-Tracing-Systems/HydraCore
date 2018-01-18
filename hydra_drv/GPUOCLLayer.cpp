@@ -758,13 +758,13 @@ void GPUOCLLayer::ResizeScreen(int width, int height, int a_flags)
   if (m_width == width && m_height == height)
     return;
 
-  Base::ResizeScreen(width, height, m_initFlags);
+  Base::ResizeScreen(width, height, a_flags);
 
   m_screen.free();
 
   //
   //
-  m_screen.m_cpuFrameBuffer = true; // m_initFlags or a_flags & some flag
+  m_screen.m_cpuFrameBuffer = (a_flags & GPU_RT_CPU_FRAMEBUFFER); 
 
   cl_int ciErr1 = CL_SUCCESS;
 
@@ -971,8 +971,9 @@ void GPUOCLLayer::ContribToExternalImageAccumulator(IHRSharedAccumImage* a_pImag
 {
   if (!m_screen.m_cpuFrameBuffer)
   {
-    std::cerr << "GPUOCLLayer::ContribToExternalImageAccumulator: m_cpuFrameBuffer == false" << std::endl;
-    return;
+    if(m_screen.color0CPU.size() != m_width * m_height)
+      m_screen.color0CPU.resize(m_width*m_height);
+    CHECK_CL(clEnqueueReadBuffer(m_globals.cmdQueue, m_screen.color0, CL_TRUE, 0, m_width*m_height * sizeof(cl_float4), &m_screen.color0CPU[0], 0, NULL, NULL));
   }
 
   float* input = (float*)&m_screen.color0CPU[0];
@@ -1007,12 +1008,8 @@ void GPUOCLLayer::ContribToExternalImageAccumulator(IHRSharedAccumImage* a_pImag
     a_pImage->Header()->spp += m_spp;
     a_pImage->Unlock();
 
-    // clear internal image
-    //
-    m_spp = 0.0f;
-    memset(input, 0, size_t(size) * sizeof(float4)); // #TODO: if slow replace with parallal _mm_store_ps
+    ClearAccumulatedColor();
   }
-
 }
 
 

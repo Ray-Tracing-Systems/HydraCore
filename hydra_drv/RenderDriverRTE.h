@@ -190,6 +190,7 @@ protected:
   bool m_useBvhInstInsert;
   bool m_usePT;
   bool m_useLT;
+  bool m_gpuFB;
   bool m_ptInitDone;
   bool m_firstResizeOfScreen;
   bool m_sceneHaveSkyPortals;

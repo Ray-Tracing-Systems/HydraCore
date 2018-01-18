@@ -47,6 +47,7 @@ RenderDriverRTE::RenderDriverRTE(const wchar_t* a_options, int w, int h, int a_d
 
   m_initFlags |= a_flags;
 
+  m_gpuFB      = ((m_initFlags & GPU_RT_CPU_FRAMEBUFFER) == 0);
   m_usePT      = false;
   m_useLT      = false;
   m_ptInitDone = false;
@@ -97,7 +98,7 @@ RenderDriverRTE::RenderDriverRTE(const wchar_t* a_options, int w, int h, int a_d
     }
   }
 
-  if (a_flags & GPU_RT_ALLOC_INTERNAL_IMAGEB) // light tracing or bpt is enabled. 
+  if ((a_flags & GPU_RT_ALLOC_INTERNAL_IMAGEB) || (a_flags & GPU_RT_CPU_FRAMEBUFFER) == 0) // light tracing or bpt is enabled, or we need to store framebuffer on GPU for some reason. 
   {
     m_pAccumImage = a_sharedImage;                              // we will manage image contribution on the level of render driver;
     m_pHWLayer->SetExternalImageAccumulator(nullptr);           // 
@@ -144,7 +145,7 @@ bool RenderDriverRTE::UpdateSettings(pugi::xml_node a_settingsNode)
     int flags = MEASURE_RAYS ? GPU_RT_MEMORY_FULL_SIZE_MODE : 0;
     if (enableMLTFromSettings)
       flags |= GPU_MLT_ENABLED_AT_START;
-    m_pHWLayer->ResizeScreen(m_width, m_height, flags);
+    m_pHWLayer->ResizeScreen(m_width, m_height, (flags | m_initFlags));
     m_firstResizeOfScreen = false;
   }
 
@@ -938,7 +939,7 @@ void RenderDriverRTE::Draw()
 
     //imageB to imageA contribution
     //
-    if (m_useLT && m_pAccumImage != nullptr)
+    if ((m_useLT || m_gpuFB) && m_pAccumImage != nullptr)
     {
       const double freq = double(m_width*m_height)/double(1024*1024); 
       int freqInt = int(freq) + 1;   

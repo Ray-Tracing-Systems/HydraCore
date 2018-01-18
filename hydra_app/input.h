@@ -16,6 +16,7 @@ struct Input
   bool allocInternalImageB;
   bool runTests;     ///< run all functional tests from HydraAPI folder 
   bool listDevicesAndExit;
+  bool cpuFB;
 
   std::string   inLibraryPath;
   std::string   outLDRImage;
