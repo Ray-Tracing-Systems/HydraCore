@@ -34,74 +34,45 @@ void GPUOCLLayer::CL_SCREEN_BUFFERS::free()
 
 void GPUOCLLayer::CL_BUFFERS_RAYS::free()
 {
-  if(rayPos)   clReleaseMemObject(rayPos);
-  if(rayDir)   clReleaseMemObject(rayDir);
-  if(hits)     clReleaseMemObject(hits);
-  if(rayFlags) clReleaseMemObject(rayFlags);
+  if(rayPos)   { clReleaseMemObject(rayPos);   rayPos   = nullptr; }
+  if(rayDir)   { clReleaseMemObject(rayDir);   rayDir   = nullptr; }
+  if(hits)     { clReleaseMemObject(hits);     hits     = nullptr; }
+  if(rayFlags) { clReleaseMemObject(rayFlags); rayFlags = nullptr; }
+                                                                                                     
+  if (hitPosNorm)          { clReleaseMemObject(hitPosNorm);          hitPosNorm  = nullptr;         }
+  if (hitTexCoord)         { clReleaseMemObject(hitTexCoord);         hitTexCoord = nullptr;         }
+  if (hitMatId)            { clReleaseMemObject(hitMatId);            hitMatId    = nullptr;         }
+  if (hitTangent)          { clReleaseMemObject(hitTangent);          hitTangent  = nullptr;         }
+  if (hitFlatNorm)         { clReleaseMemObject(hitFlatNorm);         hitFlatNorm = nullptr;         }
+  if (hitPrimSize)         { clReleaseMemObject(hitPrimSize);         hitPrimSize = nullptr;         }
+  if (hitNormUncompressed) { clReleaseMemObject(hitNormUncompressed); hitNormUncompressed = nullptr; }
 
-  if (hitPosNorm)  clReleaseMemObject(hitPosNorm);
-  if (hitTexCoord) clReleaseMemObject(hitTexCoord);
-  if (hitMatId)    clReleaseMemObject(hitMatId);
-  if (hitTangent)  clReleaseMemObject(hitTangent);
-  if (hitFlatNorm) clReleaseMemObject(hitFlatNorm);
-  if (hitPrimSize) clReleaseMemObject(hitPrimSize);
-  if (hitNormUncompressed) clReleaseMemObject(hitNormUncompressed);
+  if (pathThoroughput) { clReleaseMemObject(pathThoroughput); pathThoroughput = nullptr; }
+  if (pathMisDataPrev) { clReleaseMemObject(pathMisDataPrev); pathMisDataPrev = nullptr; }
+  if (pathShadeColor)  { clReleaseMemObject(pathShadeColor);  pathShadeColor  = nullptr; }
+                      
+  if (pathAccColor)    { clReleaseMemObject(pathAccColor);    pathAccColor = nullptr;    }
+  if (pathAuxColor)    { clReleaseMemObject(pathAuxColor);    pathAuxColor = nullptr;    }
+  if (randGenState)    { clReleaseMemObject(randGenState);    randGenState = nullptr;    }
+  if (pathAuxColorCPU) { clReleaseMemObject(pathAuxColorCPU); pathAuxColorCPU = nullptr; }
 
-  if (pathThoroughput) clReleaseMemObject(pathThoroughput);
-  if (pathMisDataPrev) clReleaseMemObject(pathMisDataPrev);
-  if (pathShadeColor)  clReleaseMemObject(pathShadeColor);
+  if (lsam1)           { clReleaseMemObject(lsam1); lsam1 = nullptr; }
+  if (lsam2)           { clReleaseMemObject(lsam2); lsam2 = nullptr; }
 
-  if (pathAccColor)    clReleaseMemObject(pathAccColor);
-  if (pathAuxColor)    clReleaseMemObject(pathAuxColor);
-  if (randGenState)    clReleaseMemObject(randGenState);
-  if (pathAuxColorCPU) clReleaseMemObject(pathAuxColorCPU);
+  if (shadowRayPos)    { clReleaseMemObject(shadowRayPos); shadowRayPos = nullptr; }
+  if (shadowRayDir)    { clReleaseMemObject(shadowRayDir); shadowRayDir = nullptr; }
+  if (accPdf)          { clReleaseMemObject(accPdf);       accPdf       = nullptr; }
 
-  if (lsam1)           clReleaseMemObject(lsam1);
-  if (lsam2)           clReleaseMemObject(lsam2);
+  if(oldFlags)         { clReleaseMemObject(oldFlags);  oldFlags  = nullptr; }
+  if(oldRayDir)        { clReleaseMemObject(oldRayDir); oldRayDir = nullptr; }
+  if(oldColor)         { clReleaseMemObject(oldColor);  oldColor  = nullptr; }
 
-  if (shadowRayPos)    clReleaseMemObject(shadowRayPos);
-  if (shadowRayDir)    clReleaseMemObject(shadowRayDir);
-  if (accPdf)          clReleaseMemObject(accPdf);
-
-  if (lsamProb)        clReleaseMemObject(lsamProb);
-  if (lshadow)         clReleaseMemObject(lshadow);
-
-  if (fogAtten)        clReleaseMemObject(fogAtten);
-  if (samZindex)       clReleaseMemObject(samZindex);
-  if (pixWeights)      clReleaseMemObject(pixWeights);
-
-  rayPos = 0;
-  rayDir = 0;
-  hits   = 0;
-  rayFlags = 0;
-
-  hitPosNorm  = 0;
-  hitTexCoord = 0;
-  hitMatId    = 0;
-  hitTangent  = 0;
-  hitFlatNorm = 0;
-  hitPrimSize = 0;
-  hitNormUncompressed = 0;
-
-  pathThoroughput = 0;
-  pathMisDataPrev = 0;
-  pathShadeColor  = 0;
-  
-  pathAccColor    = 0;
-  pathAuxColor   = 0;
-  randGenState       = 0;
-  pathAuxColorCPU = 0;
-
-  lsam1        = 0;
-  lsam2        = 0;
-
-  shadowRayPos = 0;
-  shadowRayDir = 0;
-  lsamProb     = 0;
-  lshadow      = 0;
-  fogAtten     = 0;
-  samZindex    = 0;
-  pixWeights   = 0;
+  if (lsamProb)        { clReleaseMemObject(lsamProb); lsamProb = nullptr; }
+  if (lshadow)         { clReleaseMemObject(lshadow);  lshadow  = nullptr; }
+                       
+  if (fogAtten)        { clReleaseMemObject(fogAtten);   fogAtten   = nullptr; }
+  if (samZindex)       { clReleaseMemObject(samZindex);  samZindex  = nullptr; }
+  if (pixWeights)      { clReleaseMemObject(pixWeights); pixWeights = nullptr; }
 }
 
 void GPUOCLLayer::CL_BUFFERS_RAYS::resize(cl_context ctx, cl_command_queue cmdQueue, size_t a_size, bool a_cpuShare, bool a_cpuFB)
@@ -140,19 +111,19 @@ void GPUOCLLayer::CL_BUFFERS_RAYS::resize(cl_context ctx, cl_command_queue cmdQu
     RUN_TIME_ERROR("Error in resize rays buffers");
 
   pathAccColor = clCreateBuffer(ctx, CL_MEM_READ_WRITE, 4 * sizeof(cl_float)*MEGABLOCKSIZE, NULL, &ciErr1);
-  randGenState    = clCreateBuffer(ctx, CL_MEM_READ_WRITE, 1 * sizeof(RandomGen)*MEGABLOCKSIZE, NULL, &ciErr1);
+  randGenState = clCreateBuffer(ctx, CL_MEM_READ_WRITE, 1 * sizeof(RandomGen)*MEGABLOCKSIZE, NULL, &ciErr1);
 
   if (ciErr1 != CL_SUCCESS)
     RUN_TIME_ERROR("Error in resize rays buffers");
 
   if (a_cpuFB)
   {
-    pathAuxColor   = clCreateBuffer(ctx, CL_MEM_READ_WRITE, 4 * sizeof(cl_float)*MEGABLOCKSIZE, NULL, &ciErr1);
+    pathAuxColor    = clCreateBuffer(ctx, CL_MEM_READ_WRITE, 4 * sizeof(cl_float)*MEGABLOCKSIZE, NULL, &ciErr1);
     pathAuxColorCPU = clCreateBuffer(ctx, CL_MEM_WRITE_ONLY | CL_MEM_ALLOC_HOST_PTR, 4 * sizeof(cl_float)*MEGABLOCKSIZE, NULL, &ciErr1);
   }
   else
   {
-    pathAuxColor   = nullptr;
+    pathAuxColor    = nullptr;
     pathAuxColorCPU = nullptr;
   }
 
@@ -165,6 +136,13 @@ void GPUOCLLayer::CL_BUFFERS_RAYS::resize(cl_context ctx, cl_command_queue cmdQu
   shadowRayPos = clCreateBuffer(ctx, CL_MEM_READ_WRITE | shareFlags, 4 * sizeof(cl_float)*MEGABLOCKSIZE, NULL, &ciErr1);  // float4
   shadowRayDir = clCreateBuffer(ctx, CL_MEM_READ_WRITE | shareFlags, 4 * sizeof(cl_float)*MEGABLOCKSIZE, NULL, &ciErr1);  // float4
   accPdf       = clCreateBuffer(ctx, CL_MEM_READ_WRITE | shareFlags, sizeof(PerRayAcc)*MEGABLOCKSIZE, NULL, &ciErr1);     // sizeof(PerRayAcc) == sizeof(float4)
+
+  if (ciErr1 != CL_SUCCESS)
+    RUN_TIME_ERROR("Error in resize rays buffers");
+
+  oldFlags     = clCreateBuffer(ctx, CL_MEM_READ_WRITE | shareFlags, 1 * sizeof(uint)*MEGABLOCKSIZE,     NULL, &ciErr1);
+  oldRayDir    = clCreateBuffer(ctx, CL_MEM_READ_WRITE | shareFlags, 4 * sizeof(cl_float)*MEGABLOCKSIZE, NULL, &ciErr1);
+  oldColor     = clCreateBuffer(ctx, CL_MEM_READ_WRITE | shareFlags, 4 * sizeof(cl_float)*MEGABLOCKSIZE, NULL, &ciErr1);
 
   if (ciErr1 != CL_SUCCESS)
     RUN_TIME_ERROR("Error in resize rays buffers");
@@ -1215,8 +1193,6 @@ void GPUOCLLayer::AddContributionToScreenCPU(cl_mem& in_color, cl_mem in_indices
 {
   // (1) compute compressed index in color.w; use runKernel_MakeEyeRaysAndClearUnified for that task if CPU FB is enabled!!!
   //
-
-  //cl_mem in_color  = m_rays.pathAccColor;
   cl_mem old_color = m_rays.pathAuxColor;
 
   size_t szLocalWorkSize = 256;
@@ -1363,7 +1339,7 @@ void GPUOCLLayer::trace1D(cl_mem a_rpos, cl_mem a_rdir, cl_mem a_outColor, size_
       timeNextBounceStart = m_timer.getElapsed();
     }
 
-    runKernel_NextBounce(a_rpos, a_rdir, a_outColor, a_size);
+    runKernel_NextBounce(m_rays.rayFlags, a_rpos, a_rdir, a_outColor, a_size);
 
     if (m_vars.m_varsI[HRT_ENABLE_MRAYS_COUNTERS] && bounce == measureBounce)
     {

@@ -258,7 +258,7 @@ void GPUOCLLayer::runKernel_ComputeHit(cl_mem a_rpos, cl_mem a_rdir, size_t a_si
   waitIfDebug(__FILE__, __LINE__);
 }
 
-void GPUOCLLayer::runKernel_NextBounce(cl_mem a_rpos, cl_mem a_rdir, cl_mem a_outColor, size_t a_size)
+void GPUOCLLayer::runKernel_NextBounce(cl_mem a_rayFlags, cl_mem a_rpos, cl_mem a_rdir, cl_mem a_outColor, size_t a_size)
 {
   cl_kernel kernX = m_progs.material.kernel("NextBounce");
 
@@ -270,7 +270,7 @@ void GPUOCLLayer::runKernel_NextBounce(cl_mem a_rpos, cl_mem a_rdir, cl_mem a_ou
   {
     CHECK_CL(clSetKernelArg(kernX, 0, sizeof(cl_mem), (void*)&a_rpos));
     CHECK_CL(clSetKernelArg(kernX, 1, sizeof(cl_mem), (void*)&a_rdir));
-    CHECK_CL(clSetKernelArg(kernX, 2, sizeof(cl_mem), (void*)&m_rays.rayFlags));
+    CHECK_CL(clSetKernelArg(kernX, 2, sizeof(cl_mem), (void*)&a_rayFlags));
     CHECK_CL(clSetKernelArg(kernX, 3, sizeof(cl_mem), (void*)&m_rays.randGenState));
 
     CHECK_CL(clSetKernelArg(kernX, 4, sizeof(cl_mem), (void*)&m_rays.hitPosNorm));

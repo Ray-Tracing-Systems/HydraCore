@@ -238,7 +238,8 @@ protected:
   {
     CL_BUFFERS_RAYS() : rayPos(0), rayDir(0), hits(0), rayFlags(0), hitPosNorm(0), hitTexCoord(0), hitMatId(0), hitTangent(0), hitFlatNorm(0), hitPrimSize(0), hitNormUncompressed(0),
                         pathThoroughput(0), pathMisDataPrev(0), pathShadeColor(0), pathAccColor(0), pathAuxColor(0), randGenState(0), pathAuxColorCPU(0),
-                        lsam1(0), lsam2(0), shadowRayPos(0), shadowRayDir(0), accPdf(0), lsamProb(0), lshadow(0), fogAtten(0), samZindex(0), pixWeights(0), MEGABLOCKSIZE(0) {}
+                        lsam1(0), lsam2(0), shadowRayPos(0), shadowRayDir(0), accPdf(0), oldFlags(0), oldRayDir(0), oldColor(0), lsamProb(0), 
+                        lshadow(0), fogAtten(0), samZindex(0), pixWeights(0), MEGABLOCKSIZE(0) {}
 
     void free();
     void resize(cl_context ctx, cl_command_queue cmdQueue, size_t a_size, bool a_cpuShare, bool a_cpuFB);
@@ -269,6 +270,10 @@ protected:
     cl_mem shadowRayPos;
     cl_mem shadowRayDir;
     cl_mem accPdf;        ///< accumulated pdf weights for 3-way bogolepov light transport
+
+    cl_mem oldFlags;  // store copy of curr bounce data for ConnectEye
+    cl_mem oldRayDir; // and cosThetaPrev; store copy of curr bounce data for ConnectEye
+    cl_mem oldColor;  // store copy of curr bounce data for ConnectEye
 
     cl_mem lsamProb;
     cl_mem lshadow;
@@ -387,7 +392,7 @@ protected:
  
   void runKernel_Trace(cl_mem a_rpos, cl_mem a_rdir, cl_mem a_hits, size_t a_size);
   void runKernel_ComputeHit(cl_mem a_rpos, cl_mem a_rdir, size_t a_size);
-  void runKernel_NextBounce(cl_mem a_rpos, cl_mem a_rdir, cl_mem a_outColor, size_t a_size);
+  void runKernel_NextBounce(cl_mem a_rayFlags, cl_mem a_rpos, cl_mem a_rdir, cl_mem a_outColor, size_t a_size);
   void runKernel_NextTransparentBounce(cl_mem a_rpos, cl_mem a_rdir, cl_mem a_outColor, size_t a_size);
 
   void ShadePass(cl_mem a_rpos, cl_mem a_rdir, cl_mem a_outColor, size_t a_size, bool a_measureTime);
