@@ -1104,6 +1104,23 @@ void GPUOCLLayer::DrawNormals()
 }
 
 
+void GPUOCLLayer::ConnectEyePass(cl_mem in_rayFlags, cl_mem in_hitPos, cl_mem in_hitNorm, cl_mem in_rayDirOld, cl_mem in_color, int a_bounce, size_t a_size)
+{
+  const int usematerials = (in_rayDirOld == nullptr) ? 0 : 1;
+
+  runKernel_EyeShadowRays(in_rayFlags, in_hitPos, in_hitNorm,
+                          m_rays.shadowRayPos, m_rays.shadowRayDir, a_size, usematerials);
+
+  runKernel_ShadowTrace(in_rayFlags, m_rays.shadowRayPos, m_rays.shadowRayDir,
+                        m_rays.lshadow, a_size);
+
+  runKernel_ProjectSamplesToScreen(in_rayFlags, in_hitPos, in_hitNorm, m_rays.shadowRayDir, in_rayDirOld, in_color,
+                                   m_rays.pathShadeColor, m_rays.samZindex, a_size, a_bounce);
+
+  AddContributionToScreen(m_rays.pathShadeColor); // because GPU contributio for LT could be very expensieve (imagine point light)
+}
+
+
 void GPUOCLLayer::BeginTracingPass()
 {
   m_timer.start();
@@ -1115,19 +1132,8 @@ void GPUOCLLayer::BeginTracingPass()
     {
       runKernel_MakeLightRays(m_rays.rayPos, m_rays.rayDir, m_rays.pathAccColor, m_rays.MEGABLOCKSIZE);
 
-      if ((m_vars.m_flags & HRT_DRAW_LIGHT_LT) ) //  // because GPU contributio for LT could be very expensieve (imagine point light)
-      {
-        runKernel_EyeShadowRays(m_rays.lsam1, m_rays.hitNormUncompressed,
-                                m_rays.shadowRayPos, m_rays.shadowRayDir, m_rays.MEGABLOCKSIZE, 0);
-        
-        runKernel_ShadowTrace(m_rays.shadowRayPos, m_rays.shadowRayDir, 
-                              m_rays.lshadow, m_rays.MEGABLOCKSIZE);
-         
-        runKernel_ProjectSamplesToScreen(m_rays.lsam1, m_rays.hitNormUncompressed, m_rays.shadowRayDir, nullptr, m_rays.pathAccColor, // m_rays.rayDir not used in this call
-                                         m_rays.pathShadeColor, m_rays.samZindex, m_rays.MEGABLOCKSIZE, -1);
-        
-        AddContributionToScreen(m_rays.pathShadeColor);
-      }
+      if ((m_vars.m_flags & HRT_DRAW_LIGHT_LT) ) 
+        ConnectEyePass(m_rays.rayFlags, m_rays.lsam1, m_rays.hitNormUncompressed, nullptr, m_rays.pathAccColor, -1, m_rays.MEGABLOCKSIZE);
     }
     else
       runKernel_MakeEyeRays(m_rays.rayPos, m_rays.rayDir, m_rays.samZindex, m_rays.pixWeights, m_rays.MEGABLOCKSIZE, m_passNumber);
@@ -1342,23 +1348,11 @@ void GPUOCLLayer::trace1D(cl_mem a_rpos, cl_mem a_rdir, cl_mem a_outColor, size_
 
     if (m_vars.m_flags & HRT_FORWARD_TRACING)
     {
-      runKernel_EyeShadowRays(m_rays.hitPosNorm, m_rays.hitNormUncompressed, 
-                              m_rays.shadowRayPos, m_rays.shadowRayDir, a_size, 1);
-
-      runKernel_ShadowTrace(m_rays.shadowRayPos, m_rays.shadowRayDir, 
-                            m_rays.lshadow, a_size);
-
-      runKernel_ProjectSamplesToScreen(m_rays.hitPosNorm, m_rays.hitNormUncompressed, m_rays.shadowRayDir, a_rdir, a_outColor,
-                                       m_rays.pathShadeColor, m_rays.samZindex, a_size, bounce);
-
-      AddContributionToScreen(m_rays.pathShadeColor);
+      ConnectEyePass(m_rays.rayFlags, m_rays.hitPosNorm, m_rays.hitNormUncompressed, a_rdir, a_outColor, bounce, m_rays.MEGABLOCKSIZE);
     }
-    else
+    else if (m_vars.shadePassEnable(bounce))
     {
-      if (m_vars.shadePassEnable(bounce)) // -- pass shadow color instead of pathShadeColor second time
-        runShadePass(a_rpos, a_rdir, m_rays.pathShadeColor, a_size, (bounce == measureBounce));
-      else
-        memsetf4(m_rays.pathShadeColor, make_float4(0, 0, 0, 0), a_size);
+      ShadePass(a_rpos, a_rdir, m_rays.pathShadeColor, a_size, (bounce == measureBounce));
     }
 
 

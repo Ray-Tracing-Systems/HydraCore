@@ -390,11 +390,12 @@ protected:
   void runKernel_NextBounce(cl_mem a_rpos, cl_mem a_rdir, cl_mem a_outColor, size_t a_size);
   void runKernel_NextTransparentBounce(cl_mem a_rpos, cl_mem a_rdir, cl_mem a_outColor, size_t a_size);
 
-  void runKernel_ShadowTrace(cl_mem a_rpos, cl_mem a_rdir, cl_mem a_outShadow, size_t a_size);
-  void runShadePass(cl_mem a_rpos, cl_mem a_rdir, cl_mem a_outColor, size_t a_size, bool a_measureTime);
+  void ShadePass(cl_mem a_rpos, cl_mem a_rdir, cl_mem a_outColor, size_t a_size, bool a_measureTime);
+  void ConnectEyePass(cl_mem in_rayFlags, cl_mem in_hitPos, cl_mem in_hitNorm, cl_mem in_rayDirOld, cl_mem in_color, int a_bounce, size_t a_size);
 
-  void runKernel_EyeShadowRays(cl_mem a_hitPos, cl_mem a_hitNorm, cl_mem a_rpos, cl_mem a_rdir, size_t a_size, int a_haveMaterials);
-  void runKernel_ProjectSamplesToScreen(cl_mem a_hitPos, cl_mem a_hitNorm, cl_mem a_rdir, cl_mem a_rdir2, cl_mem a_colorsIn, cl_mem a_colorsOut, cl_mem a_zindex, size_t a_size, int a_currBounce);
+  void runKernel_ShadowTrace(cl_mem a_rayFlags, cl_mem a_rpos, cl_mem a_rdir, cl_mem a_outShadow, size_t a_size);
+  void runKernel_EyeShadowRays(cl_mem a_rayFlags, cl_mem a_hitPos, cl_mem a_hitNorm, cl_mem a_rpos, cl_mem a_rdir, size_t a_size, int a_haveMaterials);
+  void runKernel_ProjectSamplesToScreen(cl_mem a_rayFlags, cl_mem a_hitPos, cl_mem a_hitNorm, cl_mem a_rdir, cl_mem a_rdir2, cl_mem a_colorsIn, cl_mem a_colorsOut, cl_mem a_zindex, size_t a_size, int a_currBounce);
 
   // MLT
   //

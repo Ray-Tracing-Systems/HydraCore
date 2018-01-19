@@ -695,15 +695,14 @@ __kernel void NextBounce(__global   float4*        restrict a_rpos,
       }
     }
    
-    ///////////////////////////////////////////////  THIS IS A VERY HUGE HACK  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!  //#TODO: remove this isThinGlass crap??
+    ///////////////////////////////////////////////// #TODO: remove this isThinGlass crap??
     if (!isThinGlass)  
     {
-      MisData misNext            = a_misDataPrev[tid];
-      
+      MisData misNext            = a_misDataPrev[tid];  
       misNext.matSamplePdf       = brdfSample.pdf;
       misNext.isSpecular         = (int)isPureSpecular(brdfSample);
       misNext.prevMaterialOffset = matOffset;
-
+      misNext.cosThetaPrev       = fabs(+dot(ray_dir, hitNorm));
       a_misDataPrev[tid]         = misNext;
     }
     /////////////////////////////////////////////// \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\

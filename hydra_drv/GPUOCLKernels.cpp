@@ -335,7 +335,7 @@ void GPUOCLLayer::runKernel_NextTransparentBounce(cl_mem a_rpos, cl_mem a_rdir, 
   waitIfDebug(__FILE__, __LINE__);
 }
 
-void GPUOCLLayer::runKernel_ShadowTrace(cl_mem a_rpos, cl_mem a_rdir, cl_mem a_outShadow, size_t a_size)
+void GPUOCLLayer::runKernel_ShadowTrace(cl_mem a_rayFlags, cl_mem a_rpos, cl_mem a_rdir, cl_mem a_outShadow, size_t a_size)
 {
   size_t localWorkSize = 256;
   int    isize         = int(a_size);
@@ -358,10 +358,10 @@ void GPUOCLLayer::runKernel_ShadowTrace(cl_mem a_rpos, cl_mem a_rdir, cl_mem a_o
     {
       kernY = kernTrace4;
 
-      CHECK_CL(clSetKernelArg(kernY, 0, sizeof(cl_mem), (void*)&m_rays.rayFlags));
+      CHECK_CL(clSetKernelArg(kernY, 0, sizeof(cl_mem), (void*)&a_rayFlags));
       CHECK_CL(clSetKernelArg(kernY, 1, sizeof(cl_mem), (void*)&a_rpos));
       CHECK_CL(clSetKernelArg(kernY, 2, sizeof(cl_mem), (void*)&a_rdir));
-      CHECK_CL(clSetKernelArg(kernY, 3, sizeof(cl_mem), (void*)&m_rays.lshadow));
+      CHECK_CL(clSetKernelArg(kernY, 3, sizeof(cl_mem), (void*)&a_outShadow));
 
       CHECK_CL(clSetKernelArg(kernY, 4, sizeof(cl_int), (void*)&runId));
       CHECK_CL(clSetKernelArg(kernY, 5, sizeof(cl_int), (void*)&isize));
@@ -373,10 +373,10 @@ void GPUOCLLayer::runKernel_ShadowTrace(cl_mem a_rpos, cl_mem a_rdir, cl_mem a_o
     }
     else
     {
-      CHECK_CL(clSetKernelArg(kernY, 0, sizeof(cl_mem), (void*)&m_rays.rayFlags));
+      CHECK_CL(clSetKernelArg(kernY, 0, sizeof(cl_mem), (void*)&a_rayFlags));
       CHECK_CL(clSetKernelArg(kernY, 1, sizeof(cl_mem), (void*)&a_rpos));
       CHECK_CL(clSetKernelArg(kernY, 2, sizeof(cl_mem), (void*)&a_rdir));
-      CHECK_CL(clSetKernelArg(kernY, 3, sizeof(cl_mem), (void*)&m_rays.lshadow));
+      CHECK_CL(clSetKernelArg(kernY, 3, sizeof(cl_mem), (void*)&a_outShadow));
 
       CHECK_CL(clSetKernelArg(kernY, 4, sizeof(cl_int), (void*)&runId));
       CHECK_CL(clSetKernelArg(kernY, 5, sizeof(cl_int), (void*)&isize));
@@ -390,7 +390,7 @@ void GPUOCLLayer::runKernel_ShadowTrace(cl_mem a_rpos, cl_mem a_rdir, cl_mem a_o
   }
 }
 
-void GPUOCLLayer::runShadePass(cl_mem a_rpos, cl_mem a_rdir, cl_mem a_outColor, size_t a_size, bool a_measureTime)
+void GPUOCLLayer::ShadePass(cl_mem a_rpos, cl_mem a_rdir, cl_mem a_outColor, size_t a_size, bool a_measureTime)
 {
   bool transparensyShadowEnabled = false; // !(m_vars.m_flags & HRT_ENABLE_PT_CAUSTICS);
 
@@ -462,7 +462,7 @@ void GPUOCLLayer::runShadePass(cl_mem a_rpos, cl_mem a_rdir, cl_mem a_outColor, 
 
     if (traceShadows)
     {
-      runKernel_ShadowTrace(m_rays.shadowRayPos, m_rays.shadowRayDir, m_rays.lshadow, a_size);
+      runKernel_ShadowTrace(m_rays.rayFlags, m_rays.shadowRayPos, m_rays.shadowRayDir, m_rays.lshadow, a_size);
     }
     else
     {
@@ -517,7 +517,7 @@ void GPUOCLLayer::runShadePass(cl_mem a_rpos, cl_mem a_rdir, cl_mem a_outColor, 
 
 }
 
-void GPUOCLLayer::runKernel_EyeShadowRays(cl_mem a_hitpos, cl_mem a_hitNorm,
+void GPUOCLLayer::runKernel_EyeShadowRays(cl_mem a_rayFlags, cl_mem a_hitpos, cl_mem a_hitNorm,
                                           cl_mem a_rpos, cl_mem a_rdir, size_t a_size, int a_haveMaterials)
 {
   cl_kernel kernMakeRays = m_progs.material.kernel("MakeEyeShadowRays");
@@ -526,7 +526,7 @@ void GPUOCLLayer::runKernel_EyeShadowRays(cl_mem a_hitpos, cl_mem a_hitNorm,
   int    isize           = int(a_size);
   a_size                 = roundBlocks(a_size, int(localWorkSize));
 
-  CHECK_CL(clSetKernelArg(kernMakeRays, 0, sizeof(cl_mem), (void*)&m_rays.rayFlags));
+  CHECK_CL(clSetKernelArg(kernMakeRays, 0, sizeof(cl_mem), (void*)&a_rayFlags));
   CHECK_CL(clSetKernelArg(kernMakeRays, 1, sizeof(cl_mem), (void*)&a_hitpos));
   CHECK_CL(clSetKernelArg(kernMakeRays, 2, sizeof(cl_mem), (void*)&a_hitNorm));
   CHECK_CL(clSetKernelArg(kernMakeRays, 3, sizeof(cl_mem), (void*)&m_rays.hitMatId));
@@ -542,7 +542,7 @@ void GPUOCLLayer::runKernel_EyeShadowRays(cl_mem a_hitpos, cl_mem a_hitNorm,
   waitIfDebug(__FILE__, __LINE__);
 }
 
-void GPUOCLLayer::runKernel_ProjectSamplesToScreen(cl_mem a_hitPos, cl_mem a_hitNorm, cl_mem a_rdir, cl_mem a_rdir2, cl_mem a_colorsIn,
+void GPUOCLLayer::runKernel_ProjectSamplesToScreen(cl_mem a_rayFlags, cl_mem a_hitPos, cl_mem a_hitNorm, cl_mem a_rdir, cl_mem a_rdir2, cl_mem a_colorsIn,
                                                    cl_mem a_colorsOut, cl_mem a_zindex, size_t a_size, int a_currBounce)
 {
   cl_kernel kern       = m_progs.material.kernel("ConnectToEyeKernel");
@@ -554,7 +554,7 @@ void GPUOCLLayer::runKernel_ProjectSamplesToScreen(cl_mem a_hitPos, cl_mem a_hit
   cl_float mLightSubPathCount = cl_float(m_width*m_height); // cl_float(m_rays.MEGABLOCKSIZE);
   cl_int currBounce           = a_currBounce+1;  
 
-  CHECK_CL(clSetKernelArg(kern, 0, sizeof(cl_mem), (void*)&m_rays.rayFlags));
+  CHECK_CL(clSetKernelArg(kern, 0, sizeof(cl_mem), (void*)&a_rayFlags));
   CHECK_CL(clSetKernelArg(kern, 1, sizeof(cl_mem), (void*)&a_rdir2));
   CHECK_CL(clSetKernelArg(kern, 2, sizeof(cl_mem), (void*)&a_rdir));
   CHECK_CL(clSetKernelArg(kern, 3, sizeof(cl_mem), (void*)&m_rays.lshadow));
