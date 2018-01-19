@@ -705,15 +705,15 @@ __kernel void NextBounce(__global   float4*        restrict a_rpos,
   
   /////////////////////////////////////////////////////////////////////////////////////////////////////////////// begin russian roulette
   const float pabsorb = probabilityAbsorbRR(flags, a_globals->g_flags);
-  
+
+  float rrChoice = 0.0f;
   if (pabsorb > 0.0f)
+    rrChoice = rndFloat1_Pseudo(&gen);
+
+  out_gens[tid] = gen;
+
+  if (pabsorb >= 0.1f)
   {
-    float rrChoice = 0.0f;
-    if (pabsorb > 0.0f)
-      rrChoice = rndFloat1_Pseudo(&gen);
-
-    out_gens[tid] = gen;
-
     if (rrChoice < pabsorb)
       outPathThroughput = make_float3(0.0f, 0.0f, 0.0f);
     else
