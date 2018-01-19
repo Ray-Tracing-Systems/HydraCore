@@ -199,6 +199,28 @@ __kernel void LightSample(__global const float4*  restrict a_rpos,
 
 }
 
+__kernel void CopyAndPackForConnectEye(__global const uint*    restrict in_flags,
+                                       __global const float4*  restrict in_raydir, 
+                                       __global const float4*  restrict in_colors,
+                                       __global const MisData* restrict in_cosTheta,
+                                       __global uint*          restrict out_flags,
+                                       __global float4*        restrict out_raydir,
+                                       __global float4*        restrict out_colors,
+                                      int iNumElements)
+{
+  int tid = GLOBAL_ID_X;
+  if (tid >= iNumElements)
+    return;
+
+  out_flags [tid] = in_flags[tid];
+  out_colors[tid] = in_colors[tid];
+
+  float4 rdir     = in_raydir[tid];
+  rdir.w          = in_cosTheta[tid].cosThetaPrev;
+  out_raydir[tid] = rdir;
+}
+
+
 // change 11.01.2018 13:44;
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////

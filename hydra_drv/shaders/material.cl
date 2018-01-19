@@ -65,6 +65,86 @@ __kernel void MakeEyeShadowRays(__global const uint*          restrict a_flags,
   out_sraydir[tid] = to_float4(camDir, imageToSurfaceFactor);
 }
 
+__kernel void UpdateForwardPdfFor3Way(__global const uint*          restrict a_flags,
+                                      __global const float4*        restrict in_raydir,
+                                      __global const float4*        restrict in_raydirNext,
+
+                                      __global const float4*        restrict in_hitPosNorm,
+                                      __global const float4*        restrict in_normalsFull,
+                                      __global const float2*        restrict in_hitTexCoord,
+                                      __global const uint*          restrict in_flatNorm,
+                                      __global const HitMatRef*     restrict in_matData,
+                                      __global const Hit_Part4*     restrict in_hitTangent,
+
+                                      __global const MisData*       restrict in_misDataCurr,
+                                      __global PerRayAcc*           restrict a_pdfAcc,
+                                      
+                                      __global const float4*        restrict a_texStorage1,
+                                      __global const float4*        restrict a_texStorage2,
+                                      __global const float4*        restrict a_mtlStorage,
+                                      __global const EngineGlobals* restrict a_globals,
+                                      
+                                      int iNumElements)
+{
+  int tid = GLOBAL_ID_X;
+  if (tid >= iNumElements)
+    return;
+
+  uint flags = a_flags[tid];
+  if (!rayIsActiveU(flags))
+    return;
+
+  const int a_currDepth    = unpackBounceNum(flags) + 1;
+
+  const MisData mSamData   = in_misDataCurr[tid];
+  const bool  isSpecular   = (mSamData.isSpecular != 0);
+  const float matSamplePdf = mSamData.matSamplePdf;
+  const float cosNext      = mSamData.cosThetaPrev; // because we have already updated mSamData.cosThetaPrev inside 'NextBounce' kernel
+
+  const float3 hitNorm     = to_float3(in_normalsFull[tid]);
+
+  const float4 datard  = in_raydir[tid];
+  const float3 ray_dir = to_float3(datard);
+  const float cosCurr  = fabs(-dot(ray_dir, hitNorm));
+
+  PerRayAcc accData = a_pdfAcc[tid];
+
+  // eval reverse pdf
+  //
+  if (!isSpecular)
+  {
+    __global const PlainMaterial* pHitMaterial = materialAt(a_globals, a_mtlStorage, GetMaterialId(in_matData[tid]));
+    const Hit_Part4 btanAndN = in_hitTangent[tid];
+
+    ShadeContext sc;
+    sc.wp = to_float3(in_hitPosNorm[tid]);
+    sc.l  = (-1.0f)*ray_dir;
+    sc.v  = (-1.0f)*to_float3(in_raydirNext[tid]);
+    sc.n  = hitNorm;
+    sc.fn = decodeNormal(in_flatNorm[tid]);
+    sc.tg = decodeNormal(btanAndN.tangentCompressed);
+    sc.bn = decodeNormal(btanAndN.bitangentCompressed);
+    sc.tc = in_hitTexCoord[tid];
+
+    const float pdfW = materialEval(pHitMaterial, &sc, false, false, /* global data --> */ a_globals, a_texStorage1, a_texStorage2).pdfFwd;
+
+    accData.pdfCameraWP *= (pdfW / fmax(cosCurr, DEPSILON));
+    accData.pdfLightWP  *= (matSamplePdf / fmax(cosNext, DEPSILON));
+
+    if (a_currDepth == 1)
+      accData.pdfCamA0 *= (pdfW / fmax(cosCurr, DEPSILON)); // now pdfRevA0 will do store correct product pdfWP[0]*G[0] (if [0] means light)
+  }
+  else
+  {
+    accData.pdfCameraWP *= 1.0f;
+    accData.pdfLightWP  *= 1.0f;
+    //if (a_currDepth == 1)
+    //  accData.pdfCameraWP = 0.0f;
+  }
+
+  a_pdfAcc[tid] = accData;
+}
+
 
 __kernel void ConnectToEyeKernel(__global const uint*          restrict a_flags,
                                  __global const float4*        restrict in_oraydir,
@@ -557,7 +637,7 @@ __kernel void NextBounce(__global   float4*        restrict a_rpos,
   RandomGen gen  = out_gens[tid];
   gen.maxNumbers = a_globals->varsI[HRT_MLT_MAX_NUMBERS];
 
-  //float cosPrev = 1.0f, cosCurr = 1.0f, cosNext = 1.0f, dist = 1.0f;
+  float GTerm = 1.0f;
 
   if (rayIsActiveU(flags))
   {
@@ -609,12 +689,13 @@ __kernel void NextBounce(__global   float4*        restrict a_rpos,
     const float3 nextRay_dir = brdfSample.direction;
     const float3 nextRay_pos = OffsRayPos(hitPos, hitNorm, brdfSample.direction);
 
-    // // values that bidirectional techniques needs
-    // //
-    // cosPrev = fabs(a_misDataPrev[tid].cosThetaPrev);
-    // cosCurr = fabs(-dot(ray_dir, hitNorm));
-    // cosNext = fabs(+dot(nextRay_dir, hitNorm));
-    // dist    = length(hitPos - ray_pos);
+    // values that bidirectional techniques needs
+    //
+    const float cosPrev = fabs(a_misDataPrev[tid].cosThetaPrev);
+    const float cosCurr = fabs(-dot(ray_dir, hitNorm));
+    //const float cosNext = fabs(+dot(nextRay_dir, hitNorm));
+    const float dist    = length(hitPos - ray_pos);
+    GTerm = (cosPrev*cosCurr / fmax(dist*dist, DEPSILON2));
 
     // calc new ray
     //    
@@ -702,7 +783,7 @@ __kernel void NextBounce(__global   float4*        restrict a_rpos,
       misNext.matSamplePdf       = brdfSample.pdf;
       misNext.isSpecular         = (int)isPureSpecular(brdfSample);
       misNext.prevMaterialOffset = matOffset;
-      misNext.cosThetaPrev       = fabs(+dot(ray_dir, hitNorm));
+      misNext.cosThetaPrev       = fabs(+dot(ray_dir, hitNorm)); // update it withCosNextActually ...
       a_misDataPrev[tid]         = misNext;
     }
     /////////////////////////////////////////////// \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
@@ -716,16 +797,17 @@ __kernel void NextBounce(__global   float4*        restrict a_rpos,
       nextPathColor   = a_color[tid]*to_float4(outPathThroughput*fogAtten, 1.0f);
       nextPathColor.w = 1.0f;
 
-      //PerRayAcc accPdf = a_pdfAcc[tid];
-      //{ 
-      //  const float GTerm   = (cosPrev*cosCurr / fmax(dist*dist, DEPSILON2));
-      //  const int currDepth = rayBounceNum + 1;
-      //
-      //  accPdf.pdfGTerm *= GTerm;
-      //  if (currDepth == 1)
-      //    accPdf.pdfCamA0 = GTerm; // spetial case, multyply it by pdf later ... 
-      //}
-      //a_pdfAcc[tid] = accPdf;
+      if (a_globals->g_flags & HRT_3WAY_MIS_WEIGHTS)
+      {
+        PerRayAcc accPdf = a_pdfAcc[tid];
+        {
+          const int currDepth = rayBounceNum + 1;
+          accPdf.pdfGTerm *= GTerm;
+          if (currDepth == 1)
+            accPdf.pdfCamA0 = GTerm; // spetial case, multiply it by pdf later ... 
+        }
+        a_pdfAcc[tid] = accPdf;
+      }
     }
     else
     { 

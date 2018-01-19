@@ -26,11 +26,8 @@ void GPUOCLLayer::CL_SCREEN_BUFFERS::free()
 
   color0 = 0;
   pbo    = 0;
-
   //scan_free_internal();
 }
-
-
 
 void GPUOCLLayer::CL_BUFFERS_RAYS::free()
 {
@@ -39,12 +36,12 @@ void GPUOCLLayer::CL_BUFFERS_RAYS::free()
   if(hits)     { clReleaseMemObject(hits);     hits     = nullptr; }
   if(rayFlags) { clReleaseMemObject(rayFlags); rayFlags = nullptr; }
                                                                                                      
-  if (hitPosNorm)          { clReleaseMemObject(hitPosNorm);          hitPosNorm  = nullptr;         }
-  if (hitTexCoord)         { clReleaseMemObject(hitTexCoord);         hitTexCoord = nullptr;         }
-  if (hitMatId)            { clReleaseMemObject(hitMatId);            hitMatId    = nullptr;         }
-  if (hitTangent)          { clReleaseMemObject(hitTangent);          hitTangent  = nullptr;         }
-  if (hitFlatNorm)         { clReleaseMemObject(hitFlatNorm);         hitFlatNorm = nullptr;         }
-  if (hitPrimSize)         { clReleaseMemObject(hitPrimSize);         hitPrimSize = nullptr;         }
+  if (hitPosNorm)          { clReleaseMemObject(hitPosNorm);          hitPosNorm          = nullptr; }
+  if (hitTexCoord)         { clReleaseMemObject(hitTexCoord);         hitTexCoord         = nullptr; }
+  if (hitMatId)            { clReleaseMemObject(hitMatId);            hitMatId            = nullptr; }
+  if (hitTangent)          { clReleaseMemObject(hitTangent);          hitTangent          = nullptr; }
+  if (hitFlatNorm)         { clReleaseMemObject(hitFlatNorm);         hitFlatNorm         = nullptr; }
+  if (hitPrimSize)         { clReleaseMemObject(hitPrimSize);         hitPrimSize         = nullptr; }
   if (hitNormUncompressed) { clReleaseMemObject(hitNormUncompressed); hitNormUncompressed = nullptr; }
 
   if (pathThoroughput) { clReleaseMemObject(pathThoroughput); pathThoroughput = nullptr; }
@@ -1268,6 +1265,28 @@ void GPUOCLLayer::EndTracingPass()
 
 }
 
+void GPUOCLLayer::CopyAndPackForConnectEye(cl_mem in_flags,  cl_mem in_raydir,  cl_mem in_color, cl_mem in_cosPrev,
+                                           cl_mem out_flags, cl_mem out_raydir, cl_mem out_color, size_t a_size)
+{
+  cl_kernel kernX      = m_progs.lightp.kernel("CopyAndPackForConnectEye");
+
+  size_t localWorkSize = 256;
+  int            isize = int(a_size);
+  a_size               = roundBlocks(a_size, int(localWorkSize));
+ 
+  CHECK_CL(clSetKernelArg(kernX, 0, sizeof(cl_mem), (void*)&in_flags));
+  CHECK_CL(clSetKernelArg(kernX, 1, sizeof(cl_mem), (void*)&in_raydir));
+  CHECK_CL(clSetKernelArg(kernX, 2, sizeof(cl_mem), (void*)&in_color));
+  CHECK_CL(clSetKernelArg(kernX, 3, sizeof(cl_mem), (void*)&in_cosPrev));
+
+  CHECK_CL(clSetKernelArg(kernX, 4, sizeof(cl_mem), (void*)&out_flags));
+  CHECK_CL(clSetKernelArg(kernX, 5, sizeof(cl_mem), (void*)&out_raydir));
+  CHECK_CL(clSetKernelArg(kernX, 6, sizeof(cl_mem), (void*)&out_color));
+  CHECK_CL(clSetKernelArg(kernX, 7, sizeof(cl_int), (void*)&isize));
+
+  CHECK_CL(clEnqueueNDRangeKernel(m_globals.cmdQueue, kernX, 1, NULL, &a_size, &localWorkSize, 0, NULL, NULL));
+  waitIfDebug(__FILE__, __LINE__);
+}
 
 void GPUOCLLayer::trace1D(cl_mem a_rpos, cl_mem a_rdir, cl_mem a_outColor, size_t a_size)
 {
@@ -1297,7 +1316,9 @@ void GPUOCLLayer::trace1D(cl_mem a_rpos, cl_mem a_rdir, cl_mem a_outColor, size_
 
   for (int bounce = 0; bounce < maxBounce; bounce++)
   {
-    if (m_vars.m_varsI[HRT_ENABLE_MRAYS_COUNTERS] && bounce == measureBounce)
+    const bool measureThisBounce = (bounce == measureBounce);
+
+    if (m_vars.m_varsI[HRT_ENABLE_MRAYS_COUNTERS] && measureThisBounce)
     {
       clFinish(m_globals.cmdQueue);
       timeStart = m_timer.getElapsed();
@@ -1305,48 +1326,59 @@ void GPUOCLLayer::trace1D(cl_mem a_rpos, cl_mem a_rdir, cl_mem a_outColor, size_
 
     runKernel_Trace(a_rpos, a_rdir, m_rays.hits, a_size);
 
-    if (m_vars.m_varsI[HRT_ENABLE_MRAYS_COUNTERS] && bounce == measureBounce)
+    if (m_vars.m_varsI[HRT_ENABLE_MRAYS_COUNTERS] && measureThisBounce)
     {
       clFinish(m_globals.cmdQueue);
-      timeForTrace = (m_timer.getElapsed() - timeStart);
-      m_stat.raysPerSec = float(a_size) / timeForTrace;
-      timeForHitStart   = m_timer.getElapsed();
+      timeForHitStart = m_timer.getElapsed();
+      timeForTrace    = timeForHitStart - timeStart;
     }
 
     runKernel_ComputeHit(a_rpos, a_rdir, a_size);
 
-    if (m_vars.m_varsI[HRT_ENABLE_MRAYS_COUNTERS] && bounce == measureBounce)
+    if (m_vars.m_varsI[HRT_ENABLE_MRAYS_COUNTERS] && measureThisBounce)
     {
       clFinish(m_globals.cmdQueue);
       timeBeforeShadow = m_timer.getElapsed();
-      timeForHit       = m_timer.getElapsed() - timeForHitStart;
+      timeForHit       = timeBeforeShadow - timeForHitStart;
     }
 
     if (m_vars.m_flags & HRT_FORWARD_TRACING)
     {
-      ConnectEyePass(m_rays.rayFlags, m_rays.hitPosNorm, m_rays.hitNormUncompressed, a_rdir, a_outColor, bounce, m_rays.MEGABLOCKSIZE);
+      // postpone 'ConnectEyePass' call to the end of bounce; 
+      // copy (m_rays.rayFlags ==> m_rays.oldFlags), (a_rdir and cosPrev => m_rays.oldRayDir), (a_outColor => m_rays.oldColor) 
+      CopyAndPackForConnectEye(m_rays.rayFlags, a_rdir, a_outColor, m_rays.pathMisDataPrev, 
+                               m_rays.oldFlags, m_rays.oldRayDir,   m_rays.oldColor, a_size);
+      // ConnectEyePass(m_rays.rayFlags, m_rays.hitPosNorm, m_rays.hitNormUncompressed, a_rdir, a_outColor, bounce, a_size);
     }
     else if (m_vars.shadePassEnable(bounce))
     {
-      ShadePass(a_rpos, a_rdir, m_rays.pathShadeColor, a_size, (bounce == measureBounce));
+      ShadePass(a_rpos, a_rdir, m_rays.pathShadeColor, a_size, measureThisBounce);
     }
 
 
-    if (m_vars.m_varsI[HRT_ENABLE_MRAYS_COUNTERS] && bounce == measureBounce)
+    if (m_vars.m_varsI[HRT_ENABLE_MRAYS_COUNTERS] && measureThisBounce)
     {
       clFinish(m_globals.cmdQueue);
-      timeForShadow       = (m_timer.getElapsed() - timeBeforeShadow);
       timeNextBounceStart = m_timer.getElapsed();
+      timeForShadow       = timeNextBounceStart - timeBeforeShadow;
     }
 
     runKernel_NextBounce(m_rays.rayFlags, a_rpos, a_rdir, a_outColor, a_size);
 
-    if (m_vars.m_varsI[HRT_ENABLE_MRAYS_COUNTERS] && bounce == measureBounce)
+    if (m_vars.m_varsI[HRT_ENABLE_MRAYS_COUNTERS] && measureThisBounce)
     {
       clFinish(m_globals.cmdQueue);
       timeForBounce     = (m_timer.getElapsed() - timeStart);
       timeForNextBounce = (m_timer.getElapsed() - timeNextBounceStart);
     }
+
+    if (m_vars.m_flags & HRT_FORWARD_TRACING)
+    {
+      ConnectEyePass(m_rays.oldFlags, m_rays.hitPosNorm, m_rays.hitNormUncompressed, m_rays.oldRayDir, m_rays.oldColor, bounce, a_size);
+      if (m_vars.m_flags & HRT_3WAY_MIS_WEIGHTS)
+        runKernel_UpdateForwardPdfFor3Way(m_rays.oldFlags, m_rays.oldRayDir, m_rays.rayDir, m_rays.accPdf, a_size);
+    }
+
   }
 
 
@@ -1356,6 +1388,7 @@ void GPUOCLLayer::trace1D(cl_mem a_rpos, cl_mem a_rdir, cl_mem a_outColor, size_
     timeForSample = m_timer.getElapsed();
   }
 
+  m_stat.raysPerSec      = float(a_size) / timeForTrace;
   m_stat.traversalTimeMs = timeForTrace*1000.0f;
   m_stat.sampleTimeMS    = timeForSample*1000.0f;
   m_stat.bounceTimeMS    = timeForBounce*1000.0f;

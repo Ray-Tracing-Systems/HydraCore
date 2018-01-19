@@ -258,6 +258,7 @@ void GPUOCLLayer::runKernel_ComputeHit(cl_mem a_rpos, cl_mem a_rdir, size_t a_si
   waitIfDebug(__FILE__, __LINE__);
 }
 
+
 void GPUOCLLayer::runKernel_NextBounce(cl_mem a_rayFlags, cl_mem a_rpos, cl_mem a_rdir, cl_mem a_outColor, size_t a_size)
 {
   cl_kernel kernX = m_progs.material.kernel("NextBounce");
@@ -579,6 +580,39 @@ void GPUOCLLayer::runKernel_ProjectSamplesToScreen(cl_mem a_rayFlags, cl_mem a_h
   CHECK_CL(clSetKernelArg(kern, 18, sizeof(cl_float), (void*)&mLightSubPathCount));
   CHECK_CL(clSetKernelArg(kern, 19, sizeof(cl_int),   (void*)&currBounce));
   CHECK_CL(clSetKernelArg(kern, 20, sizeof(cl_int),   (void*)&isize));
+
+  CHECK_CL(clEnqueueNDRangeKernel(m_globals.cmdQueue, kern, 1, NULL, &a_size, &localWorkSize, 0, NULL, NULL));
+  waitIfDebug(__FILE__, __LINE__);
+}
+
+
+void GPUOCLLayer::runKernel_UpdateForwardPdfFor3Way(cl_mem a_flags, cl_mem old_rayDir, cl_mem next_rayDir, cl_mem acc_pdf, size_t a_size)
+{
+  cl_kernel kern       = m_progs.material.kernel("UpdateForwardPdfFor3Way");
+
+  size_t localWorkSize = 256;
+  int    isize         = int(a_size);
+  a_size               = roundBlocks(a_size, int(localWorkSize));
+
+  CHECK_CL(clSetKernelArg(kern, 0, sizeof(cl_mem), (void*)&a_flags));
+  CHECK_CL(clSetKernelArg(kern, 1, sizeof(cl_mem), (void*)&old_rayDir));
+  CHECK_CL(clSetKernelArg(kern, 2, sizeof(cl_mem), (void*)&next_rayDir));
+
+  CHECK_CL(clSetKernelArg(kern, 3, sizeof(cl_mem), (void*)&m_rays.hitPosNorm));
+  CHECK_CL(clSetKernelArg(kern, 4, sizeof(cl_mem), (void*)&m_rays.hitNormUncompressed));
+  CHECK_CL(clSetKernelArg(kern, 5, sizeof(cl_mem), (void*)&m_rays.hitTexCoord));
+  CHECK_CL(clSetKernelArg(kern, 6, sizeof(cl_mem), (void*)&m_rays.hitFlatNorm));
+  CHECK_CL(clSetKernelArg(kern, 7, sizeof(cl_mem), (void*)&m_rays.hitMatId));
+  CHECK_CL(clSetKernelArg(kern, 8, sizeof(cl_mem), (void*)&m_rays.hitTangent));
+  CHECK_CL(clSetKernelArg(kern, 9, sizeof(cl_mem), (void*)&m_rays.pathMisDataPrev));
+
+  CHECK_CL(clSetKernelArg(kern,10, sizeof(cl_mem), (void*)&acc_pdf)); // m_rays.accPdf
+
+  CHECK_CL(clSetKernelArg(kern,11, sizeof(cl_mem), (void*)&m_scene.storageTex));
+  CHECK_CL(clSetKernelArg(kern,12, sizeof(cl_mem), (void*)&m_scene.storageTexAux));
+  CHECK_CL(clSetKernelArg(kern,13, sizeof(cl_mem), (void*)&m_scene.storageMat));
+  CHECK_CL(clSetKernelArg(kern,14, sizeof(cl_mem), (void*)&m_scene.allGlobsData));
+  CHECK_CL(clSetKernelArg(kern,15, sizeof(cl_int), (void*)&isize));
 
   CHECK_CL(clEnqueueNDRangeKernel(m_globals.cmdQueue, kern, 1, NULL, &a_size, &localWorkSize, 0, NULL, NULL));
   waitIfDebug(__FILE__, __LINE__);
