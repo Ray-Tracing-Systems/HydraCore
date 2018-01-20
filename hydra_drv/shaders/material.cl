@@ -157,6 +157,9 @@ __kernel void ConnectToEyeKernel(__global const uint*          restrict a_flags,
                                  __global const HitMatRef*     restrict in_matData,
                                  __global const Hit_Part4*     restrict in_hitTangent,
                                  __global const float4*        restrict in_normalsFull,
+                                 __global const PerRayAcc*     restrict in_pdfAcc,
+                                 __global const int*           restrict in_lightId,
+                                 __global const float4*        restrict in_lsam2,
                                  
                                  __global const float4*        restrict a_mtlStorage,
                                  __global const EngineGlobals* restrict a_globals,
@@ -185,6 +188,7 @@ __kernel void ConnectToEyeKernel(__global const uint*          restrict a_flags,
     return;
   }
 
+  const float3 ray_dir = to_float3(in_oraydir[tid]);
   const float3 hitPos  = to_float3(in_hitPosNorm[tid]); //  
   const float3 hitNorm = to_float3(in_normalsFull[tid]);
   const float4 data2   = in_sraydir[tid];
@@ -205,7 +209,6 @@ __kernel void ConnectToEyeKernel(__global const uint*          restrict a_flags,
     const Hit_Part4 btanAndN = in_hitTangent[tid];
     const float2 hitTexCoord = in_hitTexCoord[tid];
     const float3 flatN       = decodeNormal(in_flatNorm[tid]);
-    const float3 ray_dir     = to_float3(in_oraydir[tid]);
 
     ShadeContext sc;
     sc.wp = hitPos;
@@ -222,6 +225,32 @@ __kernel void ConnectToEyeKernel(__global const uint*          restrict a_flags,
     pdfRevW           = matRes.pdfRev;
   }
 
+  const PerRayAcc accData = in_pdfAcc[tid];
+
+  const float cosCurr  = fabs(dot(ray_dir, hitNorm));
+  const float pdfRevWP = pdfRevW / fmax(cosCurr, DEPSILON); // pdfW po pdfWP
+   
+  float pdfCamA0 = accData.pdfCamA0;
+  if (a_currBounce == 1)
+    pdfCamA0 *= pdfRevWP; // see pdfRevWP? this is just because on the first bounce a_pAccData->pdfCameraWP == 1.
+   
+  const float cancelImplicitLightHitPdf = (1.0f / fmax(pdfCamA0, DEPSILON2));
+   
+  __global const PlainLight* pLight = lightAt(a_globals, in_lightId[tid]);
+  const float lightPickProbFwd = lightPdfSelectFwd(pLight);
+  const float lightPickProbRev = lightPdfSelectRev(pLight);
+   
+  const float cameraPdfA = imageToSurfaceFactor / mLightSubPathCount;
+  const float lightPdfA  = as_int(in_lsam2[tid].w); //PerThread().pdfLightA0; // remember that we packed it in lsam2 inside 'LightSampleForwardKernel'
+  
+  const float pdfAccFwdA = 1.0f*accData.pdfLightWP*accData.pdfGTerm*(lightPdfA*lightPickProbFwd);
+  const float pdfAccRevA = cameraPdfA * (pdfRevWP*accData.pdfCameraWP)*accData.pdfGTerm; // see pdfRevWP? this is just because on the first bounce a_pAccData->pdfCameraWP == 1.
+                                                                                         // we didn't eval reverse pdf yet. Imagine light ray hit surface and we immediately connect.
+
+  const float pdfAccExpA = cameraPdfA * (pdfRevWP*accData.pdfCameraWP)*accData.pdfGTerm*(cancelImplicitLightHitPdf*(lightPdfA*lightPickProbRev));
+   
+  const float misWeight  = 1.0f; misWeightHeuristic3(pdfAccFwdA, pdfAccRevA, pdfAccExpA);
+
   // We divide the contribution by surfaceToImageFactor to convert the (already
   // divided) pdf from surface area to image plane area, w.r.t. which the
   // pixel integral is actually defined. We also divide by the number of samples
@@ -229,7 +258,7 @@ __kernel void ConnectToEyeKernel(__global const uint*          restrict a_flags,
   //
   const float3 a_accColor  = to_float3(a_colorIn[tid]);
   const float3 shadowColor = decompressShadow(in_shadow[tid]);
-  float3 sampleColor       = shadowColor*(a_accColor*colorConnect) * (imageToSurfaceFactor / mLightSubPathCount);
+  float3 sampleColor       = misWeight*shadowColor*(a_accColor*colorConnect) * (imageToSurfaceFactor / mLightSubPathCount);
   
   if (!isfinite(sampleColor.x) || !isfinite(sampleColor.y) || !isfinite(sampleColor.z) || imageToSurfaceFactor <= 0.0f)
     sampleColor = make_float3(0, 0, 0);

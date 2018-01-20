@@ -12,6 +12,7 @@ __kernel void LightSampleForwardKernel(__global float4*        restrict out_rpos
                                        __global float4*        restrict out_data3,
                                        __global PerRayAcc*     restrict out_pdfAcc,
                                        __global MisData*       restrict out_cosAndOther,
+                                       __global int*           restrict out_lightId,
 
                                        __global int*           restrict out_flags,         // just for clearing them
                                        __global float4*        restrict out_color,         // just for clearing them
@@ -60,6 +61,8 @@ __kernel void LightSampleForwardKernel(__global float4*        restrict out_rpos
 
   out_rpos [tid] = to_float4(sample.pos, 0.0f);                 // #TODO: do we really need so many out buffers ?
   out_rdir [tid] = to_float4(sample.dir, 0.0f);                 // #TODO: do we really need so many out buffers ?
+
+  out_lightId[tid] = lightId;
 
   PerRayAcc acc0  = InitialPerParAcc();
   acc0.pdfLightWP = sample.pdfW / fmax(sample.cosTheta, DEPSILON);
