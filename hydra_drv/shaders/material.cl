@@ -192,11 +192,15 @@ __kernel void ConnectToEyeKernel(__global const uint*          restrict a_flags,
   const float3 camDir              = to_float3(data2); // compute it in MakeEyeShadowRays kernel
   const float imageToSurfaceFactor = data2.w;          // compute it in MakeEyeShadowRays kernel
 
-  float3 colorConnect  = make_float3(1,1,1);
+  float  signOfNormal = 1.0f;
+  float  pdfRevW      = 1.0f;
+  float3 colorConnect = make_float3(1,1,1);
   if(a_currBounce > 0) // if 0, this is light surface
   {
     const int matId = GetMaterialId(in_matData[tid]);
     __global const PlainMaterial* pHitMaterial = materialAt(a_globals, a_mtlStorage, matId);
+    if ((materialGetFlags(pHitMaterial) & PLAIN_MATERIAL_HAVE_BTDF) != 0 && dot(camDir, hitNorm) < -0.01f)
+      signOfNormal = -1.0f;
       
     const Hit_Part4 btanAndN = in_hitTangent[tid];
     const float2 hitTexCoord = in_hitTexCoord[tid];
@@ -214,7 +218,8 @@ __kernel void ConnectToEyeKernel(__global const uint*          restrict a_flags,
     sc.tc = hitTexCoord;
    
     BxDFResult matRes = materialEval(pHitMaterial, &sc, false, true, /* global data --> */ a_globals, a_texStorage1, a_texStorage2);
-    colorConnect = matRes.brdf + matRes.btdf; 
+    colorConnect      = matRes.brdf + matRes.btdf; 
+    pdfRevW           = matRes.pdfRev;
   }
 
   // We divide the contribution by surfaceToImageFactor to convert the (already
@@ -553,7 +558,7 @@ __kernel void NextBounce(__global   float4*        restrict a_rpos,
           MisData misPrev = a_misDataPrev[tid];
     
           __global const PlainLight* pLight = lightAt(a_globals, lightOffset);  
-          outPathColor = lightGetIntensity(pLight, ray_pos, ray_dir, hitNorm, hitTexCoord, flags, misPrev, a_globals, a_texStorage1, a_texStorage2);
+          outPathColor = lightGetIntensity(pLight, ray_pos, ray_dir, hitNorm, hitTexCoord, flags, misPrev, a_globals, a_texStorage1, a_pdfStorage);
     
           if (unpackBounceNum(flags) > 0 && !(a_globals->g_flags & HRT_STUPID_PT_MODE) && (misPrev.isSpecular == 0))
           {
