@@ -168,8 +168,8 @@ bool RenderDriverRTE::UpdateSettings(pugi::xml_node a_settingsNode)
     vars.m_flags |= HRT_ENABLE_PT_CAUSTICS;
   }
 
-  //vars.m_flags |= HRT_ENABLE_PT_CAUSTICS;
-  //vars.m_flags |= HRT_STUPID_PT_MODE;
+  // vars.m_flags |= HRT_ENABLE_PT_CAUSTICS;
+  // vars.m_flags |= HRT_STUPID_PT_MODE;
 
   vars.m_varsI[HRT_TRACE_DEPTH]            = 6;
   vars.m_varsI[HRT_DIFFUSE_TRACE_DEPTH]    = 3;
@@ -663,7 +663,7 @@ void RenderDriverRTE::BeginScene()
 
 std::vector<float> PrefixSumm(const std::vector<float>& a_vec);
 
-void RenderDriverRTE::EndScene() // #TODO: add dirty flags (???) to update only those things that were changed
+void RenderDriverRTE::EndScene() // #TODO: add dirty flags (?) to update only those things that were changed
 {
   if (m_pBVH == nullptr)
     return;

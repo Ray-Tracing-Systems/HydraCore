@@ -673,7 +673,7 @@ static inline void AreaLightSampleForward(__global const PlainLight* pLight, flo
   }
   else if (as_int(pLight->data[AREA_LIGHT_SPOT_DISTR]) != 0)
   {
-    const float cos1 = pLight->data[AREA_LIGHT_SPOT_COS1];
+    //const float cos1 = pLight->data[AREA_LIGHT_SPOT_COS1];
     const float cos2 = pLight->data[AREA_LIGHT_SPOT_COS2];
 
     sampleDir = MapSamplesToCone(cos2, make_float2(rands.z, rands.w), lnorm); 
@@ -905,7 +905,7 @@ static inline void DirectLightSampleForward(__global const PlainLight* pLight, f
   const float3 lnorm   = lightNorm(pLight);
   const float3 lcenter = lightPos(pLight);
 
-  const float bsphereR = a_globals->varsF[HRT_BSPHERE_RADIUS];
+  //const float bsphereR = a_globals->varsF[HRT_BSPHERE_RADIUS];
   const float  radius1 = pLight->data[DIRECT_LIGHT_RADIUS1];
   const float  radius2 = pLight->data[DIRECT_LIGHT_RADIUS2];
 
@@ -1141,7 +1141,7 @@ static inline LightPdfFwd lightPdfFwd(__global const PlainLight* pLight, const f
   }
   else if (ltype == PLAIN_LIGHT_TYPE_AREA && as_int(pLight->data[AREA_LIGHT_SPOT_DISTR]) != 0)
   {
-    const float cos1 = pLight->data[AREA_LIGHT_SPOT_COS1];
+    //const float cos1 = pLight->data[AREA_LIGHT_SPOT_COS1];
     const float cos2 = pLight->data[AREA_LIGHT_SPOT_COS2];
 
     res.pdfW = 1.0f / (2.0f * M_PI * (1.0f - cos2));        // UniformConePdf
@@ -1214,36 +1214,33 @@ static inline float areaSpotAttenuationPredict(__global const PlainLight* pLight
 
   // plane equation Ax + By + Cz + D = 0;  => D = dot(samplePos, norm);
   //
-  float A = norm.x;
-  float B = norm.y;
-  float C = norm.z;
-  float D = -dot(samplePos, norm);
+  const float A = norm.x;
+  const float B = norm.y;
+  const float C = norm.z;
+  const float D = -dot(samplePos, norm);
 
   // line equation; P(x,y,z) = O + D1*t;  
   //
-  float3 O  = hpos;
-  float3 D1 = (-1.0f)*norm;
+  const float3 O  = hpos;
+  const float3 D1 = (-1.0f)*norm;
 
   if (fabs(A*D1.x + B*D1.y + C*D1.z) < DEPSILON) //  
     return 0.0f;
 
-  float  t = -(A*O.x + B*O.y + C*O.z + D) / (A*D1.x + B*D1.y + C*D1.z); // A*(O.x + t*D1.x) + B*(O.y + t*D1.y) + C*(O.z + t*D1.z) + D = 0
+  const float t = -(A*O.x + B*O.y + C*O.z + D) / (A*D1.x + B*D1.y + C*D1.z); // A*(O.x + t*D1.x) + B*(O.y + t*D1.y) + C*(O.z + t*D1.z) + D = 0
 
-  float3 projP = O + t*D1;
-  float3 projD = normalize(projP - samplePos);
-  float  projL = length(projP - samplePos);
+  const float3 projP = O + t*D1;
+  const float3 projD = normalize(projP - samplePos);
+  const float  projL = length(projP - samplePos);
   
-  float maxLightSize = fmax(pLight->data[AREA_LIGHT_SIZE_X], pLight->data[AREA_LIGHT_SIZE_Y]);
-  float3 lpos2 = samplePos + projD*fmin(projL, maxLightSize);
+  const float maxLightSize = fmax(pLight->data[AREA_LIGHT_SIZE_X], pLight->data[AREA_LIGHT_SIZE_Y]);
+  const float3 lpos2       = samplePos + projD*fmin(projL, maxLightSize);
 
-  float  cos1 = pLight->data[AREA_LIGHT_SPOT_COS1];
-  float  cos2 = pLight->data[AREA_LIGHT_SPOT_COS2];
+  const float cos1     = pLight->data[AREA_LIGHT_SPOT_COS1];
+  const float cos2     = pLight->data[AREA_LIGHT_SPOT_COS2];
+  const float cosTheta = fmax(dot(normalize(hpos - lpos2), norm), 0.0f);
 
-  float cos_theta = fmax(dot(normalize(hpos - lpos2), norm), 0.0f);
-  //float cos_theta2 = fmax(dot(normalize(hpos - samplePos), norm), 0.0f);
-  //float cos_theta = cos_theta1; // fmax(cos_theta1, cos_theta2);
-
-  return mylocalsmoothstep(cos2, cos1, cos_theta);
+  return mylocalsmoothstep(cos2, cos1, cosTheta);
 }
 
 
@@ -1446,7 +1443,7 @@ static inline float directLightEvalPDF(__global const PlainLight* pLight, float3
   {
     const float3 norm    = lightNorm(pLight);
 
-    const float cosAlpha = pLight->data[DIRECT_LIGHT_ALPHA_COS];
+    //const float cosAlpha = pLight->data[DIRECT_LIGHT_ALPHA_COS];
     const float tanAlpha = pLight->data[DIRECT_LIGHT_ALPHA_TAN];
     const float cosTheta = -dot(ray_dir, norm);
 
@@ -1702,8 +1699,8 @@ static inline float3 lightGetIntensity(__global const PlainLight* pLight, float3
   {
     float3 customDir = a_rayDir;
     if (lightFlags(pLight) & LIGHT_IES_POINT_AREA)
-      customDir = normalize(lightPos(pLight) - ray_pos);
-    return areaDiffuseLightGetIntensity(pLight, a_rayDir, a_texCoord, eyeRay, a_globals, a_tex, a_storagePdf);
+      customDir = normalize(lightPos(pLight) - ray_pos); // 
+    return areaDiffuseLightGetIntensity(pLight, customDir, a_texCoord, eyeRay, a_globals, a_tex, a_storagePdf);
   }
   else if (lightType == PLAIN_LIGHT_TYPE_CYLINDER)
     return cylinderLightGetIntensity(pLight, a_texCoord, a_globals, a_tex);

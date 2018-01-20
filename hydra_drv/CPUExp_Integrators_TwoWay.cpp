@@ -354,7 +354,7 @@ float3 IntegratorTwoWay::PathTrace(float3 ray_pos, float3 ray_dir)
   const float lightPdfA  = PerThread().pdfLightA0;
 
   float pdfAccRevA = cameraPdfA * (acc.pdfCameraWP*acc.pdfGTerm);
-  float pdfAccFwdA = lightPdfA  * (acc.pdfLightWP*acc.pdfGTerm);   // try to remove lightPdfA ???, it should be inside acc.pdfLightW already !!!
+  float pdfAccFwdA = lightPdfA  * (acc.pdfLightWP*acc.pdfGTerm);   // try to remove lightPdfA?, it should be inside acc.pdfLightW already!
 
   const int maxBounce = PerThread().mBounceDone;
 

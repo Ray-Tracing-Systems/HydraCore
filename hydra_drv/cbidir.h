@@ -299,8 +299,6 @@ static float3 ConnectEndPointsP(const PathVertex a_lv, const PathVertex a_cv, co
   const float  dist = sqrt(dist2);
   const float3 lToC = diff / dist; // normalize(a_cv.hit.pos - a_lv.hit.pos)
 
-  const float3 shadowRayDir = lToC; // explicitSam.direction;
-
   float3 lightBRDF = make_float3(0,0,0);
   float  lightVPdfFwdW = 0.0f;
   float  lightVPdfRevW = 0.0f;

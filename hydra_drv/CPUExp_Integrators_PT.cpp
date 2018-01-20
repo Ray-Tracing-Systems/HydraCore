@@ -90,7 +90,7 @@ float3  IntegratorShadowPT::PathTrace(float3 ray_pos, float3 ray_dir, MisData mi
     const float3 brdfVal    = materialEval(pHitMaterial, &sc, false, false, /* global data --> */ m_pGlobals, m_texStorage, m_texStorage).brdf; // a_shadingTexture
     const float cosThetaOut = fmax(dot(shadowRayDir, surfElem.normal), 0.0f);
 
-    explicitColor = (1.0f / lightPickProb)*(explicitSam.color * (1.0f / fmax(explicitSam.pdf, DEPSILON)))*cosThetaOut*brdfVal*shadow; // clamp brdfVal ??? test it !!!
+    explicitColor = (1.0f / lightPickProb)*(explicitSam.color * (1.0f / fmax(explicitSam.pdf, DEPSILON)))*cosThetaOut*brdfVal*shadow; // clamp brdfVal ? test it !!!
   }
 
   const MatSample matSam = std::get<0>(sampleAndEvalBxDF(ray_dir, surfElem));
@@ -186,7 +186,7 @@ float3 IntegratorMISPT::PathTrace(float3 ray_pos, float3 ray_dir, MisData misPre
     if (explicitSam.isPoint)
       misWeight = 1.0f;
     
-    explicitColor = (1.0f / lightPickProb)*(explicitSam.color * (1.0f / fmax(explicitSam.pdf, DEPSILON2)))*bxdfVal*misWeight*shadow; // clamp brdfVal ??? test it !!!
+    explicitColor = (1.0f / lightPickProb)*(explicitSam.color * (1.0f / fmax(explicitSam.pdf, DEPSILON2)))*bxdfVal*misWeight*shadow; // clamp brdfVal? test it !!!
   }
 
   const MatSample matSam = std::get<0>( sampleAndEvalBxDF(ray_dir, surfElem) );

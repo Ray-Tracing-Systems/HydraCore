@@ -1649,7 +1649,7 @@ void BuildCluster(const float4* a_normals, const float4* a_txcolor, int a_spp,
     float dist = fmax(sppData.w, 0.0f);
 
     float2    pp = ProjectedPixelSize(dist, make_float2(a_ffwh.x, a_ffwh.y), a_ffwh.z, a_ffwh.w);
-    float ppSize = (dist > 0.0f) ? 64.0f*fmax(fmax(pp.x, pp.y), 0.0f) : 1000000000.0f; // ??????
+    float ppSize = (dist > 0.0f) ? 64.0f*fmax(fmax(pp.x, pp.y), 0.0f) : 1000000000.0f; // ?
 
     int cId = FindCluster(sppData, clusterNormals, ppSize);
 

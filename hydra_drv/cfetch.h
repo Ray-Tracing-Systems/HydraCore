@@ -68,8 +68,8 @@ typedef struct GlobalRenderDataT
   int dummy3;
 
 
-  int        sunNumber;           // #change this (???)
-  PlainLight suns[MAX_SUN_NUM];   // #change this (???)
+  int        sunNumber;           // #change this?
+  PlainLight suns[MAX_SUN_NUM];   // #change this?
 
 
 } EngineGlobals;
@@ -101,25 +101,25 @@ typedef struct SWTexSamplerT
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-static inline const int meshHeaderOffset(const Lite_Hit a_liteHit, __global const EngineGlobals* a_pGlobals)
+static inline int meshHeaderOffset(const Lite_Hit a_liteHit, __global const EngineGlobals* a_pGlobals)
 {
   __global const int* pBegin = (__global const int*)a_pGlobals;
   return pBegin[a_pGlobals->geometryTableOffset + a_liteHit.geomId];
 }
 
-static inline const int textureHeaderOffset(__global const EngineGlobals* a_pGlobals, const int a_index)
+static inline int textureHeaderOffset(__global const EngineGlobals* a_pGlobals, const int a_index)
 {
   __global const int* pBegin = (__global const int*)a_pGlobals;
   return pBegin[a_pGlobals->texturesTableOffset + a_index];
 }
 
-static inline const int textureAuxHeaderOffset(__global const EngineGlobals* a_pGlobals, const int a_index)
+static inline int textureAuxHeaderOffset(__global const EngineGlobals* a_pGlobals, const int a_index)
 {
   __global const int* pBegin = (__global const int*)a_pGlobals;
   return pBegin[a_pGlobals->texturesAuxTableOffset + a_index];
 }
 
-static inline const int pdfTableHeaderOffset(const int a_tableId, __global const EngineGlobals* a_pGlobals)
+static inline int pdfTableHeaderOffset(const int a_tableId, __global const EngineGlobals* a_pGlobals)
 {
   __global const int* pBegin = (__global const int*)a_pGlobals;
   return pBegin[a_pGlobals->pdfTableTableOffset + a_tableId];
@@ -155,8 +155,8 @@ static inline __global const float* lightSelPdfTableFwd(__global const EngineGlo
   return (__global const float*)pTarget;
 }
 
-static inline const int lightSelPdfTableSizeFwd(__global const EngineGlobals* a_pGlobals) { return a_pGlobals->lightSelectorTableSizeFwd; }
-static inline const int lightSelPdfTableSizeRev(__global const EngineGlobals* a_pGlobals) { return a_pGlobals->lightSelectorTableSizeRev; }
+static inline int lightSelPdfTableSizeFwd(__global const EngineGlobals* a_pGlobals) { return a_pGlobals->lightSelectorTableSizeFwd; }
+static inline int lightSelPdfTableSizeRev(__global const EngineGlobals* a_pGlobals) { return a_pGlobals->lightSelectorTableSizeRev; }
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -290,6 +290,8 @@ static inline float4 read_imagef_sw4(texture2d_t a_tex, const float2 a_texCoord,
   if ((a_flags & TEX_CLAMP_U) != 0 && ffx < 0) ffx = 0.0f;
   if ((a_flags & TEX_CLAMP_V) != 0 && ffy < 0) ffy = 0.0f;
 
+  float4 res;
+
   if (a_flags & TEX_POINT_SAM)
   {
     int px = (int)(ffx + 0.5f);
@@ -320,11 +322,11 @@ static inline float4 read_imagef_sw4(texture2d_t a_tex, const float2 a_texCoord,
     const int offset = py*w + px;
 
     if (bpp == 4)
-      return read_array_uchar4((__global const uchar4*)(a_tex + 1), offset);
+      res = read_array_uchar4((__global const uchar4*)(a_tex + 1), offset);
     else if (bpp == 16)
     {
       __global const float4* fdata = (__global const float4*)(a_tex + 1);
-      return fdata[offset];
+      res = fdata[offset];
     }
   }
   else
@@ -374,8 +376,10 @@ static inline float4 read_imagef_sw4(texture2d_t a_tex, const float2 a_texCoord,
     const float outb = f1.z * w1 + f2.z * w2 + f3.z * w3 + f4.z * w4;
     const float outa = f1.w * w1 + f2.w * w2 + f3.w * w3 + f4.w * w4;
 
-    return make_float4(outr, outg, outb, outa);
+    res = make_float4(outr, outg, outb, outa);
   }
+
+  return res;
 }
 
 static inline float read_imagef_sw1(texture2d_t a_tex, const float2 a_texCoord, const int a_flags)
@@ -398,6 +402,7 @@ static inline float read_imagef_sw1(texture2d_t a_tex, const float2 a_texCoord, 
   //  
   __global const float* fdata = (__global const float*)(a_tex + 1);
 
+  float res;
   if(a_flags & TEX_POINT_SAM)
   {
     int px = (int)(ffx + 0.5f);
@@ -425,7 +430,7 @@ static inline float read_imagef_sw1(texture2d_t a_tex, const float2 a_texCoord, 
       py = (py < 0) ? py + h : py;
     }
     
-    return fdata[py*w + px];
+    res = fdata[py*w + px];
   }
   else
   {
@@ -451,8 +456,10 @@ static inline float read_imagef_sw1(texture2d_t a_tex, const float2 a_texCoord, 
     const float f3 = fdata[offsets.z];
     const float f4 = fdata[offsets.w];
 
-    return f1 * w1 + f2 * w2 + f3 * w3 + f4 * w4;
+    res = f1 * w1 + f2 * w2 + f3 * w3 + f4 * w4;
   }
+
+  return res;
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////

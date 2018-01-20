@@ -126,7 +126,7 @@ public:
   virtual void ClearAccumulatedColor() {}
 
   virtual void SetSceneGlobals(int w, int h, EngineGlobals* a_pGlobals) = 0;
-  virtual void AddSpp(int a_spp) { m_spp += a_spp; } // don't use this function!!!! Fucking shit !!!! ???
+  virtual void AddSpp(int a_spp) { m_spp += a_spp; } // don't use this function!!!! Fucking shit ?!
   virtual int  GetSpp() const { return m_spp;   }
 
   virtual void SetConstants(EngineGlobals* a_pGlobals)     = 0;

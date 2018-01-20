@@ -626,7 +626,7 @@ IDH_CALL uint IndexZBlock2D(int x, int y, int pitch, __constant ushort* a_morton
 IDH_CALL ushort2 GetXYFromZBlockIndex(uint a_offset, int w, int h)
 {
   int blocksSizeX = w / Z_ORDER_BLOCK_SIZE;
-  int blocksSizeY = h / Z_ORDER_BLOCK_SIZE;
+  //int blocksSizeY = h / Z_ORDER_BLOCK_SIZE;
 
   int blockId    = a_offset / (Z_ORDER_BLOCK_SIZE*Z_ORDER_BLOCK_SIZE);
   int zIdInBlock = a_offset % (Z_ORDER_BLOCK_SIZE*Z_ORDER_BLOCK_SIZE);

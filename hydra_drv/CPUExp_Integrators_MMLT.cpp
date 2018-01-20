@@ -1124,7 +1124,7 @@ float3 IntegratorMMLT::PathTraceDirectLight(float3 ray_pos, float3 ray_dir, MisD
     if (explicitSam.isPoint)
       misWeight = 1.0f;
 
-    explicitColor = (1.0f / lightPickProb)*(explicitSam.color * (1.0f / fmax(explicitSam.pdf, DEPSILON)))*bxdfVal*misWeight*shadow; // clamp brdfVal ??? test it !!!
+    explicitColor = (1.0f / lightPickProb)*(explicitSam.color * (1.0f / fmax(explicitSam.pdf, DEPSILON)))*bxdfVal*misWeight*shadow; // #TODO: clamp brdfVal? test it !
   }
 
   const MatSample matSam = std::get<0>(sampleAndEvalBxDF(ray_dir, surfElem));

@@ -413,7 +413,7 @@ float3  IntegratorThreeWay::PathTraceAcc(float3 ray_pos, float3 ray_dir, const f
     const LightPdfFwd lPdfFwd = lightPdfFwd(pLight, shadowRayDir, cosAtLight, m_pGlobals, m_texStorage, m_pdfStorage);
     
     float pdfFwdWP1 = 1.0f;  // madness of IBPT. 
-    if (a_currDepth > 0)     // Imagine ray that hit light source after (second???) bounce (or first ???). pdfAccFwdA = pdfLightA*PdfLightW*GTermShadow.
+    if (a_currDepth > 0)     // Imagine ray that hit light source after (second?) bounce (or first ?). pdfAccFwdA = pdfLightA*PdfLightW*GTermShadow.
       pdfFwdWP1 = bsdfFwdWP; // 
     
     float pdfAccFwdA = pdfFwdWP1  * (prevData.pdfLightWP *prevData.pdfGTerm)*((lPdfFwd.pdfW / fmax(cosAtLight, DEPSILON))*GTermShadow)*(lPdfFwd.pdfA*lPdfFwd.pickProb);

@@ -408,7 +408,7 @@ __my_const_data_t float glosscoeff[10][4] = {
 
 static inline float cosPowerFromGlosiness(float glosiness)
 {
-  const float cMin = 1.0f;
+  //const float cMin = 1.0f;
   const float cMax = 1000000.0f;
 
   float x = glosiness;
@@ -1682,7 +1682,7 @@ static inline BxDFResult materialEval(__global const PlainMaterial* a_pMat, __pr
       mat2.w         = 1.0f - alpha;
 
       __global const PlainMaterial* pComponent1 = pMat + mat1.localOffs;
-      __global const PlainMaterial* pComponent2 = pMat + mat2.localOffs;
+      //__global const PlainMaterial* pComponent2 = pMat + mat2.localOffs;
 
       if ((as_int(pMat->data[BLEND_MASK_FLAGS_OFFSET]) & BLEND_MASK_REFLECTION_WEIGHT_IS_ONE) && materialIsLeafBRDF(pComponent1))
         mat1.w = 1.0f;
@@ -1825,7 +1825,7 @@ static inline TransparencyAndFog materialEvalTransparencyAndFog(__global const P
       mat2.w = 1.0f - alpha;
 
       __global const PlainMaterial* pComponent1 = pMat + mat1.localOffs;
-      __global const PlainMaterial* pComponent2 = pMat + mat2.localOffs;
+      //__global const PlainMaterial* pComponent2 = pMat + mat2.localOffs;
 
       if ((as_int(pMat->data[BLEND_MASK_FLAGS_OFFSET]) & BLEND_MASK_REFLECTION_WEIGHT_IS_ONE) && materialIsLeafBRDF(pComponent1))
         mat1.w = 1.0f;
@@ -1968,7 +1968,7 @@ static inline float3 materialEvalDiffuse(__global const PlainMaterial* a_pMat,
       mat2.w         = 1.0f - alpha;
 
       __global const PlainMaterial* pComponent1 = pMat + mat1.localOffs;
-      __global const PlainMaterial* pComponent2 = pMat + mat2.localOffs;
+      //__global const PlainMaterial* pComponent2 = pMat + mat2.localOffs;
 
       if ((as_int(pMat->data[BLEND_MASK_FLAGS_OFFSET]) & BLEND_MASK_REFLECTION_WEIGHT_IS_ONE) && materialIsLeafBRDF(pComponent1))
         mat1.w = 1.0f;
@@ -2032,8 +2032,8 @@ static inline float3 materialEvalEmission(__global const PlainMaterial* a_pMat, 
       mat2.localOffs = as_int(pMat->data[BLEND_MASK_MATERIAL2_OFFSET]);
       mat2.w         = 1.0f - alpha;
 
-      __global const PlainMaterial* pComponent1 = pMat + mat1.localOffs;
-      __global const PlainMaterial* pComponent2 = pMat + mat2.localOffs;
+      //__global const PlainMaterial* pComponent1 = pMat + mat1.localOffs;
+      //__global const PlainMaterial* pComponent2 = pMat + mat2.localOffs;
 
       if (top < MIX_TREE_MAX_DEEP)
       {
