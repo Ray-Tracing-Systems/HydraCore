@@ -5,6 +5,9 @@
 #undef max
 #endif
 
+
+#if defined _MSC_VER
+
 //------------------------------------------------------------------------
 
 double Timer::s_ticksToSecsCoef    = -1.0;
@@ -61,3 +64,23 @@ long long int Timer::getElapsedTicks(void)
 }
 
 //------------------------------------------------------------------------
+
+#else
+
+float Timer::getElapsed(void)
+{
+  double elapsedTime = 0.0;
+  
+  timeval t2;
+  gettimeofday(&t2, NULL);
+
+  timeval t1 = m_timeVal;
+
+  // compute and print the elapsed time in millisec
+  elapsedTime = (t2.tv_sec - t1.tv_sec) * 1000.0;      // sec to ms
+  elapsedTime += (t2.tv_usec - t1.tv_usec) / 1000.0;   // us to ms
+
+  return elapsedTime*0.001f;
+}
+
+#endif
