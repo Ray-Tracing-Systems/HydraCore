@@ -159,14 +159,12 @@
     <ClCompile Include="main_app_tests.cpp" />
     <ClCompile Include="mesh_utils.cpp" />
     <ClCompile Include="main_app_window.cpp" />
-    <ClCompile Include="Timer.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Camera.h" />
     <ClInclude Include="input.h" />
     <ClInclude Include="main.h" />
     <ClInclude Include="mesh_utils.h" />
-    <ClInclude Include="Timer.h" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\HydraAPI\clew\clew.vcxproj">

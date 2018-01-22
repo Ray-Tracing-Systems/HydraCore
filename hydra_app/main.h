@@ -12,7 +12,7 @@
 #include <iostream>
 #include <sstream>
 
-#include "Timer.h"
+#include "../vsgl3/Timer.h"
 
 #if defined(_MSC_VER)
   #include <GLFW/glfw3.h>
