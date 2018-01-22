@@ -1,5 +1,7 @@
 #include "bvh_access.h"
 
+#include<memory>
+
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -71,7 +73,7 @@ void EmbreeBVH4_2::ClearData()
     m_tree[i].m_sceneTopLevel = rtcDeviceNewScene(m_device, BUILD_FLAGS, m_algorithmFlags);
     m_tree[i].m_sceneTriNum   = 0;
 
-    for each (auto scn in m_tree[i].m_rtObjByMeshId)
+    for (auto scn : m_tree[i].m_rtObjByMeshId)
       rtcDeleteScene(scn.second);
 
     m_tree[i].m_rtObjByMeshId.clear();
@@ -84,7 +86,7 @@ void EmbreeBVH4_2::ClearScene()
 {
   for (int i = 0; i < MAXBVHTREES; i++)
   {
-    for each (auto scn in m_tree[i].m_rtObjByMeshId)
+    for (auto scn : m_tree[i].m_rtObjByMeshId)
       rtcDeleteScene(scn.second);
 
     m_tree[i].m_rtObjByMeshId.clear();
@@ -288,7 +290,7 @@ void EmbreeBVH4_2::InsertTrainglesInLeaf(size_t currNodeOffset, BVH4::NodeRef no
     for (size_t i = 0; i < num; i++)
     {
       const PrimType prim = pdata[i];
-      auto triRef = triRefs[prim.primID];
+      auto triRef = triRefs[prim.primID()];
 
       const int iA = ind[triRef.triId * 3 + 0];
       const int iB = ind[triRef.triId * 3 + 1];
@@ -321,7 +323,7 @@ void EmbreeBVH4_2::InsertTrainglesInLeaf(size_t currNodeOffset, BVH4::NodeRef no
       {
         size_t triOffsetF4 = Alloc3Float4(lt.m_convertedTrinagles);
 
-        int triId = tri[i].primIDs[j];
+        int triId = tri[i].primID(j);
         int objId = a_meshId; // 
         int insId = -1;       // instance matrix id/offset 
 
@@ -531,7 +533,7 @@ std::vector<BVH4*> EmbreeBVH4_2::ExtractBVH4Pointers()
       if (bvh4 != nullptr)
       {
         trees2.push_back(bvh4);
-        m_ltrees.push_back(LinearTree(bvh4->primTy.name));
+        m_ltrees.push_back(LinearTree(bvh4->primTy->name));
       }
     }
     else if (accel->type == AccelData::TY_ACCELN)
@@ -546,10 +548,10 @@ std::vector<BVH4*> EmbreeBVH4_2::ExtractBVH4Pointers()
           if (bvh4 != nullptr)
           {
             auto laName = m_pRep->LayoutName();
-            if ((bvh4->primTy.name == laName || bvh4->primTy.name == "object") && m_ltrees.size() < MAXBVHTREES)
+            if ((bvh4->primTy->name == laName || bvh4->primTy->name == "object") && m_ltrees.size() < MAXBVHTREES)
             {
               trees2.push_back(bvh4);
-              m_ltrees.push_back(LinearTree(bvh4->primTy.name));
+              m_ltrees.push_back(LinearTree(bvh4->primTy->name));
             }
           }
         }
@@ -608,7 +610,7 @@ ConvertionResult EmbreeBVH4_2::ConvertMap()
 
     // convert top level tree first
     //
-    ConvertBvh4TwoLevel(root, rootOffset, 0, 0, -1, bvh4->primTy.name.c_str(), realTreeId);
+    ConvertBvh4TwoLevel(root, rootOffset, 0, 0, -1, bvh4->primTy->name.c_str(), realTreeId);
   
     // convert bottom level instances
     //
@@ -758,7 +760,10 @@ float3 EmbreeBVH4_2::ShadowTrace(float3 ray_pos, float3 ray_dir, float t_far)
     return float3(0, 0, 0);
 }
 
+#ifdef WIN32
 extern "C" __declspec(dllexport) IBVHBuilder2* CreateBuilder2(char* cfg) { return new EmbreeBVH4_2; }
-
+#else
+extern "C" IBVHBuilder2* CreateBuilder2(char* cfg) { return new EmbreeBVH4_2; }
+#endif
 
 
