@@ -55,5 +55,7 @@ set(SOURCE_FILES
         RenderDriverRTE_PdfTables.cpp
     )
 
+set(CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS} "-msse4.1")
+
 ADD_LIBRARY(hydra_drv STATIC ${SOURCE_FILES})
 

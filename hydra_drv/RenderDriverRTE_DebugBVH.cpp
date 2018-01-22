@@ -280,7 +280,7 @@ void RenderDriverRTE::PrintBVHStat(const ConvertionResult& a_inBVH, bool travers
 
   //std::cout << std::endl;
   std::cout << "bvh trees   num = " << a_inBVH.treesNum << "\ttypes are (";
-  for each (auto name in treeTypes)
+  for (auto name : treeTypes)
     std::cout << name.c_str() << ", ";
   std::cout << ")" << std::endl;
   std::cout << "bvh box (%) mem = " << 100.0f*float(stat.bytesForBoxes   / stat.bytesTotal) << " %" << std::endl;
@@ -435,17 +435,17 @@ void RenderDriverRTE::DebugPrintBVHInfo(const ConvertionResult& a_inBVH, const c
     fout << "  nodes_num     = " << a_inBVH.nodesNum[treeId] << std::endl;
     fout << "  tri_data_size = " << a_inBVH.trif4Num[treeId] << std::endl;
     fout << "  instance_list = [";
-    for each (auto index in instId)
+    for (auto index : instId)
       fout << index << ", ";
     fout << "]" << std::endl;
 
     fout << "  meshid11_list = [";
-    for each (auto index in meshId)
+    for (auto index : meshId)
       fout << index << ", ";
     fout << "]" << std::endl;
 
     fout << "  meshid22_list = [";
-    for each (auto index in instId)
+    for (auto index : instId)
       fout << m_meshIdByInstId[index] << ", ";
     fout << "]" << std::endl;
 

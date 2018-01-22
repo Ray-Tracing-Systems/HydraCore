@@ -11,8 +11,6 @@ set(SOURCE_FILES
     main.h
     mesh_utils.cpp
     mesh_utils.h
-    Timer.cpp
-    Timer.h
     )
 
 set(ADDITIONAL_INCLUDE_DIRS

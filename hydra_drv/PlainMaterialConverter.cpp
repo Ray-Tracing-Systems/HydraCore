@@ -1,4 +1,4 @@
-// © Copyright 2017 Vladimir Frolov, MSU Grapics & Media Lab
+// ï¿½ Copyright 2017 Vladimir Frolov, MSU Grapics & Media Lab
 //
 
 #include "AbstractMaterial.h"
@@ -1065,7 +1065,7 @@ pugi::xml_attribute SmoothLvlAttr(const pugi::xml_node a_heightNode)
 
 RAYTR::BumpParameters BumpAmtAndLvl(const pugi::xml_node a_materialNode);
 
-static void ReadBumpAndOpacity(std::shared_ptr<IMaterial> pResult, pugi::xml_node a_node, RenderDriverRTE* a_pRTE)
+void ReadBumpAndOpacity(std::shared_ptr<IMaterial> pResult, pugi::xml_node a_node, RenderDriverRTE* a_pRTE)
 {
   int32_t materialId       = a_node.attribute(L"id").as_int();
   const std::wstring mtype = a_node.attribute(L"type").as_string();

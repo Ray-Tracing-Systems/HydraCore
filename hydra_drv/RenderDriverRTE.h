@@ -174,8 +174,7 @@ protected:
   void Error(const wchar_t* a_msg, const T& a_val)
   {
     wchar_t temp[256];
-    //wsprintf(temp, a_msg, a_val);
-    swprintf_s(temp, 256, a_msg, a_val);
+    swprintf(temp, 256, a_msg, a_val);
     m_msg = temp;
   }
 

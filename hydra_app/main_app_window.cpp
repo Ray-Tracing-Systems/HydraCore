@@ -4,6 +4,20 @@
 #include "../../HydraAPI/hydra_api/HydraRenderDriverAPI.h"
 IHRRenderDriver* CreateDriverRTE(const wchar_t* a_cfg, int w, int h, int a_devId, int a_flags);
 
+#ifndef WIN32
+#include <sys/time.h>
+unsigned int GetTickCount()
+{
+    struct timeval tv;
+    if(gettimeofday(&tv, NULL) != 0)
+        return 0;
+
+    return (tv.tv_sec * 1000) + (tv.tv_usec / 1000);
+}
+#endif
+
+#include <wchar.h>
+
 using pugi::xml_node;
 using pugi::xml_attribute;
 
@@ -30,6 +44,7 @@ static HRRenderRef    renderRef;
 
 static std::wstring s2ws(const std::string& s)
 {
+  #ifdef WIN32
   int len;
   int slength = (int)s.length() + 1;
   len = MultiByteToWideChar(CP_ACP, 0, s.c_str(), slength, 0, 0);
@@ -38,6 +53,9 @@ static std::wstring s2ws(const std::string& s)
   std::wstring r(buf);
   delete[] buf;
   return r;
+  #else
+  return std::wstring(s.begin(), s.end());
+  #endif
 }
 
 static void Init(std::shared_ptr<IHRRenderDriver> pDriverImpl)
@@ -352,9 +370,9 @@ static void reshape(GLFWwindow* window, int width, int height)
     pugi::xml_node node = hrRenderParamNode(renderRef);
 
     wchar_t temp[256];
-    wsprintf(temp, L"%d", g_width);
+    swprintf(temp, g_width, L"%d");
     node.child(L"width").text().set(temp);
-    wsprintf(temp, L"%d", g_height);
+    swprintf(temp, g_height, L"%d");
     node.child(L"height").text().set(temp);
   }
   hrRenderClose(renderRef);

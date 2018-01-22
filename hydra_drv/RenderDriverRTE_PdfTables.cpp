@@ -114,7 +114,7 @@ void HDRImageLite::gaussBlur(int radius, float sigma)
 
 
 
-static void createGaussKernelWeights(int size, std::vector<float>& gKernel, float a_sigma)
+void createGaussKernelWeights(int size, std::vector<float>& gKernel, float a_sigma)
 {
   gKernel.resize(size*size);
 
@@ -148,7 +148,7 @@ static void createGaussKernelWeights(int size, std::vector<float>& gKernel, floa
 }
 
 
-static void createGaussKernelWeights1D(int size, std::vector<float>& gKernel, float a_sigma)
+void createGaussKernelWeights1D(int size, std::vector<float>& gKernel, float a_sigma)
 {
   gKernel.resize(size);
 

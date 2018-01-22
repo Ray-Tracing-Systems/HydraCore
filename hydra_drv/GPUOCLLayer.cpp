@@ -523,6 +523,7 @@ GPUOCLLayer::GPUOCLLayer(int w, int h, int a_flags, int a_deviceId) : Base(w, h,
   }
   else if(!forceNoGLSharing)
   {
+    #ifdef WIN32
     cl_context_properties properties[] = {
       CL_GL_CONTEXT_KHR,   (cl_context_properties)wglGetCurrentContext(), // WGL Context
       CL_WGL_HDC_KHR,      (cl_context_properties)wglGetCurrentDC(),      // WGL HDC
@@ -532,6 +533,10 @@ GPUOCLLayer::GPUOCLLayer(int w, int h, int a_flags, int a_deviceId) : Base(w, h,
 
     m_globals.ctx = clCreateContext(properties, 1, &m_globals.device, NULL, NULL, &ciErr1);
     m_clglSharing = true;
+    #else
+    ciErr1        = -1;
+    m_clglSharing = false;
+    #endif
   }
 
   if (ciErr1 != CL_SUCCESS || m_globals.ctx == 0)

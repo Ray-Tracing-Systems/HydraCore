@@ -1,11 +1,22 @@
-// © Copyright 2017 Vladimir Frolov, MSU Grapics & Media Lab
+// ï¿½ Copyright 2017 Vladimir Frolov, MSU Grapics & Media Lab
 
 #include <vector>
 #include <iostream>
+#include <cstring>
 
+#include <math.h>
+
+#ifndef M_PI
 static const float M_PI       = 3.14159265358979323846f;
+#endif
+
+#ifndef INV_PI
 static const float INV_PI     = 1.0f/M_PI;
+#endif
+
+#ifndef DEG_TO_RAD
 static const float DEG_TO_RAD = M_PI / 180.0f;
+#endif
 
 namespace oldies
 {
@@ -52,21 +63,21 @@ std::vector<float> CreateSphericalTextureFromIES(const std::string& a_iesData, i
 
   IES_REFLECT reflectType = REFLECT0;
 
-  // The set of horizontal angles, listed in increasing order.The first angle must be 0°.
-  // The last angle determines the degree of lateral symmetry displayed by the intensity distribution.If it is 0°, the distribution is axially symmetric. 
-  // If it is 90°, the distribution is symmetric in each quadrant.
-  // If it is 180°, the distribution is symmetric about a vertical plane.
-  // If it is greater than 180° and less than or equal to 360°, the distribution exhibits no lateral symmetries.
+  // The set of horizontal angles, listed in increasing order.The first angle must be 0ï¿½.
+  // The last angle determines the degree of lateral symmetry displayed by the intensity distribution.If it is 0ï¿½, the distribution is axially symmetric. 
+  // If it is 90ï¿½, the distribution is symmetric in each quadrant.
+  // If it is 180ï¿½, the distribution is symmetric about a vertical plane.
+  // If it is greater than 180ï¿½ and less than or equal to 360ï¿½, the distribution exhibits no lateral symmetries.
   // All other values are invalid.
   //
   if (fabs(horizontStart) < eps && fabs(horizontEnd) < eps) // 0-0
     w = 1;
-  else if (fabs(horizontStart) < eps && fabs(horizontEnd - 90.0f) < eps) // 0-90, If it is 90°, the distribution is symmetric in each quadrant.
+  else if (fabs(horizontStart) < eps && fabs(horizontEnd - 90.0f) < eps) // 0-90, If it is 90ï¿½, the distribution is symmetric in each quadrant.
   {
     w = iesOldCrap.photo.num_horz_angles * 4;
     reflectType = REFLECT4;
   }
-  else if (fabs(horizontStart) < eps && fabs(horizontEnd - 180.0f) < eps) // 0-180,  If it is 180°, the distribution is symmetric about a vertical plane.
+  else if (fabs(horizontStart) < eps && fabs(horizontEnd - 180.0f) < eps) // 0-180,  If it is 180ï¿½, the distribution is symmetric about a vertical plane.
   {
     w = iesOldCrap.photo.num_horz_angles * 4;
     reflectType = REFLECT4;

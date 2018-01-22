@@ -109,7 +109,12 @@ void tests_main(std::shared_ptr<IHRRenderDriver> a_pDetachedRenderDriverPointer)
     const std::wstring refName1         = imageFolderName2 + L"/w_ref.png";
     const std::wstring refName2         = imageFolderName2 + L"/z_ref.png";
 
+    #ifdef WIN32
     std::ifstream fin(refName1);
+    #else
+    std::string temp(refName1.begin(), refName1.end());
+    std::ifstream fin(temp);
+    #endif
     const std::wstring refName = fin.good() ? refName1 : refName2;
     fin.close();
 
