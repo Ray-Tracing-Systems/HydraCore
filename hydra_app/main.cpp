@@ -1,6 +1,6 @@
 #include "main.h"
 
-#include "../../HydraAPI/hydra_api/RenderDriverHydraLegacyStuff.h"
+//#include "../../HydraAPI/hydra_api/RenderDriverHydraLegacyStuff.h"
 #include "../../HydraAPI/hydra_api/HydraRenderDriverAPI.h"
 #include "../hydra_drv/RenderDriverRTE.h"
 

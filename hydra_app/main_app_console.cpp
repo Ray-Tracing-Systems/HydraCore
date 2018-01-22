@@ -1,5 +1,5 @@
 #include "../hydra_drv/RenderDriverRTE.h"
-#include "../../HydraAPI/hydra_api/RenderDriverHydraLegacyStuff.h"
+#include "../../HydraAPI/hydra_api/HydraLegacyUtils.h"
 
 #include "main.h"
 
