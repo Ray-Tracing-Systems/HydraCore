@@ -9,8 +9,11 @@
 #include <map>
 #include <string>
 
+#ifdef WIN32
 #include "../../HydraAPI/clew/clew.h"
-
+#else
+#include <CL/cl.h>
+#endif
 
 #if defined (__APPLE__) || defined(MACOSX)
 static const char* CL_GL_SHARING_EXT = "cl_APPLE_gl_sharing";

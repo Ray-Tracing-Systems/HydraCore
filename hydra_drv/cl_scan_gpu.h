@@ -1,6 +1,10 @@
 #pragma once
 
+#ifdef WIN32
 #include "../../HydraAPI/clew/clew.h"
+#else
+#include <CL/cl.h>
+#endif
 
 struct ScanCLArgs
 {

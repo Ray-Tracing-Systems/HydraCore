@@ -15,7 +15,9 @@ static HRCameraRef    camRef;
 static HRSceneInstRef scnRef;
 static HRRenderRef    renderRef;
 
+#ifdef WIN32
 std::vector<std::wstring> hr_listfiles(const wchar_t* a_folder);
+#endif
 
 static std::wstring tail(std::wstring const& source, size_t const length) 
 {
@@ -48,10 +50,11 @@ void tests_main(std::shared_ptr<IHRRenderDriver> a_pDetachedRenderDriverPointer)
 {
   //g_pDetachedRenderDriverPointer = std::shared_ptr<IHRRenderDriver>(CreateDriverRTE(L"", g_input.winWidth, g_input.winHeight, g_input.inDeviceId, GPU_RT_NOWINDOW | GPU_RT_DO_NOT_PRINT_PASS_NUMBER));
   //std::cout << "[main]: detached render driver was created " << std::endl;
- 
+
+#ifdef WIN32
   const std::wstring testFolder       = g_input.inTestsFolder + L"tests_f";
   const std::wstring testFolderImages = g_input.inTestsFolder + L"tests_images";
-
+ 
   std::vector<std::wstring> directories = hr_listfiles(testFolder.c_str());
  
   std::cout << "begin tests" << std::endl;
@@ -154,6 +157,8 @@ void tests_main(std::shared_ptr<IHRRenderDriver> a_pDetachedRenderDriverPointer)
 
     curr++;
   }
+
+  #endif
 
   a_pDetachedRenderDriverPointer = nullptr;
 
