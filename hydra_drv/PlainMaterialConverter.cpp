@@ -1395,15 +1395,10 @@ std::shared_ptr<IMaterial> CreateMaterialFromXmlNode(pugi::xml_node a_node, Rend
   return pResult;
 }
 
-
 std::shared_ptr<IMaterial> CreateDiffuseWhiteMaterial()
 {
   return  std::make_shared<LambertMaterial>(float3(1, 1, 1), INVALID_TEXTURE, DummySampler());
 }
-
-
-
-
 
 
 #include "RenderDriverRTE.h"

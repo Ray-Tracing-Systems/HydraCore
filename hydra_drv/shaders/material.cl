@@ -170,6 +170,8 @@ __kernel void ConnectToEyeKernel(__global const uint*          restrict a_flags,
                                  __global const float4*        restrict a_colorIn,
                                  __global float4*              restrict a_colorOut,
                                  __global int2*                restrict out_zind,
+
+                                 __global float4*              restrict a_debugOut,
                                  
                                  float mLightSubPathCount,
                                  int   a_currBounce,
@@ -249,7 +251,12 @@ __kernel void ConnectToEyeKernel(__global const uint*          restrict a_flags,
 
   const float pdfAccExpA = cameraPdfA * (pdfRevWP*accData.pdfCameraWP)*accData.pdfGTerm*(cancelImplicitLightHitPdf*(lightPdfA*lightPickProbRev));
    
-  const float misWeight  = 1.0f; misWeightHeuristic3(pdfAccFwdA, pdfAccRevA, pdfAccExpA);
+  const float misWeight  = 1.0f; // misWeightHeuristic3(pdfAccFwdA, pdfAccRevA, pdfAccExpA);
+
+  if (a_debugOut != 0)
+  {
+    a_debugOut[tid] = make_float4(accData.pdfGTerm, accData.pdfLightWP, accData.pdfCameraWP, accData.pdfCamA0);
+  }
 
   // We divide the contribution by surfaceToImageFactor to convert the (already
   // divided) pdf from surface area to image plane area, w.r.t. which the

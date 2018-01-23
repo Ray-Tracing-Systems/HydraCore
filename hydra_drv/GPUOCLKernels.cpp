@@ -556,6 +556,8 @@ void GPUOCLLayer::runKernel_ProjectSamplesToScreen(cl_mem a_rayFlags, cl_mem a_h
   cl_float mLightSubPathCount = cl_float(m_width*m_height); // cl_float(m_rays.MEGABLOCKSIZE);
   cl_int currBounce           = a_currBounce+1;  
 
+  const bool debugMe = false && (currBounce == 1);
+
   CHECK_CL(clSetKernelArg(kern, 0, sizeof(cl_mem), (void*)&a_rayFlags));
   CHECK_CL(clSetKernelArg(kern, 1, sizeof(cl_mem), (void*)&a_rdir2));
   CHECK_CL(clSetKernelArg(kern, 2, sizeof(cl_mem), (void*)&a_rdir));
@@ -581,12 +583,29 @@ void GPUOCLLayer::runKernel_ProjectSamplesToScreen(cl_mem a_rayFlags, cl_mem a_h
   CHECK_CL(clSetKernelArg(kern, 19, sizeof(cl_mem), (void*)&a_colorsOut));
   CHECK_CL(clSetKernelArg(kern, 20, sizeof(cl_mem), (void*)&a_zindex));
   
-  CHECK_CL(clSetKernelArg(kern, 21, sizeof(cl_float), (void*)&mLightSubPathCount));
-  CHECK_CL(clSetKernelArg(kern, 22, sizeof(cl_int),   (void*)&currBounce));
-  CHECK_CL(clSetKernelArg(kern, 23, sizeof(cl_int),   (void*)&isize));
+  if (debugMe)
+  {
+    CHECK_CL(clSetKernelArg(kern, 21, sizeof(cl_mem), (void*)&m_rays.lsam1));
+  }
+  else
+  {
+    CHECK_CL(clSetKernelArg(kern, 21, sizeof(cl_mem), nullptr));
+  }
+
+  CHECK_CL(clSetKernelArg(kern, 22, sizeof(cl_float), (void*)&mLightSubPathCount));
+  CHECK_CL(clSetKernelArg(kern, 23, sizeof(cl_int),   (void*)&currBounce));
+  CHECK_CL(clSetKernelArg(kern, 24, sizeof(cl_int),   (void*)&isize));
 
   CHECK_CL(clEnqueueNDRangeKernel(m_globals.cmdQueue, kern, 1, NULL, &a_size, &localWorkSize, 0, NULL, NULL));
   waitIfDebug(__FILE__, __LINE__);
+
+  if (debugMe)
+  {
+    std::vector<float4> debugData(a_size);
+    CHECK_CL(clEnqueueReadBuffer(m_globals.cmdQueue, m_rays.lsam1, CL_TRUE, 0, a_size * sizeof(float), &debugData[0], 0, NULL, NULL));
+    int a = 2;
+  }
+
 }
 
 
