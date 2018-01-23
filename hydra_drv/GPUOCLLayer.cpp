@@ -404,9 +404,13 @@ GPUOCLLayer::GPUOCLLayer(int w, int h, int a_flags, int a_deviceId) : Base(w, h,
     m_memoryTaken[i] = 0;
 
   memset(&m_globsBuffHeader, 0, sizeof(EngineGlobals));
-
+  
+  #ifdef WIN32
   int initRes = clewInit(L"opencl.dll");
-
+  #else
+  int initRes = 0;
+  #endif
+  
   if (initRes == -1)
   {
     std::cerr << "[cl_core]: failed to load opencl.dll " << std::endl;

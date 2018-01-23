@@ -1,4 +1,8 @@
+#ifdef WIN32
 #include "../../HydraAPI/clew/clew.h"
+#else
+#include <CL/cl.h>
+#endif
 
 #include <iostream>
 #include <fstream>
@@ -209,7 +213,7 @@ int IsExtensionSupported(const char* support_str, const char* ext_string, size_t
     if (strncmp(support_str, ext_string + offset, space_pos) == 0)
     {
       // Device supports requested extension!
-      //printf("[cl_core]: Found extension support ‘%s’!\n", support_str);
+      //printf("[cl_core]: Found extension support ï¿½%sï¿½!\n", support_str);
       return 1;
     }
     // Keep searching -- skip to next token string
@@ -217,7 +221,7 @@ int IsExtensionSupported(const char* support_str, const char* ext_string, size_t
     space_substr = strnstr(ext_string + offset, " ", ext_buffer_size - offset);
     space_pos = space_substr ? space_substr - ext_string : 0;
   }
-  printf("Warning: Extension not supported ‘%s’!\n", support_str);
+  printf("Warning: Extension not supported ï¿½%sï¿½!\n", support_str);
   return 0;
 }
 

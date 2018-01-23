@@ -16,6 +16,10 @@ void UpdateProgress(const wchar_t* a_message, float a_progress)
   fwprintf(stdout, L"%s: %.0f%%            \r", a_message, a_progress*100.0f);
 }
 
+#ifndef WIN32
+extern "C" IBVHBuilder2* CreateBuilder2(char* cfg);
+#endif
+
 RenderDriverRTE::RenderDriverRTE(const wchar_t* a_options, int w, int h, int a_devId, int a_flags, IHRSharedAccumImage* a_sharedImage) : m_pBVH(nullptr), m_pHWLayer(nullptr),
                                                                                                                                          m_pTexStorage(nullptr), m_pTexStorageAux(nullptr), 
                                                                                                                                          m_pGeomStorage(nullptr), m_pMaterialStorage(nullptr), 
@@ -67,9 +71,12 @@ RenderDriverRTE::RenderDriverRTE(const wchar_t* a_options, int w, int h, int a_d
   m_pHWLayer->SetProgressBarCallback(&UpdateProgress);
  
   m_firstResizeOfScreen = true;
-
+#ifdef WIN32
   m_pBVH = CreateBuilderFromDLL(L"bvh_builder.dll", "");
-
+#else
+  m_pBVH = CreateBuilder2("");
+#endif
+  
   if (m_pBVH != nullptr)
   {
     if (m_useBvhInstInsert)

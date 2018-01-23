@@ -5,15 +5,7 @@
 IHRRenderDriver* CreateDriverRTE(const wchar_t* a_cfg, int w, int h, int a_devId, int a_flags);
 
 #ifndef WIN32
-#include <sys/time.h>
-unsigned int GetTickCount()
-{
-    struct timeval tv;
-    if(gettimeofday(&tv, NULL) != 0)
-        return 0;
-
-    return (tv.tv_sec * 1000) + (tv.tv_usec / 1000);
-}
+unsigned int GetTickCount();
 #endif
 
 #include <wchar.h>

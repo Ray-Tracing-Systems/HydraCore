@@ -225,7 +225,7 @@ namespace embree
   }
 
   /* main function in embree namespace */
-  int main(int argc, char** argv) 
+  int main3(int argc, char** argv) 
   {
     /* for best performance set FTZ and DAZ flags in MXCSR control and status register */
     _MM_SET_FLUSH_ZERO_MODE(_MM_FLUSH_ZERO_ON);
@@ -257,10 +257,10 @@ namespace embree
   }
 }
 
-int main(int argc, char** argv)
+int main2(int argc, char** argv)
 {
   try {
-    return embree::main(argc, argv);
+    return embree::main3(argc, argv);
   }
   catch (const std::exception& e) {
     std::cout << "Error: " << e.what() << std::endl;
