@@ -69,10 +69,8 @@ int main(int argc, const char** argv)
   GetCurrentDirectoryW(512, NPath);
   std::wcout << L"[main]: curr_dir = " << NPath << std::endl;
   #else
-  
-  std::string workingDir = "../../hydra_app";
-  chdir(workingDir.c_str());
-  
+  //std::string workingDir = "../../hydra_app";
+  //chdir(workingDir.c_str());
   char cwd[1024];
   if (getcwd(cwd, sizeof(cwd)) != nullptr)
     std::cout << "[main]: curr_dir = " << cwd << std::endl;
@@ -95,8 +93,11 @@ int main(int argc, const char** argv)
 
   for (int i = 0; i < argc; )
   {
+    std::cout << "argv[" << i << "] =\t" << argv[i] << std::endl;
+    
     if (argv[i][0] == '-' && i + 1 < argc)
     {
+      std::cout << "argv[" << i+1 << "] =\t" << argv[i+1] << std::endl;
       const char* paramName = argv[i];
       const char* paramVal  = argv[i + 1];
       cmdParams[paramName]  = paramVal;
@@ -160,6 +161,7 @@ int main(int argc, const char** argv)
 
         if (!externalImageIsOk)
         {
+          //std::cerr << "failed to attach to external image" << std::endl;
           delete g_pExternalImage;
           g_pExternalImage = nullptr;
         }

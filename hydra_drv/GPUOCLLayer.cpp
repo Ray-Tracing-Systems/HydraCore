@@ -578,8 +578,18 @@ GPUOCLLayer::GPUOCLLayer(int w, int h, int a_flags, int a_deviceId) : Base(w, h,
   std::string lshaderpath  = "../hydra_drv/shaders/light.cl";    // !!!! the hole in security !!!
   std::string yshaderpath  = "../hydra_drv/shaders/material.cl";    // !!!! the hole in security !!!
 
+#ifdef WIN32
   const std::string installPath2 = "C:/[Hydra]/bin2/";
-
+#else
+  //const std::string installPath2 = "./";
+  char user_name[L_cuserid];
+  cuserid(user_name);
+  
+  std::stringstream ss;
+  ss << "/home/" << user_name << "/hydra/";
+  const std::string installPath2 = ss.str();
+#endif
+  
   if (!isFileExists(sshaderpath))  sshaderpath  = installPath2 + "shaders/screen.cl";
   if (!isFileExists(tshaderpath))  tshaderpath  = installPath2 + "shaders/trace.cl";
   if (!isFileExists(soshaderpath)) soshaderpath = installPath2 + "shaders/sort.cl";
@@ -603,7 +613,7 @@ GPUOCLLayer::GPUOCLLayer(int w, int h, int a_flags, int a_deviceId) : Base(w, h,
   std::string loshaderpathBin = installPath2 + "shadercache/" + "lightx_" + devHash + ".bin";
   std::string yoshaderpathBin = installPath2 + "shadercache/" + "matsxx_" + devHash + ".bin";
 
-  bool inDevelopment = true;
+  bool inDevelopment = false;
   #ifdef _DEBUG
   inDevelopment = true;
   #endif
