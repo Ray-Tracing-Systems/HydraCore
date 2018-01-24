@@ -406,35 +406,35 @@ void GPUOCLLayer::ShadePass(cl_mem a_rpos, cl_mem a_rdir, cl_mem a_outColor, siz
   a_size               = roundBlocks(a_size, int(localWorkSize));
 
   const bool traceShadows = (m_vars.m_flags & HRT_COMPUTE_SHADOWS);
-
+  
   if (true)
   {
     CHECK_CL(clSetKernelArg(kernX, 0, sizeof(cl_mem), (void*)&a_rpos));
     CHECK_CL(clSetKernelArg(kernX, 1, sizeof(cl_mem), (void*)&a_rdir));
+    
     CHECK_CL(clSetKernelArg(kernX, 2, sizeof(cl_mem), (void*)&m_rays.rayFlags));
     CHECK_CL(clSetKernelArg(kernX, 3, sizeof(cl_mem), (void*)&m_rays.randGenState));
-
+    
     CHECK_CL(clSetKernelArg(kernX, 4, sizeof(cl_mem), (void*)&m_rays.hitPosNorm));
-
+    
     CHECK_CL(clSetKernelArg(kernX, 5, sizeof(cl_mem), (void*)&m_rays.lsam1));        // float4
     CHECK_CL(clSetKernelArg(kernX, 6, sizeof(cl_mem), (void*)&m_rays.lsam2));        // float4
     CHECK_CL(clSetKernelArg(kernX, 7, sizeof(cl_mem), (void*)&m_rays.lsamProb));     // float
-
+    
     CHECK_CL(clSetKernelArg(kernX, 8, sizeof(cl_mem), (void*)&m_rays.shadowRayPos)); // float4
     CHECK_CL(clSetKernelArg(kernX, 9, sizeof(cl_mem), (void*)&m_rays.shadowRayDir)); // float4
-
+    
     CHECK_CL(clSetKernelArg(kernX, 10, sizeof(cl_mem), (void*)&m_scene.storageTex));
+    
     CHECK_CL(clSetKernelArg(kernX, 11, sizeof(cl_mem), (void*)&m_scene.storageTexAux)); // #TODO: add secondary texture storage ?
-    CHECK_CL(clSetKernelArg(kernX, 12, sizeof(cl_mem),(void*)&m_scene.storagePdfs));
-
+    CHECK_CL(clSetKernelArg(kernX, 12, sizeof(cl_mem), (void*)&m_scene.storagePdfs));
+    
     CHECK_CL(clSetKernelArg(kernX, 13, sizeof(cl_int), (void*)&isize));
     CHECK_CL(clSetKernelArg(kernX, 14, sizeof(cl_mem), (void*)&m_scene.allGlobsData));
-    CHECK_CL(clSetKernelArg(kernX, 15, sizeof(cl_mem), (void*)&m_mlt.pssVector));
-    CHECK_CL(clSetKernelArg(kernX, 16, sizeof(cl_mem), (void*)&m_mlt.yOldNewId));
 
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   }
-
+  
   if (m_globals.cpuTrace)
   {
     CHECK_CL(clEnqueueNDRangeKernel(m_globals.cmdQueue, kernX, 1, NULL, &a_size, &localWorkSize, 0, NULL, NULL));  
@@ -451,7 +451,8 @@ void GPUOCLLayer::ShadePass(cl_mem a_rpos, cl_mem a_rdir, cl_mem a_outColor, siz
       clFinish(m_globals.cmdQueue);
       timeBeginLightSample = m_timer.getElapsed();
     }
-
+  
+    waitIfDebug(__FILE__, __LINE__);
     CHECK_CL(clEnqueueNDRangeKernel(m_globals.cmdQueue, kernX, 1, NULL, &a_size, &localWorkSize, 0, NULL, NULL));  
     waitIfDebug(__FILE__, __LINE__);
 

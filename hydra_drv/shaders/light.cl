@@ -92,42 +92,28 @@ __kernel void LightSampleForwardKernel(__global float4*        restrict out_rpos
 
 __kernel void LightSample(__global const float4*  restrict a_rpos,
                           __global const float4*  restrict a_rdir,
+
                           __global const uint*    restrict a_flags,
                           __global RandomGen*     restrict out_gens,
-                                                  
+
                           __global const float4*  restrict in_hitPosNorm,
                           __global float4*        restrict out_data1,
                           __global float4*        restrict out_data2,
-                          __global float*         restrict out_lightPickProb,  
+                          __global float*         restrict out_lightPickProb,
                           __global float4*        restrict out_srpos,
                           __global float4*        restrict out_srdir,
-                                                 
-                          __global const float4*  restrict a_texStorage1,  // 
+
+                          __global const float4*  restrict a_texStorage1,  //
                           __global const float4*  restrict a_texStorage2,  //
                           __global const float4*  restrict a_pdfStorage,   //
-
+                          
                           int iNumElements,
-
-                          __global const EngineGlobals* restrict a_globals,
-                          __global const float*         restrict a_qmcVec,
-                          __global const int2*          restrict a_qmcSorted)
+                          __global const EngineGlobals* restrict a_globals)
 {
 
   int tid = GLOBAL_ID_X;
   if (tid >= iNumElements)
     return;
-
-#ifdef MLT_MULTY_PROPOSAL
-  __global const float* qmcVec = (a_qmcVec == 0) ? 0 : a_qmcVec + (tid/MLT_PROPOSALS)*a_globals->varsI[HRT_MLT_MAX_NUMBERS];
-#else
-
-  #ifndef MLT_SORT_RAYS
-  __global const float* qmcVec = (a_qmcVec == 0) ? 0 : a_qmcVec + tid*a_globals->varsI[HRT_MLT_MAX_NUMBERS];
-  #else
-  __global const float* qmcVec = (a_qmcVec == 0) ? 0 : a_qmcVec + a_qmcSorted[tid].y*a_globals->varsI[HRT_MLT_MAX_NUMBERS];
-  #endif
-
-#endif
 
   uint flags = a_flags[tid];
 

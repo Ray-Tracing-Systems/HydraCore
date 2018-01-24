@@ -356,7 +356,7 @@ static void reshape(GLFWwindow* window, int width, int height)
 
   g_width  = width;
   g_height = height;
-
+  
   hrRenderOpen(renderRef, HR_OPEN_EXISTING);
   {
     pugi::xml_node node = hrRenderParamNode(renderRef);
@@ -364,13 +364,13 @@ static void reshape(GLFWwindow* window, int width, int height)
     const wchar_t* drvName = node.attribute(L"name").as_string();
     
     wchar_t temp[256];
-    swprintf(temp, g_width, L"%d");
+    swprintf(temp, 256, L"%d", g_width);
     node.child(L"width").text().set(temp);
-    swprintf(temp, g_height, L"%d");
+    swprintf(temp, 256, L"%d", g_height);
     node.child(L"height").text().set(temp);
   }
   hrRenderClose(renderRef);
-
+  
   hrCommit(scnRef, renderRef);
 }
 
@@ -432,7 +432,7 @@ void window_main(std::shared_ptr<IHRRenderDriver> a_pDriverImpl)
   glfwMakeContextCurrent(g_window);
   //gladLoadGLLoader((GLADloadproc)glfwGetProcAddress);
   glfwSwapInterval(0);
-
+  
   glfwGetFramebufferSize(g_window, &g_width, &g_height);
   glfwSetInputMode(g_window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
   reshape(g_window, g_width, g_height);

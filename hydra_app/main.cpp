@@ -228,8 +228,7 @@ int main(int argc, const char** argv)
   
   delete g_pExternalImage;
   g_pExternalImage = nullptr;
-
-  atexit(nullptr); // don't call hrDestroy twice
+  
 #ifdef WIN32
   SetConsoleCtrlHandler(NULL, FALSE);
 #endif
