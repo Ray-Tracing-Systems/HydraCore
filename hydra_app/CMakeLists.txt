@@ -18,6 +18,10 @@ set(SOURCE_FILES
 set(ADDITIONAL_INCLUDE_DIRS
         ../LIBRARY/include)
 
+if (CMAKE_BUILD_TYPE STREQUAL "Debug")
+    MESSAGE(WARNING "DEBUG IS ON")
+    add_definitions(-DDEBUG -D_DEBUG)
+endif()
 
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake/Modules")
 find_package(FreeImage REQUIRED)

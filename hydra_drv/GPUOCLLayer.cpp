@@ -1044,7 +1044,7 @@ void GPUOCLLayer::DrawNormals()
     size_t globalWorkSize = m_rays.MEGABLOCKSIZE;
     cl_int iOffset = cl_int(offset);
 
-    if (offset + globalWorkSize >(m_width*m_height))
+    if (offset + globalWorkSize > (m_width*m_height))
       globalWorkSize = (m_width*m_height) - offset;
 
     CHECK_CL(clSetKernelArg(makeRaysKern, 0, sizeof(cl_int), (void*)&iOffset));
@@ -1058,9 +1058,9 @@ void GPUOCLLayer::DrawNormals()
       globalWorkSize = (globalWorkSize / localWorkSize)*localWorkSize;
 
     CHECK_CL(clEnqueueNDRangeKernel(m_globals.cmdQueue, makeRaysKern, 1, NULL, &globalWorkSize, &localWorkSize, 0, NULL, NULL));
-
+    waitIfDebug(__FILE__, __LINE__);
+    
     trace1DPrimaryOnly(m_rays.rayPos, m_rays.rayDir, m_screen.color0, globalWorkSize, offset); //  m_screen.colorSubBuffers[iter]
-
     iter++;
   }
 
@@ -1084,7 +1084,8 @@ void GPUOCLLayer::DrawNormals()
   CHECK_CL(clSetKernelArg(colorKern, 5, sizeof(cl_float), (void*)&m_globsBuffHeader.varsF[HRT_IMAGE_GAMMA]));
   
   CHECK_CL(clEnqueueNDRangeKernel(m_globals.cmdQueue, colorKern, 2, NULL, global_item_size, local_item_size, 0, NULL, NULL));
-
+  waitIfDebug(__FILE__, __LINE__);
+  
   //if (!(m_initFlags & GPU_RT_NOWINDOW))
   //  CHECK_CL(clEnqueueReleaseGLObjects(m_globals.cmdQueue, 1, &tempLDRBuff, 0, 0, 0));
 }
@@ -1456,6 +1457,7 @@ void GPUOCLLayer::trace1DPrimaryOnly(cl_mem a_rpos, cl_mem a_rdir, cl_mem a_outC
     CHECK_CL(clSetKernelArg(kernShowN, 3, sizeof(cl_int), (void*)&ioffset));
 
     CHECK_CL(clEnqueueNDRangeKernel(m_globals.cmdQueue, kernShowN, 1, NULL, &a_size, &localWorkSize, 0, NULL, NULL));
+    waitIfDebug(__FILE__, __LINE__);
   }
   else if (false)
   {
@@ -1465,6 +1467,7 @@ void GPUOCLLayer::trace1DPrimaryOnly(cl_mem a_rpos, cl_mem a_rdir, cl_mem a_outC
     CHECK_CL(clSetKernelArg(kernShowT, 3, sizeof(cl_int), (void*)&ioffset));
 
     CHECK_CL(clEnqueueNDRangeKernel(m_globals.cmdQueue, kernShowT, 1, NULL, &a_size, &localWorkSize, 0, NULL, NULL));
+    waitIfDebug(__FILE__, __LINE__);
   }
   else
   {
@@ -1474,6 +1477,7 @@ void GPUOCLLayer::trace1DPrimaryOnly(cl_mem a_rpos, cl_mem a_rdir, cl_mem a_outC
     CHECK_CL(clSetKernelArg(kernFill, 3, sizeof(cl_int), (void*)&ioffset));
 
     CHECK_CL(clEnqueueNDRangeKernel(m_globals.cmdQueue, kernFill, 1, NULL, &a_size, &localWorkSize, 0, NULL, NULL));
+    waitIfDebug(__FILE__, __LINE__);
   }
 
 }

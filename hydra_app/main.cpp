@@ -1,10 +1,7 @@
 #include "main.h"
 
-//#include "../../HydraAPI/hydra_api/RenderDriverHydraLegacyStuff.h"
 #include "../../HydraAPI/hydra_api/HydraRenderDriverAPI.h"
 #include "../hydra_drv/RenderDriverRTE.h"
-
-#include <limits>
 
 #ifdef WIN32
   #include <windows.h> 
@@ -72,6 +69,10 @@ int main(int argc, const char** argv)
   GetCurrentDirectoryW(512, NPath);
   std::wcout << L"[main]: curr_dir = " << NPath << std::endl;
   #else
+  
+  std::string workingDir = "../../hydra_app";
+  chdir(workingDir.c_str());
+  
   char cwd[1024];
   if (getcwd(cwd, sizeof(cwd)) != nullptr)
     std::cout << "[main]: curr_dir = " << cwd << std::endl;
