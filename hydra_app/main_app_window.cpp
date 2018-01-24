@@ -361,6 +361,8 @@ static void reshape(GLFWwindow* window, int width, int height)
   {
     pugi::xml_node node = hrRenderParamNode(renderRef);
 
+    const wchar_t* drvName = node.attribute(L"name").as_string();
+
     wchar_t temp[256];
     swprintf(temp, g_width, L"%d");
     node.child(L"width").text().set(temp);

@@ -402,7 +402,9 @@ size_t EmbreeBVH4_2::ConvertBvh4TwoLevel(BVH4::NodeRef node, size_t currNodeOffs
     const int* pInstId    = (const int*)node.leaf(num);
     const Triangle4v* tri = (const Triangle4v*)pInstId;
   
-    if (nodeType == 9 && a_level == 0 && !IsThisFuckingEmbreeLeafWithTriangles(pInstId) && (*(pInstId) < m_tree[m_ltreeId].m_realInstId.size()) ) // instance
+    //const bool leafWithTri = IsThisFuckingEmbreeLeafWithTriangles(pInstId);
+
+    if (nodeType == 9 && a_level == 0 && (*(pInstId) < m_tree[m_ltreeId].m_realInstId.size()) ) // instance
     {
       const int meshId     = m_tree[m_ltreeId].m_meshIdByInstId[(*pInstId)];
       const int realInstId = m_tree[m_ltreeId].m_realInstId[*(pInstId)];
