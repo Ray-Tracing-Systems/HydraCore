@@ -84,6 +84,13 @@ void GPUOCLLayer::runKernel_MakeLightRays(cl_mem a_rpos, cl_mem a_rdir, cl_mem a
 
   CHECK_CL(clEnqueueNDRangeKernel(m_globals.cmdQueue, makeRaysKern, 1, NULL, &a_size, &localWorkSize, 0, NULL, NULL));
   waitIfDebug(__FILE__, __LINE__);
+
+  if (DEBUG_LT_WEIGHTS)
+  {
+    std::vector<float4> debugData(a_size);
+    CHECK_CL(clEnqueueReadBuffer(m_globals.cmdQueue, m_rays.accPdf, CL_TRUE, 0, a_size * sizeof(float), &debugData[0], 0, NULL, NULL));
+    int a = 2;
+  }
 }
 
 void RoundBlocks2D(size_t global_item_size[2], size_t local_item_size[2])
@@ -305,6 +312,13 @@ void GPUOCLLayer::runKernel_NextBounce(cl_mem a_rayFlags, cl_mem a_rpos, cl_mem 
 
   CHECK_CL(clEnqueueNDRangeKernel(m_globals.cmdQueue, kernX, 1, NULL, &a_size, &localWorkSize, 0, NULL, NULL));
   waitIfDebug(__FILE__, __LINE__);
+
+  if (DEBUG_LT_WEIGHTS)
+  {
+    std::vector<float4> debugData(a_size);
+    CHECK_CL(clEnqueueReadBuffer(m_globals.cmdQueue, m_rays.accPdf, CL_TRUE, 0, a_size * sizeof(float), &debugData[0], 0, NULL, NULL));
+    int a = 2;
+  }
 }
 
 
@@ -557,7 +571,7 @@ void GPUOCLLayer::runKernel_ProjectSamplesToScreen(cl_mem a_rayFlags, cl_mem a_h
   cl_float mLightSubPathCount = cl_float(m_width*m_height); // cl_float(m_rays.MEGABLOCKSIZE);
   cl_int currBounce           = a_currBounce+1;  
 
-  const bool debugMe = false && (currBounce == 1);
+  const bool debugMe = DEBUG_LT_WEIGHTS && (currBounce == 1);
 
   CHECK_CL(clSetKernelArg(kern, 0, sizeof(cl_mem), (void*)&a_rayFlags));
   CHECK_CL(clSetKernelArg(kern, 1, sizeof(cl_mem), (void*)&a_rdir2));
@@ -604,6 +618,7 @@ void GPUOCLLayer::runKernel_ProjectSamplesToScreen(cl_mem a_rayFlags, cl_mem a_h
   {
     std::vector<float4> debugData(a_size);
     CHECK_CL(clEnqueueReadBuffer(m_globals.cmdQueue, m_rays.lsam1, CL_TRUE, 0, a_size * sizeof(float), &debugData[0], 0, NULL, NULL));
+    //CHECK_CL(clEnqueueReadBuffer(m_globals.cmdQueue, m_rays.accPdf, CL_TRUE, 0, a_size * sizeof(float), &debugData[0], 0, NULL, NULL));
     int a = 2;
   }
 

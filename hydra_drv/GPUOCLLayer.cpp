@@ -570,13 +570,13 @@ GPUOCLLayer::GPUOCLLayer(int w, int h, int a_flags, int a_deviceId) : Base(w, h,
 
   CHECK_CL(clGetDeviceInfo(m_globals.device, CL_DEVICE_MAX_WORK_GROUP_SIZE, sizeof(size_t), &m_globals.m_maxWorkGroupSize, NULL));
 
-  std::string sshaderpath  = "../hydra_drv/shaders/screen.cl"; // !!!! the hole in security !!!
-  std::string tshaderpath  = "../hydra_drv/shaders/trace.cl";  // !!!! the hole in security !!!
-  std::string soshaderpath = "../hydra_drv/shaders/sort.cl";   // !!!! the hole in security !!!
-  std::string ishaderpath  = "../hydra_drv/shaders/image.cl";  // !!!! the hole in security !!!
-  std::string mshaderpath  = "../hydra_drv/shaders/mlt.cl";         // !!!! the hole in security !!!
+  std::string sshaderpath  = "../hydra_drv/shaders/screen.cl";   // !!!! the hole in security !!!
+  std::string tshaderpath  = "../hydra_drv/shaders/trace.cl";    // !!!! the hole in security !!!
+  std::string soshaderpath = "../hydra_drv/shaders/sort.cl";     // !!!! the hole in security !!!
+  std::string ishaderpath  = "../hydra_drv/shaders/image.cl";    // !!!! the hole in security !!!
+  std::string mshaderpath  = "../hydra_drv/shaders/mlt.cl";      // !!!! the hole in security !!!
   std::string lshaderpath  = "../hydra_drv/shaders/light.cl";    // !!!! the hole in security !!!
-  std::string yshaderpath  = "../hydra_drv/shaders/material.cl";    // !!!! the hole in security !!!
+  std::string yshaderpath  = "../hydra_drv/shaders/material.cl"; // !!!! the hole in security !!!
 
 #ifdef WIN32
   const std::string installPath2 = "C:/[Hydra]/bin2/";
@@ -584,7 +584,6 @@ GPUOCLLayer::GPUOCLLayer(int w, int h, int a_flags, int a_deviceId) : Base(w, h,
   //const std::string installPath2 = "./";
   char user_name[L_cuserid];
   cuserid(user_name);
-  
   std::stringstream ss;
   ss << "/home/" << user_name << "/hydra/";
   const std::string installPath2 = ss.str();
@@ -613,7 +612,7 @@ GPUOCLLayer::GPUOCLLayer(int w, int h, int a_flags, int a_deviceId) : Base(w, h,
   std::string loshaderpathBin = installPath2 + "shadercache/" + "lightx_" + devHash + ".bin";
   std::string yoshaderpathBin = installPath2 + "shadercache/" + "matsxx_" + devHash + ".bin";
 
-  bool inDevelopment = false;
+  bool inDevelopment = true;
   #ifdef _DEBUG
   inDevelopment = true;
   #endif

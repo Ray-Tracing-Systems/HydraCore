@@ -181,6 +181,9 @@ __kernel void ConnectToEyeKernel(__global const uint*          restrict a_flags,
   if (tid >= iNumElements)
     return;
 
+  if (a_debugOut != 0)
+    a_debugOut[tid] = make_float4(0, 0, 0, 0);
+
   uint flags = a_flags[tid];
   if (!rayIsActiveU(flags))
   {
@@ -227,36 +230,40 @@ __kernel void ConnectToEyeKernel(__global const uint*          restrict a_flags,
     pdfRevW           = matRes.pdfRev;
   }
 
-  const PerRayAcc accData = in_pdfAcc[tid];
-
-  const float cosCurr  = fabs(dot(ray_dir, hitNorm));
-  const float pdfRevWP = pdfRevW / fmax(cosCurr, DEPSILON); // pdfW po pdfWP
-   
-  float pdfCamA0 = accData.pdfCamA0;
-  if (a_currBounce == 1)
-    pdfCamA0 *= pdfRevWP; // see pdfRevWP? this is just because on the first bounce a_pAccData->pdfCameraWP == 1.
-   
-  const float cancelImplicitLightHitPdf = (1.0f / fmax(pdfCamA0, DEPSILON2));
-   
-  __global const PlainLight* pLight = lightAt(a_globals, in_lightId[tid]);
-  const float lightPickProbFwd = lightPdfSelectFwd(pLight);
-  const float lightPickProbRev = lightPdfSelectRev(pLight);
-   
-  const float cameraPdfA = imageToSurfaceFactor / mLightSubPathCount;
-  const float lightPdfA  = as_int(in_lsam2[tid].w); //PerThread().pdfLightA0; // remember that we packed it in lsam2 inside 'LightSampleForwardKernel'
-  
-  const float pdfAccFwdA = 1.0f*accData.pdfLightWP*accData.pdfGTerm*(lightPdfA*lightPickProbFwd);
-  const float pdfAccRevA = cameraPdfA * (pdfRevWP*accData.pdfCameraWP)*accData.pdfGTerm; // see pdfRevWP? this is just because on the first bounce a_pAccData->pdfCameraWP == 1.
-                                                                                         // we didn't eval reverse pdf yet. Imagine light ray hit surface and we immediately connect.
-
-  const float pdfAccExpA = cameraPdfA * (pdfRevWP*accData.pdfCameraWP)*accData.pdfGTerm*(cancelImplicitLightHitPdf*(lightPdfA*lightPickProbRev));
-   
-  const float misWeight  = 1.0f; // misWeightHeuristic3(pdfAccFwdA, pdfAccRevA, pdfAccExpA);
-
-  if (a_debugOut != 0)
+  float misWeight = 1.0f;
+  if (a_globals->g_flags & HRT_3WAY_MIS_WEIGHTS)
   {
-    a_debugOut[tid] = make_float4(accData.pdfGTerm, accData.pdfLightWP, accData.pdfCameraWP, accData.pdfCamA0);
+    const PerRayAcc accData = in_pdfAcc[tid];
+
+    const float cosCurr = fabs(dot(ray_dir, hitNorm));
+    const float pdfRevWP = pdfRevW / fmax(cosCurr, DEPSILON); // pdfW po pdfWP
+
+    float pdfCamA0 = accData.pdfCamA0;
+    if (a_currBounce == 1)
+      pdfCamA0 *= pdfRevWP; // see pdfRevWP? this is just because on the first bounce a_pAccData->pdfCameraWP == 1.
+
+    const float cancelImplicitLightHitPdf = (1.0f / fmax(pdfCamA0, DEPSILON2));
+
+    __global const PlainLight* pLight = lightAt(a_globals, in_lightId[tid]);
+    const float lightPickProbFwd = lightPdfSelectFwd(pLight);
+    const float lightPickProbRev = lightPdfSelectRev(pLight);
+
+    const float cameraPdfA = imageToSurfaceFactor / mLightSubPathCount;
+    const float lightPdfA  = in_lsam2[tid].w; //PerThread().pdfLightA0; // remember that we packed it in lsam2 inside 'LightSampleForwardKernel'
+
+    const float pdfAccFwdA = 1.0f*accData.pdfLightWP*accData.pdfGTerm*(lightPdfA*lightPickProbFwd);
+    const float pdfAccRevA = cameraPdfA * (pdfRevWP*accData.pdfCameraWP)*accData.pdfGTerm; // see pdfRevWP? this is just because on the first bounce a_pAccData->pdfCameraWP == 1.
+                                                                                           // we didn't eval reverse pdf yet. Imagine light ray hit surface and we immediately connect.
+    const float pdfAccExpA = cameraPdfA * (pdfRevWP*accData.pdfCameraWP)*accData.pdfGTerm*(cancelImplicitLightHitPdf*(lightPdfA*lightPickProbRev));
+
+    misWeight = misWeightHeuristic3(pdfAccFwdA, pdfAccRevA, pdfAccExpA);
+
+    if (a_debugOut != 0)
+    {
+      a_debugOut[tid] = make_float4(pdfAccFwdA, pdfAccRevA, pdfAccExpA, misWeight);
+    }
   }
+  
 
   // We divide the contribution by surfaceToImageFactor to convert the (already
   // divided) pdf from surface area to image plane area, w.r.t. which the
