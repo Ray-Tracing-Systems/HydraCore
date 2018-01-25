@@ -371,9 +371,6 @@ std::vector<unsigned char> LoadShaderFromBinary(const std::string& binPath)
   std::vector<unsigned char> data(0);
   std::ifstream fin(binPath.c_str(), std::ios::binary);
 
-  //std::cout << "[debug]: binPath = " << binPath.c_str() << std::endl;
-  //std::cout << "[debug]: is_open = " << fin.is_open() << std::endl;
-
   if (!fin.is_open())
     return data;
 
@@ -410,8 +407,6 @@ CLProgram::CLProgram(cl_device_id a_devId, cl_context a_ctx,
 
   std::vector<unsigned char> binShaderCode = LoadShaderFromBinary(binPath);
   bool loadBinarySuccess = false;
-
-  //std::cout << "[debug]: binShaderCode.size() = " << binShaderCode.size() << std::endl;
 
   // load from binary
   //

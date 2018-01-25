@@ -87,11 +87,11 @@ bool InitSceneLibAndRTE(HRCameraRef& a_camRef, HRSceneInstRef& a_scnRef, HRRende
   hrErrorCallerPlace(L"InitSceneLibAndRTE");
 
   const std::wstring libraryPath = s2ws(g_input.inLibraryPath);
-
+  
   int32_t stateId = hrSceneLibraryOpen(libraryPath.c_str(), HR_OPEN_EXISTING);
   if (stateId < 0)
    return false;
-
+  
   HRSceneLibraryInfo scnInfo = hrSceneLibraryInfo();
 
   if (scnInfo.camerasNum == 0) // create some default camera
@@ -159,13 +159,12 @@ static void Draw(std::shared_ptr<IHRRenderDriver> a_pDetachedRenderDriverPointer
   if (firstCall)
   {
     InitSceneLibAndRTE(camRef, scnRef, renderRef, a_pDetachedRenderDriverPointer);
-    std::cout << "[main]: Init() done" << std::endl;
     hrCommit(scnRef, renderRef, camRef);
     timer.start();
     firstCall = false;
     return;
   }
-
+  
   hrErrorCallerPlace(L"Draw");
 
   //hrCommit(scnRef, renderRef, camRef);
@@ -173,7 +172,6 @@ static void Draw(std::shared_ptr<IHRRenderDriver> a_pDetachedRenderDriverPointer
   
   HRRenderUpdateInfo info = hrRenderHaveUpdate(renderRef);
   
-
   if (info.finalUpdate)  // save final image
   {
     if (g_input.outLDRImage != "")
