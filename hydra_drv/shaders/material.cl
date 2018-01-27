@@ -65,6 +65,65 @@ __kernel void MakeEyeShadowRays(__global const uint*          restrict a_flags,
   out_sraydir[tid] = to_float4(camDir, imageToSurfaceFactor);
 }
 
+
+__kernel void UpdateRevAccGTermAndSavePrev(__global const uint*          restrict a_flags,
+                                           __global const float4*        restrict in_raypos,
+                                           __global const float4*        restrict in_raydir,
+                                           
+                                           __global const float4*        restrict in_hitPosNorm,
+                                           __global const float4*        restrict in_normalsFull,
+                                           __global const MisData*       restrict in_misDataPrev,
+                                           
+                                           __global PerRayAcc*           restrict a_pdfAcc,
+                                           __global PerRayAcc*           restrict a_pdfAccCopy,
+                                           __global float*               restrict a_pdfCamA,
+                                           __global const EngineGlobals* restrict in_globals,
+                                           
+                                           float a_mLightSubPathCount, int a_currDepth, int iNumElements)
+{
+  int tid = GLOBAL_ID_X;
+  if (tid >= iNumElements)
+    return;
+  
+  uint flags = a_flags[tid];
+  if (!rayIsActiveU(flags))
+    return;
+  
+  const float3 hitPos  = to_float3(in_hitPosNorm[tid]);
+  const float3 hitNorm = to_float3(in_normalsFull[tid]);
+  
+  if (a_currDepth == 0)
+  {
+    float3 camDirDummy; float zDepthDummy;
+    const float imageToSurfaceFactor = CameraImageToSurfaceFactor(hitPos, hitNorm, in_globals,
+                                                                  &camDirDummy, &zDepthDummy);
+  
+    const float cameraPdfA = imageToSurfaceFactor / a_mLightSubPathCount;
+    a_pdfCamA[tid] = cameraPdfA;
+  }
+  
+  PerRayAcc accData        = a_pdfAcc[tid]; // for 3 bounce we need to store (p0*G0)*(p1*G1) and do not include (p2*G2) to we could replace it with explicit strategy pdf
+  const PerRayAcc prevData = accData;
+  
+  if (a_currDepth > 0)
+  {
+    const float3 ray_pos = to_float3(in_raypos[tid]);
+    const float3 ray_dir = to_float3(in_raydir[tid]);
+  
+    const float  cosPrev = in_misDataPrev[tid].cosThetaPrev;
+    const float  cosHere = fabs(dot(ray_dir, hitNorm));
+    const float  dist    = length(ray_pos - hitPos);
+    const float  GTerm   = cosHere * cosPrev / fmax(dist*dist, DEPSILON2);
+  
+    accData.pdfGTerm *= GTerm;
+  
+    a_pdfAcc[tid] = accData;
+  }
+  
+  a_pdfAccCopy[tid] = prevData;
+}
+
+
 __kernel void UpdateForwardPdfFor3Way(__global const uint*          restrict a_flags,
                                       __global const float4*        restrict in_raydir,
                                       __global const float4*        restrict in_raydirNext,
@@ -457,7 +516,8 @@ __kernel void NextBounce(__global   float4*        restrict a_rpos,
                          __global ushort4*         restrict a_shadow,
                          __global float4*          restrict a_fog,
                          __global const float4*    restrict in_shadeColor,
-                         __global PerRayAcc*       restrict a_pdfAcc,
+                         __global PerRayAcc*       restrict a_pdfAcc,        // used only by 3-Way PT/LT passes
+                         __global float*           restrict a_camPdfA,       // used only by 3-Way PT/LT passes
 
                          __global const float4*    restrict in_texStorage1,    
                          __global const float4*    restrict in_texStorage2,
@@ -468,9 +528,7 @@ __kernel void NextBounce(__global   float4*        restrict a_rpos,
                          __global const Lite_Hit*  restrict in_liteHit,
                          
                          int iNumElements,
-                         __global const EngineGlobals*  restrict a_globals,
-                         __global const float*          restrict a_qmcVec,
-                         __global const int2*           restrict a_qmcSorted)
+                         __global const EngineGlobals*  restrict a_globals)
 {
   int tid = GLOBAL_ID_X;
   if (tid >= iNumElements)
@@ -481,17 +539,7 @@ __kernel void NextBounce(__global   float4*        restrict a_rpos,
   float3 ray_pos = to_float3(a_rpos[tid]);
   float3 ray_dir = to_float3(a_rdir[tid]);
 
-#ifdef MLT_MULTY_PROPOSAL
-  __global const float* qmcVec = (a_qmcVec == 0) ? 0 : a_qmcVec + (tid/MLT_PROPOSALS)*a_globals->varsI[HRT_MLT_MAX_NUMBERS];
-#else
-  
-  #ifndef MLT_SORT_RAYS
-  __global const float* qmcVec = (a_qmcVec == 0) ? 0 : a_qmcVec + tid*a_globals->varsI[HRT_MLT_MAX_NUMBERS];
-  #else
-  __global const float* qmcVec = (a_qmcVec == 0) ? 0 : a_qmcVec + a_qmcSorted[tid].y*a_globals->varsI[HRT_MLT_MAX_NUMBERS];
-  #endif
-
-#endif
+  __global const float* pssVec = 0;
 
   // if hit environment
   //
@@ -692,7 +740,7 @@ __kernel void NextBounce(__global   float4*        restrict a_rpos,
   {
     matOffset = materialOffset(a_globals, GetMaterialId(in_matData[tid]));
   
-    BRDFSelector mixSelector = materialRandomWalkBRDF(pHitMaterial, &gen, qmcVec, ray_dir, hitNorm, hitTexCoord, a_globals, in_texStorage1, unpackBounceNum(flags), false, false);
+    BRDFSelector mixSelector = materialRandomWalkBRDF(pHitMaterial, &gen, pssVec, ray_dir, hitNorm, hitTexCoord, a_globals, in_texStorage1, unpackBounceNum(flags), false, false);
   
     const  uint rayBounceNum = unpackBounceNum(flags);
    
@@ -716,7 +764,7 @@ __kernel void NextBounce(__global   float4*        restrict a_rpos,
       sc.tc  = hitTexCoord;
       sc.hfi = (materialGetType(pHitMaterial) == PLAIN_MAT_CLASS_GLASS) && (bool)(unpackRayFlags(flags) & RAY_HIT_SURFACE_FROM_OTHER_SIDE);  //hit glass from other side
   
-      const float3 randsm = rndMat(&gen, qmcVec, unpackBounceNum(flags));
+      const float3 randsm = rndMat(&gen, pssVec, unpackBounceNum(flags));
   
       MaterialLeafSampleAndEvalBRDF(pHitMaterial, randsm, &sc, shadow, a_globals, in_texStorage1, in_texStorage2,
                                     &brdfSample);

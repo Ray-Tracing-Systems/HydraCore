@@ -936,7 +936,9 @@ void RenderDriverRTE::Draw()
       {
         flagsAndVars.m_flags &= (~HRT_FORWARD_TRACING);
         flagsAndVars.m_flags &= (~HRT_DRAW_LIGHT_LT);
-        flagsAndVars.m_flags &= (~HRT_3WAY_MIS_WEIGHTS);
+        //flagsAndVars.m_flags &= (~HRT_3WAY_MIS_WEIGHTS);
+
+        flagsAndVars.m_flags |= HRT_3WAY_MIS_WEIGHTS;
       }
 
       m_pHWLayer->SetAllFlagsAndVars(flagsAndVars);
