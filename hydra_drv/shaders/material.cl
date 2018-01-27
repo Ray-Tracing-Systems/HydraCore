@@ -582,8 +582,8 @@ __kernel void HitEnvOrLightKernel(__global   float4*        restrict a_rpos,
   }
   else if(rayIsActiveU(flags)) // if hit light
   {
-    float3 emissColor  = make_float3(0, 0, 0);
-    int hitLightSource   = 0;
+    float3 emissColor   = make_float3(0, 0, 0);
+    bool hitLightSource = false;
      
           float3 hitNorm     = to_float3(in_hitNormFull[tid]); // or normalize(decodeNormal(as_int(data.w))) where data is in_hitPosNorm[tid];
     const float2 hitTexCoord = in_hitTexCoord[tid];
@@ -685,7 +685,8 @@ __kernel void HitEnvOrLightKernel(__global   float4*        restrict a_rpos,
           emissColor = make_float3(0, 0, 0);
       }
     
-      out_emission[tid] = to_float4(emissColor, as_float(1));
+      const int packedIsLight = hitLightSource ? 1 : 0;
+      out_emission[tid] = to_float4(emissColor, as_float(packedIsLight));
 
     } // \\ if light emission is not zero
     else
