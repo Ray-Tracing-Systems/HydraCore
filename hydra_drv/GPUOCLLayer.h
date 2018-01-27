@@ -274,7 +274,7 @@ protected:
     cl_mem lsam2;
     cl_mem shadowRayPos;
     cl_mem shadowRayDir;
-    cl_mem accPdf;        ///< accumulated pdf weights for 3-way bogolepov light transport
+    cl_mem accPdf;        ///< accumulated pdf weights for 3-way Bogolepov light transport
 
     cl_mem oldFlags;      // store copy of curr bounce data for ConnectEye
     cl_mem oldRayDir;     // and cosThetaPrev; store copy of curr bounce data for ConnectEye

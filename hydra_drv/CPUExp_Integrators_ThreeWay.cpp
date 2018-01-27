@@ -285,7 +285,7 @@ void IntegratorThreeWay::ConnectEye(SurfaceHit a_hit, float3 ray_pos, float3 ray
 
 
 float3  IntegratorThreeWay::PathTraceAcc(float3 ray_pos, float3 ray_dir, const float a_cosPrev, MisData misPrev, int a_currDepth, uint flags,
-                                         SurfaceHit* pFirstHit, PerRayAcc* a_accData)
+                                         float* a_pdfCamA, PerRayAcc* a_accData)
 {
   if (a_currDepth >= m_maxDepth)
     return float3(0,0,0);
@@ -300,16 +300,17 @@ float3  IntegratorThreeWay::PathTraceAcc(float3 ray_pos, float3 ray_dir, const f
 
   const SurfaceHit surfElem = surfaceEval(ray_pos, ray_dir, hit);
 
-  if (pFirstHit != nullptr && a_currDepth == 0)
-    (*pFirstHit) = surfElem;
+  if (a_currDepth == 0)
+  {
+    float3 camDirDummy; float zDepthDummy;
+    const float imageToSurfaceFactor = CameraImageToSurfaceFactor(surfElem.pos, surfElem.normal, m_pGlobals,
+                                                                  &camDirDummy, &zDepthDummy);
+
+    const float cameraPdfA = imageToSurfaceFactor / mLightSubPathCount;
+    (*a_pdfCamA) = cameraPdfA;
+  }
 
   PerRayAcc prevData = (*a_accData); // for 3 bounce we need to store (p0*G0)*(p1*G1) and do not include (p2*G2) to we could replace it with explicit strategy pdf
-
-  float3 camDirDummy; float zDepthDummy;
-  const float imageToSurfaceFactor = CameraImageToSurfaceFactor(pFirstHit->pos, pFirstHit->normal, m_pGlobals,
-                                                                &camDirDummy, &zDepthDummy);
-
-  const float cameraPdfA = imageToSurfaceFactor / mLightSubPathCount;
 
   const float cosHere = fabs(dot(ray_dir, surfElem.normal));
   const float cosPrev = a_cosPrev; // fabs(dot(a_prevHit.normal, ray_dir));
@@ -336,6 +337,7 @@ float3  IntegratorThreeWay::PathTraceAcc(float3 ray_pos, float3 ray_dir, const f
    
     const float lightPdfA  = lPdfFwd.pdfA;
     const float cancelPrev = (misPrev.matSamplePdf / fmax(cosPrev, DEPSILON))*GTerm; // calcel previous pdfA 
+    const float cameraPdfA = (*a_pdfCamA);
 
     float pdfAccFwdA = 1.0f       * (a_accData->pdfLightWP*a_accData->pdfGTerm) * lightPdfA*lPdfFwd.pickProb;
     float pdfAccRevA = cameraPdfA * (a_accData->pdfCameraWP*a_accData->pdfGTerm);
@@ -416,6 +418,8 @@ float3  IntegratorThreeWay::PathTraceAcc(float3 ray_pos, float3 ray_dir, const f
     if (a_currDepth > 0)     // Imagine ray that hit light source after (second?) bounce (or first ?). pdfAccFwdA = pdfLightA*PdfLightW*GTermShadow.
       pdfFwdWP1 = bsdfFwdWP; // 
     
+    const float cameraPdfA = (*a_pdfCamA);
+
     float pdfAccFwdA = pdfFwdWP1  * (prevData.pdfLightWP *prevData.pdfGTerm)*((lPdfFwd.pdfW / fmax(cosAtLight, DEPSILON))*GTermShadow)*(lPdfFwd.pdfA*lPdfFwd.pickProb);
     float pdfAccRevA = cameraPdfA * (prevData.pdfCameraWP*prevData.pdfGTerm)*bsdfRevWP*GTermShadow;
     float pdfAccExpA = cameraPdfA * (prevData.pdfCameraWP*prevData.pdfGTerm)*(lPdfFwd.pdfA*lightPickProb);
@@ -486,15 +490,15 @@ float3  IntegratorThreeWay::PathTraceAcc(float3 ray_pos, float3 ray_dir, const f
   const float cosPrevForNextBounce = fabs(dot(surfElem.normal, nextRay_dir));
 
   return explicitColor + thoroughput*PathTraceAcc(nextRay_pos, nextRay_dir, cosPrevForNextBounce, thisBounce, a_currDepth + 1, flags,
-                                                  pFirstHit, a_accData);
+                                                  a_pdfCamA, a_accData);
 }
 
 float3 IntegratorThreeWay::PathTrace(float3 ray_pos, float3 ray_dir)
 {
-  SurfaceHit firstHit;
+  float pdfCamA;
   PerRayAcc  acc = InitialPerParAcc();
 
   return PathTraceAcc(ray_pos, ray_dir, 1.0f, makeInitialMisData(), 0, 0,
-                      &firstHit, &acc);
+                      &pdfCamA, &acc);
 }
 
