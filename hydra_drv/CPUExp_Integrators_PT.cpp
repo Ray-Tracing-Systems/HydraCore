@@ -196,10 +196,9 @@ float3 IntegratorMISPT::PathTrace(float3 ray_pos, float3 ray_dir, MisData misPre
   const float3 nextRay_dir = matSam.direction;
   const float3 nextRay_pos = OffsRayPos(surfElem.pos, surfElem.normal, matSam.direction);
 
-  MisData currMis;
+  MisData currMis            = makeInitialMisData();
   currMis.isSpecular         = isPureSpecular(matSam);
   currMis.matSamplePdf       = matSam.pdf;
-  currMis.prevMaterialOffset = surfElem.matId; // not needed actually
 
   flags = flagsNextBounceLite(flags, matSam, m_pGlobals);
 

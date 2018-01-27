@@ -1357,10 +1357,10 @@ typedef struct MisDataT
 static inline MisData makeInitialMisData()
 {
   MisData data;
-  data.isSpecular = true;
   data.matSamplePdf = 1.0f;
-  data.prevMaterialOffset = -1;
   data.cosThetaPrev = 1.0f;
+  data.prevMaterialOffset = -1;
+  data.isSpecular         = 1;
   return data;
 }
 

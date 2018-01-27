@@ -613,12 +613,15 @@ __kernel void NextBounce(__global   float4*        restrict a_rpos,
           if (unpackBounceNum(flags) > 0)
             outPathColor = clamp(outPathColor, 0.0f, a_globals->varsF[HRT_BSDF_CLAMPING]);
     
-          __global const PlainMaterial* pPrevMaterial = materialAtOffset(a_mtlStorage, misPrev.prevMaterialOffset); 
-    
-          bool disableCaustics = (unpackBounceNumDiff(flags) > 0) && !(a_globals->g_flags & HRT_ENABLE_PT_CAUSTICS) && materialCastCaustics(pPrevMaterial); // and prev material cast caustics
-          if (disableCaustics)
-            outPathColor = make_float3(0, 0, 0);
-    
+          if (misPrev.prevMaterialOffset >= 0)
+          {
+            __global const PlainMaterial* pPrevMaterial = materialAtOffset(a_mtlStorage, misPrev.prevMaterialOffset);
+
+            bool disableCaustics = (unpackBounceNumDiff(flags) > 0) && !(a_globals->g_flags & HRT_ENABLE_PT_CAUSTICS) && materialCastCaustics(pPrevMaterial); // and prev material cast caustics
+            if (disableCaustics)
+              outPathColor = make_float3(0, 0, 0);
+          }
+
           hitLightSource = true; // kill thread next if it hit real light source
         }
         else // hit emissive material, not a light 

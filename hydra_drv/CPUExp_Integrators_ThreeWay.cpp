@@ -366,7 +366,6 @@ float3  IntegratorThreeWay::PathTraceAcc(float3 ray_pos, float3 ray_dir, const f
   //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   
-  MisData thisBounce; 
   float3 explicitColor(0, 0, 0);
   
   auto& gen = randomGen();
@@ -481,9 +480,9 @@ float3  IntegratorThreeWay::PathTraceAcc(float3 ray_pos, float3 ray_dir, const f
   const float3 nextRay_dir = matSam.direction;
   const float3 nextRay_pos = OffsRayPos(surfElem.pos, surfElem.normal, matSam.direction);
 
-  thisBounce.isSpecular         = isPureSpecular(matSam);
-  thisBounce.matSamplePdf       = matSam.pdf;
-  thisBounce.prevMaterialOffset = -1;
+  MisData thisBounce       = makeInitialMisData();
+  thisBounce.isSpecular    = isPureSpecular(matSam);
+  thisBounce.matSamplePdf  = matSam.pdf;
 
   const float3 thoroughput = bxdfVal*cosNext / fmax(matSam.pdf, DEPSILON);
 

@@ -916,12 +916,11 @@ PathVertex IntegratorMMLT::CameraPath(float3 ray_pos, float3 ray_dir, float3 a_p
   const float3 nextRay_dir = matSam.direction;
   const float3 nextRay_pos = OffsRayPos(surfElem.pos, surfElem.normal, matSam.direction);
 
-  MisData thisBounce;
-  thisBounce.isSpecular         = isPureSpecular(matSam);
-  thisBounce.matSamplePdf       = matSam.pdf;
-  thisBounce.prevMaterialOffset = -1;
+  MisData thisBounce       = makeInitialMisData();
+  thisBounce.isSpecular    = isPureSpecular(matSam);
+  thisBounce.matSamplePdf  = matSam.pdf;
 
-  const bool stopDL = m_splitDLByGrammar ? flagsHaveOnlySpecular(flags) : false;
+  const bool stopDL        = m_splitDLByGrammar ? flagsHaveOnlySpecular(flags) : false;
 
   PathVertex nextVertex  = CameraPath(nextRay_pos, nextRay_dir, surfElem.normal, thisBounce, a_currDepth + 1, flagsNextBounceLite(flags, matSam, m_pGlobals),
                                       a_perThread, a_targetDepth, a_haveToHitLightSource, a_fullPathDepth);
@@ -1134,10 +1133,9 @@ float3 IntegratorMMLT::PathTraceDirectLight(float3 ray_pos, float3 ray_dir, MisD
   const float3 nextRay_dir = matSam.direction;
   const float3 nextRay_pos = OffsRayPos(surfElem.pos, surfElem.normal, matSam.direction);
 
-  MisData currMis;
+  MisData currMis            = makeInitialMisData();
   currMis.isSpecular         = isPureSpecular(matSam);
   currMis.matSamplePdf       = matSam.pdf;
-  currMis.prevMaterialOffset = surfElem.matId; // not needed actually
 
   const bool proceedTrace = m_splitDLByGrammar ? flagsHaveOnlySpecular(flags) : true;
   if (!proceedTrace)
