@@ -1286,7 +1286,7 @@ void GPUOCLLayer::EndTracingPass()
 
 }
 
-void GPUOCLLayer::CopyAndPackForConnectEye(cl_mem in_flags,  cl_mem in_raydir,  cl_mem in_color,
+void GPUOCLLayer::CopyForConnectEye(cl_mem in_flags,  cl_mem in_raydir,  cl_mem in_color,
                                            cl_mem out_flags, cl_mem out_raydir, cl_mem out_color, size_t a_size)
 {
   cl_kernel kernX      = m_progs.lightp.kernel("CopyAndPackForConnectEye");
@@ -1358,6 +1358,9 @@ void GPUOCLLayer::trace1D(cl_mem a_rpos, cl_mem a_rdir, cl_mem a_outColor, size_
     if ((m_vars.m_flags & HRT_FORWARD_TRACING) == 0 && (m_vars.m_flags & HRT_3WAY_MIS_WEIGHTS) != 0)
       runKernel_UpdateRevAccGTermAndSavePrev(m_rays.rayFlags, a_rpos, a_rdir, bounce, a_size); // 3-Way PT pass only.
 
+    if ((m_vars.m_flags & HRT_FORWARD_TRACING) == 0)
+      runKernel_HitEnvOrLight(m_rays.rayFlags, a_rpos, a_rdir, a_outColor, a_size);
+
     if (m_vars.m_varsI[HRT_ENABLE_MRAYS_COUNTERS] && measureThisBounce)
     {
       clFinish(m_globals.cmdQueue);
@@ -1368,10 +1371,9 @@ void GPUOCLLayer::trace1D(cl_mem a_rpos, cl_mem a_rdir, cl_mem a_outColor, size_
     if (m_vars.m_flags & HRT_FORWARD_TRACING)
     {
       // postpone 'ConnectEyePass' call to the end of bounce; 
-      // copy (m_rays.rayFlags ==> m_rays.oldFlags), (a_rdir => m_rays.oldRayDir), (a_outColor => m_rays.oldColor) 
-      CopyAndPackForConnectEye(m_rays.rayFlags, a_rdir,             a_outColor, 
-                               m_rays.oldFlags, m_rays.oldRayDir,   m_rays.oldColor, a_size);
       // ConnectEyePass(m_rays.rayFlags, m_rays.hitPosNorm, m_rays.hitNormUncompressed, a_rdir, a_outColor, bounce, a_size);
+      CopyForConnectEye(m_rays.rayFlags, a_rdir,             a_outColor, 
+                        m_rays.oldFlags, m_rays.oldRayDir,   m_rays.oldColor, a_size);
     }
     else if (m_vars.shadePassEnable(bounce))
     {

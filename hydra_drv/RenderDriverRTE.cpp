@@ -175,8 +175,8 @@ bool RenderDriverRTE::UpdateSettings(pugi::xml_node a_settingsNode)
     vars.m_flags |= HRT_ENABLE_PT_CAUSTICS;
   }
 
-  // vars.m_flags |= HRT_ENABLE_PT_CAUSTICS;
-  // vars.m_flags |= HRT_STUPID_PT_MODE;
+  //vars.m_flags |= HRT_ENABLE_PT_CAUSTICS;
+  //vars.m_flags |= HRT_STUPID_PT_MODE;
 
   vars.m_varsI[HRT_TRACE_DEPTH]            = 6;
   vars.m_varsI[HRT_DIFFUSE_TRACE_DEPTH]    = 3;
@@ -930,7 +930,7 @@ void RenderDriverRTE::Draw()
       {
         flagsAndVars.m_flags |= HRT_FORWARD_TRACING;
         //flagsAndVars.m_flags |= HRT_DRAW_LIGHT_LT;
-        flagsAndVars.m_flags |= HRT_3WAY_MIS_WEIGHTS;
+        //flagsAndVars.m_flags |= HRT_3WAY_MIS_WEIGHTS;
       }
       else
       {
@@ -938,7 +938,7 @@ void RenderDriverRTE::Draw()
         flagsAndVars.m_flags &= (~HRT_DRAW_LIGHT_LT);
         //flagsAndVars.m_flags &= (~HRT_3WAY_MIS_WEIGHTS);
 
-        flagsAndVars.m_flags |= HRT_3WAY_MIS_WEIGHTS;
+        //flagsAndVars.m_flags |= HRT_3WAY_MIS_WEIGHTS;
       }
 
       m_pHWLayer->SetAllFlagsAndVars(flagsAndVars);

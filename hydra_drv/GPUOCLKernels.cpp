@@ -298,6 +298,44 @@ void GPUOCLLayer::runKernel_UpdateRevAccGTermAndSavePrev(cl_mem a_rayFlags, cl_m
   waitIfDebug(__FILE__, __LINE__);
 }
 
+void GPUOCLLayer::runKernel_HitEnvOrLight(cl_mem a_rayFlags, cl_mem a_rpos, cl_mem a_rdir, cl_mem a_outColor, size_t a_size)
+{
+  cl_kernel kernX = m_progs.material.kernel("HitEnvOrLightKernel");
+
+  size_t localWorkSize = 256;
+  int    isize         = int(a_size);
+  a_size               = roundBlocks(a_size, int(localWorkSize));
+
+  CHECK_CL(clSetKernelArg(kernX, 0, sizeof(cl_mem), (void*)&a_rpos));
+  CHECK_CL(clSetKernelArg(kernX, 1, sizeof(cl_mem), (void*)&a_rdir));
+  CHECK_CL(clSetKernelArg(kernX, 2, sizeof(cl_mem), (void*)&a_rayFlags));
+
+  CHECK_CL(clSetKernelArg(kernX, 3, sizeof(cl_mem), (void*)&m_rays.hitPosNorm));
+  CHECK_CL(clSetKernelArg(kernX, 4, sizeof(cl_mem), (void*)&m_rays.hitTexCoord));
+  CHECK_CL(clSetKernelArg(kernX, 5, sizeof(cl_mem), (void*)&m_rays.hitMatId));
+  CHECK_CL(clSetKernelArg(kernX, 6, sizeof(cl_mem), (void*)&m_rays.hitTangent));
+  CHECK_CL(clSetKernelArg(kernX, 7, sizeof(cl_mem), (void*)&m_rays.hitNormUncompressed));
+
+  CHECK_CL(clSetKernelArg(kernX, 8, sizeof(cl_mem), (void*)&a_outColor));
+  CHECK_CL(clSetKernelArg(kernX, 9, sizeof(cl_mem), (void*)&m_rays.pathThoroughput));      // a_thoroughput
+  CHECK_CL(clSetKernelArg(kernX, 10, sizeof(cl_mem), (void*)&m_rays.pathMisDataPrev));     // a_misDataPrev
+
+  CHECK_CL(clSetKernelArg(kernX, 11, sizeof(cl_mem), (void*)&m_rays.oldRayDir));           // when PT: use oldRayDir to store emission color
+  CHECK_CL(clSetKernelArg(kernX, 12, sizeof(cl_mem), (void*)&m_rays.accPdf));              // a_pdfAcc
+  CHECK_CL(clSetKernelArg(kernX, 13, sizeof(cl_mem), (void*)&m_rays.oldFlags));            // PT can use unused oldFlags to store camPdfA; require sizeof(int) == sizeof(float);
+  
+  CHECK_CL(clSetKernelArg(kernX, 14, sizeof(cl_mem), (void*)&m_scene.storageTex));  
+  CHECK_CL(clSetKernelArg(kernX, 15, sizeof(cl_mem), (void*)&m_scene.storageTexAux));
+  CHECK_CL(clSetKernelArg(kernX, 16, sizeof(cl_mem), (void*)&m_scene.storageMat));
+  CHECK_CL(clSetKernelArg(kernX, 17, sizeof(cl_mem), (void*)&m_scene.storagePdfs));
+  CHECK_CL(clSetKernelArg(kernX, 18, sizeof(cl_mem), (void*)&m_scene.allGlobsData));
+  CHECK_CL(clSetKernelArg(kernX, 19, sizeof(cl_mem), (void*)&m_scene.instLightInst));
+  CHECK_CL(clSetKernelArg(kernX, 20, sizeof(cl_mem), (void*)&m_rays.hits));
+  CHECK_CL(clSetKernelArg(kernX, 21, sizeof(cl_int), (void*)&isize));
+
+  CHECK_CL(clEnqueueNDRangeKernel(m_globals.cmdQueue, kernX, 1, NULL, &a_size, &localWorkSize, 0, NULL, NULL));
+  waitIfDebug(__FILE__, __LINE__);
+}
 
 void GPUOCLLayer::runKernel_NextBounce(cl_mem a_rayFlags, cl_mem a_rpos, cl_mem a_rdir, cl_mem a_outColor, size_t a_size)
 {
@@ -327,26 +365,33 @@ void GPUOCLLayer::runKernel_NextBounce(cl_mem a_rayFlags, cl_mem a_rpos, cl_mem 
     CHECK_CL(clSetKernelArg(kernX, 13, sizeof(cl_mem), (void*)&m_rays.lshadow));              // a_shadow
     CHECK_CL(clSetKernelArg(kernX, 14, sizeof(cl_mem), (void*)&m_rays.fogAtten));             // a_fog
     CHECK_CL(clSetKernelArg(kernX, 15, sizeof(cl_mem), (void*)&m_rays.pathShadeColor));       // in_shadeColor
-    CHECK_CL(clSetKernelArg(kernX, 16, sizeof(cl_mem), (void*)&m_rays.accPdf));               // a_pdfAcc
 
     if (m_vars.m_flags & HRT_FORWARD_TRACING)
     {
-      CHECK_CL(clSetKernelArg(kernX, 17, sizeof(cl_mem), nullptr));
+      CHECK_CL(clSetKernelArg(kernX, 16, sizeof(cl_mem), nullptr));
     }
     else
     {
-      CHECK_CL(clSetKernelArg(kernX, 17, sizeof(cl_mem), (void*)&m_rays.oldFlags));           // PT can use unused oldFlags to store camPdfA; require sizeof(int) == sizeof(float);
+      CHECK_CL(clSetKernelArg(kernX, 16, sizeof(cl_mem), (void*)&m_rays.oldRayDir));          // PT can use unused oldRays as input emission color from kernel HitEnvOrLight
     }
 
-    CHECK_CL(clSetKernelArg(kernX, 18, sizeof(cl_mem), (void*)&m_scene.storageTex));  
-    CHECK_CL(clSetKernelArg(kernX, 19, sizeof(cl_mem), (void*)&m_scene.storageTexAux));
-    CHECK_CL(clSetKernelArg(kernX, 20, sizeof(cl_mem), (void*)&m_scene.storageMat));
-    CHECK_CL(clSetKernelArg(kernX, 21, sizeof(cl_mem), (void*)&m_scene.storagePdfs));
-    CHECK_CL(clSetKernelArg(kernX, 22, sizeof(cl_mem), (void*)&m_scene.instLightInst));
-    CHECK_CL(clSetKernelArg(kernX, 23, sizeof(cl_mem), (void*)&m_rays.hits));
+    CHECK_CL(clSetKernelArg(kernX, 17, sizeof(cl_mem), (void*)&m_rays.accPdf));               // a_pdfAcc
 
-    CHECK_CL(clSetKernelArg(kernX, 24, sizeof(cl_int), (void*)&isize));
-    CHECK_CL(clSetKernelArg(kernX, 25, sizeof(cl_mem), (void*)&m_scene.allGlobsData));
+    if (m_vars.m_flags & HRT_FORWARD_TRACING)
+    {
+      CHECK_CL(clSetKernelArg(kernX, 18, sizeof(cl_mem), nullptr));
+    }
+    else
+    {
+      CHECK_CL(clSetKernelArg(kernX, 18, sizeof(cl_mem), (void*)&m_rays.oldFlags));           // PT can use unused oldFlags to store camPdfA; require sizeof(int) == sizeof(float);
+    }
+
+    CHECK_CL(clSetKernelArg(kernX, 19, sizeof(cl_mem), (void*)&m_scene.storageTex));  
+    CHECK_CL(clSetKernelArg(kernX, 20, sizeof(cl_mem), (void*)&m_scene.storageTexAux));
+    CHECK_CL(clSetKernelArg(kernX, 21, sizeof(cl_mem), (void*)&m_scene.storageMat));
+    CHECK_CL(clSetKernelArg(kernX, 22, sizeof(cl_mem), (void*)&m_scene.storagePdfs));
+    CHECK_CL(clSetKernelArg(kernX, 23, sizeof(cl_int), (void*)&isize));
+    CHECK_CL(clSetKernelArg(kernX, 24, sizeof(cl_mem), (void*)&m_scene.allGlobsData));
   }
 
   CHECK_CL(clEnqueueNDRangeKernel(m_globals.cmdQueue, kernX, 1, NULL, &a_size, &localWorkSize, 0, NULL, NULL));
