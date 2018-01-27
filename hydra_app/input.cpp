@@ -12,13 +12,13 @@ Input::Input()
 
   //inLibraryPath = "temp/";
   //inLibraryPath = "tests/test_35";
-  //inLibraryPath = "tests/test_42";      ///< cornell box with teapot
+  inLibraryPath = "tests/test_42";      ///< cornell box with teapot
   //inLibraryPath = "tests/test_223_small"; ///< cornell box with mirror glossy back wall
   //inLibraryPath = "/home/frol/PROG/HydraAPI/main/tests/test_44";
 
   //inLibraryPath = "D:/PROG/HydraAPI/main/tests/test_39";
   //inLibraryPath = "D:/PROG/HydraAPI/main/tests_f/test_103";
-  inLibraryPath = "D:/PROG/HydraAPI/main/tests_f/test_204";
+  //inLibraryPath = "D:/PROG/HydraAPI/main/tests_f/test_204";
   //inLibraryPath = "C:/[Hydra]/pluginFiles/scenelib";
  
   inDeviceId = 1;

@@ -511,7 +511,6 @@ __kernel void HitEnvOrLightKernel(__global   float4*        restrict a_rpos,
                                   __global float4*          restrict a_thoroughput,
                                   __global MisData*         restrict a_misDataPrev,
                                   __global float4*          restrict out_emission,
-
                                   __global PerRayAcc*       restrict a_pdfAcc,        // used only by 3-Way PT/LT passes
                                   __global float*           restrict a_camPdfA,       // used only by 3-Way PT/LT passes
                                   
@@ -530,9 +529,7 @@ __kernel void HitEnvOrLightKernel(__global   float4*        restrict a_rpos,
     return;
 
   const uint flags = a_flags[tid];
-  if (!rayIsActiveU(flags))
-    return;
-
+  
   // if hit environment
   //
   if (unpackRayFlags(flags) & RAY_GRAMMAR_OUT_OF_SCENE)
@@ -579,11 +576,11 @@ __kernel void HitEnvOrLightKernel(__global   float4*        restrict a_rpos,
     }
 
     uint otherFlags    = unpackRayFlags(flags);
-    a_flags      [tid] = packRayFlags(flags, RAY_IS_DEAD | (otherFlags & (~RAY_GRAMMAR_OUT_OF_SCENE)));
-    a_color      [tid] = to_float4(nextPathColor, 0.0f);
+    a_flags[tid]       = packRayFlags(flags, RAY_IS_DEAD | (otherFlags & (~RAY_GRAMMAR_OUT_OF_SCENE)));
+    a_color[tid]       = to_float4(nextPathColor, 0.0f);
     a_thoroughput[tid] = make_float4(0.0f, 0.0f, 0.0f, 0.0f);
   }
-  else // if hit light
+  else if(rayIsActiveU(flags)) // if hit light
   {
     float3 emissColor  = make_float3(0, 0, 0);
     int hitLightSource   = 0;
@@ -697,7 +694,7 @@ __kernel void HitEnvOrLightKernel(__global   float4*        restrict a_rpos,
     }
 
   } // \\ else if hit light
-
+  
 }
 
 
