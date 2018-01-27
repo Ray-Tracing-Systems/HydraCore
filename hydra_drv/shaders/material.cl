@@ -102,10 +102,8 @@ __kernel void UpdateForwardPdfFor3Way(__global const uint*          restrict a_f
   const float cosNext      = mSamData.cosThetaPrev; // because we have already updated mSamData.cosThetaPrev inside 'NextBounce' kernel
 
   const float3 hitNorm     = to_float3(in_normalsFull[tid]);
-
-  const float4 datard  = in_raydir[tid];
-  const float3 ray_dir = to_float3(datard);
-  const float cosCurr  = fabs(-dot(ray_dir, hitNorm));
+  const float3 ray_dir     = to_float3(in_raydir[tid]);
+  const float cosCurr      = fabs(-dot(ray_dir, hitNorm));
 
   PerRayAcc accData = a_pdfAcc[tid];
 

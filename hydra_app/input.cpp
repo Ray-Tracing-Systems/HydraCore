@@ -21,7 +21,7 @@ Input::Input()
   //inLibraryPath = "D:/PROG/HydraAPI/main/tests_f/test_214";
   //inLibraryPath = "C:/[Hydra]/pluginFiles/scenelib";
  
-  inDeviceId = -1;
+  inDeviceId = 1;
   cpuFB      = false;
   enableMLT  = false;
 

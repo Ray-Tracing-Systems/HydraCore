@@ -270,23 +270,25 @@ protected:
     cl_mem pathAuxColorCPU;
     cl_mem randGenState;
 
-    cl_mem lsam1;
-    cl_mem lsam2;
+    cl_mem lsam1;         // 
+    cl_mem lsam2;         // when LT is enabled: CONSTANT FOR ALL BOUNCES; .xyz store sample.dir; .w store lightPdfA;
+                          // when PT is enabled: TEMP PER BOUNCE;          .xyz store lsam.color; .w store lsam.maxDist
     cl_mem shadowRayPos;
     cl_mem shadowRayDir;
     cl_mem accPdf;        ///< accumulated pdf weights for 3-way Bogolepov light transport
 
-    cl_mem oldFlags;      // store copy of curr bounce data for ConnectEye
-    cl_mem oldRayDir;     // and cosThetaPrev; store copy of curr bounce data for ConnectEye
-    cl_mem oldColor;      // store copy of curr bounce data for ConnectEye
+                          // used when LT is enabled: store copy of curr bounce flags for ConnectEye:
+    cl_mem oldFlags;      // prev bounce flags
+    cl_mem oldRayDir;     // prev bounce 'rayDir'
+    cl_mem oldColor;      // prev bounce accumulated color
     cl_mem lightNumberLT; // store single int32_t light number that was selected by forward sampling kernel.
 
-    cl_mem lsamProb;
-    cl_mem lshadow;
+    cl_mem lsamProb;      // used by PT only currently;
+    cl_mem lshadow;       // store short4 colored shadow;
 
     cl_mem fogAtten;
-    cl_mem samZindex;
-    cl_mem pixWeights;
+    cl_mem samZindex;     // used by LT only;
+    cl_mem pixWeights;    // used by LT only; #TODO: remove this shit, we don't needed bilinear sampling.
 
     size_t MEGABLOCKSIZE;
 
@@ -403,7 +405,7 @@ protected:
 
   void ShadePass(cl_mem a_rpos, cl_mem a_rdir, cl_mem a_outColor, size_t a_size, bool a_measureTime);
   void ConnectEyePass(cl_mem in_rayFlags, cl_mem in_hitPos, cl_mem in_hitNorm, cl_mem in_rayDirOld, cl_mem in_color, int a_bounce, size_t a_size);
-  void CopyAndPackForConnectEye(cl_mem in_flags, cl_mem in_raydir, cl_mem in_color, cl_mem in_cosPrev,
+  void CopyAndPackForConnectEye(cl_mem in_flags, cl_mem in_raydir, cl_mem in_color, 
                                 cl_mem out_flags, cl_mem out_raydir, cl_mem out_color, size_t a_size);
 
   void runKernel_ShadowTrace(cl_mem a_rayFlags, cl_mem a_rpos, cl_mem a_rdir, cl_mem a_outShadow, size_t a_size);

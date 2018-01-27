@@ -1286,7 +1286,7 @@ void GPUOCLLayer::EndTracingPass()
 
 }
 
-void GPUOCLLayer::CopyAndPackForConnectEye(cl_mem in_flags,  cl_mem in_raydir,  cl_mem in_color, cl_mem in_cosPrev,
+void GPUOCLLayer::CopyAndPackForConnectEye(cl_mem in_flags,  cl_mem in_raydir,  cl_mem in_color,
                                            cl_mem out_flags, cl_mem out_raydir, cl_mem out_color, size_t a_size)
 {
   cl_kernel kernX      = m_progs.lightp.kernel("CopyAndPackForConnectEye");
@@ -1298,12 +1298,11 @@ void GPUOCLLayer::CopyAndPackForConnectEye(cl_mem in_flags,  cl_mem in_raydir,  
   CHECK_CL(clSetKernelArg(kernX, 0, sizeof(cl_mem), (void*)&in_flags));
   CHECK_CL(clSetKernelArg(kernX, 1, sizeof(cl_mem), (void*)&in_raydir));
   CHECK_CL(clSetKernelArg(kernX, 2, sizeof(cl_mem), (void*)&in_color));
-  CHECK_CL(clSetKernelArg(kernX, 3, sizeof(cl_mem), (void*)&in_cosPrev));
 
-  CHECK_CL(clSetKernelArg(kernX, 4, sizeof(cl_mem), (void*)&out_flags));
-  CHECK_CL(clSetKernelArg(kernX, 5, sizeof(cl_mem), (void*)&out_raydir));
-  CHECK_CL(clSetKernelArg(kernX, 6, sizeof(cl_mem), (void*)&out_color));
-  CHECK_CL(clSetKernelArg(kernX, 7, sizeof(cl_int), (void*)&isize));
+  CHECK_CL(clSetKernelArg(kernX, 3, sizeof(cl_mem), (void*)&out_flags));
+  CHECK_CL(clSetKernelArg(kernX, 4, sizeof(cl_mem), (void*)&out_raydir));
+  CHECK_CL(clSetKernelArg(kernX, 5, sizeof(cl_mem), (void*)&out_color));
+  CHECK_CL(clSetKernelArg(kernX, 6, sizeof(cl_int), (void*)&isize));
 
   CHECK_CL(clEnqueueNDRangeKernel(m_globals.cmdQueue, kernX, 1, NULL, &a_size, &localWorkSize, 0, NULL, NULL));
   waitIfDebug(__FILE__, __LINE__);
@@ -1366,8 +1365,8 @@ void GPUOCLLayer::trace1D(cl_mem a_rpos, cl_mem a_rdir, cl_mem a_outColor, size_
     if (m_vars.m_flags & HRT_FORWARD_TRACING)
     {
       // postpone 'ConnectEyePass' call to the end of bounce; 
-      // copy (m_rays.rayFlags ==> m_rays.oldFlags), (a_rdir and cosPrev => m_rays.oldRayDir), (a_outColor => m_rays.oldColor) 
-      CopyAndPackForConnectEye(m_rays.rayFlags, a_rdir, a_outColor, m_rays.pathMisDataPrev, 
+      // copy (m_rays.rayFlags ==> m_rays.oldFlags), (a_rdir => m_rays.oldRayDir), (a_outColor => m_rays.oldColor) 
+      CopyAndPackForConnectEye(m_rays.rayFlags, a_rdir,             a_outColor, 
                                m_rays.oldFlags, m_rays.oldRayDir,   m_rays.oldColor, a_size);
       // ConnectEyePass(m_rays.rayFlags, m_rays.hitPosNorm, m_rays.hitNormUncompressed, a_rdir, a_outColor, bounce, a_size);
     }
