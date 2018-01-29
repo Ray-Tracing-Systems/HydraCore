@@ -29,9 +29,9 @@ void IntegratorThreeWay::DoPass(std::vector<uint>& a_imageLDR)
   const int samplesPerPass = m_width*m_height;
   mLightSubPathCount = float(samplesPerPass);
 
-  #pragma omp parallel for
-  for (int i = 0; i < samplesPerPass; i++)
-    DoLightPath();
+  // #pragma omp parallel for
+  // for (int i = 0; i < samplesPerPass; i++)
+  //   DoLightPath();
 
   #pragma omp parallel for
   for (int y = 0; y < m_height; y++)

@@ -243,8 +243,8 @@ protected:
   {
     CL_BUFFERS_RAYS() : rayPos(0), rayDir(0), hits(0), rayFlags(0), hitPosNorm(0), hitTexCoord(0), hitMatId(0), hitTangent(0), hitFlatNorm(0), hitPrimSize(0), hitNormUncompressed(0),
                         pathThoroughput(0), pathMisDataPrev(0), pathShadeColor(0), pathAccColor(0), pathAuxColor(0), randGenState(0), pathAuxColorCPU(0),
-                        lsam1(0), lsam2(0), shadowRayPos(0), shadowRayDir(0), accPdf(0), oldFlags(0), oldRayDir(0), oldColor(0), lightNumberLT(0), lsamProb(0),
-                        lshadow(0), fogAtten(0), samZindex(0), pixWeights(0), MEGABLOCKSIZE(0) {}
+                        lsam1(0), lsam2(0), lsamCos(0), shadowRayPos(0), shadowRayDir(0), accPdf(0), oldFlags(0), oldRayDir(0), oldColor(0), lightNumberLT(0), lsamProb(0),
+                        lshadow(0), fogAtten(0), samZindex(0), pixWeights(0), debugf4(0), MEGABLOCKSIZE(0) {}
 
     void free();
     void resize(cl_context ctx, cl_command_queue cmdQueue, size_t a_size, bool a_cpuShare, bool a_cpuFB);
@@ -273,6 +273,7 @@ protected:
     cl_mem lsam1;         // 
     cl_mem lsam2;         // when LT is enabled: CONSTANT FOR ALL BOUNCES; .xyz store sample.dir; .w store lightPdfA;
                           // when PT is enabled: TEMP PER BOUNCE;          .xyz store lsam.color; .w store lsam.maxDist
+    cl_mem lsamCos;    // store single float lsam.cosAtLight when use PT
     cl_mem shadowRayPos;
     cl_mem shadowRayDir;
     cl_mem accPdf;        ///< accumulated pdf weights for 3-way Bogolepov light transport
@@ -289,6 +290,8 @@ protected:
     cl_mem fogAtten;
     cl_mem samZindex;     // used by LT only;
     cl_mem pixWeights;    // used by LT only; #TODO: remove this shit, we don't needed bilinear sampling.
+
+    cl_mem debugf4;
 
     size_t MEGABLOCKSIZE;
 
@@ -472,3 +475,4 @@ protected:
 void RoundBlocks2D(size_t global_item_size[2], size_t local_item_size[2]);
 
 constexpr static bool DEBUG_LT_WEIGHTS = false;
+constexpr static bool DEBUG_PT_WEIGHTS = false;

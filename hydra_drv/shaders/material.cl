@@ -94,13 +94,16 @@ __kernel void HitEnvOrLightKernel(__global const float4*    restrict in_rpos,
 
                                   __global const int*       restrict in_instLightInstId,
                                   __global const Lite_Hit*  restrict in_liteHit,
-                                  float a_mLightSubPathCount, int a_currDepth, int iNumElements)
+                                  float a_mLightSubPathCount, int a_currDepth, int iNumElements,
+                                  __global float4*          restrict a_debugf4)
 {
   int tid = GLOBAL_ID_X;
   if (tid >= iNumElements)
     return;
 
   const uint flags = a_flags[tid];
+
+  //a_debugf4[tid] = make_float4(-1, -1, -1, -1);
 
   // if hit environment
   //
@@ -248,6 +251,8 @@ __kernel void HitEnvOrLightKernel(__global const float4*    restrict in_rpos,
             {
               pdfAccExpA = 0.0f; // comment this to kill SDS caustics.
             }
+
+            //a_debugf4[tid] = make_float4(pdfAccRevA, pdfAccFwdA, pdfAccExpA, 0);
 
             const float misWeight = misWeightHeuristic3(pdfAccRevA, pdfAccFwdA, pdfAccExpA);
             emissColor *= misWeight;
@@ -586,6 +591,8 @@ __kernel void Shade(__global const float4*    restrict a_rpos,
                     __global const float4*    restrict in_data2,
                     __global const ushort4*   restrict in_shadow,
                     __global const float*     restrict in_lightPickProb,
+                    __global const float*     restrict in_lcos,
+  
                     __global const float4*    restrict in_normalsFull,
 
                     __global const PerRayAcc* restrict in_pdfAccPrev,
@@ -599,7 +606,8 @@ __kernel void Shade(__global const float4*    restrict a_rpos,
                     __global const float4*    restrict in_mtlStorage,
                     __global const float4*    restrict in_pdfStorage,
                     __global const EngineGlobals* restrict a_globals,
-                    int iNumElements)
+                    int iNumElements,
+                    __global float4*          restrict a_debugf4)
 {
 
   int tid = GLOBAL_ID_X;
@@ -651,11 +659,12 @@ __kernel void Shade(__global const float4*    restrict a_rpos,
 
   ShadowSample explicitSam;
 
-  explicitSam.pos     = to_float3(data1);
-  explicitSam.color   = to_float3(data2);
-  explicitSam.pdf     = fabs(data1.w);
-  explicitSam.maxDist = data2.w;
-  explicitSam.isPoint = (data1.w <= 0);
+  explicitSam.pos        = to_float3(data1);
+  explicitSam.color      = to_float3(data2);
+  explicitSam.pdf        = fabs(data1.w);
+  explicitSam.maxDist    = data2.w;
+  explicitSam.isPoint    = (data1.w <= 0);
+  explicitSam.cosAtLight = in_lcos[tid];
 
   //float3 shadowRayPos = hitPos + hitNorm*maxcomp(hitPos)*GEPSILON;
   float3 shadowRayDir = normalize(explicitSam.pos - hitPos); 
@@ -718,6 +727,8 @@ __kernel void Shade(__global const float4*    restrict a_rpos,
     if (explicitSam.isPoint)
       pdfAccRevA = 0.0f;
      
+    //a_debugf4[tid] = make_float4(pdfAccFwdA, pdfAccRevA, pdfAccExpA, GTermShadow);
+
     misWeight = misWeightHeuristic3(pdfAccExpA, pdfAccRevA, pdfAccFwdA);
   }
   else
