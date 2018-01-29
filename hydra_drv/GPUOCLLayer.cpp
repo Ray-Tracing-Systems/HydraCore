@@ -1355,11 +1355,8 @@ void GPUOCLLayer::trace1D(cl_mem a_rpos, cl_mem a_rdir, cl_mem a_outColor, size_
 
     runKernel_ComputeHit(a_rpos, a_rdir, a_size);
 
-    if ((m_vars.m_flags & HRT_FORWARD_TRACING) == 0 && (m_vars.m_flags & HRT_3WAY_MIS_WEIGHTS) != 0)
-      runKernel_UpdateRevAccGTermAndSavePrev(m_rays.rayFlags, a_rpos, a_rdir, bounce, a_size); // 3-Way PT pass only.
-
     if ((m_vars.m_flags & HRT_FORWARD_TRACING) == 0)
-      runKernel_HitEnvOrLight(m_rays.rayFlags, a_rpos, a_rdir, a_outColor, a_size);
+      runKernel_HitEnvOrLight(m_rays.rayFlags, a_rpos, a_rdir, a_outColor, bounce, a_size);
 
     if (m_vars.m_varsI[HRT_ENABLE_MRAYS_COUNTERS] && measureThisBounce)
     {
