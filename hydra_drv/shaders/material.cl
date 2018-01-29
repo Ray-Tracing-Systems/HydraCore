@@ -235,7 +235,7 @@ __kernel void HitEnvOrLightKernel(__global const float4*    restrict in_rpos,
 
             const float lightPdfA  = lPdfFwd.pdfA;
             const float cancelPrev = (misPrev.matSamplePdf / fmax(cosPrev, DEPSILON))*GTerm; // calcel previous pdfA 
-            const float cameraPdfA = (*a_pdfCamA);
+            const float cameraPdfA = a_pdfCamA[tid];
 
             float pdfAccFwdA = 1.0f       * (accData.pdfLightWP *accData.pdfGTerm) * lightPdfA*lPdfFwd.pickProb;
             float pdfAccRevA = cameraPdfA * (accData.pdfCameraWP*accData.pdfGTerm);
@@ -252,7 +252,7 @@ __kernel void HitEnvOrLightKernel(__global const float4*    restrict in_rpos,
               pdfAccExpA = 0.0f; // comment this to kill SDS caustics.
             }
 
-            //a_debugf4[tid] = make_float4(pdfAccRevA, pdfAccFwdA, pdfAccExpA, 0);
+            //a_debugf4[tid] = make_float4(pdfAccFwdA, pdfAccRevA, pdfAccExpA, 0);
 
             const float misWeight = misWeightHeuristic3(pdfAccRevA, pdfAccFwdA, pdfAccExpA);
             emissColor *= misWeight;
