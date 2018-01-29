@@ -610,9 +610,9 @@ void GPUOCLLayer::ShadePass(cl_mem a_rpos, cl_mem a_rdir, cl_mem a_outColor, siz
 
     if (DEBUG_PT_WEIGHTS)
     {
-      std::vector<float4> debugData(a_size), debugData3(a_size);
+      std::vector<float4> debugData(a_size), debugData2(a_size);
       CHECK_CL(clEnqueueReadBuffer(m_globals.cmdQueue, m_rays.debugf4, CL_TRUE, 0, a_size * sizeof(float), &debugData[0], 0, NULL, NULL));
-      CHECK_CL(clEnqueueReadBuffer(m_globals.cmdQueue, m_rays.accPdf,  CL_TRUE, 0, a_size * sizeof(float), &debugData3[0], 0, NULL, NULL));
+      CHECK_CL(clEnqueueReadBuffer(m_globals.cmdQueue, m_rays.accPdf,  CL_TRUE, 0, a_size * sizeof(float), &debugData2[0], 0, NULL, NULL));
       int a = 2;
     }
 

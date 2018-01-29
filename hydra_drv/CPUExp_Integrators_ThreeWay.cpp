@@ -29,9 +29,9 @@ void IntegratorThreeWay::DoPass(std::vector<uint>& a_imageLDR)
   const int samplesPerPass = m_width*m_height;
   mLightSubPathCount = float(samplesPerPass);
 
-  // #pragma omp parallel for
-  // for (int i = 0; i < samplesPerPass; i++)
-  //   DoLightPath();
+  #pragma omp parallel for
+  for (int i = 0; i < samplesPerPass; i++)
+    DoLightPath();
 
   #pragma omp parallel for
   for (int y = 0; y < m_height; y++)
@@ -403,7 +403,7 @@ float3  IntegratorThreeWay::PathTraceAcc(float3 ray_pos, float3 ray_dir, const f
     const float  cosThetaOut2 = fmax(-dot(shadowRayDir, surfElem.normal), 0.0f);
     const bool   underSurface = (dot(evalData.btdf, evalData.btdf)*cosThetaOut2 > 0.0f && dot(evalData.brdf, evalData.brdf)*cosThetaOut1 <= 0.0f);
     const float  cosThetaOut  = underSurface ? cosThetaOut2 : cosThetaOut1;  
-    const float  cosAtLight   = explicitSam.cosAtLight;
+    const float  cosAtLight   = fmax(explicitSam.cosAtLight, 0.0f);             
                               
     const float3 brdfVal      = evalData.brdf*cosThetaOut1 + evalData.btdf*cosThetaOut2;
     const float  bsdfRevWP    = (evalData.pdfFwd == 0.0f) ? 1.0f : evalData.pdfFwd / fmax(cosThetaOut, DEPSILON);

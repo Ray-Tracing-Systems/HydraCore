@@ -1367,6 +1367,9 @@ void GPUOCLLayer::trace1D(cl_mem a_rpos, cl_mem a_rdir, cl_mem a_outColor, size_
     if ((m_vars.m_flags & HRT_FORWARD_TRACING) == 0)
       runKernel_HitEnvOrLight(m_rays.rayFlags, a_rpos, a_rdir, a_outColor, bounce, a_size);
 
+    // if (bounce == 2)
+    //   break;
+
     if (m_vars.m_varsI[HRT_ENABLE_MRAYS_COUNTERS] && measureThisBounce)
     {
       clFinish(m_globals.cmdQueue);
@@ -1410,7 +1413,6 @@ void GPUOCLLayer::trace1D(cl_mem a_rpos, cl_mem a_rdir, cl_mem a_outColor, size_
         runKernel_UpdateForwardPdfFor3Way(m_rays.oldFlags, m_rays.oldRayDir, m_rays.rayDir, m_rays.accPdf, a_size);
     }
 
-    break;
   }
 
 

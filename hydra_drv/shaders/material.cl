@@ -701,7 +701,7 @@ __kernel void Shade(__global const float4*    restrict a_rpos,
     const float cosThetaOut2 = fmax(-dot(shadowRayDir, hitNorm), 0.0f);
     const bool  underSurface = (dot(evalData.btdf, evalData.btdf)*cosThetaOut2 > 0.0f && dot(evalData.brdf, evalData.brdf)*cosThetaOut1 <= 0.0f);
     const float cosThetaOut  = underSurface ? cosThetaOut2 : cosThetaOut1;
-    const float cosAtLight   = explicitSam.cosAtLight;
+    const float cosAtLight   = fmax(explicitSam.cosAtLight, 0.0f);
      
     const float bsdfRevWP    = (evalData.pdfFwd == 0.0f) ? 1.0f : evalData.pdfFwd / fmax(cosThetaOut, DEPSILON);
     const float bsdfFwdWP    = (evalData.pdfRev == 0.0f) ? 1.0f : evalData.pdfRev / fmax(cosHere, DEPSILON);
@@ -727,7 +727,7 @@ __kernel void Shade(__global const float4*    restrict a_rpos,
     if (explicitSam.isPoint)
       pdfAccRevA = 0.0f;
      
-    //a_debugf4[tid] = make_float4(pdfAccFwdA, pdfAccRevA, pdfAccExpA, GTermShadow);
+    //a_debugf4[tid] = make_float4(pdfAccFwdA, pdfAccRevA, pdfAccExpA, bsdfFwdWP);
 
     misWeight = misWeightHeuristic3(pdfAccExpA, pdfAccRevA, pdfAccFwdA);
   }
