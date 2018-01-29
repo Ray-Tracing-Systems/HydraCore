@@ -166,6 +166,39 @@ __kernel void HitEnvOrLightKernel(__global const float4*    restrict in_rpos,
 
     __global const PlainMaterial* pHitMaterial = materialAt(a_globals, in_mtlStorage, GetMaterialId(in_matData[tid]));
 
+    // eval PDFs for 3WAY 
+    //
+    PerRayAcc accData;  
+    float GTerm = 1.0f, cosHere = 1.0f, cosPrev = 1.0f;
+    if (a_globals->g_flags & HRT_3WAY_MIS_WEIGHTS)
+    {
+      const float dist = length(ray_pos - hitPos);
+      cosPrev = in_misDataPrev[tid].cosThetaPrev;
+      cosHere = fabs(dot(ray_dir, hitNorm));
+      GTerm   = cosHere * cosPrev / fmax(dist*dist, DEPSILON2);
+      accData = a_pdfAcc[tid]; // for 3 bounce we need to store (p0*G0)*(p1*G1) and do not include (p2*G2) to we could replace it with explicit strategy pdf
+
+      if (a_currDepth == 0)
+      {
+        float3 camDirDummy; float zDepthDummy;
+        const float imageToSurfaceFactor = CameraImageToSurfaceFactor(hitPos, hitNorm, a_globals,
+                                                                      &camDirDummy, &zDepthDummy);
+
+        const float cameraPdfA = imageToSurfaceFactor / a_mLightSubPathCount;
+        a_pdfCamA   [tid] = cameraPdfA;
+        a_pdfAccCopy[tid] = accData;
+      }
+      else
+      {
+        const PerRayAcc prevData = accData;
+        accData.pdfGTerm *= GTerm;
+        a_pdfAcc    [tid] = accData;
+        a_pdfAccCopy[tid] = prevData;
+      }
+    }
+
+    // now check if we hit light
+    //
     bool hitEmissiveMaterialMLT = false;
     const bool skipPieceOfShit  = materialIsInvisLight(pHitMaterial) && isEyeRay(flags);
     const float3 emissionVal    = (pHitMaterial == 0) ? make_float3(0,0,0) : materialEvalEmission(pHitMaterial, ray_dir, hitNorm, hitTexCoord, a_globals, in_texStorage1, in_texStorage2);
@@ -188,15 +221,46 @@ __kernel void HitEnvOrLightKernel(__global const float4*    restrict in_rpos,
     
           __global const PlainLight* pLight = lightAt(a_globals, lightOffset);  
           emissColor = lightGetIntensity(pLight, ray_pos, ray_dir, hitNorm, hitTexCoord, flags, misPrev, a_globals, in_texStorage1, in_pdfStorage);
-    
-          if (unpackBounceNum(flags) > 0 && !(a_globals->g_flags & HRT_STUPID_PT_MODE) && (misPrev.isSpecular == 0))
+          
+          ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////// \\\\\\\\\\\\\\\\\\\\\\
+
+          if (a_globals->g_flags & HRT_3WAY_MIS_WEIGHTS)
+          {
+            const LightPdfFwd lPdfFwd = lightPdfFwd(pLight, ray_dir, cosHere, a_globals, in_texStorage1, in_pdfStorage);
+
+            accData.pdfLightWP *= (lPdfFwd.pdfW / fmax(cosHere, DEPSILON));
+
+            const float lightPdfA  = lPdfFwd.pdfA;
+            const float cancelPrev = (misPrev.matSamplePdf / fmax(cosPrev, DEPSILON))*GTerm; // calcel previous pdfA 
+            const float cameraPdfA = (*a_pdfCamA);
+
+            float pdfAccFwdA = 1.0f       * (accData.pdfLightWP *accData.pdfGTerm) * lightPdfA*lPdfFwd.pickProb;
+            float pdfAccRevA = cameraPdfA * (accData.pdfCameraWP*accData.pdfGTerm);
+            float pdfAccExpA = cameraPdfA * (accData.pdfCameraWP*accData.pdfGTerm)*(lightPdfA*lightPdfSelectRev(pLight) / fmax(cancelPrev, DEPSILON));
+
+            if (a_currDepth == 0)
+            {
+              pdfAccFwdA = 0.0f;
+              pdfAccRevA = 1.0f;
+              pdfAccExpA = 0.0f;
+            }
+            else if (misPrev.isSpecular)
+            {
+              pdfAccExpA = 0.0f; // comment this to kill SDS caustics.
+            }
+
+            const float misWeight = misWeightHeuristic3(pdfAccRevA, pdfAccFwdA, pdfAccExpA);
+            emissColor *= misWeight;
+          } 
+          else if (unpackBounceNum(flags) > 0 && !(a_globals->g_flags & HRT_STUPID_PT_MODE) && (misPrev.isSpecular == 0)) // old MIS weights via pdfW
           {
             const float lgtPdf    = lightPdfSelectRev(pLight)*lightEvalPDF(pLight, ray_pos, ray_dir, hitPos, hitNorm, hitTexCoord, in_pdfStorage, a_globals);
             const float bsdfPdf   = misPrev.matSamplePdf;
             const float misWeight = misWeightHeuristic(bsdfPdf, lgtPdf); // (bsdfPdf*bsdfPdf) / (lgtPdf*lgtPdf + bsdfPdf*bsdfPdf);
-    
             emissColor *= misWeight;
           }
+
+          ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////// \\\\\\\\\\\\\\\\\\\\\\
     
           if (unpackBounceNum(flags) > 0)
             emissColor = clamp(emissColor, 0.0f, a_globals->varsF[HRT_BSDF_CLAMPING]);
@@ -265,34 +329,6 @@ __kernel void HitEnvOrLightKernel(__global const float4*    restrict in_rpos,
       out_emission[tid] = make_float4(0, 0, 0, as_float(0));
     }
 
-    // eval PDFs for 3WAY 
-    //
-    if (a_globals->g_flags & HRT_3WAY_MIS_WEIGHTS)
-    {
-      if (a_currDepth == 0)
-      {
-        float3 camDirDummy; float zDepthDummy;
-        const float imageToSurfaceFactor = CameraImageToSurfaceFactor(hitPos, hitNorm, a_globals,
-                                                                      &camDirDummy, &zDepthDummy);
-
-        const float cameraPdfA = imageToSurfaceFactor / a_mLightSubPathCount;
-        a_pdfCamA[tid] = cameraPdfA;
-      }
-      else
-      {
-        PerRayAcc accData = a_pdfAcc[tid]; // for 3 bounce we need to store (p0*G0)*(p1*G1) and do not include (p2*G2) to we could replace it with explicit strategy pdf
-        const PerRayAcc prevData = accData;
-
-        const float  cosPrev = in_misDataPrev[tid].cosThetaPrev;
-        const float  cosHere = fabs(dot(ray_dir, hitNorm));
-        const float  dist    = length(ray_pos - hitPos);
-        const float  GTerm   = cosHere * cosPrev / fmax(dist*dist, DEPSILON2);
-
-        accData.pdfGTerm *= GTerm;
-        a_pdfAcc[tid]     = accData;
-        a_pdfAccCopy[tid] = prevData;
-      }
-    }
 
   } // \\ else if thread is active
  
@@ -552,15 +588,18 @@ __kernel void Shade(__global const float4*    restrict a_rpos,
                     __global const float*     restrict in_lightPickProb,
                     __global const float4*    restrict in_normalsFull,
 
+                    __global const PerRayAcc* restrict in_pdfAccPrev,
+                    __global const float4*    restrict in_rayDirAndLightId,
+                    __global const float*     restrict in_pdfCamA,
+
                     __global float4*          restrict out_color,
                     
                     __global const float4*    restrict in_texStorage1,
                     __global const float4*    restrict in_texStorage2,
                     __global const float4*    restrict in_mtlStorage,
-
-                    int iNumElements,
-                    __global const EngineGlobals* restrict a_globals
-                    )
+                    __global const float4*    restrict in_pdfStorage,
+                    __global const EngineGlobals* restrict a_globals,
+                    int iNumElements)
 {
 
   int tid = GLOBAL_ID_X;
@@ -592,16 +631,14 @@ __kernel void Shade(__global const float4*    restrict a_rpos,
       return;
   }
 
-
-  Hit_Part4 btanAndN = in_hitTangent[tid];
-
-  //float4 data        = in_hitPosNorm[tid];
-  float3 hitPos      = to_float3(in_hitPosNorm[tid]);
-  float3 hitNorm     = to_float3(in_normalsFull[tid]); // normalize(decodeNormal(as_int(data.w)));
-  float2 hitTexCoord = in_hitTexCoord[tid];
-
-  float3 hitBiTang = decodeNormal(btanAndN.tangentCompressed);
-  float3 hitBiNorm = decodeNormal(btanAndN.bitangentCompressed);
+  // read surfaceHit
+  //
+  const Hit_Part4 btanAndN = in_hitTangent[tid];
+  const float3 hitPos      = to_float3(in_hitPosNorm[tid]);
+  const float3 hitNorm     = to_float3(in_normalsFull[tid]); // normalize(decodeNormal(as_int(data.w)));
+  const float2 hitTexCoord = in_hitTexCoord[tid];
+  const float3 hitBiTang   = decodeNormal(btanAndN.tangentCompressed);
+  const float3 hitBiNorm   = decodeNormal(btanAndN.bitangentCompressed);
 
   __global const PlainMaterial* pHitMaterial = materialAt(a_globals, in_mtlStorage, GetMaterialId(in_matData[tid]));
 
@@ -641,21 +678,61 @@ __kernel void Shade(__global const float4*    restrict a_rpos,
   sc.bn = hitBiNorm;
   sc.tc = hitTexCoord;
 
-  const BxDFResult brdfAndPdf = materialEval(pHitMaterial, &sc, disableCaustics, false, /* global data --> */ a_globals, in_texStorage1, in_texStorage2);
+  const BxDFResult evalData = materialEval(pHitMaterial, &sc, disableCaustics, false, /* global data --> */ a_globals, in_texStorage1, in_texStorage2);
+  const float3 shadow       = decompressShadow(in_shadow[tid]);
+  const float lightPickProb = in_lightPickProb[tid];
 
-  const float3 shadow        = decompressShadow(in_shadow[tid]);
-  const float  lightPickProb = in_lightPickProb[tid];
+  float misWeight = 1.0f;
+  if (a_globals->g_flags & HRT_3WAY_MIS_WEIGHTS)
+  {
+    const float cosHere       = fabs(dot(ray_dir, hitNorm));
+    const int a_currDepth     = rayBounceNum;
 
-  float  lgtPdf   = explicitSam.pdf*lightPickProb;
-  float misWeight = misWeightHeuristic(lgtPdf, brdfAndPdf.pdfFwd); // (lgtPdf*lgtPdf) / (lgtPdf*lgtPdf + bsdfPdf*bsdfPdf);
-  
-  if (explicitSam.isPoint)
-    misWeight = 1.0f;
+    const float cosThetaOut1 = fmax(+dot(shadowRayDir, hitNorm), 0.0f);
+    const float cosThetaOut2 = fmax(-dot(shadowRayDir, hitNorm), 0.0f);
+    const bool  underSurface = (dot(evalData.btdf, evalData.btdf)*cosThetaOut2 > 0.0f && dot(evalData.brdf, evalData.brdf)*cosThetaOut1 <= 0.0f);
+    const float cosThetaOut  = underSurface ? cosThetaOut2 : cosThetaOut1;
+    const float cosAtLight   = explicitSam.cosAtLight;
+     
+    const float bsdfRevWP    = (evalData.pdfFwd == 0.0f) ? 1.0f : evalData.pdfFwd / fmax(cosThetaOut, DEPSILON);
+    const float bsdfFwdWP    = (evalData.pdfRev == 0.0f) ? 1.0f : evalData.pdfRev / fmax(cosHere, DEPSILON);
+    const float shadowDist   = length(hitPos - explicitSam.pos);
+    const float GTermShadow  = cosThetaOut * cosAtLight / fmax(shadowDist*shadowDist, DEPSILON);
+    
+    const PerRayAcc prevData = in_pdfAccPrev[tid];
+    const int lightOffset    = as_int(in_rayDirAndLightId[tid].w);
+
+    __global const PlainLight* pLight = lightAt(a_globals, lightOffset);
+
+    const LightPdfFwd lPdfFwd = lightPdfFwd(pLight, shadowRayDir, cosAtLight, a_globals, in_texStorage1, in_pdfStorage);
+     
+    float pdfFwdWP1 = 1.0f;  // madness of IBPT. 
+    if (a_currDepth > 0)     // Imagine ray that hit light source after (second?) bounce (or first ?). pdfAccFwdA = pdfLightA*PdfLightW*GTermShadow.
+      pdfFwdWP1 = bsdfFwdWP; // 
+     
+    const float cameraPdfA = in_pdfCamA[tid];
+     
+    float pdfAccFwdA = pdfFwdWP1  * (prevData.pdfLightWP *prevData.pdfGTerm)*((lPdfFwd.pdfW / fmax(cosAtLight, DEPSILON))*GTermShadow)*(lPdfFwd.pdfA*lPdfFwd.pickProb);
+    float pdfAccRevA = cameraPdfA * (prevData.pdfCameraWP*prevData.pdfGTerm)*bsdfRevWP*GTermShadow;
+    float pdfAccExpA = cameraPdfA * (prevData.pdfCameraWP*prevData.pdfGTerm)*(lPdfFwd.pdfA*lightPickProb);
+    if (explicitSam.isPoint)
+      pdfAccRevA = 0.0f;
+     
+    misWeight = misWeightHeuristic3(pdfAccExpA, pdfAccRevA, pdfAccFwdA);
+  }
+  else
+  {
+    const float lgtPdf = explicitSam.pdf*lightPickProb;
+
+    misWeight = misWeightHeuristic(lgtPdf, evalData.pdfFwd); // (lgtPdf*lgtPdf) / (lgtPdf*lgtPdf + bsdfPdf*bsdfPdf);
+    if (explicitSam.isPoint)
+      misWeight = 1.0f;
+  }
 
   const float cosThetaOut1 = fmax(+dot(shadowRayDir, hitNorm), 0.0f);
   const float cosThetaOut2 = fmax(-dot(shadowRayDir, hitNorm), 0.0f);
 
-  const float3 bxdfVal = (brdfAndPdf.brdf*cosThetaOut1 + brdfAndPdf.btdf*cosThetaOut2);
+  const float3 bxdfVal = (evalData.brdf*cosThetaOut1 + evalData.btdf*cosThetaOut2);
 
   float3 shadeColor = (explicitSam.color * (1.0f / fmax(explicitSam.pdf, DEPSILON)))*bxdfVal*misWeight*shadow; 
 
@@ -993,6 +1070,13 @@ __kernel void NextBounce(__global   float4*        restrict a_rpos,
 
 }
 
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 __kernel void NextTransparentBounce(__global   float4*    a_rpos,
                                     __global   float4*    a_rdir,
