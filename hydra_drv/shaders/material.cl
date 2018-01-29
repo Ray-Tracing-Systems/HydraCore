@@ -1040,7 +1040,7 @@ __kernel void NextBounce(__global   float4*        restrict a_rpos,
             {
               ShadeContext sc;
               sc.wp = hitPos;
-              sc.l  = (-1.0f)*ray_dir;  // fliped; if compare to normal PT
+              sc.l  = (-1.0f)*ray_dir;      // fliped; if compare to normal PT
               sc.v  = brdfSample.direction; // fliped; if compare to normal PT
               sc.n  = hitNorm;
               sc.fn = flatNorm;
