@@ -467,7 +467,7 @@ __kernel void ConnectToEyeKernel(__global const uint*          restrict a_flags,
     return;
   }
 
-  const float3 ray_dir = to_float3(in_oraydir[tid]);
+  const float3 ray_dir = (in_oraydir == 0) ? make_float3(0,0,0) : to_float3(in_oraydir[tid]);
   const float3 hitPos  = to_float3(in_hitPosNorm[tid]); //  
   const float3 hitNorm = to_float3(in_normalsFull[tid]);
   const float4 data2   = in_sraydir[tid];
@@ -505,7 +505,7 @@ __kernel void ConnectToEyeKernel(__global const uint*          restrict a_flags,
   }
 
   float misWeight = 1.0f;
-  if (a_globals->g_flags & HRT_3WAY_MIS_WEIGHTS)
+  if ((a_globals->g_flags & HRT_3WAY_MIS_WEIGHTS) && (a_currBounce > 0))
   {
     const PerRayAcc accData = in_pdfAcc[tid];
 
@@ -531,9 +531,6 @@ __kernel void ConnectToEyeKernel(__global const uint*          restrict a_flags,
     const float pdfAccExpA = cameraPdfA * (pdfRevWP*accData.pdfCameraWP)*accData.pdfGTerm*(cancelImplicitLightHitPdf*(lightPdfA*lightPickProbRev));
 
     misWeight = misWeightHeuristic3(pdfAccFwdA, pdfAccRevA, pdfAccExpA);
-
-    //if (a_debugOut != 0)
-      //a_debugOut[tid] = make_float4(pdfAccFwdA, pdfAccRevA, pdfAccExpA, misWeight);
   }
   
 

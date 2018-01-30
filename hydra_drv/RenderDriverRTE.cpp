@@ -1005,7 +1005,9 @@ void RenderDriverRTE::Draw()
   else
   {
     auto flagsAndVars    = m_pHWLayer->GetAllFlagsAndVars();
-    flagsAndVars.m_flags = flagsAndVars.m_flags & ~HRT_UNIFIED_IMAGE_SAMPLING;
+    flagsAndVars.m_flags &= (~HRT_UNIFIED_IMAGE_SAMPLING);
+    flagsAndVars.m_flags &= (~HRT_FORWARD_TRACING);
+    flagsAndVars.m_flags &= (~HRT_DRAW_LIGHT_LT);
     m_pHWLayer->SetAllFlagsAndVars(flagsAndVars);
 
     m_pHWLayer->BeginTracingPass();
