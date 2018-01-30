@@ -847,7 +847,8 @@ __kernel void NextBounce(__global   float4*        restrict a_rpos,
   gen.maxNumbers = a_globals->varsI[HRT_MLT_MAX_NUMBERS];
 
   float GTerm = 1.0f;
-
+  float3 oldRayDir;
+ 
   if (rayIsActiveU(flags))
   {
     matOffset = materialOffset(a_globals, GetMaterialId(in_matData[tid]));
@@ -908,8 +909,9 @@ __kernel void NextBounce(__global   float4*        restrict a_rpos,
 
     // calc new ray
     //    
-    ray_dir = nextRay_dir;
-    ray_pos = nextRay_pos;
+    oldRayDir = ray_dir;
+    ray_dir   = nextRay_dir;
+    ray_pos   = nextRay_pos;
   }
   
   /////////////////////////////////////////////////////////////////////////////////////////////////////////////// begin russian roulette
@@ -1031,7 +1033,7 @@ __kernel void NextBounce(__global   float4*        restrict a_rpos,
         {
           if (!isPureSpecular(brdfSample))
           {
-            const float cosHere = fabs(dot(ray_dir, hitNorm));
+            const float cosHere = fabs(dot(oldRayDir, hitNorm));
             const float cosNext = fabs(dot(brdfSample.direction, hitNorm));
 
             accPdf.pdfCameraWP *= (brdfSample.pdf / fmax(cosNext, DEPSILON));
@@ -1040,7 +1042,7 @@ __kernel void NextBounce(__global   float4*        restrict a_rpos,
             {
               ShadeContext sc;
               sc.wp = hitPos;
-              sc.l  = (-1.0f)*ray_dir;      // fliped; if compare to normal PT
+              sc.l  = (-1.0f)*oldRayDir;      // fliped; if compare to normal PT
               sc.v  = brdfSample.direction; // fliped; if compare to normal PT
               sc.n  = hitNorm;
               sc.fn = flatNorm;
