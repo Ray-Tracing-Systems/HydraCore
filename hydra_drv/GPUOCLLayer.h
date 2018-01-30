@@ -176,10 +176,11 @@ protected:
   
   //
   //
-  int    m_initFlags;
-  int    m_megaBlockSize;
-  int    m_megaBlocksNum;
+  int   m_initFlags;
+  int   m_megaBlockSize;
+  int   m_megaBlocksNum;
   int   m_passNumber;
+  int   m_passNumberForQMC;
   float m_spp;
 
   struct CL_SCREEN_BUFFERS

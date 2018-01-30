@@ -614,7 +614,7 @@ GPUOCLLayer::GPUOCLLayer(int w, int h, int a_flags, int a_deviceId) : Base(w, h,
   std::string loshaderpathBin = installPath2 + "shadercache/" + "lightx_" + devHash + ".bin";
   std::string yoshaderpathBin = installPath2 + "shadercache/" + "matsxx_" + devHash + ".bin";
 
-  bool inDevelopment = true;
+  bool inDevelopment = false;
   #ifdef _DEBUG
   inDevelopment = true;
   #endif
@@ -1019,6 +1019,7 @@ void GPUOCLLayer::InitPathTracing(int seed)
   runKernel_InitRandomGen(m_rays.randGenState, m_rays.MEGABLOCKSIZE, seed);
   m_passNumber = 0;
   m_spp        = 0.0f;
+  m_passNumberForQMC = 0;
 
   ClearAccumulatedColor();
 }
@@ -1134,7 +1135,7 @@ void GPUOCLLayer::BeginTracingPass()
         ConnectEyePass(m_rays.rayFlags, m_rays.lsam1, m_rays.hitNormUncompressed, nullptr, m_rays.pathAccColor, -1, m_rays.MEGABLOCKSIZE);
     }
     else
-      runKernel_MakeEyeRays(m_rays.rayPos, m_rays.rayDir, m_rays.samZindex, m_rays.pixWeights, m_rays.MEGABLOCKSIZE, m_passNumber);
+      runKernel_MakeEyeRays(m_rays.rayPos, m_rays.rayDir, m_rays.samZindex, m_rays.pixWeights, m_rays.MEGABLOCKSIZE, m_passNumberForQMC);
 
     // (2) Compute sample colors
     //
@@ -1231,6 +1232,8 @@ void GPUOCLLayer::AddContributionToScreenCPU(cl_mem& in_color, cl_mem in_indices
 
   clFlush(m_globals.cmdQueue);
 
+  const bool ltPassOfIBPT = (m_vars.m_flags & HRT_3WAY_MIS_WEIGHTS) && (m_vars.m_flags & HRT_FORWARD_TRACING); 
+
   // (2) sync copy of data (sync asyncronious call in future, pin pong) and eval contribution 
   //
   if (m_passNumber != 0)
@@ -1249,8 +1252,11 @@ void GPUOCLLayer::AddContributionToScreenCPU(cl_mem& in_color, cl_mem in_indices
 
       if (m_pExternalImage != nullptr) //#TODO: if ((m_vars.m_flags & HRT_FORWARD_TRACING) == 0) IT IS DIFFERENT FOR LT !!!!!!!!!!
       {
-        m_pExternalImage->Header()->counterRcv++;
-        m_pExternalImage->Header()->spp += float(double(a_size) / double(a_width*a_height));
+        if (!ltPassOfIBPT) // don't update counters if this is only first pass of two-pass IBPT
+        {
+          m_pExternalImage->Header()->counterRcv++;
+          m_pExternalImage->Header()->spp += float(double(a_size) / double(a_width*a_height));
+        }
         m_pExternalImage->Unlock();
       }
     }
@@ -1278,10 +1284,11 @@ void GPUOCLLayer::EndTracingPass()
   }
 
   m_spp += float(double(m_rays.MEGABLOCKSIZE) / double(m_width*m_height));
+  m_passNumberForQMC++;
 
   const float time = m_timer.getElapsed();
 
-  if (m_passNumber % 4 == 0 && m_passNumber > 0)
+  if (m_passNumberForQMC % 4 == 0 && m_passNumberForQMC > 0)
   {
     auto precOld = std::cout.precision(2);
     std::cout << "spp =\t" << int(m_spp) << "\tspeed = " << float(m_rays.MEGABLOCKSIZE) / (1e6f*time) << " M(samples)/s         \r";
