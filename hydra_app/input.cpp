@@ -15,6 +15,8 @@ Input::Input()
   inLibraryPath = "tests/test_42";      ///< cornell box with teapot
   //inLibraryPath = "tests/test_223_small"; ///< cornell box with mirror glossy back wall
   //inLibraryPath = "/home/frol/PROG/HydraAPI/main/tests/test_44";
+  //inLibraryPath = "D:/[archive]/2017/HydraAPP/hydra_app/tests/hydra_benchmark_07";
+  //inLibraryPath   = "D:/temp/empty";
 
   //inLibraryPath = "D:/PROG/HydraAPI/main/tests/test_39";
   //inLibraryPath = "D:/PROG/HydraAPI/main/tests_f/test_103";
@@ -26,7 +28,7 @@ Input::Input()
   enableMLT  = false;
 
   winWidth   = 1024;
-  winHeight  = 1024;
+  winHeight  = 1024; 
 
   camMoveSpeed     = 2.5f;
   mouseSensitivity = 0.1f;

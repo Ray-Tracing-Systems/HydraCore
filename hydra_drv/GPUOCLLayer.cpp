@@ -749,6 +749,32 @@ GPUOCLLayer::~GPUOCLLayer()
   m_globals.qmcTable     = 0;
 }
 
+size_t GPUOCLLayer::CalcMegaBlockSize()
+{
+  const size_t memAmount = GetAvaliableMemoryAmount(true);
+  const size_t MB = size_t(1024*1024);
+
+  if (m_globals.devIsCPU)
+  {
+    return 256 * 256;
+  }
+  else if (memAmount <= size_t(256)*MB)
+  {
+    return 256 * 256;
+  }
+  else if (memAmount <= size_t(1024)*MB)
+  {
+    return 512 * 512;
+  }
+  else if (memAmount <= size_t(4*1024)*MB)
+  {
+    return 1024 * 512;
+  }
+  else
+    return 1024 * 1024;
+
+}
+
 
 void GPUOCLLayer::ResizeScreen(int width, int height, int a_flags)
 {
@@ -802,9 +828,8 @@ void GPUOCLLayer::ResizeScreen(int width, int height, int a_flags)
   m_width  = width;
   m_height = height;
 
-  const size_t memAmount      = GetAvaliableMemoryAmount(true);
-  const size_t MEGABLOCK_SIZE = calcMegaBlockSize(m_width, m_height, memAmount);
-  
+  const size_t MEGABLOCK_SIZE = CalcMegaBlockSize(); // calcMegaBlockSize(m_width, m_height, memAmount);
+
   m_megaBlockSize = int(MEGABLOCK_SIZE);
   m_megaBlocksNum = blocks(m_width*m_height, m_megaBlockSize);
 
@@ -850,6 +875,9 @@ size_t GPUOCLLayer::GetAvaliableMemoryAmount(bool allMem)
   cl_ulong memTotal = 0;
   size_t   paramValueSize = 0;
   CHECK_CL(clGetDeviceInfo(m_globals.device, CL_DEVICE_GLOBAL_MEM_SIZE, sizeof(cl_ulong), &memTotal, &paramValueSize));
+
+  if (allMem)
+    return size_t(memTotal);
 
   long long int memLeft = (long long int)(memTotal);
 
