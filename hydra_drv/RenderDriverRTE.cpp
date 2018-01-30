@@ -54,6 +54,7 @@ RenderDriverRTE::RenderDriverRTE(const wchar_t* a_options, int w, int h, int a_d
   m_gpuFB      = ((m_initFlags & GPU_RT_CPU_FRAMEBUFFER) == 0);
   m_usePT      = false;
   m_useLT      = false;
+  m_useIBPT    = false;
   m_ptInitDone = false;
   m_legacy.m_lastSeed = GetTickCount();
   m_legacy.updateProgressCall = &UpdateProgress;
@@ -212,20 +213,30 @@ bool RenderDriverRTE::UpdateSettings(pugi::xml_node a_settingsNode)
   //
   if (a_settingsNode.child(L"method_primary") != nullptr)
   {
-    if (std::wstring(a_settingsNode.child(L"method_primary").text().as_string()) == L"pathtracing")
+    const std::wstring method = std::wstring(a_settingsNode.child(L"method_primary").text().as_string());
+    if (method == L"IBPT")
     {
-      m_usePT = true;
-      m_useLT = false;
+      m_useIBPT = true;
+      m_usePT   = false;
+      m_useLT   = false;
     }
-    else if (std::wstring(a_settingsNode.child(L"method_primary").text().as_string()) == L"lighttracing")
+    else if (method == L"pathtracing")
     {
-      m_usePT = false;
-      m_useLT = true;
+      m_useIBPT = false;
+      m_usePT   = true;
+      m_useLT   = false;
+    }
+    else if (method == L"lighttracing")
+    {
+      m_useIBPT = false;
+      m_usePT   = false;
+      m_useLT   = true;
     }
     else
     {
-      m_useLT = false;
-      m_usePT = false;
+      m_useIBPT = false;
+      m_useLT   = false;
+      m_usePT   = false;
     }
   }
   else
@@ -916,7 +927,7 @@ void RenderDriverRTE::Draw()
 
   m_pHWLayer->PrepareEngineGlobals();
 
-  if (m_usePT || m_useLT)
+  if (m_usePT || m_useLT || m_useIBPT)
   {
     if (!m_ptInitDone)
     {
@@ -925,32 +936,58 @@ void RenderDriverRTE::Draw()
  
       auto flagsAndVars = m_pHWLayer->GetAllFlagsAndVars();
       flagsAndVars.m_flags |= HRT_UNIFIED_IMAGE_SAMPLING;
+      flagsAndVars.m_flags &= (~HRT_3WAY_MIS_WEIGHTS);
 
       if (m_useLT)
       {
         flagsAndVars.m_flags |= HRT_FORWARD_TRACING;
         flagsAndVars.m_flags |= HRT_DRAW_LIGHT_LT;
-        //flagsAndVars.m_flags |= HRT_3WAY_MIS_WEIGHTS;
       }
       else
       {
         flagsAndVars.m_flags &= (~HRT_FORWARD_TRACING);
         flagsAndVars.m_flags &= (~HRT_DRAW_LIGHT_LT);
-        //flagsAndVars.m_flags &= (~HRT_3WAY_MIS_WEIGHTS);
-
-        flagsAndVars.m_flags |= HRT_3WAY_MIS_WEIGHTS;
       }
 
       m_pHWLayer->SetAllFlagsAndVars(flagsAndVars);
       m_drawPassNumber = 0;
     }
 
-    m_pHWLayer->BeginTracingPass();
-    m_pHWLayer->EndTracingPass();
+    if (m_useIBPT)
+    {
+      // LT PASS
+      //
+      auto flagsAndVars = m_pHWLayer->GetAllFlagsAndVars();
+      flagsAndVars.m_flags &= (~HRT_FORWARD_TRACING);
+      flagsAndVars.m_flags &= (~HRT_DRAW_LIGHT_LT);
+      flagsAndVars.m_flags |= HRT_UNIFIED_IMAGE_SAMPLING;
+      flagsAndVars.m_flags |= HRT_FORWARD_TRACING;
+      flagsAndVars.m_flags |= HRT_3WAY_MIS_WEIGHTS;
+
+      m_pHWLayer->SetAllFlagsAndVars(flagsAndVars);
+      m_pHWLayer->BeginTracingPass();
+      // m_pHWLayer->EndTracingPass(); //#NOTE: dont call EndTracingPass, because it will increase m_spp
+
+      // PT PASS
+      //
+      flagsAndVars.m_flags &= (~HRT_FORWARD_TRACING);
+      flagsAndVars.m_flags &= (~HRT_DRAW_LIGHT_LT);
+      flagsAndVars.m_flags |= HRT_UNIFIED_IMAGE_SAMPLING;
+      flagsAndVars.m_flags |= HRT_3WAY_MIS_WEIGHTS;
+
+      m_pHWLayer->SetAllFlagsAndVars(flagsAndVars);
+      m_pHWLayer->BeginTracingPass();
+      m_pHWLayer->EndTracingPass();
+    }
+    else
+    {
+      m_pHWLayer->BeginTracingPass();
+      m_pHWLayer->EndTracingPass();
+    }
 
     //imageB to imageA contribution
     //
-    if ((m_useLT || m_gpuFB) && m_pAccumImage != nullptr)
+    if ((m_useLT || m_gpuFB || m_useIBPT) && m_pAccumImage != nullptr)
     {
       const double freq = double(m_width*m_height)/double(1024*1024); 
       int freqInt = int(freq) + 1;   

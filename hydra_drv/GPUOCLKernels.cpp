@@ -85,13 +85,6 @@ void GPUOCLLayer::runKernel_MakeLightRays(cl_mem a_rpos, cl_mem a_rdir, cl_mem a
 
   CHECK_CL(clEnqueueNDRangeKernel(m_globals.cmdQueue, makeRaysKern, 1, NULL, &a_size, &localWorkSize, 0, NULL, NULL));
   waitIfDebug(__FILE__, __LINE__);
-
-  if (DEBUG_LT_WEIGHTS)
-  {
-    std::vector<float4> debugData(a_size);
-    CHECK_CL(clEnqueueReadBuffer(m_globals.cmdQueue, m_rays.accPdf, CL_TRUE, 0, a_size * sizeof(float), &debugData[0], 0, NULL, NULL));
-    int a = 2;
-  }
 }
 
 void RoundBlocks2D(size_t global_item_size[2], size_t local_item_size[2])
@@ -309,25 +302,9 @@ void GPUOCLLayer::runKernel_HitEnvOrLight(cl_mem a_rayFlags, cl_mem a_rpos, cl_m
   CHECK_CL(clSetKernelArg(kernX, 23, sizeof(cl_float), (void*)&mLightSubPathCount)); // a_mLightSubPathCount
   CHECK_CL(clSetKernelArg(kernX, 24, sizeof(cl_int),   (void*)&currBounce));         // a_currDepth
   CHECK_CL(clSetKernelArg(kernX, 25, sizeof(cl_int),   (void*)&isize));
-  CHECK_CL(clSetKernelArg(kernX, 26, sizeof(cl_mem),   (void*)&m_rays.debugf4));
 
   CHECK_CL(clEnqueueNDRangeKernel(m_globals.cmdQueue, kernX, 1, NULL, &a_size, &localWorkSize, 0, NULL, NULL));
   waitIfDebug(__FILE__, __LINE__);
-
-  if (DEBUG_PT_WEIGHTS && a_currBounce > 0)
-  {
-    std::vector<float4> debugData(a_size), debugData2(0), debugData3(a_size);
-    debugData2.reserve(a_size);
-    CHECK_CL(clEnqueueReadBuffer(m_globals.cmdQueue, m_rays.debugf4, CL_TRUE, 0, a_size * sizeof(float), &debugData[0], 0, NULL, NULL));
-    CHECK_CL(clEnqueueReadBuffer(m_globals.cmdQueue, m_rays.accPdf, CL_TRUE, 0, a_size * sizeof(float), &debugData3[0], 0, NULL, NULL));
-    for (size_t i = 0; i < debugData.size(); i++)
-    {
-      if (fabs(debugData[i].x + 1.0f) > 1e-6f)
-        debugData2.push_back(debugData[i]);
-    }
-    int a = 2;
-  }
-
 }
 
 void GPUOCLLayer::runKernel_NextBounce(cl_mem a_rayFlags, cl_mem a_rpos, cl_mem a_rdir, cl_mem a_outColor, size_t a_size)
@@ -390,12 +367,6 @@ void GPUOCLLayer::runKernel_NextBounce(cl_mem a_rayFlags, cl_mem a_rpos, cl_mem 
   CHECK_CL(clEnqueueNDRangeKernel(m_globals.cmdQueue, kernX, 1, NULL, &a_size, &localWorkSize, 0, NULL, NULL));
   waitIfDebug(__FILE__, __LINE__);
 
-  if (DEBUG_LT_WEIGHTS)
-  {
-    std::vector<float4> debugData(a_size);
-    CHECK_CL(clEnqueueReadBuffer(m_globals.cmdQueue, m_rays.accPdf, CL_TRUE, 0, a_size * sizeof(float), &debugData[0], 0, NULL, NULL));
-    int a = 2;
-  }
 }
 
 
@@ -602,20 +573,10 @@ void GPUOCLLayer::ShadePass(cl_mem a_rpos, cl_mem a_rdir, cl_mem a_outColor, siz
     CHECK_CL(clSetKernelArg(kernZ, 21, sizeof(cl_mem), (void*)&m_scene.storagePdfs));
     CHECK_CL(clSetKernelArg(kernZ, 22, sizeof(cl_mem), (void*)&m_scene.allGlobsData));
     CHECK_CL(clSetKernelArg(kernZ, 23, sizeof(cl_int), (void*)&isize));
-    CHECK_CL(clSetKernelArg(kernZ, 24, sizeof(cl_mem), (void*)&m_rays.debugf4));
+    //CHECK_CL(clSetKernelArg(kernZ, 24, sizeof(cl_mem), (void*)&m_rays.debugf4));
 
     CHECK_CL(clEnqueueNDRangeKernel(m_globals.cmdQueue, kernZ, 1, NULL, &a_size, &localWorkSize, 0, NULL, NULL));  
     waitIfDebug(__FILE__, __LINE__);
-
-
-    if (DEBUG_PT_WEIGHTS)
-    {
-      std::vector<float4> debugData(a_size), debugData2(a_size);
-      CHECK_CL(clEnqueueReadBuffer(m_globals.cmdQueue, m_rays.debugf4, CL_TRUE, 0, a_size * sizeof(float), &debugData[0], 0, NULL, NULL));
-      CHECK_CL(clEnqueueReadBuffer(m_globals.cmdQueue, m_rays.accPdf,  CL_TRUE, 0, a_size * sizeof(float), &debugData2[0], 0, NULL, NULL));
-      int a = 2;
-    }
-
 
     if (m_vars.m_varsI[HRT_ENABLE_MRAYS_COUNTERS] && a_measureTime)
     {
@@ -665,8 +626,6 @@ void GPUOCLLayer::runKernel_ProjectSamplesToScreen(cl_mem a_rayFlags, cl_mem a_h
   cl_float mLightSubPathCount = cl_float(m_width*m_height); // cl_float(m_rays.MEGABLOCKSIZE);
   cl_int currBounce           = a_currBounce+1;  
 
-  const bool debugMe = DEBUG_LT_WEIGHTS && (currBounce == 1);
-
   CHECK_CL(clSetKernelArg(kern, 0, sizeof(cl_mem), (void*)&a_rayFlags));
   CHECK_CL(clSetKernelArg(kern, 1, sizeof(cl_mem), (void*)&a_rdir2));
   CHECK_CL(clSetKernelArg(kern, 2, sizeof(cl_mem), (void*)&a_rdir));
@@ -691,31 +650,13 @@ void GPUOCLLayer::runKernel_ProjectSamplesToScreen(cl_mem a_rayFlags, cl_mem a_h
   CHECK_CL(clSetKernelArg(kern, 18, sizeof(cl_mem), (void*)&a_colorsIn));
   CHECK_CL(clSetKernelArg(kern, 19, sizeof(cl_mem), (void*)&a_colorsOut));
   CHECK_CL(clSetKernelArg(kern, 20, sizeof(cl_mem), (void*)&a_zindex));
-  
-  if (debugMe)
-  {
-    CHECK_CL(clSetKernelArg(kern, 21, sizeof(cl_mem), (void*)&m_rays.lsam1));
-  }
-  else
-  {
-    CHECK_CL(clSetKernelArg(kern, 21, sizeof(cl_mem), nullptr));
-  }
-
-  CHECK_CL(clSetKernelArg(kern, 22, sizeof(cl_float), (void*)&mLightSubPathCount));
-  CHECK_CL(clSetKernelArg(kern, 23, sizeof(cl_int),   (void*)&currBounce));
-  CHECK_CL(clSetKernelArg(kern, 24, sizeof(cl_int),   (void*)&isize));
+ 
+  CHECK_CL(clSetKernelArg(kern, 21, sizeof(cl_float), (void*)&mLightSubPathCount));
+  CHECK_CL(clSetKernelArg(kern, 22, sizeof(cl_int),   (void*)&currBounce));
+  CHECK_CL(clSetKernelArg(kern, 23, sizeof(cl_int),   (void*)&isize));
 
   CHECK_CL(clEnqueueNDRangeKernel(m_globals.cmdQueue, kern, 1, NULL, &a_size, &localWorkSize, 0, NULL, NULL));
   waitIfDebug(__FILE__, __LINE__);
-
-  if (debugMe)
-  {
-    std::vector<float4> debugData(a_size);
-    CHECK_CL(clEnqueueReadBuffer(m_globals.cmdQueue, m_rays.lsam1, CL_TRUE, 0, a_size * sizeof(float), &debugData[0], 0, NULL, NULL));
-    //CHECK_CL(clEnqueueReadBuffer(m_globals.cmdQueue, m_rays.accPdf, CL_TRUE, 0, a_size * sizeof(float), &debugData[0], 0, NULL, NULL));
-    int a = 2;
-  }
-
 }
 
 

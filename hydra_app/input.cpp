@@ -36,6 +36,7 @@ Input::Input()
   //
   pathTracingEnabled  = false;
   lightTracingEnabled = false;
+  ibptEnabled         = false;
   cameraFreeze        = false;
   inSeed              = clock();
 }

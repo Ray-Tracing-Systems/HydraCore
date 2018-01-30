@@ -473,6 +473,3 @@ protected:
 };
 
 void RoundBlocks2D(size_t global_item_size[2], size_t local_item_size[2]);
-
-constexpr static bool DEBUG_LT_WEIGHTS = false;
-constexpr static bool DEBUG_PT_WEIGHTS = false;

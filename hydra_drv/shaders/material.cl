@@ -94,8 +94,8 @@ __kernel void HitEnvOrLightKernel(__global const float4*    restrict in_rpos,
 
                                   __global const int*       restrict in_instLightInstId,
                                   __global const Lite_Hit*  restrict in_liteHit,
-                                  float a_mLightSubPathCount, int a_currDepth, int iNumElements,
-                                  __global float4*          restrict a_debugf4)
+                                  float a_mLightSubPathCount, int a_currDepth, int iNumElements)
+                                  //__global float4*          restrict a_debugf4)
 {
   int tid = GLOBAL_ID_X;
   if (tid >= iNumElements)
@@ -445,7 +445,7 @@ __kernel void ConnectToEyeKernel(__global const uint*          restrict a_flags,
                                  __global float4*              restrict a_colorOut,
                                  __global int2*                restrict out_zind,
 
-                                 __global float4*              restrict a_debugOut,
+                                 //__global float4*              restrict a_debugOut,
                                  
                                  float mLightSubPathCount,
                                  int   a_currBounce,
@@ -455,8 +455,8 @@ __kernel void ConnectToEyeKernel(__global const uint*          restrict a_flags,
   if (tid >= iNumElements)
     return;
 
-  if (a_debugOut != 0)
-    a_debugOut[tid] = make_float4(0, 0, 0, 0);
+  //if (a_debugOut != 0)
+    //a_debugOut[tid] = make_float4(0, 0, 0, 0);
 
   uint flags = a_flags[tid];
   if (!rayIsActiveU(flags))
@@ -532,10 +532,8 @@ __kernel void ConnectToEyeKernel(__global const uint*          restrict a_flags,
 
     misWeight = misWeightHeuristic3(pdfAccFwdA, pdfAccRevA, pdfAccExpA);
 
-    if (a_debugOut != 0)
-    {
-      a_debugOut[tid] = make_float4(pdfAccFwdA, pdfAccRevA, pdfAccExpA, misWeight);
-    }
+    //if (a_debugOut != 0)
+      //a_debugOut[tid] = make_float4(pdfAccFwdA, pdfAccRevA, pdfAccExpA, misWeight);
   }
   
 
@@ -606,8 +604,7 @@ __kernel void Shade(__global const float4*    restrict a_rpos,
                     __global const float4*    restrict in_mtlStorage,
                     __global const float4*    restrict in_pdfStorage,
                     __global const EngineGlobals* restrict a_globals,
-                    int iNumElements,
-                    __global float4*          restrict a_debugf4)
+                    int iNumElements)
 {
 
   int tid = GLOBAL_ID_X;
@@ -726,8 +723,6 @@ __kernel void Shade(__global const float4*    restrict a_rpos,
     float pdfAccExpA = cameraPdfA * (prevData.pdfCameraWP*prevData.pdfGTerm)*(lPdfFwd.pdfA*lightPickProb);
     if (explicitSam.isPoint)
       pdfAccRevA = 0.0f;
-     
-    //a_debugf4[tid] = make_float4(pdfAccFwdA, pdfAccRevA, pdfAccExpA, bsdfFwdWP);
 
     misWeight = misWeightHeuristic3(pdfAccExpA, pdfAccRevA, pdfAccFwdA);
   }

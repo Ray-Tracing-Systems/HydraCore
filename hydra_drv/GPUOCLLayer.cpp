@@ -166,14 +166,7 @@ void GPUOCLLayer::CL_BUFFERS_RAYS::resize(cl_context ctx, cl_command_queue cmdQu
 
   if (ciErr1 != CL_SUCCESS)
     RUN_TIME_ERROR("Error in resize rays buffers");
-
-  if (DEBUG_LT_WEIGHTS || DEBUG_PT_WEIGHTS)
-  {
-    debugf4 = clCreateBuffer(ctx, CL_MEM_READ_WRITE, 4 * sizeof(cl_float)*MEGABLOCKSIZE, NULL, &ciErr1);
-    if (ciErr1 != CL_SUCCESS)
-      RUN_TIME_ERROR("Error in resize rays buffers");
-  }
-
+ 
   std::cout << "[cl_core]: MEGABLOCK SIZE = " << MEGABLOCKSIZE << std::endl;
 }
 
@@ -1152,7 +1145,7 @@ void GPUOCLLayer::BeginTracingPass()
     if ((m_vars.m_flags & HRT_FORWARD_TRACING) == 0)
       AddContributionToScreen(m_rays.pathAccColor);
 
-    m_spp += float(double(m_rays.MEGABLOCKSIZE) / double(m_width*m_height));
+    //m_spp += float(double(m_rays.MEGABLOCKSIZE) / double(m_width*m_height));
   }
   else if(!m_screen.m_cpuFrameBuffer)
   { 
@@ -1283,6 +1276,8 @@ void GPUOCLLayer::EndTracingPass()
   {
     CHECK_CL(clFinish(m_globals.cmdQueue));
   }
+
+  m_spp += float(double(m_rays.MEGABLOCKSIZE) / double(m_width*m_height));
 
   const float time = m_timer.getElapsed();
 
