@@ -300,7 +300,6 @@ int GPUOCLLayer::MLT_Alloc(int a_maxBounce)
   m_mlt.memTaken += 2 * sizeof(int2)*m_rays.MEGABLOCKSIZE + sizeof(float)*m_rays.MEGABLOCKSIZE;
   m_mlt.memTaken += m_width*m_height*sizeof(float4);
 
-  m_memoryTaken[MEM_TAKEN_MLT] = m_mlt.memTaken;
   size_t MBNumbs = (QMC_NUMBERS*sizeof(float)*m_rays.MEGABLOCKSIZE) / (1024 * 1024);
   size_t MBTaken = m_mlt.memTaken   / (1024 * 1024);
   size_t MBTotal = GetMemoryTaken() / (1024 * 1024);

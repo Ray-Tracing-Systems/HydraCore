@@ -75,51 +75,54 @@ void GPUOCLLayer::CL_BUFFERS_RAYS::free()
   if (debugf4)         { clReleaseMemObject(debugf4);    debugf4    = nullptr; }
 }
 
-void GPUOCLLayer::CL_BUFFERS_RAYS::resize(cl_context ctx, cl_command_queue cmdQueue, size_t a_size, bool a_cpuShare, bool a_cpuFB)
+size_t GPUOCLLayer::CL_BUFFERS_RAYS::resize(cl_context ctx, cl_command_queue cmdQueue, size_t a_size, bool a_cpuShare, bool a_cpuFB)
 {
   free();
 
   cl_mem_flags shareFlags = a_cpuShare ? CL_MEM_ALLOC_HOST_PTR : 0;
 
+  size_t buff1Size = sizeof(cl_float)*a_size;
+  size_t currSize  = 0;
+
   cl_int ciErr1;
 
   MEGABLOCKSIZE = a_size; // /2
-  rayPos   = clCreateBuffer(ctx, CL_MEM_READ_WRITE | shareFlags, 4*sizeof(cl_float)*MEGABLOCKSIZE, NULL, &ciErr1);
-  rayDir   = clCreateBuffer(ctx, CL_MEM_READ_WRITE | shareFlags, 4*sizeof(cl_float)*MEGABLOCKSIZE, NULL, &ciErr1);
-  hits     = clCreateBuffer(ctx, CL_MEM_READ_WRITE | shareFlags, sizeof(Lite_Hit)*MEGABLOCKSIZE,   NULL, &ciErr1);
-  rayFlags = clCreateBuffer(ctx, CL_MEM_READ_WRITE | shareFlags, sizeof(uint)*MEGABLOCKSIZE, NULL, &ciErr1);
+  rayPos   = clCreateBuffer(ctx, CL_MEM_READ_WRITE | shareFlags, 4 * sizeof(cl_float)*MEGABLOCKSIZE, NULL, &ciErr1); currSize += buff1Size * 4;
+  rayDir   = clCreateBuffer(ctx, CL_MEM_READ_WRITE | shareFlags, 4*sizeof(cl_float)*MEGABLOCKSIZE, NULL, &ciErr1);   currSize += buff1Size * 4;
+  hits     = clCreateBuffer(ctx, CL_MEM_READ_WRITE | shareFlags, sizeof(Lite_Hit)*MEGABLOCKSIZE,   NULL, &ciErr1);   currSize += buff1Size * 1;
+  rayFlags = clCreateBuffer(ctx, CL_MEM_READ_WRITE | shareFlags, sizeof(uint)*MEGABLOCKSIZE, NULL, &ciErr1);         currSize += buff1Size * 1;
 
   if (ciErr1 != CL_SUCCESS)
     RUN_TIME_ERROR("Error in resize rays buffers");
 
-  hitPosNorm  = clCreateBuffer(ctx, CL_MEM_READ_WRITE | shareFlags, 4 * sizeof(cl_float)*MEGABLOCKSIZE, NULL, &ciErr1);
-  hitTexCoord = clCreateBuffer(ctx, CL_MEM_READ_WRITE, 2 * sizeof(cl_float)*MEGABLOCKSIZE, NULL, &ciErr1);
-  hitMatId    = clCreateBuffer(ctx, CL_MEM_READ_WRITE, sizeof(HitMatRef)*MEGABLOCKSIZE, NULL, &ciErr1);
-  hitTangent  = clCreateBuffer(ctx, CL_MEM_READ_WRITE, sizeof(Hit_Part4)*MEGABLOCKSIZE, NULL, &ciErr1);
-  hitFlatNorm = clCreateBuffer(ctx, CL_MEM_READ_WRITE, sizeof(uint)*MEGABLOCKSIZE, NULL, &ciErr1);
-  hitPrimSize = clCreateBuffer(ctx, CL_MEM_READ_WRITE, sizeof(float)*MEGABLOCKSIZE, NULL, &ciErr1);
-  hitNormUncompressed = clCreateBuffer(ctx, CL_MEM_READ_WRITE, sizeof(float4)*MEGABLOCKSIZE, NULL, &ciErr1);
+  hitPosNorm  = clCreateBuffer(ctx, CL_MEM_READ_WRITE | shareFlags, 4 * sizeof(cl_float)*MEGABLOCKSIZE, NULL, &ciErr1); currSize += buff1Size * 4;
+  hitTexCoord = clCreateBuffer(ctx, CL_MEM_READ_WRITE, 2 * sizeof(cl_float)*MEGABLOCKSIZE, NULL, &ciErr1);              currSize += buff1Size * 2;
+  hitMatId    = clCreateBuffer(ctx, CL_MEM_READ_WRITE, sizeof(HitMatRef)*MEGABLOCKSIZE, NULL, &ciErr1);                 currSize += buff1Size * 2;
+  hitTangent  = clCreateBuffer(ctx, CL_MEM_READ_WRITE, sizeof(Hit_Part4)*MEGABLOCKSIZE, NULL, &ciErr1);                 currSize += buff1Size * 2;
+  hitFlatNorm = clCreateBuffer(ctx, CL_MEM_READ_WRITE, sizeof(uint)*MEGABLOCKSIZE, NULL, &ciErr1);                      currSize += buff1Size * 1;
+  hitPrimSize = clCreateBuffer(ctx, CL_MEM_READ_WRITE, sizeof(float)*MEGABLOCKSIZE, NULL, &ciErr1);                     currSize += buff1Size * 1;
+  hitNormUncompressed = clCreateBuffer(ctx, CL_MEM_READ_WRITE, sizeof(float4)*MEGABLOCKSIZE, NULL, &ciErr1);            currSize += buff1Size * 4;
 
   if (ciErr1 != CL_SUCCESS)
     RUN_TIME_ERROR("Error in resize rays buffers");
 
-  pathThoroughput = clCreateBuffer(ctx, CL_MEM_READ_WRITE, 4 * sizeof(cl_float)*MEGABLOCKSIZE, NULL, &ciErr1);
-  pathMisDataPrev = clCreateBuffer(ctx, CL_MEM_READ_WRITE,     sizeof(MisData) *MEGABLOCKSIZE, NULL, &ciErr1);
-  pathShadeColor  = clCreateBuffer(ctx, CL_MEM_READ_WRITE, 4 * sizeof(cl_float)*MEGABLOCKSIZE, NULL, &ciErr1);
+  pathThoroughput = clCreateBuffer(ctx, CL_MEM_READ_WRITE, 4 * sizeof(cl_float)*MEGABLOCKSIZE, NULL, &ciErr1);          currSize += buff1Size * 4;
+  pathMisDataPrev = clCreateBuffer(ctx, CL_MEM_READ_WRITE,     sizeof(MisData) *MEGABLOCKSIZE, NULL, &ciErr1);          currSize += buff1Size * 1;
+  pathShadeColor  = clCreateBuffer(ctx, CL_MEM_READ_WRITE, 4 * sizeof(cl_float)*MEGABLOCKSIZE, NULL, &ciErr1);          currSize += buff1Size * 4;
 
   if (ciErr1 != CL_SUCCESS)
     RUN_TIME_ERROR("Error in resize rays buffers");
 
-  pathAccColor = clCreateBuffer(ctx, CL_MEM_READ_WRITE, 4 * sizeof(cl_float)*MEGABLOCKSIZE, NULL, &ciErr1);
-  randGenState = clCreateBuffer(ctx, CL_MEM_READ_WRITE, 1 * sizeof(RandomGen)*MEGABLOCKSIZE, NULL, &ciErr1);
+  pathAccColor = clCreateBuffer(ctx, CL_MEM_READ_WRITE, 4 * sizeof(cl_float)*MEGABLOCKSIZE, NULL, &ciErr1);  currSize += buff1Size * 4;
+  randGenState = clCreateBuffer(ctx, CL_MEM_READ_WRITE, 1 * sizeof(RandomGen)*MEGABLOCKSIZE, NULL, &ciErr1); currSize += buff1Size * 1;
 
   if (ciErr1 != CL_SUCCESS)
     RUN_TIME_ERROR("Error in resize rays buffers");
 
   if (a_cpuFB)
   {
-    pathAuxColor    = clCreateBuffer(ctx, CL_MEM_READ_WRITE, 4 * sizeof(cl_float)*MEGABLOCKSIZE, NULL, &ciErr1);
-    pathAuxColorCPU = clCreateBuffer(ctx, CL_MEM_WRITE_ONLY | CL_MEM_ALLOC_HOST_PTR, 4 * sizeof(cl_float)*MEGABLOCKSIZE, NULL, &ciErr1);
+    pathAuxColor    = clCreateBuffer(ctx, CL_MEM_READ_WRITE,                         4 * sizeof(cl_float)*MEGABLOCKSIZE, NULL, &ciErr1);  currSize += buff1Size * 4;
+    pathAuxColorCPU = clCreateBuffer(ctx, CL_MEM_WRITE_ONLY | CL_MEM_ALLOC_HOST_PTR, 4 * sizeof(cl_float)*MEGABLOCKSIZE, NULL, &ciErr1);  currSize += buff1Size * 4;
   }
   else
   {
@@ -130,44 +133,46 @@ void GPUOCLLayer::CL_BUFFERS_RAYS::resize(cl_context ctx, cl_command_queue cmdQu
   if (ciErr1 != CL_SUCCESS)
     RUN_TIME_ERROR("Error in resize rays buffers");
 
-  lsam1      = clCreateBuffer(ctx, CL_MEM_READ_WRITE | shareFlags, 4 * sizeof(cl_float)*MEGABLOCKSIZE, NULL, &ciErr1);   // float4
-  lsam2      = clCreateBuffer(ctx, CL_MEM_READ_WRITE | shareFlags, 4 * sizeof(cl_float)*MEGABLOCKSIZE, NULL, &ciErr1);   // float4
-  lsamCos = clCreateBuffer(ctx, CL_MEM_READ_WRITE | shareFlags, 4 * sizeof(cl_float)*MEGABLOCKSIZE, NULL, &ciErr1);   // float4
+  lsam1      = clCreateBuffer(ctx, CL_MEM_READ_WRITE | shareFlags, 4 * sizeof(cl_float)*MEGABLOCKSIZE, NULL, &ciErr1);     currSize += buff1Size * 4;
+  lsam2      = clCreateBuffer(ctx, CL_MEM_READ_WRITE | shareFlags, 4 * sizeof(cl_float)*MEGABLOCKSIZE, NULL, &ciErr1);     currSize += buff1Size * 4;
+  lsamCos    = clCreateBuffer(ctx, CL_MEM_READ_WRITE | shareFlags, 4 * sizeof(cl_float)*MEGABLOCKSIZE, NULL, &ciErr1);     currSize += buff1Size * 4;
+                                                                                                                          
+  shadowRayPos = clCreateBuffer(ctx, CL_MEM_READ_WRITE | shareFlags, 4 * sizeof(cl_float)*MEGABLOCKSIZE, NULL, &ciErr1);   currSize += buff1Size * 4;
+  shadowRayDir = clCreateBuffer(ctx, CL_MEM_READ_WRITE | shareFlags, 4 * sizeof(cl_float)*MEGABLOCKSIZE, NULL, &ciErr1);   currSize += buff1Size * 4;
+  accPdf       = clCreateBuffer(ctx, CL_MEM_READ_WRITE | shareFlags, 1 * sizeof(PerRayAcc)*MEGABLOCKSIZE, NULL, &ciErr1);  currSize += buff1Size * 1;
+                                                                                                                           
+  if (ciErr1 != CL_SUCCESS)
+    RUN_TIME_ERROR("Error in resize rays buffers");
 
-  shadowRayPos = clCreateBuffer(ctx, CL_MEM_READ_WRITE | shareFlags, 4 * sizeof(cl_float)*MEGABLOCKSIZE, NULL, &ciErr1);  // float4
-  shadowRayDir = clCreateBuffer(ctx, CL_MEM_READ_WRITE | shareFlags, 4 * sizeof(cl_float)*MEGABLOCKSIZE, NULL, &ciErr1);  // float4
-  accPdf       = clCreateBuffer(ctx, CL_MEM_READ_WRITE | shareFlags, sizeof(PerRayAcc)*MEGABLOCKSIZE, NULL, &ciErr1);     // sizeof(PerRayAcc) == sizeof(float4)
+  oldFlags      = clCreateBuffer(ctx, CL_MEM_READ_WRITE | shareFlags, 1 * sizeof(uint)*MEGABLOCKSIZE,     NULL, &ciErr1);   currSize += buff1Size * 1;
+  oldRayDir     = clCreateBuffer(ctx, CL_MEM_READ_WRITE | shareFlags, 4 * sizeof(cl_float)*MEGABLOCKSIZE, NULL, &ciErr1);   currSize += buff1Size * 4;
+  oldColor      = clCreateBuffer(ctx, CL_MEM_READ_WRITE | shareFlags, 4 * sizeof(cl_float)*MEGABLOCKSIZE, NULL, &ciErr1);   currSize += buff1Size * 4;
+  lightNumberLT = clCreateBuffer(ctx, CL_MEM_READ_WRITE | shareFlags, 1 * sizeof(int)*MEGABLOCKSIZE,      NULL, &ciErr1);   currSize += buff1Size * 1;
 
   if (ciErr1 != CL_SUCCESS)
     RUN_TIME_ERROR("Error in resize rays buffers");
 
-  oldFlags      = clCreateBuffer(ctx, CL_MEM_READ_WRITE | shareFlags, 1 * sizeof(uint)*MEGABLOCKSIZE,     NULL, &ciErr1);
-  oldRayDir     = clCreateBuffer(ctx, CL_MEM_READ_WRITE | shareFlags, 4 * sizeof(cl_float)*MEGABLOCKSIZE, NULL, &ciErr1);
-  oldColor      = clCreateBuffer(ctx, CL_MEM_READ_WRITE | shareFlags, 4 * sizeof(cl_float)*MEGABLOCKSIZE, NULL, &ciErr1);
-  lightNumberLT = clCreateBuffer(ctx, CL_MEM_READ_WRITE | shareFlags, 1 * sizeof(int)*MEGABLOCKSIZE,      NULL, &ciErr1);
-
-  if (ciErr1 != CL_SUCCESS)
-    RUN_TIME_ERROR("Error in resize rays buffers");
-
-  lsamProb = clCreateBuffer(ctx, CL_MEM_READ_WRITE,              1 * sizeof(cl_float)*MEGABLOCKSIZE, NULL, &ciErr1);   // float1
-  lshadow  = clCreateBuffer(ctx, CL_MEM_READ_WRITE | shareFlags, 4 * sizeof(cl_ushort)*MEGABLOCKSIZE, NULL, &ciErr1);  // float2
-  fogAtten = clCreateBuffer(ctx, CL_MEM_READ_WRITE, 4 * sizeof(cl_float)*MEGABLOCKSIZE, NULL, &ciErr1);
+  lsamProb = clCreateBuffer(ctx, CL_MEM_READ_WRITE,              1 * sizeof(cl_float)*MEGABLOCKSIZE, NULL, &ciErr1);        currSize += buff1Size * 1;
+  lshadow  = clCreateBuffer(ctx, CL_MEM_READ_WRITE | shareFlags, 4 * sizeof(cl_ushort)*MEGABLOCKSIZE, NULL, &ciErr1);       currSize += buff1Size * 4;
+  fogAtten = clCreateBuffer(ctx, CL_MEM_READ_WRITE,              4 * sizeof(cl_float)*MEGABLOCKSIZE, NULL, &ciErr1);        currSize += buff1Size * 4;
 
   if (false) // USE_BILINEAR_2D_SAMPLING
   {
-    pixWeights = clCreateBuffer(ctx, CL_MEM_READ_WRITE, 4 * sizeof(float)*MEGABLOCKSIZE, NULL, &ciErr1);
-    samZindex  = clCreateBuffer(ctx, CL_MEM_READ_WRITE, 4 * 2 * sizeof(int)*MEGABLOCKSIZE, NULL, &ciErr1);
+    pixWeights = clCreateBuffer(ctx, CL_MEM_READ_WRITE, 4 * sizeof(float)*MEGABLOCKSIZE, NULL, &ciErr1);    currSize += buff1Size * 4;
+    samZindex  = clCreateBuffer(ctx, CL_MEM_READ_WRITE, 4 * 2 * sizeof(int)*MEGABLOCKSIZE, NULL, &ciErr1);  currSize += buff1Size * 4*2;
   }
   else
   {
     pixWeights = nullptr;
-    samZindex  = clCreateBuffer(ctx, CL_MEM_READ_WRITE, 1 * 2 * sizeof(int)*MEGABLOCKSIZE, NULL, &ciErr1);
+    samZindex  = clCreateBuffer(ctx, CL_MEM_READ_WRITE, 1 * 2 * sizeof(int)*MEGABLOCKSIZE, NULL, &ciErr1); currSize += buff1Size * 2;
   }
 
   if (ciErr1 != CL_SUCCESS)
     RUN_TIME_ERROR("Error in resize rays buffers");
  
   std::cout << "[cl_core]: MEGABLOCK SIZE = " << MEGABLOCKSIZE << std::endl;
+
+  return currSize;
 }
 
 void GPUOCLLayer::CL_SCENE_DATA::free()
@@ -614,7 +619,7 @@ GPUOCLLayer::GPUOCLLayer(int w, int h, int a_flags, int a_deviceId) : Base(w, h,
   std::string loshaderpathBin = installPath2 + "shadercache/" + "lightx_" + devHash + ".bin";
   std::string yoshaderpathBin = installPath2 + "shadercache/" + "matsxx_" + devHash + ".bin";
 
-  bool inDevelopment = false;
+  bool inDevelopment = true;
   #ifdef _DEBUG
   inDevelopment = true;
   #endif
@@ -709,10 +714,6 @@ GPUOCLLayer::GPUOCLLayer(int w, int h, int a_flags, int a_deviceId) : Base(w, h,
   // reserve 50-100 MB memory
   //
   size_t memAmount = GetAvaliableMemoryAmount(true);
-  if (memAmount < 1024*1024*1024)
-    m_memoryTaken[MEM_TAKEN_RESERVE] = 50 * 1024 * 1024;
-  else
-    m_memoryTaken[MEM_TAKEN_RESERVE] = 100 * 1024 * 1024;
 
   waitIfDebug(__FILE__, __LINE__);
 }
@@ -846,7 +847,7 @@ void GPUOCLLayer::ResizeScreen(int width, int height, int a_flags)
   if (m_screen.pbo != nullptr)
     memsetu32(m_screen.pbo, 0, m_width*m_height);
 
-  m_rays.resize(m_globals.ctx, m_globals.cmdQueue, MEGABLOCK_SIZE, m_globals.cpuTrace, m_screen.m_cpuFrameBuffer);
+  m_memoryTaken[MEM_TAKEN_RAYS] = m_rays.resize(m_globals.ctx, m_globals.cmdQueue, MEGABLOCK_SIZE, m_globals.cpuTrace, m_screen.m_cpuFrameBuffer);
 
   memsetf4(m_rays.rayPos, float4(0, 0, 0, 0), m_rays.MEGABLOCKSIZE);
   memsetf4(m_rays.rayDir, float4(0, 0, 0, 0), m_rays.MEGABLOCKSIZE);
@@ -855,8 +856,8 @@ void GPUOCLLayer::ResizeScreen(int width, int height, int a_flags)
   // estimate mem taken
   //
   m_memoryTaken[MEM_TAKEN_SCREEN] = 0;
-  m_memoryTaken[MEM_TAKEN_SCREEN] += (sizeof(cl_float) * 4)*width*height;                                                                               // #TODO: FIX THAT !!! full screen size
-  m_memoryTaken[MEM_TAKEN_SCREEN] += m_rays.MEGABLOCKSIZE*(4 + 4 + 2 + 1 + 4 + 2 + 1 + 2 + 1 + 4 + 2 + 4 + 4 + 4 + 2 + 4 + 4 + 1 + 2)*sizeof(cl_float); // #TODO: FIX THAT !!! allocated per ray data buffer size
+  if(!m_screen.m_cpuFrameBuffer)
+    m_memoryTaken[MEM_TAKEN_SCREEN] += (sizeof(cl_float) * 4)*width*height;                                                                             
 
   const float scaleX = float(width) / 1024.0f;
   const float scaleY = float(height) / 1024.0f;
@@ -868,7 +869,6 @@ void GPUOCLLayer::ResizeScreen(int width, int height, int a_flags)
   //std::cout << "[cl_core]: HRT_MLT_SCREEN_SCALE_Y = " << m_vars.m_varsF[HRT_MLT_SCREEN_SCALE_Y] << std::endl;
 
 }
-
 
 size_t GPUOCLLayer::GetAvaliableMemoryAmount(bool allMem)
 {

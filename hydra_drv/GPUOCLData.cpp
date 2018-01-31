@@ -84,11 +84,17 @@ void GPUOCLLayer::SetAllBVH4(const ConvertionResult& a_convertedBVH, IBVHBuilder
 
   cl_int ciErr1 = CL_SUCCESS;
 
+  m_memoryTaken[MEM_TAKEN_BVH] = 0;
+
   for (int i = 0; i < a_convertedBVH.treesNum; i++)
   {
     const size_t nodesSize = a_convertedBVH.nodesNum[i]*sizeof(BVHNode);
     const size_t primsSize = a_convertedBVH.trif4Num[i]*sizeof(float4);
     const size_t alphaSize = a_convertedBVH.triAfNum[i]*sizeof(uint2);
+
+    m_memoryTaken[MEM_TAKEN_BVH] += (nodesSize + primsSize);
+    if (a_convertedBVH.pTriangleAlpha[i])
+      m_memoryTaken[MEM_TAKEN_BVH] += alphaSize;
 
     m_scene.bvhBuff    [i] = clCreateBuffer(m_globals.ctx, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, nodesSize, (void*)a_convertedBVH.pBVH[i],          &ciErr1);
     m_scene.objListBuff[i] = clCreateBuffer(m_globals.ctx, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, primsSize, (void*)a_convertedBVH.pTriangleData[i], &ciErr1);

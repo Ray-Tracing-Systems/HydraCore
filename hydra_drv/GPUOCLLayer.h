@@ -250,7 +250,7 @@ protected:
                         lshadow(0), fogAtten(0), samZindex(0), pixWeights(0), debugf4(0), MEGABLOCKSIZE(0) {}
 
     void free();
-    void resize(cl_context ctx, cl_command_queue cmdQueue, size_t a_size, bool a_cpuShare, bool a_cpuFB);
+    size_t resize(cl_context ctx, cl_command_queue cmdQueue, size_t a_size, bool a_cpuShare, bool a_cpuFB);
 
     cl_mem rayPos;                   // float4, MEGABLOCKSIZE size
     cl_mem rayDir;                   // float4, MEGABLOCKSIZE size 
@@ -383,15 +383,12 @@ protected:
 
   enum BIG_MEM_OBJECTS {   // try to account allocated memory, because OpenCL have no such functionality
     MEM_TAKEN_GEOMETRY    = 0,
-    MEM_TAKEN_BVH         = 1,
-    MEM_TAKEN_TEXTURE1    = 2,
-    MEM_TAKEN_TEXTURE2    = 3,
-    MEM_TAKEN_TEXTURE3    = 4,
-    MEM_TAKEN_TEXTURE4    = 5,
-    MEM_TAKEN_RESERVE     = 6,
-    MEM_TAKEN_SCREEN      = 7,
-    MEM_TAKEN_MLT         = 8,
-    MEM_TAKEN_OBJECTS_NUM = 9, // total number of big memory objects 
+    MEM_TAKEN_TEXTURES    = 1,
+    MEM_TAKEN_BVH         = 2,
+    MEM_TAKEN_SCREEN      = 3,
+    MEM_TAKEN_RAYS        = 4,
+
+    MEM_TAKEN_OBJECTS_NUM = 5, // total number of big memory objects 
   };
 
   size_t m_memoryTaken[MEM_TAKEN_OBJECTS_NUM];

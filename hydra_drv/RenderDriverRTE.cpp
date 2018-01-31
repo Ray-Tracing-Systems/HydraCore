@@ -373,11 +373,40 @@ HRDriverAllocInfo RenderDriverRTE::AllocAll(HRDriverAllocInfo a_info)
   const size_t approxSizeOfMatBlock = sizeof(PlainMaterial) * 4;
   const size_t approxSizeOfLight    = sizeof(PlainLight)    * 4;
 
-  m_pTexStorage      = m_pHWLayer->CreateMemStorage((a_info.imgMem*3)/4,                "textures");     // #TODO:  estimate this more carefully pls.
-  m_pTexStorageAux   = m_pHWLayer->CreateMemStorage((a_info.imgMem*1)/4,                "textures_aux"); // #TODO:  estimate this more carefully pls.
-  m_pGeomStorage     = m_pHWLayer->CreateMemStorage(a_info.geomMem,                     "geom");         // #TODO:  estimate this more carefully pls.
-  m_pMaterialStorage = m_pHWLayer->CreateMemStorage(a_info.matNum*approxSizeOfMatBlock, "materials");
-  m_pPdfStorage      = m_pHWLayer->CreateMemStorage(a_info.imgMem/10,                   "pdfs");         // #TODO:  estimate this more carefully pls.
+  size_t auxMemGeom = 0, auxMemTex = 0;
+  size_t totalMem   = m_pHWLayer->GetAvaliableMemoryAmount(true);
+  size_t freeMem    = m_pHWLayer->GetAvaliableMemoryAmount(false);
+  size_t memUsedByR = totalMem - freeMem;
+  const size_t MB   = size_t(1024 * 1024);
+
+  if (totalMem >= size_t(4096)*MB)
+  {
+    auxMemGeom = size_t(64)*MB;
+    auxMemTex  = size_t(128)*MB;
+  }
+  else if (totalMem >= size_t(1024)*MB)
+  {
+    auxMemGeom = size_t(32)*MB;
+    auxMemTex  = size_t(64)*MB;
+  }
+  else if (totalMem >= size_t(512)*MB)
+  {
+    auxMemGeom = size_t(16)*MB;
+    auxMemTex  = size_t(16)*MB;
+  }
+
+  const size_t newMemForTex = a_info.imgMem  + auxMemTex;
+  const size_t newMemForGeo = a_info.geomMem + auxMemGeom;
+  const size_t newMemForMat = a_info.matNum*approxSizeOfMatBlock;
+  const size_t newMemForTab = a_info.imgMem / 10;
+
+  size_t newTotalMem = newMemForTex + newMemForGeo + newMemForMat + newMemForTab;
+
+  m_pTexStorage      = m_pHWLayer->CreateMemStorage((a_info.imgMem*3)/4 + auxMemTex, "textures");     // #TODO:  estimate this more carefully pls.
+  m_pTexStorageAux   = m_pHWLayer->CreateMemStorage((a_info.imgMem*1)/4 + 0,         "textures_aux"); // #TODO:  estimate this more carefully pls.
+  m_pGeomStorage     = m_pHWLayer->CreateMemStorage(newMemForGeo,                    "geom");         // #TODO:  estimate this more carefully pls.
+  m_pMaterialStorage = m_pHWLayer->CreateMemStorage(newMemForMat,                    "materials");
+  m_pPdfStorage      = m_pHWLayer->CreateMemStorage(newMemForTab,                    "pdfs");         // #TODO:  estimate this more carefully pls.
 
   m_pHWLayer->ResizeTablesForEngineGlobals(a_info.geomNum, a_info.imgNum, a_info.matNum, a_info.lightNum);
 
@@ -396,9 +425,18 @@ HRDriverAllocInfo RenderDriverRTE::AllocAll(HRDriverAllocInfo a_info)
   vars.m_varsI[HRT_WHITE_DIFFUSE_OFFSET] = whiteDiffuseOffset;
   m_pHWLayer->SetAllFlagsAndVars(vars);
 
-  std::cout << "[AllocAll]: image mem size = " << a_info.imgMem/(1024*1024) << " MB" << std::endl;
-  std::cout << "[AllocAll]: geom  mem size = " << a_info.geomMem / (1024 * 1024) << " MB" << std::endl;
-  std::cout << "[AllocAll]: total mem size = " << (a_info.imgMem + a_info.geomMem) / (1024 * 1024) << " MB" << std::endl;
+  std::cout << std::endl;
+  std::cout << "[AllocAll]: MEM(TEXURE) = " << newMemForTex / MB << " MB" << std::endl;
+  std::cout << "[AllocAll]: MEM(GEOM)   = " << newMemForGeo / MB << " MB" << std::endl;
+  std::cout << "[AllocAll]: MEM(OTHER)  = " << (newMemForMat + newMemForTab) / MB << " MB" << std::endl;
+  std::cout << "[AllocAll]: MEM(RAYBUF) = " << memUsedByR / MB << " MB" << std::endl;
+  //std::cout << "[AllocAll]: MEM(TAKEN)  = " << newTotalMem / MB << " MB" << std::endl;
+  //std::cout << "[AllocAll]: MEM(TOTAL)  = " << totalMem / MB << " MB" << std::endl;
+
+  if (newTotalMem >= freeMem)
+  {
+    std::cerr << "[AllocAll]: NOT ENOUGHT MEMORY! --- " << std::endl;
+  }
 
   m_lastAllocInfo = a_info;
   return m_lastAllocInfo;
@@ -681,6 +719,20 @@ void RenderDriverRTE::BeginScene()
 
 std::vector<float> PrefixSumm(const std::vector<float>& a_vec);
 
+
+size_t EstimateBVHSize(const ConvertionResult& a_bvh)
+{
+  size_t size = 0;
+  for (int i = 0; i < a_bvh.treesNum; i++)
+  {
+    size += a_bvh.nodesNum[i] * sizeof(BVHNode);
+    size += a_bvh.trif4Num[i] * sizeof(float4);
+    if(a_bvh.pTriangleAlpha[i] != nullptr)
+      size += a_bvh.triAfNum[i] * sizeof(uint2);
+  }
+  return size;
+}
+
 void RenderDriverRTE::EndScene() // #TODO: add dirty flags (?) to update only those things that were changed
 {
   if (m_pBVH == nullptr)
@@ -690,8 +742,6 @@ void RenderDriverRTE::EndScene() // #TODO: add dirty flags (?) to update only th
   
   if (m_useConvertedLayout)
   {
-    std::cout << std::endl;
-    std::cout << "[RenderDriverRTE::EndScene]: begin bvh convert " << std::endl;
     auto convertedData = m_pBVH->ConvertMap();
 
     if (convertedData.treesNum == 0)
@@ -706,7 +756,10 @@ void RenderDriverRTE::EndScene() // #TODO: add dirty flags (?) to update only th
     const int bvhFlags = smoothOpacity ? BVH_ENABLE_SMOOTH_OPACITY : 0;
 
     m_pHWLayer->SetAllBVH4(convertedData, nullptr, bvhFlags); // set converted layout with matrices inside bvh tree itself
-  
+ 
+    const size_t bvhSize = EstimateBVHSize(convertedData);
+    std::cout << "[AllocBVH]: MEM(BVH)    = " << bvhSize / size_t(1024*1024) << " MB" << std::endl;
+
     //PrintBVHStat(convertedData, true);
     //DebugSaveBVH("D:/temp/bvh_layers2", convertedData);
     //DebugPrintBVHInfo(convertedData, "z_bvhinfo.txt");
@@ -716,7 +769,11 @@ void RenderDriverRTE::EndScene() // #TODO: add dirty flags (?) to update only th
     for(int i=0;i<MAXBVHTREES;i++)
       m_alphaAuxBuffers.buf[i] = std::vector<uint2>();
 
-    std::cout << "[RenderDriverRTE::EndScene]: end bvh convert  " << std::endl << std::endl;
+    const size_t totalMem = m_pHWLayer->GetAvaliableMemoryAmount(true);
+    //const size_t freeMem  = m_pHWLayer->GetAvaliableMemoryAmount(false);
+    //std::cout << "[AllocAll]: MEM(TAKEN)  = " << (totalMem - freeMem) / size_t(1024 * 1024) << " MB" << std::endl;
+    std::cout << "[AllocAll]: MEM(TOTAL)  = " << totalMem / size_t(1024 * 1024) << " MB" << std::endl;
+    std::cout << std::endl;
   }
   else
   {
