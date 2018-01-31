@@ -80,7 +80,7 @@ int main(int argc, const char** argv)
   #endif
   ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-  hrInit(L"HydraApplication");
+  hrInit(L"-emptyvirtualbuffer 1");
 
   hrInfoCallback(&InfoCallBack);
   hrErrorCallerPlace(L"main");  // for debug needs only
