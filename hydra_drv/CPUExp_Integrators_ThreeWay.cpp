@@ -26,6 +26,9 @@ void IntegratorThreeWay::GetImageHDR(float4* a_imageHDR, int w, int h) const
 
 void IntegratorThreeWay::DoPass(std::vector<uint>& a_imageLDR)
 {
+  //if (m_spp == 0)
+    //DebugSaveGbufferImage(L"gbufferout");
+
   const int samplesPerPass = m_width*m_height;
   mLightSubPathCount = float(samplesPerPass);
 
@@ -66,9 +69,6 @@ void IntegratorThreeWay::DoPass(std::vector<uint>& a_imageLDR)
 
     a_imageLDR[i] = RealColorToUint32(color);
   }
-
-  //if (m_spp % 10 == 0)
-  //  DebugSaveNoiseImage();
 
   RandomizeAllGenerators();
 
