@@ -228,7 +228,7 @@ static std::vector<float4> resizeToHalfSizef4(const float4* pixels, int width, i
 std::vector<float> LuminanceFromFloat4Image(const float4* pixels, int& width, int& height)
 {
   std::vector<float4> imageCopy;
-  const int maxResolution = 1024;
+  const int maxResolution = MAX_ENV_LIGHT_PDF_SIZE;
 
   for (int i = 0; i < 4; i++)
   {

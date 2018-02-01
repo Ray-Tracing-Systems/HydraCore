@@ -379,15 +379,18 @@ HRDriverAllocInfo RenderDriverRTE::AllocAll(HRDriverAllocInfo a_info)
   const size_t MB   = size_t(1024 * 1024);
 
   size_t auxMemGeom = 0, auxMemTex = size_t(4096);
-  const size_t newMemForGeo = size_t(0.85*double(a_info.geomMem));                        // we save ~ 15% due to tangent compression.
-  const size_t newMemForMat = a_info.matNum*approxSizeOfMatBlock;
-  const size_t newMemForTab = size_t(16)*MB;
+  size_t newMemForGeo = a_info.geomMem; // size_t(0.85*double(a_info.geomMem)); // we can save ~ 15% due to tangent compression but thhis is hard to estimate precisly.
+  size_t newMemForMat = a_info.matNum*approxSizeOfMatBlock;
+  size_t newMemForTab = 8*MB; // depends on MAX_ENV_LIGHT_PDF_SIZE; #TODO: check this with larger environment lights !!!
+
+  newMemForTab += a_info.lightsWithIESNum * 1 * MB;
+  if (newMemForTab > 64 * MB)
+    newMemForTab = 64 * MB;
 
   size_t newMemForTex1 = auxMemTex + a_info.imgMem;
   size_t newMemForTex2 = auxMemTex + a_info.imgMem;
   size_t newMemForTex3 = newMemForTex1 + newMemForTex2;
-
-  size_t newTotalMem = newMemForTex3 + newMemForGeo + newMemForMat + newMemForTab;
+  size_t newTotalMem   = newMemForTex3 + newMemForGeo + newMemForMat + newMemForTab;
 
   if (newTotalMem >= freeMem)
   {
@@ -436,20 +439,24 @@ HRDriverAllocInfo RenderDriverRTE::AllocAll(HRDriverAllocInfo a_info)
   vars.m_varsI[HRT_WHITE_DIFFUSE_OFFSET] = whiteDiffuseOffset;
   m_pHWLayer->SetAllFlagsAndVars(vars);
 
+  m_memAllocated = 0;
   std::cout << std::endl;
-  std::cout << "[AllocAll]: MEM(TEXURE) = " << newMemForTex3 / MB << " MB" << std::endl;
-  std::cout << "[AllocAll]: MEM(GEOM)   = " << newMemForGeo / MB << " MB" << std::endl;
-  std::cout << "[AllocAll]: MEM(PDFTAB) = " << (newMemForMat + newMemForTab) / MB << " MB" << std::endl;
-  //std::cout << "[AllocAll]: MEM(TAKEN)  = " << newTotalMem / MB << " MB" << std::endl;
-  std::cout << "[AllocAll]: MEM(RAYBUF) = " << memUsedByR / MB << " MB" << std::endl;
-  //std::cout << "[AllocAll]: MEM(TOTAL)  = " << totalMem / MB << " MB" << std::endl;
+  std::cout << "[AllocAll]: MEM(TEXURE) = " << newMemForTex3 / MB << "\tMB" << std::endl; m_memAllocated += newMemForTex3;
+  std::cout << "[AllocAll]: MEM(GEOM)   = " << newMemForGeo / MB << "\tMB" << std::endl;  m_memAllocated += newMemForGeo;
+  std::cout << "[AllocAll]: MEM(PDFTAB) = " << (newMemForMat + newMemForTab) / MB << "\tMB" << std::endl; m_memAllocated += (newMemForMat + newMemForTab);
+  //std::cout << "[AllocAll]: MEM(TAKEN)  = " << newTotalMem / MB << "\tMB" << std::endl;
+  std::cout << "[AllocAll]: MEM(RAYBUF) = " << memUsedByR / MB << "\tMB" << std::endl;    m_memAllocated += memUsedByR;
+  //std::cout << "[AllocAll]: MEM(TOTAL)  = " << totalMem / MB << "\tMB" << std::endl;
 
   if (newTotalMem >= freeMem)
   {
     std::cerr << "[AllocAll]: NOT ENOUGHT MEMORY! --- " << std::endl;
   }
 
-  m_lastAllocInfo = a_info;
+  m_lastAllocInfo         = a_info;
+  m_lastAllocInfo.geomMem = newMemForGeo;
+  m_lastAllocInfo.imgMem  = newMemForTex3;
+
   return m_lastAllocInfo;
 }
 
@@ -769,7 +776,7 @@ void RenderDriverRTE::EndScene() // #TODO: add dirty flags (?) to update only th
     m_pHWLayer->SetAllBVH4(convertedData, nullptr, bvhFlags); // set converted layout with matrices inside bvh tree itself
  
     const size_t bvhSize = EstimateBVHSize(convertedData);
-    std::cout << "[AllocBVH]: MEM(BVH)    = " << bvhSize / size_t(1024*1024) << " MB" << std::endl;
+    std::cout << "[AllocBVH]: MEM(BVH)    = " << bvhSize / size_t(1024*1024) << "\tMB" << std::endl; m_memAllocated += bvhSize;
 
     //PrintBVHStat(convertedData, true);
     //DebugSaveBVH("D:/temp/bvh_layers2", convertedData);
@@ -781,9 +788,8 @@ void RenderDriverRTE::EndScene() // #TODO: add dirty flags (?) to update only th
       m_alphaAuxBuffers.buf[i] = std::vector<uint2>();
 
     const size_t totalMem = m_pHWLayer->GetAvaliableMemoryAmount(true);
-    //const size_t freeMem  = m_pHWLayer->GetAvaliableMemoryAmount(false);
-    //std::cout << "[AllocAll]: MEM(TAKEN)  = " << (totalMem - freeMem) / size_t(1024 * 1024) << " MB" << std::endl;
-    std::cout << "[AllocAll]: MEM(TOTAL)  = " << totalMem / size_t(1024 * 1024) << " MB" << std::endl;
+    std::cout << "[AllocAll]: MEM(TAKEN)  = " << m_memAllocated / size_t(1024 * 1024) << "\tMB" << std::endl;
+    std::cout << "[AllocAll]: MEM(TOTAL)  = " << totalMem / size_t(1024 * 1024) << "\tMB" << std::endl;
     std::cout << std::endl;
   }
   else
