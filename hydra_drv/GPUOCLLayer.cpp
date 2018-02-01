@@ -711,9 +711,9 @@ GPUOCLLayer::GPUOCLLayer(int w, int h, int a_flags, int a_deviceId) : Base(w, h,
   if (ciErr1 != CL_SUCCESS)
     RUN_TIME_ERROR("Error when create qmcTable");
 
-  // reserve 50-100 MB memory
-  //
-  size_t memAmount = GetAvaliableMemoryAmount(true);
+  float2 qmc[GBUFFER_SAMPLES];
+  PlaneHammersley(&qmc[0].x, GBUFFER_SAMPLES);
+  m_globals.hammersley2D = clCreateBuffer(m_globals.ctx, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, GBUFFER_SAMPLES * sizeof(float2), qmc, &ciErr1);
 
   waitIfDebug(__FILE__, __LINE__);
 }
@@ -735,19 +735,13 @@ GPUOCLLayer::~GPUOCLLayer()
   m_screen.free();
   m_scene.free();
 
-  if (m_globals.cMortonTable) clReleaseMemObject(m_globals.cMortonTable);
-  if (m_globals.qmcTable)     clReleaseMemObject(m_globals.qmcTable);
+  if (m_globals.cMortonTable)     { clReleaseMemObject(m_globals.cMortonTable); m_globals.cMortonTable = nullptr; }
+  if (m_globals.qmcTable)         { clReleaseMemObject(m_globals.qmcTable);     m_globals.qmcTable     = nullptr; }
+  if (m_globals.hammersley2D)     { clReleaseMemObject(m_globals.hammersley2D); m_globals.hammersley2D = nullptr; }
 
-  if(m_globals.cmdQueue)          clReleaseCommandQueue(m_globals.cmdQueue);
-  if(m_globals.cmdQueueDevToHost) clReleaseCommandQueue(m_globals.cmdQueueDevToHost);
-  if(m_globals.ctx)               clReleaseContext     (m_globals.ctx);
-
-  m_globals.cmdQueue          = 0;
-  m_globals.cmdQueueDevToHost = 0;
-  m_globals.ctx               = 0;
-
-  m_globals.cMortonTable = 0;
-  m_globals.qmcTable     = 0;
+  if(m_globals.cmdQueue)          { clReleaseCommandQueue(m_globals.cmdQueue);          m_globals.cmdQueue          = nullptr; }
+  if(m_globals.cmdQueueDevToHost) { clReleaseCommandQueue(m_globals.cmdQueueDevToHost); m_globals.cmdQueueDevToHost = nullptr; }
+  if(m_globals.ctx)               { clReleaseContext     (m_globals.ctx);               m_globals.ctx               = nullptr; }
 }
 
 size_t GPUOCLLayer::CalcMegaBlockSize()

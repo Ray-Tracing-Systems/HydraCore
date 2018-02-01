@@ -373,40 +373,51 @@ HRDriverAllocInfo RenderDriverRTE::AllocAll(HRDriverAllocInfo a_info)
   const size_t approxSizeOfMatBlock = sizeof(PlainMaterial) * 4;
   const size_t approxSizeOfLight    = sizeof(PlainLight)    * 4;
 
-  size_t auxMemGeom = 0, auxMemTex = 0;
   size_t totalMem   = m_pHWLayer->GetAvaliableMemoryAmount(true);
   size_t freeMem    = m_pHWLayer->GetAvaliableMemoryAmount(false);
   size_t memUsedByR = totalMem - freeMem;
   const size_t MB   = size_t(1024 * 1024);
 
-  if (totalMem >= size_t(4096)*MB)
-  {
-    auxMemGeom = size_t(64)*MB;
-    auxMemTex  = size_t(128)*MB;
-  }
-  else if (totalMem >= size_t(1024)*MB)
-  {
-    auxMemGeom = size_t(32)*MB;
-    auxMemTex  = size_t(64)*MB;
-  }
-  else if (totalMem >= size_t(512)*MB)
-  {
-    auxMemGeom = size_t(16)*MB;
-    auxMemTex  = size_t(16)*MB;
-  }
-
-  const size_t newMemForTex = a_info.imgMem  + auxMemTex;
-  const size_t newMemForGeo = a_info.geomMem + auxMemGeom;
+  size_t auxMemGeom = 0, auxMemTex = size_t(4096);
+  const size_t newMemForGeo = size_t(0.85*double(a_info.geomMem));                        // we save ~ 15% due to tangent compression.
   const size_t newMemForMat = a_info.matNum*approxSizeOfMatBlock;
-  const size_t newMemForTab = a_info.imgMem / 10;
+  const size_t newMemForTab = size_t(16)*MB;
 
-  size_t newTotalMem = newMemForTex + newMemForGeo + newMemForMat + newMemForTab;
+  size_t newMemForTex1 = auxMemTex + a_info.imgMem;
+  size_t newMemForTex2 = auxMemTex + a_info.imgMem;
+  size_t newMemForTex3 = newMemForTex1 + newMemForTex2;
 
-  m_pTexStorage      = m_pHWLayer->CreateMemStorage((a_info.imgMem*3)/4 + auxMemTex, "textures");     // #TODO:  estimate this more carefully pls.
-  m_pTexStorageAux   = m_pHWLayer->CreateMemStorage((a_info.imgMem*1)/4 + 0,         "textures_aux"); // #TODO:  estimate this more carefully pls.
-  m_pGeomStorage     = m_pHWLayer->CreateMemStorage(newMemForGeo,                    "geom");         // #TODO:  estimate this more carefully pls.
-  m_pMaterialStorage = m_pHWLayer->CreateMemStorage(newMemForMat,                    "materials");
-  m_pPdfStorage      = m_pHWLayer->CreateMemStorage(newMemForTab,                    "pdfs");         // #TODO:  estimate this more carefully pls.
+  size_t newTotalMem = newMemForTex3 + newMemForGeo + newMemForMat + newMemForTab;
+
+  if (newTotalMem >= freeMem)
+  {
+    newMemForTex1 = auxMemTex + a_info.imgMem;
+    newMemForTex2 = auxMemTex + a_info.imgMem/2;
+    newMemForTex3 = newMemForTex1 + newMemForTex2;
+    newTotalMem   = newMemForTex3 + newMemForGeo + newMemForMat + newMemForTab;
+  }
+
+  if (newTotalMem >= freeMem)
+  {
+    newMemForTex1 = auxMemTex + a_info.imgMem;
+    newMemForTex2 = auxMemTex + 2*a_info.imgMem/3;
+    newMemForTex3 = newMemForTex1 + newMemForTex2;
+    newTotalMem   = newMemForTex3 + newMemForGeo + newMemForMat + newMemForTab;
+  }
+
+  while (newTotalMem >= freeMem)
+  {
+    newMemForTex1 -= 10*MB;
+    newMemForTex2 -= 5*MB;
+    newMemForTex3 = newMemForTex1 + newMemForTex2;
+    newTotalMem   = newMemForTex3 + newMemForGeo + newMemForMat + newMemForTab;
+  }
+
+  m_pTexStorage      = m_pHWLayer->CreateMemStorage(newMemForTex1, "textures");     // #TODO:  estimate this more carefully pls.
+  m_pTexStorageAux   = m_pHWLayer->CreateMemStorage(newMemForTex2, "textures_aux"); // #TODO:  estimate this more carefully pls.
+  m_pGeomStorage     = m_pHWLayer->CreateMemStorage(newMemForGeo,  "geom");         // #TODO:  estimate this more carefully pls.
+  m_pMaterialStorage = m_pHWLayer->CreateMemStorage(newMemForMat,  "materials");
+  m_pPdfStorage      = m_pHWLayer->CreateMemStorage(newMemForTab,  "pdfs");         // #TODO:  estimate this more carefully pls.
 
   m_pHWLayer->ResizeTablesForEngineGlobals(a_info.geomNum, a_info.imgNum, a_info.matNum, a_info.lightNum);
 
@@ -426,11 +437,11 @@ HRDriverAllocInfo RenderDriverRTE::AllocAll(HRDriverAllocInfo a_info)
   m_pHWLayer->SetAllFlagsAndVars(vars);
 
   std::cout << std::endl;
-  std::cout << "[AllocAll]: MEM(TEXURE) = " << newMemForTex / MB << " MB" << std::endl;
+  std::cout << "[AllocAll]: MEM(TEXURE) = " << newMemForTex3 / MB << " MB" << std::endl;
   std::cout << "[AllocAll]: MEM(GEOM)   = " << newMemForGeo / MB << " MB" << std::endl;
-  std::cout << "[AllocAll]: MEM(OTHER)  = " << (newMemForMat + newMemForTab) / MB << " MB" << std::endl;
-  std::cout << "[AllocAll]: MEM(RAYBUF) = " << memUsedByR / MB << " MB" << std::endl;
+  std::cout << "[AllocAll]: MEM(PDFTAB) = " << (newMemForMat + newMemForTab) / MB << " MB" << std::endl;
   //std::cout << "[AllocAll]: MEM(TAKEN)  = " << newTotalMem / MB << " MB" << std::endl;
+  std::cout << "[AllocAll]: MEM(RAYBUF) = " << memUsedByR / MB << " MB" << std::endl;
   //std::cout << "[AllocAll]: MEM(TOTAL)  = " << totalMem / MB << " MB" << std::endl;
 
   if (newTotalMem >= freeMem)
@@ -560,7 +571,7 @@ bool RenderDriverRTE::UpdateMesh(int32_t a_meshId, pugi::xml_node a_meshNode, co
   const size_t vertTangSize   = roundBlocks(sizeof(int)*a_input.vertNum, align); // compressed tangent
    
   const size_t triIndOffset   = vertTangOffset + vertTangSize;
-  const size_t triIndSize     = roundBlocks(triIndOffset + a_input.triNum * 3 * sizeof(int), align);
+  const size_t triIndSize     = roundBlocks(a_input.triNum * 3 * sizeof(int), align);
 
   const size_t triMIndOffset  = triIndOffset + triIndSize;
   const size_t triMIndSize    = roundBlocks(a_input.triNum * sizeof(int), align);

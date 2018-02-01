@@ -313,6 +313,7 @@ protected:
 
     cl_mem cMortonTable;
     cl_mem qmcTable;              // this is unrelated to previous. Table for Sobo/Niederreiter quasi random sequence.
+    cl_mem hammersley2D;
 
     size_t m_maxWorkGroupSize;
 
