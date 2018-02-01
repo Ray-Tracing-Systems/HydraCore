@@ -25,7 +25,7 @@ static inline float projectedPixelSize(float dist, float FOV, float w, float h)
 
 static inline float surfaceSimilarity(float4 data1, float4 data2, const float MADXDIFF)
 {
-  const float MANXDIFF = 0.1f;
+  const float MANXDIFF = 0.15f;
 
   float3 n1 = to_float3(data1);
   float3 n2 = to_float3(data2);
@@ -314,6 +314,30 @@ void IntegratorCommon::CalcGBufferUncompressed(std::vector<GBufferAll>& a_gbuff)
   }
 }
 
+void TestCompressGBuffer(std::vector<GBufferAll>& a_gbuff)
+{
+  std::vector<float4> gbuff1(a_gbuff.size());
+  std::vector<float4> gbuff2(a_gbuff.size());
+  
+  #pragma omp parallel for
+  for (int i = 0; i < int(a_gbuff.size()); i++)
+  {
+    GBufferAll all = a_gbuff[i];
+    gbuff1[i] = packGBuffer1(all.data1);
+    gbuff2[i] = packGBuffer2(all.data2);
+  }
+
+  #pragma omp parallel for
+  for (int i = 0; i < int(a_gbuff.size()); i++)
+  {
+    GBufferAll all;
+    all.data1 = unpackGBuffer1(gbuff1[i]);
+    all.data2 = unpackGBuffer2(gbuff2[i]);
+    a_gbuff[i] = all;
+  }
+
+}
+
 void IntegratorCommon::DebugSaveGbufferImage(const wchar_t* a_path)
 {
   // (1) calc gbuffer
@@ -321,6 +345,8 @@ void IntegratorCommon::DebugSaveGbufferImage(const wchar_t* a_path)
   std::vector<GBufferAll> gbuffer(m_width*m_height);
   CalcGBufferUncompressed(gbuffer);
   
+  // TestCompressGBuffer(gbuffer);
+
   // (2) save gbuffer to different layers for debug purpose
   //
   std::cout << "saving images ... " << std::endl;

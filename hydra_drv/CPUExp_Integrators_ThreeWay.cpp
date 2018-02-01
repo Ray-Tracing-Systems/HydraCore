@@ -26,8 +26,8 @@ void IntegratorThreeWay::GetImageHDR(float4* a_imageHDR, int w, int h) const
 
 void IntegratorThreeWay::DoPass(std::vector<uint>& a_imageLDR)
 {
-  //if (m_spp == 0)
-    //DebugSaveGbufferImage(L"gbufferout");
+  // if (m_spp == 0)
+  //   DebugSaveGbufferImage(L"gbufferout");
 
   const int samplesPerPass = m_width*m_height;
   mLightSubPathCount = float(samplesPerPass);
