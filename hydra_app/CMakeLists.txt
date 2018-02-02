@@ -40,7 +40,7 @@ endif()
 # include_directories(${ADDITIONAL_INCLUDE_DIRS})
 # target_include_directories(main PUBLIC ${OPENGL_INCLUDE_DIR})
 
-link_directories(${CMAKE_SOURCE_DIR}/../HydraAPI/bin/ ${CMAKE_SOURCE_DIR}/../embree/build/)
+link_directories(${CMAKE_SOURCE_DIR}/../HydraAPI/bin/ ${CMAKE_SOURCE_DIR}/LIBRARY/lib_x64_linux/)
 
 add_executable(main ${SOURCE_FILES})
 
