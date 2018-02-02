@@ -593,7 +593,7 @@ protected:
   //
   float3 PathTrace(float3 a_rpos, float3 a_rdir);
   float3 PathTraceAcc(float3 a_rpos, float3 a_rdir, const float a_cosPrev, MisData misPrev, int a_currDepth, uint flags,
-                      SurfaceHit* pFirstHit, PerRayAcc* a_accData);
+                      float* pPdfCamA, PerRayAcc* a_accData);
 
   float   mLightSubPathCount; ///< piece of shit from smallVCM
 
@@ -707,10 +707,7 @@ protected:
                       PathVertex* a_pOutLightVertex);
 
   float3 PathTraceDirectLight(float3 ray_pos, float3 ray_dir, MisData misPrev, int a_currDepth, uint flags);
-  //void PathTraceAcc(float3 a_rpos, float3 a_rdir, const float a_cosPrev, MisData misPrev, int a_currDepth, uint flags,
-    //                SurfaceHit* pFirstHit, PerRayAcc* a_accData, float3* a_pDirectLight, float3* a_pIndirectLight);
-
-
+ 
   float  mLightSubPathCount; ///< piece of shit from smallVCM
 
   typedef std::vector<float> PSSampleV;

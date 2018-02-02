@@ -1357,10 +1357,10 @@ typedef struct MisDataT
 static inline MisData makeInitialMisData()
 {
   MisData data;
-  data.isSpecular = true;
   data.matSamplePdf = 1.0f;
-  data.prevMaterialOffset = -1;
   data.cosThetaPrev = 1.0f;
+  data.prevMaterialOffset = -1;
+  data.isSpecular         = 1;
   return data;
 }
 
@@ -2088,7 +2088,7 @@ static inline float4 packGBuffer1(GBuffer1 a_input)
 
   unsigned int packedRGBX = RealColorToUint32(a_input.rgba);
 
-  const float clampedCoverage  = fmax(fmin(a_input.coverage*255.0f, 0.0f), 255.0f);
+  const float clampedCoverage  = fmin(fmax(a_input.coverage*255.0f, 0.0f), 255.0f);
   const int compressedCoverage = ((int)(clampedCoverage)) << 24;
   const int packedMIdAncCov    = (a_input.matId & 0x00FFFFFF) | (compressedCoverage & 0xFF000000);
 

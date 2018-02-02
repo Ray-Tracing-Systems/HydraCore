@@ -68,6 +68,8 @@ __kernel void MakeEyeRaysUnifiedSampling(__global float4*              restrict 
                                          __global float4*              restrict out_thoroughput,
                                          __global float4*              restrict out_fog,
                                          __global HitMatRef*           restrict out_hitMat,
+                                         __global PerRayAcc*           restrict out_accPdf,
+
                                          __global int2*                restrict out_zind,
                                          __global float*               restrict out_pixw, 
                                          __constant ushort*            restrict a_mortonTable256,
@@ -152,6 +154,7 @@ __kernel void MakeEyeRaysUnifiedSampling(__global float4*              restrict 
   out_thoroughput[tid] = make_float4(1.0f, 1.0f, 1.0f, 1.0f);
   out_fog        [tid] = make_float4(0.0f, 0.0f, 0.0f, 0.0f);
   out_hitMat     [tid] = data3;
+  out_accPdf     [tid] = InitialPerParAcc();
 }
 
 
@@ -774,7 +777,7 @@ __kernel void TestAtomicsFloat(__global float4* pValues, int iNumElements)
   atomic_addf(ptr + 2, 3.0f);
 }
 
-// change 22.01.2018 12:05;
+// change 31.01.2018 15:20;
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////

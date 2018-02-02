@@ -28,7 +28,7 @@ __kernel void MakeEyeShadowRays(__global const uint*          restrict a_flags,
                                 __global const float4*        restrict in_normalsFull,
                                 __global const HitMatRef*     restrict in_matData,
 
-                                __global const float4*        restrict a_mtlStorage,
+                                __global const float4*        restrict in_mtlStorage,
                                 __global const EngineGlobals* restrict a_globals,
   
                                 __global float4* restrict out_sraypos,
@@ -55,7 +55,7 @@ __kernel void MakeEyeShadowRays(__global const uint*          restrict a_flags,
   if (haveMaterials == 1)
   {
     const int matId = GetMaterialId(in_matData[tid]);
-    __global const PlainMaterial* pHitMaterial = materialAt(a_globals, a_mtlStorage, matId);
+    __global const PlainMaterial* pHitMaterial = materialAt(a_globals, in_mtlStorage, matId);
 
     if ((materialGetFlags(pHitMaterial) & PLAIN_MATERIAL_HAVE_BTDF) != 0 && dot(camDir, hitNorm) < -0.01f)
       signOfNormal = -1.0f;
@@ -64,6 +64,282 @@ __kernel void MakeEyeShadowRays(__global const uint*          restrict a_flags,
   out_sraypos[tid] = to_float4(hitPos + epsilonOfPos(hitPos)*signOfNormal*hitNorm, zDepth); // OffsRayPos(hitPos, hitNorm, camDir);
   out_sraydir[tid] = to_float4(camDir, imageToSurfaceFactor);
 }
+
+
+__kernel void HitEnvOrLightKernel(__global const float4*    restrict in_rpos,
+                                  __global const float4*    restrict in_rdir,
+                                  __global uint*            restrict a_flags,
+                                  
+                                  __global const float4*    restrict in_hitPosNorm,
+                                  __global const float2*    restrict in_hitTexCoord,
+                                  __global const HitMatRef* restrict in_matData,
+                                  __global const Hit_Part4* restrict in_hitTangent,
+                                  __global const float4*    restrict in_hitNormFull,
+                                  
+                                  __global float4*          restrict a_color,
+                                  __global float4*          restrict a_thoroughput,
+                                  __global MisData*         restrict a_misDataPrev,
+                                  __global float4*          restrict out_emission,
+
+                                  __global const MisData*   restrict in_misDataPrev,
+                                  __global PerRayAcc*       restrict a_pdfAcc,
+                                  __global PerRayAcc*       restrict a_pdfAccCopy,
+                                  __global float*           restrict a_pdfCamA,
+                                  
+                                  __global const float4*    restrict in_texStorage1,    
+                                  __global const float4*    restrict in_texStorage2,
+                                  __global const float4*    restrict in_mtlStorage,
+                                  __global const float4*    restrict in_pdfStorage,   
+                                  __global const EngineGlobals*  restrict a_globals,
+
+                                  __global const int*       restrict in_instLightInstId,
+                                  __global const Lite_Hit*  restrict in_liteHit,
+                                  float a_mLightSubPathCount, int a_currDepth, int iNumElements)
+                                  //__global float4*          restrict a_debugf4)
+{
+  int tid = GLOBAL_ID_X;
+  if (tid >= iNumElements)
+    return;
+
+  const uint flags = a_flags[tid];
+
+  //a_debugf4[tid] = make_float4(-1, -1, -1, -1);
+
+  // if hit environment
+  //
+  if (unpackRayFlags(flags) & RAY_GRAMMAR_OUT_OF_SCENE)
+  {
+    const float3 ray_pos = to_float3(in_rpos[tid]);
+    const float3 ray_dir = to_float3(in_rdir[tid]);
+
+    const int  hitId         = hitDirectLight(ray_dir, a_globals);
+    const bool makeZeroOfMLT = mltStrageCondition(flags, a_globals->g_flags, a_misDataPrev[tid]);
+    float3     nextPathColor = make_float3(0, 0, 0);
+
+    if (hitId >= 0) // hit any sun light
+    {
+      __global const PlainLight* pLight = a_globals->suns + hitId;  
+      float3 lightColor = lightBaseColor(pLight)*directLightAttenuation(pLight, ray_pos);
+
+      const float pdfW = directLightEvalPDF(pLight, ray_dir);
+
+      ///////////////////////////////////////////////////////////////////////////////////////////////////////////
+      MisData misPrev = a_misDataPrev[tid];
+
+      if (makeZeroOfMLT || (unpackBounceNum(flags) > 0 && !(a_globals->g_flags & HRT_STUPID_PT_MODE) && (misPrev.isSpecular == 0))) //#TODO: check this for bug with 2 hdr env light (test 335)
+      {
+        lightColor = make_float3(0, 0, 0);
+      }
+      else if (((misPrev.isSpecular == 1) && (a_globals->g_flags & HRT_ENABLE_PT_CAUSTICS)) || (a_globals->g_flags & HRT_STUPID_PT_MODE))
+        lightColor *= (1.0f/pdfW);
+      ///////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+      const float3 pathThroughput = to_float3(a_thoroughput[tid]);
+      nextPathColor = to_float3(a_color[tid]) + pathThroughput*lightColor;
+    }
+    else
+    {
+      int renderLayer = a_globals->varsI[HRT_RENDER_LAYER];
+      
+      float3 envColor       = environmentColor(ray_dir, a_misDataPrev[tid], flags, a_globals, in_mtlStorage, in_pdfStorage, in_texStorage1);
+      float3 pathThroughput = to_float3(a_thoroughput[tid]);
+      
+      if (makeZeroOfMLT || ((renderLayer == LAYER_SECONDARY) && (unpackBounceNum(flags) <= 1)))
+        envColor = make_float3(0,0,0);
+      
+      nextPathColor = to_float3(a_color[tid]) + pathThroughput*envColor;
+    }
+
+    uint otherFlags    = unpackRayFlags(flags);
+    a_flags[tid]       = packRayFlags(flags, RAY_IS_DEAD | (otherFlags & (~RAY_GRAMMAR_OUT_OF_SCENE)));
+    a_color[tid]       = to_float4(nextPathColor, 0.0f);
+    a_thoroughput[tid] = make_float4(0.0f, 0.0f, 0.0f, 0.0f);
+  }
+  else if(rayIsActiveU(flags)) // if thread is active
+  {
+    float3 emissColor   = make_float3(0, 0, 0);
+    bool hitLightSource = false;
+    
+    const float3 hitPos      = to_float3(in_hitPosNorm[tid]);
+          float3 hitNorm     = to_float3(in_hitNormFull[tid]); // or normalize(decodeNormal(as_int(data.w))) where data is in_hitPosNorm[tid];
+
+    const float2 hitTexCoord = in_hitTexCoord[tid];
+    const float3 ray_pos     = to_float3(in_rpos[tid]);
+    const float3 ray_dir     = to_float3(in_rdir[tid]);
+
+    __global const PlainMaterial* pHitMaterial = materialAt(a_globals, in_mtlStorage, GetMaterialId(in_matData[tid]));
+
+    // eval PDFs for 3WAY 
+    //
+    PerRayAcc accData;  
+    float GTerm = 1.0f, cosHere = 1.0f, cosPrev = 1.0f;
+    if (a_globals->g_flags & HRT_3WAY_MIS_WEIGHTS)
+    {
+      const float dist = length(ray_pos - hitPos);
+      cosPrev = in_misDataPrev[tid].cosThetaPrev;
+      cosHere = fabs(dot(ray_dir, hitNorm));
+      GTerm   = cosHere * cosPrev / fmax(dist*dist, DEPSILON2);
+      accData = a_pdfAcc[tid]; // for 3 bounce we need to store (p0*G0)*(p1*G1) and do not include (p2*G2) to we could replace it with explicit strategy pdf
+
+      if (a_currDepth == 0)
+      {
+        float3 camDirDummy; float zDepthDummy;
+        const float imageToSurfaceFactor = CameraImageToSurfaceFactor(hitPos, hitNorm, a_globals,
+                                                                      &camDirDummy, &zDepthDummy);
+
+        const float cameraPdfA = imageToSurfaceFactor / a_mLightSubPathCount;
+        a_pdfCamA   [tid] = cameraPdfA;
+        a_pdfAccCopy[tid] = accData;
+      }
+      else
+      {
+        const PerRayAcc prevData = accData;
+        accData.pdfGTerm *= GTerm;
+        a_pdfAcc    [tid] = accData;
+        a_pdfAccCopy[tid] = prevData;
+      }
+    }
+
+    // now check if we hit light
+    //
+    bool hitEmissiveMaterialMLT = false;
+    const bool skipPieceOfShit  = materialIsInvisLight(pHitMaterial) && isEyeRay(flags);
+    const float3 emissionVal    = (pHitMaterial == 0) ? make_float3(0,0,0) : materialEvalEmission(pHitMaterial, ray_dir, hitNorm, hitTexCoord, a_globals, in_texStorage1, in_texStorage2);
+    
+    if (dot(emissionVal, emissionVal) > 1e-6f && !skipPieceOfShit)
+    {
+      if (unpackRayFlags(flags) & RAY_HIT_SURFACE_FROM_OTHER_SIDE)
+        hitNorm = hitNorm*(-1.0f);
+    
+      const Lite_Hit liteHit = in_liteHit[tid];
+    
+      if (dot(ray_dir, hitNorm) < 0.0f)
+      {
+        emissColor = emissionVal;
+    
+        const int lightOffset = (a_globals->lightsNum == 0) ? -1 : in_instLightInstId[liteHit.instId];
+        if (lightOffset >= 0)
+        {
+          MisData misPrev = a_misDataPrev[tid];
+    
+          __global const PlainLight* pLight = lightAt(a_globals, lightOffset);  
+          emissColor = lightGetIntensity(pLight, ray_pos, ray_dir, hitNorm, hitTexCoord, flags, misPrev, a_globals, in_texStorage1, in_pdfStorage);
+          
+          ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////// \\\\\\\\\\\\\\\\\\\\\\
+
+          if (a_globals->g_flags & HRT_3WAY_MIS_WEIGHTS)
+          {
+            const LightPdfFwd lPdfFwd = lightPdfFwd(pLight, ray_dir, cosHere, a_globals, in_texStorage1, in_pdfStorage);
+
+            accData.pdfLightWP *= (lPdfFwd.pdfW / fmax(cosHere, DEPSILON));
+
+            const float lightPdfA  = lPdfFwd.pdfA;
+            const float cancelPrev = (misPrev.matSamplePdf / fmax(cosPrev, DEPSILON))*GTerm; // calcel previous pdfA 
+            const float cameraPdfA = a_pdfCamA[tid];
+
+            float pdfAccFwdA = 1.0f       * (accData.pdfLightWP *accData.pdfGTerm) * lightPdfA*lPdfFwd.pickProb;
+            float pdfAccRevA = cameraPdfA * (accData.pdfCameraWP*accData.pdfGTerm);
+            float pdfAccExpA = cameraPdfA * (accData.pdfCameraWP*accData.pdfGTerm)*(lightPdfA*lightPdfSelectRev(pLight) / fmax(cancelPrev, DEPSILON));
+
+            if (a_currDepth == 0)
+            {
+              pdfAccFwdA = 0.0f;
+              pdfAccRevA = 1.0f;
+              pdfAccExpA = 0.0f;
+            }
+            else if (misPrev.isSpecular)
+            {
+              pdfAccExpA = 0.0f; // comment this to kill SDS caustics.
+            }
+
+            //a_debugf4[tid] = make_float4(pdfAccFwdA, pdfAccRevA, pdfAccExpA, 0);
+
+            const float misWeight = misWeightHeuristic3(pdfAccRevA, pdfAccFwdA, pdfAccExpA);
+            emissColor *= misWeight;
+          } 
+          else if (unpackBounceNum(flags) > 0 && !(a_globals->g_flags & HRT_STUPID_PT_MODE) && (misPrev.isSpecular == 0)) // old MIS weights via pdfW
+          {
+            const float lgtPdf    = lightPdfSelectRev(pLight)*lightEvalPDF(pLight, ray_pos, ray_dir, hitPos, hitNorm, hitTexCoord, in_pdfStorage, a_globals);
+            const float bsdfPdf   = misPrev.matSamplePdf;
+            const float misWeight = misWeightHeuristic(bsdfPdf, lgtPdf); // (bsdfPdf*bsdfPdf) / (lgtPdf*lgtPdf + bsdfPdf*bsdfPdf);
+            emissColor *= misWeight;
+          }
+
+          ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////// \\\\\\\\\\\\\\\\\\\\\\
+    
+          if (unpackBounceNum(flags) > 0)
+            emissColor = clamp(emissColor, 0.0f, a_globals->varsF[HRT_BSDF_CLAMPING]);
+    
+          if (misPrev.prevMaterialOffset >= 0)
+          {
+            __global const PlainMaterial* pPrevMaterial = materialAtOffset(in_mtlStorage, misPrev.prevMaterialOffset);
+
+            bool disableCaustics = (unpackBounceNumDiff(flags) > 0) && !(a_globals->g_flags & HRT_ENABLE_PT_CAUSTICS) && materialCastCaustics(pPrevMaterial); // and prev material cast caustics
+            if (disableCaustics)
+              emissColor = make_float3(0, 0, 0);
+          }
+
+          hitLightSource = true; // kill thread next if it hit real light source
+        }
+        else // hit emissive material, not a light 
+        {
+          const uint rayBounceNum = unpackBounceNum(flags);
+          
+          const MisData misPrev         = a_misDataPrev[tid];
+          const uint otherRayFlags      = unpackRayFlags(flags);
+          const bool wasGlossyOrDiffuse = (otherRayFlags & RAY_EVENT_D) || (otherRayFlags & RAY_EVENT_G);
+          
+          if (a_globals->g_flags & HRT_PT_PRIMARY_AND_REFLECTIONS)
+          {
+            if (wasGlossyOrDiffuse)
+              emissColor = make_float3(0, 0, 0);
+          }
+          else if (a_globals->g_flags & HRT_PT_SECONDARY_AND_GLOSSY)
+          {
+            if (wasGlossyOrDiffuse)
+              hitEmissiveMaterialMLT = true;
+          }
+        }
+      }
+    
+      // make lights black for 'LAYER_INCOMING_RADIANCE'
+      const uint rayBounceNum     = unpackBounceNum(flags);
+      const uint rayBounceNumDiff = unpackBounceNumDiff(flags);
+    
+      if ((a_globals->varsI[HRT_RENDER_LAYER] == LAYER_INCOMING_RADIANCE || (a_globals->varsI[HRT_RENDER_LAYER] == LAYER_INCOMING_PRIMARY)) && (a_globals->varsI[HRT_RENDER_LAYER_DEPTH] == rayBounceNum))
+        emissColor = make_float3(0, 0, 0);
+    
+      if ((materialGetFlags(pHitMaterial) & PLAIN_MATERIAL_FORBID_EMISSIVE_GI) && rayBounceNumDiff > 0)
+        emissColor = make_float3(0, 0, 0);
+    
+      if (a_globals->varsI[HRT_RENDER_LAYER] == LAYER_SECONDARY && rayBounceNum <= 1)
+        emissColor = make_float3(0, 0, 0);
+    
+      if ((a_globals->g_flags & HRT_PT_SECONDARY_AND_GLOSSY) && !hitEmissiveMaterialMLT)
+      {
+        const MisData misPrev         = a_misDataPrev[tid];
+        const uint otherRayFlags      = unpackRayFlags(flags);
+        const bool wasGlossyOrDiffuse = (otherRayFlags & RAY_EVENT_D) || (otherRayFlags & RAY_EVENT_G);
+    
+        if (((misPrev.isSpecular == 0) && wasGlossyOrDiffuse) || rayBounceNum <= 1 || !wasGlossyOrDiffuse)
+          emissColor = make_float3(0, 0, 0);
+      }
+    
+      const int packedIsLight = hitLightSource ? 1 : 0;
+      out_emission[tid] = to_float4(emissColor, as_float(packedIsLight));
+
+    } // \\ if light emission is not zero
+    else
+    {
+      out_emission[tid] = make_float4(0, 0, 0, as_float(0));
+    }
+
+
+  } // \\ else if thread is active
+ 
+
+}
+
 
 __kernel void UpdateForwardPdfFor3Way(__global const uint*          restrict a_flags,
                                       __global const float4*        restrict in_raydir,
@@ -79,9 +355,9 @@ __kernel void UpdateForwardPdfFor3Way(__global const uint*          restrict a_f
                                       __global const MisData*       restrict in_misDataCurr,
                                       __global PerRayAcc*           restrict a_pdfAcc,
                                       
-                                      __global const float4*        restrict a_texStorage1,
-                                      __global const float4*        restrict a_texStorage2,
-                                      __global const float4*        restrict a_mtlStorage,
+                                      __global const float4*        restrict in_texStorage1,
+                                      __global const float4*        restrict in_texStorage2,
+                                      __global const float4*        restrict in_mtlStorage,
                                       __global const EngineGlobals* restrict a_globals,
                                       
                                       int iNumElements)
@@ -102,10 +378,8 @@ __kernel void UpdateForwardPdfFor3Way(__global const uint*          restrict a_f
   const float cosNext      = mSamData.cosThetaPrev; // because we have already updated mSamData.cosThetaPrev inside 'NextBounce' kernel
 
   const float3 hitNorm     = to_float3(in_normalsFull[tid]);
-
-  const float4 datard  = in_raydir[tid];
-  const float3 ray_dir = to_float3(datard);
-  const float cosCurr  = fabs(-dot(ray_dir, hitNorm));
+  const float3 ray_dir     = to_float3(in_raydir[tid]);
+  const float cosCurr      = fabs(-dot(ray_dir, hitNorm));
 
   PerRayAcc accData = a_pdfAcc[tid];
 
@@ -113,7 +387,7 @@ __kernel void UpdateForwardPdfFor3Way(__global const uint*          restrict a_f
   //
   if (!isSpecular)
   {
-    __global const PlainMaterial* pHitMaterial = materialAt(a_globals, a_mtlStorage, GetMaterialId(in_matData[tid]));
+    __global const PlainMaterial* pHitMaterial = materialAt(a_globals, in_mtlStorage, GetMaterialId(in_matData[tid]));
     const Hit_Part4 btanAndN = in_hitTangent[tid];
 
     ShadeContext sc;
@@ -126,7 +400,7 @@ __kernel void UpdateForwardPdfFor3Way(__global const uint*          restrict a_f
     sc.bn = decodeNormal(btanAndN.bitangentCompressed);
     sc.tc = in_hitTexCoord[tid];
 
-    const float pdfW = materialEval(pHitMaterial, &sc, false, false, /* global data --> */ a_globals, a_texStorage1, a_texStorage2).pdfFwd;
+    const float pdfW = materialEval(pHitMaterial, &sc, false, false, /* global data --> */ a_globals, in_texStorage1, in_texStorage2).pdfFwd;
 
     accData.pdfCameraWP *= (pdfW / fmax(cosCurr, DEPSILON));
     accData.pdfLightWP  *= (matSamplePdf / fmax(cosNext, DEPSILON));
@@ -161,17 +435,17 @@ __kernel void ConnectToEyeKernel(__global const uint*          restrict a_flags,
                                  __global const int*           restrict in_lightId,
                                  __global const float4*        restrict in_lsam2,
                                  
-                                 __global const float4*        restrict a_mtlStorage,
+                                 __global const float4*        restrict in_mtlStorage,
                                  __global const EngineGlobals* restrict a_globals,
-                                 __global const float4*        restrict a_texStorage1,
-                                 __global const float4*        restrict a_texStorage2,
+                                 __global const float4*        restrict in_texStorage1,
+                                 __global const float4*        restrict in_texStorage2,
                                  __constant ushort*            restrict a_mortonTable256,
                                  
                                  __global const float4*        restrict a_colorIn,
                                  __global float4*              restrict a_colorOut,
                                  __global int2*                restrict out_zind,
 
-                                 __global float4*              restrict a_debugOut,
+                                 //__global float4*              restrict a_debugOut,
                                  
                                  float mLightSubPathCount,
                                  int   a_currBounce,
@@ -180,6 +454,9 @@ __kernel void ConnectToEyeKernel(__global const uint*          restrict a_flags,
   int tid = GLOBAL_ID_X;
   if (tid >= iNumElements)
     return;
+
+  //if (a_debugOut != 0)
+    //a_debugOut[tid] = make_float4(0, 0, 0, 0);
 
   uint flags = a_flags[tid];
   if (!rayIsActiveU(flags))
@@ -190,7 +467,7 @@ __kernel void ConnectToEyeKernel(__global const uint*          restrict a_flags,
     return;
   }
 
-  const float3 ray_dir = to_float3(in_oraydir[tid]);
+  const float3 ray_dir = (in_oraydir == 0) ? make_float3(0,0,0) : to_float3(in_oraydir[tid]);
   const float3 hitPos  = to_float3(in_hitPosNorm[tid]); //  
   const float3 hitNorm = to_float3(in_normalsFull[tid]);
   const float4 data2   = in_sraydir[tid];
@@ -204,7 +481,7 @@ __kernel void ConnectToEyeKernel(__global const uint*          restrict a_flags,
   if(a_currBounce > 0) // if 0, this is light surface
   {
     const int matId = GetMaterialId(in_matData[tid]);
-    __global const PlainMaterial* pHitMaterial = materialAt(a_globals, a_mtlStorage, matId);
+    __global const PlainMaterial* pHitMaterial = materialAt(a_globals, in_mtlStorage, matId);
     if ((materialGetFlags(pHitMaterial) & PLAIN_MATERIAL_HAVE_BTDF) != 0 && dot(camDir, hitNorm) < -0.01f)
       signOfNormal = -1.0f;
       
@@ -222,41 +499,40 @@ __kernel void ConnectToEyeKernel(__global const uint*          restrict a_flags,
     sc.bn = decodeNormal(btanAndN.bitangentCompressed);
     sc.tc = hitTexCoord;
    
-    BxDFResult matRes = materialEval(pHitMaterial, &sc, false, true, /* global data --> */ a_globals, a_texStorage1, a_texStorage2);
+    BxDFResult matRes = materialEval(pHitMaterial, &sc, false, true, /* global data --> */ a_globals, in_texStorage1, in_texStorage2);
     colorConnect      = matRes.brdf + matRes.btdf; 
     pdfRevW           = matRes.pdfRev;
   }
 
-  const PerRayAcc accData = in_pdfAcc[tid];
-
-  const float cosCurr  = fabs(dot(ray_dir, hitNorm));
-  const float pdfRevWP = pdfRevW / fmax(cosCurr, DEPSILON); // pdfW po pdfWP
-   
-  float pdfCamA0 = accData.pdfCamA0;
-  if (a_currBounce == 1)
-    pdfCamA0 *= pdfRevWP; // see pdfRevWP? this is just because on the first bounce a_pAccData->pdfCameraWP == 1.
-   
-  const float cancelImplicitLightHitPdf = (1.0f / fmax(pdfCamA0, DEPSILON2));
-   
-  __global const PlainLight* pLight = lightAt(a_globals, in_lightId[tid]);
-  const float lightPickProbFwd = lightPdfSelectFwd(pLight);
-  const float lightPickProbRev = lightPdfSelectRev(pLight);
-   
-  const float cameraPdfA = imageToSurfaceFactor / mLightSubPathCount;
-  const float lightPdfA  = as_int(in_lsam2[tid].w); //PerThread().pdfLightA0; // remember that we packed it in lsam2 inside 'LightSampleForwardKernel'
-  
-  const float pdfAccFwdA = 1.0f*accData.pdfLightWP*accData.pdfGTerm*(lightPdfA*lightPickProbFwd);
-  const float pdfAccRevA = cameraPdfA * (pdfRevWP*accData.pdfCameraWP)*accData.pdfGTerm; // see pdfRevWP? this is just because on the first bounce a_pAccData->pdfCameraWP == 1.
-                                                                                         // we didn't eval reverse pdf yet. Imagine light ray hit surface and we immediately connect.
-
-  const float pdfAccExpA = cameraPdfA * (pdfRevWP*accData.pdfCameraWP)*accData.pdfGTerm*(cancelImplicitLightHitPdf*(lightPdfA*lightPickProbRev));
-   
-  const float misWeight  = 1.0f; // misWeightHeuristic3(pdfAccFwdA, pdfAccRevA, pdfAccExpA);
-
-  if (a_debugOut != 0)
+  float misWeight = 1.0f;
+  if ((a_globals->g_flags & HRT_3WAY_MIS_WEIGHTS) && (a_currBounce > 0))
   {
-    a_debugOut[tid] = make_float4(accData.pdfGTerm, accData.pdfLightWP, accData.pdfCameraWP, accData.pdfCamA0);
+    const PerRayAcc accData = in_pdfAcc[tid];
+
+    const float cosCurr = fabs(dot(ray_dir, hitNorm));
+    const float pdfRevWP = pdfRevW / fmax(cosCurr, DEPSILON); // pdfW po pdfWP
+
+    float pdfCamA0 = accData.pdfCamA0;
+    if (a_currBounce == 1)
+      pdfCamA0 *= pdfRevWP; // see pdfRevWP? this is just because on the first bounce a_pAccData->pdfCameraWP == 1.
+
+    const float cancelImplicitLightHitPdf = (1.0f / fmax(pdfCamA0, DEPSILON2));
+
+    __global const PlainLight* pLight = lightAt(a_globals, in_lightId[tid]);
+    const float lightPickProbFwd = lightPdfSelectFwd(pLight);
+    const float lightPickProbRev = lightPdfSelectRev(pLight);
+
+    const float cameraPdfA = imageToSurfaceFactor / mLightSubPathCount;
+    const float lightPdfA  = in_lsam2[tid].w; //PerThread().pdfLightA0; // remember that we packed it in lsam2 inside 'LightSampleForwardKernel'
+
+    const float pdfAccFwdA = 1.0f*accData.pdfLightWP*accData.pdfGTerm*(lightPdfA*lightPickProbFwd);
+    const float pdfAccRevA = cameraPdfA * (pdfRevWP*accData.pdfCameraWP)*accData.pdfGTerm; // see pdfRevWP? this is just because on the first bounce a_pAccData->pdfCameraWP == 1.
+                                                                                           // we didn't eval reverse pdf yet. Imagine light ray hit surface and we immediately connect.
+    const float pdfAccExpA = cameraPdfA * (pdfRevWP*accData.pdfCameraWP)*accData.pdfGTerm*(cancelImplicitLightHitPdf*(lightPdfA*lightPickProbRev));
+
+    misWeight = misWeightHeuristic3(pdfAccFwdA, pdfAccRevA, pdfAccExpA);
   }
+  
 
   // We divide the contribution by surfaceToImageFactor to convert the (already
   // divided) pdf from surface area to image plane area, w.r.t. which the
@@ -310,17 +586,22 @@ __kernel void Shade(__global const float4*    restrict a_rpos,
                     __global const float4*    restrict in_data2,
                     __global const ushort4*   restrict in_shadow,
                     __global const float*     restrict in_lightPickProb,
+                    __global const float*     restrict in_lcos,
+  
                     __global const float4*    restrict in_normalsFull,
+
+                    __global const PerRayAcc* restrict in_pdfAccPrev,
+                    __global const float4*    restrict in_rayDirAndLightId,
+                    __global const float*     restrict in_pdfCamA,
 
                     __global float4*          restrict out_color,
                     
-                    __global const float4*    restrict a_texStorage1,
-                    __global const float4*    restrict a_texStorage2,
-                    __global const float4*    restrict a_mtlStorage,
-
-                    int iNumElements,
-                    __global const EngineGlobals* restrict a_globals
-                    )
+                    __global const float4*    restrict in_texStorage1,
+                    __global const float4*    restrict in_texStorage2,
+                    __global const float4*    restrict in_mtlStorage,
+                    __global const float4*    restrict in_pdfStorage,
+                    __global const EngineGlobals* restrict a_globals,
+                    int iNumElements)
 {
 
   int tid = GLOBAL_ID_X;
@@ -352,18 +633,16 @@ __kernel void Shade(__global const float4*    restrict a_rpos,
       return;
   }
 
+  // read surfaceHit
+  //
+  const Hit_Part4 btanAndN = in_hitTangent[tid];
+  const float3 hitPos      = to_float3(in_hitPosNorm[tid]);
+  const float3 hitNorm     = to_float3(in_normalsFull[tid]); // normalize(decodeNormal(as_int(data.w)));
+  const float2 hitTexCoord = in_hitTexCoord[tid];
+  const float3 hitBiTang   = decodeNormal(btanAndN.tangentCompressed);
+  const float3 hitBiNorm   = decodeNormal(btanAndN.bitangentCompressed);
 
-  Hit_Part4 btanAndN = in_hitTangent[tid];
-
-  //float4 data        = in_hitPosNorm[tid];
-  float3 hitPos      = to_float3(in_hitPosNorm[tid]);
-  float3 hitNorm     = to_float3(in_normalsFull[tid]); // normalize(decodeNormal(as_int(data.w)));
-  float2 hitTexCoord = in_hitTexCoord[tid];
-
-  float3 hitBiTang = decodeNormal(btanAndN.tangentCompressed);
-  float3 hitBiNorm = decodeNormal(btanAndN.bitangentCompressed);
-
-  __global const PlainMaterial* pHitMaterial = materialAt(a_globals, a_mtlStorage, GetMaterialId(in_matData[tid]));
+  __global const PlainMaterial* pHitMaterial = materialAt(a_globals, in_mtlStorage, GetMaterialId(in_matData[tid]));
 
   float3 ray_pos = to_float3(a_rpos[tid]);
   float3 ray_dir = to_float3(a_rdir[tid]);
@@ -374,11 +653,12 @@ __kernel void Shade(__global const float4*    restrict a_rpos,
 
   ShadowSample explicitSam;
 
-  explicitSam.pos     = to_float3(data1);
-  explicitSam.color   = to_float3(data2);
-  explicitSam.pdf     = fabs(data1.w);
-  explicitSam.maxDist = data2.w;
-  explicitSam.isPoint = (data1.w <= 0);
+  explicitSam.pos        = to_float3(data1);
+  explicitSam.color      = to_float3(data2);
+  explicitSam.pdf        = fabs(data1.w);
+  explicitSam.maxDist    = data2.w;
+  explicitSam.isPoint    = (data1.w <= 0);
+  explicitSam.cosAtLight = in_lcos[tid];
 
   //float3 shadowRayPos = hitPos + hitNorm*maxcomp(hitPos)*GEPSILON;
   float3 shadowRayDir = normalize(explicitSam.pos - hitPos); 
@@ -387,7 +667,7 @@ __kernel void Shade(__global const float4*    restrict a_rpos,
   const bool disableCaustics       = (unpackBounceNumDiff(flags) > 0) && !currLightCastCaustics;
   
   if ((a_globals->varsI[HRT_RENDER_LAYER] == LAYER_INCOMING_PRIMARY) && (a_globals->varsI[HRT_RENDER_LAYER_DEPTH] == unpackBounceNum(flags))) //////////////////////////////////////////////////////////////////
-    pHitMaterial = materialAtOffset(a_mtlStorage, a_globals->varsI[HRT_WHITE_DIFFUSE_OFFSET]);
+    pHitMaterial = materialAtOffset(in_mtlStorage, a_globals->varsI[HRT_WHITE_DIFFUSE_OFFSET]);
 
   // bool hitFromBack = (bool)(unpackRayFlags(flags) & RAY_HIT_SURFACE_FROM_OTHER_SIDE);
 
@@ -401,21 +681,61 @@ __kernel void Shade(__global const float4*    restrict a_rpos,
   sc.bn = hitBiNorm;
   sc.tc = hitTexCoord;
 
-  const BxDFResult brdfAndPdf = materialEval(pHitMaterial, &sc, disableCaustics, false, /* global data --> */ a_globals, a_texStorage1, a_texStorage2);
+  const BxDFResult evalData = materialEval(pHitMaterial, &sc, disableCaustics, false, /* global data --> */ a_globals, in_texStorage1, in_texStorage2);
+  const float3 shadow       = decompressShadow(in_shadow[tid]);
+  const float lightPickProb = in_lightPickProb[tid];
 
-  const float3 shadow        = decompressShadow(in_shadow[tid]);
-  const float  lightPickProb = in_lightPickProb[tid];
+  float misWeight = 1.0f;
+  if (a_globals->g_flags & HRT_3WAY_MIS_WEIGHTS)
+  {
+    const float cosHere       = fabs(dot(ray_dir, hitNorm));
+    const int a_currDepth     = rayBounceNum;
 
-  float  lgtPdf   = explicitSam.pdf*lightPickProb;
-  float misWeight = misWeightHeuristic(lgtPdf, brdfAndPdf.pdfFwd); // (lgtPdf*lgtPdf) / (lgtPdf*lgtPdf + bsdfPdf*bsdfPdf);
-  
-  if (explicitSam.isPoint)
-    misWeight = 1.0f;
+    const float cosThetaOut1 = fmax(+dot(shadowRayDir, hitNorm), 0.0f);
+    const float cosThetaOut2 = fmax(-dot(shadowRayDir, hitNorm), 0.0f);
+    const bool  underSurface = (dot(evalData.btdf, evalData.btdf)*cosThetaOut2 > 0.0f && dot(evalData.brdf, evalData.brdf)*cosThetaOut1 <= 0.0f);
+    const float cosThetaOut  = underSurface ? cosThetaOut2 : cosThetaOut1;
+    const float cosAtLight   = fmax(explicitSam.cosAtLight, 0.0f);
+     
+    const float bsdfRevWP    = (evalData.pdfFwd == 0.0f) ? 1.0f : evalData.pdfFwd / fmax(cosThetaOut, DEPSILON);
+    const float bsdfFwdWP    = (evalData.pdfRev == 0.0f) ? 1.0f : evalData.pdfRev / fmax(cosHere, DEPSILON);
+    const float shadowDist   = length(hitPos - explicitSam.pos);
+    const float GTermShadow  = cosThetaOut * cosAtLight / fmax(shadowDist*shadowDist, DEPSILON);
+    
+    const PerRayAcc prevData = in_pdfAccPrev[tid];
+    const int lightOffset    = as_int(in_rayDirAndLightId[tid].w);
+
+    __global const PlainLight* pLight = lightAt(a_globals, lightOffset);
+
+    const LightPdfFwd lPdfFwd = lightPdfFwd(pLight, shadowRayDir, cosAtLight, a_globals, in_texStorage1, in_pdfStorage);
+     
+    float pdfFwdWP1 = 1.0f;  // madness of IBPT. 
+    if (a_currDepth > 0)     // Imagine ray that hit light source after (second?) bounce (or first ?). pdfAccFwdA = pdfLightA*PdfLightW*GTermShadow.
+      pdfFwdWP1 = bsdfFwdWP; // 
+     
+    const float cameraPdfA = in_pdfCamA[tid];
+     
+    float pdfAccFwdA = pdfFwdWP1  * (prevData.pdfLightWP *prevData.pdfGTerm)*((lPdfFwd.pdfW / fmax(cosAtLight, DEPSILON))*GTermShadow)*(lPdfFwd.pdfA*lPdfFwd.pickProb);
+    float pdfAccRevA = cameraPdfA * (prevData.pdfCameraWP*prevData.pdfGTerm)*bsdfRevWP*GTermShadow;
+    float pdfAccExpA = cameraPdfA * (prevData.pdfCameraWP*prevData.pdfGTerm)*(lPdfFwd.pdfA*lightPickProb);
+    if (explicitSam.isPoint)
+      pdfAccRevA = 0.0f;
+
+    misWeight = misWeightHeuristic3(pdfAccExpA, pdfAccRevA, pdfAccFwdA);
+  }
+  else
+  {
+    const float lgtPdf = explicitSam.pdf*lightPickProb;
+
+    misWeight = misWeightHeuristic(lgtPdf, evalData.pdfFwd); // (lgtPdf*lgtPdf) / (lgtPdf*lgtPdf + bsdfPdf*bsdfPdf);
+    if (explicitSam.isPoint)
+      misWeight = 1.0f;
+  }
 
   const float cosThetaOut1 = fmax(+dot(shadowRayDir, hitNorm), 0.0f);
   const float cosThetaOut2 = fmax(-dot(shadowRayDir, hitNorm), 0.0f);
 
-  const float3 bxdfVal = (brdfAndPdf.brdf*cosThetaOut1 + brdfAndPdf.btdf*cosThetaOut2);
+  const float3 bxdfVal = (evalData.brdf*cosThetaOut1 + evalData.btdf*cosThetaOut2);
 
   float3 shadeColor = (explicitSam.color * (1.0f / fmax(explicitSam.pdf, DEPSILON)))*bxdfVal*misWeight*shadow; 
 
@@ -452,20 +772,17 @@ __kernel void NextBounce(__global   float4*        restrict a_rpos,
                          __global ushort4*         restrict a_shadow,
                          __global float4*          restrict a_fog,
                          __global const float4*    restrict in_shadeColor,
-                         __global PerRayAcc*       restrict a_pdfAcc,
+                         __global const float4*    restrict in_emissionColor,
+                         __global PerRayAcc*       restrict a_pdfAcc,        // used only by 3-Way PT/LT passes
+                         __global float*           restrict a_camPdfA,       // used only by 3-Way PT/LT passes
 
-                         __global const float4*    restrict a_texStorage1,    
-                         __global const float4*    restrict a_texStorage2,
-                         __global const float4*    restrict a_mtlStorage,
-                         __global const float4*    restrict a_pdfStorage,   //
-
-                         __global const int*       restrict a_instLightInstId,
-                         __global const Lite_Hit*  restrict in_liteHit,
+                         __global const float4*    restrict in_texStorage1,    
+                         __global const float4*    restrict in_texStorage2,
+                         __global const float4*    restrict in_mtlStorage,
+                         __global const float4*    restrict in_pdfStorage,   //
                          
                          int iNumElements,
-                         __global const EngineGlobals*  restrict a_globals,
-                         __global const float*          restrict a_qmcVec,
-                         __global const int2*           restrict a_qmcSorted)
+                         __global const EngineGlobals*  restrict a_globals)
 {
   int tid = GLOBAL_ID_X;
   if (tid >= iNumElements)
@@ -476,67 +793,7 @@ __kernel void NextBounce(__global   float4*        restrict a_rpos,
   float3 ray_pos = to_float3(a_rpos[tid]);
   float3 ray_dir = to_float3(a_rdir[tid]);
 
-#ifdef MLT_MULTY_PROPOSAL
-  __global const float* qmcVec = (a_qmcVec == 0) ? 0 : a_qmcVec + (tid/MLT_PROPOSALS)*a_globals->varsI[HRT_MLT_MAX_NUMBERS];
-#else
-  
-  #ifndef MLT_SORT_RAYS
-  __global const float* qmcVec = (a_qmcVec == 0) ? 0 : a_qmcVec + tid*a_globals->varsI[HRT_MLT_MAX_NUMBERS];
-  #else
-  __global const float* qmcVec = (a_qmcVec == 0) ? 0 : a_qmcVec + a_qmcSorted[tid].y*a_globals->varsI[HRT_MLT_MAX_NUMBERS];
-  #endif
-
-#endif
-
-  // if hit environment
-  //
-  if (unpackRayFlags(flags) & RAY_GRAMMAR_OUT_OF_SCENE)
-  {
-    const int  hitId         = hitDirectLight(ray_dir, a_globals);
-    const bool makeZeroOfMLT = mltStrageCondition(flags, a_globals->g_flags, a_misDataPrev[tid]);
-    float3     nextPathColor = make_float3(0, 0, 0);
-
-    if (hitId >= 0) // hit any sun light
-    {
-      __global const PlainLight* pLight = a_globals->suns + hitId;  
-      float3 lightColor = lightBaseColor(pLight)*directLightAttenuation(pLight, ray_pos);
-
-      const float pdfW = directLightEvalPDF(pLight, ray_dir);
-
-      ///////////////////////////////////////////////////////////////////////////////////////////////////////////
-      MisData misPrev = a_misDataPrev[tid];
-
-      if (makeZeroOfMLT || (unpackBounceNum(flags) > 0 && !(a_globals->g_flags & HRT_STUPID_PT_MODE) && (misPrev.isSpecular == 0))) //#TODO: check this for bug with 2 hdr env light (test 335)
-      {
-        lightColor = make_float3(0, 0, 0);
-      }
-      else if (((misPrev.isSpecular == 1) && (a_globals->g_flags & HRT_ENABLE_PT_CAUSTICS)) || (a_globals->g_flags & HRT_STUPID_PT_MODE))
-        lightColor *= (1.0f/pdfW);
-      ///////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-      const float3 pathThroughput = to_float3(a_thoroughput[tid]);
-      nextPathColor = to_float3(a_color[tid]) + pathThroughput*lightColor;
-    }
-    else
-    {
-      int renderLayer = a_globals->varsI[HRT_RENDER_LAYER];
-      
-      float3 envColor       = environmentColor(to_float3(a_rdir[tid]), a_misDataPrev[tid], flags, a_globals, a_mtlStorage, a_pdfStorage, a_texStorage1);
-      float3 pathThroughput = to_float3(a_thoroughput[tid]);
-      
-      if (makeZeroOfMLT || ((renderLayer == LAYER_SECONDARY) && (unpackBounceNum(flags) <= 1)))
-        envColor = make_float3(0,0,0);
-      
-      nextPathColor = to_float3(a_color[tid]) + pathThroughput*envColor;
-    }
-
-    const uint otherFlags = unpackRayFlags(flags);
-    a_flags      [tid] = packRayFlags(flags, RAY_IS_DEAD | (otherFlags & (~RAY_GRAMMAR_OUT_OF_SCENE)));
-    a_color      [tid] = to_float4(nextPathColor, 0.0f);
-    a_thoroughput[tid] = make_float4(0.0f, 0.0f, 0.0f, 0.0f);
-    return;
-  }
-
+  __global const float* pssVec = 0;
 
   float3 outPathColor      = make_float3(0,0,0);
   float3 outPathThroughput = make_float3(0,0,0);
@@ -566,111 +823,14 @@ __kernel void NextBounce(__global   float4*        restrict a_rpos,
     hitBiTang    = decodeNormal(btanAndN.tangentCompressed);
     hitBiNorm    = decodeNormal(btanAndN.bitangentCompressed);
   
-    pHitMaterial = materialAt(a_globals, a_mtlStorage, GetMaterialId(in_matData[tid]));
+    pHitMaterial = materialAt(a_globals, in_mtlStorage, GetMaterialId(in_matData[tid]));
   
-    ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
- 
-    //if hit ligh ?
-    //
-
-    bool hitEmissiveMaterialMLT = false;
-    const bool skipPieceOfShit  = materialIsInvisLight(pHitMaterial) && isEyeRay(flags);
-    const float3 emissionVal    = (pHitMaterial == 0) ? make_float3(0,0,0) : materialEvalEmission(pHitMaterial, ray_dir, hitNorm, hitTexCoord, a_globals, a_texStorage1, a_texStorage2);
-    
-    if (dot(emissionVal, emissionVal) > 1e-6f && !skipPieceOfShit)
-    {
-      if (unpackRayFlags(flags) & RAY_HIT_SURFACE_FROM_OTHER_SIDE)
-        hitNorm = hitNorm*(-1.0f);
-    
-      const Lite_Hit liteHit = in_liteHit[tid];
-    
-      if (dot(ray_dir, hitNorm) < 0.0f)
-      {
-        outPathColor = emissionVal;
-    
-        const int lightOffset = (a_globals->lightsNum == 0) ? -1 : a_instLightInstId[liteHit.instId];
-        if (lightOffset >= 0)
-        {
-          MisData misPrev = a_misDataPrev[tid];
-    
-          __global const PlainLight* pLight = lightAt(a_globals, lightOffset);  
-          outPathColor = lightGetIntensity(pLight, ray_pos, ray_dir, hitNorm, hitTexCoord, flags, misPrev, a_globals, a_texStorage1, a_pdfStorage);
-    
-          if (unpackBounceNum(flags) > 0 && !(a_globals->g_flags & HRT_STUPID_PT_MODE) && (misPrev.isSpecular == 0))
-          {
-            const float lgtPdf    = lightPdfSelectRev(pLight)*lightEvalPDF(pLight, ray_pos, ray_dir, hitPos, hitNorm, hitTexCoord, a_pdfStorage, a_globals);
-            const float bsdfPdf   = misPrev.matSamplePdf;
-            const float misWeight = misWeightHeuristic(bsdfPdf, lgtPdf); // (bsdfPdf*bsdfPdf) / (lgtPdf*lgtPdf + bsdfPdf*bsdfPdf);
-    
-            outPathColor *= misWeight;
-          }
-    
-          if (unpackBounceNum(flags) > 0)
-            outPathColor = clamp(outPathColor, 0.0f, a_globals->varsF[HRT_BSDF_CLAMPING]);
-    
-          __global const PlainMaterial* pPrevMaterial = materialAtOffset(a_mtlStorage, misPrev.prevMaterialOffset); 
-    
-          bool disableCaustics = (unpackBounceNumDiff(flags) > 0) && !(a_globals->g_flags & HRT_ENABLE_PT_CAUSTICS) && materialCastCaustics(pPrevMaterial); // and prev material cast caustics
-          if (disableCaustics)
-            outPathColor = make_float3(0, 0, 0);
-    
-          hitLightSource = true; // kill thread next if it hit real light source
-        }
-        else // hit emissive material, not a light 
-        {
-          const uint rayBounceNum = unpackBounceNum(flags);
-          
-          const MisData misPrev         = a_misDataPrev[tid];
-          const uint otherRayFlags      = unpackRayFlags(flags);
-          const bool wasGlossyOrDiffuse = (otherRayFlags & RAY_EVENT_D) || (otherRayFlags & RAY_EVENT_G);
-          
-          if (a_globals->g_flags & HRT_PT_PRIMARY_AND_REFLECTIONS)
-          {
-            if (wasGlossyOrDiffuse)
-              outPathColor = make_float3(0, 0, 0);
-          }
-          else if (a_globals->g_flags & HRT_PT_SECONDARY_AND_GLOSSY)
-          {
-            if (wasGlossyOrDiffuse)
-              hitEmissiveMaterialMLT = true;
-          }
-        }
-      }
-      
-    
-      // make lights black for 'LAYER_INCOMING_RADIANCE'
-      const uint rayBounceNum     = unpackBounceNum(flags);
-      const uint rayBounceNumDiff = unpackBounceNumDiff(flags);
-    
-      if ((a_globals->varsI[HRT_RENDER_LAYER] == LAYER_INCOMING_RADIANCE || (a_globals->varsI[HRT_RENDER_LAYER] == LAYER_INCOMING_PRIMARY)) && (a_globals->varsI[HRT_RENDER_LAYER_DEPTH] == rayBounceNum))
-        outPathColor = make_float3(0, 0, 0);
-    
-      if ((materialGetFlags(pHitMaterial) & PLAIN_MATERIAL_FORBID_EMISSIVE_GI) && rayBounceNumDiff > 0)
-        outPathColor = make_float3(0, 0, 0);
-    
-      if (a_globals->varsI[HRT_RENDER_LAYER] == LAYER_SECONDARY && rayBounceNum <= 1)
-        outPathColor = make_float3(0, 0, 0);
-    
-      if ((a_globals->g_flags & HRT_PT_SECONDARY_AND_GLOSSY) && !hitEmissiveMaterialMLT)
-      {
-        const MisData misPrev         = a_misDataPrev[tid];
-        const uint otherRayFlags      = unpackRayFlags(flags);
-        const bool wasGlossyOrDiffuse = (otherRayFlags & RAY_EVENT_D) || (otherRayFlags & RAY_EVENT_G);
-    
-        if (((misPrev.isSpecular == 0) && wasGlossyOrDiffuse) || rayBounceNum <= 1 || !wasGlossyOrDiffuse)
-          outPathColor = make_float3(0, 0, 0);
-      }
-    
-    }
-  
+    float4 emissData = (in_emissionColor == 0) ? make_float4(0, 0, 0, 0) : in_emissionColor[tid];
+    outPathColor     = to_float3(emissData);
+    hitLightSource   = (emissData.w == 1);
   }
-  else if (pHitMaterial != 0)
-  {
-     // don't put any shit here !!!
-     //
   
-  } 
-  
+
   MatSample brdfSample;
   int    matOffset   = 0;
   bool   isThinGlass = false;
@@ -679,12 +839,13 @@ __kernel void NextBounce(__global   float4*        restrict a_rpos,
   gen.maxNumbers = a_globals->varsI[HRT_MLT_MAX_NUMBERS];
 
   float GTerm = 1.0f;
-
+  float3 oldRayDir;
+ 
   if (rayIsActiveU(flags))
   {
     matOffset = materialOffset(a_globals, GetMaterialId(in_matData[tid]));
   
-    BRDFSelector mixSelector = materialRandomWalkBRDF(pHitMaterial, &gen, qmcVec, ray_dir, hitNorm, hitTexCoord, a_globals, a_texStorage1, unpackBounceNum(flags), false, false);
+    BRDFSelector mixSelector = materialRandomWalkBRDF(pHitMaterial, &gen, pssVec, ray_dir, hitNorm, hitTexCoord, a_globals, in_texStorage1, unpackBounceNum(flags), false, false);
   
     const  uint rayBounceNum = unpackBounceNum(flags);
    
@@ -708,9 +869,9 @@ __kernel void NextBounce(__global   float4*        restrict a_rpos,
       sc.tc  = hitTexCoord;
       sc.hfi = (materialGetType(pHitMaterial) == PLAIN_MAT_CLASS_GLASS) && (bool)(unpackRayFlags(flags) & RAY_HIT_SURFACE_FROM_OTHER_SIDE);  //hit glass from other side
   
-      const float3 randsm = rndMat(&gen, qmcVec, unpackBounceNum(flags));
+      const float3 randsm = rndMat(&gen, pssVec, unpackBounceNum(flags));
   
-      MaterialLeafSampleAndEvalBRDF(pHitMaterial, randsm, &sc, shadow, a_globals, a_texStorage1, a_texStorage2,
+      MaterialLeafSampleAndEvalBRDF(pHitMaterial, randsm, &sc, shadow, a_globals, in_texStorage1, in_texStorage2,
                                     &brdfSample);
 
       isThinGlass = isPureSpecular(brdfSample) && (rayBounceNum > 0) && !(a_globals->g_flags & HRT_ENABLE_PT_CAUSTICS) && (materialGetType(pHitMaterial) == PLAIN_MAT_CLASS_THIN_GLASS); // materialIsTransparent(pHitMaterial);
@@ -740,8 +901,9 @@ __kernel void NextBounce(__global   float4*        restrict a_rpos,
 
     // calc new ray
     //    
-    ray_dir = nextRay_dir;
-    ray_pos = nextRay_pos;
+    oldRayDir = ray_dir;
+    ray_dir   = nextRay_dir;
+    ray_pos   = nextRay_pos;
   }
   
   /////////////////////////////////////////////////////////////////////////////////////////////////////////////// begin russian roulette
@@ -855,6 +1017,46 @@ __kernel void NextBounce(__global   float4*        restrict a_rpos,
       outPathColor   += to_float3(shadeData);
       nextPathColor   = a_color[tid] + to_float4(oldPathThroughput*outPathColor, 0.0f);
       nextPathColor.w = 1.0f;
+
+      if (a_globals->g_flags & HRT_3WAY_MIS_WEIGHTS) 
+      {
+        const int a_currDepth = rayBounceNum;
+        PerRayAcc accPdf      = a_pdfAcc[tid];          // #TODO: refactor code inside brackets; try to make procedure call
+        {
+          if (!isPureSpecular(brdfSample))
+          {
+            const float cosHere = fabs(dot(oldRayDir, hitNorm));
+            const float cosNext = fabs(dot(brdfSample.direction, hitNorm));
+
+            accPdf.pdfCameraWP *= (brdfSample.pdf / fmax(cosNext, DEPSILON));
+
+            if (a_currDepth > 0)
+            {
+              ShadeContext sc;
+              sc.wp = hitPos;
+              sc.l  = (-1.0f)*oldRayDir;      // fliped; if compare to normal PT
+              sc.v  = brdfSample.direction; // fliped; if compare to normal PT
+              sc.n  = hitNorm;
+              sc.fn = flatNorm;
+              sc.tg = hitBiTang;
+              sc.bn = hitBiNorm;
+              sc.tc = hitTexCoord;
+
+              const float pdfFwdW = materialEval(pHitMaterial, &sc, false, false, /* global data --> */  a_globals, in_texStorage1, in_texStorage2).pdfFwd;
+             
+              accPdf.pdfLightWP *= (pdfFwdW / fmax(cosHere, DEPSILON));
+            }
+          }
+          else
+          {
+            accPdf.pdfCameraWP *= 1.0f; // in the case of specular bounce pdfFwd = pdfRev = 1.0f;
+            accPdf.pdfLightWP *= 1.0f;  //
+            if (a_currDepth == 0)
+              accPdf.pdfLightWP = 0.0f;
+          }
+        }
+        a_pdfAcc[tid] = accPdf;
+      }
     }
 
     if (maxcomp(newPathThroughput) < 0.00001f || hitLightSource)
@@ -873,6 +1075,13 @@ __kernel void NextBounce(__global   float4*        restrict a_rpos,
 
 }
 
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 __kernel void NextTransparentBounce(__global   float4*    a_rpos,
                                     __global   float4*    a_rdir,
@@ -891,7 +1100,7 @@ __kernel void NextTransparentBounce(__global   float4*    a_rpos,
                                     int iNumElements,
                                     __global const EngineGlobals* a_globals)
 {
-  __global const float4* a_mtlStorage = 0; // #TODO: fix
+  __global const float4* in_mtlStorage = 0; // #TODO: fix
 
   int tid = GLOBAL_ID_X;
   if (tid >= iNumElements)
@@ -928,7 +1137,7 @@ __kernel void NextTransparentBounce(__global   float4*    a_rpos,
     float3 hitNorm     = normalize(decodeNormal(as_int(data.w)));
     float2 hitTexCoord = in_hitTexCoord[tid];
 
-    __global const PlainMaterial* pHitMaterial = materialAt(a_globals, a_mtlStorage, GetMaterialId(in_matData[tid]));
+    __global const PlainMaterial* pHitMaterial = materialAt(a_globals, in_mtlStorage, GetMaterialId(in_matData[tid]));
 
     ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -982,7 +1191,7 @@ __kernel void TransparentShadowKenrel(__global const uint*     in_flags,
                                       )
 {
 
-  __global const float4* a_mtlStorage = 0; // #TODO: fix
+  __global const float4* in_mtlStorage = 0; // #TODO: fix
 
   int tid = GLOBAL_ID_X;
   if (tid >= a_size)
@@ -1108,7 +1317,7 @@ __kernel void TransparentShadowKenrel(__global const uint*     in_flags,
     if (fabs(currDist - hit_t) > GEPSILON*hit_t) // a double hit bug
     {
       currDist = hit_t;
-      shadow   = transparencyStep(&stepData, shadow, alphaMatId, hit_t, shadowRayDir, shadowHitNorm, texCoordS, a_globals, a_mtlStorage, a_shadingTexture);
+      shadow   = transparencyStep(&stepData, shadow, alphaMatId, hit_t, shadowRayDir, shadowHitNorm, texCoordS, a_globals, in_mtlStorage, a_shadingTexture);
     }
     
     if (fmax(shadow.x, fmax(shadow.y, shadow.z)) < 1e-5f)
@@ -1133,7 +1342,7 @@ __kernel void ReadDiffuseColor(__global const float4*    a_rdir,
                                __global const EngineGlobals* a_globals, 
                                __global float4* a_color, int iNumElements)
 {
-  __global const float4* a_mtlStorage = 0; // #TODO: fix
+  __global const float4* in_mtlStorage = 0; // #TODO: fix
 
   int tid = GLOBAL_ID_X;
   if (tid >= iNumElements)
@@ -1144,7 +1353,7 @@ __kernel void ReadDiffuseColor(__global const float4*    a_rdir,
 
   if (HitSome(hit))
   {
-    __global const PlainMaterial* pHitMaterial = materialAt(a_globals, a_mtlStorage, GetMaterialId(in_matData[tid]));
+    __global const PlainMaterial* pHitMaterial = materialAt(a_globals, in_mtlStorage, GetMaterialId(in_matData[tid]));
 
     float2 txcrd = in_texCoord[tid];
     float3 norm  = normalize(decodeNormal(as_int(in_posNorm[tid].w)));
@@ -1168,7 +1377,7 @@ __kernel void GetGBufferFirstBounce(__global const uint*      a_flags,
                                     __global float4*              a_color, 
                                     int iNumElements)
 {
-  __global const float4* a_mtlStorage = 0; // #TODO: fix
+  __global const float4* in_mtlStorage = 0; // #TODO: fix
 
   int tid = GLOBAL_ID_X;
   if (tid >= iNumElements)
@@ -1188,7 +1397,7 @@ __kernel void GetGBufferFirstBounce(__global const uint*      a_flags,
   else
   {
     matIndex = GetMaterialId(in_matData[tid]);
-    __global const PlainMaterial* pHitMaterial = materialAt(a_globals, a_mtlStorage, matIndex);
+    __global const PlainMaterial* pHitMaterial = materialAt(a_globals, in_mtlStorage, matIndex);
 
     float2 txcrd = in_texCoord[tid];
 
@@ -1205,7 +1414,7 @@ __kernel void GetGBufferFirstBounce(__global const uint*      a_flags,
   a_color[tid]   = packGBuffer1(buffData);
 }
 
-// change 20.01.2018 16:30;
+// change 31.01.2018 15:20;
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////

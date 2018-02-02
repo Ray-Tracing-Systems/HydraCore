@@ -317,10 +317,9 @@ float3 IntegratorTwoWay::PathTraceAcc(float3 ray_pos, float3 ray_dir, const Surf
   const float3 nextRay_dir = matSam.direction;
   const float3 nextRay_pos = OffsRayPos(surfElem.pos, surfElem.normal, matSam.direction);
 
-  MisData thisBounce;
-  thisBounce.isSpecular         = isPureSpecular(matSam);
-  thisBounce.matSamplePdf       = matSam.pdf;
-  thisBounce.prevMaterialOffset = -1;
+  MisData thisBounce       = makeInitialMisData();
+  thisBounce.isSpecular    = isPureSpecular(matSam);
+  thisBounce.matSamplePdf  = matSam.pdf;
 
   return (bxdfVal*cosNext / fmax(matSam.pdf, DEPSILON))*PathTraceAcc(nextRay_pos, nextRay_dir, surfElem, thisBounce, a_currDepth + 1, flags,
                                                                      nullptr, a_accData);

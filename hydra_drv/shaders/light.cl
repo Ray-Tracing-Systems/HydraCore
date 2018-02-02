@@ -99,7 +99,9 @@ __kernel void LightSample(__global const float4*  restrict a_rpos,
                           __global const float4*  restrict in_hitPosNorm,
                           __global float4*        restrict out_data1,
                           __global float4*        restrict out_data2,
-                          __global float*         restrict out_lightPickProb,
+                          __global float*         restrict out_lPP,
+                          __global float*         restrict out_lcos,
+
                           __global float4*        restrict out_srpos,
                           __global float4*        restrict out_srdir,
 
@@ -173,9 +175,10 @@ __kernel void LightSample(__global const float4*  restrict a_rpos,
   if (explicitSam.isPoint)
     explicitSam.pdf *= -1.0f; // just to pack 'isPont' flag in pdf
 
-  out_data1[tid]         = make_float4(explicitSam.pos.x, explicitSam.pos.y, explicitSam.pos.z, explicitSam.pdf);
-  out_data2[tid]         = make_float4(explicitSam.color.x, explicitSam.color.y, explicitSam.color.z, explicitSam.maxDist);
-  out_lightPickProb[tid] = lightPickProb;
+  out_data1[tid] = make_float4(explicitSam.pos.x, explicitSam.pos.y, explicitSam.pos.z, explicitSam.pdf);
+  out_data2[tid] = make_float4(explicitSam.color.x, explicitSam.color.y, explicitSam.color.z, explicitSam.maxDist);
+  out_lPP  [tid] = lightPickProb;
+  out_lcos [tid] = explicitSam.cosAtLight;
 
   // (2) generate shadow ray
   //
@@ -184,14 +187,14 @@ __kernel void LightSample(__global const float4*  restrict a_rpos,
   const float maxDist       = length(shadowRayPos - explicitSam.pos); // recompute max dist based on real (shifted with offset) shadowRayPos
 
   out_srpos[tid] = to_float4(shadowRayPos, maxDist);
-  out_srdir[tid] = to_float4(shadowRayDir, 0.0f);   // or explicitSam.cosAtLight
+  out_srdir[tid] = to_float4(shadowRayDir, as_float(lightOffset)); 
 
 }
 
 __kernel void CopyAndPackForConnectEye(__global const uint*    restrict in_flags,
                                        __global const float4*  restrict in_raydir, 
                                        __global const float4*  restrict in_colors,
-                                       __global const MisData* restrict in_cosTheta,
+         
                                        __global uint*          restrict out_flags,
                                        __global float4*        restrict out_raydir,
                                        __global float4*        restrict out_colors,
@@ -203,14 +206,10 @@ __kernel void CopyAndPackForConnectEye(__global const uint*    restrict in_flags
 
   out_flags [tid] = in_flags[tid];
   out_colors[tid] = in_colors[tid];
-
-  float4 rdir     = in_raydir[tid];
-  rdir.w          = in_cosTheta[tid].cosThetaPrev;
-  out_raydir[tid] = rdir;
+  out_raydir[tid] = in_raydir[tid];
 }
 
-
-// change 20.01.2018 16:30;
+// change 31.01.2018 15:20;
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////

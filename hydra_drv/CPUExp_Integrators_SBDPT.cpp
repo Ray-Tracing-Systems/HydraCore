@@ -485,10 +485,9 @@ PathVertex IntegratorSBDPT::CameraPath(float3 ray_pos, float3 ray_dir, float3 a_
   const float3 nextRay_dir = matSam.direction;
   const float3 nextRay_pos = OffsRayPos(surfElem.pos, surfElem.normal, matSam.direction);
 
-  MisData thisBounce;
-  thisBounce.isSpecular         = isPureSpecular(matSam);
-  thisBounce.matSamplePdf       = matSam.pdf;
-  thisBounce.prevMaterialOffset = -1;
+  MisData thisBounce       = makeInitialMisData();
+  thisBounce.isSpecular    = isPureSpecular(matSam);
+  thisBounce.matSamplePdf  = matSam.pdf;
 
   PathVertex nextVertex = CameraPath(nextRay_pos, nextRay_dir, surfElem.normal, thisBounce, a_currDepth + 1, flags,
                                      a_perThread, a_targetDepth, a_haveToHitLightSource, a_fullPathDepth);

@@ -164,6 +164,8 @@ protected:
   std::vector<uchar4> NormalMapFromDisplacement(int w, int h, const uchar4* a_data, float bumpAmt, bool invHeight, float smoothLvl);
   void Denoise(cl_mem textureIn, cl_mem textureOut, int w, int h, float smoothLvl);
 
+  size_t CalcMegaBlockSize();
+
   void inPlaceScanAnySize1f(cl_mem buff, size_t a_size);
   void testScan();
   void testScanFloatsAnySize();
@@ -176,10 +178,11 @@ protected:
   
   //
   //
-  int    m_initFlags;
-  int    m_megaBlockSize;
-  int    m_megaBlocksNum;
+  int   m_initFlags;
+  int   m_megaBlockSize;
+  int   m_megaBlocksNum;
   int   m_passNumber;
+  int   m_passNumberForQMC;
   float m_spp;
 
   struct CL_SCREEN_BUFFERS
@@ -243,11 +246,11 @@ protected:
   {
     CL_BUFFERS_RAYS() : rayPos(0), rayDir(0), hits(0), rayFlags(0), hitPosNorm(0), hitTexCoord(0), hitMatId(0), hitTangent(0), hitFlatNorm(0), hitPrimSize(0), hitNormUncompressed(0),
                         pathThoroughput(0), pathMisDataPrev(0), pathShadeColor(0), pathAccColor(0), pathAuxColor(0), randGenState(0), pathAuxColorCPU(0),
-                        lsam1(0), lsam2(0), shadowRayPos(0), shadowRayDir(0), accPdf(0), oldFlags(0), oldRayDir(0), oldColor(0), lightNumberLT(0), lsamProb(0),
-                        lshadow(0), fogAtten(0), samZindex(0), pixWeights(0), MEGABLOCKSIZE(0) {}
+                        lsam1(0), lsam2(0), lsamCos(0), shadowRayPos(0), shadowRayDir(0), accPdf(0), oldFlags(0), oldRayDir(0), oldColor(0), lightNumberLT(0), lsamProb(0),
+                        lshadow(0), fogAtten(0), samZindex(0), pixWeights(0), debugf4(0), MEGABLOCKSIZE(0) {}
 
     void free();
-    void resize(cl_context ctx, cl_command_queue cmdQueue, size_t a_size, bool a_cpuShare, bool a_cpuFB);
+    size_t resize(cl_context ctx, cl_command_queue cmdQueue, size_t a_size, bool a_cpuShare, bool a_cpuFB);
 
     cl_mem rayPos;                   // float4, MEGABLOCKSIZE size
     cl_mem rayDir;                   // float4, MEGABLOCKSIZE size 
@@ -270,23 +273,28 @@ protected:
     cl_mem pathAuxColorCPU;
     cl_mem randGenState;
 
-    cl_mem lsam1;
-    cl_mem lsam2;
+    cl_mem lsam1;         // 
+    cl_mem lsam2;         // when LT is enabled: CONSTANT FOR ALL BOUNCES; .xyz store sample.dir; .w store lightPdfA;
+                          // when PT is enabled: TEMP PER BOUNCE;          .xyz store lsam.color; .w store lsam.maxDist
+    cl_mem lsamCos;    // store single float lsam.cosAtLight when use PT
     cl_mem shadowRayPos;
     cl_mem shadowRayDir;
-    cl_mem accPdf;        ///< accumulated pdf weights for 3-way bogolepov light transport
+    cl_mem accPdf;        ///< accumulated pdf weights for 3-way Bogolepov light transport
 
-    cl_mem oldFlags;      // store copy of curr bounce data for ConnectEye
-    cl_mem oldRayDir;     // and cosThetaPrev; store copy of curr bounce data for ConnectEye
-    cl_mem oldColor;      // store copy of curr bounce data for ConnectEye
+                          // used when LT is enabled: store copy of curr bounce flags for ConnectEye:
+    cl_mem oldFlags;      // prev bounce flags;                                                         #NOTE: when PT pass of IBPT is run, store camPdfA in this nuffer 
+    cl_mem oldRayDir;     // prev bounce 'rayDir'
+    cl_mem oldColor;      // prev bounce accumulated color
     cl_mem lightNumberLT; // store single int32_t light number that was selected by forward sampling kernel.
 
-    cl_mem lsamProb;
-    cl_mem lshadow;
+    cl_mem lsamProb;      // used by PT only currently;
+    cl_mem lshadow;       // store short4 colored shadow;
 
     cl_mem fogAtten;
-    cl_mem samZindex;
-    cl_mem pixWeights;
+    cl_mem samZindex;     // used by LT only;
+    cl_mem pixWeights;    // used by LT only; #TODO: remove this shit, we don't needed bilinear sampling.
+
+    cl_mem debugf4;
 
     size_t MEGABLOCKSIZE;
 
@@ -305,6 +313,7 @@ protected:
 
     cl_mem cMortonTable;
     cl_mem qmcTable;              // this is unrelated to previous. Table for Sobo/Niederreiter quasi random sequence.
+    cl_mem hammersley2D;
 
     size_t m_maxWorkGroupSize;
 
@@ -375,15 +384,12 @@ protected:
 
   enum BIG_MEM_OBJECTS {   // try to account allocated memory, because OpenCL have no such functionality
     MEM_TAKEN_GEOMETRY    = 0,
-    MEM_TAKEN_BVH         = 1,
-    MEM_TAKEN_TEXTURE1    = 2,
-    MEM_TAKEN_TEXTURE2    = 3,
-    MEM_TAKEN_TEXTURE3    = 4,
-    MEM_TAKEN_TEXTURE4    = 5,
-    MEM_TAKEN_RESERVE     = 6,
-    MEM_TAKEN_SCREEN      = 7,
-    MEM_TAKEN_MLT         = 8,
-    MEM_TAKEN_OBJECTS_NUM = 9, // total number of big memory objects 
+    MEM_TAKEN_TEXTURES    = 1,
+    MEM_TAKEN_BVH         = 2,
+    MEM_TAKEN_SCREEN      = 3,
+    MEM_TAKEN_RAYS        = 4,
+
+    MEM_TAKEN_OBJECTS_NUM = 5, // total number of big memory objects 
   };
 
   size_t m_memoryTaken[MEM_TAKEN_OBJECTS_NUM];
@@ -398,12 +404,14 @@ protected:
  
   void runKernel_Trace(cl_mem a_rpos, cl_mem a_rdir, cl_mem a_hits, size_t a_size);
   void runKernel_ComputeHit(cl_mem a_rpos, cl_mem a_rdir, size_t a_size);
+  void runKernel_HitEnvOrLight(cl_mem a_rayFlags, cl_mem a_rpos, cl_mem a_rdir, cl_mem a_outColor, int a_currBounce, size_t a_size);
+
   void runKernel_NextBounce(cl_mem a_rayFlags, cl_mem a_rpos, cl_mem a_rdir, cl_mem a_outColor, size_t a_size);
   void runKernel_NextTransparentBounce(cl_mem a_rpos, cl_mem a_rdir, cl_mem a_outColor, size_t a_size);
 
   void ShadePass(cl_mem a_rpos, cl_mem a_rdir, cl_mem a_outColor, size_t a_size, bool a_measureTime);
   void ConnectEyePass(cl_mem in_rayFlags, cl_mem in_hitPos, cl_mem in_hitNorm, cl_mem in_rayDirOld, cl_mem in_color, int a_bounce, size_t a_size);
-  void CopyAndPackForConnectEye(cl_mem in_flags, cl_mem in_raydir, cl_mem in_color, cl_mem in_cosPrev,
+  void CopyForConnectEye(cl_mem in_flags, cl_mem in_raydir, cl_mem in_color, 
                                 cl_mem out_flags, cl_mem out_raydir, cl_mem out_color, size_t a_size);
 
   void runKernel_ShadowTrace(cl_mem a_rayFlags, cl_mem a_rpos, cl_mem a_rdir, cl_mem a_outShadow, size_t a_size);
@@ -466,4 +474,3 @@ protected:
 };
 
 void RoundBlocks2D(size_t global_item_size[2], size_t local_item_size[2]);
-

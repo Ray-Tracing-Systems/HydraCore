@@ -14,6 +14,10 @@ using pugi::xml_attribute;
 
 Input g_input;
 
+bool g_normalExit = false;
+IHRSharedAccumImage* g_pExternalImage = nullptr;
+extern bool g_hydraapipostprocessloaddll;
+
 void InfoCallBack(const wchar_t* message, const wchar_t* callerPlace, HR_SEVERITY_LEVEL a_level)
 {
   if (a_level >= HR_SEVERITY_WARNING)
@@ -21,9 +25,6 @@ void InfoCallBack(const wchar_t* message, const wchar_t* callerPlace, HR_SEVERIT
   else
     std::wcout << callerPlace << L": " << message << std::endl;
 }
-
-bool g_normalExit = false;
-IHRSharedAccumImage* g_pExternalImage = nullptr;
 
 void destroy()
 {
@@ -63,6 +64,8 @@ extern int g_height;
 
 int main(int argc, const char** argv)
 {
+  g_hydraapipostprocessloaddll = false; // don't load post process dll's by HydraAPI
+
   ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
   #ifdef WIN32
   wchar_t NPath[512];
@@ -77,7 +80,7 @@ int main(int argc, const char** argv)
   #endif
   ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-  hrInit(L"HydraApplication");
+  hrInit(L"-emptyvirtualbuffer 1");
 
   hrInfoCallback(&InfoCallBack);
   hrErrorCallerPlace(L"main");  // for debug needs only

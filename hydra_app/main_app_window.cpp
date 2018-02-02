@@ -220,7 +220,9 @@ static void Draw(void)
   {
     xml_node settingsNode = hrRenderParamNode(renderRef);
 
-    if(g_input.pathTracingEnabled)
+    if(g_input.ibptEnabled)
+      settingsNode.child(L"method_primary").text() = L"IBPT";
+    else if(g_input.pathTracingEnabled)
       settingsNode.child(L"method_primary").text() = L"pathtracing";
     else if(g_input.lightTracingEnabled)
       settingsNode.child(L"method_primary").text() = L"lighttracing";
@@ -339,6 +341,12 @@ static void key(GLFWwindow* window, int k, int s, int action, int mods)
     g_input.lightTracingEnabled = !g_input.lightTracingEnabled;
     g_input.cameraFreeze        = !g_input.cameraFreeze;
     g_input.pathTracingEnabled  = false;
+    break;
+
+  case GLFW_KEY_B:
+    g_input.ibptEnabled  = !g_input.ibptEnabled;
+    g_input.cameraFreeze = !g_input.cameraFreeze;
+    g_input.pathTracingEnabled = false;
     break;
 
   default:

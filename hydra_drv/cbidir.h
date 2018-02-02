@@ -424,12 +424,14 @@ static inline float3 environmentColor(float3 rayDir, MisData misPrev, unsigned i
 
     envColor *= misWeight;
   }
-
-  __global const PlainMaterial* pPrevMaterial = materialAtOffset(a_mltStorage, misPrev.prevMaterialOffset); // in_plainData + misPrev.prevMaterialOffset;
-
-  bool disableCaustics = (diffBounceNum > 0) && !(a_globals->g_flags & HRT_ENABLE_PT_CAUSTICS) && materialCastCaustics(pPrevMaterial); // and prev material cast caustics
-  if (disableCaustics)
-    envColor = make_float3(0, 0, 0);
+  
+  if (misPrev.prevMaterialOffset >= 0)
+  {
+    __global const PlainMaterial* pPrevMaterial = materialAtOffset(a_mltStorage, misPrev.prevMaterialOffset);                            // in_plainData + misPrev.prevMaterialOffset;
+    bool disableCaustics = (diffBounceNum > 0) && !(a_globals->g_flags & HRT_ENABLE_PT_CAUSTICS) && materialCastCaustics(pPrevMaterial); // and prev material cast caustics
+    if (disableCaustics)
+      envColor = make_float3(0, 0, 0);
+  }
 
   // \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
 

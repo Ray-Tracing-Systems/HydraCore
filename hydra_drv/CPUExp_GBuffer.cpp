@@ -25,7 +25,7 @@ static inline float projectedPixelSize(float dist, float FOV, float w, float h)
 
 static inline float surfaceSimilarity(float4 data1, float4 data2, const float MADXDIFF)
 {
-  const float MANXDIFF = 0.1f;
+  const float MANXDIFF = 0.15f;
 
   float3 n1 = to_float3(data1);
   float3 n2 = to_float3(data2);
@@ -50,7 +50,7 @@ static inline float gbuffDiff(GBufferAll s1, GBufferAll s2, const float a_fov, i
 {
   const float ppSize         = projectedPixelSize(s1.data1.depth, a_fov, (float)w, (float)h);
   const float surfaceSimilar = surfaceSimilarity(to_float4(s1.data1.norm, s1.data1.depth), 
-                                                 to_float4(s2.data1.norm, s2.data1.depth), ppSize);
+                                                 to_float4(s2.data1.norm, s2.data1.depth), ppSize*2.0f);
 
   const float surfaceDiff = 1.0f - surfaceSimilar;
   const float objDiff     = (s1.data2.instId == s2.data2.instId && s1.data2.objId == s2.data2.objId) ? 0.0f : 1.0f;
@@ -74,7 +74,7 @@ static inline float gbuffDiffObj(GBufferAll s1, GBufferAll s2, const float a_fov
 
 GBufferAll IntegratorCommon::gbufferEval(int x, int y)
 {
-  const float fov        = DEG_TO_RAD*90.0f;
+  const float fov = DEG_TO_RAD*90.0f;
 
   GBufferAll samples[GBUFFER_SAMPLES];
  
@@ -88,13 +88,21 @@ GBufferAll IntegratorCommon::gbufferEval(int x, int y)
 
   // (2) eval samples
   //
+
+  const float sizeInvX = 1.0f / (float)(m_width);
+  const float sizeInvY = 1.0f / (float)(m_width);
+
   for (int i = 0; i < GBUFFER_SAMPLES; i++)
   { 
-    float4 offsets = 2.0f*make_float4(qmc[i].x, qmc[i].y, 0, 0) - make_float4(1,1,0,0);
+    float4 lensOffs = make_float4(qmc[i].x, qmc[i].y, 0, 0);
 
+    lensOffs.x = sizeInvX * (lensOffs.x + (float)x);
+    lensOffs.y = sizeInvY * (lensOffs.y + (float)y);
+
+    float  fx, fy;
     float3 ray_pos, ray_dir;
-    MakeRandEyeRay(x, y, m_width, m_height, offsets, m_pGlobals,
-                   &ray_pos, &ray_dir);
+    MakeEyeRayFromF4Rnd(lensOffs, m_pGlobals,
+                        &ray_pos, &ray_dir, &fx, &fy);
 
     samples[i] = gbufferSample(ray_pos, ray_dir);
   }
@@ -298,14 +306,36 @@ void IntegratorCommon::CalcGBufferUncompressed(std::vector<GBufferAll>& a_gbuff)
 {
   // (1) calc gbuffer
   //
+  #pragma omp parallel for
+  for (int y = 0; y < m_height; y++)
   {
-    #pragma omp parallel for
-    for (int y = 0; y < m_height; y++)
-    {
-      for (int x = 0; x < m_width; x++)
-        a_gbuff[y*m_width + x] = gbufferEval(x, y);
-    }
+    for (int x = 0; x < m_width; x++)
+      a_gbuff[y*m_width + x] = gbufferEval(x, y);
   }
+}
+
+void TestCompressGBuffer(std::vector<GBufferAll>& a_gbuff)
+{
+  std::vector<float4> gbuff1(a_gbuff.size());
+  std::vector<float4> gbuff2(a_gbuff.size());
+  
+  #pragma omp parallel for
+  for (int i = 0; i < int(a_gbuff.size()); i++)
+  {
+    GBufferAll all = a_gbuff[i];
+    gbuff1[i] = packGBuffer1(all.data1);
+    gbuff2[i] = packGBuffer2(all.data2);
+  }
+
+  #pragma omp parallel for
+  for (int i = 0; i < int(a_gbuff.size()); i++)
+  {
+    GBufferAll all;
+    all.data1 = unpackGBuffer1(gbuff1[i]);
+    all.data2 = unpackGBuffer2(gbuff2[i]);
+    a_gbuff[i] = all;
+  }
+
 }
 
 void IntegratorCommon::DebugSaveGbufferImage(const wchar_t* a_path)
@@ -315,6 +345,8 @@ void IntegratorCommon::DebugSaveGbufferImage(const wchar_t* a_path)
   std::vector<GBufferAll> gbuffer(m_width*m_height);
   CalcGBufferUncompressed(gbuffer);
   
+  // TestCompressGBuffer(gbuffer);
+
   // (2) save gbuffer to different layers for debug purpose
   //
   std::cout << "saving images ... " << std::endl;

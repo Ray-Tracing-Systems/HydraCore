@@ -54,6 +54,7 @@ RenderDriverRTE::RenderDriverRTE(const wchar_t* a_options, int w, int h, int a_d
   m_gpuFB      = ((m_initFlags & GPU_RT_CPU_FRAMEBUFFER) == 0);
   m_usePT      = false;
   m_useLT      = false;
+  m_useIBPT    = false;
   m_ptInitDone = false;
   m_legacy.m_lastSeed = GetTickCount();
   m_legacy.updateProgressCall = &UpdateProgress;
@@ -175,8 +176,8 @@ bool RenderDriverRTE::UpdateSettings(pugi::xml_node a_settingsNode)
     vars.m_flags |= HRT_ENABLE_PT_CAUSTICS;
   }
 
-  // vars.m_flags |= HRT_ENABLE_PT_CAUSTICS;
-  // vars.m_flags |= HRT_STUPID_PT_MODE;
+  //vars.m_flags |= HRT_ENABLE_PT_CAUSTICS;
+  //vars.m_flags |= HRT_STUPID_PT_MODE;
 
   vars.m_varsI[HRT_TRACE_DEPTH]            = 6;
   vars.m_varsI[HRT_DIFFUSE_TRACE_DEPTH]    = 3;
@@ -212,20 +213,30 @@ bool RenderDriverRTE::UpdateSettings(pugi::xml_node a_settingsNode)
   //
   if (a_settingsNode.child(L"method_primary") != nullptr)
   {
-    if (std::wstring(a_settingsNode.child(L"method_primary").text().as_string()) == L"pathtracing")
+    const std::wstring method = std::wstring(a_settingsNode.child(L"method_primary").text().as_string());
+    if (method == L"IBPT")
     {
-      m_usePT = true;
-      m_useLT = false;
+      m_useIBPT = true;
+      m_usePT   = false;
+      m_useLT   = false;
     }
-    else if (std::wstring(a_settingsNode.child(L"method_primary").text().as_string()) == L"lighttracing")
+    else if (method == L"pathtracing")
     {
-      m_usePT = false;
-      m_useLT = true;
+      m_useIBPT = false;
+      m_usePT   = true;
+      m_useLT   = false;
+    }
+    else if (method == L"lighttracing")
+    {
+      m_useIBPT = false;
+      m_usePT   = false;
+      m_useLT   = true;
     }
     else
     {
-      m_useLT = false;
-      m_usePT = false;
+      m_useIBPT = false;
+      m_useLT   = false;
+      m_usePT   = false;
     }
   }
   else
@@ -362,11 +373,54 @@ HRDriverAllocInfo RenderDriverRTE::AllocAll(HRDriverAllocInfo a_info)
   const size_t approxSizeOfMatBlock = sizeof(PlainMaterial) * 4;
   const size_t approxSizeOfLight    = sizeof(PlainLight)    * 4;
 
-  m_pTexStorage      = m_pHWLayer->CreateMemStorage((a_info.imgMem*3)/4,                "textures");     // #TODO:  estimate this more carefully pls.
-  m_pTexStorageAux   = m_pHWLayer->CreateMemStorage((a_info.imgMem*1)/4,                "textures_aux"); // #TODO:  estimate this more carefully pls.
-  m_pGeomStorage     = m_pHWLayer->CreateMemStorage(a_info.geomMem,                     "geom");         // #TODO:  estimate this more carefully pls.
-  m_pMaterialStorage = m_pHWLayer->CreateMemStorage(a_info.matNum*approxSizeOfMatBlock, "materials");
-  m_pPdfStorage      = m_pHWLayer->CreateMemStorage(a_info.imgMem/10,                   "pdfs");         // #TODO:  estimate this more carefully pls.
+  size_t totalMem   = m_pHWLayer->GetAvaliableMemoryAmount(true);
+  size_t freeMem    = m_pHWLayer->GetAvaliableMemoryAmount(false);
+  size_t memUsedByR = totalMem - freeMem;
+  const size_t MB   = size_t(1024 * 1024);
+
+  size_t auxMemGeom = 0, auxMemTex = size_t(4096);
+  size_t newMemForGeo = a_info.geomMem; // size_t(0.85*double(a_info.geomMem)); // we can save ~ 15% due to tangent compression but thhis is hard to estimate precisly.
+  size_t newMemForMat = a_info.matNum*approxSizeOfMatBlock;
+  size_t newMemForTab = 8*MB; // depends on MAX_ENV_LIGHT_PDF_SIZE; #TODO: check this with larger environment lights !!!
+
+  newMemForTab += a_info.lightsWithIESNum * 1 * MB;
+  if (newMemForTab > 64 * MB)
+    newMemForTab = 64 * MB;
+
+  size_t newMemForTex1 = auxMemTex + a_info.imgMem;
+  size_t newMemForTex2 = auxMemTex + a_info.imgMem;
+  size_t newMemForTex3 = newMemForTex1 + newMemForTex2;
+  size_t newTotalMem   = newMemForTex3 + newMemForGeo + newMemForMat + newMemForTab;
+
+  if (newTotalMem >= freeMem)
+  {
+    newMemForTex1 = auxMemTex + a_info.imgMem;
+    newMemForTex2 = auxMemTex + a_info.imgMem/2;
+    newMemForTex3 = newMemForTex1 + newMemForTex2;
+    newTotalMem   = newMemForTex3 + newMemForGeo + newMemForMat + newMemForTab;
+  }
+
+  if (newTotalMem >= freeMem)
+  {
+    newMemForTex1 = auxMemTex + a_info.imgMem;
+    newMemForTex2 = auxMemTex + 2*a_info.imgMem/3;
+    newMemForTex3 = newMemForTex1 + newMemForTex2;
+    newTotalMem   = newMemForTex3 + newMemForGeo + newMemForMat + newMemForTab;
+  }
+
+  while (newTotalMem >= freeMem)
+  {
+    newMemForTex1 -= 10*MB;
+    newMemForTex2 -= 5*MB;
+    newMemForTex3 = newMemForTex1 + newMemForTex2;
+    newTotalMem   = newMemForTex3 + newMemForGeo + newMemForMat + newMemForTab;
+  }
+
+  m_pTexStorage      = m_pHWLayer->CreateMemStorage(newMemForTex1, "textures");     // #TODO:  estimate this more carefully pls.
+  m_pTexStorageAux   = m_pHWLayer->CreateMemStorage(newMemForTex2, "textures_aux"); // #TODO:  estimate this more carefully pls.
+  m_pGeomStorage     = m_pHWLayer->CreateMemStorage(newMemForGeo,  "geom");         // #TODO:  estimate this more carefully pls.
+  m_pMaterialStorage = m_pHWLayer->CreateMemStorage(newMemForMat,  "materials");
+  m_pPdfStorage      = m_pHWLayer->CreateMemStorage(newMemForTab,  "pdfs");         // #TODO:  estimate this more carefully pls.
 
   m_pHWLayer->ResizeTablesForEngineGlobals(a_info.geomNum, a_info.imgNum, a_info.matNum, a_info.lightNum);
 
@@ -385,11 +439,24 @@ HRDriverAllocInfo RenderDriverRTE::AllocAll(HRDriverAllocInfo a_info)
   vars.m_varsI[HRT_WHITE_DIFFUSE_OFFSET] = whiteDiffuseOffset;
   m_pHWLayer->SetAllFlagsAndVars(vars);
 
-  std::cout << "[AllocAll]: image mem size = " << a_info.imgMem/(1024*1024) << " MB" << std::endl;
-  std::cout << "[AllocAll]: geom  mem size = " << a_info.geomMem / (1024 * 1024) << " MB" << std::endl;
-  std::cout << "[AllocAll]: total mem size = " << (a_info.imgMem + a_info.geomMem) / (1024 * 1024) << " MB" << std::endl;
+  m_memAllocated = 0;
+  std::cout << std::endl;
+  std::cout << "[AllocAll]: MEM(TEXURE) = " << newMemForTex3 / MB << "\tMB" << std::endl; m_memAllocated += newMemForTex3;
+  std::cout << "[AllocAll]: MEM(GEOM)   = " << newMemForGeo / MB << "\tMB" << std::endl;  m_memAllocated += newMemForGeo;
+  std::cout << "[AllocAll]: MEM(PDFTAB) = " << (newMemForMat + newMemForTab) / MB << "\tMB" << std::endl; m_memAllocated += (newMemForMat + newMemForTab);
+  //std::cout << "[AllocAll]: MEM(TAKEN)  = " << newTotalMem / MB << "\tMB" << std::endl;
+  std::cout << "[AllocAll]: MEM(RAYBUF) = " << memUsedByR / MB << "\tMB" << std::endl;    m_memAllocated += memUsedByR;
+  //std::cout << "[AllocAll]: MEM(TOTAL)  = " << totalMem / MB << "\tMB" << std::endl;
 
-  m_lastAllocInfo = a_info;
+  if (newTotalMem >= freeMem)
+  {
+    std::cerr << "[AllocAll]: NOT ENOUGHT MEMORY! --- " << std::endl;
+  }
+
+  m_lastAllocInfo         = a_info;
+  m_lastAllocInfo.geomMem = newMemForGeo;
+  m_lastAllocInfo.imgMem  = newMemForTex3;
+
   return m_lastAllocInfo;
 }
 
@@ -511,7 +578,7 @@ bool RenderDriverRTE::UpdateMesh(int32_t a_meshId, pugi::xml_node a_meshNode, co
   const size_t vertTangSize   = roundBlocks(sizeof(int)*a_input.vertNum, align); // compressed tangent
    
   const size_t triIndOffset   = vertTangOffset + vertTangSize;
-  const size_t triIndSize     = roundBlocks(triIndOffset + a_input.triNum * 3 * sizeof(int), align);
+  const size_t triIndSize     = roundBlocks(a_input.triNum * 3 * sizeof(int), align);
 
   const size_t triMIndOffset  = triIndOffset + triIndSize;
   const size_t triMIndSize    = roundBlocks(a_input.triNum * sizeof(int), align);
@@ -670,6 +737,20 @@ void RenderDriverRTE::BeginScene()
 
 std::vector<float> PrefixSumm(const std::vector<float>& a_vec);
 
+
+size_t EstimateBVHSize(const ConvertionResult& a_bvh)
+{
+  size_t size = 0;
+  for (int i = 0; i < a_bvh.treesNum; i++)
+  {
+    size += a_bvh.nodesNum[i] * sizeof(BVHNode);
+    size += a_bvh.trif4Num[i] * sizeof(float4);
+    if(a_bvh.pTriangleAlpha[i] != nullptr)
+      size += a_bvh.triAfNum[i] * sizeof(uint2);
+  }
+  return size;
+}
+
 void RenderDriverRTE::EndScene() // #TODO: add dirty flags (?) to update only those things that were changed
 {
   if (m_pBVH == nullptr)
@@ -679,8 +760,6 @@ void RenderDriverRTE::EndScene() // #TODO: add dirty flags (?) to update only th
   
   if (m_useConvertedLayout)
   {
-    std::cout << std::endl;
-    std::cout << "[RenderDriverRTE::EndScene]: begin bvh convert " << std::endl;
     auto convertedData = m_pBVH->ConvertMap();
 
     if (convertedData.treesNum == 0)
@@ -695,7 +774,10 @@ void RenderDriverRTE::EndScene() // #TODO: add dirty flags (?) to update only th
     const int bvhFlags = smoothOpacity ? BVH_ENABLE_SMOOTH_OPACITY : 0;
 
     m_pHWLayer->SetAllBVH4(convertedData, nullptr, bvhFlags); // set converted layout with matrices inside bvh tree itself
-  
+ 
+    const size_t bvhSize = EstimateBVHSize(convertedData);
+    std::cout << "[AllocBVH]: MEM(BVH)    = " << bvhSize / size_t(1024*1024) << "\tMB" << std::endl; m_memAllocated += bvhSize;
+
     //PrintBVHStat(convertedData, true);
     //DebugSaveBVH("D:/temp/bvh_layers2", convertedData);
     //DebugPrintBVHInfo(convertedData, "z_bvhinfo.txt");
@@ -705,7 +787,10 @@ void RenderDriverRTE::EndScene() // #TODO: add dirty flags (?) to update only th
     for(int i=0;i<MAXBVHTREES;i++)
       m_alphaAuxBuffers.buf[i] = std::vector<uint2>();
 
-    std::cout << "[RenderDriverRTE::EndScene]: end bvh convert  " << std::endl << std::endl;
+    const size_t totalMem = m_pHWLayer->GetAvaliableMemoryAmount(true);
+    std::cout << "[AllocAll]: MEM(TAKEN)  = " << m_memAllocated / size_t(1024 * 1024) << "\tMB" << std::endl;
+    std::cout << "[AllocAll]: MEM(TOTAL)  = " << totalMem / size_t(1024 * 1024) << "\tMB" << std::endl;
+    std::cout << std::endl;
   }
   else
   {
@@ -916,7 +1001,7 @@ void RenderDriverRTE::Draw()
 
   m_pHWLayer->PrepareEngineGlobals();
 
-  if (m_usePT || m_useLT)
+  if (m_usePT || m_useLT || m_useIBPT)
   {
     if (!m_ptInitDone)
     {
@@ -925,37 +1010,65 @@ void RenderDriverRTE::Draw()
  
       auto flagsAndVars = m_pHWLayer->GetAllFlagsAndVars();
       flagsAndVars.m_flags |= HRT_UNIFIED_IMAGE_SAMPLING;
+      flagsAndVars.m_flags &= (~HRT_3WAY_MIS_WEIGHTS);
 
       if (m_useLT)
       {
         flagsAndVars.m_flags |= HRT_FORWARD_TRACING;
-        //flagsAndVars.m_flags |= HRT_DRAW_LIGHT_LT;
-        //flagsAndVars.m_flags |= HRT_3WAY_MIS_WEIGHTS;
+        flagsAndVars.m_flags |= HRT_DRAW_LIGHT_LT;
       }
       else
       {
         flagsAndVars.m_flags &= (~HRT_FORWARD_TRACING);
         flagsAndVars.m_flags &= (~HRT_DRAW_LIGHT_LT);
-        flagsAndVars.m_flags &= (~HRT_3WAY_MIS_WEIGHTS);
       }
 
       m_pHWLayer->SetAllFlagsAndVars(flagsAndVars);
       m_drawPassNumber = 0;
     }
 
-    m_pHWLayer->BeginTracingPass();
-    m_pHWLayer->EndTracingPass();
+    if (m_useIBPT)
+    {
+      // LT PASS
+      //
+      auto flagsAndVars = m_pHWLayer->GetAllFlagsAndVars();
+      flagsAndVars.m_flags &= (~HRT_FORWARD_TRACING);
+      flagsAndVars.m_flags &= (~HRT_DRAW_LIGHT_LT);
+      flagsAndVars.m_flags |= HRT_UNIFIED_IMAGE_SAMPLING;
+      flagsAndVars.m_flags |= HRT_FORWARD_TRACING;
+      flagsAndVars.m_flags |= HRT_3WAY_MIS_WEIGHTS;
+
+      m_pHWLayer->SetAllFlagsAndVars(flagsAndVars);
+      m_pHWLayer->BeginTracingPass();
+      // m_pHWLayer->EndTracingPass(); //#NOTE: dont call EndTracingPass, because it will increase m_spp
+
+      // PT PASS
+      //
+      flagsAndVars.m_flags &= (~HRT_FORWARD_TRACING);
+      flagsAndVars.m_flags &= (~HRT_DRAW_LIGHT_LT);
+      flagsAndVars.m_flags |= HRT_UNIFIED_IMAGE_SAMPLING;
+      flagsAndVars.m_flags |= HRT_3WAY_MIS_WEIGHTS;
+
+      m_pHWLayer->SetAllFlagsAndVars(flagsAndVars);
+      m_pHWLayer->BeginTracingPass();
+      m_pHWLayer->EndTracingPass();
+    }
+    else
+    {
+      m_pHWLayer->BeginTracingPass();
+      m_pHWLayer->EndTracingPass();
+    }
 
     //imageB to imageA contribution
     //
-    if ((m_useLT || m_gpuFB) && m_pAccumImage != nullptr)
+    if ((m_useLT || m_gpuFB || m_useIBPT) && m_pAccumImage != nullptr)
     {
       const double freq = double(m_width*m_height)/double(1024*1024); 
       int freqInt = int(freq) + 1;   
       if (freqInt < 2) 
         freqInt = 2;
       if (m_gpuFB)
-        freqInt *= 2;
+        freqInt *= 4;
 
       if (m_drawPassNumber % freqInt == 0 && m_drawPassNumber > 0)
         m_pHWLayer->ContribToExternalImageAccumulator(m_pAccumImage);
@@ -966,7 +1079,9 @@ void RenderDriverRTE::Draw()
   else
   {
     auto flagsAndVars    = m_pHWLayer->GetAllFlagsAndVars();
-    flagsAndVars.m_flags = flagsAndVars.m_flags & ~HRT_UNIFIED_IMAGE_SAMPLING;
+    flagsAndVars.m_flags &= (~HRT_UNIFIED_IMAGE_SAMPLING);
+    flagsAndVars.m_flags &= (~HRT_FORWARD_TRACING);
+    flagsAndVars.m_flags &= (~HRT_DRAW_LIGHT_LT);
     m_pHWLayer->SetAllFlagsAndVars(flagsAndVars);
 
     m_pHWLayer->BeginTracingPass();
