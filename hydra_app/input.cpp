@@ -3,32 +3,29 @@
 
 Input::Input()
 {
-  enableOpenGL1 = false;
-  noWindow      = false;
-  exitStatus    = false;
+  noWindow      = false;           ///< run 'console_main', else run 'window_main'
+  inLibraryPath = "tests/test_42"; ///< cornell box with teapot
 
-  runTests      = false;
-  inTestsFolder = L"../../HydraAPI/main/";
-
-  //inLibraryPath = "temp/";
-  //inLibraryPath = "tests/test_35";
-  inLibraryPath = "tests/test_42";      ///< cornell box with teapot
   //inLibraryPath = "tests/test_223_small"; ///< cornell box with mirror glossy back wall
   //inLibraryPath = "/home/frol/PROG/HydraAPI/main/tests/test_44";
   //inLibraryPath = "D:/[archive]/2017/HydraAPP/hydra_app/tests/hydra_benchmark_07";
-  //inLibraryPath   = "D:/temp/empty";
 
   //inLibraryPath = "D:/PROG/HydraAPI/main/tests/test_39";
-  //inLibraryPath = "D:/PROG/HydraAPI/main/tests_f/test_103";
   //inLibraryPath = "D:/PROG/HydraAPI/main/tests_f/test_204";
-  //inLibraryPath = "C:/[Hydra]/pluginFiles/scenelib";
- 
-  inDeviceId = 0;
-  cpuFB      = false;
-  enableMLT  = false;
 
-  winWidth   = 1024;
-  winHeight  = 1024; 
+  //inLibraryPath = "C:/[Hydra]/pluginFiles/scenelib";
+  
+  inDevelopment = true;  ///< recompile shaders each time; note that nvidia have their own shader cache!
+  inDeviceId    = 0;     ///< opencl device id
+  cpuFB         = false; ///< store frame buffer on CPU. Automaticly enabled if
+  enableMLT     = false; ///< not used currently
+
+  winWidth      = 1024;  ///<
+  winHeight     = 1024;  ///<
+
+  enableOpenGL1 = false; ///< if you want to draw scene for some debug needs with OpenGL1.
+  exitStatus    = false;
+  runTests      = false;
 
   camMoveSpeed     = 2.5f;
   mouseSensitivity = 0.1f;

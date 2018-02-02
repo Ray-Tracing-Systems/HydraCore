@@ -306,27 +306,22 @@ protected:
 
   TempBvhData m_bvhTrees[MAXBVHTREES];
   int m_bvhTreesNum;
-  int m_createFlags;
 
   SceneGeomPointers CollectPointersForCPUIntegrator();
 
 };
 
 
-enum {GPU_RT_MEMORY_SAFE_MODE          = 1, 
-      GPU_RT_MEMORY_FULL_SIZE_MODE     = 2,
+enum {GPU_RT_MEMORY_FULL_SIZE_MODE     = 2,
       GPU_RT_NOWINDOW                  = 4,
       GPU_RT_HW_LAYER_OCL              = 8,
       GPU_RT_HW_LIST_OCL_DEVICES       = 16,
       GPU_RT_LITE_CORE                 = 64,
       GPU_RT_CLEAR_SHADER_CACHE        = 256,
-      GPU_RT_HW_LAYER_CPU_EXPERIMENTAL = 512,
-      GPU_RT_HW_LAYER_CPU_HYBRID       = 1024,
-      CPU_RT_PURE_CL                   = 2048,
-      GPU_ALLOC_LDR_FOR_DEBUG          = 4096,
-      GPU_ALLOC_FOR_COMPACT_MLT        = 8192,
-      GPU_MLT_ENABLED_AT_START         = 16384, 
-      GPU_RT_DO_NOT_PRINT_PASS_NUMBER  = 32768,
-      GPU_RT_ALLOC_INTERNAL_IMAGEB     = 65536,
-      GPU_RT_CPU_FRAMEBUFFER           = 65536*2,
+      GPU_RT_IN_DEVELOPMENT            = 512,
+      GPU_ALLOC_FOR_COMPACT_MLT        = 1024,
+      GPU_MLT_ENABLED_AT_START         = 2048,
+      GPU_RT_DO_NOT_PRINT_PASS_NUMBER  = 4096,
+      GPU_RT_ALLOC_INTERNAL_IMAGEB     = 8192,
+      GPU_RT_CPU_FRAMEBUFFER           = 16384,
       };

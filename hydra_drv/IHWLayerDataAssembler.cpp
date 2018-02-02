@@ -292,7 +292,6 @@ void IHWLayer::SetAllPODLights(PlainLight* a_lights2, size_t a_number)
 
 CPUSharedData::CPUSharedData(int w, int h, int a_flags) : m_pIntegrator(nullptr), m_pBVHBuilder(nullptr), m_bvhTreesNum(0)
 {
-  m_createFlags   = a_flags;
   m_instMatrices  = nullptr;
   m_instMatrixNum = 0;
 }

@@ -619,7 +619,7 @@ GPUOCLLayer::GPUOCLLayer(int w, int h, int a_flags, int a_deviceId) : Base(w, h,
   std::string loshaderpathBin = installPath2 + "shadercache/" + "lightx_" + devHash + ".bin";
   std::string yoshaderpathBin = installPath2 + "shadercache/" + "matsxx_" + devHash + ".bin";
 
-  bool inDevelopment = true;
+  bool inDevelopment = (a_flags & GPU_RT_IN_DEVELOPMENT);
   #ifdef _DEBUG
   inDevelopment = true;
   #endif

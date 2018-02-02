@@ -17,6 +17,7 @@ struct Input
   bool runTests;     ///< run all functional tests from HydraAPI folder 
   bool listDevicesAndExit;
   bool cpuFB;
+  bool inDevelopment;
 
   std::string   inLibraryPath;
   std::string   outLDRImage;

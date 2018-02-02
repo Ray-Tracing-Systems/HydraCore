@@ -176,6 +176,9 @@ int main(int argc, const char** argv)
       if (g_input.cpuFB)
         flags |= GPU_RT_CPU_FRAMEBUFFER;
 
+      if(g_input.inDevelopment)
+        flags |= GPU_RT_IN_DEVELOPMENT;
+      
       pDriver = std::shared_ptr<IHRRenderDriver>(CreateDriverRTE(L"", g_input.winWidth, g_input.winHeight, g_input.inDeviceId, flags, g_pExternalImage));
 
       std::cout << "[main]: detached render driver was created for [console_main]" << std::endl;
@@ -209,7 +212,10 @@ int main(int argc, const char** argv)
 
       if (g_input.cpuFB)
         flags |= GPU_RT_CPU_FRAMEBUFFER;
-
+      
+      if(g_input.inDevelopment)
+        flags |= GPU_RT_IN_DEVELOPMENT;
+      
       pDriver = std::shared_ptr<IHRRenderDriver>(CreateDriverRTE(L"", g_width, g_height, g_input.inDeviceId, flags, nullptr));
 
       std::cout << "[main]: detached render driver was created for [window_main]" << std::endl;
