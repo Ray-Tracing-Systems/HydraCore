@@ -620,9 +620,6 @@ GPUOCLLayer::GPUOCLLayer(int w, int h, int a_flags, int a_deviceId) : Base(w, h,
   std::string yoshaderpathBin = installPath2 + "shadercache/" + "matsxx_" + devHash + ".bin";
 
   bool inDevelopment = (a_flags & GPU_RT_IN_DEVELOPMENT);
-  #ifdef _DEBUG
-  inDevelopment = true;
-  #endif
   std::string loadEncrypted = "load"; // ("crypt", "load", "")
   if (inDevelopment)
     loadEncrypted = "";

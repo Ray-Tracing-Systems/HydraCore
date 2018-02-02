@@ -12,6 +12,24 @@
 
 #include "clHelper.h"
 
+#include <time.h>
+
+// Get current date/time, format is YYYY-MM-DD.HH:mm:ss
+
+static const std::string currentDateTime()
+{
+  time_t     now = time(0);
+  struct tm  tstruct;
+  char       buf[80];
+  tstruct = *localtime(&now);
+  // Visit http://en.cppreference.com/w/cpp/chrono/c/strftime
+  // for more information about date/time format
+  strftime(buf, sizeof(buf), "%Y-%m-%d.%X", &tstruct);
+  
+  return buf;
+}
+
+
 static std::string ToString(int i)
 {
   std::stringstream out;
@@ -405,7 +423,10 @@ CLProgram::CLProgram(cl_device_id a_devId, cl_context a_ctx,
   m_ctx = a_ctx;
   m_dev = a_devId;
 
-  std::vector<unsigned char> binShaderCode = LoadShaderFromBinary(binPath);
+  std::vector<unsigned char> binShaderCode;
+  if (encrypted == "load")
+    binShaderCode = LoadShaderFromBinary(binPath);
+
   bool loadBinarySuccess = false;
 
   // load from binary
@@ -449,6 +470,11 @@ CLProgram::CLProgram(cl_device_id a_devId, cl_context a_ctx,
       {
         LoadTextFromFile(cs_path, computeSource);
 
+        std::string currtime = currentDateTime();
+        computeSource += "// BREAK SHADER CACHE AT: " + currtime + "\n;";
+        for(int i=0;i<10;i++)
+          computeSource += "////////////////////////////////////////////////////////// \n";
+          
         if (computeSource.size() % 8 != 0)
         {
           size_t n = (computeSource.size() / 8) * 8 + 8 - computeSource.size();
