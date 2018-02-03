@@ -169,9 +169,7 @@ bool RenderDriverRTE::UpdateSettings(pugi::xml_node a_settingsNode)
   if (std::wstring(a_settingsNode.child(L"method_caustic").text().as_string()) == L"none" ||
       std::wstring(a_settingsNode.child(L"method_caustic").text().as_string()) == L"disabled")
     ;
-  else if (std::wstring(a_settingsNode.child(L"method_caustic").text().as_string()) == L"mlt" ||
-           std::wstring(a_settingsNode.child(L"method_caustic").text().as_string()) == L"pathtracing" ||
-           std::wstring(a_settingsNode.child(L"method_caustic").text().as_string()) == L"enabled")
+  else
   {
     vars.m_flags |= HRT_ENABLE_PT_CAUSTICS;
   }
