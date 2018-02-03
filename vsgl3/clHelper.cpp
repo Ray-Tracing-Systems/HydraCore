@@ -90,10 +90,29 @@ std::string HydraInstallPath();
 
 size_t ReplaceIncludeWithFile(std::string& a_str, size_t a_pos, const std::string& a_fileName)
 {
+  bool inWhiteList = false;
+  constexpr char* whiteList[8] = {"globals.h", "cglobals.h", "cfetch.h", "crandom.h", "ctrace.h", "cmaterial.h", "clight.h", "cbidir.h"};
+  for(int i=0;i<8;i++)
+  {
+    if(a_fileName.find(whiteList[i]) != std::string::npos)
+    {
+      inWhiteList = true;
+      break;
+    }
+  }
+  
+  if(!inWhiteList)
+  {
+    //std::cout << "[helperProg]: " << "skip shader include " << a_fileName.c_str() << std::endl;
+    return a_pos + 1; // proceed next include
+  }
+  
   std::ifstream sourceFile(a_fileName.c_str());
 
+#ifdef WIN32
   if (!sourceFile.is_open())
     sourceFile.open(HydraInstallPath() + a_fileName);
+#endif
 
   if (!sourceFile.is_open())
   {
@@ -111,10 +130,11 @@ size_t ReplaceIncludeWithFile(std::string& a_str, size_t a_pos, const std::strin
   size_t endOfLine = a_str.find_first_of('\n', a_pos);
 
   a_str = a_str.substr(0, a_pos) + source + a_str.substr(endOfLine, a_str.size());
+  
   return 0; // start search include files with the beggining
 }
 
-void IncludeFiles(std::string& a_shader, const std::string& a_pathToFile)
+void IncludeFiles(const std::string& a_pathToFile, const std::string& a_auxFolder, std::string& a_shader)
 {
   size_t found = 0;
 
@@ -145,10 +165,9 @@ void IncludeFiles(std::string& a_shader, const std::string& a_pathToFile)
 
     if (found != std::string::npos && !commented)
     {
-      std::string pathToFolder = CutPathToFolder(a_pathToFile);
-      std::string fileName     = GetFileNameFromIncludeExpr(a_shader, found);
-
-      found = ReplaceIncludeWithFile(a_shader, found, pathToFolder + "/" + fileName);
+      //std::string pathToFolder = CutPathToFolder(a_pathToFile);
+      std::string fileName  = GetFileNameFromIncludeExpr(a_shader, found);
+      found                 = ReplaceIncludeWithFile(a_shader, found, a_auxFolder + "/" + fileName);
     }
     else if (commented)
     {
@@ -171,12 +190,6 @@ void LoadTextFromFileSimple(const std::string& a_fileName, std::string& a_shader
 
   vertSourceFile.seekg(0, std::ios::beg);
   a_shaderSource.assign((std::istreambuf_iterator<char>(vertSourceFile)), std::istreambuf_iterator<char>());
-}
-
-void LoadTextFromFile(const std::string& a_fileName, std::string& a_shaderSource)
-{
-  LoadTextFromFileSimple(a_fileName, a_shaderSource);
-  IncludeFiles(a_shaderSource, a_fileName);
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -468,7 +481,8 @@ CLProgram::CLProgram(cl_device_id a_devId, cl_context a_ctx,
 
       if (encrypted == "crypt")
       {
-        LoadTextFromFile(cs_path, computeSource);
+        LoadTextFromFileSimple(cs_path, computeSource);
+        IncludeFiles(cs_path, includeFolderPath, computeSource);
 
         std::string currtime = currentDateTime();
         computeSource += "// BREAK SHADER CACHE AT: " + currtime + "\n;";
@@ -482,6 +496,9 @@ CLProgram::CLProgram(cl_device_id a_devId, cl_context a_ctx,
         }
 
         SaveAndCrypt(computeSource, ecryptedPath);
+        program = 0;
+        m_refCounter++;
+        return;
       }
       else
       {
@@ -503,6 +520,8 @@ CLProgram::CLProgram(cl_device_id a_devId, cl_context a_ctx,
       std::cerr << "clCreateProgramWithSource error = " << getOpenCLErrorString(m_lastErr) << std::endl;
   }
 
+  // actual shader compile
+  //
   m_lastErr = clBuildProgram(program, 0, NULL, options.c_str(), NULL, NULL);
 
   if (m_lastErr != CL_SUCCESS)

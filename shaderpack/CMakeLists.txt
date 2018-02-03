@@ -46,7 +46,6 @@ else()
     target_compile_options(shaderpack PRIVATE -fpermissive -Wnarrowing)
     target_link_libraries(shaderpack LINK_PUBLIC
             hydra_drv
-            hydrabvhbuilder embree sys tasking simd lexers
             vsgl3
             hydra_api
             OpenCL)
