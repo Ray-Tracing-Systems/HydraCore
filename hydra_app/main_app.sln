@@ -24,6 +24,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "clew", "..\..\HydraAPI\clew
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ies_parser", "..\..\HydraAPI\ies_parser\ies_parser.vcxproj", "{1D53B494-4B7E-464B-82A1-A2052240F6EF}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "shaderpack", "..\shaderpack\shaderpack.vcxproj", "{E0914440-7CB6-4D4F-84FD-49BD580663A3}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
@@ -106,6 +108,18 @@ Global
 		{1D53B494-4B7E-464B-82A1-A2052240F6EF}.RelWithDebInfo|x64.Build.0 = Release|x64
 		{1D53B494-4B7E-464B-82A1-A2052240F6EF}.RelWithDebInfo|x86.ActiveCfg = Release|Win32
 		{1D53B494-4B7E-464B-82A1-A2052240F6EF}.RelWithDebInfo|x86.Build.0 = Release|Win32
+		{E0914440-7CB6-4D4F-84FD-49BD580663A3}.Debug|x64.ActiveCfg = Debug|x64
+		{E0914440-7CB6-4D4F-84FD-49BD580663A3}.Debug|x64.Build.0 = Debug|x64
+		{E0914440-7CB6-4D4F-84FD-49BD580663A3}.Debug|x86.ActiveCfg = Debug|Win32
+		{E0914440-7CB6-4D4F-84FD-49BD580663A3}.Debug|x86.Build.0 = Debug|Win32
+		{E0914440-7CB6-4D4F-84FD-49BD580663A3}.Release|x64.ActiveCfg = Release|x64
+		{E0914440-7CB6-4D4F-84FD-49BD580663A3}.Release|x64.Build.0 = Release|x64
+		{E0914440-7CB6-4D4F-84FD-49BD580663A3}.Release|x86.ActiveCfg = Release|Win32
+		{E0914440-7CB6-4D4F-84FD-49BD580663A3}.Release|x86.Build.0 = Release|Win32
+		{E0914440-7CB6-4D4F-84FD-49BD580663A3}.RelWithDebInfo|x64.ActiveCfg = Release|x64
+		{E0914440-7CB6-4D4F-84FD-49BD580663A3}.RelWithDebInfo|x64.Build.0 = Release|x64
+		{E0914440-7CB6-4D4F-84FD-49BD580663A3}.RelWithDebInfo|x86.ActiveCfg = Release|Win32
+		{E0914440-7CB6-4D4F-84FD-49BD580663A3}.RelWithDebInfo|x86.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

@@ -647,7 +647,8 @@ CLProgram::~CLProgram()
         clReleaseKernel(p->second);
     }
 
-    clReleaseProgram(program);
+    if(program != nullptr)
+      clReleaseProgram(program);
   }
 
 }

@@ -15,18 +15,8 @@ int main(int argc, const char** argv)
   std::string inputfolder = HYDRA_DRV_PATH;
 #endif
   
-  std::cout << "inputfolder = " << HYDRA_DRV_PATH << std::endl;
-  
-  #ifdef WIN32
-  int initRes = clewInit(L"opencl.dll");
-  if (initRes == -1)
-  {
-    std::cerr << "[cl_core]: failed to load opencl.dll " << std::endl;
-    return 0;
-  }
-  #else
-  int initRes = 0;
-  #endif
+  std::cout << "inputfolder = " << inputfolder.c_str() << std::endl;
+
   
   std::string specDefines = " -D SHADOW_TRACE_COLORED_SHADOWS -D ENABLE_OPACITY_TEX -D ENABLE_BLINN "; // -D NEXT_BOUNCE_RR
   
@@ -85,3 +75,4 @@ int main(int argc, const char** argv)
   
   return 0;
 }
+
