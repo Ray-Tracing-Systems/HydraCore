@@ -1302,16 +1302,25 @@ void GPUOCLLayer::EndTracingPass()
     CHECK_CL(clFinish(m_globals.cmdQueue));
   }
 
-  m_spp += float(double(m_rays.MEGABLOCKSIZE) / double(m_width*m_height));
-  m_passNumberForQMC++;
-
-  const float time = m_timer.getElapsed();
-
-  if (m_passNumberForQMC % 4 == 0 && m_passNumberForQMC > 0)
+  if (m_vars.m_flags & HRT_UNIFIED_IMAGE_SAMPLING)
   {
-    auto precOld = std::cout.precision(2);
-    std::cout << "spp =\t" << int(m_spp) << "\tspeed = " << float(m_rays.MEGABLOCKSIZE) / (1e6f*time) << " M(samples)/s         \r";
-    std::cout.precision(precOld);
+    m_spp += float(double(m_rays.MEGABLOCKSIZE) / double(m_width*m_height));
+    m_passNumberForQMC++;
+
+    const float time = m_timer.getElapsed();
+    if (m_passNumberForQMC % 4 == 0 && m_passNumberForQMC > 0)
+    {
+      const float halfIfIBPT = (m_vars.m_flags & HRT_3WAY_MIS_WEIGHTS) ? 0.5f : 1.0f;
+
+      auto precOld = std::cout.precision(2);
+      std::cout << "spp =\t" << int(m_spp) << "\tspeed = " << halfIfIBPT *float(m_rays.MEGABLOCKSIZE) / (1e6f*time) << " M(samples)/s         \r";
+      std::cout.precision(precOld);
+    }
+  }
+  else
+  {
+    m_spp              = 0;
+    m_passNumberForQMC = 0;
   }
 
 }
