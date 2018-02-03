@@ -18,8 +18,11 @@ Windows:
 5. Set 'inLibraryPath = "tests/test_42";' inside input.cpp; 
 6. Set 'inDeviceId = 0' (or other, depends on your OpenCL HW); inside 'input.cpp'; 
 7. Set 'inDevelopment = true' inside 'input.cpp' to disable internal shader cache (note that nvidia use its' own shader cache!). 
-8. Press 'P' for Path Tracing, 'L' for light tracing and 'B' for IBPT.
-9. Render will save images to 'C:/[Hydra]/rendered_images' each 60 seconds if you set "-saveinterval 60" via command line.
+8. Select x64 configuration;
+9. Set 'main' as startup project;
+10. Press 'P' for Path Tracing, 'L' for light tracing and 'B' for IBPT.
+11. Render will save images to 'C:/[Hydra]/rendered_images' each 60 seconds if you set "-saveinterval 60" via command line.
+
 
 Linux:
 1. Clone HydraAPI repo is some folder (for example 'myfolder/HydraAPI'). 
