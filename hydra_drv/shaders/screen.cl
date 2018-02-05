@@ -2,40 +2,13 @@
 #include "crandom.h"
 #include "cfetch.h"
 
-//#define USE_SCR_SHIFT 
-#define SCR_SHIFT_NUM 4
-#define SCR_SHIFT_ID  0
 
-
-#ifdef USE_SCR_SHIFT
-
-ID_CALL void PlaneHammersleyDev(__private float *result, int n)
-{
-  for (int k = 0; k<n; k++)
-  {
-    float u = 0;
-    int kk = k;
-
-    for (float p = 0.5f; kk; p *= 0.5f, kk >>= 1)
-      if (kk & 1)                           // kk mod 2 == 1
-        u += p;
-
-    float v = (k + 0.5f) / n;
-
-    result[2 * k + 0] = u;
-    result[2 * k + 1] = v;
-  }
-}
-
-#endif
-
-__kernel void MakeEyeRays(int offset,
+__kernel void MakeEyeRays(int offset,                                  // #TODO: this kernel is not used anymore; remove it!
                           __global float4* out_pos,
                           __global float4* out_dir,
                           int w, int h,
                           __global const EngineGlobals* a_globals)
 {
-
   int tid = GLOBAL_ID_X;
   if (tid + offset >= w*h)
     return;
@@ -56,6 +29,40 @@ __kernel void MakeEyeRays(int offset,
 
   out_pos[tid] = to_float4(ray_pos, 1.0f);
   out_dir[tid] = to_float4(ray_dir, 0.0f);
+}
+
+__kernel void MakeEyeRaysSPP(__global float4* out_pos,
+                             __global float4* out_dir,
+                             int w, int h, int b_size, int yStart,
+                             __global const float2* a_qmc,
+                             __global const EngineGlobals* a_globals)
+{
+  const int tid    = GLOBAL_ID_X;
+  const int offset = yStart * w;
+  if (tid + offset >= w * h)
+    return;
+
+  const float sizeInvX = 1.0f / (float)(w);
+  const float sizeInvY = 1.0f / (float)(h);
+
+  const int y = (tid + offset) / w;
+  const int x = (tid + offset) - (y * w);
+
+  const float2 qmc = a_qmc[tid % b_size];
+  float4 lensOffs  = make_float4(qmc.x, qmc.y, 0, 0);
+
+  lensOffs.x = sizeInvX * (lensOffs.x + (float)x);
+  lensOffs.y = sizeInvY * (lensOffs.y + (float)y);
+
+  // (2) generate random camera sample
+  //
+  float  fx = (float)x, fy = (float)y;
+  float3 ray_pos, ray_dir;
+  MakeEyeRayFromF4Rnd(lensOffs, a_globals,
+                      &ray_pos, &ray_dir, &fx, &fy);
+
+  out_pos [tid] = to_float4(ray_pos, fx);
+  out_dir [tid] = to_float4(ray_dir, fy);
 }
 
 __kernel void MakeEyeRaysUnifiedSampling(__global float4*              restrict out_pos, 
@@ -579,43 +586,6 @@ __kernel void Texture2DTest(texture2d_t a_tex, __global float* a_outData, int a_
   a_outData[y*a_w + x] = texColor4.x;
 }
 
-
-__kernel void MakeEyeRaysSPP(__global const ushort2* in_xy, 
-                             __global float4* out_pos,
-                             __global float4* out_dir,
-                             int w, int h, int b_size,
-                             __global const float2* a_sppPos,
-                             __global const EngineGlobals* a_globals)
-{
-
-  int tid = GLOBAL_ID_X;
-  
-  ushort2 screenPos = in_xy[tid / b_size];
-  float2  sppPos    = a_sppPos[LOCAL_ID_X];
-
-  float4x4 a_mViewProjInv  = make_float4x4(a_globals->mProjInverse);
-  float4x4 a_mWorldViewInv = make_float4x4(a_globals->mWorldViewInverse);
-
-#ifdef USE_SCR_SHIFT
-  {
-    float shiftPos[SCR_SHIFT_NUM * 2];
-    PlaneHammersleyDev(shiftPos, SCR_SHIFT_NUM);
-
-    sppPos.x = shiftPos[SCR_SHIFT_ID * 2 + 0];
-    sppPos.y = shiftPos[SCR_SHIFT_ID * 2 + 1];
-  }
-#endif
-
-  float3 ray_pos = make_float3(0.0f, 0.0f, 0.0f);
-  float3 ray_dir = EyeRayDir((float)(screenPos.x) + sppPos.x - 0.5f, (float)(screenPos.y) + sppPos.y - 0.5f, w, h, a_mViewProjInv);
-
-  ray_dir        = tiltCorrection(ray_pos, ray_dir, a_globals);
-
-  matrix4x4f_mult_ray3(a_mWorldViewInv, &ray_pos, &ray_dir);
-
-  out_pos[tid] = to_float4(ray_pos, 1.0f);
-  out_dir[tid] = to_float4(ray_dir, 0.0f);
-}
 
 
 __kernel void ReadNormalsAndDepth(__global const float4* in_posNorm, __global const Lite_Hit* in_hits, __global float4* a_color, int iNumElements)

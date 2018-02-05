@@ -1118,6 +1118,11 @@ void RenderDriverRTE::Draw()
 
 }
 
+void RenderDriverRTE::EvalGBuffer()
+{
+  m_pHWLayer->EvalGBuffer(m_pAccumImage);
+}
+
 void RenderDriverRTE::InstanceMeshes(int32_t a_mesh_id, const float* a_matrices, int32_t a_instNum, const int* a_lightInstId)
 {
   if (m_pBVH == nullptr)

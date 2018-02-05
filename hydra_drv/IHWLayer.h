@@ -132,6 +132,7 @@ public:
 
   virtual void BeginTracingPass()  = 0;
   virtual void EndTracingPass()    = 0;
+  virtual void EvalGBuffer(IHRSharedAccumImage* a_pAccumImage) {}
   virtual void FinishAll() {}
 
   virtual void InitPathTracing(int seed) = 0;

@@ -17,7 +17,7 @@ static HRCameraRef    camRef;
 static HRSceneInstRef scnRef;
 static HRRenderRef    renderRef;
 
-enum RENDERSTATE {STATE_WAIT = 0, STATE_RENDER = 1};
+enum RENDERSTATE {STATE_WAIT = 0, STATE_RENDER = 1, STATE_GBUFFER = 2};
 
 static RENDERSTATE g_state = STATE_WAIT;
 
@@ -26,7 +26,8 @@ static int g_commandId = 0;
 
 
 HAPI void hrDrawPassOnly(HRSceneInstRef a_pScn, HRRenderRef a_pRender, HRCameraRef a_pCam);
-HAPI IHRRenderDriver* hrRenderDriverPointer(HRRenderRef a_pRender);
+HAPI void hrRenderEvalGbuffer(HRRenderRef a_pRender);
+
 
 static void DispatchCommand(const char* message)
 {
@@ -71,6 +72,11 @@ static void DispatchCommand(const char* message)
       if (action == "start")
       {
         g_state     = STATE_RENDER;
+        g_sessionId = atoi(sessId.c_str());
+      }
+      else if (action == "getgbuffer")
+      {
+        g_state     = STATE_GBUFFER;
         g_sessionId = atoi(sessId.c_str());
       }
       else if (action == "exitnow")
@@ -148,20 +154,20 @@ bool InitSceneLibAndRTE(HRCameraRef& a_camRef, HRSceneInstRef& a_scnRef, HRRende
   return true;
 }
 
+static bool g_firstCall = true;
 
 //
 static void Draw(std::shared_ptr<IHRRenderDriver> a_pDetachedRenderDriverPointer)
 {
   static Timer timer;
-  static bool firstCall    = true;  
   static int saveImageLast = 0; ///< used for saving intermediate image if this is enabled
 
-  if (firstCall)
+  if (g_firstCall)
   {
     InitSceneLibAndRTE(camRef, scnRef, renderRef, a_pDetachedRenderDriverPointer);
     hrCommit(scnRef, renderRef, camRef);
     timer.start();
-    firstCall = false;
+    g_firstCall = false;
     return;
   }
   
@@ -208,12 +214,27 @@ static void Draw(std::shared_ptr<IHRRenderDriver> a_pDetachedRenderDriverPointer
 
 }
 
+//
+static void GetGBuffer(std::shared_ptr<IHRRenderDriver> a_pDetachedRenderDriverPointer)
+{
+  hrErrorCallerPlace(L"GetGBuffer");
+
+  InitSceneLibAndRTE(camRef, scnRef, renderRef, a_pDetachedRenderDriverPointer);
+  hrCommit(scnRef, renderRef, camRef);
+  g_firstCall = false;
+  
+  hrRenderEvalGbuffer(renderRef);  
+}
+
+
 void console_main(std::shared_ptr<IHRRenderDriver> a_pDetachedRenderDriverPointer, IHRSharedAccumImage* a_pSharedImage)
 {
   if (a_pSharedImage == nullptr) // selfEmployed, don't wait commands from main process
     g_state = STATE_RENDER;
 
   static int prevMessageId = 0;
+
+  g_state = STATE_GBUFFER;
 
   while (!g_input.exitStatus)
   {    
@@ -230,6 +251,11 @@ void console_main(std::shared_ptr<IHRRenderDriver> a_pDetachedRenderDriverPointe
 
     if (g_state == STATE_RENDER)
       Draw(a_pDetachedRenderDriverPointer);
+    else if (g_state == STATE_GBUFFER)
+    {
+      GetGBuffer(a_pDetachedRenderDriverPointer);
+      g_input.exitStatus = true;
+    }
     else
       std::this_thread::sleep_for(std::chrono::milliseconds(50));
   }

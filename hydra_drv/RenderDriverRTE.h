@@ -88,6 +88,7 @@ struct RenderDriverRTE : public IHRRenderDriver
   void GetFrameBufferHDR(int32_t w, int32_t h, float*   a_out, const wchar_t* a_layerName);
   void GetFrameBufferLDR(int32_t w, int32_t h, int32_t* a_out);
 
+  void EvalGBuffer();
   void GetGBufferLine(int32_t a_lineNumber, HRGBufferPixel* a_lineData, int32_t a_startX, int32_t a_endX);
 
   HRDriverInfo Info();

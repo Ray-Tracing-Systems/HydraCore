@@ -1138,6 +1138,43 @@ void GPUOCLLayer::ConnectEyePass(cl_mem in_rayFlags, cl_mem in_hitPos, cl_mem in
   AddContributionToScreen(m_rays.pathShadeColor); // because GPU contributio for LT could be very expensieve (imagine point light)
 }
 
+void GPUOCLLayer::EvalGBuffer(IHRSharedAccumImage* a_pAccumImage)
+{
+  int32_t lineSize      = m_width * GBUFFER_SAMPLES;
+  int32_t linesPerBlock = m_rays.MEGABLOCKSIZE / lineSize;
+
+  for (int32_t line = 0; line < m_height; line += linesPerBlock)
+  {
+    int32_t yBegin = line;
+    int32_t yEnd   = line + linesPerBlock;
+    if (yEnd > m_height)
+      yEnd = m_height;
+
+    int32_t finalSize = (yEnd - yBegin)*lineSize;
+
+    // (1) generate eye rays
+    //
+    runKernel_MakeEyeRaysSpp(m_rays.rayPos, m_rays.rayDir, yBegin, finalSize);
+    
+    // (2) trace1D with single bounce
+    //
+    memsetu32(m_rays.rayFlags, 0, finalSize);                                                              // fill flags with zero
+    memsetf4(m_rays.hitMatId, make_float4(0, 0, 0, 0), (finalSize * sizeof(HitMatRef)) / sizeof(float4));  // fill accumulated rays dist with zero
+     
+    runKernel_Trace     (m_rays.rayPos, m_rays.rayDir, m_rays.hits, finalSize);
+    runKernel_ComputeHit(m_rays.rayPos, m_rays.rayDir, finalSize);
+
+    // (3) get compressed samples
+    //
+
+    // (4) pass them to CPU
+    //
+
+    // std::cout << "gbuffer progress = " << float(line + linesPerBlock) / float(m_height) << std::endl; // << "    \r";
+  }
+
+  std::cout << std::endl;
+}
 
 void GPUOCLLayer::BeginTracingPass()
 {
