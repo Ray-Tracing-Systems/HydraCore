@@ -44,9 +44,10 @@ __kernel void MakeEyeRaysSPP(__global float4* out_pos,
 
   const float sizeInvX = 1.0f / (float)(w);
   const float sizeInvY = 1.0f / (float)(h);
+  const int   pixelId  = (tid / b_size + offset);
 
-  const int y = (tid + offset) / w;
-  const int x = (tid + offset) - (y * w);
+  const int y = pixelId / w;
+  const int x = pixelId - (y * w);
 
   const float2 qmc = a_qmc[tid % b_size];
   float4 lensOffs  = make_float4(qmc.x, qmc.y, 0, 0);
