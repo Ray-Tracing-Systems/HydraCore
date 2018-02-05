@@ -685,8 +685,12 @@ __kernel void Shade(__global const float4*    restrict a_rpos,
   const float3 shadow       = decompressShadow(in_shadow[tid]);
   const float lightPickProb = in_lightPickProb[tid];
 
+  const int lightOffset = as_int(in_rayDirAndLightId[tid].w);
+
+  __global const PlainLight* pLight = lightAt(a_globals, lightOffset);
+
   float misWeight = 1.0f;
-  if (a_globals->g_flags & HRT_3WAY_MIS_WEIGHTS)
+  if ((a_globals->g_flags & HRT_3WAY_MIS_WEIGHTS) && (lightType(pLight) != PLAIN_LIGHT_TYPE_SKY_DOME))
   {
     const float cosHere       = fabs(dot(ray_dir, hitNorm));
     const int a_currDepth     = rayBounceNum;
@@ -703,9 +707,6 @@ __kernel void Shade(__global const float4*    restrict a_rpos,
     const float GTermShadow  = cosThetaOut * cosAtLight / fmax(shadowDist*shadowDist, DEPSILON);
     
     const PerRayAcc prevData = in_pdfAccPrev[tid];
-    const int lightOffset    = as_int(in_rayDirAndLightId[tid].w);
-
-    __global const PlainLight* pLight = lightAt(a_globals, lightOffset);
 
     const LightPdfFwd lPdfFwd = lightPdfFwd(pLight, shadowRayDir, cosAtLight, a_globals, in_texStorage1, in_pdfStorage);
      
