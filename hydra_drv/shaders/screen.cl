@@ -621,7 +621,7 @@ __kernel void MaxPixelSize256(__global const Lite_Hit*  in_hits,
 
   if (HitNone(hit))
   {
-    float2 pp = projectedPixelSize(in_matData[tid].accumDist, a_globals);
+    float2 pp = projectedPixelSize2(in_matData[tid].accumDist, a_globals);
     pixelSize = fmax(fmax(pp.x, pp.y), 0.0f);
   }
 
@@ -642,63 +642,6 @@ __kernel void MaxPixelSize256(__global const Lite_Hit*  in_hits,
 
 
 
-__kernel void AppendBadPixels64(__global int* pAppendOffset, 
-                                __global const float4* in_data1,
-                                __global const float4* in_data2,
-                                __global float4*  out_data1, 
-                                __global float4*  out_data2,
-                                __global ushort2* in_pxCoord,
-                                __global ushort2* out_pxCoord,
-                                __global const EngineGlobals* a_globals,
-                                int a_maxBufferSize)
-  //                              __global float* a_debugData)
-{
-  int tid = GLOBAL_ID_X;
-  
-  float currSampleDist = fmax(in_data1[tid].w, 0.0f);
-
-  float2    pp = projectedPixelSize(currSampleDist, a_globals);
-  float ppSize = (currSampleDist > 0.0f) ? 64.0f*fmax(fmax(pp.x, pp.y), 0.0f) : 1000000000.0f; // ??????
-
-  __local float sArray[64];
-
-  sArray[LOCAL_ID_X] = 0.0f;
-  
-  for (int i = 0; i < 64;i++)
-    sArray[LOCAL_ID_X] += pixelsDiff(in_data1[tid], in_data1[(tid / 64) * 64 + i], ppSize);
-
-  SYNCTHREADS_LOCAL;
-
-  //a_debugData[tid] = sArray[LOCAL_ID_X];
-
-  for (uint c = 64 / 2; c>0; c /= 2)
-  {
-    if (LOCAL_ID_X < c)
-      sArray[LOCAL_ID_X] += sArray[LOCAL_ID_X + c];
-    SYNCTHREADS_LOCAL;
-  }
-
-  bool pixelIsBad = (sArray[0] > 64.0f*2.0f);
-
-  __local int blockOffset;
-  if (LOCAL_ID_X == 0 && pixelIsBad)
-    blockOffset = atomic_add(pAppendOffset, 64);
-
-  SYNCTHREADS_LOCAL;
-
-  // store pixels data in buffer if they are bad ...
-  //
-  if (pixelIsBad && blockOffset < a_maxBufferSize)
-  {
-    out_data1[blockOffset + LOCAL_ID_X] = in_data1[tid];
-    out_data2[blockOffset + LOCAL_ID_X] = in_data2[tid];
-  
-    if (LOCAL_ID_X == 0)
-      out_pxCoord[blockOffset / 64] = in_pxCoord[tid / 64];
-  }
-  
-
-}
 
 __kernel void BlendFrameBuffers(__global float4* out_dst, __global const float4* in_src1, __global const float4* in_src2, 
                                float4 k1, float4 k2, int iNumElements)

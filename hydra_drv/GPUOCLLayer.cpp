@@ -1154,18 +1154,19 @@ void GPUOCLLayer::EvalGBuffer(IHRSharedAccumImage* a_pAccumImage)
 
     // (1) generate eye rays
     //
-    runKernel_MakeEyeRaysSpp(m_rays.rayPos, m_rays.rayDir, yBegin, finalSize);
+    runKernel_MakeEyeRaysSpp(m_rays.rayPos, m_rays.rayDir, GBUFFER_SAMPLES, yBegin, finalSize);
     
     // (2) trace1D with single bounce
     //
     memsetu32(m_rays.rayFlags, 0, finalSize);                                                              // fill flags with zero
-    memsetf4(m_rays.hitMatId, make_float4(0, 0, 0, 0), (finalSize * sizeof(HitMatRef)) / sizeof(float4));  // fill accumulated rays dist with zero
+    memsetf4 (m_rays.hitMatId, make_float4(0, 0, 0, 0), (finalSize * sizeof(HitMatRef)) / sizeof(float4)); // fill accumulated rays dist with zero
      
     runKernel_Trace     (m_rays.rayPos, m_rays.rayDir, m_rays.hits, finalSize);
     runKernel_ComputeHit(m_rays.rayPos, m_rays.rayDir, finalSize);
 
     // (3) get compressed samples
     //
+    runKernel_GetGBufferSamples(m_rays.pathAccColor, m_rays.pathThoroughput, GBUFFER_SAMPLES, finalSize);
 
     // (4) pass them to CPU
     //
@@ -1718,17 +1719,16 @@ void GPUOCLLayer::renderSubPixelDataBlock(const char* a_dataName, const ushort2*
 }
 
 
-int FindCluster(float4 a_data, const std::vector<float4>& clusterNormals, float ppSize)
-{
-  for (int i = 0; i < clusterNormals.size(); i++)
-  {
-    if (pixelsDiff(a_data, clusterNormals[i], ppSize) < 1e-5f)
-      return i;
-  }
-
-  return -1;
-}
-
+// int FindCluster(float4 a_data, const std::vector<float4>& clusterNormals, float ppSize)
+// {
+//   for (int i = 0; i < clusterNormals.size(); i++)
+//   {
+//     if (pixelsDiff(a_data, clusterNormals[i], ppSize) < 1e-5f)
+//       return i;
+//   }
+// 
+//   return -1;
+// }
 
 void BuildCluster(const float4* a_normals, const float4* a_txcolor, int a_spp, 
                   std::vector<float4>& clusterNormals, std::vector<float4>& clusterColors, float4 a_ffwh)
@@ -1741,35 +1741,35 @@ void BuildCluster(const float4* a_normals, const float4* a_txcolor, int a_spp,
   clusterNormals.resize(0);
   clusterColors.resize(0);
 
-  for (int currSample = 0; currSample < a_spp; currSample++)
-  {
-    float4 sppData = a_normals[currSample];
-    float4 texData = a_txcolor[currSample];
-
-    float dist = fmax(sppData.w, 0.0f);
-
-    float2    pp = ProjectedPixelSize(dist, make_float2(a_ffwh.x, a_ffwh.y), a_ffwh.z, a_ffwh.w);
-    float ppSize = (dist > 0.0f) ? 64.0f*fmax(fmax(pp.x, pp.y), 0.0f) : 1000000000.0f; // ?
-
-    int cId = FindCluster(sppData, clusterNormals, ppSize);
-
-    if (cId >= 0)
-    {
-      float alpha = 1.0f / float(ssNumber[cId] + 1);
-
-      clusterNormals[cId] = (1.0f - alpha)*clusterNormals[cId] + alpha*sppData;
-      clusterColors [cId] = (1.0f - alpha)*clusterColors[cId]  + alpha*texData;
-      ssNumber[cId]++;
-    }
-    else
-    {
-      clusterNormals.push_back(sppData);
-      clusterColors.push_back(texData);
-      ssNumber[top] = 1;
-      top++;
-    }
-
-  }
+  // for (int currSample = 0; currSample < a_spp; currSample++)
+  // {
+  //   float4 sppData = a_normals[currSample];
+  //   float4 texData = a_txcolor[currSample];
+  // 
+  //   float dist = fmax(sppData.w, 0.0f);
+  // 
+  //   float2    pp = ProjectedPixelSize2(dist, make_float2(a_ffwh.x, a_ffwh.y), a_ffwh.z, a_ffwh.w);
+  //   float ppSize = (dist > 0.0f) ? 64.0f*fmax(fmax(pp.x, pp.y), 0.0f) : 1000000000.0f; // ?
+  // 
+  //   int cId = FindCluster(sppData, clusterNormals, ppSize);
+  // 
+  //   if (cId >= 0)
+  //   {
+  //     float alpha = 1.0f / float(ssNumber[cId] + 1);
+  // 
+  //     clusterNormals[cId] = (1.0f - alpha)*clusterNormals[cId] + alpha*sppData;
+  //     clusterColors [cId] = (1.0f - alpha)*clusterColors[cId]  + alpha*texData;
+  //     ssNumber[cId]++;
+  //   }
+  //   else
+  //   {
+  //     clusterNormals.push_back(sppData);
+  //     clusterColors.push_back(texData);
+  //     ssNumber[top] = 1;
+  //     top++;
+  //   }
+  // 
+  // }
 
   for (int cid = 0; cid < top; cid++)
   {

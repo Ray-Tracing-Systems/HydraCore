@@ -268,6 +268,95 @@ __kernel void ComputeHit(__global const float4*   restrict rpos,
   out_flatNorm  [tid] = encodeNormal(surfHitWS.flatNormal);
 }
 
+__kernel void GetGBufferSample(__global const Lite_Hit*  restrict in_hits,
+                        
+                               __global const uint*      restrict in_flags,
+                               __global const float4*    restrict in_hitPosNorm,
+                               __global const float2*    restrict in_hitTexCoord,
+                               __global const HitMatRef* restrict in_matData,
+                               
+                               __global float4*          restrict out_gbuff1,
+                               __global float4*          restrict out_gbuff2,
+
+                               __global const EngineGlobals* restrict a_globals,
+                               int a_size)
+{
+  int tid = GLOBAL_ID_X;
+  if (tid >= a_size)
+    return;
+
+  __local GBufferAll samples[GBUFFER_SAMPLES];
+ 
+  const float4 hitPosNorm = in_hitPosNorm[tid];
+  const Lite_Hit liteHit  = in_hits[tid];
+  const uint flags        = in_flags[tid];
+
+  if (rayIsActiveU(flags))
+  {
+    samples[LOCAL_ID_X].data1.depth    = liteHit.t;
+    samples[LOCAL_ID_X].data1.norm     = normalize(decodeNormal(as_int(hitPosNorm.w)));
+    samples[LOCAL_ID_X].data1.rgba     = make_float4(0, 0, 0, 1);
+    samples[LOCAL_ID_X].data1.matId    = GetMaterialId(in_matData[tid]);
+    samples[LOCAL_ID_X].data1.coverage = 0.0f;
+
+    samples[LOCAL_ID_X].data2.texCoord = in_hitTexCoord[tid];
+    samples[LOCAL_ID_X].data2.objId    = liteHit.geomId;
+    samples[LOCAL_ID_X].data2.instId   = liteHit.instId;
+  }
+  else
+  {
+    samples[LOCAL_ID_X].data1.depth    = 1e+6f;
+    samples[LOCAL_ID_X].data1.norm     = make_float3(0,0,0);
+    samples[LOCAL_ID_X].data1.rgba     = make_float4(0, 0, 0, 1);
+    samples[LOCAL_ID_X].data1.matId    = -1;
+    samples[LOCAL_ID_X].data1.coverage = 0.0f;
+
+    samples[LOCAL_ID_X].data2.texCoord = make_float2(0,0);
+    samples[LOCAL_ID_X].data2.objId    = -1;
+    samples[LOCAL_ID_X].data2.instId   = -1;
+  }
+
+  barrier(CLK_LOCAL_MEM_FENCE);
+
+  const float a_fov    = a_globals->varsF[HRT_FOV_X];
+  const float a_width  = a_globals->varsF[HRT_WIDTH_F];
+  const float a_height = a_globals->varsF[HRT_HEIGHT_F];
+
+  // now find the biggest cluster and take it's sample as the result;
+  //
+  if (LOCAL_ID_X == 0)
+  {
+    float minDiff   = 100000000.0f;
+    int   minDiffId = 0;
+
+    for (int i = 0; i < GBUFFER_SAMPLES; i++)
+    {
+      float diff = 0.0f;
+      float coverage = 0.0f;
+      for (int j = 0; j < GBUFFER_SAMPLES; j++)
+      {
+        const float thisDiff = gbuffDiff(samples[i], samples[j], a_fov, a_width, a_height);
+        diff += thisDiff;
+        if (thisDiff < 1.0f)
+          coverage += 1.0f;
+      }
+
+      coverage *= (1.0f / (float)GBUFFER_SAMPLES);
+      samples[i].data1.coverage = coverage;
+
+      if (diff < minDiff)
+      {
+        minDiff = diff;
+        minDiffId = i;
+      }
+    }
+
+    out_gbuff1[tid / GBUFFER_SAMPLES] = packGBuffer1(samples[minDiffId].data1);
+    out_gbuff2[tid / GBUFFER_SAMPLES] = packGBuffer2(samples[minDiffId].data2);
+  }
+
+}
+
 
 
 IDH_CALL bool directLightFromPhotonMap(uint flags, uint gflags, __global const int* a_varsI)
@@ -568,89 +657,9 @@ __kernel void ColorIndexTriangles(__global Lite_Hit* in_hits,
   
 }
 
-/*
-__kernel void ReadDiffuseColor(__global const float4*    a_rdir, 
-                               __global const Lite_Hit*  in_hits,
-                               __global const float4*    in_posNorm,
-                               __global const float2*    in_texCoord,
-                               __global const HitMatRef* in_matData,
 
-                               texture2d_t                   a_shadingTexture,
-                               __global const EngineGlobals* a_globals, 
-                               __global float4* a_color, int iNumElements)
-{
-  __global const float4* a_mtlStorage = 0; // #TODO: fix
 
-  int tid = GLOBAL_ID_X;
-  if (tid >= iNumElements)
-    return;
 
-  float3 color = make_float3(0, 0, 0);
-  Lite_Hit hit = in_hits[tid];
-
-  if (HitSome(hit))
-  {
-    __global const PlainMaterial* pHitMaterial = materialAt(a_globals, a_mtlStorage, GetMaterialId(in_matData[tid]));
-
-    float2 txcrd = in_texCoord[tid];
-    float3 norm  = normalize(decodeNormal(as_int(in_posNorm[tid].w)));
-
-    color = materialEvalDiffuse(pHitMaterial, to_float3(a_rdir[tid]), norm, txcrd, a_globals, a_shadingTexture);
-  }
-
-  a_color[tid] = to_float4(color, 0.0f);
-}
-
-__kernel void GetGBufferFirstBounce(__global const uint*      a_flags,
-                                    __global const float4*    a_rdir, 
-                                    __global const Lite_Hit*  in_hits, 
-                                    __global const float4*    in_posNorm,
-                                    __global const float2*    in_texCoord,
-                                    __global const HitMatRef* in_matData,
-
-                                    texture2d_t                   a_shadingTexture,
-                                    __global const EngineGlobals* a_globals,
-                                    __global float4*              a_color, 
-                                    int iNumElements)
-{
-  __global const float4* a_mtlStorage = 0; // #TODO: fix
-
-  int tid = GLOBAL_ID_X;
-  if (tid >= iNumElements)
-    return;
-
-  uint     flags     = a_flags[tid];
-  Lite_Hit hit       = in_hits[tid];
-  float3   norm      = normalize(decodeNormal(as_int(in_posNorm[tid].w)));
-  float3   diffColor = make_float3(0,0,0);
-  int      matIndex  = -1;
-
-  if (HitNone(hit))
-  {
-    norm = make_float3(0, 0, 0);
-    hit.t = 1000000000.0f;
-  }
-  else
-  {
-    matIndex = GetMaterialId(in_matData[tid]);
-    __global const PlainMaterial* pHitMaterial = materialAt(a_globals, a_mtlStorage, matIndex);
-
-    float2 txcrd = in_texCoord[tid];
-
-    diffColor = materialEvalDiffuse(pHitMaterial, to_float3(a_rdir[tid]), norm, txcrd, a_globals, a_shadingTexture);
-  }
-
-  float alpha = (unpackRayFlags(flags) & RAY_GRAMMAR_OUT_OF_SCENE) ? 0.0f : 1.0f;
-
-  GBuffer1 buffData;
-  buffData.depth = hit.t;
-  buffData.norm  = norm;
-  buffData.matId = matIndex;
-  buffData.rgba  = to_float4(diffColor, alpha);
-  a_color[tid]   = packGBuffer1(buffData);
-}
-
-*/
 
 // change 31.01.2018 15:20;
 

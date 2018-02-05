@@ -54,7 +54,7 @@ void GPUOCLLayer::runKernel_MakeEyeRays(cl_mem a_rpos, cl_mem a_rdir, cl_mem a_z
   waitIfDebug(__FILE__, __LINE__);
 }
 
-void GPUOCLLayer::runKernel_MakeEyeRaysSpp(cl_mem a_rpos, cl_mem a_rdir, int32_t yBegin, size_t a_size)
+void GPUOCLLayer::runKernel_MakeEyeRaysSpp(cl_mem a_rpos, cl_mem a_rdir, int32_t a_blocksSize, int32_t yBegin, size_t a_size)
 {
   cl_kernel kernX      = m_progs.screen.kernel("MakeEyeRaysSPP");
 
@@ -62,14 +62,12 @@ void GPUOCLLayer::runKernel_MakeEyeRaysSpp(cl_mem a_rpos, cl_mem a_rdir, int32_t
   size_t localWorkSize = CMP_RESULTS_BLOCK_SIZE;
   a_size               = roundBlocks(a_size, int(localWorkSize));
 
-  cl_int blockSize     = GBUFFER_SAMPLES;
-
   CHECK_CL(clSetKernelArg(kernX, 0, sizeof(cl_mem), (void*)&a_rpos));
   CHECK_CL(clSetKernelArg(kernX, 1, sizeof(cl_mem), (void*)&a_rdir));
 
   CHECK_CL(clSetKernelArg(kernX, 2, sizeof(cl_int), (void*)&m_width));
   CHECK_CL(clSetKernelArg(kernX, 3, sizeof(cl_int), (void*)&m_height));
-  CHECK_CL(clSetKernelArg(kernX, 4, sizeof(cl_int), (void*)&blockSize));
+  CHECK_CL(clSetKernelArg(kernX, 4, sizeof(cl_int), (void*)&a_blocksSize));
   CHECK_CL(clSetKernelArg(kernX, 5, sizeof(cl_int), (void*)&yBegin));
    
   CHECK_CL(clSetKernelArg(kernX, 6, sizeof(cl_mem), (void*)&m_globals.hammersley2D));
@@ -253,34 +251,55 @@ void GPUOCLLayer::runKernel_Trace(cl_mem a_rpos, cl_mem a_rdir, cl_mem a_hits, s
 
 void GPUOCLLayer::runKernel_ComputeHit(cl_mem a_rpos, cl_mem a_rdir, size_t a_size)
 {
-  cl_kernel kernHit = m_progs.trace.kernel("ComputeHit");
+  cl_kernel kernHit    = m_progs.trace.kernel("ComputeHit");
 
   size_t localWorkSize = 256;
   int    isize         = int(a_size);
   a_size               = roundBlocks(a_size, int(localWorkSize));
 
-  if (true)
-  {
-    CHECK_CL(clSetKernelArg(kernHit, 0, sizeof(cl_mem), (void*)&a_rpos));
-    CHECK_CL(clSetKernelArg(kernHit, 1, sizeof(cl_mem), (void*)&a_rdir));
-    CHECK_CL(clSetKernelArg(kernHit, 2, sizeof(cl_mem), (void*)&m_rays.hits));
+  CHECK_CL(clSetKernelArg(kernHit, 0, sizeof(cl_mem), (void*)&a_rpos));
+  CHECK_CL(clSetKernelArg(kernHit, 1, sizeof(cl_mem), (void*)&a_rdir));
+  CHECK_CL(clSetKernelArg(kernHit, 2, sizeof(cl_mem), (void*)&m_rays.hits));
+  
+  CHECK_CL(clSetKernelArg(kernHit, 3, sizeof(cl_mem), (void*)&m_scene.matrices));            
+  CHECK_CL(clSetKernelArg(kernHit, 4, sizeof(cl_mem), (void*)&m_scene.storageGeom));
+  CHECK_CL(clSetKernelArg(kernHit, 5, sizeof(cl_mem), (void*)&m_scene.storageMat));
+  
+  CHECK_CL(clSetKernelArg(kernHit, 6, sizeof(cl_mem), (void*)&m_rays.rayFlags));
+  CHECK_CL(clSetKernelArg(kernHit, 7, sizeof(cl_mem), (void*)&m_rays.hitPosNorm));
+  CHECK_CL(clSetKernelArg(kernHit, 8, sizeof(cl_mem), (void*)&m_rays.hitTexCoord));
+  CHECK_CL(clSetKernelArg(kernHit, 9, sizeof(cl_mem), (void*)&m_rays.hitFlatNorm));
+  CHECK_CL(clSetKernelArg(kernHit, 10, sizeof(cl_mem), (void*)&m_rays.hitMatId));
+  CHECK_CL(clSetKernelArg(kernHit, 11, sizeof(cl_mem), (void*)&m_rays.hitTangent));
+  CHECK_CL(clSetKernelArg(kernHit, 12, sizeof(cl_mem), (void*)&m_rays.hitNormUncompressed));
+  
+  CHECK_CL(clSetKernelArg(kernHit, 13, sizeof(cl_mem), (void*)&m_scene.allGlobsData));
+  CHECK_CL(clSetKernelArg(kernHit, 14, sizeof(cl_int), (void*)&isize));
 
-    CHECK_CL(clSetKernelArg(kernHit, 3, sizeof(cl_mem), (void*)&m_scene.matrices));            
-    CHECK_CL(clSetKernelArg(kernHit, 4, sizeof(cl_mem), (void*)&m_scene.storageGeom));
-    CHECK_CL(clSetKernelArg(kernHit, 5, sizeof(cl_mem), (void*)&m_scene.storageMat));
+  CHECK_CL(clEnqueueNDRangeKernel(m_globals.cmdQueue, kernHit, 1, NULL, &a_size, &localWorkSize, 0, NULL, NULL));
+  waitIfDebug(__FILE__, __LINE__);
+}
 
-    CHECK_CL(clSetKernelArg(kernHit, 6, sizeof(cl_mem), (void*)&m_rays.rayFlags));
-    CHECK_CL(clSetKernelArg(kernHit, 7, sizeof(cl_mem), (void*)&m_rays.hitPosNorm));
-    CHECK_CL(clSetKernelArg(kernHit, 8, sizeof(cl_mem), (void*)&m_rays.hitTexCoord));
-    CHECK_CL(clSetKernelArg(kernHit, 9, sizeof(cl_mem), (void*)&m_rays.hitFlatNorm));
-    CHECK_CL(clSetKernelArg(kernHit, 10, sizeof(cl_mem), (void*)&m_rays.hitMatId));
-    CHECK_CL(clSetKernelArg(kernHit, 11, sizeof(cl_mem), (void*)&m_rays.hitTangent));
-    CHECK_CL(clSetKernelArg(kernHit, 12, sizeof(cl_mem), (void*)&m_rays.hitNormUncompressed));
+void GPUOCLLayer::runKernel_GetGBufferSamples(cl_mem a_gbuff1, cl_mem a_gbuff2, int a_blockSize, size_t a_size)
+{
+  cl_kernel kernHit = m_progs.trace.kernel("GetGBufferSample");
+   
+  size_t localWorkSize = a_blockSize;
+  int    isize         = int(a_size);
+  a_size               = roundBlocks(a_size, int(localWorkSize));
+   
+  CHECK_CL(clSetKernelArg(kernHit, 0, sizeof(cl_mem), (void*)&m_rays.hits));
+  CHECK_CL(clSetKernelArg(kernHit, 1, sizeof(cl_mem), (void*)&m_rays.rayFlags));
+  CHECK_CL(clSetKernelArg(kernHit, 2, sizeof(cl_mem), (void*)&m_rays.hitPosNorm));
+  CHECK_CL(clSetKernelArg(kernHit, 3, sizeof(cl_mem), (void*)&m_rays.hitTexCoord));
+  CHECK_CL(clSetKernelArg(kernHit, 4, sizeof(cl_mem), (void*)&m_rays.hitMatId));
 
-    CHECK_CL(clSetKernelArg(kernHit, 13, sizeof(cl_mem), (void*)&m_scene.allGlobsData));
-    CHECK_CL(clSetKernelArg(kernHit, 14, sizeof(cl_int), (void*)&isize));
-  }
+  CHECK_CL(clSetKernelArg(kernHit, 5, sizeof(cl_mem), (void*)&a_gbuff1));
+  CHECK_CL(clSetKernelArg(kernHit, 6, sizeof(cl_mem), (void*)&a_gbuff2));
 
+  CHECK_CL(clSetKernelArg(kernHit, 7, sizeof(cl_mem), (void*)&m_scene.allGlobsData));
+  CHECK_CL(clSetKernelArg(kernHit, 8, sizeof(cl_int), (void*)&isize));
+  
   CHECK_CL(clEnqueueNDRangeKernel(m_globals.cmdQueue, kernHit, 1, NULL, &a_size, &localWorkSize, 0, NULL, NULL));
   waitIfDebug(__FILE__, __LINE__);
 }

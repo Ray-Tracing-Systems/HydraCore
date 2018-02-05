@@ -160,9 +160,10 @@ static inline int lightSelPdfTableSizeRev(__global const EngineGlobals* a_pGloba
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-static inline float2 projectedPixelSize(float dist, __global const EngineGlobals* a_globals)
+static inline float2 projectedPixelSize2(float dist, __global const EngineGlobals* a_globals)
 {
-  return ProjectedPixelSize(dist, make_float2(a_globals->varsF[HRT_FOV_X], a_globals->varsF[HRT_FOV_Y]), a_globals->varsF[HRT_WIDTH_F], a_globals->varsF[HRT_HEIGHT_F]);
+  const float size = projectedPixelSize(dist, a_globals->varsF[HRT_FOV_X], a_globals->varsF[HRT_WIDTH_F], a_globals->varsF[HRT_HEIGHT_F]);
+  return make_float2(size, size);
 }
 
 

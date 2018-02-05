@@ -402,7 +402,7 @@ protected:
   void runKernel_InitRandomGen(cl_mem a_buffer, size_t a_size, int a_seed);
   void runKernel_MakeEyeRays(cl_mem a_rpos, cl_mem a_rdir, cl_mem a_zindex, cl_mem a_pixWeights, size_t a_size, int a_passNumber);
   void runKernel_MakeLightRays(cl_mem a_rpos, cl_mem a_rdir, cl_mem a_outColor, size_t a_size);
-  void runKernel_MakeEyeRaysSpp(cl_mem rayPos, cl_mem rayDir, int32_t yBegin, size_t a_size);
+  void runKernel_MakeEyeRaysSpp(cl_mem rayPos, cl_mem rayDir, int32_t a_blockSize, int32_t yBegin, size_t a_size);
  
   void runKernel_Trace(cl_mem a_rpos, cl_mem a_rdir, cl_mem a_hits, size_t a_size);
   void runKernel_ComputeHit(cl_mem a_rpos, cl_mem a_rdir, size_t a_size);
@@ -421,6 +421,7 @@ protected:
   void runKernel_ProjectSamplesToScreen(cl_mem a_rayFlags, cl_mem a_hitPos, cl_mem a_hitNorm, cl_mem a_rdir, cl_mem a_rdir2, cl_mem a_colorsIn, cl_mem a_colorsOut, cl_mem a_zindex, size_t a_size, int a_currBounce);
 
   void runKernel_UpdateForwardPdfFor3Way(cl_mem a_flags, cl_mem old_rayDir, cl_mem next_rayDir, cl_mem acc_pdf, size_t a_size);
+  void runKernel_GetGBufferSamples      (cl_mem a_gbuff1, cl_mem a_gbuff2, int a_blockSize, size_t a_size);
 
   // MLT
   //
