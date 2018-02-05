@@ -37,14 +37,14 @@ __kernel void MakeEyeRaysSPP(__global float4* out_pos,
                              __global const float2* a_qmc,
                              __global const EngineGlobals* a_globals)
 {
-  const int tid    = GLOBAL_ID_X;
-  const int offset = yStart * w;
-  if (tid + offset >= w * h)
+  const int tid     = GLOBAL_ID_X;
+  const int offset  = yStart * w;
+  const int pixelId = (tid / b_size + offset);
+  if (pixelId >= w * h)
     return;
 
   const float sizeInvX = 1.0f / (float)(w);
   const float sizeInvY = 1.0f / (float)(h);
-  const int   pixelId  = (tid / b_size + offset);
 
   const int y = pixelId / w;
   const int x = pixelId - (y * w);
