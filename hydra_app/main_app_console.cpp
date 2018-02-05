@@ -234,7 +234,7 @@ void console_main(std::shared_ptr<IHRRenderDriver> a_pDetachedRenderDriverPointe
 
   static int prevMessageId = 0;
 
-  g_state = STATE_GBUFFER;
+  // g_state = STATE_GBUFFER;
 
   while (!g_input.exitStatus)
   {    
