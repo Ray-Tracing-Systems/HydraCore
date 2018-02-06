@@ -15,8 +15,8 @@ Input::Input()
 
   //inLibraryPath = "C:/[Hydra]/pluginFiles/scenelib";
   
-  inDevelopment = true;  ///< recompile shaders each time; note that nvidia have their own shader cache!
-  inDeviceId    = 1;     ///< opencl device id
+  inDevelopment = false; ///< recompile shaders each time; note that nvidia have their own shader cache!
+  inDeviceId    = 0;     ///< opencl device id
   cpuFB         = false; ///< store frame buffer on CPU. Automaticly enabled if
   enableMLT     = false; ///< not used currently
 
@@ -163,14 +163,10 @@ void Input::ParseCommandLineParams(const std::unordered_map<std::string, std::st
   ReadIntCmd(a_params,    "-height",       &winHeight);
 
 
-  ReadStringCmd(a_params, "-inputlib", &inLibraryPath);
-  // ReadStringCmd(a_params, "-imageB",   &inImageBName);
-  // ReadStringCmd(a_params, "-mutexB",   &inMutexBName);
-  // ReadStringCmd(a_params, "-imageA",   &inImageAName);
-  // ReadStringCmd(a_params, "-mutexA",   &inMutexAName);
-  
-  ReadStringCmd(a_params, "-out",      &outLDRImage); 
-  ReadStringCmd(a_params, "-logdir",   &inLogDirCust);
+  ReadStringCmd(a_params, "-inputlib",    &inLibraryPath);  
+  ReadStringCmd(a_params, "-out",         &outLDRImage); 
+  ReadStringCmd(a_params, "-logdir",      &inLogDirCust);
+  ReadStringCmd(a_params, "-sharedimage", &inSharedImageName);
 
 }
 

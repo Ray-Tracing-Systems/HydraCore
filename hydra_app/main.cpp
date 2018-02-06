@@ -158,7 +158,7 @@ int main(int argc, const char** argv)
       else // connect to external framebuffer if have such
       {
         char errMsg[256];
-        const char* externalImageName = "hydraimage";
+        auto externalImageName = g_input.inSharedImageName.c_str();
         g_pExternalImage       = CreateImageAccum();
         bool externalImageIsOk = g_pExternalImage->Attach(externalImageName, errMsg);
 

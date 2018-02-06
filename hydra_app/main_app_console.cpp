@@ -249,7 +249,9 @@ void console_main(std::shared_ptr<IHRRenderDriver> a_pDetachedRenderDriverPointe
     {
       if (g_input.getGBufferBeforeRender)
       {
+        std::cout << "[main]: begin gbuffer" << std::endl;
         GetGBuffer(a_pDetachedRenderDriverPointer);
+        std::cout << "[main]: end gbuffer" << std::endl;
         g_input.getGBufferBeforeRender = false;
       }
 

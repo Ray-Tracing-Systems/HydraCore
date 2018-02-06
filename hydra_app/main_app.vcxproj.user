@@ -5,7 +5,7 @@
     <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <LocalDebuggerCommandArguments>-nowindow 0 -saveinterval 60</LocalDebuggerCommandArguments>
+    <LocalDebuggerCommandArguments>-nowindow 1 -inputlib "D:\PROG\HydraAPI\main\tests\test_39" -width 1024 -height 768 -cpu_fb 1 -evalgbuffer 1 -sharedimage hydraimage_1517916277973 -cl_device_id 0 -cl_lite_core 0</LocalDebuggerCommandArguments>
     <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
   </PropertyGroup>
 </Project>

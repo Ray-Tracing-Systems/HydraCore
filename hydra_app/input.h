@@ -23,6 +23,7 @@ struct Input
   std::string   inLibraryPath;
   std::string   outLDRImage;
   std::string   inLogDirCust;
+  std::string   inSharedImageName;
 
   std::wstring  inTestsFolder;
 
