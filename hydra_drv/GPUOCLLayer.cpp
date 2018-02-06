@@ -1138,8 +1138,6 @@ void GPUOCLLayer::ConnectEyePass(cl_mem in_rayFlags, cl_mem in_hitPos, cl_mem in
   AddContributionToScreen(m_rays.pathShadeColor); // because GPU contributio for LT could be very expensieve (imagine point light)
 }
 
-void DebugSaveFuckingGBufferAsManyImages(int a_width, int a_height, const std::vector<GBufferAll>& gbuffer, const wchar_t* a_path);
-
 void GPUOCLLayer::EvalGBuffer(IHRSharedAccumImage* a_pAccumImage)
 {
   if (a_pAccumImage == nullptr)
@@ -1167,6 +1165,28 @@ void GPUOCLLayer::EvalGBuffer(IHRSharedAccumImage* a_pAccumImage)
     return;
   }
 
+  /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////// #TODO: refactor this
+
+  float4* data1 = nullptr;
+  float4* data2 = nullptr;
+  if (a_pAccumImage->Header()->depth == 4) // some other process already have computed gbuffer
+  {
+    data1 = (float4*)a_pAccumImage->ImageData(2);
+    data2 = (float4*)a_pAccumImage->ImageData(3);
+  }
+  else if (a_pAccumImage->Header()->depth == 3) // some other process already have computed gbuffer
+  {
+    data1 = (float4*)a_pAccumImage->ImageData(1);
+    data2 = (float4*)a_pAccumImage->ImageData(2);
+  }
+  else
+  {
+    std::cerr << "GPUOCLLayer::EvalGBuffer: wrong shared image layers num; num = " << a_pAccumImage->Header()->depth << std::endl;
+    a_pAccumImage->Unlock();
+    return;
+  }
+  /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////// #TODO: refactor this
+
   size_t  bufferSize = m_rays.MEGABLOCKSIZE;
   int32_t lineSize   = m_width * GBUFFER_SAMPLES;
 
@@ -1177,7 +1197,6 @@ void GPUOCLLayer::EvalGBuffer(IHRSharedAccumImage* a_pAccumImage)
 
   int32_t linesPerBlock = bufferSize / lineSize;
 
-  std::vector<float4> data1(m_width*m_height), data2(m_width*m_height);
 
   for (int32_t line = 0; line < m_height; line += linesPerBlock)
   {
@@ -1211,24 +1230,6 @@ void GPUOCLLayer::EvalGBuffer(IHRSharedAccumImage* a_pAccumImage)
   }
 
   clFinish(m_globals.cmdQueue);
-
-  // std::vector<GBufferAll> gbuff(m_width*m_height);
-  // 
-  // // (5) test final gbuffer
-  // //
-  // for (int y = 0; y < m_height; y++)
-  // {
-  //   const int offsetOut = y * m_width;
-  //   const int offsetIn  = offsetOut;
-  //   for (int x = 0; x < m_width; x++)
-  //   {
-  //     gbuff[offsetOut + x].data1 = unpackGBuffer1(data1[offsetIn + x]);
-  //     gbuff[offsetOut + x].data2 = unpackGBuffer2(data2[offsetIn + x]);
-  //   }
-  // }
-  // 
-  // DebugSaveFuckingGBufferAsManyImages(m_width, m_height, gbuff, L"gbufferout");
-  // std::cout << std::endl;
 
   a_pAccumImage->Header()->gbufferIsEmpty = 0;
   a_pAccumImage->Unlock();
