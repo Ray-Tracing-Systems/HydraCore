@@ -1142,6 +1142,31 @@ void DebugSaveFuckingGBufferAsManyImages(int a_width, int a_height, const std::v
 
 void GPUOCLLayer::EvalGBuffer(IHRSharedAccumImage* a_pAccumImage)
 {
+  if (a_pAccumImage == nullptr)
+    return;
+
+  if (a_pAccumImage->Header()->gbufferIsEmpty != 1)
+    return;
+  
+  bool locked = false;
+  for (int i = 0; i < 20; i++)
+  {
+    locked = a_pAccumImage->Lock(100);
+    if (locked)
+      break;
+    else
+      std::cout << "GPUOCLLayer::EvalGBuffer: trying to lock shared image " << std::endl;
+  }
+
+  if (!locked)
+    return;
+
+  if (a_pAccumImage->Header()->gbufferIsEmpty != 1) // some other process already have computed gbuffer
+  {
+    a_pAccumImage->Unlock();
+    return;
+  }
+
   size_t  bufferSize = m_rays.MEGABLOCKSIZE;
   int32_t lineSize   = m_width * GBUFFER_SAMPLES;
 
@@ -1187,24 +1212,27 @@ void GPUOCLLayer::EvalGBuffer(IHRSharedAccumImage* a_pAccumImage)
 
   clFinish(m_globals.cmdQueue);
 
-  std::vector<GBufferAll> gbuff(m_width*m_height);
+  // std::vector<GBufferAll> gbuff(m_width*m_height);
+  // 
+  // // (5) test final gbuffer
+  // //
+  // for (int y = 0; y < m_height; y++)
+  // {
+  //   const int offsetOut = y * m_width;
+  //   const int offsetIn  = offsetOut;
+  //   for (int x = 0; x < m_width; x++)
+  //   {
+  //     gbuff[offsetOut + x].data1 = unpackGBuffer1(data1[offsetIn + x]);
+  //     gbuff[offsetOut + x].data2 = unpackGBuffer2(data2[offsetIn + x]);
+  //   }
+  // }
+  // 
+  // DebugSaveFuckingGBufferAsManyImages(m_width, m_height, gbuff, L"gbufferout");
+  // std::cout << std::endl;
 
-  // (5) test final gbuffer
-  //
-  for (int y = 0; y < m_height; y++)
-  {
-    const int offsetOut = y * m_width;
-    const int offsetIn  = offsetOut;
-    for (int x = 0; x < m_width; x++)
-    {
-      gbuff[offsetOut + x].data1 = unpackGBuffer1(data1[offsetIn + x]);
-      gbuff[offsetOut + x].data2 = unpackGBuffer2(data2[offsetIn + x]);
-    }
-  }
+  a_pAccumImage->Header()->gbufferIsEmpty = 0;
+  a_pAccumImage->Unlock();
 
-  DebugSaveFuckingGBufferAsManyImages(m_width, m_height, gbuff, L"gbufferout");
-
-  std::cout << std::endl;
 }
 
 void GPUOCLLayer::BeginTracingPass()

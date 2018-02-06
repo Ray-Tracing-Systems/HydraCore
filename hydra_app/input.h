@@ -18,6 +18,7 @@ struct Input
   bool listDevicesAndExit;
   bool cpuFB;
   bool inDevelopment;
+  bool getGBufferBeforeRender;
 
   std::string   inLibraryPath;
   std::string   outLDRImage;

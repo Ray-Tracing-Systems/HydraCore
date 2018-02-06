@@ -23,7 +23,7 @@ extern "C" IBVHBuilder2* CreateBuilder2(char* cfg);
 RenderDriverRTE::RenderDriverRTE(const wchar_t* a_options, int w, int h, int a_devId, int a_flags, IHRSharedAccumImage* a_sharedImage) : m_pBVH(nullptr), m_pHWLayer(nullptr),
                                                                                                                                          m_pTexStorage(nullptr), m_pTexStorageAux(nullptr), 
                                                                                                                                          m_pGeomStorage(nullptr), m_pMaterialStorage(nullptr), 
-                                                                                                                                         m_pPdfStorage(nullptr), m_pAccumImage(nullptr)
+                                                                                                                                         m_pPdfStorage(nullptr), m_pAccumImage(nullptr), m_pAccumImageForGBuff(nullptr)
 {
   m_alreadyDeleted = false;
   m_msg = L"";
@@ -117,7 +117,8 @@ RenderDriverRTE::RenderDriverRTE(const wchar_t* a_options, int w, int h, int a_d
     m_pHWLayer->SetExternalImageAccumulator(a_sharedImage);     // 
   }
 
-  m_drawPassNumber = 0;
+  m_pAccumImageForGBuff = a_sharedImage;
+  m_drawPassNumber      = 0;
 
   ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -1120,7 +1121,7 @@ void RenderDriverRTE::Draw()
 
 void RenderDriverRTE::EvalGBuffer()
 {
-  m_pHWLayer->EvalGBuffer(m_pAccumImage);
+  m_pHWLayer->EvalGBuffer(m_pAccumImageForGBuff);
 }
 
 void RenderDriverRTE::InstanceMeshes(int32_t a_mesh_id, const float* a_matrices, int32_t a_instNum, const int* a_lightInstId)

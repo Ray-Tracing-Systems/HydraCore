@@ -17,7 +17,7 @@ static HRCameraRef    camRef;
 static HRSceneInstRef scnRef;
 static HRRenderRef    renderRef;
 
-enum RENDERSTATE {STATE_WAIT = 0, STATE_RENDER = 1, STATE_GBUFFER = 2};
+enum RENDERSTATE {STATE_WAIT = 0, STATE_RENDER = 1};
 
 static RENDERSTATE g_state = STATE_WAIT;
 
@@ -72,11 +72,6 @@ static void DispatchCommand(const char* message)
       if (action == "start")
       {
         g_state     = STATE_RENDER;
-        g_sessionId = atoi(sessId.c_str());
-      }
-      else if (action == "getgbuffer")
-      {
-        g_state     = STATE_GBUFFER;
         g_sessionId = atoi(sessId.c_str());
       }
       else if (action == "exitnow")
@@ -234,7 +229,8 @@ void console_main(std::shared_ptr<IHRRenderDriver> a_pDetachedRenderDriverPointe
 
   static int prevMessageId = 0;
 
-  // g_state = STATE_GBUFFER;
+  //GetGBuffer(a_pDetachedRenderDriverPointer);
+  //g_input.exitStatus = true;
 
   while (!g_input.exitStatus)
   {    
@@ -250,11 +246,14 @@ void console_main(std::shared_ptr<IHRRenderDriver> a_pDetachedRenderDriverPointe
     }
 
     if (g_state == STATE_RENDER)
-      Draw(a_pDetachedRenderDriverPointer);
-    else if (g_state == STATE_GBUFFER)
     {
-      GetGBuffer(a_pDetachedRenderDriverPointer);
-      g_input.exitStatus = true;
+      if (g_input.getGBufferBeforeRender)
+      {
+        GetGBuffer(a_pDetachedRenderDriverPointer);
+        g_input.getGBufferBeforeRender = false;
+      }
+
+      Draw(a_pDetachedRenderDriverPointer);
     }
     else
       std::this_thread::sleep_for(std::chrono::milliseconds(50));

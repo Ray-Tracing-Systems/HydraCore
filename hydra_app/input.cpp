@@ -38,6 +38,8 @@ Input::Input()
   ibptEnabled         = false;
   cameraFreeze        = false;
   inSeed              = clock();
+
+  getGBufferBeforeRender = false; ///< if external application that ise HydraAPI ask to calc gbuffer;
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -141,8 +143,14 @@ void Input::ParseCommandLineParams(const std::unordered_map<std::string, std::st
   ReadBoolCmd(a_params,   "-nowindow",        &noWindow);
   ReadBoolCmd(a_params,   "-cpu_fb",          &cpuFB);
   ReadBoolCmd(a_params,   "-enable_mlt",      &enableMLT);
+
   ReadBoolCmd(a_params,   "-cl_list_devices", &listDevicesAndExit);
+  ReadBoolCmd(a_params,   "-listdevices",     &listDevicesAndExit);
+  ReadBoolCmd(a_params,   "-list_devices",    &listDevicesAndExit);
+  ReadBoolCmd(a_params,   "-listdev",         &listDevicesAndExit);
+  
   ReadBoolCmd(a_params,   "-alloc_image_b",   &allocInternalImageB);
+  ReadBoolCmd(a_params,   "-evalgbuffer",     &getGBufferBeforeRender);
  
   if (listDevicesAndExit)
     noWindow = true;
