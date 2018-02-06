@@ -1148,6 +1148,8 @@ void GPUOCLLayer::EvalGBuffer(IHRSharedAccumImage* a_pAccumImage)
   if (bufferSize % lineSize != 0)
     bufferSize -= (bufferSize % lineSize);
 
+  assert(bufferSize % lineSize == 0);
+
   int32_t linesPerBlock = bufferSize / lineSize;
 
   std::vector<float4> data1(m_width*m_height), data2(m_width*m_height);
@@ -1175,7 +1177,7 @@ void GPUOCLLayer::EvalGBuffer(IHRSharedAccumImage* a_pAccumImage)
 
     // (3) get compressed samples
     //
-    runKernel_GetGBufferSamples(m_rays.pathAccColor, m_rays.pathThoroughput, GBUFFER_SAMPLES, finalSize);
+    runKernel_GetGBufferSamples(m_rays.rayDir, m_rays.pathAccColor, m_rays.pathThoroughput, GBUFFER_SAMPLES, finalSize);
 
     // (4) pass them to the host mem
     //
