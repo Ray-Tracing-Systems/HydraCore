@@ -1142,12 +1142,15 @@ void DebugSaveFuckingGBufferAsManyImages(int a_width, int a_height, const std::v
 
 void GPUOCLLayer::EvalGBuffer(IHRSharedAccumImage* a_pAccumImage)
 {
-  int32_t lineSize      = m_width * GBUFFER_SAMPLES;
-  int32_t linesPerBlock = m_rays.MEGABLOCKSIZE / lineSize;
+  size_t  bufferSize = m_rays.MEGABLOCKSIZE;
+  int32_t lineSize   = m_width * GBUFFER_SAMPLES;
 
-  std::vector<GBufferAll> gbuff(m_width*m_height);
+  if (bufferSize % lineSize != 0)
+    bufferSize -= (bufferSize % lineSize);
 
-  std::vector<float4> data1(linesPerBlock*m_width), data2(linesPerBlock*m_width);
+  int32_t linesPerBlock = bufferSize / lineSize;
+
+  std::vector<float4> data1(m_width*m_height), data2(m_width*m_height);
 
   for (int32_t line = 0; line < m_height; line += linesPerBlock)
   {
@@ -1176,23 +1179,25 @@ void GPUOCLLayer::EvalGBuffer(IHRSharedAccumImage* a_pAccumImage)
 
     // (4) pass them to the host mem
     //
-    CHECK_CL(clEnqueueReadBuffer(m_globals.cmdQueue, m_rays.pathAccColor,    CL_TRUE, 0, data1.size() * sizeof(float4), &data1[0], 0, NULL, NULL));
-    CHECK_CL(clEnqueueReadBuffer(m_globals.cmdQueue, m_rays.pathThoroughput, CL_TRUE, 0, data2.size() * sizeof(float4), &data2[0], 0, NULL, NULL));
+    CHECK_CL(clEnqueueReadBuffer(m_globals.cmdQueue, m_rays.pathAccColor,    CL_FALSE, 0, (finalSize/GBUFFER_SAMPLES)*sizeof(float4), &data1[line*m_width], 0, NULL, NULL));
+    CHECK_CL(clEnqueueReadBuffer(m_globals.cmdQueue, m_rays.pathThoroughput, CL_FALSE, 0, (finalSize/GBUFFER_SAMPLES)*sizeof(float4), &data2[line*m_width], 0, NULL, NULL));
+  }
 
-    // (5) test final gbuffer
-    //
-    for (int y = yBegin; y < yEnd; y++)
+  clFinish(m_globals.cmdQueue);
+
+  std::vector<GBufferAll> gbuff(m_width*m_height);
+
+  // (5) test final gbuffer
+  //
+  for (int y = 0; y < m_height; y++)
+  {
+    const int offsetOut = y * m_width;
+    const int offsetIn  = offsetOut;
+    for (int x = 0; x < m_width; x++)
     {
-      const int offsetOut = y * m_width;
-      const int offsetIn  = (y - yBegin)*m_width;
-      for (int x = 0; x < m_width; x++)
-      {
-        gbuff[offsetOut + x].data1 = unpackGBuffer1(data1[offsetIn + x]);
-        gbuff[offsetOut + x].data2 = unpackGBuffer2(data2[offsetIn + x]);
-      }
+      gbuff[offsetOut + x].data1 = unpackGBuffer1(data1[offsetIn + x]);
+      gbuff[offsetOut + x].data2 = unpackGBuffer2(data2[offsetIn + x]);
     }
-
-    // std::cout << "gbuffer progress = " << float(line + linesPerBlock) / float(m_height) << std::endl; // << "    \r";
   }
 
   DebugSaveFuckingGBufferAsManyImages(m_width, m_height, gbuff, L"gbufferout");
