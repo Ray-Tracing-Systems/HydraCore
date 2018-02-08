@@ -70,7 +70,7 @@ bool RenderDriverRTE::MeshHaveOpacity(const PlainMesh* pHeader) const
 void RenderDriverRTE::CreateAlphaTestTable(ConvertionResult& a_cnvRes, AlphaBuffers& a_outBuffers, bool& a_smoothOpacity)
 {
   const int maxSamplers = CountMaterialsWithAlphaTest();
-  const int auxSize     = maxSamplers*(sizeof(SWTexSampler) / sizeof(int2));
+  const int auxSize     = maxSamplers*(sizeof(SWTexSampler) / sizeof(int2)); // put opacity samplers at the end of aux buffer
 
   if (maxSamplers == 0)
     return;

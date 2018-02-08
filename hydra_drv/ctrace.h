@@ -183,10 +183,10 @@ static inline float2 decompressTexCoord16(unsigned int packed)
   const unsigned int ix =  packed & 0x0000FFFF;
   const unsigned int iy = (packed & 0xFFFF0000) >> 16;
 
-  const float fx  = (float)ix;
-  const float fy  = (float)iy;
+  const float fx  = (1.0f / 65535.0f)*(float)ix;
+  const float fy  = (1.0f / 65535.0f)*(float)iy;
 
-  return (1.0f / 65535.0f)*make_float2(2.0f*fx - 1.0f, 2.0f*fy - 1.0f);
+  return make_float2(2.0f*fx - 1.0f, 2.0f*fy - 1.0f);
 }
 
 static inline Lite_Hit IntersectAllPrimitivesInLeafAlpha(const float3 ray_pos, const float3 ray_dir,
@@ -243,15 +243,16 @@ static inline Lite_Hit IntersectAllPrimitivesInLeafAlpha(const float3 ray_pos, c
       const uint2 alphaId1 = a_alphaTable[triAddress+1];
       const uint2 alphaId2 = a_alphaTable[triAddress+2];
       
-      const float2 A_tex = decompressTexCoord16(alphaId0.y);
-      const float2 B_tex = decompressTexCoord16(alphaId1.y);
-      const float2 C_tex = decompressTexCoord16(alphaId2.y);
+      const float2 A_tex   = decompressTexCoord16(alphaId0.y);
+      const float2 B_tex   = decompressTexCoord16(alphaId1.y);
+      const float2 C_tex   = decompressTexCoord16(alphaId2.y);
       
       const float2 texCoord   = (1.0f - u - v)*A_tex + v*B_tex + u*C_tex;
-      const int samplerOffset = (alphaId0.x == 0xFFFFFFFF || alphaId0.x == INVALID_TEXTURE) ? INVALID_TEXTURE : 0;
+      const int samplerOffset = (alphaId0.x == 0xFFFFFFFF || alphaId0.x == INVALID_TEXTURE || (int)(alphaId0.x) <= 0) ? INVALID_TEXTURE : 0;
+     
       const float3 alphaColor = sample2DLite(samplerOffset, texCoord, (const __global int4*)(a_alphaTable + alphaId0.x), a_texStorage, a_globals);
+      const float selector    = fmax(alphaColor.x, fmax(alphaColor.y, alphaColor.z));
 
-      const float selector = fmax(alphaColor.x, fmax(alphaColor.y, alphaColor.z));
       if (selector > 0.5f)
       {
         a_result.t      = t;
@@ -327,7 +328,7 @@ static inline Lite_Hit IntersectAllPrimitivesInLeafAlphaS(const float3 ray_pos, 
       const float2 C_tex = decompressTexCoord16(alphaId2.y);
       
       const float2 texCoord   = (1.0f - u - v)*A_tex + v*B_tex + u*C_tex;
-      const int samplerOffset = (alphaId0.x == 0xFFFFFFFF || alphaId0.x == INVALID_TEXTURE) ? INVALID_TEXTURE : 0;
+      const int samplerOffset = (alphaId0.x == 0xFFFFFFFF || alphaId0.x == INVALID_TEXTURE || (int)(alphaId0.x) <= 0) ? INVALID_TEXTURE : 0;
       const float3 alphaColor = sample2D(samplerOffset, texCoord, (const __global int4*)(a_alphaTable + alphaId0.x), a_texStorage, a_globals);
 
       const float selector = fmax(alphaColor.x, fmax(alphaColor.y, alphaColor.z));
@@ -411,10 +412,10 @@ static inline void IntersectAllPrimitivesInLeafShadowAlphaS(const float3 ray_pos
       const float2 C_tex = decompressTexCoord16(alphaId2.y);
       
       const float2 texCoord   = (1.0f - u - v)*A_tex + v*B_tex + u*C_tex;
-      const int samplerOffset = (alphaId0.x == 0xFFFFFFFF || alphaId0.x == INVALID_TEXTURE || alphaId2.x == 1) ? INVALID_TEXTURE : 0;
+      const int samplerOffset = (alphaId0.x == 0xFFFFFFFF || alphaId0.x == INVALID_TEXTURE || (int)(alphaId0.x) <= 0 || alphaId2.x == 1) ? INVALID_TEXTURE : 0;
       const float3 alphaColor = sample2D(samplerOffset, texCoord, (const __global int4*)(a_alphaTable + alphaId0.x), a_texStorage, a_globals);
 
-      const float selector = fmax(alphaColor.x, fmax(alphaColor.y, alphaColor.z));
+      const float selector    = fmax(alphaColor.x, fmax(alphaColor.y, alphaColor.z));
 
       if (alphaId2.x != 1)   // skip shadow
       {

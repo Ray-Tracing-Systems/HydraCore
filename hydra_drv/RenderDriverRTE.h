@@ -246,6 +246,7 @@ protected:
   void DebugSaveBVH(const std::string& a_folderName, const ConvertionResult& a_inBVH);
   void PrintBVHStat(const ConvertionResult& a_inBVH, bool traverseThem);
   void DebugPrintBVHInfo(const ConvertionResult& a_inBVH, const char* a_fileName);
+  void DebugTestAlphaTestTable(const std::vector<uint2>& a_alphaTable, int a_trif4Num);
 
   bool m_alreadyDeleted;
 

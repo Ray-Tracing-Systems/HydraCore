@@ -454,3 +454,32 @@ void RenderDriverRTE::DebugPrintBVHInfo(const ConvertionResult& a_inBVH, const c
 
   fout.close();
 }
+
+void RenderDriverRTE::DebugTestAlphaTestTable(const std::vector<uint2>& a_alphaTable, int a_trif4Num)
+{
+  m_pHWLayer->PrepareEngineGlobals();
+  const EngineGlobals* a_globals = m_pHWLayer->GetEngineGlobals();
+  const int4* a_texStorage = (const int4*)m_pTexStorage->GetBegin();
+
+  for (int triAddress = 0; triAddress < a_trif4Num; triAddress++ )
+  {
+    const uint2 alphaId0 = a_alphaTable[triAddress + 0];
+
+    const float2 A_tex = decompressTexCoord16(alphaId0.y);
+
+    if (int(alphaId0.x) < 0)
+    {
+      int a = 2;
+    }
+
+    const float2 texCoord   = A_tex;
+    const int samplerOffset = (alphaId0.x == 0xFFFFFFFF || alphaId0.x == INVALID_TEXTURE || int(alphaId0.x) < 0) ? INVALID_TEXTURE : 0;
+
+    int test = int(alphaId0.x);
+
+    const float3 alphaColor = sample2DLite(samplerOffset, texCoord, (const __global int4*)(&a_alphaTable[0] + alphaId0.x), a_texStorage, a_globals);
+    const float selector = fmax(alphaColor.x, fmax(alphaColor.y, alphaColor.z));
+
+    std::cout << "triAddress = " << triAddress << std::endl;
+  }
+}

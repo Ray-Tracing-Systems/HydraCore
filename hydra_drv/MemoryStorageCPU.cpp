@@ -102,6 +102,10 @@ void IMemoryStorage::UpdatePartial(int32_t id, const void* a_data, uint64_t a_of
 
   assert(a_offsetInBytes % bytesPerBlock == 0);
   assert(offset          % bytesPerBlock == 0);
+  
+  if (chunk.begin == -1)
+    return;
+  // assert(chunk.begin != -1);
 
   MemCopyAt(offset, a_data, a_sizeInBytes);
 }

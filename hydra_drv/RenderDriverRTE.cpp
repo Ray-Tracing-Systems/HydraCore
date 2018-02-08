@@ -106,7 +106,7 @@ RenderDriverRTE::RenderDriverRTE(const wchar_t* a_options, int w, int h, int a_d
     }
   }
 
-  if ((a_flags & GPU_RT_ALLOC_INTERNAL_IMAGEB) || (a_flags & GPU_RT_CPU_FRAMEBUFFER) == 0) // light tracing or bpt is enabled, or we need to store framebuffer on GPU for some reason. 
+  if ((a_flags & GPU_RT_ALLOC_INTERNAL_IMAGEB) || (a_flags & GPU_RT_CPU_FRAMEBUFFER) == 0) // light tracing or ibpt is enabled, or we need to store framebuffer on GPU for some reason. 
   {
     m_pAccumImage = a_sharedImage;                              // we will manage image contribution on the level of render driver;
     m_pHWLayer->SetExternalImageAccumulator(nullptr);           // 
@@ -479,7 +479,13 @@ bool RenderDriverRTE::UpdateImage(int32_t a_texId, int32_t w, int32_t h, int32_t
   const size_t headerSize = roundBlocks(sizeof(SWTextureHeader), align);
   const size_t totalSize  = roundBlocks(inDataBSz, align) + headerSize;
 
-  m_pTexStorage->Update(a_texId, nullptr, totalSize);
+  auto offset = m_pTexStorage->Update(a_texId, nullptr, totalSize);
+
+  if (offset == -1)
+  {
+    std::cerr << "RenderDriverRTE::UpdateImage: can't append texture to tex storage; id = " << a_texId << std::endl;
+    return false;
+  }
 
   m_pTexStorage->UpdatePartial(a_texId, &texheader, 0, sizeof(SWTextureHeader));
   m_pTexStorage->UpdatePartial(a_texId, a_data, headerSize, inDataBSz);
@@ -750,6 +756,8 @@ size_t EstimateBVHSize(const ConvertionResult& a_bvh)
   return size;
 }
 
+
+
 void RenderDriverRTE::EndScene() // #TODO: add dirty flags (?) to update only those things that were changed
 {
   if (m_pBVH == nullptr)
@@ -769,6 +777,7 @@ void RenderDriverRTE::EndScene() // #TODO: add dirty flags (?) to update only th
 
     bool smoothOpacity = false;
     CreateAlphaTestTable(convertedData, m_alphaAuxBuffers, smoothOpacity);
+    //DebugTestAlphaTestTable(m_alphaAuxBuffers.buf[0], convertedData.trif4Num[0]);
 
     const int bvhFlags = smoothOpacity ? BVH_ENABLE_SMOOTH_OPACITY : 0;
 
@@ -1062,8 +1071,10 @@ void RenderDriverRTE::Draw()
     //
     if ((m_useLT || m_gpuFB || m_useIBPT) && m_pAccumImage != nullptr)
     {
-      const double freq = double(m_width*m_height)/double(1024*1024); 
-      int freqInt = int(freq) + 1;   
+      auto size = m_pHWLayer->GetRayBuffSize();
+      const double freq = 2.0*double(m_width*m_height)/double(size);
+
+      int freqInt = int(freq);   
       if (freqInt < 2) 
         freqInt = 2;
       if (m_gpuFB)

@@ -69,6 +69,7 @@ public:
   size_t GetAvaliableMemoryAmount(bool allMem);
   size_t GetMemoryTaken();
   MRaysStat GetRaysStat();
+  int32_t GetRayBuffSize() const override { return int32_t(m_rays.MEGABLOCKSIZE); }
 
   const HRRenderDeviceInfoListElem* ListDevices() const override;
 
@@ -139,10 +140,6 @@ protected:
     std::vector<float4> m_clustColors;
     std::vector<int4>   m_clustBegEnd;
   };
-
-  void renderSubPixelData(const char* a_dataName, const std::vector<ushort2>& a_pixels, int spp, float4* a_pixValues, float4* a_subPixValues);
-  void renderSubPixelDataBlock(const char* a_dataName, const ushort2* a_pixels, int a_size, int spp, float4* a_pixValues, float4* a_subPixValues, SubPixelTempData& a_tdata);
-  void AppendNewPixelClusters(SubPixelTempData& a_data, size_t a_size, int a_spp);
 
   void memsetu32(cl_mem buff, uint a_val, size_t a_size);
   void memsetf4(cl_mem buff, float4 a_val, size_t a_size, size_t a_offset = 0);

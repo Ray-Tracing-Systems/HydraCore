@@ -151,6 +151,7 @@ public:
   virtual size_t GetMicroThreadsNumber() = 0;
 
   virtual MRaysStat GetRaysStat() = 0;
+  virtual int32_t GetRayBuffSize() const { return 0; }
 
   virtual const HRRenderDeviceInfoListElem* ListDevices() const { return nullptr; }
 
@@ -209,6 +210,8 @@ public:
   virtual void SetExternalImageAccumulator(IHRSharedAccumImage* a_pImage) { m_pExternalImage = a_pImage; } ///< pass accumulator to the HWLayer and contribute to implicit during each pass. for PT and MMLT.
 
   virtual void ContribToExternalImageAccumulator(IHRSharedAccumImage* a_pImage) { }                        ///< explicit 'rare' contribution (used by LT and BPT).
+
+  virtual EngineGlobals* GetEngineGlobals(); //#NOTE: this function used for debug needs only!!!
 
 protected:
 

@@ -215,10 +215,11 @@ void GPUOCLLayer::runKernel_Trace(cl_mem a_rpos, cl_mem a_rdir, cl_mem a_hits, s
 
           CHECK_CL(clSetKernelArg(kernTrace, 0, sizeof(cl_mem), (void*)&a_rpos));
           CHECK_CL(clSetKernelArg(kernTrace, 1, sizeof(cl_mem), (void*)&a_rdir));
+          
           CHECK_CL(clSetKernelArg(kernTrace, 2, sizeof(cl_mem), (void*)&bvhBuff));
           CHECK_CL(clSetKernelArg(kernTrace, 3, sizeof(cl_mem), (void*)&triBuff));
-
           CHECK_CL(clSetKernelArg(kernTrace, 4, sizeof(cl_mem), (void*)&triAlpha));
+
           CHECK_CL(clSetKernelArg(kernTrace, 5, sizeof(cl_mem), (void*)&m_scene.storageTex));
           CHECK_CL(clSetKernelArg(kernTrace, 6, sizeof(cl_mem), (void*)&m_scene.allGlobsData));
 

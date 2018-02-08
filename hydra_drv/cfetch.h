@@ -465,11 +465,11 @@ static inline float read_imagef_sw1(texture2d_t a_tex, const float2 a_texCoord, 
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-static inline SWTexSampler ReadSampler(__global const int4* a_texStorage, int a_samplerOffset)
+static inline SWTexSampler ReadSampler(__global const int4* a_samStorage, int a_samplerOffset)
 {
-  __global const float4* a_texStoragef = (__global const float4*)a_texStorage;
+  __global const float4* a_samStoragef = (__global const float4*)a_samStorage;
 
-  int4 header = a_texStorage[a_samplerOffset + 0];
+  int4 header = a_samStorage[a_samplerOffset + 0];
 
   SWTexSampler res;
  
@@ -477,8 +477,8 @@ static inline SWTexSampler ReadSampler(__global const int4* a_texStorage, int a_
   res.gamma  = as_float(header.y);
   res.texId  = header.z;
   res.dummy2 = header.w;
-  res.row0   = a_texStoragef[a_samplerOffset + 1];
-  res.row1   = a_texStoragef[a_samplerOffset + 2];
+  res.row0   = a_samStoragef[a_samplerOffset + 1];
+  res.row1   = a_samStoragef[a_samplerOffset + 2];
  
   return res;
 }
@@ -529,7 +529,7 @@ static inline float3 sample2D(int a_samplerOffset, float2 texCoord, __global con
 
 static inline float3 sample2DLite(int a_samplerOffset, float2 texCoord, __global const int4* a_samStorage, __global const int4* a_texStorage, __global const EngineGlobals* a_globals)
 {
-  if (a_samplerOffset == INVALID_TEXTURE)
+  if (a_samplerOffset == INVALID_TEXTURE || a_samplerOffset < 0)
     return make_float3(1, 1, 1);
 
   const SWTexSampler sampler = ReadSampler(a_samStorage, a_samplerOffset);
