@@ -132,13 +132,12 @@ static void Init(std::shared_ptr<IHRRenderDriver> pDriverImpl)
   /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-  auto pList = hrRenderGetDeviceList(renderRef);
-
-  while (pList != nullptr)
-  {
-    std::wcout << L"device id = " << pList->id << L", name = " << pList->name << L", driver = " << pList->driver << std::endl;
-    pList = pList->next;
-  }
+  // auto pList = hrRenderGetDeviceList(renderRef);
+  // while (pList != nullptr)
+  // {
+  //   std::wcout << L"device id = " << pList->id << L", name = " << pList->name << L", driver = " << pList->driver << std::endl;
+  //   pList = pList->next;
+  // }
 
   hrRenderEnableDevice(renderRef, g_input.inDeviceId, true);
 

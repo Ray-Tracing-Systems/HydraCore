@@ -249,8 +249,8 @@ static inline Lite_Hit IntersectAllPrimitivesInLeafAlpha(const float3 ray_pos, c
       
       const float2 texCoord   = (1.0f - u - v)*A_tex + v*B_tex + u*C_tex;
       const int samplerOffset = (alphaId0.x == 0xFFFFFFFF || alphaId0.x == INVALID_TEXTURE || (int)(alphaId0.x) <= 0) ? INVALID_TEXTURE : 0;
-     
-      const float3 alphaColor = sample2DLite(samplerOffset, texCoord, (const __global int4*)(a_alphaTable + alphaId0.x), a_texStorage, a_globals);
+
+      const float3 alphaColor = sample2DLite(samplerOffset, texCoord, (a_alphaTable + alphaId0.x), a_texStorage, a_globals);
       const float selector    = fmax(alphaColor.x, fmax(alphaColor.y, alphaColor.z));
 
       if (selector > 0.5f)
@@ -329,7 +329,7 @@ static inline Lite_Hit IntersectAllPrimitivesInLeafAlphaS(const float3 ray_pos, 
       
       const float2 texCoord   = (1.0f - u - v)*A_tex + v*B_tex + u*C_tex;
       const int samplerOffset = (alphaId0.x == 0xFFFFFFFF || alphaId0.x == INVALID_TEXTURE || (int)(alphaId0.x) <= 0) ? INVALID_TEXTURE : 0;
-      const float3 alphaColor = sample2D(samplerOffset, texCoord, (const __global int4*)(a_alphaTable + alphaId0.x), a_texStorage, a_globals);
+      const float3 alphaColor = sample2DUI2(samplerOffset, texCoord, (a_alphaTable + alphaId0.x), a_texStorage, a_globals);
 
       const float selector = fmax(alphaColor.x, fmax(alphaColor.y, alphaColor.z));
 
@@ -413,7 +413,7 @@ static inline void IntersectAllPrimitivesInLeafShadowAlphaS(const float3 ray_pos
       
       const float2 texCoord   = (1.0f - u - v)*A_tex + v*B_tex + u*C_tex;
       const int samplerOffset = (alphaId0.x == 0xFFFFFFFF || alphaId0.x == INVALID_TEXTURE || (int)(alphaId0.x) <= 0 || alphaId2.x == 1) ? INVALID_TEXTURE : 0;
-      const float3 alphaColor = sample2D(samplerOffset, texCoord, (const __global int4*)(a_alphaTable + alphaId0.x), a_texStorage, a_globals);
+      const float3 alphaColor = sample2DUI2(samplerOffset, texCoord, (a_alphaTable + alphaId0.x), a_texStorage, a_globals);
 
       const float selector    = fmax(alphaColor.x, fmax(alphaColor.y, alphaColor.z));
 

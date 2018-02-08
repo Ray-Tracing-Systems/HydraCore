@@ -477,7 +477,7 @@ void RenderDriverRTE::DebugTestAlphaTestTable(const std::vector<uint2>& a_alphaT
 
     int test = int(alphaId0.x);
 
-    const float3 alphaColor = sample2DLite(samplerOffset, texCoord, (const __global int4*)(&a_alphaTable[0] + alphaId0.x), a_texStorage, a_globals);
+    const float3 alphaColor = sample2DLite(samplerOffset, texCoord, &a_alphaTable[0] + alphaId0.x, a_texStorage, a_globals);
     const float selector = fmax(alphaColor.x, fmax(alphaColor.y, alphaColor.z));
 
     std::cout << "triAddress = " << triAddress << std::endl;

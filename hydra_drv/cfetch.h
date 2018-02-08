@@ -483,15 +483,31 @@ static inline SWTexSampler ReadSampler(__global const int4* a_samStorage, int a_
   return res;
 }
 
-// IDH_CALL float4 mul4x4x4(float4x4 m, float4 v)
-// {
-//   float4 res;
-//   res.x = m.row[0].x*v.x + m.row[0].y*v.y + m.row[0].z*v.z + m.row[0].w*v.w;
-//   res.y = m.row[1].x*v.x + m.row[1].y*v.y + m.row[1].z*v.z + m.row[1].w*v.w;
-//   res.z = m.row[2].x*v.x + m.row[2].y*v.y + m.row[2].z*v.z + m.row[2].w*v.w;
-//   res.w = m.row[3].x*v.x + m.row[3].y*v.y + m.row[3].z*v.z + m.row[3].w*v.w;
-//   return res;
-// }
+static inline SWTexSampler ReadSamplerUI2(__global const uint2* a_samStorage, int a_samplerOffset)
+{
+  uint2 header1 = a_samStorage[a_samplerOffset + 0];
+  uint2 header2 = a_samStorage[a_samplerOffset + 1];
+
+  uint2 header3 = a_samStorage[a_samplerOffset + 2];
+  uint2 header4 = a_samStorage[a_samplerOffset + 3];
+
+  uint2 header5 = a_samStorage[a_samplerOffset + 4];
+  uint2 header6 = a_samStorage[a_samplerOffset + 5];
+
+  SWTexSampler res;
+
+  res.flags  = header1.x;
+  res.gamma  = as_float(header1.y);
+  res.texId  = header2.x;
+  res.dummy2 = header2.y;
+  res.row0   = make_float4(as_float(header3.x), as_float(header3.y), as_float(header4.x), as_float(header4.y));
+  res.row1   = make_float4(as_float(header5.x), as_float(header5.y), as_float(header6.x), as_float(header6.y));
+
+  return res;
+}
+
+
+
 
 static inline float2 mul2x4(const float4 row0, const float4 row1, float2 v)
 {
@@ -527,13 +543,42 @@ static inline float3 sample2D(int a_samplerOffset, float2 texCoord, __global con
   return to_float3(texColor4);
 }
 
-static inline float3 sample2DLite(int a_samplerOffset, float2 texCoord, __global const int4* a_samStorage, __global const int4* a_texStorage, __global const EngineGlobals* a_globals)
+// we do need two different functions -- sample2D and sample2DUI2 to call ReadSamplerUI2 inside
+// this is due to pointer cast from uint2 to uint4 or float4 break aligned read on Nvidia;
+
+static inline float3 sample2DUI2(int a_samplerOffset, float2 texCoord, __global const uint2* a_samStorage, __global const int4* a_texStorage, __global const EngineGlobals* a_globals)
+{
+  if (a_samplerOffset == INVALID_TEXTURE)
+    return make_float3(1, 1, 1);
+
+  const SWTexSampler sampler = ReadSamplerUI2(a_samStorage, a_samplerOffset);
+  const float2 texCoordT     = mul2x4(sampler.row0, sampler.row1, texCoord);
+
+  const int offset = textureHeaderOffset(a_globals, sampler.texId);
+
+  float4 texColor4 = read_imagef_sw4(a_texStorage + offset, texCoordT, sampler.flags);
+
+  texColor4.x = pow(texColor4.x, sampler.gamma);
+  texColor4.y = pow(texColor4.y, sampler.gamma);
+  texColor4.z = pow(texColor4.z, sampler.gamma);
+
+  if (sampler.flags & TEX_ALPHASRC_W)
+  {
+    texColor4.x = texColor4.w;
+    texColor4.y = texColor4.w;
+    texColor4.z = texColor4.w;
+  }
+
+  return to_float3(texColor4);
+}
+
+static inline float3 sample2DLite(int a_samplerOffset, float2 texCoord, __global const uint2* a_samStorage, __global const int4* a_texStorage, __global const EngineGlobals* a_globals)
 {
   if (a_samplerOffset == INVALID_TEXTURE || a_samplerOffset < 0)
     return make_float3(1, 1, 1);
 
-  const SWTexSampler sampler = ReadSampler(a_samStorage, a_samplerOffset);
-  const float2 texCoordT     = mul2x4(sampler.row0, sampler.row1, texCoord);
+  SWTexSampler sampler   = ReadSamplerUI2(a_samStorage, a_samplerOffset);
+  const float2 texCoordT = mul2x4(sampler.row0, sampler.row1, texCoord);
 
   const int offset = textureHeaderOffset(a_globals, sampler.texId);
 

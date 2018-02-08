@@ -136,13 +136,12 @@ bool InitSceneLibAndRTE(HRCameraRef& a_camRef, HRSceneInstRef& a_scnRef, HRRende
 
   a_renderRef = renderRef2; // well, yep! :)
 
-  auto pList = hrRenderGetDeviceList(a_renderRef);
-
-  while (pList != nullptr)
-  {
-    std::wcout << L"device id = " << pList->id << L", name = " << pList->name << L", driver = " << pList->driver << std::endl;
-    pList = pList->next;
-  }
+  // auto pList = hrRenderGetDeviceList(a_renderRef);
+  // while (pList != nullptr)
+  // {
+  //   std::wcout << L"device id = " << pList->id << L", name = " << pList->name << L", driver = " << pList->driver << std::endl;
+  //   pList = pList->next;
+  // }
 
   hrRenderEnableDevice(a_renderRef, g_input.inDeviceId, true);
 
