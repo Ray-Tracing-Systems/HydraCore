@@ -1,6 +1,7 @@
 #include "mesh_utils.h"
 #include <cstdint>
 #include <math.h>
+#include <stddef.h>
 
 SimpleMesh CreatePlane(float a_size)
 {

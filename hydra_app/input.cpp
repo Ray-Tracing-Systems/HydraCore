@@ -4,7 +4,7 @@
 Input::Input()
 {
   noWindow      = false;           ///< run 'console_main', else run 'window_main'
-  //inLibraryPath = "tests/test_42"; ///< cornell box with teapot
+  inLibraryPath = "tests/test_42"; ///< cornell box with teapot
 
   //inLibraryPath = "tests/test_223_small"; ///< cornell box with mirror glossy back wall
   //inLibraryPath = "/home/frol/PROG/HydraAPI/main/tests/test_44";
@@ -13,7 +13,7 @@ Input::Input()
   //inLibraryPath = "D:/PROG/HydraAPI/main/tests/test_37";
   //inLibraryPath = "D:/PROG/HydraAPI/main/tests_f/test_204";
 
-  inLibraryPath = "C:/[Hydra]/pluginFiles/scenelib";
+ // inLibraryPath = "C:/[Hydra]/pluginFiles/scenelib";
   
   inDevelopment = true;  ///< recompile shaders each time; note that nvidia have their own shader cache!
   inDeviceId    = 0;     ///< opencl device id
