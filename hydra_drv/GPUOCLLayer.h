@@ -64,12 +64,14 @@ public:
 
   void ContribToExternalImageAccumulator(IHRSharedAccumImage* a_pImage);
 
-
-  size_t GetMicroThreadsNumber();
   size_t GetAvaliableMemoryAmount(bool allMem);
+  size_t GetMaxBufferSizeInBytes();
+
   size_t GetMemoryTaken();
   MRaysStat GetRaysStat();
   int32_t GetRayBuffSize() const override { return int32_t(m_rays.MEGABLOCKSIZE); }
+
+  char*  GetDeviceName(int* pOCLVer) const override;
 
   const HRRenderDeviceInfoListElem* ListDevices() const override;
 
@@ -178,7 +180,6 @@ protected:
   //
   int   m_initFlags;
   int   m_megaBlockSize;
-  int   m_megaBlocksNum;
   int   m_passNumber;
   int   m_passNumberForQMC;
   float m_spp;
@@ -391,10 +392,9 @@ protected:
   };
 
   size_t m_memoryTaken[MEM_TAKEN_OBJECTS_NUM];
-
-
-  Timer     m_timer;
+  Timer  m_timer;
   MRaysStat m_stat;
+  mutable char m_deviceName[1024];
 
   void runKernel_InitRandomGen(cl_mem a_buffer, size_t a_size, int a_seed);
   void runKernel_MakeEyeRays(cl_mem a_rpos, cl_mem a_rdir, cl_mem a_zindex, cl_mem a_pixWeights, size_t a_size, int a_passNumber);

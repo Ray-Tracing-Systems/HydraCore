@@ -823,9 +823,6 @@ void GPUOCLLayer::ResizeScreen(int width, int height, int a_flags)
   const size_t MEGABLOCK_SIZE = CalcMegaBlockSize(); // calcMegaBlockSize(m_width, m_height, memAmount);
 
   m_megaBlockSize = int(MEGABLOCK_SIZE);
-  m_megaBlocksNum = blocks(m_width*m_height, m_megaBlockSize);
-
-  std::cout << "[cl_core]: threadsNum = " << m_megaBlocksNum << std::endl;
 
   if (ciErr1 != CL_SUCCESS)
     RUN_TIME_ERROR("[cl_core]: Failed to create cl half screen zblocks buffer ");
@@ -856,9 +853,6 @@ void GPUOCLLayer::ResizeScreen(int width, int height, int a_flags)
   m_vars.m_varsF[HRT_MLT_SCREEN_SCALE_X] = clamp(scaleX, 1.0f, 4.0f);
   m_vars.m_varsF[HRT_MLT_SCREEN_SCALE_Y] = clamp(scaleY, 1.0f, 4.0f);
 
-  //std::cout << "[cl_core]: HRT_MLT_SCREEN_SCALE_X = " << m_vars.m_varsF[HRT_MLT_SCREEN_SCALE_X] << std::endl;
-  //std::cout << "[cl_core]: HRT_MLT_SCREEN_SCALE_Y = " << m_vars.m_varsF[HRT_MLT_SCREEN_SCALE_Y] << std::endl;
-
 }
 
 size_t GPUOCLLayer::GetAvaliableMemoryAmount(bool allMem)
@@ -881,9 +875,11 @@ size_t GPUOCLLayer::GetAvaliableMemoryAmount(bool allMem)
   return memLeft;
 }
 
-size_t GPUOCLLayer::GetMicroThreadsNumber()
+size_t GPUOCLLayer::GetMaxBufferSizeInBytes()
 {
-  return m_rays.MEGABLOCKSIZE;
+  cl_ulong maxBufferSize = 0;
+  CHECK_CL(clGetDeviceInfo(m_globals.device, CL_DEVICE_MAX_MEM_ALLOC_SIZE, sizeof(cl_ulong), &maxBufferSize, NULL));
+  return size_t(maxBufferSize);
 }
 
 size_t GPUOCLLayer::GetMemoryTaken()
@@ -892,6 +888,21 @@ size_t GPUOCLLayer::GetMemoryTaken()
   for (int i = 0; i < MEM_TAKEN_OBJECTS_NUM; i++)
     taken += m_memoryTaken[i];
   return taken;
+}
+
+
+char* GPUOCLLayer::GetDeviceName(int* pOCLVer) const
+{
+  memset(m_deviceName, 0, 1024);
+  CHECK_CL(clGetDeviceInfo(m_globals.device, CL_DEVICE_NAME, 1024, m_deviceName, NULL));
+
+  std::string devName2 = cutSpaces(m_deviceName);
+  strncpy(m_deviceName, devName2.c_str(), 1024);
+
+  if (pOCLVer != nullptr)
+    (*pOCLVer) = m_globals.oclVer;
+
+  return m_deviceName;
 }
 
 

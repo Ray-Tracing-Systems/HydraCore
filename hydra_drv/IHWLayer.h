@@ -147,11 +147,13 @@ public:
   virtual void GetLDRImage(uint32_t* data, int width, int height) const = 0;
   virtual void GetHDRImage(float4* data, int width, int height) const = 0;
 
-  virtual size_t GetAvaliableMemoryAmount(bool allMem = false) = 0;
-  virtual size_t GetMicroThreadsNumber() = 0;
+  virtual size_t    GetAvaliableMemoryAmount(bool allMem = false) = 0;
+  virtual size_t    GetMaxBufferSizeInBytes() { return GetAvaliableMemoryAmount(); }
 
   virtual MRaysStat GetRaysStat() = 0;
-  virtual int32_t GetRayBuffSize() const { return 0; }
+  virtual int32_t   GetRayBuffSize() const { return 0; }
+
+  virtual char*     GetDeviceName(int* pOCLVer = nullptr) const { return "CPU (Pure C/C++)"; }
 
   virtual const HRRenderDeviceInfoListElem* ListDevices() const { return nullptr; }
 

@@ -38,7 +38,6 @@ public:
 
   void ResizeScreen(int w, int h, int a_flags);
 
-  size_t GetMicroThreadsNumber();
   size_t GetAvaliableMemoryAmount(bool allMem);
   MRaysStat GetRaysStat();
 
@@ -94,11 +93,6 @@ void CPUExpLayer::ResizeScreen(int width, int height, int a_flags)
 size_t CPUExpLayer::GetAvaliableMemoryAmount(bool allMem)
 {
   return size_t(8) * size_t(1024 * 1024 * 1024); // 8 Gb 
-}
-
-size_t CPUExpLayer::GetMicroThreadsNumber()
-{
-  return m_width*m_height;
 }
 
 

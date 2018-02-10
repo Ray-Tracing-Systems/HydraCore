@@ -377,7 +377,7 @@ HRDriverAllocInfo RenderDriverRTE::AllocAll(HRDriverAllocInfo a_info)
   size_t memUsedByR = totalMem - freeMem;
   const size_t MB   = size_t(1024 * 1024);
 
-  size_t auxMemGeom = 0, auxMemTex = size_t(4096);
+  size_t auxMemGeom = 0, auxMemTex = 64 * MB;
   size_t newMemForGeo = a_info.geomMem; // size_t(0.85*double(a_info.geomMem)); // we can save ~ 15% due to tangent compression but thhis is hard to estimate precisly.
   size_t newMemForMat = a_info.matNum*approxSizeOfMatBlock;
   size_t newMemForTab = 8*MB; // depends on MAX_ENV_LIGHT_PDF_SIZE; #TODO: check this with larger environment lights !!!
@@ -415,6 +415,14 @@ HRDriverAllocInfo RenderDriverRTE::AllocAll(HRDriverAllocInfo a_info)
     newTotalMem   = newMemForTex3 + newMemForGeo + newMemForMat + newMemForTab;
   }
 
+  size_t maxBufferSize = m_pHWLayer->GetMaxBufferSizeInBytes();
+
+  newMemForTex1      = std::min<size_t>(newMemForTex1, maxBufferSize);
+  newMemForTex2      = std::min<size_t>(newMemForTex2, maxBufferSize);
+  newMemForGeo       = std::min<size_t>(newMemForGeo,  maxBufferSize);
+  newMemForMat       = std::min<size_t>(newMemForMat,  maxBufferSize);
+  newMemForTab       = std::min<size_t>(newMemForTab,  maxBufferSize);
+
   m_pTexStorage      = m_pHWLayer->CreateMemStorage(newMemForTex1, "textures");     // #TODO:  estimate this more carefully pls.
   m_pTexStorageAux   = m_pHWLayer->CreateMemStorage(newMemForTex2, "textures_aux"); // #TODO:  estimate this more carefully pls.
   m_pGeomStorage     = m_pHWLayer->CreateMemStorage(newMemForGeo,  "geom");         // #TODO:  estimate this more carefully pls.
@@ -443,9 +451,7 @@ HRDriverAllocInfo RenderDriverRTE::AllocAll(HRDriverAllocInfo a_info)
   std::cout << "[AllocAll]: MEM(TEXURE) = " << newMemForTex3 / MB << "\tMB" << std::endl; m_memAllocated += newMemForTex3;
   std::cout << "[AllocAll]: MEM(GEOM)   = " << newMemForGeo / MB << "\tMB" << std::endl;  m_memAllocated += newMemForGeo;
   std::cout << "[AllocAll]: MEM(PDFTAB) = " << (newMemForMat + newMemForTab) / MB << "\tMB" << std::endl; m_memAllocated += (newMemForMat + newMemForTab);
-  //std::cout << "[AllocAll]: MEM(TAKEN)  = " << newTotalMem / MB << "\tMB" << std::endl;
   std::cout << "[AllocAll]: MEM(RAYBUF) = " << memUsedByR / MB << "\tMB" << std::endl;    m_memAllocated += memUsedByR;
-  //std::cout << "[AllocAll]: MEM(TOTAL)  = " << totalMem / MB << "\tMB" << std::endl;
 
   if (newTotalMem >= freeMem)
   {
@@ -784,7 +790,7 @@ void RenderDriverRTE::EndScene() // #TODO: add dirty flags (?) to update only th
     m_pHWLayer->SetAllBVH4(convertedData, nullptr, bvhFlags); // set converted layout with matrices inside bvh tree itself
  
     const size_t bvhSize = EstimateBVHSize(convertedData);
-    std::cout << "[AllocBVH]: MEM(BVH)    = " << bvhSize / size_t(1024*1024) << "\tMB" << std::endl; m_memAllocated += bvhSize;
+    std::cout << "[EndScene]: MEM(BVH)    = " << bvhSize / size_t(1024*1024) << "\tMB" << std::endl; m_memAllocated += bvhSize;
 
     //PrintBVHStat(convertedData, true);
     //DebugSaveBVH("D:/temp/bvh_layers2", convertedData);
@@ -796,8 +802,13 @@ void RenderDriverRTE::EndScene() // #TODO: add dirty flags (?) to update only th
       m_alphaAuxBuffers.buf[i] = std::vector<uint2>();
 
     const size_t totalMem = m_pHWLayer->GetAvaliableMemoryAmount(true);
-    std::cout << "[AllocAll]: MEM(TAKEN)  = " << m_memAllocated / size_t(1024 * 1024) << "\tMB" << std::endl;
-    std::cout << "[AllocAll]: MEM(TOTAL)  = " << totalMem / size_t(1024 * 1024) << "\tMB" << std::endl;
+    std::cout << "[EndScene]: MEM(TAKEN)  = " << m_memAllocated / size_t(1024 * 1024) << "\tMB" << std::endl;
+    std::cout << "[EndScene]: MEM(TOTAL)  = " << totalMem / size_t(1024 * 1024) << "\tMB" << std::endl;
+    std::cout << std::endl;
+
+    int oclVer = 0;
+    std::cout << "[EndScene]: using device: " << m_pHWLayer->GetDeviceName(&oclVer) << std::endl;
+    std::cout << "[EndScene]: using cl_ver: " << oclVer << std::endl;
     std::cout << std::endl;
   }
   else
