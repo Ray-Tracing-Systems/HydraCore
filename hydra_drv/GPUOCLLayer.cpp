@@ -459,6 +459,14 @@ GPUOCLLayer::GPUOCLLayer(int w, int h, int a_flags, int a_deviceId) : Base(w, h,
     std::cout << "[cl_core]: using lite core "<< std::endl;
 
   int selectedDeviceId = a_deviceId;
+
+  if (selectedDeviceId >= devList.size())
+  {
+    std::cerr << "[cl_core]: CRITICAL ERROR! No device with id = " << selectedDeviceId << " have found! " << std::endl;
+    std::cerr.flush();
+    exit(0);
+  }
+
   m_globals.device     = devList[selectedDeviceId].dev;
   m_globals.platform   = devList[selectedDeviceId].platform;
 

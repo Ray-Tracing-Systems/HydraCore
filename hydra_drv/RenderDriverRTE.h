@@ -93,7 +93,7 @@ struct RenderDriverRTE : public IHRRenderDriver
 
   HRDriverInfo Info();
   const HRRenderDeviceInfoListElem* DeviceList() const override;
-  void EnableDevice(int32_t id, bool a_enable);
+  bool EnableDevice(int32_t id, bool a_enable) override;
 
   HRDriverDependencyInfo DependencyInfo();
 

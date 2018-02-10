@@ -1310,10 +1310,11 @@ const HRRenderDeviceInfoListElem* RenderDriverRTE::DeviceList() const
   return m_pHWLayer->ListDevices();
 }
 
-void RenderDriverRTE::EnableDevice(int32_t id, bool a_enable)
+bool RenderDriverRTE::EnableDevice(int32_t id, bool a_enable)
 {
   if(a_enable)
     m_devId = id;
+  return true;
 }
 
 IHRRenderDriver* CreateDriverRTE(const wchar_t* a_cfg, int w, int h, int a_devId, int a_flags, IHRSharedAccumImage* a_sharedImage)
