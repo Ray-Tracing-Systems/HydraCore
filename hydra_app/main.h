@@ -22,7 +22,6 @@
 #endif
 
 #include "input.h"
-#include "mesh_utils.h"
 
 #include "../../HydraAPI/hydra_api/HydraAPI.h"
 #include "../../HydraAPI/hydra_api/HydraXMLHelpers.h"

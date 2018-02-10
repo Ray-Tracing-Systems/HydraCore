@@ -9,8 +9,6 @@ set(SOURCE_FILES
         main_app_window.cpp
         main.cpp
         main.h
-        mesh_utils.cpp
-        mesh_utils.h
         ${CMAKE_SOURCE_DIR}/../HydraAPI/main/Timer.h
         ${CMAKE_SOURCE_DIR}/../HydraAPI/main/Timer.cpp
     )

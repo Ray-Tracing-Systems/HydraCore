@@ -16,7 +16,7 @@ Input::Input()
  // inLibraryPath = "C:/[Hydra]/pluginFiles/scenelib";
   
   inDevelopment = true;  ///< recompile shaders each time; note that nvidia have their own shader cache!
-  inDeviceId    = 0;     ///< opencl device id
+  inDeviceId    = 1;     ///< opencl device id
   cpuFB         = false; ///< store frame buffer on CPU. Automaticly enabled if
   enableMLT     = false; ///< not used currently
 
