@@ -750,6 +750,8 @@ __kernel void Shade(__global const float4*    restrict a_rpos,
   float fShadowSamples = 1.0f;
   shadeColor *= (fVisiableLightsNum / fShadowSamples);
 
+  // shadeColor = make_float3(0, 0, 0);
+
   out_color[tid] = to_float4(shadeColor, lightPickProb);
 } 
 
@@ -1088,76 +1090,60 @@ __kernel void NextTransparentBounce(__global   float4*    a_rpos,
                                     __global   float4*    a_rdir,
                                     __global   uint*      a_flags,
                                     
-                                    __global float4*    in_hitPosNorm,
-                                    __global float2*    in_hitTexCoord,
-                                    __global HitMatRef* in_matData,
+                                    __global float4*      in_hitPosNorm,
+                                    __global float2*      in_hitTexCoord,
+                                    __global HitMatRef*   in_matData,
                                     
-                                    __global float4*    a_color,
-                                    __global float4*    a_thoroughput,
-                                    __global float4*    a_fog,
-                                 
-                                    texture2d_t         a_shadingTexture,    
-                                    
-                                    int iNumElements,
-                                    __global const EngineGlobals* a_globals)
+                                    __global float4*              a_thoroughput,  
+                                    __global const float4*        in_mtlStorage,
+                                    texture2d_t                   in_shadingTexture,    
+                                    __global const EngineGlobals* in_globals,
+                                    int iNumElements)
 {
-  __global const float4* in_mtlStorage = 0; // #TODO: fix
 
   int tid = GLOBAL_ID_X;
   if (tid >= iNumElements)
     return;
 
   uint flags = a_flags[tid];
-
-  /*
-  if (unpackRayFlags(flags) & RAY_GRAMMAR_OUT_OF_SCENE) // if hit environment
-  {
-    a_color[tid]       = make_float4(1.0f, 1.0f, 1.0f, 1.0f);
-    a_thoroughput[tid] = make_float4(1.0f, 1.0f, 1.0f, 1.0f);
-  }
-  else
-  {
-    a_color[tid]       = make_float4(0.0f, 0.0f, 0.0f, 0.0f);
-    a_thoroughput[tid] = make_float4(0.0f, 0.0f, 0.0f, 0.0f);
-  }
-  */
   
   if (unpackRayFlags(flags) & RAY_GRAMMAR_OUT_OF_SCENE) // if hit environment
   {
     uint otherFlags    = unpackRayFlags(flags);
     a_flags[tid]       = packRayFlags(flags, (otherFlags & (~RAY_GRAMMAR_OUT_OF_SCENE)) | RAY_IS_DEAD); // disable RAY_GRAMMAR_OUT_OF_SCENE, write flags;
-    a_color[tid]       = a_thoroughput[tid];
-    a_thoroughput[tid] = make_float4(0.0f, 0.0f, 0.0f, 0.0f);
   }
-
-  if (rayIsActiveU(flags))
+  else if (rayIsActiveU(flags))
   {
-    float4 data = in_hitPosNorm[tid];
+    const float4 data = in_hitPosNorm[tid];
+   
+    const float3 hitPos      = to_float3(data);
+    const float3 hitNorm     = normalize(decodeNormal(as_int(data.w)));
+    const float2 hitTexCoord = in_hitTexCoord[tid];
 
-    float3 hitPos      = to_float3(data);
-    float3 hitNorm     = normalize(decodeNormal(as_int(data.w)));
-    float2 hitTexCoord = in_hitTexCoord[tid];
-
-    __global const PlainMaterial* pHitMaterial = materialAt(a_globals, in_mtlStorage, GetMaterialId(in_matData[tid]));
+    __global const PlainMaterial* pHitMaterial = materialAt(in_globals, in_mtlStorage, GetMaterialId(in_matData[tid]));
 
     ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-    float3 ray_pos = to_float3(a_rpos[tid]);
-    float3 ray_dir = to_float3(a_rdir[tid]);
+    if (pHitMaterial != 0)
+    {
+      const float3 ray_pos = to_float3(a_rpos[tid]);
+      const float3 ray_dir = to_float3(a_rdir[tid]);
 
-    TransparencyAndFog matFogAndTransp = materialEvalTransparencyAndFog(pHitMaterial, ray_dir, hitNorm, hitTexCoord, a_globals, a_shadingTexture);
+      TransparencyAndFog matFogAndTransp = materialEvalTransparencyAndFog(pHitMaterial, ray_dir, hitNorm, hitTexCoord, in_globals, in_shadingTexture);
 
-    float4 newPathThroughput = a_thoroughput[tid] * to_float4(matFogAndTransp.transparency, 1);
+      float4 newPathThroughput = a_thoroughput[tid] * to_float4(matFogAndTransp.transparency, 1.0f);
 
-    float offsetLength = 10.0f*fmax(fmax(fabs(hitPos.x), fmax(fabs(hitPos.y), fabs(hitPos.z))), GEPSILON)*GEPSILON;
-    ray_pos = hitPos + ray_dir*offsetLength;
-    a_rpos[tid] = to_float4(ray_pos, 0.0f);
+      const float3 nextRay_pos = OffsRayPos(hitPos, hitNorm, ray_dir);
 
-    if (maxcomp(to_float3(newPathThroughput)) < 0.00001f)
-      flags = packRayFlags(flags, unpackRayFlags(flags) | RAY_IS_DEAD);
+      if (maxcomp(to_float3(newPathThroughput)) < 0.00001f)
+        flags = packRayFlags(flags, unpackRayFlags(flags) | RAY_IS_DEAD);
 
-    a_flags[tid]       = flags;
-    a_thoroughput[tid] = newPathThroughput;
+      a_rpos [tid] = to_float4(nextRay_pos, 0.0f);
+      a_flags[tid] = flags;
+      a_thoroughput[tid] = newPathThroughput;
+    }
+
+    ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
   } //  if (rayIsActiveU(flags))
   
@@ -1453,7 +1439,7 @@ __kernel void GetGBufferSample(__global const float4*    a_rdir,
 
       if (diff < minDiff)
       {
-        minDiff = diff;
+        minDiff   = diff;
         minDiffId = i;
       }
     }
@@ -1463,6 +1449,44 @@ __kernel void GetGBufferSample(__global const float4*    a_rdir,
   }
 
 }
+
+__kernel void PutAlphaToGBuffer(__global const float4* restrict in_thoroughput,
+                                __global float4*       restrict inout_gbuff1,
+                                int a_size)
+{
+  int tid = GLOBAL_ID_X;
+  if (tid >= a_size)
+    return;
+
+  const float4 thoroughput = in_thoroughput[tid];
+
+  const float opacity = fmax(thoroughput.x, fmax(thoroughput.y, thoroughput.z));
+  const float alpha   = 1.0f - clamp(opacity, 0.0f, 1.0f);
+
+  ///////////////////////////////////////////////////////////////////////////////////////
+  __local float sArray[GBUFFER_SAMPLES];
+  sArray[LOCAL_ID_X] = alpha;
+
+  barrier(CLK_LOCAL_MEM_FENCE);
+
+  for (uint c = GBUFFER_SAMPLES / 2; c>0; c /= 2)
+  {
+    if (LOCAL_ID_X < c)
+      sArray[LOCAL_ID_X] += sArray[LOCAL_ID_X + c];
+    barrier(CLK_LOCAL_MEM_FENCE);
+  }
+  ///////////////////////////////////////////////////////////////////////////////////////
+
+  if (LOCAL_ID_X == 0)
+  {
+    const int bid     = tid / GBUFFER_SAMPLES;
+    GBuffer1 data1    = unpackGBuffer1(inout_gbuff1[bid]);
+    data1.rgba.w      = sArray[0]*(1.0f/ (float)GBUFFER_SAMPLES);
+    inout_gbuff1[bid] = packGBuffer1(data1);
+  }
+}
+
+
 
 // change 31.01.2018 15:20;
 

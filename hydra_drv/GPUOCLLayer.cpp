@@ -1157,8 +1157,13 @@ void GPUOCLLayer::ConnectEyePass(cl_mem in_rayFlags, cl_mem in_hitPos, cl_mem in
   AddContributionToScreen(m_rays.pathShadeColor); // because GPU contributio for LT could be very expensieve (imagine point light)
 }
 
+void DebugSaveFuckingGBufferAsManyImages(int a_width, int a_height, const std::vector<GBufferAll>& gbuffer, const wchar_t* a_path);
+
 void GPUOCLLayer::EvalGBuffer(IHRSharedAccumImage* a_pAccumImage)
 {
+  // std::vector<float4> data1(m_width*m_height);
+  // std::vector<float4> data2(m_width*m_height);
+
   if (a_pAccumImage == nullptr)
     return;
 
@@ -1183,17 +1188,17 @@ void GPUOCLLayer::EvalGBuffer(IHRSharedAccumImage* a_pAccumImage)
     a_pAccumImage->Unlock();
     return;
   }
+ 
 
   /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////// #TODO: refactor this
-
   float4* data1 = nullptr;
   float4* data2 = nullptr;
-  if (a_pAccumImage->Header()->depth == 4) // some other process already have computed gbuffer
+  if (a_pAccumImage->Header()->depth == 4)     // 
   {
     data1 = (float4*)a_pAccumImage->ImageData(2);
     data2 = (float4*)a_pAccumImage->ImageData(3);
   }
-  else if (a_pAccumImage->Header()->depth == 3) // some other process already have computed gbuffer
+  else if (a_pAccumImage->Header()->depth == 3) // 
   {
     data1 = (float4*)a_pAccumImage->ImageData(1);
     data2 = (float4*)a_pAccumImage->ImageData(2);
@@ -1205,6 +1210,7 @@ void GPUOCLLayer::EvalGBuffer(IHRSharedAccumImage* a_pAccumImage)
     return;
   }
   /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////// #TODO: refactor this
+ 
 
   size_t  bufferSize = m_rays.MEGABLOCKSIZE;
   int32_t lineSize   = m_width * GBUFFER_SAMPLES;
@@ -1240,19 +1246,50 @@ void GPUOCLLayer::EvalGBuffer(IHRSharedAccumImage* a_pAccumImage)
 
     // (3) get compressed samples
     //
-    runKernel_GetGBufferSamples(m_rays.rayDir, m_rays.pathAccColor, m_rays.pathThoroughput, GBUFFER_SAMPLES, finalSize);
+    runKernel_GetGBufferSamples(m_rays.rayDir, m_rays.pathAccColor, m_rays.pathShadeColor, GBUFFER_SAMPLES, finalSize);
 
-    // (4) pass them to the host mem
+    // (4) trace some more bounces to get alpha.
+    //
+    memsetf4(m_rays.pathThoroughput, make_float4(1, 1, 1, 1), finalSize);
+
+    const int maxBounce = m_vars.m_varsI[HRT_TRACE_DEPTH];
+    for (int bounce = 1; bounce < maxBounce; bounce++)
+    {
+      runKernel_NextTransparentBounce(m_rays.rayPos, m_rays.rayDir, m_rays.pathThoroughput, finalSize);
+      if (bounce == maxBounce - 1)
+        break;
+      runKernel_Trace                (m_rays.rayPos, m_rays.rayDir, m_rays.hits,            finalSize);
+      runKernel_ComputeHit           (m_rays.rayPos, m_rays.rayDir,                         finalSize);
+    }
+
+    runKernel_PutAlphaToGBuffer(m_rays.pathThoroughput, m_rays.pathAccColor, finalSize);
+
+    // (5) pass them to the host mem
     //
     CHECK_CL(clEnqueueReadBuffer(m_globals.cmdQueue, m_rays.pathAccColor,    CL_FALSE, 0, (finalSize/GBUFFER_SAMPLES)*sizeof(float4), &data1[line*m_width], 0, NULL, NULL));
-    CHECK_CL(clEnqueueReadBuffer(m_globals.cmdQueue, m_rays.pathThoroughput, CL_FALSE, 0, (finalSize/GBUFFER_SAMPLES)*sizeof(float4), &data2[line*m_width], 0, NULL, NULL));
+    CHECK_CL(clEnqueueReadBuffer(m_globals.cmdQueue, m_rays.pathShadeColor,  CL_FALSE, 0, (finalSize/GBUFFER_SAMPLES)*sizeof(float4), &data2[line*m_width], 0, NULL, NULL));
   }
 
   clFinish(m_globals.cmdQueue);
 
-  a_pAccumImage->Header()->gbufferIsEmpty = 0;
-  a_pAccumImage->Unlock();
+  // //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  // std::vector<GBufferAll> gbuffer(m_width*m_height);
+  // #pragma omp parallel for
+  // for (int i = 0; i < int(gbuffer.size()); i++)
+  // {
+  //   GBufferAll all;
+  //   all.data1 = unpackGBuffer1(data1[i]);
+  //   all.data2 = unpackGBuffer2(data2[i]);
+  //   gbuffer[i] = all;
+  // }
+  // DebugSaveFuckingGBufferAsManyImages(m_width, m_height, gbuffer, L"gbufferout");
+  // //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+  if (a_pAccumImage != nullptr)
+  {
+    a_pAccumImage->Header()->gbufferIsEmpty = 0;
+    a_pAccumImage->Unlock();
+  }
 }
 
 void GPUOCLLayer::BeginTracingPass()
