@@ -228,8 +228,8 @@ void console_main(std::shared_ptr<IHRRenderDriver> a_pDetachedRenderDriverPointe
 
   static int prevMessageId = 0;
 
-  //GetGBuffer(a_pDetachedRenderDriverPointer);
-  //g_input.exitStatus = true;
+  // GetGBuffer(a_pDetachedRenderDriverPointer);
+  // g_input.exitStatus = true;
 
   while (!g_input.exitStatus)
   {    
