@@ -627,13 +627,14 @@ void GPUOCLLayer::ShadePass(cl_mem a_rpos, cl_mem a_rdir, cl_mem a_outColor, siz
     CHECK_CL(clSetKernelArg(kernZ, 16, sizeof(cl_mem), (void*)&m_rays.oldFlags));     // camPdfA
 
     CHECK_CL(clSetKernelArg(kernZ, 17, sizeof(cl_mem), (void*)&a_outColor));
+    CHECK_CL(clSetKernelArg(kernZ, 18, sizeof(cl_mem), (void*)&m_rays.pathShadow8B));
 
-    CHECK_CL(clSetKernelArg(kernZ, 18, sizeof(cl_mem), (void*)&m_scene.storageTex));
-    CHECK_CL(clSetKernelArg(kernZ, 19, sizeof(cl_mem), (void*)&m_scene.storageTexAux));
-    CHECK_CL(clSetKernelArg(kernZ, 20, sizeof(cl_mem), (void*)&m_scene.storageMat));
-    CHECK_CL(clSetKernelArg(kernZ, 21, sizeof(cl_mem), (void*)&m_scene.storagePdfs));
-    CHECK_CL(clSetKernelArg(kernZ, 22, sizeof(cl_mem), (void*)&m_scene.allGlobsData));
-    CHECK_CL(clSetKernelArg(kernZ, 23, sizeof(cl_int), (void*)&isize));
+    CHECK_CL(clSetKernelArg(kernZ, 19, sizeof(cl_mem), (void*)&m_scene.storageTex));
+    CHECK_CL(clSetKernelArg(kernZ, 20, sizeof(cl_mem), (void*)&m_scene.storageTexAux));
+    CHECK_CL(clSetKernelArg(kernZ, 21, sizeof(cl_mem), (void*)&m_scene.storageMat));
+    CHECK_CL(clSetKernelArg(kernZ, 22, sizeof(cl_mem), (void*)&m_scene.storagePdfs));
+    CHECK_CL(clSetKernelArg(kernZ, 23, sizeof(cl_mem), (void*)&m_scene.allGlobsData));
+    CHECK_CL(clSetKernelArg(kernZ, 24, sizeof(cl_int), (void*)&isize));
     //CHECK_CL(clSetKernelArg(kernZ, 24, sizeof(cl_mem), (void*)&m_rays.debugf4));
 
     CHECK_CL(clEnqueueNDRangeKernel(m_globals.cmdQueue, kernZ, 1, NULL, &a_size, &localWorkSize, 0, NULL, NULL));  

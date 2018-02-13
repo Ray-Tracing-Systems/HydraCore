@@ -51,11 +51,16 @@ void GPUOCLLayer::CL_BUFFERS_RAYS::free()
   if (pathAccColor)    { clReleaseMemObject(pathAccColor);    pathAccColor = nullptr;    }
   if (pathAuxColor)    { clReleaseMemObject(pathAuxColor);    pathAuxColor = nullptr;    }
   if (randGenState)    { clReleaseMemObject(randGenState);    randGenState = nullptr;    }
+
+  if (pathShadow8B)       { clReleaseMemObject(pathShadow8B);       pathShadow8B       = nullptr; }
+  if (pathShadow8BAux)    { clReleaseMemObject(pathShadow8BAux);    pathShadow8BAux    = nullptr; }
+  if (pathShadow8BAuxCPU) { clReleaseMemObject(pathShadow8BAuxCPU); pathShadow8BAuxCPU = nullptr; }
+
   if (pathAuxColorCPU) { clReleaseMemObject(pathAuxColorCPU); pathAuxColorCPU = nullptr; }
 
   if (lsam1)           { clReleaseMemObject(lsam1); lsam1 = nullptr; }
   if (lsam2)           { clReleaseMemObject(lsam2); lsam2 = nullptr; }
-  if (lsamCos)      { clReleaseMemObject(lsamCos); lsamCos = nullptr; }
+  if (lsamCos)         { clReleaseMemObject(lsamCos); lsamCos = nullptr; }
 
   if (shadowRayPos)    { clReleaseMemObject(shadowRayPos); shadowRayPos = nullptr; }
   if (shadowRayDir)    { clReleaseMemObject(shadowRayDir); shadowRayDir = nullptr; }
@@ -119,23 +124,9 @@ size_t GPUOCLLayer::CL_BUFFERS_RAYS::resize(cl_context ctx, cl_command_queue cmd
   if (ciErr1 != CL_SUCCESS)
     RUN_TIME_ERROR("Error in resize rays buffers");
 
-  if (a_cpuFB)
-  {
-    pathAuxColor    = clCreateBuffer(ctx, CL_MEM_READ_WRITE,                         4 * sizeof(cl_float)*MEGABLOCKSIZE, NULL, &ciErr1);  currSize += buff1Size * 4;
-    pathAuxColorCPU = clCreateBuffer(ctx, CL_MEM_WRITE_ONLY | CL_MEM_ALLOC_HOST_PTR, 4 * sizeof(cl_float)*MEGABLOCKSIZE, NULL, &ciErr1);  currSize += buff1Size * 4;
-  }
-  else
-  {
-    pathAuxColor    = nullptr;
-    pathAuxColorCPU = nullptr;
-  }
-
-  if (ciErr1 != CL_SUCCESS)
-    RUN_TIME_ERROR("Error in resize rays buffers");
-
-  lsam1      = clCreateBuffer(ctx, CL_MEM_READ_WRITE | shareFlags, 4 * sizeof(cl_float)*MEGABLOCKSIZE, NULL, &ciErr1);     currSize += buff1Size * 4;
-  lsam2      = clCreateBuffer(ctx, CL_MEM_READ_WRITE | shareFlags, 4 * sizeof(cl_float)*MEGABLOCKSIZE, NULL, &ciErr1);     currSize += buff1Size * 4;
-  lsamCos    = clCreateBuffer(ctx, CL_MEM_READ_WRITE | shareFlags, 4 * sizeof(cl_float)*MEGABLOCKSIZE, NULL, &ciErr1);     currSize += buff1Size * 4;
+  lsam1        = clCreateBuffer(ctx, CL_MEM_READ_WRITE | shareFlags, 4 * sizeof(cl_float)*MEGABLOCKSIZE, NULL, &ciErr1);     currSize += buff1Size * 4;
+  lsam2        = clCreateBuffer(ctx, CL_MEM_READ_WRITE | shareFlags, 4 * sizeof(cl_float)*MEGABLOCKSIZE, NULL, &ciErr1);     currSize += buff1Size * 4;
+  lsamCos      = clCreateBuffer(ctx, CL_MEM_READ_WRITE | shareFlags, 4 * sizeof(cl_float)*MEGABLOCKSIZE, NULL, &ciErr1);     currSize += buff1Size * 4;
                                                                                                                           
   shadowRayPos = clCreateBuffer(ctx, CL_MEM_READ_WRITE | shareFlags, 4 * sizeof(cl_float)*MEGABLOCKSIZE, NULL, &ciErr1);   currSize += buff1Size * 4;
   shadowRayDir = clCreateBuffer(ctx, CL_MEM_READ_WRITE | shareFlags, 4 * sizeof(cl_float)*MEGABLOCKSIZE, NULL, &ciErr1);   currSize += buff1Size * 4;
@@ -155,6 +146,30 @@ size_t GPUOCLLayer::CL_BUFFERS_RAYS::resize(cl_context ctx, cl_command_queue cmd
   lsamProb = clCreateBuffer(ctx, CL_MEM_READ_WRITE,              1 * sizeof(cl_float)*MEGABLOCKSIZE, NULL, &ciErr1);        currSize += buff1Size * 1;
   lshadow  = clCreateBuffer(ctx, CL_MEM_READ_WRITE | shareFlags, 4 * sizeof(cl_ushort)*MEGABLOCKSIZE, NULL, &ciErr1);       currSize += buff1Size * 4;
   fogAtten = clCreateBuffer(ctx, CL_MEM_READ_WRITE,              4 * sizeof(cl_float)*MEGABLOCKSIZE, NULL, &ciErr1);        currSize += buff1Size * 4;
+
+  if (ciErr1 != CL_SUCCESS)
+    RUN_TIME_ERROR("Error in resize rays buffers");
+
+  if (a_cpuFB)
+  {
+    pathAuxColor       = clCreateBuffer(ctx, CL_MEM_READ_WRITE,                         4 * sizeof(cl_float)*MEGABLOCKSIZE, NULL, &ciErr1); currSize += buff1Size * 4;
+    pathAuxColorCPU    = clCreateBuffer(ctx, CL_MEM_WRITE_ONLY | CL_MEM_ALLOC_HOST_PTR, 4 * sizeof(cl_float)*MEGABLOCKSIZE, NULL, &ciErr1);  
+
+    pathShadow8B       = clCreateBuffer(ctx, CL_MEM_READ_WRITE,                         1 * sizeof(cl_uint8)*MEGABLOCKSIZE, NULL, &ciErr1); currSize += (a_size * sizeof(cl_uint8));
+    pathShadow8BAux    = clCreateBuffer(ctx, CL_MEM_READ_WRITE,                         1 * sizeof(cl_uint8)*MEGABLOCKSIZE, NULL, &ciErr1); currSize += (a_size * sizeof(cl_uint8));
+    pathShadow8BAuxCPU = clCreateBuffer(ctx, CL_MEM_WRITE_ONLY | CL_MEM_ALLOC_HOST_PTR, 1 * sizeof(cl_uint8)*MEGABLOCKSIZE, NULL, &ciErr1); 
+  }
+  else
+  {
+    pathAuxColor       = nullptr;
+    pathAuxColorCPU    = nullptr;
+    pathShadow8B       = nullptr;
+    pathShadow8BAux    = nullptr;
+    pathShadow8BAuxCPU = nullptr;
+  }
+
+  if (ciErr1 != CL_SUCCESS)
+    RUN_TIME_ERROR("Error in resize rays buffers");
 
   if (false) // USE_BILINEAR_2D_SAMPLING
   {
@@ -1382,12 +1397,44 @@ void AddSamplesContribution(float4* out_color, const float4* colors, int a_size,
   }
 }
 
+/**
+\brief Add contribution with storing shadows in the fourth channel
+\param out_color  - out float4 image of size a_width*a_height
+\param colors     - in float4 array of size a_size
+\param shadows    - in cl_uint8 array of compressed shadow value
+\param a_size     - array size
+\param a_width    - image width
+\param a_height   - image height
+
+*/
+void AddSamplesContributionS(float4* out_color, const float4* colors, const unsigned char* shadows, int a_size, int a_width, int a_height)
+{
+  const float multInv = 1.0f / 255.0f;
+
+  for (int i = 0; i < a_size; i++)
+  {
+    const float4 color    = colors[i];
+    const auto   shad     = shadows[i];
+
+    const int packedIndex = as_int(color.w);
+    const int x           = (packedIndex & 0x0000FFFF);
+    const int y           = (packedIndex & 0xFFFF0000) >> 16;
+    const int offset      = y * a_width + x;
+
+    if (x >= 0 && y >= 0 && x < a_width && y < a_height)
+    {
+      out_color[offset].x += color.x;
+      out_color[offset].y += color.y;
+      out_color[offset].z += color.z;
+      out_color[offset].w += multInv * float(shad);
+    }
+  }
+}
+
 void GPUOCLLayer::AddContributionToScreenCPU(cl_mem& in_color, cl_mem in_indices, int a_size, int a_width, int a_height, float4* out_color)
 {
   // (1) compute compressed index in color.w; use runKernel_MakeEyeRaysAndClearUnified for that task if CPU FB is enabled!!!
   //
-  cl_mem old_color = m_rays.pathAuxColor;
-
   size_t szLocalWorkSize = 256;
   cl_int iNumElements    = cl_int(a_size);
   size_t size            = roundBlocks(size_t(a_size), int(szLocalWorkSize));
@@ -1410,9 +1457,16 @@ void GPUOCLLayer::AddContributionToScreenCPU(cl_mem& in_color, cl_mem in_indices
   //
   if (m_passNumber != 0)
   {
-    CHECK_CL(clEnqueueCopyBuffer(m_globals.cmdQueueDevToHost, old_color, m_rays.pathAuxColorCPU, 0, 0, a_size * sizeof(float4), 0, nullptr, nullptr));
+    clEnqueueCopyBuffer(m_globals.cmdQueueDevToHost, m_rays.pathAuxColor, m_rays.pathAuxColorCPU, 0, 0, a_size * sizeof(float4), 0, nullptr, nullptr);
+    if (m_storeShadowInAlphaChannel)
+      clEnqueueCopyBuffer(m_globals.cmdQueueDevToHost, m_rays.pathShadow8BAux, m_rays.pathShadow8BAuxCPU, 0, 0, a_size * sizeof(float4), 0, nullptr, nullptr);
+
     cl_int ciErr1  = 0;
     float4* colors = (float4*)clEnqueueMapBuffer(m_globals.cmdQueueDevToHost, m_rays.pathAuxColorCPU, CL_TRUE, CL_MAP_READ, 0, a_size * sizeof(float4), 0, 0, 0, &ciErr1);
+
+    cl_uint8* shadows = nullptr;
+    if (m_storeShadowInAlphaChannel)
+      shadows = (cl_uint8*)( clEnqueueMapBuffer(m_globals.cmdQueueDevToHost, m_rays.pathShadow8BAuxCPU, CL_TRUE, CL_MAP_READ, 0, a_size * sizeof(cl_uint8), 0, 0, 0, &ciErr1) );
 
     bool lockSuccess = (m_pExternalImage == nullptr);
     if (m_pExternalImage != nullptr)
@@ -1420,7 +1474,10 @@ void GPUOCLLayer::AddContributionToScreenCPU(cl_mem& in_color, cl_mem in_indices
     
     if (lockSuccess)
     {
-      AddSamplesContribution(out_color, colors, size, a_width, a_height);
+      if (m_storeShadowInAlphaChannel)
+        AddSamplesContributionS(out_color, colors, (const unsigned char*)shadows, size, a_width, a_height);
+      else
+        AddSamplesContribution(out_color, colors, size, a_width, a_height);
 
       if (m_pExternalImage != nullptr) //#TODO: if ((m_vars.m_flags & HRT_FORWARD_TRACING) == 0) IT IS DIFFERENT FOR LT !!!!!!!!!!
       {
@@ -1433,18 +1490,24 @@ void GPUOCLLayer::AddContributionToScreenCPU(cl_mem& in_color, cl_mem in_indices
       }
     }
 
-    CHECK_CL(clEnqueueUnmapMemObject(m_globals.cmdQueueDevToHost, m_rays.pathAuxColorCPU, colors, 0, 0, 0));
+    clEnqueueUnmapMemObject(m_globals.cmdQueueDevToHost, m_rays.pathAuxColorCPU, colors, 0, 0, 0);
+    if (m_storeShadowInAlphaChannel)
+      clEnqueueUnmapMemObject(m_globals.cmdQueueDevToHost, m_rays.pathShadow8BAuxCPU, shadows, 0, 0, 0);
   }
 
   clFinish(m_globals.cmdQueueDevToHost);
   clFinish(m_globals.cmdQueue);
 
-  // (3) swap color buffers
+  // (3) swap color and shadow8 buffers
   //
   {
-    cl_mem temp          = m_rays.pathAuxColor;
-    m_rays.pathAuxColor  = in_color;
-    in_color             = temp;
+    cl_mem temp         = m_rays.pathAuxColor;
+    m_rays.pathAuxColor = in_color;
+    in_color            = temp;
+
+    temp                   = m_rays.pathShadow8BAux;
+    m_rays.pathShadow8BAux = m_rays.pathShadow8B;
+    m_rays.pathShadow8B    = temp;
   }
 }
 

@@ -110,41 +110,8 @@ protected:
   void CreateBuffersGeom(InputGeom a_input, cl_mem_flags a_flags);
   void CreateBuffersBVH(InputGeomBVH a_input, cl_mem_flags a_flags);
 
-  struct SubPixelTempData
-  {
-    SubPixelTempData() : sppPosBuff(0), pixelsBuff(0), resultBuff(0), resultBuff2(0), resultDS(0), pixelsBuffAppend(0), resultBuffAppend(0), resultBuffAppend2(0), atomicCounter(0) {}
-    ~SubPixelTempData()
-    {
-      if (sppPosBuff) clReleaseMemObject(sppPosBuff); sppPosBuff = 0;
-      if (pixelsBuff) clReleaseMemObject(pixelsBuff); pixelsBuff = 0;
-      if (resultBuff) clReleaseMemObject(resultBuff); resultBuff = 0;
-      if (resultBuff2)clReleaseMemObject(resultBuff2);resultBuff2 = 0;
-      if (resultDS)   clReleaseMemObject(resultDS);   resultDS = 0;
-
-      if (pixelsBuffAppend) clReleaseMemObject(pixelsBuffAppend); pixelsBuffAppend = 0;
-      if (resultBuffAppend2)clReleaseMemObject(resultBuffAppend2);resultBuffAppend2= 0;
-      if (resultBuffAppend) clReleaseMemObject(resultBuffAppend); resultBuffAppend = 0;
-      if (atomicCounter)    clReleaseMemObject(atomicCounter);    atomicCounter    = 0;
-    }
-
-    cl_mem sppPosBuff;
-    cl_mem pixelsBuff;
-    cl_mem resultBuff;
-    cl_mem resultBuff2;
-    cl_mem resultDS;
-
-    cl_mem pixelsBuffAppend;
-    cl_mem resultBuffAppend;
-    cl_mem resultBuffAppend2;
-    cl_mem atomicCounter;
-
-    std::vector<float4> m_clustNormals;
-    std::vector<float4> m_clustColors;
-    std::vector<int4>   m_clustBegEnd;
-  };
-
   void memsetu32(cl_mem buff, uint a_val, size_t a_size);
-  void memsetf4(cl_mem buff, float4 a_val, size_t a_size, size_t a_offset = 0);
+  void memsetf4 (cl_mem buff, float4 a_val, size_t a_size, size_t a_offset = 0);
   void memcpyu32(cl_mem buff1, uint a_offset1, cl_mem buff2, uint a_offset2, size_t a_size);
 
   void float2half(cl_mem buffIn, cl_mem buffOut, size_t a_size);
@@ -244,7 +211,7 @@ protected:
   struct CL_BUFFERS_RAYS
   {
     CL_BUFFERS_RAYS() : rayPos(0), rayDir(0), hits(0), rayFlags(0), hitPosNorm(0), hitTexCoord(0), hitMatId(0), hitTangent(0), hitFlatNorm(0), hitPrimSize(0), hitNormUncompressed(0),
-                        pathThoroughput(0), pathMisDataPrev(0), pathShadeColor(0), pathAccColor(0), pathAuxColor(0), randGenState(0), pathAuxColorCPU(0),
+                        pathThoroughput(0), pathMisDataPrev(0), pathShadeColor(0), pathAccColor(0), pathAuxColor(0), pathAuxColorCPU(0), pathShadow8B(0), pathShadow8BAux(0), pathShadow8BAuxCPU(0), randGenState(0),
                         lsam1(0), lsam2(0), lsamCos(0), shadowRayPos(0), shadowRayDir(0), accPdf(0), oldFlags(0), oldRayDir(0), oldColor(0), lightNumberLT(0), lsamProb(0),
                         lshadow(0), fogAtten(0), samZindex(0), pixWeights(0), debugf4(0), MEGABLOCKSIZE(0) {}
 
@@ -270,6 +237,9 @@ protected:
     cl_mem pathAccColor;
     cl_mem pathAuxColor;
     cl_mem pathAuxColorCPU;
+    cl_mem pathShadow8B;
+    cl_mem pathShadow8BAux;
+    cl_mem pathShadow8BAuxCPU;
     cl_mem randGenState;
 
     cl_mem lsam1;         // 
@@ -465,6 +435,7 @@ protected:
   void debugDumpF4Buff(const char* a_fNamePos, cl_mem a_buff);
 
   bool m_clglSharing;
+  bool m_storeShadowInAlphaChannel;
 
   void runTraceCPU(cl_mem a_rpos, cl_mem a_rdir, cl_mem out_hits, size_t a_size);
   void runTraceShadowCPU(size_t a_size);
