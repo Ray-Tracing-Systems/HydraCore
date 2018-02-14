@@ -258,7 +258,7 @@ std::vector<float> LuminanceFromFloat4Image(const float4* pixels, int& width, in
   HDRImageLite tempImage(width, height, 1, &luminanceData[0]);
   luminanceData = std::vector<float>();
 
-  tempImage.gaussBlur(2, 1.5f);
+  tempImage.gaussBlur(2, 1.5f); //#TODO: opt gauss blur !!!
   for (int i = 0; i < tempImage.width()*tempImage.height(); i++) // prevent pixels with zero pdf
     tempImage.data()[i] += 0.05f*avg;
 

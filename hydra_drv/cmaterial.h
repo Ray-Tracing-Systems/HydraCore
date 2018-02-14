@@ -1746,7 +1746,12 @@ static inline float3 materialLeafEvalTransparency(__global const PlainMaterial* 
 
 static inline bool materialIsTransparent(__global const PlainMaterial* a_pMat)
 {
-  return (materialGetType(a_pMat) == PLAIN_MAT_CLASS_GLASS) || (materialGetType(a_pMat) == PLAIN_MAT_CLASS_THIN_GLASS);
+  return (materialGetType(a_pMat) == PLAIN_MAT_CLASS_GLASS) || (materialGetType(a_pMat) == PLAIN_MAT_CLASS_THIN_GLASS) || (materialGetType(a_pMat) == PLAIN_MAT_CLASS_SHADOW_MATTE);
+}
+
+static inline bool materialIsThinGlass(__global const PlainMaterial* a_pMat)
+{
+  return (materialGetType(a_pMat) == PLAIN_MAT_CLASS_SHADOW_MATTE) || (materialGetType(a_pMat) == PLAIN_MAT_CLASS_THIN_GLASS);
 }
 
 

@@ -380,7 +380,7 @@ HRDriverAllocInfo RenderDriverRTE::AllocAll(HRDriverAllocInfo a_info)
   size_t auxMemGeom = 0, auxMemTex = 64 * MB;
   size_t newMemForGeo = a_info.geomMem; // size_t(0.85*double(a_info.geomMem)); // we can save ~ 15% due to tangent compression but thhis is hard to estimate precisly.
   size_t newMemForMat = a_info.matNum*approxSizeOfMatBlock;
-  size_t newMemForTab = 8*MB; // depends on MAX_ENV_LIGHT_PDF_SIZE; #TODO: check this with larger environment lights !!!
+  size_t newMemForTab = (MAX_ENV_LIGHT_PDF_SIZE*MAX_ENV_LIGHT_PDF_SIZE)*sizeof(float) + 4*MB;
 
   newMemForTab += a_info.lightsWithIESNum * 1 * MB;
   if (newMemForTab > 64 * MB)

@@ -298,35 +298,35 @@ __kernel void ConnectToEyeKernel(__global const uint*          restrict a_flags,
 
 
 __kernel void HitEnvOrLightKernel(__global const float4*    restrict in_rpos,
-  __global const float4*    restrict in_rdir,
-  __global uint*            restrict a_flags,
-
-  __global const float4*    restrict in_hitPosNorm,
-  __global const float2*    restrict in_hitTexCoord,
-  __global const HitMatRef* restrict in_matData,
-  __global const Hit_Part4* restrict in_hitTangent,
-  __global const float4*    restrict in_hitNormFull,
-
-  __global float4*          restrict a_color,
-  __global float4*          restrict a_thoroughput,
-  __global MisData*         restrict a_misDataPrev,
-  __global float4*          restrict out_emission,
-
-  __global const MisData*   restrict in_misDataPrev,
-  __global PerRayAcc*       restrict a_pdfAcc,
-  __global PerRayAcc*       restrict a_pdfAccCopy,
-  __global float*           restrict a_pdfCamA,
-
-  __global const float4*    restrict in_texStorage1,
-  __global const float4*    restrict in_texStorage2,
-  __global const float4*    restrict in_mtlStorage,
-  __global const float4*    restrict in_pdfStorage,
-  __global const EngineGlobals*  restrict a_globals,
-
-  __global const int*       restrict in_instLightInstId,
-  __global const Lite_Hit*  restrict in_liteHit,
-  float a_mLightSubPathCount, int a_currDepth, int iNumElements)
-  //__global float4*          restrict a_debugf4)
+                                  __global const float4*    restrict in_rdir,
+                                  __global uint*            restrict a_flags,
+                                  
+                                  __global const float4*    restrict in_hitPosNorm,
+                                  __global const float2*    restrict in_hitTexCoord,
+                                  __global const HitMatRef* restrict in_matData,
+                                  __global const Hit_Part4* restrict in_hitTangent,
+                                  __global const float4*    restrict in_hitNormFull,
+                                  
+                                  __global float4*          restrict a_color,
+                                  __global float4*          restrict a_thoroughput,
+                                  __global MisData*         restrict a_misDataPrev,
+                                  __global float4*          restrict out_emission,
+                                  
+                                  __global const MisData*   restrict in_misDataPrev,
+                                  __global PerRayAcc*       restrict a_pdfAcc,
+                                  __global PerRayAcc*       restrict a_pdfAccCopy,
+                                  __global float*           restrict a_pdfCamA,
+                                  
+                                  __global const float4*    restrict in_texStorage1,
+                                  __global const float4*    restrict in_texStorage2,
+                                  __global const float4*    restrict in_mtlStorage,
+                                  __global const float4*    restrict in_pdfStorage,
+                                  __global const EngineGlobals*  restrict a_globals,
+                                  
+                                  __global const int*       restrict in_instLightInstId,
+                                  __global const Lite_Hit*  restrict in_liteHit,
+                                  float a_mLightSubPathCount, int a_currDepth, int iNumElements)
+                                  //__global float4*          restrict a_debugf4)
 {
   int tid = GLOBAL_ID_X;
   if (tid >= iNumElements)
@@ -893,7 +893,7 @@ __kernel void NextBounce(__global   float4*        restrict a_rpos,
       MaterialLeafSampleAndEvalBRDF(pHitMaterial, randsm, &sc, shadow, a_globals, in_texStorage1, in_texStorage2,
                                     &brdfSample);
 
-      isThinGlass = isPureSpecular(brdfSample) && (rayBounceNum > 0) && !(a_globals->g_flags & HRT_ENABLE_PT_CAUSTICS) && (materialGetType(pHitMaterial) == PLAIN_MAT_CLASS_THIN_GLASS); // materialIsTransparent(pHitMaterial);
+      isThinGlass = isPureSpecular(brdfSample) && (rayBounceNum > 0) && !(a_globals->g_flags & HRT_ENABLE_PT_CAUSTICS) && materialIsThinGlass(pHitMaterial);
     }
     /////////////////////////////////////////////////////////////////////////////// end   sample material
   
@@ -998,7 +998,7 @@ __kernel void NextBounce(__global   float4*        restrict a_rpos,
       }
     }
    
-    ///////////////////////////////////////////////// #TODO: remove this isThinGlass crap??
+    ///////////////////////////////////////////////// #NOTE: OK, THIS SEEMS TO WORK FINE; JUST CHECK IT WITH WINDOW GLASS;
     if (!isThinGlass)  
     {
       MisData misNext            = a_misDataPrev[tid];  
@@ -1008,7 +1008,7 @@ __kernel void NextBounce(__global   float4*        restrict a_rpos,
       misNext.cosThetaPrev       = fabs(+dot(ray_dir, hitNorm)); // update it withCosNextActually ...
       a_misDataPrev[tid]         = misNext;
     }
-    /////////////////////////////////////////////// \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
+    ///////////////////////////////////////////////// 
 
     flags = flagsNextBounce(flags, brdfSample, a_globals);
 
