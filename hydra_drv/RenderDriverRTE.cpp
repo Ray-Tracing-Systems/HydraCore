@@ -267,6 +267,12 @@ bool RenderDriverRTE::UpdateSettings(pugi::xml_node a_settingsNode)
   if (vars.m_flags & HRT_STUPID_PT_MODE)
     vars.m_varsI[HRT_TRACE_DEPTH]++;
 
+  if (a_settingsNode.child(L"evalgbuffer") != nullptr)
+    vars.m_varsI[HRT_STORE_SHADOW_COLOR_W] = a_settingsNode.child(L"evalgbuffer").text().as_int();
+  else
+    vars.m_varsI[HRT_STORE_SHADOW_COLOR_W] = 0;
+
+
   m_pHWLayer->SetAllFlagsAndVars(vars);
 
   return true;

@@ -1453,6 +1453,12 @@ void GPUOCLLayer::AddContributionToScreenCPU(cl_mem& in_color, cl_mem in_indices
 
   const bool ltPassOfIBPT = (m_vars.m_flags & HRT_3WAY_MIS_WEIGHTS) && (m_vars.m_flags & HRT_FORWARD_TRACING); 
 
+  Timer copyTimer(true);
+  const bool measureTime = false;
+
+  float timeCopy    = 0.0f;
+  float timeContrib = 0.0f;
+
   // (2) sync copy of data (sync asyncronious call in future, pin pong) and eval contribution 
   //
   if (m_passNumber != 0)
@@ -1467,6 +1473,13 @@ void GPUOCLLayer::AddContributionToScreenCPU(cl_mem& in_color, cl_mem in_indices
     cl_uint8* shadows = nullptr;
     if (m_storeShadowInAlphaChannel)
       shadows = (cl_uint8*)( clEnqueueMapBuffer(m_globals.cmdQueueDevToHost, m_rays.pathShadow8BAuxCPU, CL_TRUE, CL_MAP_READ, 0, a_size * sizeof(cl_uint8), 0, 0, 0, &ciErr1) );
+
+
+    if (measureTime)
+    {
+      //clFinish(m_globals.cmdQueueDevToHost);
+      timeCopy = copyTimer.getElapsed();
+    }
 
     bool lockSuccess = (m_pExternalImage == nullptr);
     if (m_pExternalImage != nullptr)
@@ -1490,6 +1503,14 @@ void GPUOCLLayer::AddContributionToScreenCPU(cl_mem& in_color, cl_mem in_indices
       }
     }
 
+
+    if (measureTime && lockSuccess)
+    {
+      timeContrib = copyTimer.getElapsed();
+      std::cout << "time copy    = " << timeCopy*1000.0f << std::endl;
+      std::cout << "time contrib = " << (timeContrib - timeCopy)*100.0f << std::endl;
+    }
+
     clEnqueueUnmapMemObject(m_globals.cmdQueueDevToHost, m_rays.pathAuxColorCPU, colors, 0, 0, 0);
     if (m_storeShadowInAlphaChannel)
       clEnqueueUnmapMemObject(m_globals.cmdQueueDevToHost, m_rays.pathShadow8BAuxCPU, shadows, 0, 0, 0);
@@ -1497,6 +1518,13 @@ void GPUOCLLayer::AddContributionToScreenCPU(cl_mem& in_color, cl_mem in_indices
 
   clFinish(m_globals.cmdQueueDevToHost);
   clFinish(m_globals.cmdQueue);
+
+
+  if (measureTime)
+  {
+    std::cout << "time total   = " << copyTimer.getElapsed()*1000.0f << std::endl;
+    std::cout << std::endl;
+  }
 
   // (3) swap color and shadow8 buffers
   //

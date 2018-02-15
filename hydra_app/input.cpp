@@ -11,15 +11,15 @@ Input::Input()
   //inLibraryPath = "D:/[archive]/2017/HydraAPP/hydra_app/tests/hydra_benchmark_07";
 
   //inLibraryPath = "D:/PROG/HydraAPI/main/tests/test_37";
-  //inLibraryPath = "D:/PROG/HydraAPI/main/tests_f/test_119";
+  //inLibraryPath = "D:/PROG/HydraAPI/main/tests_f/test_204";
   //inLibraryPath = "D:/PROG/HydraAPI/main/tests_f/test_141";
 
   //inLibraryPath = "C:/[Hydra]/pluginFiles/scenelib";
   //inLibraryPath = "D:/Downloads/test08_shadow_catcher";
 
   inDevelopment = false; ///< recompile shaders each time; note that nvidia have their own shader cache!
-  inDeviceId    = 0;     ///< opencl device id
-  cpuFB         = false; ///< store frame buffer on CPU. Automaticly enabled if
+  inDeviceId    = 1;     ///< opencl device id
+  cpuFB         = true;  ///< store frame buffer on CPU. Automaticly enabled if
   enableMLT     = false; ///< not used currently
 
   winWidth      = 1024;  ///< 

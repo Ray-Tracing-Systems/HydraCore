@@ -238,7 +238,7 @@ void GPUOCLLayer::SetAllFlagsAndVars(const AllRenderVarialbes& a_vars)
   this->Base::SetAllFlagsAndVars(a_vars);
   UpdateConstants();
 
-  m_storeShadowInAlphaChannel = true; //#TODO: GET SOME VARIABLE OR FLAG FROM a_vars
+  m_storeShadowInAlphaChannel = (a_vars.m_varsI[HRT_STORE_SHADOW_COLOR_W] == 1); 
 }
 
 

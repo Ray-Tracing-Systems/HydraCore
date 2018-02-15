@@ -367,7 +367,7 @@ enum VARIABLE_NAMES { // int vars
                       HRT_DEBUG_OUTPUT             = 4,
                       HRT_MEASURE_RAYS_TYPE        = 5,
                       HRT_BLACK_DIFFUSE_OFFSET     = 6,
-                      HRT_IC_HARMONIC_MEAN         = 7,
+                      HRT_STORE_SHADOW_COLOR_W     = 7,
                       HRT_WHITE_DIFFUSE_OFFSET     = 8,
                       HRT_TRACE_DEPTH              = 9,
                       HRT_PHOTONS_STORE_BOUNCE     = 10,
