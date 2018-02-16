@@ -77,7 +77,7 @@ void GPUOCLLayer::SetAllBVH4(const ConvertionResult& a_convertedBVH, IBVHBuilder
 {
   for (int i = 0; i < m_scene.bvhNumber; i++)
   {
-    if (m_scene.bvhBuff[i]     != nullptr) { clReleaseMemObject(m_scene.bvhBuff[i]);     m_scene.bvhBuff[i] = nullptr; }
+    if (m_scene.bvhBuff[i]     != nullptr) { clReleaseMemObject(m_scene.bvhBuff[i]);     m_scene.bvhBuff    [i] = nullptr; }
     if (m_scene.objListBuff[i] != nullptr) { clReleaseMemObject(m_scene.objListBuff[i]); m_scene.objListBuff[i] = nullptr; }
     if (m_scene.alphTstBuff[i] != nullptr) { clReleaseMemObject(m_scene.alphTstBuff[i]); m_scene.alphTstBuff[i] = nullptr; }
   }
@@ -115,6 +115,15 @@ void GPUOCLLayer::SetAllBVH4(const ConvertionResult& a_convertedBVH, IBVHBuilder
 
 void GPUOCLLayer::SetAllInstMatrices(const float4x4* a_matrices, int32_t a_matrixNum)
 {
+  if (a_matrices == nullptr || a_matrixNum == 0)
+  {
+    if (m_scene.matrices != nullptr)
+      clReleaseMemObject(m_scene.matrices);
+    m_scene.matrices     = nullptr;
+    m_scene.matricesSize = 0;
+    return;
+  }
+
   const size_t newSize = a_matrixNum * sizeof(float4x4);
 
   cl_int ciErr1 = CL_SUCCESS;
