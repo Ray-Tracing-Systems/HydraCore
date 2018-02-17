@@ -1739,6 +1739,8 @@ static inline float3 materialLeafEvalTransparency(__global const PlainMaterial* 
     transparency = thinglassGetColor(pMat)*texColor;
   else if (materialGetType(pMat) == PLAIN_MAT_CLASS_GLASS)
     transparency = glassGetColor(pMat)*texColor;
+  else if (materialGetType(pMat) == PLAIN_MAT_CLASS_SHADOW_MATTE)
+    transparency = make_float3(1, 1, 1);
 
   return clamp(transparency, 0.0f, 1.0f);
 }

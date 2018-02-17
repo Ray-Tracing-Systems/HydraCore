@@ -745,8 +745,10 @@ __kernel void Shade(__global const float4*    restrict a_rpos,
 
   if (out_shadow != 0 && rayBounceNum == 0)
   {
+    if (materialGetType(pHitMaterial) == PLAIN_MAT_CLASS_SHADOW_MATTE)
+      cosThetaOutAux = 1.0f;
     const float shadow1 = cosThetaOutAux*256.0f*0.33333f*(shadow.x + shadow.y + shadow.z);
-    out_shadow[tid]     = (uchar)(clamp(shadow1, 0.0f, 255.0f));
+    out_shadow[tid]     = (uchar)(255.0f - clamp(shadow1, 0.0f, 255.0f));
   }
 
   const float cosThetaOut1 = fmax(+dot(shadowRayDir, hitNorm), 0.0f);
