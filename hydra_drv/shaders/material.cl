@@ -896,6 +896,7 @@ __kernel void NextBounce(__global   float4*        restrict a_rpos,
                                     &brdfSample);
 
       isThinGlass = isPureSpecular(brdfSample) && (rayBounceNum > 0) && !(a_globals->g_flags & HRT_ENABLE_PT_CAUSTICS) && materialIsThinGlass(pHitMaterial);
+	  //isThinGlass = isPureSpecular(brdfSample) && (rayBounceNum > 0) && materialIsThinGlass(pHitMaterial);
     }
     /////////////////////////////////////////////////////////////////////////////// end   sample material
   
@@ -953,11 +954,11 @@ __kernel void NextBounce(__global   float4*        restrict a_rpos,
     // calc attenuation in thick glass
 		//
     /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-		const float dotNewOld  = dot(ray_dir, to_float3(a_rdir[tid]));
-		const bool  gotOutside = (dotNewOld > 0.0f) && (unpackRayFlags(flags) & RAY_HIT_SURFACE_FROM_OTHER_SIDE);
-		const float dist       = length(to_float3(in_hitPosNorm[tid]) - to_float3(a_rpos[tid]));
+	const float dotNewOld  = dot(ray_dir, to_float3(a_rdir[tid]));
+	const bool  gotOutside = (dotNewOld > 0.0f) && (unpackRayFlags(flags) & RAY_HIT_SURFACE_FROM_OTHER_SIDE);
+	const float dist       = length(to_float3(in_hitPosNorm[tid]) - to_float3(a_rpos[tid]));
 
-		const float3 fogAtten  = attenuationStep(pHitMaterial, dist, gotOutside, a_fog + tid);
+	const float3 fogAtten  = attenuationStep(pHitMaterial, dist, gotOutside, a_fog + tid);
     /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
     const uint rayBounceNum  = unpackBounceNum(flags);
@@ -1263,7 +1264,6 @@ __kernel void TransparentShadowKenrel(__global const uint*     in_flags,
 
   //
   //
-
   TransparencyShadowStepData stepData;
   stepData.currFogColor = make_float3(1, 1, 1);
   stepData.currFogMult  = 0.0f;

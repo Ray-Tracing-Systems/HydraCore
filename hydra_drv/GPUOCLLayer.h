@@ -245,7 +245,7 @@ protected:
     cl_mem lsam1;         // 
     cl_mem lsam2;         // when LT is enabled: CONSTANT FOR ALL BOUNCES; .xyz store sample.dir; .w store lightPdfA;
                           // when PT is enabled: TEMP PER BOUNCE;          .xyz store lsam.color; .w store lsam.maxDist
-    cl_mem lsamCos;    // store single float lsam.cosAtLight when use PT
+    cl_mem lsamCos;       // store single float lsam.cosAtLight when use PT
     cl_mem shadowRayPos;
     cl_mem shadowRayDir;
     cl_mem accPdf;        ///< accumulated pdf weights for 3-way Bogolepov light transport

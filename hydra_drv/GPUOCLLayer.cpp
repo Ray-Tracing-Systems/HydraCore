@@ -514,11 +514,15 @@ GPUOCLLayer::GPUOCLLayer(int w, int h, int a_flags, int a_deviceId) : Base(w, h,
   size_t   paramValueSize = 0;
   cl_ulong maxBufferSize  = 0;
   cl_ulong memTotal       = 0;
+  cl_ulong maxShmemSize   = 0;
   CHECK_CL(clGetDeviceInfo(m_globals.device, CL_DEVICE_MAX_MEM_ALLOC_SIZE, sizeof(cl_ulong), &maxBufferSize, NULL));
   CHECK_CL(clGetDeviceInfo(m_globals.device, CL_DEVICE_GLOBAL_MEM_SIZE, sizeof(cl_ulong), &memTotal, &paramValueSize));
+  CHECK_CL(clGetDeviceInfo(m_globals.device, CL_DEVICE_LOCAL_MEM_SIZE, sizeof(cl_ulong), &maxShmemSize, NULL));
   
-  std::cout << "[cl_core]: totalMemSize  = " << memTotal / cl_ulong(1024 * 1024) << " MB" << std::endl;
-  std::cout << "[cl_core]: maxBufferSize = " << maxBufferSize/ cl_ulong(1024*1024) << " MB" << std::endl;
+  
+  std::cout << "[cl_core]: totalMemSize  = " << memTotal      / cl_ulong(1024*1024) << "\tMB" << std::endl;
+  std::cout << "[cl_core]: maxBufferSize = " << maxBufferSize / cl_ulong(1024*1024) << "\tMB" << std::endl;
+  std::cout << "[cl_core]: maxSharedSize = " << maxShmemSize  / cl_ulong(1024)      << "\tKB" << std::endl;
 
   m_globals.devIsCPU = deviceIsCPU(m_globals.device);
   m_globals.cpuTrace = false; // m_globals.devIsCPU && !(a_flags & CPU_RT_PURE_CL);
