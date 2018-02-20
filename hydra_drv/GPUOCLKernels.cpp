@@ -16,7 +16,7 @@ void GPUOCLLayer::waitIfDebug(const char* file, int line) const
 }
 
 
-void GPUOCLLayer::runKernel_MakeEyeRays(cl_mem a_rpos, cl_mem a_rdir, cl_mem a_zindex, cl_mem a_pixWeights, size_t a_size, int a_passNumber)
+void GPUOCLLayer::runKernel_MakeEyeRays(cl_mem a_rpos, cl_mem a_rdir, cl_mem a_zindex, size_t a_size, int a_passNumber)
 {
   size_t localWorkSize   = CMP_RESULTS_BLOCK_SIZE;
   int iSize              = int(a_size);
@@ -147,7 +147,7 @@ void RoundBlocks2D(size_t global_item_size[2], size_t local_item_size[2])
 }
 
 
-void GPUOCLLayer::AddContributionToScreenGPU(cl_mem in_color,     cl_mem in_indices, cl_mem in_pixWeights, int a_size, int a_width, int a_height, int a_spp,
+void GPUOCLLayer::AddContributionToScreenGPU(cl_mem in_color,     cl_mem in_indices, int a_size, int a_width, int a_height, int a_spp,
                                              cl_mem out_colorHDR, cl_mem out_colorLDR)
 {
   // (3) sort references
@@ -176,18 +176,17 @@ void GPUOCLLayer::AddContributionToScreenGPU(cl_mem in_color,     cl_mem in_indi
 
   CHECK_CL(clSetKernelArg(contribKern, 0, sizeof(cl_mem), (void*)&in_color));
   CHECK_CL(clSetKernelArg(contribKern, 1, sizeof(cl_mem), (void*)&in_indices));
-  CHECK_CL(clSetKernelArg(contribKern, 2, sizeof(cl_mem), (void*)&in_pixWeights));
-  CHECK_CL(clSetKernelArg(contribKern, 3, sizeof(cl_mem), (void*)&m_globals.cMortonTable));
+  CHECK_CL(clSetKernelArg(contribKern, 2, sizeof(cl_mem), (void*)&m_globals.cMortonTable));
 
-  CHECK_CL(clSetKernelArg(contribKern, 4, sizeof(cl_int),   (void*)&a_size));
-  CHECK_CL(clSetKernelArg(contribKern, 5, sizeof(cl_int),   (void*)&a_width));
-  CHECK_CL(clSetKernelArg(contribKern, 6, sizeof(cl_int),   (void*)&a_height));
-  CHECK_CL(clSetKernelArg(contribKern, 7, sizeof(cl_float), (void*)&m_spp));
-  CHECK_CL(clSetKernelArg(contribKern, 8, sizeof(cl_float), (void*)&invGamma));
+  CHECK_CL(clSetKernelArg(contribKern, 3, sizeof(cl_int),   (void*)&a_size));
+  CHECK_CL(clSetKernelArg(contribKern, 4, sizeof(cl_int),   (void*)&a_width));
+  CHECK_CL(clSetKernelArg(contribKern, 5, sizeof(cl_int),   (void*)&a_height));
+  CHECK_CL(clSetKernelArg(contribKern, 6, sizeof(cl_float), (void*)&m_spp));
+  CHECK_CL(clSetKernelArg(contribKern, 7, sizeof(cl_float), (void*)&invGamma));
 
-  CHECK_CL(clSetKernelArg(contribKern, 9, sizeof(cl_mem), (void*)&out_colorHDR));
-  CHECK_CL(clSetKernelArg(contribKern,10, sizeof(cl_mem), (void*)&out_colorLDR));
-  CHECK_CL(clSetKernelArg(contribKern,11, sizeof(cl_int), (void*)&alreadySorted));
+  CHECK_CL(clSetKernelArg(contribKern, 8, sizeof(cl_mem), (void*)&out_colorHDR));
+  CHECK_CL(clSetKernelArg(contribKern, 9, sizeof(cl_mem), (void*)&out_colorLDR));
+  CHECK_CL(clSetKernelArg(contribKern,10, sizeof(cl_int), (void*)&alreadySorted));
 
   CHECK_CL(clEnqueueNDRangeKernel(m_globals.cmdQueue, contribKern, 2, NULL, global_item_size, local_item_size, 0, NULL, NULL));
   waitIfDebug(__FILE__, __LINE__);

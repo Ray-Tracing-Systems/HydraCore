@@ -190,7 +190,7 @@ __kernel void MakeEyeRaysUnifiedSampling(__global float4*              restrict 
 }
 
 
-__kernel void ContribSampleToScreen(const __global float4* in_color, const __global int2* a_indices, const __global float* a_weights, __constant ushort* a_mortonTable256,
+__kernel void ContribSampleToScreen(const __global float4* in_color, const __global int2* a_indices, __constant ushort* a_mortonTable256,
                                     const int a_samplesNum, const int w, const int h, const float a_spp, const float a_gammaInv,
                                     __global  float4* out_colorHDR, __global uint* out_colorLDR, const int alreadySorted)
 {
@@ -204,7 +204,7 @@ __kernel void ContribSampleToScreen(const __global float4* in_color, const __glo
 
   // (1) run binary search to find pair in a_indices where val.x == pixelIndex // no bilinear2D.
   //
-  const int samNum = (a_weights == 0) ? a_samplesNum : a_samplesNum * 4;
+  const int samNum = a_samplesNum;
   const int beginX = binarySearchForLeftRange (a_indices, samNum, pxZIndex);
   const int endX   = samNum - 1;
 

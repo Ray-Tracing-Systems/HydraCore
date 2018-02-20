@@ -122,7 +122,7 @@ protected:
   void trace1D(cl_mem a_rpos, cl_mem a_rdir, cl_mem a_outColor, size_t a_size);
 
   void DrawNormals();
-  void AddContributionToScreenGPU(cl_mem in_color, cl_mem in_indices, cl_mem pixWeights, int a_size, int a_width, int a_height, int a_spp,
+  void AddContributionToScreenGPU(cl_mem in_color, cl_mem in_indices, int a_size, int a_width, int a_height, int a_spp,
                                   cl_mem out_colorHDR, cl_mem out_colorLDR);
 
   void AddContributionToScreenCPU(cl_mem& in_color, cl_mem in_indices, int a_size, int a_width, int a_height, float4* out_color);
@@ -214,7 +214,7 @@ protected:
     CL_BUFFERS_RAYS() : rayPos(0), rayDir(0), hits(0), rayFlags(0), hitPosNorm(0), hitTexCoord(0), hitMatId(0), hitTangent(0), hitFlatNorm(0), hitPrimSize(0), hitNormUncompressed(0),
                         pathThoroughput(0), pathMisDataPrev(0), pathShadeColor(0), pathAccColor(0), pathAuxColor(0), pathAuxColorCPU(0), pathShadow8B(0), pathShadow8BAux(0), pathShadow8BAuxCPU(0), randGenState(0),
                         lsam1(0), lsam2(0), lsamCos(0), shadowRayPos(0), shadowRayDir(0), accPdf(0), oldFlags(0), oldRayDir(0), oldColor(0), lightNumberLT(0), lsamProb(0),
-                        lshadow(0), fogAtten(0), samZindex(0), pixWeights(0), packedXY(0), debugf4(0), MEGABLOCKSIZE(0) {}
+                        lshadow(0), fogAtten(0), samZindex(0), packedXY(0), debugf4(0), MEGABLOCKSIZE(0) {}
 
     void free();
     size_t resize(cl_context ctx, cl_command_queue cmdQueue, size_t a_size, bool a_cpuShare, bool a_cpuFB);
@@ -262,7 +262,6 @@ protected:
 
     cl_mem fogAtten;
     cl_mem samZindex;     // used by LT only;
-    cl_mem pixWeights;    // used by LT only; #TODO: remove this shit, we don't needed bilinear sampling.
 
     cl_mem packedXY;
     cl_mem debugf4;
@@ -369,7 +368,7 @@ protected:
   mutable char m_deviceName[1024];
 
   void runKernel_InitRandomGen(cl_mem a_buffer, size_t a_size, int a_seed);
-  void runKernel_MakeEyeRays(cl_mem a_rpos, cl_mem a_rdir, cl_mem a_zindex, cl_mem a_pixWeights, size_t a_size, int a_passNumber);
+  void runKernel_MakeEyeRays(cl_mem a_rpos, cl_mem a_rdir, cl_mem a_zindex, size_t a_size, int a_passNumber);
   void runKernel_MakeLightRays(cl_mem a_rpos, cl_mem a_rdir, cl_mem a_outColor, size_t a_size);
   void runKernel_MakeEyeRaysSpp(cl_mem rayPos, cl_mem rayDir, int32_t a_blockSize, int32_t yBegin, size_t a_size);
  
