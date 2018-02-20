@@ -740,6 +740,8 @@ GPUOCLLayer::GPUOCLLayer(int w, int h, int a_flags, int a_deviceId) : Base(w, h,
   m_globals.hammersley2D = clCreateBuffer(m_globals.ctx, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, GBUFFER_SAMPLES * sizeof(float2), qmc, &ciErr1);
 
   waitIfDebug(__FILE__, __LINE__);
+
+  m_raysWasSorted = false;
 }
 
 void GPUOCLLayer::FinishAll()
@@ -1326,7 +1328,10 @@ void GPUOCLLayer::BeginTracingPass()
         ConnectEyePass(m_rays.rayFlags, m_rays.lsam1, m_rays.hitNormUncompressed, nullptr, m_rays.pathAccColor, -1, m_rays.MEGABLOCKSIZE);
     }
     else
+    {
+      m_raysWasSorted = false;
       runKernel_MakeEyeRays(m_rays.rayPos, m_rays.rayDir, m_rays.samZindex, m_rays.pixWeights, m_rays.MEGABLOCKSIZE, m_passNumberForQMC);
+    }
 
     // (2) Compute sample colors
     //

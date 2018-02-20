@@ -18,37 +18,66 @@ void GPUOCLLayer::waitIfDebug(const char* file, int line) const
 
 void GPUOCLLayer::runKernel_MakeEyeRays(cl_mem a_rpos, cl_mem a_rdir, cl_mem a_zindex, cl_mem a_pixWeights, size_t a_size, int a_passNumber)
 {
-  cl_kernel makeRaysKern = m_progs.screen.kernel("MakeEyeRaysUnifiedSampling");
   size_t localWorkSize   = CMP_RESULTS_BLOCK_SIZE;
   int iSize              = int(a_size);
   a_size                 = roundBlocks(a_size, int(localWorkSize));
 
-  int packIndexForCPU    = m_screen.m_cpuFrameBuffer ? 1 : 0;
+  // (1) generate samples
+  //
+  cl_kernel makeSamples  = m_progs.screen.kernel("MakeEyeRaysSamplesOnly");
 
+  CHECK_CL(clSetKernelArg(makeSamples, 0, sizeof(cl_mem), (void*)&m_rays.randGenState));
+  CHECK_CL(clSetKernelArg(makeSamples, 1, sizeof(cl_mem), (void*)&m_rays.pathShadeColor)); // pack lens float4 in 'm_rays.pathShadeColor'
+  CHECK_CL(clSetKernelArg(makeSamples, 2, sizeof(cl_mem), (void*)&a_zindex));
+  CHECK_CL(clSetKernelArg(makeSamples, 3, sizeof(cl_mem), (void*)&m_scene.allGlobsData));
+  CHECK_CL(clSetKernelArg(makeSamples, 4, sizeof(cl_mem), (void*)&m_globals.cMortonTable));
+  CHECK_CL(clSetKernelArg(makeSamples, 5, sizeof(cl_mem), (void*)&m_globals.qmcTable));
+  CHECK_CL(clSetKernelArg(makeSamples, 6, sizeof(cl_int), (void*)&a_passNumber));
+  CHECK_CL(clSetKernelArg(makeSamples, 7, sizeof(cl_int), (void*)&m_width));
+  CHECK_CL(clSetKernelArg(makeSamples, 8, sizeof(cl_int), (void*)&m_height));
+  CHECK_CL(clSetKernelArg(makeSamples, 9, sizeof(cl_int), (void*)&iSize));
+
+  CHECK_CL(clEnqueueNDRangeKernel(m_globals.cmdQueue, makeSamples, 1, NULL, &a_size, &localWorkSize, 0, NULL, NULL));
+  waitIfDebug(__FILE__, __LINE__);
+
+  // (2) sort rays by their pixels
+  //
+  BitonicCLArgs sortArgs;
+  sortArgs.bitonicPassK = m_progs.sort.kernel("bitonic_pass_kernel");
+  sortArgs.bitonic512   = m_progs.sort.kernel("bitonic_512");
+  sortArgs.cmdQueue     = m_globals.cmdQueue;
+
+  bitonic_sort_gpu(a_zindex, int(a_size), sortArgs);
+  m_raysWasSorted = true;
+
+  // (3) generate rays
+  //
+  cl_kernel makeRaysKern = m_progs.screen.kernel("MakeEyeRaysUnifiedSampling");
+
+  int packIndexForCPU    = m_screen.m_cpuFrameBuffer ? 1 : 0;
 
   CHECK_CL(clSetKernelArg(makeRaysKern, 0, sizeof(cl_mem), (void*)&a_rpos));
   CHECK_CL(clSetKernelArg(makeRaysKern, 1, sizeof(cl_mem), (void*)&a_rdir));
-  CHECK_CL(clSetKernelArg(makeRaysKern, 2, sizeof(cl_mem), (void*)&m_rays.randGenState));
 
-  CHECK_CL(clSetKernelArg(makeRaysKern, 3, sizeof(cl_int), (void*)&m_width));
-  CHECK_CL(clSetKernelArg(makeRaysKern, 4, sizeof(cl_int), (void*)&m_height));
-  CHECK_CL(clSetKernelArg(makeRaysKern, 5, sizeof(cl_int), (void*)&iSize));
+  CHECK_CL(clSetKernelArg(makeRaysKern, 2, sizeof(cl_int), (void*)&m_width));
+  CHECK_CL(clSetKernelArg(makeRaysKern, 3, sizeof(cl_int), (void*)&m_height));
+  CHECK_CL(clSetKernelArg(makeRaysKern, 4, sizeof(cl_int), (void*)&iSize));
 
-  CHECK_CL(clSetKernelArg(makeRaysKern, 6, sizeof(cl_mem), (void*)&m_scene.allGlobsData));
+  CHECK_CL(clSetKernelArg(makeRaysKern, 5, sizeof(cl_mem), (void*)&m_scene.allGlobsData));
 
-  CHECK_CL(clSetKernelArg(makeRaysKern, 7, sizeof(cl_mem), (void*)&m_rays.rayFlags));        // pass this data to clear them only!
-  CHECK_CL(clSetKernelArg(makeRaysKern, 8, sizeof(cl_mem), (void*)&m_rays.pathAccColor));    // pass this data to clear them only!
-  CHECK_CL(clSetKernelArg(makeRaysKern, 9, sizeof(cl_mem), (void*)&m_rays.pathThoroughput)); // pass this data to clear them only!
-  CHECK_CL(clSetKernelArg(makeRaysKern,10, sizeof(cl_mem), (void*)&m_rays.fogAtten));        // pass this data to clear them only!
-  CHECK_CL(clSetKernelArg(makeRaysKern,11, sizeof(cl_mem), (void*)&m_rays.hitMatId));        // pass this data to clear them only!
-  CHECK_CL(clSetKernelArg(makeRaysKern,12, sizeof(cl_mem), (void*)&m_rays.accPdf));
+  CHECK_CL(clSetKernelArg(makeRaysKern, 6, sizeof(cl_mem), (void*)&m_rays.rayFlags));        // pass this data to clear them only!
+  CHECK_CL(clSetKernelArg(makeRaysKern, 7, sizeof(cl_mem), (void*)&m_rays.pathAccColor));    // pass this data to clear them only!
+  CHECK_CL(clSetKernelArg(makeRaysKern, 8, sizeof(cl_mem), (void*)&m_rays.pathThoroughput)); // pass this data to clear them only!
+  CHECK_CL(clSetKernelArg(makeRaysKern, 9, sizeof(cl_mem), (void*)&m_rays.fogAtten));        // pass this data to clear them only!
+  CHECK_CL(clSetKernelArg(makeRaysKern,10, sizeof(cl_mem), (void*)&m_rays.hitMatId));        // pass this data to clear them only!
+  CHECK_CL(clSetKernelArg(makeRaysKern,11, sizeof(cl_mem), (void*)&m_rays.accPdf));
 
-  CHECK_CL(clSetKernelArg(makeRaysKern,13, sizeof(cl_mem), (void*)&a_zindex));
-  CHECK_CL(clSetKernelArg(makeRaysKern,14, sizeof(cl_mem), (void*)&a_pixWeights));
-  CHECK_CL(clSetKernelArg(makeRaysKern,15, sizeof(cl_mem), (void*)&m_globals.cMortonTable));
-  CHECK_CL(clSetKernelArg(makeRaysKern,16, sizeof(cl_mem), (void*)&m_globals.qmcTable));
-  CHECK_CL(clSetKernelArg(makeRaysKern,17, sizeof(cl_int), (void*)&a_passNumber));
-  CHECK_CL(clSetKernelArg(makeRaysKern,18, sizeof(cl_int), (void*)&packIndexForCPU));
+  CHECK_CL(clSetKernelArg(makeRaysKern,12, sizeof(cl_mem), (void*)&a_zindex));
+  CHECK_CL(clSetKernelArg(makeRaysKern,13, sizeof(cl_mem), (void*)&m_rays.pathShadeColor));  // unpack lens float4 from 'm_rays.pathShadeColor'
+  CHECK_CL(clSetKernelArg(makeRaysKern,14, sizeof(cl_mem), (void*)&m_globals.cMortonTable));
+  CHECK_CL(clSetKernelArg(makeRaysKern,15, sizeof(cl_mem), (void*)&m_globals.qmcTable));
+  CHECK_CL(clSetKernelArg(makeRaysKern,16, sizeof(cl_int), (void*)&a_passNumber));
+  CHECK_CL(clSetKernelArg(makeRaysKern,17, sizeof(cl_int), (void*)&packIndexForCPU));
 
   CHECK_CL(clEnqueueNDRangeKernel(m_globals.cmdQueue, makeRaysKern, 1, NULL, &a_size, &localWorkSize, 0, NULL, NULL));
   waitIfDebug(__FILE__, __LINE__);
@@ -117,20 +146,22 @@ void RoundBlocks2D(size_t global_item_size[2], size_t local_item_size[2])
 }
 
 
-void GPUOCLLayer::AddContributionToScreenGPU(cl_mem in_color, cl_mem in_indices, cl_mem in_pixWeights, int a_size, int a_width, int a_height, int a_spp,
+void GPUOCLLayer::AddContributionToScreenGPU(cl_mem in_color,     cl_mem in_indices, cl_mem in_pixWeights, int a_size, int a_width, int a_height, int a_spp,
                                              cl_mem out_colorHDR, cl_mem out_colorLDR)
 {
   // (3) sort references
   //
-  BitonicCLArgs sortArgs;
-  sortArgs.bitonicPassK = m_progs.sort.kernel("bitonic_pass_kernel");
-  sortArgs.bitonic512   = m_progs.sort.kernel("bitonic_512");
-  sortArgs.cmdQueue     = m_globals.cmdQueue;
+  if (!m_raysWasSorted)
+  {
+    BitonicCLArgs sortArgs;
+    sortArgs.bitonicPassK = m_progs.sort.kernel("bitonic_pass_kernel");
+    sortArgs.bitonic512   = m_progs.sort.kernel("bitonic_512");
+    sortArgs.cmdQueue     = m_globals.cmdQueue;
 
-  if (m_rays.pixWeights != nullptr)   // bilinear sampling
-    bitonic_sort_gpu(in_indices, int(m_rays.MEGABLOCKSIZE * 4), sortArgs);
-  else
     bitonic_sort_gpu(in_indices, int(m_rays.MEGABLOCKSIZE), sortArgs);
+  }
+
+  int alreadySorted = m_raysWasSorted ? 1 : 0;
 
   // (4) run contrib kernel
   //
@@ -155,9 +186,12 @@ void GPUOCLLayer::AddContributionToScreenGPU(cl_mem in_color, cl_mem in_indices,
 
   CHECK_CL(clSetKernelArg(contribKern, 9, sizeof(cl_mem), (void*)&out_colorHDR));
   CHECK_CL(clSetKernelArg(contribKern,10, sizeof(cl_mem), (void*)&out_colorLDR));
+  CHECK_CL(clSetKernelArg(contribKern,11, sizeof(cl_int), (void*)&alreadySorted));
 
   CHECK_CL(clEnqueueNDRangeKernel(m_globals.cmdQueue, contribKern, 2, NULL, global_item_size, local_item_size, 0, NULL, NULL));
   waitIfDebug(__FILE__, __LINE__);
+
+  m_raysWasSorted = false;
 }
 
 

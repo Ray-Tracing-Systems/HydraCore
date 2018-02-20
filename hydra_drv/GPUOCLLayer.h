@@ -150,6 +150,7 @@ protected:
   int   m_passNumber;
   int   m_passNumberForQMC;
   float m_spp;
+  bool  m_raysWasSorted;
 
   struct CL_SCREEN_BUFFERS
   {
