@@ -112,32 +112,64 @@ void GPUOCLLayer::runKernel_MakeEyeRaysSpp(cl_mem a_rpos, cl_mem a_rdir, int32_t
 
 void GPUOCLLayer::runKernel_MakeLightRays(cl_mem a_rpos, cl_mem a_rdir, cl_mem a_outColor, size_t a_size)
 {
-  cl_kernel makeRaysKern = m_progs.lightp.kernel("LightSampleForwardKernel");
   size_t localWorkSize   = CMP_RESULTS_BLOCK_SIZE;
   int iSize              = int(a_size);
   a_size                 = roundBlocks(a_size, int(localWorkSize));
 
+  // (1) generate samples in primary space
+  //
+  cl_kernel makeSamKern = m_progs.lightp.kernel("LightSampleForwardCreate");
+
+  CHECK_CL(clSetKernelArg(makeSamKern, 0, sizeof(cl_mem), (void*)&m_rays.shadowRayPos));
+  CHECK_CL(clSetKernelArg(makeSamKern, 1, sizeof(cl_mem), (void*)&m_rays.shadowRayDir));
+  CHECK_CL(clSetKernelArg(makeSamKern, 2, sizeof(cl_mem), (void*)&m_rays.samZindex));
+  CHECK_CL(clSetKernelArg(makeSamKern, 3, sizeof(cl_mem), (void*)&m_rays.randGenState));
+  CHECK_CL(clSetKernelArg(makeSamKern, 4, sizeof(cl_mem), (void*)&m_globals.cMortonTable));
+  CHECK_CL(clSetKernelArg(makeSamKern, 5, sizeof(cl_mem), (void*)&m_scene.allGlobsData));
+  CHECK_CL(clSetKernelArg(makeSamKern, 6, sizeof(cl_int), (void*)&iSize));
+  CHECK_CL(clEnqueueNDRangeKernel(m_globals.cmdQueue, makeSamKern, 1, NULL, &a_size, &localWorkSize, 0, NULL, NULL));
+  waitIfDebug(__FILE__, __LINE__);
+
+  // (2) sort them
+  //
+  BitonicCLArgs sortArgs;
+  sortArgs.bitonicPassK = m_progs.sort.kernel("bitonic_pass_kernel");
+  sortArgs.bitonic512   = m_progs.sort.kernel("bitonic_512");
+  sortArgs.bitonic1024  = m_progs.sort.kernel("bitonic_1024");
+  sortArgs.bitonic2048  = m_progs.sort.kernel("bitonic_2048");
+  sortArgs.cmdQueue     = m_globals.cmdQueue;
+  sortArgs.dev          = m_globals.device;
+
+  bitonic_sort_gpu(m_rays.samZindex, int(a_size), sortArgs);
+
+  // (3) generate light sample
+  //
+  cl_kernel makeRaysKern = m_progs.lightp.kernel("LightSampleForwardKernel");
+
   CHECK_CL(clSetKernelArg(makeRaysKern, 0, sizeof(cl_mem), (void*)&a_rpos));
   CHECK_CL(clSetKernelArg(makeRaysKern, 1, sizeof(cl_mem), (void*)&a_rdir));
-  CHECK_CL(clSetKernelArg(makeRaysKern, 2, sizeof(cl_mem), (void*)&m_rays.randGenState));
+  //CHECK_CL(clSetKernelArg(makeRaysKern, 2, sizeof(cl_mem), (void*)&m_rays.randGenState));
+  CHECK_CL(clSetKernelArg(makeRaysKern, 2, sizeof(cl_mem), (void*)&m_rays.shadowRayPos));
+  CHECK_CL(clSetKernelArg(makeRaysKern, 3, sizeof(cl_mem), (void*)&m_rays.shadowRayDir));
+  CHECK_CL(clSetKernelArg(makeRaysKern, 4, sizeof(cl_mem), (void*)&m_rays.samZindex));
 
-  CHECK_CL(clSetKernelArg(makeRaysKern, 3, sizeof(cl_mem), (void*)&m_rays.lsam1));
-  CHECK_CL(clSetKernelArg(makeRaysKern, 4, sizeof(cl_mem), (void*)&m_rays.lsam2));
-  CHECK_CL(clSetKernelArg(makeRaysKern, 5, sizeof(cl_mem), (void*)&m_rays.hitNormUncompressed)); // lsam3
-  CHECK_CL(clSetKernelArg(makeRaysKern, 6, sizeof(cl_mem), (void*)&m_rays.accPdf)); 
-  CHECK_CL(clSetKernelArg(makeRaysKern, 7, sizeof(cl_mem), (void*)&m_rays.pathMisDataPrev));
-  CHECK_CL(clSetKernelArg(makeRaysKern, 8, sizeof(cl_mem), (void*)&m_rays.lightNumberLT));
+  CHECK_CL(clSetKernelArg(makeRaysKern, 5, sizeof(cl_mem), (void*)&m_rays.lsam1));
+  CHECK_CL(clSetKernelArg(makeRaysKern, 6, sizeof(cl_mem), (void*)&m_rays.lsam2));
+  CHECK_CL(clSetKernelArg(makeRaysKern, 7, sizeof(cl_mem), (void*)&m_rays.hitNormUncompressed)); // lsam3
+  CHECK_CL(clSetKernelArg(makeRaysKern, 8, sizeof(cl_mem), (void*)&m_rays.accPdf)); 
+  CHECK_CL(clSetKernelArg(makeRaysKern, 9, sizeof(cl_mem), (void*)&m_rays.pathMisDataPrev));
+  CHECK_CL(clSetKernelArg(makeRaysKern,10, sizeof(cl_mem), (void*)&m_rays.lightNumberLT));
 
-  CHECK_CL(clSetKernelArg(makeRaysKern, 9, sizeof(cl_mem), (void*)&m_rays.rayFlags));
-  CHECK_CL(clSetKernelArg(makeRaysKern,10, sizeof(cl_mem), (void*)&a_outColor));
-  CHECK_CL(clSetKernelArg(makeRaysKern,11, sizeof(cl_mem), (void*)&m_rays.pathThoroughput)); // pass this data to clear them only!
-  CHECK_CL(clSetKernelArg(makeRaysKern,12, sizeof(cl_mem), (void*)&m_rays.fogAtten));        // pass this data to clear them only!
-  CHECK_CL(clSetKernelArg(makeRaysKern,13, sizeof(cl_mem), (void*)&m_rays.hitMatId));        // pass this data to clear them only!
+  CHECK_CL(clSetKernelArg(makeRaysKern,11, sizeof(cl_mem), (void*)&m_rays.rayFlags));
+  CHECK_CL(clSetKernelArg(makeRaysKern,12, sizeof(cl_mem), (void*)&a_outColor));
+  CHECK_CL(clSetKernelArg(makeRaysKern,13, sizeof(cl_mem), (void*)&m_rays.pathThoroughput)); // pass this data to clear them only!
+  CHECK_CL(clSetKernelArg(makeRaysKern,14, sizeof(cl_mem), (void*)&m_rays.fogAtten));        // pass this data to clear them only!
+  CHECK_CL(clSetKernelArg(makeRaysKern,15, sizeof(cl_mem), (void*)&m_rays.hitMatId));        // pass this data to clear them only!
 
-  CHECK_CL(clSetKernelArg(makeRaysKern,14, sizeof(cl_mem), (void*)&m_scene.storageTex));
-  CHECK_CL(clSetKernelArg(makeRaysKern,15, sizeof(cl_mem), (void*)&m_scene.storagePdfs));
-  CHECK_CL(clSetKernelArg(makeRaysKern,16, sizeof(cl_mem), (void*)&m_scene.allGlobsData));
-  CHECK_CL(clSetKernelArg(makeRaysKern,17, sizeof(cl_int), (void*)&iSize));
+  CHECK_CL(clSetKernelArg(makeRaysKern,16, sizeof(cl_mem), (void*)&m_scene.storageTex));
+  CHECK_CL(clSetKernelArg(makeRaysKern,17, sizeof(cl_mem), (void*)&m_scene.storagePdfs));
+  CHECK_CL(clSetKernelArg(makeRaysKern,18, sizeof(cl_mem), (void*)&m_scene.allGlobsData));
+  CHECK_CL(clSetKernelArg(makeRaysKern,19, sizeof(cl_int), (void*)&iSize));
 
   CHECK_CL(clEnqueueNDRangeKernel(m_globals.cmdQueue, makeRaysKern, 1, NULL, &a_size, &localWorkSize, 0, NULL, NULL));
   waitIfDebug(__FILE__, __LINE__);

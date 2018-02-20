@@ -3,10 +3,54 @@
 #include "crandom.h"
 #include "clight.h"
 
+__kernel void LightSampleForwardCreate(__global float4*              restrict out_data1,
+                                       __global float4*              restrict out_data2,
+                                       __global int2*                restrict out_index,
+                                       __global RandomGen*           restrict out_gens,
+                                       __constant ushort*            restrict a_mortonTable256,
+                                       __global const EngineGlobals* restrict a_globals,
+                                       const int iNumElements)
+{
+  int tid = GLOBAL_ID_X;
+  if (tid >= iNumElements)
+    return;
+
+  // (1) generate light sample
+  //
+  RandomGen gen       = out_gens[tid];
+  gen.maxNumbers      = a_globals->varsI[HRT_MLT_MAX_NUMBERS];
+  const float4 rands1 = rndFloat4_Pseudo(&gen);             // #TODO: change this for MMLT
+  const float2 rands2 = rndFloat2_Pseudo(&gen);             // #TODO: change this for MMLT
+  const float2 rands3 = rndFloat2_Pseudo(&gen);
+  out_gens[tid]       = gen;
+
+  float lightPickProb = 1.0f;
+  const int lightId   = SelectRandomLightFwd(rands3, a_globals,
+                                             &lightPickProb);
+
+  unsigned int sortId = (((unsigned int)lightId) << 24) & 0xFF000000; // this mask is nor reallly neede, i just wat to have it here to understand bit layout
+
+  const unsigned int x1 = (unsigned int)( fmin(rands1.x*16.0f,  16.0f)  );
+  const unsigned int y1 = (unsigned int)( fmin(rands1.y*16.0f,  16.0f)  );
+  const unsigned int x2 = (unsigned int)( fmin(rands1.z*256.0f, 256.0f) );
+  const unsigned int y2 = (unsigned int)( fmin(rands1.w*256.0f, 256.0f) );
+
+  sortId |= (ZIndex(x1, y1, a_mortonTable256)     ) & 0x000000FF;
+  sortId |= (ZIndex(x2, y2, a_mortonTable256) << 8) & 0x00FFFF00;
+
+  out_data1[tid] = rands1;
+  out_data2[tid] = make_float4(rands2.x, rands2.y, lightPickProb, as_float(lightId));
+  out_index[tid] = make_int2(sortId, tid);
+}
+
+
 __kernel void LightSampleForwardKernel(__global float4*        restrict out_rpos,
                                        __global float4*        restrict out_rdir,
-                                       __global RandomGen*     restrict out_gens,
-                                       
+                                       //__global RandomGen*     restrict out_gens,
+                                       __global const float4*  restrict in_data1,
+                                       __global const float4*  restrict in_data2,
+                                       __global const int2*    restrict in_index,
+
                                        __global float4*        restrict out_data1,
                                        __global float4*        restrict out_data2,
                                        __global float4*        restrict out_data3,
@@ -32,17 +76,25 @@ __kernel void LightSampleForwardKernel(__global float4*        restrict out_rpos
 
   // (1) generate light sample
   //
-  RandomGen gen       = out_gens[tid];
-  gen.maxNumbers      = a_globals->varsI[HRT_MLT_MAX_NUMBERS];
-  const float4 rands1 = rndFloat4_Pseudo(&gen);             // #TODO: change this for MMLT
-  const float2 rands2 = rndFloat2_Pseudo(&gen);             // #TODO: change this for MMLT
-  const float2 rands3 = rndFloat2_Pseudo(&gen);
-  out_gens[tid]       = gen;
+  // RandomGen gen       = out_gens[tid];
+  // gen.maxNumbers      = a_globals->varsI[HRT_MLT_MAX_NUMBERS];
+  // const float4 rands1 = rndFloat4_Pseudo(&gen);             // #TODO: change this for MMLT
+  // const float2 rands2 = rndFloat2_Pseudo(&gen);             // #TODO: change this for MMLT
+  // const float2 rands3 = rndFloat2_Pseudo(&gen);
+  // out_gens[tid]       = gen;
+  // 
+  // float lightPickProb = 1.0f;
+  // const int lightId   = SelectRandomLightFwd(rands3, a_globals,
+  //                                            &lightPickProb);
+  
+  const int2 index    = in_index[tid];
+  const float4 rands1 = in_data1[index.y];
+  const float4 data2  = in_data2[index.y];
+  const float2 rands2 = make_float2(data2.x, data2.y);
 
-  float lightPickProb = 1.0f;
-  const int lightId   = SelectRandomLightFwd(rands3, a_globals,
-                                             &lightPickProb);
-   
+  const float lightPickProb = data2.z;
+  const int   lightId       = as_int(data2.w);
+
   __global const PlainLight* pLight = lightAt(a_globals, lightId);
   
   LightSampleFwd sample;
