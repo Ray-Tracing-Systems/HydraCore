@@ -35,8 +35,18 @@ __kernel void LightSampleForwardCreate(__global float4*              restrict ou
   const unsigned int x2 = (unsigned int)( fmin(rands1.z*256.0f, 256.0f) );
   const unsigned int y2 = (unsigned int)( fmin(rands1.w*256.0f, 256.0f) );
 
-  sortId |= (ZIndex(x1, y1, a_mortonTable256)     ) & 0x000000FF;
-  sortId |= (ZIndex(x2, y2, a_mortonTable256) << 8) & 0x00FFFF00;
+  __global const PlainLight* pLight = lightAt(a_globals, lightId);
+
+  if (lightType(pLight) == PLAIN_LIGHT_TYPE_SPHERE)                   // when sample spheres positions are more important
+  {
+    sortId |= (ZIndex(x2, y2, a_mortonTable256)) & 0x000000FF;
+    sortId |= (ZIndex(x1, y1, a_mortonTable256) << 8) & 0x00FFFF00;
+  }
+  else                                                                // when sarea lights and other directions are more important
+  {
+    sortId |= (ZIndex(x1, y1, a_mortonTable256)) & 0x000000FF;
+    sortId |= (ZIndex(x2, y2, a_mortonTable256) << 8) & 0x00FFFF00;
+  }
 
   out_data1[tid] = rands1;
   out_data2[tid] = make_float4(rands2.x, rands2.y, lightPickProb, as_float(lightId));
