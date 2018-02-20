@@ -45,7 +45,10 @@ void GPUOCLLayer::runKernel_MakeEyeRays(cl_mem a_rpos, cl_mem a_rdir, cl_mem a_z
   BitonicCLArgs sortArgs;
   sortArgs.bitonicPassK = m_progs.sort.kernel("bitonic_pass_kernel");
   sortArgs.bitonic512   = m_progs.sort.kernel("bitonic_512");
+  sortArgs.bitonic1024  = m_progs.sort.kernel("bitonic_1024");
+  sortArgs.bitonic2048  = m_progs.sort.kernel("bitonic_2048");
   sortArgs.cmdQueue     = m_globals.cmdQueue;
+  sortArgs.dev          = m_globals.device;
 
   bitonic_sort_gpu(a_zindex, int(a_size), sortArgs);
   m_raysWasSorted = true;
@@ -157,7 +160,10 @@ void GPUOCLLayer::AddContributionToScreenGPU(cl_mem in_color,     cl_mem in_indi
     BitonicCLArgs sortArgs;
     sortArgs.bitonicPassK = m_progs.sort.kernel("bitonic_pass_kernel");
     sortArgs.bitonic512   = m_progs.sort.kernel("bitonic_512");
+    sortArgs.bitonic1024  = m_progs.sort.kernel("bitonic_1024");
+    sortArgs.bitonic2048  = m_progs.sort.kernel("bitonic_2048");
     sortArgs.cmdQueue     = m_globals.cmdQueue;
+    sortArgs.dev          = m_globals.device;
 
     bitonic_sort_gpu(in_indices, int(m_rays.MEGABLOCKSIZE), sortArgs);
   }
