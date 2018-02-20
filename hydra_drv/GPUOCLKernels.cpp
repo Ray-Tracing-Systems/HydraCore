@@ -58,26 +58,27 @@ void GPUOCLLayer::runKernel_MakeEyeRays(cl_mem a_rpos, cl_mem a_rdir, cl_mem a_z
 
   CHECK_CL(clSetKernelArg(makeRaysKern, 0, sizeof(cl_mem), (void*)&a_rpos));
   CHECK_CL(clSetKernelArg(makeRaysKern, 1, sizeof(cl_mem), (void*)&a_rdir));
+  CHECK_CL(clSetKernelArg(makeRaysKern, 2, sizeof(cl_mem), (void*)&m_rays.packedXY));
 
-  CHECK_CL(clSetKernelArg(makeRaysKern, 2, sizeof(cl_int), (void*)&m_width));
-  CHECK_CL(clSetKernelArg(makeRaysKern, 3, sizeof(cl_int), (void*)&m_height));
-  CHECK_CL(clSetKernelArg(makeRaysKern, 4, sizeof(cl_int), (void*)&iSize));
+  CHECK_CL(clSetKernelArg(makeRaysKern, 3, sizeof(cl_int), (void*)&m_width));
+  CHECK_CL(clSetKernelArg(makeRaysKern, 4, sizeof(cl_int), (void*)&m_height));
+  CHECK_CL(clSetKernelArg(makeRaysKern, 5, sizeof(cl_int), (void*)&iSize));
 
-  CHECK_CL(clSetKernelArg(makeRaysKern, 5, sizeof(cl_mem), (void*)&m_scene.allGlobsData));
+  CHECK_CL(clSetKernelArg(makeRaysKern, 6, sizeof(cl_mem), (void*)&m_scene.allGlobsData));
 
-  CHECK_CL(clSetKernelArg(makeRaysKern, 6, sizeof(cl_mem), (void*)&m_rays.rayFlags));        // pass this data to clear them only!
-  CHECK_CL(clSetKernelArg(makeRaysKern, 7, sizeof(cl_mem), (void*)&m_rays.pathAccColor));    // pass this data to clear them only!
-  CHECK_CL(clSetKernelArg(makeRaysKern, 8, sizeof(cl_mem), (void*)&m_rays.pathThoroughput)); // pass this data to clear them only!
-  CHECK_CL(clSetKernelArg(makeRaysKern, 9, sizeof(cl_mem), (void*)&m_rays.fogAtten));        // pass this data to clear them only!
-  CHECK_CL(clSetKernelArg(makeRaysKern,10, sizeof(cl_mem), (void*)&m_rays.hitMatId));        // pass this data to clear them only!
-  CHECK_CL(clSetKernelArg(makeRaysKern,11, sizeof(cl_mem), (void*)&m_rays.accPdf));
+  CHECK_CL(clSetKernelArg(makeRaysKern, 7, sizeof(cl_mem), (void*)&m_rays.rayFlags));        // pass this data to clear them only!
+  CHECK_CL(clSetKernelArg(makeRaysKern, 8, sizeof(cl_mem), (void*)&m_rays.pathAccColor));    // pass this data to clear them only!
+  CHECK_CL(clSetKernelArg(makeRaysKern, 9, sizeof(cl_mem), (void*)&m_rays.pathThoroughput)); // pass this data to clear them only!
+  CHECK_CL(clSetKernelArg(makeRaysKern,10, sizeof(cl_mem), (void*)&m_rays.fogAtten));        // pass this data to clear them only!
+  CHECK_CL(clSetKernelArg(makeRaysKern,11, sizeof(cl_mem), (void*)&m_rays.hitMatId));        // pass this data to clear them only!
+  CHECK_CL(clSetKernelArg(makeRaysKern,12, sizeof(cl_mem), (void*)&m_rays.accPdf));
 
-  CHECK_CL(clSetKernelArg(makeRaysKern,12, sizeof(cl_mem), (void*)&a_zindex));
-  CHECK_CL(clSetKernelArg(makeRaysKern,13, sizeof(cl_mem), (void*)&m_rays.pathShadeColor));  // unpack lens float4 from 'm_rays.pathShadeColor'
-  CHECK_CL(clSetKernelArg(makeRaysKern,14, sizeof(cl_mem), (void*)&m_globals.cMortonTable));
-  CHECK_CL(clSetKernelArg(makeRaysKern,15, sizeof(cl_mem), (void*)&m_globals.qmcTable));
-  CHECK_CL(clSetKernelArg(makeRaysKern,16, sizeof(cl_int), (void*)&a_passNumber));
-  CHECK_CL(clSetKernelArg(makeRaysKern,17, sizeof(cl_int), (void*)&packIndexForCPU));
+  CHECK_CL(clSetKernelArg(makeRaysKern,13, sizeof(cl_mem), (void*)&a_zindex));
+  CHECK_CL(clSetKernelArg(makeRaysKern,14, sizeof(cl_mem), (void*)&m_rays.pathShadeColor));  // unpack lens float4 from 'm_rays.pathShadeColor'
+  CHECK_CL(clSetKernelArg(makeRaysKern,15, sizeof(cl_mem), (void*)&m_globals.cMortonTable));
+  CHECK_CL(clSetKernelArg(makeRaysKern,16, sizeof(cl_mem), (void*)&m_globals.qmcTable));
+  CHECK_CL(clSetKernelArg(makeRaysKern,17, sizeof(cl_int), (void*)&a_passNumber));
+  CHECK_CL(clSetKernelArg(makeRaysKern,18, sizeof(cl_int), (void*)&packIndexForCPU));
 
   CHECK_CL(clEnqueueNDRangeKernel(m_globals.cmdQueue, makeRaysKern, 1, NULL, &a_size, &localWorkSize, 0, NULL, NULL));
   waitIfDebug(__FILE__, __LINE__);

@@ -8,8 +8,8 @@
 #include "../../HydraAPI/hydra_api/HydraXMLHelpers.h"
 #include "../../HydraAPI/hydra_api/HydraInternal.h"
 
-constexpr bool MEASURE_RAYS   = true;
-constexpr int  MEASURE_BOUNCE = 1;
+constexpr bool MEASURE_RAYS   = false;
+constexpr int  MEASURE_BOUNCE = 0;
 
 void UpdateProgress(const wchar_t* a_message, float a_progress)
 {

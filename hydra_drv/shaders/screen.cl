@@ -100,11 +100,12 @@ __kernel void MakeEyeRaysSamplesOnly(__global RandomGen*           restrict out_
   const float2 mutateScale  = make_float2(a_globals->varsF[HRT_MLT_SCREEN_SCALE_X], a_globals->varsF[HRT_MLT_SCREEN_SCALE_Y]);
   const unsigned int qmcPos = reverseBits(tid, a_size) + a_passNumberForQmc * a_size; // we use reverseBits due to neighbour thread number put in to sobol random generator are too far from each other 
   const float4 lensOffs     = rndLens(&gen, 0, mutateScale, a_qmcTable, qmcPos);
-  
+  out_gens[tid]             = gen;
+
   const float fwidth        = a_globals->varsF[HRT_WIDTH_F];
   const float fheight       = a_globals->varsF[HRT_HEIGHT_F];
 
-  /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////// related to MakeEyeRayFromF4Rnd
 
   unsigned short x = (unsigned short)(lensOffs.x*fwidth);
   unsigned short y = (unsigned short)(lensOffs.y*fheight);
@@ -115,21 +116,21 @@ __kernel void MakeEyeRaysSamplesOnly(__global RandomGen*           restrict out_
   if (x < 0)  x = 0;
   if (y < 0)  y = 0;
 
-  /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////// related to MakeEyeRayFromF4Rnd
 
   int2 indexToSort;
   indexToSort.x = ZIndex(x,y, a_mortonTable256);
   indexToSort.y = tid;
   
   out_samples[tid] = lensOffs;
-  out_gens   [tid] = gen;
   out_zind   [tid] = indexToSort;
 }
 
 
 __kernel void MakeEyeRaysUnifiedSampling(__global float4*              restrict out_pos, 
                                          __global float4*              restrict out_dir, 
-                      
+                                         __global int*                 restrict out_packXY,
+
                                          int w, int h, int a_size,
                                          __global const EngineGlobals* restrict a_globals, 
                                          __global uint*                restrict a_flags,
@@ -170,8 +171,9 @@ __kernel void MakeEyeRaysUnifiedSampling(__global float4*              restrict 
   if (x < 0)  x = 0;
   if (y < 0)  y = 0;
 
-  out_pos [tid] = to_float4(ray_pos, fx);
-  out_dir [tid] = to_float4(ray_dir, fy);
+  out_pos   [tid] = to_float4(ray_pos, fx);
+  out_dir   [tid] = to_float4(ray_dir, fy);
+  out_packXY[tid] = packXY1616(x, y);
 
   // clear all other per-ray data
   //
@@ -244,14 +246,13 @@ __kernel void ContribSampleToScreen(const __global float4* in_color, const __glo
   }
 }
 
-__kernel void PackIndexToColorW(const __global int2* a_indices, __global float4* out_color, const int iNumElements)
+__kernel void PackIndexToColorW(const __global int* a_packedId, __global float4* out_color, const int iNumElements)
 {
   int tid = GLOBAL_ID_X;
   if (tid >= iNumElements)
     return;
 
-  int2 index = a_indices[tid];
-  out_color[tid].w = as_float(index.x);
+  out_color[tid].w = as_float(a_packedId[tid]);
 }
 
 __kernel void RealColorToRGB256(__global   float4* in_color,

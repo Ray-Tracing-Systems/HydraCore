@@ -77,6 +77,7 @@ void GPUOCLLayer::CL_BUFFERS_RAYS::free()
   if (fogAtten)        { clReleaseMemObject(fogAtten);   fogAtten   = nullptr; }
   if (samZindex)       { clReleaseMemObject(samZindex);  samZindex  = nullptr; }
   if (pixWeights)      { clReleaseMemObject(pixWeights); pixWeights = nullptr; }
+  if (packedXY)        { clReleaseMemObject(packedXY);   packedXY   = nullptr; }
   if (debugf4)         { clReleaseMemObject(debugf4);    debugf4    = nullptr; }
 }
 
@@ -181,6 +182,8 @@ size_t GPUOCLLayer::CL_BUFFERS_RAYS::resize(cl_context ctx, cl_command_queue cmd
     pixWeights = nullptr;
     samZindex  = clCreateBuffer(ctx, CL_MEM_READ_WRITE, 1 * 2 * sizeof(int)*MEGABLOCKSIZE, NULL, &ciErr1); currSize += buff1Size * 2;
   }
+
+  packedXY = clCreateBuffer(ctx, CL_MEM_READ_WRITE, sizeof(int)*MEGABLOCKSIZE, NULL, &ciErr1);  currSize += buff1Size*1;
 
   if (ciErr1 != CL_SUCCESS)
     RUN_TIME_ERROR("Error in resize rays buffers");
@@ -1452,7 +1455,7 @@ void GPUOCLLayer::AddContributionToScreenCPU(cl_mem& in_color, cl_mem in_indices
   {
     cl_kernel kern = m_progs.screen.kernel("PackIndexToColorW");
 
-    CHECK_CL(clSetKernelArg(kern, 0, sizeof(cl_mem), (void*)&in_indices));
+    CHECK_CL(clSetKernelArg(kern, 0, sizeof(cl_mem), (void*)&m_rays.packedXY));
     CHECK_CL(clSetKernelArg(kern, 1, sizeof(cl_mem), (void*)&in_color));
     CHECK_CL(clSetKernelArg(kern, 2, sizeof(cl_int), (void*)&iNumElements));
     CHECK_CL(clEnqueueNDRangeKernel(m_globals.cmdQueue, kern, 1, NULL, &size, &szLocalWorkSize, 0, NULL, NULL));
