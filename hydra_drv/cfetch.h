@@ -580,6 +580,9 @@ static inline float3 sample2DLite(int a_samplerOffset, float2 texCoord, __global
   SWTexSampler sampler   = ReadSamplerUI2(a_samStorage, a_samplerOffset);
   const float2 texCoordT = mul2x4(sampler.row0, sampler.row1, texCoord);
 
+  if(sampler.texId == 0)
+    return make_float3(1, 1, 1);
+
   const int offset = textureHeaderOffset(a_globals, sampler.texId);
 
   float4 texColor4 = read_imagef_sw4(a_texStorage + offset, texCoordT, sampler.flags);
