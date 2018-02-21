@@ -84,9 +84,53 @@ inline int reverseBits(int a_input, int a_maxSize)
   return result;
 }
 
+__kernel void MakeEyeRaysSamplesOnly(__global RandomGen*           restrict out_gens,
+                                     __global float4*              restrict out_samples,
+                                     __global int2*                restrict out_zind,
+                                     __global const EngineGlobals* restrict a_globals,
+                                     __constant ushort*            restrict a_mortonTable256,
+                                     __constant unsigned int*      restrict a_qmcTable,
+                                     int a_passNumberForQmc, int w, int h, int a_size)
+{
+  int tid = GLOBAL_ID_X;
+  if (tid >= a_size)
+    return;
+
+  RandomGen gen             = out_gens[tid];
+  const float2 mutateScale  = make_float2(a_globals->varsF[HRT_MLT_SCREEN_SCALE_X], a_globals->varsF[HRT_MLT_SCREEN_SCALE_Y]);
+  const unsigned int qmcPos = reverseBits(tid, a_size) + a_passNumberForQmc * a_size; // we use reverseBits due to neighbour thread number put in to sobol random generator are too far from each other 
+  const float4 lensOffs     = rndLens(&gen, 0, mutateScale, a_qmcTable, qmcPos);
+  out_gens[tid]             = gen;
+
+  const float fwidth        = a_globals->varsF[HRT_WIDTH_F];
+  const float fheight       = a_globals->varsF[HRT_HEIGHT_F];
+
+  ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////// related to MakeEyeRayFromF4Rnd
+
+  unsigned short x = (unsigned short)(lensOffs.x*fwidth);
+  unsigned short y = (unsigned short)(lensOffs.y*fheight);
+
+  if (x >= w) x = w - 1;
+  if (y >= h) y = h - 1;
+
+  if (x < 0)  x = 0;
+  if (y < 0)  y = 0;
+
+  ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////// related to MakeEyeRayFromF4Rnd
+
+  int2 indexToSort;
+  indexToSort.x = ZIndex(x,y, a_mortonTable256);
+  indexToSort.y = tid;
+  
+  out_samples[tid] = lensOffs;
+  out_zind   [tid] = indexToSort;
+}
+
+
 __kernel void MakeEyeRaysUnifiedSampling(__global float4*              restrict out_pos, 
                                          __global float4*              restrict out_dir, 
-                                         __global RandomGen*           restrict out_gens,
+                                         __global int*                 restrict out_packXY,
+
                                          int w, int h, int a_size,
                                          __global const EngineGlobals* restrict a_globals, 
                                          __global uint*                restrict a_flags,
@@ -96,8 +140,8 @@ __kernel void MakeEyeRaysUnifiedSampling(__global float4*              restrict 
                                          __global HitMatRef*           restrict out_hitMat,
                                          __global PerRayAcc*           restrict out_accPdf,
 
-                                         __global int2*                restrict out_zind,
-                                         __global float*               restrict out_pixw, 
+                                         __global const int2*          restrict in_zind,
+                                         __global const float4*        restrict in_samples,
                                          __constant ushort*            restrict a_mortonTable256,
                                          __constant unsigned int*      restrict a_qmcTable, 
                                          int a_passNumberForQmc, int a_packIndexForCPU)
@@ -108,11 +152,8 @@ __kernel void MakeEyeRaysUnifiedSampling(__global float4*              restrict 
 
   // (1) generate 4 random floats
   //
-  RandomGen gen = out_gens[tid];
-  const float2 mutateScale  = make_float2(a_globals->varsF[HRT_MLT_SCREEN_SCALE_X], a_globals->varsF[HRT_MLT_SCREEN_SCALE_Y]);
-  const unsigned int qmcPos = reverseBits(tid, a_size) + a_passNumberForQmc * a_size; // we use reverseBits due to neighbour thread number put in to sobol random generator are too far from each other 
-  const float4 lensOffs     = rndLens(&gen, 0, mutateScale, a_qmcTable, qmcPos);
-  out_gens[tid] = gen;
+  const int2 sortedIndex = in_zind[tid];
+  const float4 lensOffs  = in_samples[sortedIndex.y]; // we pack lensOffs in this buffer in 'MakeEyeRaysSamplesOnly' kernel
 
   // (2) generate random camera sample
   //
@@ -130,44 +171,9 @@ __kernel void MakeEyeRaysUnifiedSampling(__global float4*              restrict 
   if (x < 0)  x = 0;
   if (y < 0)  y = 0;
 
-  out_pos [tid] = to_float4(ray_pos, fx);
-  out_dir [tid] = to_float4(ray_dir, fy);
-
-  if (out_pixw != 0) // bilinear filter is used
-  {
-    const int px = (int)(fx);
-    const int py = (int)(fy);
-
-    const float fx  = fabs(fx - (float)px);
-    const float fy  = fabs(fy - (float)py);
-    const float fx1 = 1.0f - fx;
-    const float fy1 = 1.0f - fy;
-    
-    const float w1  = fx1 * fy1;
-    const float w2  = fx * fy1;
-    const float w3  = fx1 * fy;
-    const float w4  = fx * fy;
-
-    const int zid1 = (int)ZIndex(px + 0, py + 0, a_mortonTable256); // const int offset0 = py_w0 * w + px_w0;
-    const int zid2 = (int)ZIndex(px + 0, py + 1, a_mortonTable256); // const int offset1 = py_w0 * w + px_w1;
-    const int zid3 = (int)ZIndex(px + 1, py + 0, a_mortonTable256); // const int offset2 = py_w1 * w + px_w0;
-    const int zid4 = (int)ZIndex(px + 1, py + 1, a_mortonTable256); // const int offset3 = py_w1 * w + px_w1; 
-
-    out_zind[tid + 0 * a_size] = make_int2(zid1, tid + 0 * a_size);
-    out_zind[tid + 1 * a_size] = make_int2(zid2, tid + 1 * a_size);
-    out_zind[tid + 2 * a_size] = make_int2(zid3, tid + 2 * a_size);
-    out_zind[tid + 3 * a_size] = make_int2(zid4, tid + 3 * a_size);
-
-    out_pixw[tid + 0 * a_size] = w1;
-    out_pixw[tid + 1 * a_size] = w2;
-    out_pixw[tid + 2 * a_size] = w3;
-    out_pixw[tid + 3 * a_size] = w4;
-  }
-  else
-  {
-    const int zid = a_packIndexForCPU ? packXY1616(x,y) : (int)ZIndex(x, y, a_mortonTable256);
-    out_zind[tid] = make_int2(zid, tid);
-  }
+  out_pos   [tid] = to_float4(ray_pos, fx);
+  out_dir   [tid] = to_float4(ray_dir, fy);
+  out_packXY[tid] = packXY1616(x, y);
 
   // clear all other per-ray data
   //
@@ -184,9 +190,9 @@ __kernel void MakeEyeRaysUnifiedSampling(__global float4*              restrict 
 }
 
 
-__kernel void ContribSampleToScreen(const __global float4* in_color, const __global int2* a_indices, const __global float* a_weights, __constant ushort* a_mortonTable256,
+__kernel void ContribSampleToScreen(const __global float4* in_color, const __global int2* a_indices, __constant ushort* a_mortonTable256,
                                     const int a_samplesNum, const int w, const int h, const float a_spp, const float a_gammaInv,
-                                    __global  float4* out_colorHDR, __global uint* out_colorLDR)
+                                    __global  float4* out_colorHDR, __global uint* out_colorLDR, const int alreadySorted)
 {
   const int x = GLOBAL_ID_X;
   const int y = GLOBAL_ID_Y;
@@ -198,7 +204,7 @@ __kernel void ContribSampleToScreen(const __global float4* in_color, const __glo
 
   // (1) run binary search to find pair in a_indices where val.x == pixelIndex // no bilinear2D.
   //
-  const int samNum = (a_weights == 0) ? a_samplesNum : a_samplesNum * 4;
+  const int samNum = a_samplesNum;
   const int beginX = binarySearchForLeftRange (a_indices, samNum, pxZIndex);
   const int endX   = samNum - 1;
 
@@ -208,24 +214,14 @@ __kernel void ContribSampleToScreen(const __global float4* in_color, const __glo
   {
     int i            = beginX;
     int2 xOldNewPair = a_indices[i];
+  
+    while (i <= endX && xOldNewPair.x == pxZIndex)
+    {
+      const int offset = (alreadySorted == 1) ? i : xOldNewPair.y;
 
-    if (a_weights == 0)
-    {
-      while (i <= endX && xOldNewPair.x == pxZIndex)
-      {
-        color += in_color[xOldNewPair.y];
-        i++;
-        xOldNewPair = (i <= endX) ? a_indices[i] : xOldNewPair;
-      }
-    }
-    else
-    {
-      while (i <= endX && xOldNewPair.x == pxZIndex)
-      {
-        color += in_color[xOldNewPair.y]*a_weights[xOldNewPair.y];
-        i++;
-        xOldNewPair = (i <= endX) ? a_indices[i] : xOldNewPair;
-      }
+      color += in_color[offset];
+      i++;
+      xOldNewPair = (i <= endX) ? a_indices[i] : xOldNewPair;
     }
   }
 
@@ -250,14 +246,13 @@ __kernel void ContribSampleToScreen(const __global float4* in_color, const __glo
   }
 }
 
-__kernel void PackIndexToColorW(const __global int2* a_indices, __global float4* out_color, const int iNumElements)
+__kernel void PackIndexToColorW(const __global int* a_packedId, __global float4* out_color, const int iNumElements)
 {
   int tid = GLOBAL_ID_X;
   if (tid >= iNumElements)
     return;
 
-  int2 index = a_indices[tid];
-  out_color[tid].w = as_float(index.x);
+  out_color[tid].w = as_float(a_packedId[tid]);
 }
 
 __kernel void RealColorToRGB256(__global   float4* in_color,

@@ -425,7 +425,10 @@ void GPUOCLLayer::MLT_DoPass()
   BitonicCLArgs sortArgs;
   sortArgs.bitonicPassK = m_progs.sort.kernel("bitonic_pass_kernel");
   sortArgs.bitonic512   = m_progs.sort.kernel("bitonic_512");
+  sortArgs.bitonic1024  = m_progs.sort.kernel("bitonic_1024");
+  sortArgs.bitonic2048  = m_progs.sort.kernel("bitonic_2048");
   sortArgs.cmdQueue     = m_globals.cmdQueue;
+  sortArgs.dev          = m_globals.device;
 
 #ifdef MLT_MULTY_PROPOSAL
   const int CHAINS         = int(m_rays.MEGABLOCKSIZE/MLT_PROPOSALS);
