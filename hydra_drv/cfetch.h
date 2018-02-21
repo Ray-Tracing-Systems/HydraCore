@@ -525,6 +525,9 @@ static inline float3 sample2D(int a_samplerOffset, float2 texCoord, __global con
   const SWTexSampler sampler = ReadSampler(a_samStorage, a_samplerOffset); 
   const float2 texCoordT     = mul2x4(sampler.row0, sampler.row1, texCoord);
 
+  if (sampler.texId == 0)
+    return make_float3(1, 1, 1);
+
   const int offset           = textureHeaderOffset(a_globals, sampler.texId);
 
   float4 texColor4 = read_imagef_sw4(a_texStorage + offset, texCoordT, sampler.flags);
@@ -553,6 +556,9 @@ static inline float3 sample2DUI2(int a_samplerOffset, float2 texCoord, __global 
 
   const SWTexSampler sampler = ReadSamplerUI2(a_samStorage, a_samplerOffset);
   const float2 texCoordT     = mul2x4(sampler.row0, sampler.row1, texCoord);
+  
+  if (sampler.texId == 0)
+    return make_float3(1, 1, 1);
 
   const int offset = textureHeaderOffset(a_globals, sampler.texId);
 
@@ -604,6 +610,9 @@ static inline float3 sample2DAux(int2 a_samplerOffset, float2 texCoord, __global
 
   const SWTexSampler sampler = ReadSampler(a_samStorage, a_samplerOffset.y);
   const float2 texCoordT     = mul2x4(sampler.row0, sampler.row1, texCoord);
+
+  if (sampler.texId == 0)
+    return make_float3(1, 1, 1);
 
   const int offset = textureAuxHeaderOffset(a_globals, a_samplerOffset.x);
   //const int offset = textureAuxHeaderOffset(a_globals, sampler.texId);

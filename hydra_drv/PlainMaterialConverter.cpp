@@ -1389,6 +1389,8 @@ std::shared_ptr<IMaterial> CreateMaterialFromXmlNode(pugi::xml_node a_node, Rend
     if(HaveAnyNodeWithBTDF(pResult.get()))
       pResult->AddFlags(PLAIN_MATERIAL_HAVE_BTDF);
   }
+  else
+    ReadBumpAndOpacity(pResult, a_node, a_pRTE);
 
   PopUpTransparencyAndCaustics(pResult.get());
 
