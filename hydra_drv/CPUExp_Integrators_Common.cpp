@@ -82,30 +82,9 @@ IntegratorCommon::IntegratorCommon(int w, int h, EngineGlobals* a_pGlobals, int 
   }
 
   m_splitDLByGrammar = false;
-  rememberXY();
-
   initQuasirandomGenerator(m_tableQMC);
 }
 
-void IntegratorCommon::rememberXY()
-{
-  m_xy.resize(m_width*m_height);
-
-  for (int y = 0; y < m_height; y++)
-  {
-    for (int x = 0; x < m_width; x++)
-    {
-      uint offsZ = IndexZBlock2D(x, y, m_width, MortonTable256);
-
-      ushort2 res;
-      res.x = x;
-      res.y = y;
-
-      m_xy[offsZ] = res;
-    }
-  }
-
-}
 
 IntegratorCommon::~IntegratorCommon()
 {

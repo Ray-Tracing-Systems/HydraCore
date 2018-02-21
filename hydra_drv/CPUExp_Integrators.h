@@ -273,9 +273,6 @@ protected:
   float4x4 fetchMatrix(const Lite_Hit& a_liteHit);
   int      fetchInstId(const Lite_Hit& a_liteHit);
 
-  void rememberXY();
-  std::vector<ushort2> m_xy;
-
   std::vector<float> m_lightContribFwd;
   std::vector<float> m_lightContribRev;
 
@@ -338,6 +335,15 @@ class IntegratorMISPT : public IntegratorCommon
 public:
 
   IntegratorMISPT(int w, int h, EngineGlobals* a_pGlobals, int a_createFlags) : IntegratorCommon(w, h, a_pGlobals, a_createFlags) {}
+
+  float3 PathTrace(float3 a_rpos, float3 a_rdir, MisData misPrev, int a_currDepth, uint flags);
+};
+
+class IntegratorMISPT_trofimm : public IntegratorCommon
+{
+public:
+
+  IntegratorMISPT_trofimm(int w, int h, EngineGlobals* a_pGlobals, int a_createFlags) : IntegratorCommon(w, h, a_pGlobals, a_createFlags) {}
 
   float3 PathTrace(float3 a_rpos, float3 a_rdir, MisData misPrev, int a_currDepth, uint flags);
 };
