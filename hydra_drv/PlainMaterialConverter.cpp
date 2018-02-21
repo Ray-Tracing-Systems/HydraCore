@@ -1148,12 +1148,12 @@ void ReadBumpAndOpacity(std::shared_ptr<IMaterial> pResult, pugi::xml_node a_nod
 
   // (3) add opacity map
   //
-  pugi::xml_node opacityTex = a_node.child(L"opacity").child(L"texture");  
 
-  if (opacityTex != nullptr)
+  if (a_node.child(L"opacity") != nullptr)
   {
-    SWTexSampler sampler = SamplerFromTexref(opacityTex);
-    int32_t texId = sampler.texId;
+    pugi::xml_node opacityTex = a_node.child(L"opacity").child(L"texture");
+    SWTexSampler sampler      = SamplerFromTexref(opacityTex);
+    int32_t texId             = sampler.texId;
     pResult->SetOpacitySampler(texId, sampler);
 
     pugi::xml_node opacitiNode = a_node.child(L"opacity");
