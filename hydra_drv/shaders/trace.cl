@@ -139,64 +139,43 @@ static inline float4x4 fetchMatrix(const Lite_Hit hit, __global const float4* in
 
 static inline int remapMaterialId(int a_mId, int a_listId, __global const int* in_allMatRemapLists, __global const int2* in_remapTable, int a_remapTableSize)
 {
+  // return a_mId;
+
   if(a_mId < 0 || a_mId >= a_remapTableSize)
     return a_mId;
 
   const int2 offsAndSize = in_remapTable[a_listId];
 
-  int res = a_mId;
-  //for (int i = 0; i < offsAndSize.y; i++) // #TODO: change to binery search
-  //{
-  //  int idRemapFrom = in_allMatRemapLists[offsAndSize.x + i * 2 + 0];
-  //  int idRemapTo   = in_allMatRemapLists[offsAndSize.x + i * 2 + 1];
-  //
-  //  if (idRemapFrom == a_mId)
-  //  {
-  //    res = idRemapTo;
-  //    break;
-  //  }
-  //}
+  // int res = a_mId;
+  // for (int i = 0; i < offsAndSize.y; i++) // #TODO: change to binery search
+  // {
+  //   int idRemapFrom = in_allMatRemapLists[offsAndSize.x + i * 2 + 0];
+  //   int idRemapTo   = in_allMatRemapLists[offsAndSize.x + i * 2 + 1];
+  // 
+  //   if (idRemapFrom == a_mId)
+  //   {
+  //     res = idRemapTo;
+  //     break;
+  //   }
+  // }
 
-  int leftBound  = 0;
-  int rightBound = offsAndSize.y - 1; 
-  int counter    = 0;
-  int currPos    = -1;
-
-  const int maxStep = 50;
-  const int x       = a_mId;
-
-  while (rightBound - leftBound > 1 && counter < maxStep)
+  int low  = 0;
+  int high = offsAndSize.y - 1;
+  
+  while (low <= high)
   {
-    const int currSize  = rightBound + leftBound;
-    const int currPos1  = (currSize % 2 == 0) ? (currSize + 1) / 2 : (currSize + 0) / 2;
-
-    const int a = in_allMatRemapLists[offsAndSize.x + currPos1 * 2 + 0];
-    const int b = in_allMatRemapLists[offsAndSize.x + currPos1 * 2 + 2];
-
-    if (a == x)
-    {
-      currPos = currPos1;
-      break;
-    }
-    else if (b == x)
-    {
-      currPos = currPos1 + 1;
-      break;
-    }
-    else if (x < a)
-      rightBound = currPos1;
-    else if (x > b)
-      leftBound = currPos1;
-
-    counter++;
+    int mid = low + ((high - low) / 2);
+  
+    const int idRemapFrom = in_allMatRemapLists[offsAndSize.x + mid * 2 + 0];
+  
+    if (idRemapFrom >= a_mId)
+      high = mid - 1;
+    else //if(a[mid]<i)
+      low = mid + 1;
   }
-
-  if (currPos >= 0) // check the rest intervals
-  {
-    if (x == 0 && )
-      currPos = 0;
-    res = in_allMatRemapLists[offsAndSize.x + currPos * 2 + 1];
-  }
+  const int idRemapFrom = in_allMatRemapLists[offsAndSize.x + (high+1)*2 + 0];
+  const int idRemapTo   = in_allMatRemapLists[offsAndSize.x + (high+1)*2 + 1];
+  const int res         = (idRemapFrom == a_mId) ? idRemapTo : a_mId;
    
   return res;
 }
