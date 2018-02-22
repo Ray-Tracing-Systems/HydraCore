@@ -183,6 +183,69 @@ void GPUOCLLayer::SetAllPODLights(PlainLight* a_lights2, size_t a_number)
   Base::SetAllPODLights(a_lights2, a_number);
 }
 
+void GPUOCLLayer::SetAllRemapLists(const int* a_allLists, const int2* a_table, int a_allSize, int a_tableSize)
+{
+  cl_int ciErr1 = CL_SUCCESS;
+
+  // (1) update all remap lists
+  //
+  if (m_scene.remapLists == nullptr || m_scene.remapListsSize < a_allSize)
+  {
+    if (m_scene.remapLists != nullptr)
+      clReleaseMemObject(m_scene.remapLists);
+
+    m_scene.remapLists     = clCreateBuffer(m_globals.ctx, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, a_allSize*sizeof(int), (void*)a_allLists, &ciErr1);
+    m_scene.remapListsSize = a_allSize;
+  }
+  else
+  {
+    CHECK_CL(clEnqueueWriteBuffer(m_globals.cmdQueue, m_scene.remapLists, CL_TRUE, 0, a_allSize * sizeof(int), (void*)a_allLists, 0, NULL, NULL));
+  }
+
+  if (ciErr1 != CL_SUCCESS)
+    RUN_TIME_ERROR("GPUOCLLayer::SetAllInstLightInstId: Error in clCreateBuffer / clEnqueueWriteBuffer");
+
+  // (2) update remap table
+  //
+  if (m_scene.remapTable == nullptr || m_scene.remapTableSize < a_tableSize)
+  {
+    if (m_scene.remapTable != nullptr)
+      clReleaseMemObject(m_scene.remapTable);
+
+    m_scene.remapTable     = clCreateBuffer(m_globals.ctx, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, a_tableSize * sizeof(int2), (void*)a_table, &ciErr1);
+    m_scene.remapTableSize = a_tableSize;
+  }
+  else
+  {
+    CHECK_CL(clEnqueueWriteBuffer(m_globals.cmdQueue, m_scene.remapTable, CL_TRUE, 0, a_tableSize * sizeof(int2), (void*)a_table, 0, NULL, NULL));
+  }
+
+  if (ciErr1 != CL_SUCCESS)
+    RUN_TIME_ERROR("GPUOCLLayer::SetAllInstLightInstId: Error in clCreateBuffer / clEnqueueWriteBuffer");
+
+}
+
+void GPUOCLLayer::SetAllInstIdToRemapId(const int* a_allInstId, int a_instNum)
+{
+  cl_int ciErr1 = CL_SUCCESS;
+
+  if (m_scene.remapInst == nullptr || m_scene.remapInstSize < a_instNum)
+  {
+    if (m_scene.remapInst != nullptr)
+      clReleaseMemObject(m_scene.remapInst);
+
+    m_scene.remapInst     = clCreateBuffer(m_globals.ctx, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, a_instNum * sizeof(int), (void*)a_allInstId, &ciErr1);
+    m_scene.remapInstSize = a_instNum;
+  }
+  else
+  {
+    CHECK_CL(clEnqueueWriteBuffer(m_globals.cmdQueue, m_scene.remapInst, CL_TRUE, 0, a_instNum * sizeof(int), (void*)a_allInstId, 0, NULL, NULL));
+  }
+
+  if (ciErr1 != CL_SUCCESS)
+    RUN_TIME_ERROR("GPUOCLLayer::SetAllInstLightInstId: Error in clCreateBuffer / clEnqueueWriteBuffer");
+}
+
 void GPUOCLLayer::UpdateVarsOnGPU()
 {
   memcpy(m_globsBuffHeader.varsI, m_vars.m_varsI, sizeof(int)*GMAXVARS);

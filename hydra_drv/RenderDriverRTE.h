@@ -76,9 +76,9 @@ struct RenderDriverRTE : public IHRRenderDriver
 
   /////////////////////////////////////////////////////////////////////////////////////////////
 
-  void BeginScene();
+  void BeginScene(pugi::xml_node a_sceneNode) override;
   void EndScene();
-  void InstanceMeshes(int32_t a_mesh_id, const float* a_matrices, int32_t a_instNum, const int* a_lightInstId);
+  void InstanceMeshes(int32_t a_mesh_id, const float* a_matrices, int32_t a_instNum, const int* a_lightInstId, const int* a_remapId);
   void InstanceLights(int32_t a_light_id, const float* a_matrix, pugi::xml_node* a_lightNodes, int32_t a_instNum, int32_t a_lightGroupId);
 
   void Draw();
@@ -162,6 +162,7 @@ protected:
   std::vector<int32_t>  m_instLightInstId;      ///<
   std::vector<int32_t>  m_lightIdByLightInstId; ///< store light id for each light instance 
   std::vector<int32_t>  m_meshIdByInstId;
+  std::vector<int32_t>  m_meshRemapListId;
   std::unordered_set<int32_t>  m_skyLightsId;
 
   struct AlphaBuffers

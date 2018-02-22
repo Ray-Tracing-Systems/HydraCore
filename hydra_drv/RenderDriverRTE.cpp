@@ -362,6 +362,7 @@ void RenderDriverRTE::ClearAll()
   m_instMatricesInv.clear();
   m_instLightInstId.clear();
   m_meshIdByInstId.clear();
+  m_meshRemapListId.clear();
 
   m_auxImageNumber = 0;
   m_auxTexNormalsPerMat.clear();
@@ -735,7 +736,7 @@ void RenderDriverRTE::CalcCameraMatrices(float4x4* a_pModelViewMatrixInv, float4
   (*a_projMatrix)              = transpose(projTransposed);
 }
 
-void RenderDriverRTE::BeginScene()
+void RenderDriverRTE::BeginScene(pugi::xml_node a_sceneNode)
 {
   if (m_pBVH != nullptr)
     m_pBVH->ClearScene();
@@ -747,9 +748,46 @@ void RenderDriverRTE::BeginScene()
   m_instLightInstId.resize(0);
   m_meshIdByInstId.resize(0);
   m_lightIdByLightInstId.resize(0);
+  m_meshRemapListId.resize(0);
 
   m_sceneHaveSkyPortals = false;
 
+  pugi::xml_node remapLists = a_sceneNode.child(L"remap_lists");
+  if (remapLists != nullptr)
+  {
+    // create remap list table
+    //
+    std::vector<int>  allRemapLists;
+    std::vector<int2> tableOffsetsAndSize;
+    allRemapLists.reserve(10000);
+    tableOffsetsAndSize.reserve(1000);
+
+    for (pugi::xml_node listNode : remapLists.children())
+    {
+      const wchar_t* inputStr = listNode.attribute(L"val").as_string();
+      const int listSize      = listNode.attribute(L"size").as_int();
+      std::wstringstream inStrStream(inputStr);
+
+      tableOffsetsAndSize.push_back(int2(allRemapLists.size(), listSize));
+
+      for (int i = 0; i < listSize; i++)
+      {
+        if (inStrStream.eof())
+          break;
+
+        int data;
+        inStrStream >> data;
+        allRemapLists.push_back(data);
+      }
+    }
+
+    if (tableOffsetsAndSize.size() > 0 && allRemapLists.size() > 0)
+      m_pHWLayer->SetAllRemapLists(&allRemapLists[0], &tableOffsetsAndSize[0], int(allRemapLists.size()), int(tableOffsetsAndSize.size()));
+    else
+      m_pHWLayer->SetAllRemapLists(nullptr, nullptr, 0, 0);
+  }
+  else // set empty remap table
+    m_pHWLayer->SetAllRemapLists(nullptr, nullptr, 0, 0);
 }
 
 std::vector<float> PrefixSumm(const std::vector<float>& a_vec);
@@ -837,7 +875,8 @@ void RenderDriverRTE::EndScene() // #TODO: add dirty flags (?) to update only th
   if (m_instMatricesInv.size() == 0 || m_instLightInstId.size() == 0)
     RUN_TIME_ERROR("RenderDriverRTE::EndScene, no instances in the scene!");
 
-  m_pHWLayer->SetAllInstMatrices(&m_instMatricesInv[0], int32_t(m_instMatricesInv.size()));
+  m_pHWLayer->SetAllInstMatrices   (&m_instMatricesInv[0], int32_t(m_instMatricesInv.size()));
+  m_pHWLayer->SetAllInstIdToRemapId(&m_meshRemapListId[0], int32_t(m_meshRemapListId.size()));
 
   // put bounding sphere to engine globals
   //
@@ -890,23 +929,24 @@ void RenderDriverRTE::FreeCPUMem()
   m_pMaterialStorage->FreeHostMem();
   m_pPdfStorage->FreeHostMem();
 
-  m_lights = std::vector< std::shared_ptr<RAYTR::ILight> >();
-  m_lightsInstanced = std::vector<PlainLight>();
-  m_lightHavePdfTable = std::unordered_set<int>();
-  m_iesCache = std::unordered_map<std::wstring, int2>();
-  m_materialUpdated = std::unordered_map<int, std::shared_ptr<RAYTR::IMaterial> >();
+  m_lights              = std::vector< std::shared_ptr<RAYTR::ILight> >();
+  m_lightsInstanced     = std::vector<PlainLight>();
+  m_lightHavePdfTable   = std::unordered_set<int>();
+  m_iesCache            = std::unordered_map<std::wstring, int2>();
+  m_materialUpdated     = std::unordered_map<int, std::shared_ptr<RAYTR::IMaterial> >();
   m_texturesProcessedNM = std::unordered_map<std::wstring, int32_t>();
-  m_blendsToUpdate = std::unordered_map<int, DefferedMaterialDataTuple >();
+  m_blendsToUpdate      = std::unordered_map<int, DefferedMaterialDataTuple >();
 
-  m_geomTable = std::vector<int>();
-  m_texTable = std::vector<int>();
-  m_texTableAux = std::vector<int>();
+  m_geomTable     = std::vector<int>();
+  m_texTable      = std::vector<int>();
+  m_texTableAux   = std::vector<int>();
   m_materialTable = std::vector<int>();
 
-  m_instMatricesInv = std::vector<float4x4>();
-  m_instLightInstId = std::vector<int32_t>();
+  m_instMatricesInv      = std::vector<float4x4>();
+  m_instLightInstId      = std::vector<int32_t>();
   m_lightIdByLightInstId = std::vector<int32_t>();
-  m_meshIdByInstId = std::vector<int32_t>();
+  m_meshIdByInstId       = std::vector<int32_t>();
+  m_meshRemapListId      = std::vector<int32_t>();
 
   if (m_pBVH != nullptr)
   {
@@ -1152,7 +1192,7 @@ void RenderDriverRTE::EvalGBuffer()
   m_pHWLayer->EvalGBuffer(m_pAccumImageForGBuff);
 }
 
-void RenderDriverRTE::InstanceMeshes(int32_t a_mesh_id, const float* a_matrices, int32_t a_instNum, const int* a_lightInstId)
+void RenderDriverRTE::InstanceMeshes(int32_t a_mesh_id, const float* a_matrices, int32_t a_instNum, const int* a_lightInstId, const int* a_remapId)
 {
   if (m_pBVH == nullptr)
     return;
@@ -1199,9 +1239,11 @@ void RenderDriverRTE::InstanceMeshes(int32_t a_mesh_id, const float* a_matrices,
   {
     const float4x4 mTransform(a_matrices + 16 * instId);
     const float4x4 invMatrix = inverse4x4(mTransform);
+    const int      remapId   = a_remapId[instId];
     m_instMatricesInv.push_back(invMatrix);
     m_instLightInstId.push_back(a_lightInstId[instId]);
     m_meshIdByInstId.push_back(meshId);
+    m_meshRemapListId.push_back(remapId);
   }
  
 }

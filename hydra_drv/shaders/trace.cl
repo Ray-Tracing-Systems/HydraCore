@@ -136,6 +136,72 @@ static inline float4x4 fetchMatrix(const Lite_Hit hit, __global const float4* in
   return res;
 }
 
+
+static inline int remapMaterialId(int a_mId, int a_listId, __global const int* in_allMatRemapLists, __global const int2* in_remapTable, int a_remapTableSize)
+{
+  if(a_mId < 0 || a_mId >= a_remapTableSize)
+    return a_mId;
+
+  const int2 offsAndSize = in_remapTable[a_listId];
+
+  int res = a_mId;
+  //for (int i = 0; i < offsAndSize.y; i++) // #TODO: change to binery search
+  //{
+  //  int idRemapFrom = in_allMatRemapLists[offsAndSize.x + i * 2 + 0];
+  //  int idRemapTo   = in_allMatRemapLists[offsAndSize.x + i * 2 + 1];
+  //
+  //  if (idRemapFrom == a_mId)
+  //  {
+  //    res = idRemapTo;
+  //    break;
+  //  }
+  //}
+
+  int leftBound  = 0;
+  int rightBound = offsAndSize.y - 1; 
+  int counter    = 0;
+  int currPos    = -1;
+
+  const int maxStep = 50;
+  const int x       = a_mId;
+
+  while (rightBound - leftBound > 1 && counter < maxStep)
+  {
+    const int currSize  = rightBound + leftBound;
+    const int currPos1  = (currSize % 2 == 0) ? (currSize + 1) / 2 : (currSize + 0) / 2;
+
+    const int a = in_allMatRemapLists[offsAndSize.x + currPos1 * 2 + 0];
+    const int b = in_allMatRemapLists[offsAndSize.x + currPos1 * 2 + 2];
+
+    if (a == x)
+    {
+      currPos = currPos1;
+      break;
+    }
+    else if (b == x)
+    {
+      currPos = currPos1 + 1;
+      break;
+    }
+    else if (x < a)
+      rightBound = currPos1;
+    else if (x > b)
+      leftBound = currPos1;
+
+    counter++;
+  }
+
+  if (currPos >= 0) // check the rest intervals
+  {
+    if (x == 0 && )
+      currPos = 0;
+    res = in_allMatRemapLists[offsAndSize.x + currPos * 2 + 1];
+  }
+   
+  return res;
+}
+
+
 __kernel void ComputeHit(__global const float4*   restrict rpos, 
                          __global const float4*   restrict rdir, 
                          __global const Lite_Hit* restrict in_hits,
@@ -144,6 +210,10 @@ __kernel void ComputeHit(__global const float4*   restrict rpos,
                          __global const float4*   restrict in_geomStorage,
                          __global const float4*   restrict in_materialStorage,
                          
+                         __global const int*      restrict in_allMatRemapLists,
+                         __global const int2*     restrict in_remapTable,
+                         __global const int*      restrict in_remapInst,
+
                          __global uint*           restrict out_flags,
                          __global float4*         restrict out_hitPosNorm,
                          __global float2*         restrict out_hitTexCoord,
@@ -153,7 +223,7 @@ __kernel void ComputeHit(__global const float4*   restrict rpos,
                          __global float4*         restrict out_normalsFull,
 
                          __global const EngineGlobals* restrict a_globals,
-                         int a_size)
+                         int a_remapTableSize,  int a_size)
 {
   ///////////////////////////////////////////////////////////
   int tid = GLOBAL_ID_X;
@@ -250,9 +320,12 @@ __kernel void ComputeHit(__global const float4*   restrict rpos,
   out_hitTexCoord[tid] = surfHitWS.texCoord;
   out_normalsFull[tid] = to_float4(surfHitWS.normal, hit_poly_size);
 
+  const int remapListId = in_remapInst[hit.instId];
+  const int remapedId   = (remapListId >= 0) ? remapMaterialId(surfHitWS.matId, remapListId, in_allMatRemapLists, in_remapTable, a_remapTableSize) : surfHitWS.matId;
+
   HitMatRef data3 = out_matData[tid];
   {
-    SetMaterialId(&data3, surfHitWS.matId);
+    SetMaterialId(&data3, remapedId);
     if (unpackBounceNum(flags) == 0)
       data3.accumDist = hit.t;
     else

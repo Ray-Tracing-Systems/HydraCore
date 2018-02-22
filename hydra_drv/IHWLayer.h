@@ -120,6 +120,8 @@ public:
   virtual void SetAllPODLights(PlainLight* a_lights2, size_t a_number);
 
   virtual void SetAllLightsSelectTable(const float* a_table, int32_t a_tableSize, bool a_fwd = false);
+  virtual void SetAllRemapLists       (const int* a_allLists, const int2* a_table, int a_allSize, int a_tableSize) {}
+  virtual void SetAllInstIdToRemapId  (const int* a_allInstId, int a_instNum) {}
 
   // render state
   //

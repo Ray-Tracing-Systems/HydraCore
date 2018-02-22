@@ -38,9 +38,12 @@ public:
   IMemoryStorage* CreateMemStorage(uint64_t a_maxSizeInBytes, const char* a_name);
 
   void SetAllBVH4(const ConvertionResult& a_convertedBVH, IBVHBuilder2* a_inBuilderAPI, int a_flags) override;
-  void SetAllInstMatrices(const float4x4* a_matrices, int32_t a_matrixNum);
-  void SetAllInstLightInstId(const int32_t* a_lightInstIds, int32_t a_instNum);
-  void SetAllPODLights(PlainLight* a_lights2, size_t a_number);
+  void SetAllInstMatrices(const float4x4* a_matrices, int32_t a_matrixNum) override;
+  void SetAllInstLightInstId(const int32_t* a_lightInstIds, int32_t a_instNum) override;
+  void SetAllPODLights(PlainLight* a_lights2, size_t a_number) override;
+  void SetAllRemapLists(const int* a_allLists, const int2* a_table, int a_allSize, int a_tableSize) override;
+  void SetAllInstIdToRemapId(const int* a_allInstId, int a_instNum) override;
+
   void PrepareEngineGlobals();
   void PrepareEngineTables();
   
@@ -300,7 +303,7 @@ protected:
   struct CL_SCENE_DATA
   {
     CL_SCENE_DATA() : storageTex(0), storageMat(0), storageGeom(0), storagePdfs(0), storageTexAux(0), matrices(0), instLightInst(0), 
-                      matricesSize(0), instLightInstSize(0), allGlobsData(0), allGlobsDataSize(0)
+                      matricesSize(0), instLightInstSize(0), allGlobsData(0), allGlobsDataSize(0), remapLists(0), remapTable(0)
     {
       for (int i = 0; i < MAXBVHTREES; i++)
       {
@@ -309,7 +312,9 @@ protected:
         alphTstBuff[i] = nullptr;
         bvhHaveInst[i] = false;
       }
-      bvhNumber = 0;
+      bvhNumber      = 0;
+      remapListsSize = 0;
+      remapTableSize = 0;
     }
 
     void free();
@@ -333,6 +338,13 @@ protected:
 
     cl_mem allGlobsData;
     size_t allGlobsDataSize;
+
+    cl_mem remapLists;
+    cl_mem remapTable;
+    cl_mem remapInst;
+    int remapListsSize;
+    int remapTableSize;
+    int remapInstSize;
 
     std::map<std::string, cl_mem> namedBuffers;
 
