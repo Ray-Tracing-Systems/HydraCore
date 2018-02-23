@@ -283,6 +283,8 @@ public:
   void SetAllBVH4(const ConvertionResult& a_convertedBVH, IBVHBuilder2* a_inBuilderAPI, int a_flags) override;
   void SetAllInstMatrices(const float4x4* a_matrices, int32_t a_matrixNum);
   void SetAllInstLightInstId(const int32_t* a_lightInstIds, int32_t a_instNum);
+  void SetAllRemapLists(const int* a_allLists, const int2* a_table, int a_allSize, int a_tableSize) override;
+  void SetAllInstIdToRemapId(const int* a_allInstId, int a_instNum) override;
 
   void PrepareEngineGlobals();
   void PrepareEngineTables();
@@ -296,9 +298,13 @@ protected:
   Integrator*   m_pIntegrator;
   IBVHBuilder2* m_pBVHBuilder;
 
-  const int32_t*  m_instLightInstId;
-  const float4x4* m_instMatrices;
-  int32_t         m_instMatrixNum;
+  const int32_t*     m_instLightInstId;
+  const float4x4*    m_instMatrices;
+  int32_t            m_instMatrixNum;
+
+  std::vector<int>   m_remapLists;
+  std::vector<int2>  m_remapTable;
+  std::vector<int>   m_remapInst;
 
   // temp and test members
   //

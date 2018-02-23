@@ -137,49 +137,6 @@ static inline float4x4 fetchMatrix(const Lite_Hit hit, __global const float4* in
 }
 
 
-static inline int remapMaterialId(int a_mId, int a_listId, __global const int* in_allMatRemapLists, __global const int2* in_remapTable, int a_remapTableSize)
-{
-  // return a_mId;
-
-  if(a_mId < 0 || a_mId >= a_remapTableSize)
-    return a_mId;
-
-  const int2 offsAndSize = in_remapTable[a_listId];
-
-  // int res = a_mId;
-  // for (int i = 0; i < offsAndSize.y; i++) // #TODO: change to binery search
-  // {
-  //   int idRemapFrom = in_allMatRemapLists[offsAndSize.x + i * 2 + 0];
-  //   int idRemapTo   = in_allMatRemapLists[offsAndSize.x + i * 2 + 1];
-  // 
-  //   if (idRemapFrom == a_mId)
-  //   {
-  //     res = idRemapTo;
-  //     break;
-  //   }
-  // }
-
-  int low  = 0;
-  int high = offsAndSize.y - 1;
-  
-  while (low <= high)
-  {
-    int mid = low + ((high - low) / 2);
-  
-    const int idRemapFrom = in_allMatRemapLists[offsAndSize.x + mid * 2 + 0];
-  
-    if (idRemapFrom >= a_mId)
-      high = mid - 1;
-    else //if(a[mid]<i)
-      low = mid + 1;
-  }
-  const int idRemapFrom = in_allMatRemapLists[offsAndSize.x + (high+1)*2 + 0];
-  const int idRemapTo   = in_allMatRemapLists[offsAndSize.x + (high+1)*2 + 1];
-  const int res         = (idRemapFrom == a_mId) ? idRemapTo : a_mId;
-   
-  return res;
-}
-
 
 __kernel void ComputeHit(__global const float4*   restrict rpos, 
                          __global const float4*   restrict rdir, 
@@ -202,7 +159,7 @@ __kernel void ComputeHit(__global const float4*   restrict rpos,
                          __global float4*         restrict out_normalsFull,
 
                          __global const EngineGlobals* restrict a_globals,
-                         int a_remapTableSize,  int a_size)
+                         int a_remapTableSize, int a_totalInstNumber,  int a_size)
 {
   ///////////////////////////////////////////////////////////
   int tid = GLOBAL_ID_X;
@@ -299,8 +256,9 @@ __kernel void ComputeHit(__global const float4*   restrict rpos,
   out_hitTexCoord[tid] = surfHitWS.texCoord;
   out_normalsFull[tid] = to_float4(surfHitWS.normal, hit_poly_size);
 
-  const int remapListId = in_remapInst[hit.instId];
-  const int remapedId   = (remapListId >= 0) ? remapMaterialId(surfHitWS.matId, remapListId, in_allMatRemapLists, in_remapTable, a_remapTableSize) : surfHitWS.matId;
+  const int remapedId   = remapMaterialId(surfHitWS.matId, hit.instId, 
+                                          in_remapInst, a_totalInstNumber, in_allMatRemapLists, 
+                                          in_remapTable, a_remapTableSize);
 
   HitMatRef data3 = out_matData[tid];
   {

@@ -51,7 +51,8 @@ struct SceneGeomData
 
 struct SceneGeomPointers
 {
-  SceneGeomPointers() : meshes(nullptr), matrices(nullptr), instLightInstId(nullptr), pExternalImpl(nullptr), bvhTreesNumber(0), matrixNum(0)
+  SceneGeomPointers() : meshes(nullptr), matrices(nullptr), instLightInstId(nullptr), pExternalImpl(nullptr), bvhTreesNumber(0), matrixNum(0),
+                        remapListsAll(nullptr), remapListsTab(nullptr), remapInstList(nullptr), remapAllSize(0), remapTabSize(0), remapInstSize(0)
   {
     for (int i = 0; i < MAXBVHTREES; i++)
     {
@@ -74,6 +75,15 @@ struct SceneGeomPointers
 
   int32_t bvhTreesNumber;
   int32_t matrixNum;
+
+  const int*  remapListsAll;
+  const int2* remapListsTab;
+  const int*  remapInstList;
+
+  int32_t remapAllSize;
+  int32_t remapTabSize;
+  int32_t remapInstSize;
+
 };
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////// 
@@ -136,6 +146,9 @@ public:
   virtual void SetPdfStoragePtr     (const float4* a_data) = 0;
   virtual void SetTexturesStorageAuxPtr(const float4* a_data) = 0;
 
+  virtual void SetMaterialRemapListPtrs(const int* a_allLists, const int2* a_table, const int* a_instTab, 
+                                        const int a_size1, const int a_size2, const int a_size3) = 0;
+
   virtual void SetMaxDepth(int a_depth) { m_maxDepth = a_depth; }
 
 protected:
@@ -187,11 +200,14 @@ public:
   void SetConstants(EngineGlobals* a_pGlobals);
   void SetSceneGlobals(int w, int h, EngineGlobals* a_pGlobals);
   
-  void SetSceneGeomPtrs(SceneGeomPointers a_data)  { m_geom       = a_data; }
-  void SetMaterialStoragePtr(const float4* a_data) { m_matStorage = a_data; }
-  void SetTexturesStoragePtr(const float4* a_data) { m_texStorage = (const int4*)a_data; }
-  void SetPdfStoragePtr     (const float4* a_data) { m_pdfStorage = a_data; }
-  void SetTexturesStorageAuxPtr(const float4* a_data) { m_texStorageAux = (const int4*)a_data; }
+  void SetSceneGeomPtrs(SceneGeomPointers a_data)  override { m_geom       = a_data; }
+  void SetMaterialStoragePtr(const float4* a_data) override { m_matStorage = a_data; }
+  void SetTexturesStoragePtr(const float4* a_data) override { m_texStorage = (const int4*)a_data; }
+  void SetPdfStoragePtr     (const float4* a_data) override { m_pdfStorage = a_data; }
+  void SetTexturesStorageAuxPtr(const float4* a_data) override { m_texStorageAux = (const int4*)a_data; }
+
+  void SetMaterialRemapListPtrs(const int* a_allLists, const int2* a_table, const int* a_instTab,
+                                const int a_size1, const int a_size2, const int a_size3) override;
 
   virtual void RandomizeAllGenerators();
   void UpdateLightPickProbTableFwd(const std::vector<float>& a_table, int a_spp);
@@ -222,6 +238,9 @@ protected:
   bool m_initDoneOnce;
   bool m_splitDLByGrammar;
 
+  const int*  m_remapAllLists; int m_remapAllSize;
+  const int2* m_remapTable;    int m_remapTabSize;
+  const int*  m_remapInstTab;  int m_remapInstSize;
 
   virtual std::tuple<float3, float3> makeEyeRay(int x, int y);
   virtual std::tuple<float3, float3> makeEyeRay2(float x, float y);

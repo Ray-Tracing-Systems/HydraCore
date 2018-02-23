@@ -144,6 +144,7 @@ void GPUOCLLayer::SetAllInstMatrices(const float4x4* a_matrices, int32_t a_matri
   if (ciErr1 != CL_SUCCESS)
     RUN_TIME_ERROR("GPUOCLLayer::SetAllInstMatrices: Error in clCreateBuffer / clEnqueueWriteBuffer");
 
+  m_scene.totalInstanceNum = a_matrixNum;
 }
 
 void GPUOCLLayer::SetAllInstLightInstId(const int32_t* a_lightInstIds, int32_t a_instNum)

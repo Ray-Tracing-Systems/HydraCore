@@ -352,7 +352,9 @@ void GPUOCLLayer::runKernel_ComputeHit(cl_mem a_rpos, cl_mem a_rdir, size_t a_si
   
   CHECK_CL(clSetKernelArg(kernHit, 16, sizeof(cl_mem), (void*)&m_scene.allGlobsData));
   CHECK_CL(clSetKernelArg(kernHit, 17, sizeof(cl_int), (void*)&m_scene.remapTableSize));
-  CHECK_CL(clSetKernelArg(kernHit, 18, sizeof(cl_int), (void*)&isize));
+  CHECK_CL(clSetKernelArg(kernHit, 18, sizeof(cl_int), (void*)&m_scene.totalInstanceNum));
+  CHECK_CL(clSetKernelArg(kernHit, 19, sizeof(cl_int), (void*)&isize));
+
 
   CHECK_CL(clEnqueueNDRangeKernel(m_globals.cmdQueue, kernHit, 1, NULL, &a_size, &localWorkSize, 0, NULL, NULL));
   waitIfDebug(__FILE__, __LINE__);

@@ -83,6 +83,10 @@ IntegratorCommon::IntegratorCommon(int w, int h, EngineGlobals* a_pGlobals, int 
 
   m_splitDLByGrammar = false;
   initQuasirandomGenerator(m_tableQMC);
+
+  m_remapAllLists = nullptr; m_remapAllSize  = 0;
+  m_remapTable    = nullptr; m_remapTabSize  = 0;
+  m_remapInstTab  = nullptr; m_remapInstSize = 0;
 }
 
 
@@ -90,6 +94,18 @@ IntegratorCommon::~IntegratorCommon()
 {
   
 }
+
+void IntegratorCommon::SetMaterialRemapListPtrs(const int* a_allLists, const int2* a_table, const int* a_instTab,
+                                                const int a_size1, const int a_size2, const int a_size3)
+{
+  m_remapAllLists = a_allLists;
+  m_remapTable    = a_table;
+  m_remapInstTab  = a_instTab;
+  m_remapAllSize  = a_size1;
+  m_remapTabSize  = a_size2;
+  m_remapInstSize = a_size3;
+}
+
 
 void IntegratorCommon::Reset()
 {
@@ -204,6 +220,14 @@ SurfaceHit IntegratorCommon::surfaceEval(float3 a_rpos, float3 a_rdir, Lite_Hit 
   surfHitWS.biTangent  = lengthInv*mul3x3(instanceMatrix, surfHit.biTangent);
   surfHitWS.t          = length(surfHitWS.pos - a_rpos); // seems this is more precise. VERY strange !!!
 
+
+  if (m_remapAllLists != nullptr && m_remapTable != nullptr && m_remapInstTab != nullptr)
+  {
+    surfHitWS.matId = remapMaterialId(surfHitWS.matId, hit.instId,
+                                      m_remapInstTab, m_remapInstSize, m_remapAllLists, 
+                                      m_remapTable, m_remapTabSize);
+  }
+ 
   return surfHitWS;
 }
 

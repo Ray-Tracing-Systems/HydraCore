@@ -2323,6 +2323,68 @@ static inline int binarySearchForRightRange(__global const int2* a, int length, 
   return low - 1;
 }
 
+/**
+\brief perform material id remap for instanced objects; 
+\param a_mId         - input old material id
+\param a_instId      - input instance id 
+\param in_remapInst  - array/table that maps instance id to remap list id
+\param a_instTabSize - max instance id / size of 'in_remapInst' array
+\param in_allMatRemapLists - all remap listss packed in to single array
+\param in_remapTable    - array/table that store offset inside 'in_allMatRemapLists' for each remap list which id we got from 'in_remapInst'
+\papam a_remapTableSize - size of 'in_remapTable' array
+
+\return new material id
+
+*/
+static inline int remapMaterialId(int a_mId, int a_instId, 
+                                  __global const int*  in_remapInst, int a_instTabSize, 
+                                  __global const int*  in_allMatRemapLists, 
+                                  __global const int2* in_remapTable, int a_remapTableSize)
+{
+  
+  if (a_mId < 0 || a_instId < 0 || a_instId >= a_instTabSize) // a_instTabSize+1
+    return a_mId;
+
+  const int remapListId = in_remapInst[a_instId];
+  if(remapListId < 0 || remapListId >= a_remapTableSize) // || remapListId >= some size
+    return a_mId;
+
+  const int2 offsAndSize = in_remapTable[remapListId];
+
+  // int res = a_mId;
+  // for (int i = 0; i < offsAndSize.y; i++) // #TODO: change to binery search
+  // {
+  //   int idRemapFrom = in_allMatRemapLists[offsAndSize.x + i * 2 + 0];
+  //   int idRemapTo   = in_allMatRemapLists[offsAndSize.x + i * 2 + 1];
+  // 
+  //   if (idRemapFrom == a_mId)
+  //   {
+  //     res = idRemapTo;
+  //     break;
+  //   }
+  // }
+
+  int low  = 0;
+  int high = offsAndSize.y - 1;
+  
+  while (low <= high)
+  {
+    const int mid = low + ((high - low) / 2);
+  
+    const int idRemapFrom = in_allMatRemapLists[offsAndSize.x + mid * 2 + 0];
+  
+    if (idRemapFrom >= a_mId)
+      high = mid - 1;
+    else //if(a[mid]<i)
+      low = mid + 1;
+  }
+
+  const int idRemapFrom = in_allMatRemapLists[offsAndSize.x + (high+1)*2 + 0];
+  const int idRemapTo   = in_allMatRemapLists[offsAndSize.x + (high+1)*2 + 1];
+  const int res         = (idRemapFrom == a_mId) ? idRemapTo : a_mId;
+   
+  return res;
+}
 
 
 #endif

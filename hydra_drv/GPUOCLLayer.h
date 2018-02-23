@@ -303,7 +303,7 @@ protected:
   struct CL_SCENE_DATA
   {
     CL_SCENE_DATA() : storageTex(0), storageMat(0), storageGeom(0), storagePdfs(0), storageTexAux(0), matrices(0), instLightInst(0), 
-                      matricesSize(0), instLightInstSize(0), allGlobsData(0), allGlobsDataSize(0), remapLists(0), remapTable(0)
+                      matricesSize(0), instLightInstSize(0), allGlobsData(0), allGlobsDataSize(0), remapLists(0), remapTable(0), remapInst(0)
     {
       for (int i = 0; i < MAXBVHTREES; i++)
       {
@@ -312,9 +312,11 @@ protected:
         alphTstBuff[i] = nullptr;
         bvhHaveInst[i] = false;
       }
-      bvhNumber      = 0;
-      remapListsSize = 0;
-      remapTableSize = 0;
+      bvhNumber        = 0;
+      remapListsSize   = 0;
+      remapTableSize   = 0;
+      remapInstSize    = 0;
+      totalInstanceNum = 0;
     }
 
     void free();
@@ -335,6 +337,7 @@ protected:
     cl_mem instLightInst;
     size_t matricesSize;
     size_t instLightInstSize;
+    int32_t totalInstanceNum;
 
     cl_mem allGlobsData;
     size_t allGlobsDataSize;

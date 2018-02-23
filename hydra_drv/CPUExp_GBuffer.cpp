@@ -58,7 +58,7 @@ GBufferAll IntegratorCommon::gbufferEval(int x, int y)
     float coverage = 0.0f;
     for (int j = 0; j < GBUFFER_SAMPLES; j++)
     {
-      const float thisDiff = gbuffDiff(samples[i], samples[j], fov, m_width, m_height);
+      const float thisDiff = gbuffDiff(samples[i], samples[j], fov, float(m_width), float(m_height));
       diff += thisDiff;
       if (thisDiff < 1.0f)
         coverage += 1.0f;

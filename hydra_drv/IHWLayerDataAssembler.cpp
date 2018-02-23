@@ -363,6 +363,17 @@ void CPUSharedData::SetAllInstLightInstId(const int32_t* a_lightInstIds, int32_t
   m_instMatrixNum   = a_instNum;
 }
 
+void CPUSharedData::SetAllRemapLists(const int* a_allLists, const int2* a_table, int a_allSize, int a_tableSize)
+{
+  m_remapLists = std::vector<int> (a_allLists, a_allLists + a_allSize);
+  m_remapTable = std::vector<int2>(a_table, a_table + a_tableSize);
+}
+
+void CPUSharedData::SetAllInstIdToRemapId(const int* a_allInstId, int a_instNum)
+{
+  m_remapInst  = std::vector<int>(a_allInstId, a_allInstId + a_instNum);
+}
+
 
 void CPUSharedData::PrepareEngineTables()
 {
@@ -382,7 +393,10 @@ void CPUSharedData::PrepareEngineTables()
     m_pIntegrator->SetMaterialStoragePtr((float4*)pMaterialStorage->GetBegin());
     m_pIntegrator->SetTexturesStoragePtr((float4*)pTexturesStorage1->GetBegin());
     m_pIntegrator->SetTexturesStorageAuxPtr((float4*)pTexturesStorage2->GetBegin());
-    m_pIntegrator->SetPdfStoragePtr     ((float4*)pPdfsStorage->GetBegin());
+    m_pIntegrator->SetPdfStoragePtr((float4*)pPdfsStorage->GetBegin());
+
+    m_pIntegrator->SetMaterialRemapListPtrs(ptrs.remapListsAll, ptrs.remapListsTab, ptrs.remapInstList,
+                                            ptrs.remapAllSize, ptrs.remapTabSize, ptrs.remapInstSize);
   }
 }
 
@@ -399,8 +413,8 @@ void CPUSharedData::PrepareEngineGlobals()
     //m_pIntegrator = new IntegratorShadowPT(m_width, m_height, (EngineGlobals*)&m_cdataPrepared[0]);
 		//m_pIntegrator = new IntegratorShadowPTSSS(m_width, m_height, (EngineGlobals*)&m_cdataPrepared[0]);
     
-    //m_pIntegrator = new IntegratorMISPT(m_width, m_height, (EngineGlobals*)&m_cdataPrepared[0], 0);     //#TODO: where m_createFlags gone ???
-    m_pIntegrator = new IntegratorMISPT_trofimm(m_width, m_height, (EngineGlobals*)&m_cdataPrepared[0], 0);     
+    m_pIntegrator = new IntegratorMISPT(m_width, m_height, (EngineGlobals*)&m_cdataPrepared[0], 0);     //#TODO: where m_createFlags gone ???
+    //m_pIntegrator = new IntegratorMISPT_trofimm(m_width, m_height, (EngineGlobals*)&m_cdataPrepared[0], 0);     
    
     //m_pIntegrator = new IntegratorLT(m_width, m_height, (EngineGlobals*)&m_cdataPrepared[0]);
     //m_pIntegrator = new IntegratorTwoWay(m_width, m_height, (EngineGlobals*)&m_cdataPrepared[0]);
@@ -465,6 +479,41 @@ SceneGeomPointers CPUSharedData::CollectPointersForCPUIntegrator()
   }
   else
     RUN_TIME_ERROR("CPUSharedData::CollectPointersForCPUIntegrator: bad memory storage and pointers");
+
+  // material remap lists
+  //
+  if (m_remapInst.size() != 0)
+  {
+    ptrs.remapInstList = &m_remapInst[0];
+    ptrs.remapInstSize = int32_t(m_remapInst.size());
+  }
+  else
+  {
+    ptrs.remapInstList = nullptr;
+    ptrs.remapInstSize = 0;
+  }
+
+  if (m_remapLists.size() != 0)
+  {
+    ptrs.remapListsAll = &m_remapLists[0];
+    ptrs.remapAllSize  = int32_t(m_remapLists.size());
+  }
+  else
+  {
+    ptrs.remapListsAll = nullptr;
+    ptrs.remapAllSize  = 0;
+  }
+
+  if (m_remapTable.size() != 0)
+  {
+    ptrs.remapListsTab = &m_remapTable[0];
+    ptrs.remapTabSize  = int32_t(m_remapTable.size());
+  }
+  else
+  {
+    ptrs.remapListsTab = nullptr;
+    ptrs.remapTabSize  = 0;
+  }
 
   return ptrs;
 }
