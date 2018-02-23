@@ -2379,11 +2379,15 @@ static inline int remapMaterialId(int a_mId, int a_instId,
       low = mid + 1;
   }
 
-  const int idRemapFrom = in_allMatRemapLists[offsAndSize.x + (high+1)*2 + 0];
-  const int idRemapTo   = in_allMatRemapLists[offsAndSize.x + (high+1)*2 + 1];
-  const int res         = (idRemapFrom == a_mId) ? idRemapTo : a_mId;
-   
-  return res;
+  if (high+1 < offsAndSize.y)
+  {
+    const int idRemapFrom = in_allMatRemapLists[offsAndSize.x + (high + 1) * 2 + 0];
+    const int idRemapTo   = in_allMatRemapLists[offsAndSize.x + (high + 1) * 2 + 1];
+    const int res         = (idRemapFrom == a_mId) ? idRemapTo : a_mId;
+    return res;
+  }
+  else
+    return a_mId;
 }
 
 
