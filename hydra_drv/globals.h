@@ -2342,7 +2342,7 @@ static inline int remapMaterialId(int a_mId, int a_instId,
                                   __global const int2* in_remapTable, int a_remapTableSize)
 {
   
-  if (a_mId < 0 || a_instId < 0 || a_instId >= a_instTabSize) // a_instTabSize+1
+  if (a_mId < 0 || a_instId < 0 || a_instId >= a_instTabSize || in_remapInst == 0 || in_allMatRemapLists == 0 || in_remapTable == 0)
     return a_mId;
 
   const int remapListId = in_remapInst[a_instId];

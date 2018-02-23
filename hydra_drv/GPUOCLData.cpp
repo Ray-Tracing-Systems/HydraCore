@@ -186,6 +186,16 @@ void GPUOCLLayer::SetAllPODLights(PlainLight* a_lights2, size_t a_number)
 
 void GPUOCLLayer::SetAllRemapLists(const int* a_allLists, const int2* a_table, int a_allSize, int a_tableSize)
 {
+
+  if (a_allSize == 0 || a_tableSize == 0 || a_allLists == nullptr || a_table == nullptr)
+  {
+    m_scene.remapLists     = nullptr;
+    m_scene.remapTable     = nullptr;
+    m_scene.remapListsSize = 0;
+    m_scene.remapTableSize = 0;
+    return;
+  }
+
   cl_int ciErr1 = CL_SUCCESS;
 
   // (1) update all remap lists
@@ -228,6 +238,14 @@ void GPUOCLLayer::SetAllRemapLists(const int* a_allLists, const int2* a_table, i
 
 void GPUOCLLayer::SetAllInstIdToRemapId(const int* a_allInstId, int a_instNum)
 {
+
+  if (a_instNum == 0 || a_allInstId == nullptr)
+  {
+    m_scene.remapInst     = nullptr;
+    m_scene.remapInstSize = 0;
+    return;
+  }
+
   cl_int ciErr1 = CL_SUCCESS;
 
   if (m_scene.remapInst == nullptr || m_scene.remapInstSize < a_instNum)
