@@ -11,6 +11,8 @@
 constexpr bool MEASURE_RAYS   = false;
 constexpr int  MEASURE_BOUNCE = 0;
 
+extern bool g_exitDueToSamplesLimit;
+
 void UpdateProgress(const wchar_t* a_message, float a_progress)
 {
   fwprintf(stdout, L"%s: %.0f%%            \r", a_message, a_progress*100.0f);
@@ -119,7 +121,7 @@ RenderDriverRTE::RenderDriverRTE(const wchar_t* a_options, int w, int h, int a_d
 
   m_pAccumImageForGBuff = a_sharedImage;
   m_drawPassNumber      = 0;
-
+  m_maxRaysPerPixel     = 1000000;
   ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 }
@@ -143,7 +145,9 @@ bool RenderDriverRTE::UpdateSettings(pugi::xml_node a_settingsNode)
 
   if (m_pHWLayer == nullptr)
     return false;
-
+  
+  m_maxRaysPerPixel = a_settingsNode.child(L"maxRaysPerPixel").text().as_int();
+  
   const bool enableMLTFromSettings = (std::wstring(L"mlt") == a_settingsNode.child(L"method_secondary").text().as_string() ||
                                       std::wstring(L"mlt") == a_settingsNode.child(L"method_tertiary").text().as_string() ||
                                       std::wstring(L"mlt") == a_settingsNode.child(L"method_caustic").text().as_string() ||
@@ -1184,6 +1188,22 @@ void RenderDriverRTE::Draw()
     std::cout << "[stat]: trace(%)   = " << traceTimePerCent << "%" << std::endl;
     std::cout.precision(oldPrec);
   }
+  
+  // for some unknown reason command "exitnow" passed via shared memory does not works in some Linux systems
+  // So, we have to have this aux. exit condition
+  //
+  if(m_pAccumImageForGBuff!=nullptr)
+  {
+    const float currSPP = m_pAccumImageForGBuff->Header()->spp;
+    if(currSPP >= m_maxRaysPerPixel)
+    {
+      std::cout << std::endl;
+      std::cout << "[core]: exit from render loop due to reach max samples limit = " << m_maxRaysPerPixel << std::endl;
+      std::cout << std::endl;
+      g_exitDueToSamplesLimit = true;
+    }
+  }
+  
 
 }
 
