@@ -7,7 +7,7 @@ Input::Input()
   inLibraryPath = "tests/test_42"; ///< cornell box with teapot
 
   //inLibraryPath = "tests/test_223_small"; ///< cornell box with mirror glossy back wall
-  //inLibraryPath = "/home/frol/PROG/HydraAPI/main/tests/test_44";
+  //inLibraryPath = "/home/frol/PROG/HydraAPI/main/tests/test_79";
   //inLibraryPath = "D:/[archive]/2017/HydraAPP/hydra_app/tests/hydra_benchmark_07";
 
   //inLibraryPath = "D:/PROG/HydraAPI/main/tests/test_78";
