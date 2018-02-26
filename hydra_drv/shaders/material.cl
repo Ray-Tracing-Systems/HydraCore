@@ -573,7 +573,7 @@ __kernel void HitEnvOrLightKernel(__global const float4*    restrict in_rpos,
 
 __kernel void Shade(__global const float4*    restrict a_rpos,
                     __global const float4*    restrict a_rdir,
-                    __global const uint*      restrict a_flags,
+                    __global       uint*      restrict a_flags,
                     
                     __global const float4*    restrict in_hitPosNorm,
                     __global const float2*    restrict in_hitTexCoord,
@@ -745,8 +745,10 @@ __kernel void Shade(__global const float4*    restrict a_rpos,
 
   if (out_shadow != 0 && rayBounceNum == 0)
   {
-    if (materialGetType(pHitMaterial) == PLAIN_MAT_CLASS_SHADOW_MATTE)
+    if (materialGetType(pHitMaterial) == PLAIN_MAT_CLASS_SHADOW_MATTE && cosThetaOutAux > 1e-5f)
       cosThetaOutAux = 1.0f;
+    else
+      cosThetaOutAux = 0.0f;
     const float shadow1 = cosThetaOutAux*256.0f*0.33333f*(shadow.x + shadow.y + shadow.z);
     out_shadow[tid]     = (uchar)(255.0f - clamp(shadow1, 0.0f, 255.0f));
   }
@@ -768,9 +770,26 @@ __kernel void Shade(__global const float4*    restrict a_rpos,
   float fShadowSamples = 1.0f;
   shadeColor *= (fVisiableLightsNum / fShadowSamples);
 
-  // shadeColor = make_float3(0, 0, 0);
-
+  // (1) save shaded color 
+  //
   out_color [tid] = to_float4(shadeColor, lightPickProb);
+
+  // (2) signal that we shade from the ground for shadow matte case
+  //
+  {
+    int otherFlags = unpackRayFlags(flags);
+    if (cosThetaOutAux <= 0.0f)
+      otherFlags = otherFlags | RAY_SHADE_FROM_OTHER_SIDE;
+    else
+      otherFlags = otherFlags & (~RAY_SHADE_FROM_OTHER_SIDE);
+
+    if (lightType(pLight) == PLAIN_LIGHT_TYPE_SKY_DOME)
+      otherFlags = otherFlags | RAY_SHADE_FROM_SKY_LIGHT;
+    else
+      otherFlags = otherFlags & (~RAY_SHADE_FROM_SKY_LIGHT);
+
+    a_flags[tid] = packRayFlags(flags, otherFlags);
+  }
 } 
 
 
@@ -874,7 +893,7 @@ __kernel void NextBounce(__global   float4*        restrict a_rpos,
     pHitMaterial        = pHitMaterial + mixSelector.localOffs;
     thisBounceIsDiffuse = materialHasDiffuse(pHitMaterial);
 
-    const float3 shadow = decompressShadow(a_shadow[tid]);
+    const float3 shadow = decompressShadow(a_shadow[tid]); // fmax(-dot(ray_dir, hitNorm), 0.0f);
   
     /////////////////////////////////////////////////////////////////////////////// begin sample material
     {
@@ -898,17 +917,30 @@ __kernel void NextBounce(__global   float4*        restrict a_rpos,
       isThinGlass = isPureSpecular(brdfSample) && (rayBounceNum > 0) && !(a_globals->g_flags & HRT_ENABLE_PT_CAUSTICS) && materialIsThinGlass(pHitMaterial);
 	  //isThinGlass = isPureSpecular(brdfSample) && (rayBounceNum > 0) && materialIsThinGlass(pHitMaterial);
     }
+
+
     /////////////////////////////////////////////////////////////////////////////// end   sample material
   
     const float selectorPdf = mixSelector.w;
     const float invPdf      = 1.0f / fmax(brdfSample.pdf*selectorPdf, DEPSILON);
     const float cosTheta    = fabs(dot(brdfSample.direction, hitNorm));
 
-    outPathThroughput = clamp(cosTheta*brdfSample.color*invPdf, 0.0f, 1.0f);
+    outPathThroughput = clamp(cosTheta*brdfSample.color*invPdf, 0.0f, 1.0f); //#TODO: this is not correct actually !!!
    
+    const int otherFlagsSMSK = unpackRayFlags(flags);
+    if ((materialGetType(pHitMaterial) == PLAIN_MAT_CLASS_SHADOW_MATTE) && (otherFlagsSMSK & RAY_SHADE_FROM_SKY_LIGHT)) // shadow matte hack to sample only top hemisphere
+    {
+      if (otherFlagsSMSK & RAY_SHADE_FROM_OTHER_SIDE)
+        outPathThroughput *= 0.0f;
+      else
+        outPathThroughput *= 2.0f;
+    }
+
     if (!isfinite(outPathThroughput.x)) outPathThroughput.x = 0.0f;
     if (!isfinite(outPathThroughput.y)) outPathThroughput.y = 0.0f;
     if (!isfinite(outPathThroughput.z)) outPathThroughput.z = 0.0f;
+
+    /////////////////////////////////////////////////////////////////////////////// finish with outPathThroughput
   
     const float3 nextRay_dir = brdfSample.direction;
     const float3 nextRay_pos = OffsRayPos(hitPos, hitNorm, brdfSample.direction);

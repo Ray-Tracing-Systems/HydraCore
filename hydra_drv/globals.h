@@ -1210,6 +1210,8 @@ enum {
   RAY_DUMMY_FLAG_NOT_USED          = 256,
   RAY_HIT_SURFACE_FROM_OTHER_SIDE  = 2048,
   RAY_IS_DEAD                      = 4096,  // set when ray had account environment or died on the surface
+  RAY_SHADE_FROM_OTHER_SIDE        = 8192,
+  RAY_SHADE_FROM_SKY_LIGHT         = 16384,
 };
 
 static inline uint unpackRayFlags(uint a_flags)                       { return ((a_flags & 0xFFFF0000) >> 16); } 
