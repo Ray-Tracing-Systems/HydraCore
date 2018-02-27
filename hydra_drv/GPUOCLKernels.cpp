@@ -337,17 +337,24 @@ void GPUOCLLayer::runKernel_ComputeHit(cl_mem a_rpos, cl_mem a_rdir, size_t a_si
   CHECK_CL(clSetKernelArg(kernHit, 3, sizeof(cl_mem), (void*)&m_scene.matrices));            
   CHECK_CL(clSetKernelArg(kernHit, 4, sizeof(cl_mem), (void*)&m_scene.storageGeom));
   CHECK_CL(clSetKernelArg(kernHit, 5, sizeof(cl_mem), (void*)&m_scene.storageMat));
+
+  CHECK_CL(clSetKernelArg(kernHit, 6, sizeof(cl_mem), (void*)&m_scene.remapLists));
+  CHECK_CL(clSetKernelArg(kernHit, 7, sizeof(cl_mem), (void*)&m_scene.remapTable));
+  CHECK_CL(clSetKernelArg(kernHit, 8, sizeof(cl_mem), (void*)&m_scene.remapInst));
   
-  CHECK_CL(clSetKernelArg(kernHit, 6, sizeof(cl_mem), (void*)&m_rays.rayFlags));
-  CHECK_CL(clSetKernelArg(kernHit, 7, sizeof(cl_mem), (void*)&m_rays.hitPosNorm));
-  CHECK_CL(clSetKernelArg(kernHit, 8, sizeof(cl_mem), (void*)&m_rays.hitTexCoord));
-  CHECK_CL(clSetKernelArg(kernHit, 9, sizeof(cl_mem), (void*)&m_rays.hitFlatNorm));
-  CHECK_CL(clSetKernelArg(kernHit, 10, sizeof(cl_mem), (void*)&m_rays.hitMatId));
-  CHECK_CL(clSetKernelArg(kernHit, 11, sizeof(cl_mem), (void*)&m_rays.hitTangent));
-  CHECK_CL(clSetKernelArg(kernHit, 12, sizeof(cl_mem), (void*)&m_rays.hitNormUncompressed));
+  CHECK_CL(clSetKernelArg(kernHit, 9, sizeof(cl_mem), (void*)&m_rays.rayFlags));
+  CHECK_CL(clSetKernelArg(kernHit, 10, sizeof(cl_mem), (void*)&m_rays.hitPosNorm));
+  CHECK_CL(clSetKernelArg(kernHit, 11, sizeof(cl_mem), (void*)&m_rays.hitTexCoord));
+  CHECK_CL(clSetKernelArg(kernHit, 12, sizeof(cl_mem), (void*)&m_rays.hitFlatNorm));
+  CHECK_CL(clSetKernelArg(kernHit, 13, sizeof(cl_mem), (void*)&m_rays.hitMatId));
+  CHECK_CL(clSetKernelArg(kernHit, 14, sizeof(cl_mem), (void*)&m_rays.hitTangent));
+  CHECK_CL(clSetKernelArg(kernHit, 15, sizeof(cl_mem), (void*)&m_rays.hitNormUncompressed));
   
-  CHECK_CL(clSetKernelArg(kernHit, 13, sizeof(cl_mem), (void*)&m_scene.allGlobsData));
-  CHECK_CL(clSetKernelArg(kernHit, 14, sizeof(cl_int), (void*)&isize));
+  CHECK_CL(clSetKernelArg(kernHit, 16, sizeof(cl_mem), (void*)&m_scene.allGlobsData));
+  CHECK_CL(clSetKernelArg(kernHit, 17, sizeof(cl_int), (void*)&m_scene.remapTableSize));
+  CHECK_CL(clSetKernelArg(kernHit, 18, sizeof(cl_int), (void*)&m_scene.totalInstanceNum));
+  CHECK_CL(clSetKernelArg(kernHit, 19, sizeof(cl_int), (void*)&isize));
+
 
   CHECK_CL(clEnqueueNDRangeKernel(m_globals.cmdQueue, kernHit, 1, NULL, &a_size, &localWorkSize, 0, NULL, NULL));
   waitIfDebug(__FILE__, __LINE__);

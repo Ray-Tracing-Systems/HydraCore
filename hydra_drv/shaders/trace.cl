@@ -136,6 +136,8 @@ static inline float4x4 fetchMatrix(const Lite_Hit hit, __global const float4* in
   return res;
 }
 
+
+
 __kernel void ComputeHit(__global const float4*   restrict rpos, 
                          __global const float4*   restrict rdir, 
                          __global const Lite_Hit* restrict in_hits,
@@ -144,6 +146,10 @@ __kernel void ComputeHit(__global const float4*   restrict rpos,
                          __global const float4*   restrict in_geomStorage,
                          __global const float4*   restrict in_materialStorage,
                          
+                         __global const int*      restrict in_allMatRemapLists,
+                         __global const int2*     restrict in_remapTable,
+                         __global const int*      restrict in_remapInst,
+
                          __global uint*           restrict out_flags,
                          __global float4*         restrict out_hitPosNorm,
                          __global float2*         restrict out_hitTexCoord,
@@ -153,7 +159,7 @@ __kernel void ComputeHit(__global const float4*   restrict rpos,
                          __global float4*         restrict out_normalsFull,
 
                          __global const EngineGlobals* restrict a_globals,
-                         int a_size)
+                         int a_remapTableSize, int a_totalInstNumber,  int a_size)
 {
   ///////////////////////////////////////////////////////////
   int tid = GLOBAL_ID_X;
@@ -250,9 +256,13 @@ __kernel void ComputeHit(__global const float4*   restrict rpos,
   out_hitTexCoord[tid] = surfHitWS.texCoord;
   out_normalsFull[tid] = to_float4(surfHitWS.normal, hit_poly_size);
 
+  const int remapedId   = remapMaterialId(surfHitWS.matId, hit.instId, 
+                                          in_remapInst, a_totalInstNumber, in_allMatRemapLists, 
+                                          in_remapTable, a_remapTableSize);
+
   HitMatRef data3 = out_matData[tid];
   {
-    SetMaterialId(&data3, surfHitWS.matId);
+    SetMaterialId(&data3, remapedId);
     if (unpackBounceNum(flags) == 0)
       data3.accumDist = hit.t;
     else

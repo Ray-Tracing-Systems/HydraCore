@@ -205,12 +205,19 @@ void GPUOCLLayer::CL_SCENE_DATA::free()
   matricesSize      = 0;
   instLightInstSize = 0;
 
+  if (remapLists != nullptr) { clReleaseMemObject(remapLists); remapLists = nullptr; }
+  if (remapTable != nullptr) { clReleaseMemObject(remapTable); remapTable = nullptr; }
+  if (remapInst  != nullptr) { clReleaseMemObject(remapInst);  remapInst  = nullptr;  }
+  remapListsSize = 0;
+  remapTableSize = 0;
+  remapInstSize  = 0;
+
   for (auto p : namedBuffers)
   {
-    clReleaseMemObject(p.second);
-    p.second = 0;
+    if (p.second != nullptr)
+      clReleaseMemObject(p.second);
+    p.second = nullptr;
   }
-
   namedBuffers.clear();
 }
 
