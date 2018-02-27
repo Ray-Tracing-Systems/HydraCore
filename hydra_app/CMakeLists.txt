@@ -59,7 +59,6 @@ else()
             vsgl3
             hydra_api
             ies_parser
-            omp
             Threads::Threads
             dl rt stdc++fs
             glfw

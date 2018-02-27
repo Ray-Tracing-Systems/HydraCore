@@ -126,6 +126,7 @@ protected:
 
   int   m_width;
   int   m_height;
+  int   m_maxRaysPerPixel;
 
   IBVHBuilder2* m_pBVH;
   IHWLayer*     m_pHWLayer;

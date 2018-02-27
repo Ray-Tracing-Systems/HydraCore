@@ -10,6 +10,8 @@ using pugi::xml_node;
 using pugi::xml_attribute;
 using namespace HydraXMLHelpers;
 
+bool g_exitDueToSamplesLimit = false;
+
 extern Input g_input;
 extern Camera g_cam;
 
@@ -227,12 +229,12 @@ void console_main(std::shared_ptr<IHRRenderDriver> a_pDetachedRenderDriverPointe
     g_state = STATE_RENDER;
 
   static int prevMessageId = 0;
-
+  
   // GetGBuffer(a_pDetachedRenderDriverPointer);
   // g_input.exitStatus = true;
 
   while (!g_input.exitStatus)
-  {    
+  {
     if (a_pSharedImage != nullptr)
     {
       auto pHeader = a_pSharedImage->Header();
@@ -258,6 +260,9 @@ void console_main(std::shared_ptr<IHRRenderDriver> a_pDetachedRenderDriverPointe
     }
     else
       std::this_thread::sleep_for(std::chrono::milliseconds(50));
+  
+    if(g_exitDueToSamplesLimit)
+      g_input.exitStatus = true;
   }
 
   
