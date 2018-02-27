@@ -213,7 +213,7 @@ float3 IntegratorMISPT_trofimm::PathTrace(float3 ray_pos, float3 ray_dir, MisDat
   Lite_Hit hit = rayTrace(ray_pos, ray_dir);
 
   if (HitNone(hit))
-    return float3(1, 0, 0);
+    return float3(0, 0, 0);
 
   SurfaceHit surfElem = surfaceEval(ray_pos, ray_dir, hit);
 
@@ -224,7 +224,7 @@ float3 IntegratorMISPT_trofimm::PathTrace(float3 ray_pos, float3 ray_dir, MisDat
 
     if (pLight != nullptr)
     {
-      float lgtPdf = lightPdfSelectRev(pLight)*lightEvalPDF(pLight, ray_pos, ray_dir, surfElem.pos, surfElem.normal, surfElem.texCoord, m_pdfStorage, m_pGlobals);
+      float lgtPdf = /*lightPdfSelectRev(pLight)**/lightEvalPDF(pLight, ray_pos, ray_dir, surfElem.pos, surfElem.normal, surfElem.texCoord, m_pdfStorage, m_pGlobals);
       float bsdfPdf = misPrev.matSamplePdf;
       float misWeight = misWeightHeuristic(bsdfPdf, lgtPdf);  // (bsdfPdf*bsdfPdf) / (lgtPdf*lgtPdf + bsdfPdf*bsdfPdf);
 
@@ -243,8 +243,7 @@ float3 IntegratorMISPT_trofimm::PathTrace(float3 ray_pos, float3 ray_dir, MisDat
 
   auto& gen = randomGen();
   float lightPickProb = 1.0f;
-  int lightOffset = SelectRandomLightRev(rndFloat2_Pseudo(&gen), surfElem.pos, m_pGlobals,
-    &lightPickProb);
+  int lightOffset = 1;// SelectRandomLightRev(rndFloat2_Pseudo(&gen), surfElem.pos, m_pGlobals, &lightPickProb);
 
   if (lightOffset >= 0) // if need to sample direct light ?
   {
@@ -300,6 +299,63 @@ float3 IntegratorMISPT_trofimm::PathTrace(float3 ray_pos, float3 ray_dir, MisDat
   flags = flagsNextBounceLite(flags, matSam, m_pGlobals);
 
   return explicitColor + cosTheta * bxdfVal*PathTrace(nextRay_pos, nextRay_dir, currMis, a_currDepth + 1, flags);  // --*(1.0 / (1.0 - pabsorb));
+}
+
+void IntegratorMISPT_trofimm::DoPass(std::vector<uint>& a_imageLDR)
+{
+  if (m_width*m_height != a_imageLDR.size())
+    RUN_TIME_ERROR("DoPass: bad output bufffer size");
+
+  // Update HDR image
+  //
+  const float alpha = 1.0f / float(m_spp + 1);
+
+  //#pragma omp parallel for
+  //for (int y = 0; y < m_height; y++)
+  //{
+  //  for (int x = 0; x < m_width; x++)
+  //  {
+  //    float3 ray_pos, ray_dir;
+  //    std::tie(ray_pos, ray_dir) = makeEyeRay(x, y);
+
+  //    const float3 color = PathTrace(ray_pos, ray_dir, makeInitialMisData(), 0, 0);
+  //    const float maxCol = maxcomp(color);
+
+  //    m_summColors[y*m_width + x] = m_summColors[y*m_width + x] * (1.0f - alpha) + to_float4(color, maxCol)*alpha;
+  //  }
+  //}
+
+  // Вместо генерации луча для каждого пиксела использовать квази - случайные 
+  // числа и 2 первые координаты для x и y.
+  
+  for (int i = 0; i < m_summColors.size(); ++i)
+  {
+    RandomGen& gen = randomGen();
+    float4 offsets = rndUniform(&gen, 0, 1.0f); // rndQmcSobolN
+
+    int x = (int)(offsets.x * m_width);
+    int y = (int)(offsets.y * m_height);
+
+    float3 ray_pos, ray_dir;
+    std::tie(ray_pos, ray_dir) = makeEyeRay(x, y);
+
+    const float3 color = PathTrace(ray_pos, ray_dir, makeInitialMisData(), 0, 0);
+    const float maxCol = maxcomp(color);
+
+    m_summColors[y*m_width + x] = m_summColors[y*m_width + x] * (1.0f - alpha) + to_float4(color, maxCol)*alpha;
+  }
+
+
+  RandomizeAllGenerators();
+
+  m_spp++;
+  GetImageToLDR(a_imageLDR);
+
+  //if (m_spp == 1)
+  //DebugSaveGbufferImage(L"C:/[Hydra]/rendered_images/torus_gbuff");
+
+  std::cout << "IntegratorCommon: spp = " << m_spp << std::endl;
+
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
