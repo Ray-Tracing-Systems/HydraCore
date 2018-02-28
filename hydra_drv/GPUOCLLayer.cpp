@@ -1496,9 +1496,9 @@ void GPUOCLLayer::AddContributionToScreenCPU(cl_mem& in_color, cl_mem in_indices
     if (lockSuccess)
     {
       if (m_storeShadowInAlphaChannel)
-        AddSamplesContributionS(out_color, colors, (const unsigned char*)shadows, size, a_width, a_height);
+        AddSamplesContributionS(out_color, colors, (const unsigned char*)shadows, int(size), a_width, a_height);
       else
-        AddSamplesContribution(out_color, colors, size, a_width, a_height);
+        AddSamplesContribution(out_color, colors, int(size), a_width, a_height);
 
       if (m_pExternalImage != nullptr) //#TODO: if ((m_vars.m_flags & HRT_FORWARD_TRACING) == 0) IT IS DIFFERENT FOR LT !!!!!!!!!!
       {

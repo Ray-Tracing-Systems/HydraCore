@@ -186,24 +186,13 @@ public:
 
   // color accumulators, MLT
   //             
-  virtual bool   FrameBuff_IsAllocated(int a_id) const { if (a_id == 0) return true; else return false; }
-  virtual void   FrameBuff_Alloc(int a_id) { }
-  virtual void   FrameBuff_Free(int a_id) { }
-  virtual void   FrameBuff_SetRenderTarget(int a_id) {}
-  virtual void   FrameBuff_Blend(int a_buffRes, int a_buff1, int a_buff2, float4 k1, float4 k2) {}
-  virtual void   FrameBuff_Clear(int a_id) {}
-  virtual float4 FrameBuff_AverageColor(int a_id) { return float4(0, 0, 0, 0); }
-  virtual float4 FrameBuff_AverageSqrtColor(int a_id) { return float4(0, 0, 0, 0); }
-
   virtual bool   MLT_IsAllocated() const { return true; }
-  virtual int    MLT_Alloc(int a_maxBounce) { return 0; }
+  virtual size_t MLT_Alloc(int a_maxBounce) { return 0; }
   virtual void   MLT_Free() {}
 
   virtual void   MLT_Init(int a_seed)  { }
   virtual float4 MLT_Burn(int a_iters) { return float4(1, 1, 1, 1); }
   virtual void   MLT_DoPass() {}
-
-  virtual void   MLT_DoPassDebug() {}
 
   virtual void   SetProgressBarCallback(RTE_PROGRESSBAR_CALLBACK a_pFunc) { m_progressBar = a_pFunc; }
 

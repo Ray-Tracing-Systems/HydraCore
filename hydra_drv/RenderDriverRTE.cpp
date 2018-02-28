@@ -147,17 +147,10 @@ bool RenderDriverRTE::UpdateSettings(pugi::xml_node a_settingsNode)
     return false;
   
   m_maxRaysPerPixel = a_settingsNode.child(L"maxRaysPerPixel").text().as_int();
-  
-  const bool enableMLTFromSettings = (std::wstring(L"mlt") == a_settingsNode.child(L"method_secondary").text().as_string() ||
-                                      std::wstring(L"mlt") == a_settingsNode.child(L"method_tertiary").text().as_string() ||
-                                      std::wstring(L"mlt") == a_settingsNode.child(L"method_caustic").text().as_string() ||
-                                      std::wstring(L"1")   == a_settingsNode.child(L"enable_mlt").text().as_string());
 
   if (oldWidth != m_width || oldHeight != m_height || m_firstResizeOfScreen)
   {
     int flags = MEASURE_RAYS ? GPU_RT_MEMORY_FULL_SIZE_MODE : 0;
-    if (enableMLTFromSettings)
-      flags |= GPU_MLT_ENABLED_AT_START;
     m_pHWLayer->ResizeScreen(m_width, m_height, (flags | m_initFlags));
     m_firstResizeOfScreen = false;
   }
@@ -168,7 +161,7 @@ bool RenderDriverRTE::UpdateSettings(pugi::xml_node a_settingsNode)
 
   vars.m_flags |= (HRT_DIFFUSE_REFLECTION | HRT_USE_MIS | HRT_COMPUTE_SHADOWS);
 
-  if((m_initFlags & GPU_ALLOC_FOR_COMPACT_MLT) || (m_initFlags & GPU_MLT_ENABLED_AT_START) || enableMLTFromSettings)
+  if((m_initFlags & GPU_ALLOC_FOR_COMPACT_MLT) || (m_initFlags & GPU_MLT_ENABLED_AT_START))
     vars.m_flags |= HRT_ENABLE_MLT;
 
   if (std::wstring(a_settingsNode.child(L"method_caustic").text().as_string()) == L"none" ||
@@ -276,6 +269,7 @@ bool RenderDriverRTE::UpdateSettings(pugi::xml_node a_settingsNode)
   else
     vars.m_varsI[HRT_STORE_SHADOW_COLOR_W] = 0;
 
+  //vars.m_varsI[HRT_TRACE_DEPTH] = 2;
 
   m_pHWLayer->SetAllFlagsAndVars(vars);
 
@@ -316,6 +310,8 @@ void RenderDriverRTE::ClearAll()
     return;
 
   m_pHWLayer->FinishAll();
+
+  m_pHWLayer->MLT_Free();
 
   /////////////////////////////////////////////////////////////////////////////////////////////////////////////
   /////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -453,6 +449,11 @@ HRDriverAllocInfo RenderDriverRTE::AllocAll(HRDriverAllocInfo a_info)
   const int32_t maxMaterialIndex   = a_info.matNum-1;
   const int32_t whiteDiffuseOffset = m_pMaterialStorage->Update(maxMaterialIndex, &plainData[0], plainData.size()*sizeof(PlainMaterial));
 
+  size_t mltMem = 0;
+  bool m_needAllocForMLT = (m_initFlags & GPU_MLT_ENABLED_AT_START);
+  if (m_needAllocForMLT)
+    mltMem = m_pHWLayer->MLT_Alloc(10);
+
   auto vars = m_pHWLayer->GetAllFlagsAndVars();
   vars.m_varsI[HRT_WHITE_DIFFUSE_OFFSET] = whiteDiffuseOffset;
   m_pHWLayer->SetAllFlagsAndVars(vars);
@@ -463,6 +464,7 @@ HRDriverAllocInfo RenderDriverRTE::AllocAll(HRDriverAllocInfo a_info)
   std::cout << "[AllocAll]: MEM(GEOM)   = " << newMemForGeo / MB << "\tMB" << std::endl;  m_memAllocated += newMemForGeo;
   std::cout << "[AllocAll]: MEM(PDFTAB) = " << (newMemForMat + newMemForTab) / MB << "\tMB" << std::endl; m_memAllocated += (newMemForMat + newMemForTab);
   std::cout << "[AllocAll]: MEM(RAYBUF) = " << memUsedByR / MB << "\tMB" << std::endl;    m_memAllocated += memUsedByR;
+  std::cout << "[AllocAll]: MEM(MLT)    = " << mltMem / MB << "\tMB" << std::endl;        m_memAllocated += mltMem;
 
   if (newTotalMem >= freeMem)
   {
@@ -772,7 +774,7 @@ void RenderDriverRTE::BeginScene(pugi::xml_node a_sceneNode)
       const int listSize      = listNode.attribute(L"size").as_int();
       std::wstringstream inStrStream(inputStr);
 
-      tableOffsetsAndSize.push_back(int2(allRemapLists.size(), listSize));
+      tableOffsetsAndSize.push_back(int2(int(allRemapLists.size()), listSize));
 
       for (int i = 0; i < listSize; i++)
       {

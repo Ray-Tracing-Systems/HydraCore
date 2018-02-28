@@ -2192,7 +2192,6 @@ typedef struct SurfaceHitT
   float2 texCoord;
   int    matId;
   float  t;
-  int    alphaMatId;
   bool   hfi;
 } SurfaceHit;
 

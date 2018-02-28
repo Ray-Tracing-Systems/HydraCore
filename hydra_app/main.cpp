@@ -178,6 +178,9 @@ int main(int argc, const char** argv)
 
       if(g_input.inDevelopment)
         flags |= GPU_RT_IN_DEVELOPMENT;
+
+      if (g_input.enableMLT)
+        flags |= GPU_MLT_ENABLED_AT_START;
       
       pDriver = std::shared_ptr<IHRRenderDriver>(CreateDriverRTE(L"", g_input.winWidth, g_input.winHeight, g_input.inDeviceId, flags, g_pExternalImage));
 
@@ -215,6 +218,9 @@ int main(int argc, const char** argv)
       
       if(g_input.inDevelopment)
         flags |= GPU_RT_IN_DEVELOPMENT;
+
+      if (g_input.enableMLT)
+        flags |= GPU_MLT_ENABLED_AT_START;
       
       pDriver = std::shared_ptr<IHRRenderDriver>(CreateDriverRTE(L"", g_width, g_height, g_input.inDeviceId, flags, nullptr));
 

@@ -1871,7 +1871,6 @@ static inline SurfaceHit surfaceEvalLS(const float3 a_rpos, const float3 a_rdir,
   
   SurfaceHit surfHit;
   surfHit.matId       = matIndices[hit.primId];
-  surfHit.alphaMatId  = 0;
   
   const int offset    = hit.primId * 3; 
                       

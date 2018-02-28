@@ -33,16 +33,6 @@ static float EstimateAverageBrightness2(const float4* a_color, int a_size)
 }
 
 
-static inline int randArraySizeOfDepthMMLT(int d)
-{
-  return MMLT_HEAD_TOTAL_SIZE + MMLT_FLOATS_PER_BOUNCE*d;
-}
-
-static inline int camOffsetInRandArrayMMLT(int s)
-{
-  return  MMLT_HEAD_TOTAL_SIZE + MMLT_FLOATS_PER_BOUNCE*s;
-}
-
 void IntegratorMMLT::SetMaxDepth(int a_depth)
 {
   m_maxDepth = a_depth;
@@ -578,6 +568,10 @@ void IntegratorMMLT::DoPass(std::vector<uint>& a_imageLDR)
     DoPassEstimateAvgBrightness();
     m_firstPass    = false;
   }
+
+  // m_avgBPerBounce.resize(m_maxDepth + 1);
+  // for (size_t i = 0; i < m_avgBPerBounce.size(); i++)
+  //   m_avgBPerBounce[i] = 1.0f;
 
   float4* direct   = (float4*)m_direct.data();
   float4* indirect = m_hdrData;

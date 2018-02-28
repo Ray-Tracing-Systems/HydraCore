@@ -681,7 +681,6 @@ CLProgram& CLProgram::operator=(const CLProgram& a_prog)
   return *this;
 }
 
-
 //#ifndef CL_PROGRAM_NUM_KERNELS
 //#define CL_PROGRAM_NUM_KERNELS 0x1167
 //#endif

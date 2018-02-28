@@ -88,17 +88,8 @@ public:
 
   bool StoreCPUData() const { return m_globals.cpuTrace; }
 
-  bool   FrameBuff_IsAllocated(int a_id) const;  ///< return true if frame buffer is already allocated  (0 - color, 1 - primary, 2 - secondary).
-  void   FrameBuff_Alloc(int a_id);              ///< Alloc auxilary frame buffer (0 - color, 1 - primary, 2 - secondary). 
-  void   FrameBuff_Free(int a_id);               ///< Free auxilary frame buffer
-  void   FrameBuff_SetRenderTarget(int a_id);    ///< Set framebuffe as current render target (0 - color, 1 - primary, 2 - secondary). 
-  void   FrameBuff_Blend(int a_buffRes, int a_buff1, int a_buff2, float4 k1, float4 k2); ///< [a_buffRes] = [a_buff1]*k1 + [a_buff2]*k2
-  void   FrameBuff_Clear(int a_id);              ///< lear frame buffers
-  float4 FrameBuff_AverageColor(int a_id);       ///< calculate average 
-  float4 FrameBuff_AverageSqrtColor(int a_id);   ///< Not used. Should be removed.
-
   bool   MLT_IsAllocated() const;                ///< return true if internal MLT data is allocated
-  int    MLT_Alloc(int a_maxBounce);             ///< alloc internal MLT data
+  size_t MLT_Alloc(int a_maxBounce);             ///< alloc internal MLT data
   void   MLT_Free();                             ///< free internal MLT DATA
 
   void   MLT_Init(int a_seed);
@@ -107,8 +98,6 @@ public:
 
 
 protected:
-
-  cl_mem FrameBuff_Get(int a_id) const;
 
   void CreateBuffersGeom(InputGeom a_input, cl_mem_flags a_flags);
   void CreateBuffersBVH(InputGeomBVH a_input, cl_mem_flags a_flags);
@@ -180,8 +169,8 @@ protected:
   struct CL_MLT_DATA
   {
     CL_MLT_DATA() : rstateForAcceptReject(0), rstateCurr(0), rstateOld(0), rstateNew(0),
-                    xVector(0), yVector(0), xColor(0), yColor(0), zColor(0), oldXY(0), xOldNewId(0), yOldNewId(0),
-                    memTaken(0), pssVector(0), samplesLum(0), m_debugSort(false), mppDone(0.0) {}
+                    xVector(0), yVector(0), xColor(0), yColor(0), fwdLightSample(0), cameraVertex(0), pdfArray(0),
+                    memTaken(0), mppDone(0.0) {}
 
     cl_mem rstateForAcceptReject; // sizeof(RandGen), MEGABLOCKSIZE size
     cl_mem rstateCurr;            // sizeof(RandGen), MEGABLOCKSIZE size; not allocated, assign m_rays.randGenState
@@ -193,20 +182,15 @@ protected:
 
     cl_mem xColor;
     cl_mem yColor;
-    cl_mem zColor;
 
-    cl_mem oldXY;                 ///< it should be 0 when MCMC_LAZY is defined; 
-    cl_mem xOldNewId;
-    cl_mem yOldNewId;
+    cl_mem fwdLightSample;
+    cl_mem cameraVertex;
+    cl_mem pdfArray;
 
-    cl_mem pssVector;             // curr pointer to random vector state, used by kernels
-
-    cl_mem samplesLum;
     size_t memTaken;
 
     Timer  timer;
     double mppDone;
-    bool   m_debugSort;
 
     void free();
 
@@ -409,24 +393,7 @@ protected:
 
   // MLT
   //
-  void runKernel_MLTStoreOldXY(cl_mem outXY, cl_mem xVector, size_t a_size);
-  void runKernel_MLTEvalContribFunc(cl_mem xVector, cl_mem a_outLum, size_t a_size);
-  void runKernel_MLTMakeEyeRaysFromPrimeSpaceSample(int mutateMode, int a_seed, cl_mem rayPos, cl_mem rayDir, cl_mem rstate, cl_mem pssVector, cl_mem color, cl_mem qmcPositions, size_t a_size);
-
-  void runKernel_MLTMakeProposal(cl_mem xVector, cl_mem yVector, cl_mem rstate, bool a_forceLargeStep, size_t a_size);
-  void runKernel_MLTMakeIdPairForSorting(cl_mem currGens, cl_mem xOldNewId, cl_mem yOldNewId, cl_mem xVector, cl_mem oldXY, size_t a_size);
-  void runKernel_MLTEvalQMCLargeStepIndex(cl_mem rstateBuff, cl_mem positionsBuff, cl_mem counterBuff, size_t a_size);
-  void runKernel_MLTInitIdPairForSorting(cl_mem xOldNewId, cl_mem yOldNewId, size_t a_size);
-  void runKernel_MLTTestSobolQMC(cl_mem positions, cl_mem outVals, cl_mem qmcTable, size_t a_size);
-
   void runKernel_MLTContribToScreenAtomics(cl_mem xVector, cl_mem xColor, cl_mem yColor, size_t a_size);
-  void runKernel_MLTContribToScreen(cl_mem xOldNewId, cl_mem yOldNewId, cl_mem xColor, cl_mem yColor, size_t a_size);
-  void runKernel_MLTAcceptReject(cl_mem rstate, cl_mem xVector, cl_mem yVector, cl_mem xColor, cl_mem yColor, size_t a_size);
-
-  void runKernel_MLTSelectSampleProportionalToContrib(int offset, int offset2, cl_mem rndOld, cl_mem rndOut, cl_mem samplesLum, size_t a_size);
-  void runKernel_MLTMoveRandStateByIndex(cl_mem a_to, cl_mem a_from, cl_mem a_to1, cl_mem a_from1, cl_mem a_indices, size_t a_size);
-  void runKernel_MLTMoveColorByIndexBack(cl_mem a_to, cl_mem a_from, cl_mem a_indices, size_t a_size);
-
 
   // GBuffer and e.t.c
   //
