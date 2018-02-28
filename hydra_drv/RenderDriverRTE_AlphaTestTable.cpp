@@ -9,9 +9,14 @@ int RenderDriverRTE::CountMaterialsWithAlphaTest()
 
   for (auto p = m_materialUpdated.begin(); p != m_materialUpdated.end(); ++p)
   {
-    int texId = as_int(p->second->m_plain.data[OPACITY_TEX_OFFSET]);
-    if (texId != INVALID_TEXTURE || p->second->skipShadow)
+    if(p->second == nullptr)
       numWithAlpha++;
+    else
+    {
+      int texId = as_int(p->second->m_plain.data[OPACITY_TEX_OFFSET]);
+      if (texId != INVALID_TEXTURE || p->second->skipShadow)
+        numWithAlpha++;
+    }
   }
 
   return numWithAlpha;
