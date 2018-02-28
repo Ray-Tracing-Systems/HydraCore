@@ -413,13 +413,8 @@ void CPUSharedData::PrepareEngineGlobals()
     //m_pIntegrator = new IntegratorShadowPT(m_width, m_height, (EngineGlobals*)&m_cdataPrepared[0]);
 		//m_pIntegrator = new IntegratorShadowPTSSS(m_width, m_height, (EngineGlobals*)&m_cdataPrepared[0]);
     
-<<<<<<< HEAD
-    //m_pIntegrator = new IntegratorMISPT(m_width, m_height, (EngineGlobals*)&m_cdataPrepared[0], 0);     //#TODO: where m_createFlags gone ???
-    m_pIntegrator = new IntegratorMISPT_trofimm(m_width, m_height, (EngineGlobals*)&m_cdataPrepared[0], 0);   // test OMC vs QMC  
-=======
     m_pIntegrator = new IntegratorMISPT(m_width, m_height, (EngineGlobals*)&m_cdataPrepared[0], 0);     //#TODO: where m_createFlags gone ???
     //m_pIntegrator = new IntegratorMISPT_trofimm(m_width, m_height, (EngineGlobals*)&m_cdataPrepared[0], 0);     
->>>>>>> 27ce04677d374ac0fa6d7b41b579db7764b86bab
    
     //m_pIntegrator = new IntegratorLT(m_width, m_height, (EngineGlobals*)&m_cdataPrepared[0]);
     //m_pIntegrator = new IntegratorTwoWay(m_width, m_height, (EngineGlobals*)&m_cdataPrepared[0]);

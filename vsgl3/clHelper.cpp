@@ -653,6 +653,18 @@ CLProgram::~CLProgram()
 
 }
 
+CLProgram::CLProgram(const CLProgram& a_prog)
+{
+  program         = a_prog.program;
+  m_ctx           = a_prog.m_ctx;
+  m_dev           = a_prog.m_dev;
+  m_lastErr       = a_prog.m_lastErr;
+  kernels         = a_prog.kernels;
+  m_programLength = a_prog.m_programLength;
+
+  a_prog.m_refCounter++;
+  m_refCounter = 1;
+}
 
 CLProgram& CLProgram::operator=(const CLProgram& a_prog)
 {
