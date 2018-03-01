@@ -184,29 +184,6 @@ __kernel void LightSample(__global const float4*  restrict a_rpos,
   if (!rayIsActiveU(flags))
     return;
 
-  const bool wasGlossyOrDiffuse = (unpackRayFlags(flags) & RAY_EVENT_G) || (unpackRayFlags(flags) & RAY_EVENT_D);
-  const uint rayBounceNum       = unpackBounceNum(flags);
-
-  if (a_globals->g_flags & HRT_PT_PRIMARY_AND_REFLECTIONS)
-  {
-    if (wasGlossyOrDiffuse && rayBounceNum >= 1)
-      return;
-  }
-
-  if (a_globals->g_flags & HRT_PT_SECONDARY_AND_GLOSSY)
-  {
-    if (a_globals->g_flags & HRT_ENABLE_MLT)
-    {
-      if (rayBounceNum < 1) // well, this is important for MLT because it MUST sample light each bounce except the first one. 
-        return;             // Even if light sample don't used further -- just to keep the right random sequence.
-    }
-    else
-    {
-      if (!wasGlossyOrDiffuse) // this works fine for PT
-        return;
-    }
-  }
-
   if (a_globals->lightsNum == 0)
     return;
 

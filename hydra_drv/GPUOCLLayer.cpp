@@ -1312,10 +1312,52 @@ void GPUOCLLayer::EvalGBuffer(IHRSharedAccumImage* a_pAccumImage)
   }
 }
 
+void GPUOCLLayer::TraceSBDPTPass()
+{
+  cl_mem a_rpos     = m_rays.rayPos;
+  cl_mem a_rdir     = m_rays.rayDir;
+  cl_mem a_outColor = m_rays.pathAccColor;
+  size_t a_size     = m_rays.MEGABLOCKSIZE;
+
+  int maxBounce     = 3;
+
+  for (int bounce = 0; bounce < maxBounce; bounce++)
+  {
+    runKernel_Trace(a_rpos, a_rdir, m_rays.hits, a_size);
+    runKernel_ComputeHit(a_rpos, a_rdir, a_size);
+
+    runKernel_HitEnvOrLight(m_rays.rayFlags, a_rpos, a_rdir, a_outColor, bounce, a_size);
+    
+    runKernel_NextBounce(m_rays.rayFlags, a_rpos, a_rdir, a_outColor, a_size);
+  }
+
+}
+
+
 void GPUOCLLayer::BeginTracingPass()
 {
   m_timer.start();
-  if (m_vars.m_flags & HRT_UNIFIED_IMAGE_SAMPLING)
+
+  if (m_vars.m_flags & HRT_ENABLE_MMLT)                 // SBDPT or MMLT pass
+  {
+    // (1) EyeSample
+    //
+    m_raysWasSorted = false;
+    runKernel_MakeEyeRays(m_rays.rayPos, m_rays.rayDir, m_rays.samZindex, m_rays.MEGABLOCKSIZE, m_passNumberForQMC);
+
+    // (2) trace; 
+    //
+    TraceSBDPTPass();
+
+    // (3) Connect
+    //
+
+    // (4) Contrib to screen
+    //
+    AddContributionToScreen(m_rays.pathAccColor);
+
+  }
+  else if (m_vars.m_flags & HRT_UNIFIED_IMAGE_SAMPLING) // PT or LT pass
   {
     // (1) Generate random rays and generate multiple references via Z-index
     //
@@ -1618,10 +1660,10 @@ void GPUOCLLayer::trace1D(cl_mem a_rpos, cl_mem a_rdir, cl_mem a_outColor, size_
   float timeStart        = 0.0f;
 
   float timeNextBounceStart = 0.0f;
-  float timeForNextBounce = 0.0f;
+  float timeForNextBounce   = 0.0f;
 
   float timeForHitStart = 0.0f;
-  float timeForHit = 0.0f;
+  float timeForHit      = 0.0f;
 
   int measureBounce = m_vars.m_varsI[HRT_MEASURE_RAYS_TYPE];
   int maxBounce     = m_vars.m_varsI[HRT_TRACE_DEPTH];

@@ -57,6 +57,7 @@ RenderDriverRTE::RenderDriverRTE(const wchar_t* a_options, int w, int h, int a_d
   m_usePT      = false;
   m_useLT      = false;
   m_useIBPT    = false;
+  m_useMMLT    = false;
   m_ptInitDone = false;
   m_legacy.m_lastSeed = GetTickCount();
   m_legacy.updateProgressCall = &UpdateProgress;
@@ -161,8 +162,13 @@ bool RenderDriverRTE::UpdateSettings(pugi::xml_node a_settingsNode)
 
   vars.m_flags |= (HRT_DIFFUSE_REFLECTION | HRT_USE_MIS | HRT_COMPUTE_SHADOWS);
 
-  if((m_initFlags & GPU_ALLOC_FOR_COMPACT_MLT) || (m_initFlags & GPU_MLT_ENABLED_AT_START))
-    vars.m_flags |= HRT_ENABLE_MLT;
+  if ((m_initFlags & GPU_ALLOC_FOR_COMPACT_MLT) || (m_initFlags & GPU_MLT_ENABLED_AT_START))
+  {
+    vars.m_flags |= HRT_ENABLE_MMLT;
+    m_useMMLT = true;
+  }
+  else
+    m_useMMLT = false;
 
   if (std::wstring(a_settingsNode.child(L"method_caustic").text().as_string()) == L"none" ||
       std::wstring(a_settingsNode.child(L"method_caustic").text().as_string()) == L"disabled")
@@ -1062,7 +1068,7 @@ void RenderDriverRTE::BuildSkyPortalsDependencyDummyInstances()
 
 void RenderDriverRTE::Draw()
 {
-  // set camera
+  // (1) set camera
   //
   float4x4 mWorldView, mProj;
   CalcCameraMatrices(&m_modelViewInv, &m_projInv, &mWorldView, &mProj);
@@ -1072,7 +1078,43 @@ void RenderDriverRTE::Draw()
 
   m_pHWLayer->PrepareEngineGlobals();
 
-  if (m_usePT || m_useLT || m_useIBPT)
+  // (2) run rendering pass (depends on enabled algorithm)
+  //
+  if (m_useMMLT && m_usePT)
+  {
+    if (!m_ptInitDone)
+    {
+      // (1) init random gens
+      //
+      m_pHWLayer->InitPathTracing(m_legacy.m_lastSeed);
+      m_ptInitDone = true;
+
+      auto flagsAndVars = m_pHWLayer->GetAllFlagsAndVars();
+      flagsAndVars.m_flags |= HRT_UNIFIED_IMAGE_SAMPLING;
+      flagsAndVars.m_flags |= HRT_ENABLE_MMLT;
+
+      flagsAndVars.m_flags &= (~HRT_3WAY_MIS_WEIGHTS);
+      flagsAndVars.m_flags &= (~HRT_FORWARD_TRACING);
+      flagsAndVars.m_flags &= (~HRT_DRAW_LIGHT_LT);
+      m_pHWLayer->SetAllFlagsAndVars(flagsAndVars);
+      m_drawPassNumber = 0;
+
+      // (2) Burn In
+      //
+    }
+
+    // (3) Do MMLT pass
+    //
+    auto flagsAndVars = m_pHWLayer->GetAllFlagsAndVars();
+    flagsAndVars.m_flags |= HRT_ENABLE_MMLT;
+    m_pHWLayer->SetAllFlagsAndVars(flagsAndVars);
+
+    m_pHWLayer->BeginTracingPass();
+    m_pHWLayer->EndTracingPass();
+
+    // std::cout << "MMLT pass" << std::endl;
+  }
+  else if (m_usePT || m_useLT || m_useIBPT)
   {
     if (!m_ptInitDone)
     {
@@ -1124,7 +1166,7 @@ void RenderDriverRTE::Draw()
       m_pHWLayer->BeginTracingPass();
       m_pHWLayer->EndTracingPass();
     }
-    else
+    else // run PT or LT depends on previous set 'HRT_FORWARD_TRACING' flag
     {
       m_pHWLayer->BeginTracingPass();
       m_pHWLayer->EndTracingPass();
@@ -1149,12 +1191,13 @@ void RenderDriverRTE::Draw()
 
     m_drawPassNumber++;
   }
-  else
+  else // ray tracing and show normals
   {
     auto flagsAndVars    = m_pHWLayer->GetAllFlagsAndVars();
     flagsAndVars.m_flags &= (~HRT_UNIFIED_IMAGE_SAMPLING);
     flagsAndVars.m_flags &= (~HRT_FORWARD_TRACING);
     flagsAndVars.m_flags &= (~HRT_DRAW_LIGHT_LT);
+    flagsAndVars.m_flags &= (~HRT_ENABLE_MMLT);
     m_pHWLayer->SetAllFlagsAndVars(flagsAndVars);
 
     m_pHWLayer->BeginTracingPass();
@@ -1205,9 +1248,9 @@ void RenderDriverRTE::Draw()
       g_exitDueToSamplesLimit = true;
     }
   }
-  
 
 }
+
 
 void RenderDriverRTE::EvalGBuffer()
 {

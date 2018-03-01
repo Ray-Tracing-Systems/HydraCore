@@ -347,23 +347,6 @@ __kernel void BVH4TraversalShadowKenrel(__global const uint*         restrict in
   ////#endif
 
   bool disableThread = !rayIsActiveU(flags);
-  
-  const bool wasGlossyOrDiffuse = (unpackRayFlags(flags) & RAY_EVENT_G) || (unpackRayFlags(flags) & RAY_EVENT_D);
-  const uint rayBounceNum       = unpackBounceNum(flags);
-
-  if (a_globals->g_flags & HRT_PT_PRIMARY_AND_REFLECTIONS)
-  {
-    if (wasGlossyOrDiffuse && rayBounceNum >= 1)
-      disableThread = true;
-  }
-
-  if (a_globals->g_flags & HRT_PT_SECONDARY_AND_GLOSSY)
-  {
-    if (!wasGlossyOrDiffuse)
-      disableThread = true;
-  }
- 
-  const int a_gflags = a_globals->g_flags;
 
   if (!disableThread && activeAfterCompaction)
   {
@@ -399,23 +382,6 @@ __kernel void BVH4TraversalInstShadowKenrel(__global const uint*         restric
   uint flags = in_flags[tid];
 
   bool disableThread = !rayIsActiveU(flags);
-  
-  const bool wasGlossyOrDiffuse = (unpackRayFlags(flags) & RAY_EVENT_G) || (unpackRayFlags(flags) & RAY_EVENT_D);
-  const uint rayBounceNum       = unpackBounceNum(flags);
-
-  if (a_globals->g_flags & HRT_PT_PRIMARY_AND_REFLECTIONS)
-  {
-    if (wasGlossyOrDiffuse && rayBounceNum >= 1)
-      disableThread = true;
-  }
-
-  if (a_globals->g_flags & HRT_PT_SECONDARY_AND_GLOSSY)
-  {
-    if (!wasGlossyOrDiffuse)
-      disableThread = true;
-  }
- 
-  const int a_gflags = a_globals->g_flags;
 
   if (a_runId > 0)
   {
@@ -459,23 +425,6 @@ __kernel void BVH4TraversalInstShadowKenrelAS(__global const uint*         restr
   uint flags = in_flags[tid];
 
   bool disableThread = !rayIsActiveU(flags);
-  
-  const bool wasGlossyOrDiffuse = (unpackRayFlags(flags) & RAY_EVENT_G) || (unpackRayFlags(flags) & RAY_EVENT_D);
-  const uint rayBounceNum       = unpackBounceNum(flags);
-
-  if (a_globals->g_flags & HRT_PT_PRIMARY_AND_REFLECTIONS)
-  {
-    if (wasGlossyOrDiffuse && rayBounceNum >= 1)
-      disableThread = true;
-  }
-
-  if (a_globals->g_flags & HRT_PT_SECONDARY_AND_GLOSSY)
-  {
-    if (!wasGlossyOrDiffuse)
-      disableThread = true;
-  }
- 
-  const int a_gflags = a_globals->g_flags;
 
   if(a_runId > 0)
   { 

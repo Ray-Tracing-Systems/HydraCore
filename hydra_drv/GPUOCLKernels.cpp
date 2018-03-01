@@ -252,7 +252,7 @@ void GPUOCLLayer::runKernel_Trace(cl_mem a_rpos, cl_mem a_rdir, cl_mem a_hits, s
 
     for(int runId = 0; runId < m_scene.bvhNumber; runId++)
     {
-      bool smoothOpacity  = m_bvhTrees[runId].smoothOpacity && ((m_vars.m_flags & HRT_ENABLE_MLT) == 0);
+      bool smoothOpacity  = m_bvhTrees[runId].smoothOpacity && ((m_vars.m_flags & HRT_ENABLE_MMLT) == 0);
 
       cl_mem    bvhBuff   = m_scene.bvhBuff    [runId];
       cl_mem    triBuff   = m_scene.objListBuff[runId];

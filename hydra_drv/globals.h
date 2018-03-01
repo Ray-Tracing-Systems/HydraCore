@@ -333,22 +333,22 @@ enum FLAG_BITS{HRT_COMPUTE_SHADOWS                 = 1,
                HRT_DIFFUSE_REFLECTION              = 4,
                HRT_UNIFIED_IMAGE_SAMPLING          = 8,
 
-               HRT_PT_PRIMARY_AND_REFLECTIONS      = 16,  
+               HRT_DUMMY1                          = 16,  
                HRT_USE_MIS                         = 32,
-               HRT_PT_SECONDARY_AND_GLOSSY         = 64, 
+               HRT_DUMMY2                          = 64, 
                HRT_STORE_SUBPIXELS                 = 128,
                HRT_FORWARD_TRACING                 = 256, /// tracing from light to eye; otherwise from eye to light.
                HRT_DRAW_LIGHT_LT                   = 512,
                HRT_3WAY_MIS_WEIGHTS                = 1024,
     
                HRT_STORE_RAY_SAMPLES               = 8192,
-               HRT_ENABLE_MLT                      = 16384,
-               HRT_DIFFUSE_PHOTON_TRACING          = 65536*2,
-               HRT_CAUSTIC_PHOTON_TRACING          = 65536*4,
+               HRT_ENABLE_MMLT                     = 16384,
+               HRT_DUMMY3                          = 65536*2,
+               HRT_DUMMY4                          = 65536*4,
                HRT_STUPID_PT_MODE                  = 65536*8,
                HRT_NO_RANDOM_LIGHTS_SELECT         = 65536*16,
                HRT_MARK_SURFACES_FG                = 65536*32, // 
-               HRT_LDIRECT_PHOTON_TRACING          = 65536*64, // tracing photons to form spetial photonmap to speed-up direct light sampling
+               HRT_DUMMY5                          = 65536*64, // tracing photons to form spetial photonmap to speed-up direct light sampling
                HRT_DEBUG_DRAW_LIGHT_PHOTONS        = 65536*128,
                HRT_PHOTONS_STORE_MULTIPLY_COLORS   = 65536*256,
              
@@ -1649,7 +1649,7 @@ struct MRaysStat
 
 IDH_CALL float probabilityAbsorbRR(uint a_flags, uint a_globalFlags)
 {
-  if (a_globalFlags & HRT_ENABLE_MLT) // metropolis don't use roultte
+  if (a_globalFlags & HRT_ENABLE_MMLT) // metropolis don't use roultte
     return 0.0f;
 
   const uint diffBounceNum = unpackBounceNumDiff(a_flags);

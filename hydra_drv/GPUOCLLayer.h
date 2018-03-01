@@ -58,6 +58,8 @@ public:
   void BeginTracingPass() override;
   void EndTracingPass()   override;
   void EvalGBuffer(IHRSharedAccumImage* a_pAccumImage) override;
+  void TraceSBDPTPass();
+
   void FinishAll() override;
 
   void InitPathTracing(int seed);
@@ -169,7 +171,7 @@ protected:
   struct CL_MLT_DATA
   {
     CL_MLT_DATA() : rstateForAcceptReject(0), rstateCurr(0), rstateOld(0), rstateNew(0),
-                    xVector(0), yVector(0), xColor(0), yColor(0), fwdLightSample(0), cameraVertex(0), pdfArray(0),
+                    xVector(0), yVector(0), xColor(0), yColor(0), cameraVertex(0), pdfArray(0),
                     memTaken(0), mppDone(0.0) {}
 
     cl_mem rstateForAcceptReject; // sizeof(RandGen), MEGABLOCKSIZE size
@@ -183,7 +185,6 @@ protected:
     cl_mem xColor;
     cl_mem yColor;
 
-    cl_mem fwdLightSample;
     cl_mem cameraVertex;
     cl_mem pdfArray;
 

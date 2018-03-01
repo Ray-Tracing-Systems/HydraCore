@@ -36,9 +36,6 @@ bool AllRenderVarialbes::shadePassEnable(int a_bounceNumNoRegenerate)
   if (m_varsI[HRT_RENDER_LAYER] == LAYER_POSITIONS || m_varsI[HRT_RENDER_LAYER] == LAYER_NORMALS || m_varsI[HRT_RENDER_LAYER] == LAYER_TEXCOORD || m_varsI[HRT_RENDER_LAYER] == LAYER_TEXCOLOR_AND_MATERIAL)
     return false;
 
-  if ((m_flags & HRT_DIFFUSE_PHOTON_TRACING) || (m_flags & HRT_CAUSTIC_PHOTON_TRACING) || (m_flags & HRT_LDIRECT_PHOTON_TRACING))
-    return false;
-
   if (m_varsI[HRT_ENABLE_PATH_REGENERATE] == 0)
   {
     if (m_varsI[HRT_RENDER_LAYER] == LAYER_PRIMARY && a_bounceNumNoRegenerate == 1)
@@ -47,9 +44,6 @@ bool AllRenderVarialbes::shadePassEnable(int a_bounceNumNoRegenerate)
     if (m_varsI[HRT_RENDER_LAYER] == LAYER_SECONDARY && a_bounceNumNoRegenerate == 0)
       return false;
   }
-
-  if ((m_flags & HRT_ENABLE_MLT) && (m_flags & HRT_PT_SECONDARY_AND_GLOSSY) && (a_bounceNumNoRegenerate == 0))
-    return false;
 
   return true;
 }
@@ -420,8 +414,8 @@ void CPUSharedData::PrepareEngineGlobals()
     //m_pIntegrator = new IntegratorTwoWay(m_width, m_height, (EngineGlobals*)&m_cdataPrepared[0]);
     //m_pIntegrator = new IntegratorThreeWay(m_width, m_height, (EngineGlobals*)&m_cdataPrepared[0]);
 
-    //m_pIntegrator = new IntegratorSBDPT(m_width, m_height, (EngineGlobals*)&m_cdataPrepared[0]);
-    m_pIntegrator = new IntegratorMMLT(m_width, m_height, (EngineGlobals*)&m_cdataPrepared[0]);
+    m_pIntegrator = new IntegratorSBDPT(m_width, m_height, (EngineGlobals*)&m_cdataPrepared[0]);
+    //m_pIntegrator = new IntegratorMMLT(m_width, m_height, (EngineGlobals*)&m_cdataPrepared[0]);
 
     // if (m_vars.m_flags & HRT_ENABLE_MLT)
     //   m_pIntegrator = new IntegratorPSSMLT(m_width, m_height, (EngineGlobals*)&m_cdataPrepared[0], m_createFlags);

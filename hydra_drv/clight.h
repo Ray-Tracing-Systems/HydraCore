@@ -1612,28 +1612,7 @@ static inline float lightEvalPDF(__global const PlainLight* pLight, float3 illum
 
 static inline bool mltStrageCondition(const int flags, const int a_gflags, const MisData misPrev)
 {
-  bool makeZeroBecauseOfMLT = false;
-  {
-    const uint rayBounceNum       = unpackBounceNum(flags);
-    const uint rayBounceNumDiff   = unpackBounceNumDiff(flags);
-
-    const uint otherRayFlags      = unpackRayFlags(flags);
-    const bool wasGlossyOrDiffuse = (otherRayFlags & RAY_EVENT_D) || (otherRayFlags & RAY_EVENT_G);
-    const bool wasDiffuse         = (otherRayFlags & RAY_EVENT_D) != 0;
-
-    if (a_gflags & HRT_PT_SECONDARY_AND_GLOSSY)
-    {
-      const bool strangeCond = ((misPrev.isSpecular == 0) && wasDiffuse && rayBounceNumDiff == 1);
-      if (strangeCond || rayBounceNum <= 1 || !wasGlossyOrDiffuse)
-        makeZeroBecauseOfMLT = true;
-    }
-    else if (a_gflags & HRT_PT_PRIMARY_AND_REFLECTIONS)
-    {
-      if (rayBounceNum > 1 && wasGlossyOrDiffuse)
-        makeZeroBecauseOfMLT = true;
-    }
-  }
-  return makeZeroBecauseOfMLT;
+  return false;
 }
 
 

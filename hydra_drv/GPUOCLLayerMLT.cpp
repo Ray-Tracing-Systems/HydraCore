@@ -27,9 +27,8 @@ void GPUOCLLayer::CL_MLT_DATA::free()
   if (xColor)                { clReleaseMemObject(xColor); xColor = 0; }
   if (yColor)                { clReleaseMemObject(yColor); yColor = 0; }
 
-  if (fwdLightSample)        { clReleaseMemObject(fwdLightSample); fwdLightSample = 0; }
-  if (cameraVertex)          { clReleaseMemObject(cameraVertex);   cameraVertex   = 0; }
-  if (pdfArray)              { clReleaseMemObject(pdfArray);       pdfArray = 0; }
+  if (cameraVertex)          { clReleaseMemObject(cameraVertex);   cameraVertex = 0; }
+  if (pdfArray)              { clReleaseMemObject(pdfArray);       pdfArray     = 0; }
 
   rstateCurr = 0;
   memTaken   = 0;
@@ -95,11 +94,10 @@ size_t GPUOCLLayer::MLT_Alloc(int a_maxBounce)
   if (ciErr1 != CL_SUCCESS)
     RUN_TIME_ERROR("[cl_core]: Failed to create yColor ");
 
-  m_mlt.fwdLightSample = clCreateBuffer(m_globals.ctx, CL_MEM_READ_WRITE, 7*sizeof(float4)*m_rays.MEGABLOCKSIZE, NULL, &ciErr1);
   m_mlt.cameraVertex   = clCreateBuffer(m_globals.ctx, CL_MEM_READ_WRITE, 4*sizeof(float4)*m_rays.MEGABLOCKSIZE, NULL, &ciErr1);
   m_mlt.pdfArray       = clCreateBuffer(m_globals.ctx, CL_MEM_READ_WRITE, 2*sizeof(float)*m_rays.MEGABLOCKSIZE*a_maxBounce, NULL, &ciErr1);
-  m_mlt.memTaken      += (7+4)*sizeof(float4)*m_rays.MEGABLOCKSIZE;
-  m_mlt.memTaken      += 2    * sizeof(float)*m_rays.MEGABLOCKSIZE*a_maxBounce;
+  m_mlt.memTaken      += 4*sizeof(float4)*m_rays.MEGABLOCKSIZE;
+  m_mlt.memTaken      += 2*sizeof(float) *m_rays.MEGABLOCKSIZE*a_maxBounce;
   
   if (ciErr1 != CL_SUCCESS)
     RUN_TIME_ERROR("[cl_core]: Failed to create yColor ");
