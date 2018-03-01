@@ -772,22 +772,22 @@ __kernel void Shade(__global const float4*    restrict a_rpos,
   //
   out_color [tid] = to_float4(shadeColor, lightPickProb);
 
-  // (2) signal that we shade from the ground for shadow matte case
-  //
-  {
-    int otherFlags = unpackRayFlags(flags);
-    if (cosThetaOutAux <= 0.0f)
-      otherFlags = otherFlags | RAY_SHADE_FROM_OTHER_SIDE;
-    else
-      otherFlags = otherFlags & (~RAY_SHADE_FROM_OTHER_SIDE);
-
-    if (lightType(pLight) == PLAIN_LIGHT_TYPE_SKY_DOME)
-      otherFlags = otherFlags | RAY_SHADE_FROM_SKY_LIGHT;
-    else
-      otherFlags = otherFlags & (~RAY_SHADE_FROM_SKY_LIGHT);
-
-    a_flags[tid] = packRayFlags(flags, otherFlags);
-  }
+  // // (2) signal that we shade from the ground for shadow matte case
+  // //
+  // {
+  //   int otherFlags = unpackRayFlags(flags);
+  //   if (cosThetaOutAux <= 0.0f)
+  //     otherFlags = otherFlags | RAY_SHADE_FROM_OTHER_SIDE;
+  //   else
+  //     otherFlags = otherFlags & (~RAY_SHADE_FROM_OTHER_SIDE);
+  // 
+  //   if (lightType(pLight) == PLAIN_LIGHT_TYPE_SKY_DOME)
+  //     otherFlags = otherFlags | RAY_SHADE_FROM_SKY_LIGHT;
+  //   else
+  //     otherFlags = otherFlags & (~RAY_SHADE_FROM_SKY_LIGHT);
+  // 
+  //   a_flags[tid] = packRayFlags(flags, otherFlags);
+  // }
 } 
 
 
@@ -925,14 +925,14 @@ __kernel void NextBounce(__global   float4*        restrict a_rpos,
 
     outPathThroughput = clamp(cosTheta*brdfSample.color*invPdf, 0.0f, 1.0f); //#TODO: this is not correct actually !!!
    
-    const int otherFlagsSMSK = unpackRayFlags(flags);
-    if ((materialGetType(pHitMaterial) == PLAIN_MAT_CLASS_SHADOW_MATTE) && (otherFlagsSMSK & RAY_SHADE_FROM_SKY_LIGHT)) // shadow matte hack to sample only top hemisphere
-    {
-      if (otherFlagsSMSK & RAY_SHADE_FROM_OTHER_SIDE)
-        outPathThroughput *= 0.0f;
-      else
-        outPathThroughput *= 2.0f;
-    }
+    // const int otherFlagsSMSK = unpackRayFlags(flags);
+    // if ((materialGetType(pHitMaterial) == PLAIN_MAT_CLASS_SHADOW_MATTE) && (otherFlagsSMSK & RAY_SHADE_FROM_SKY_LIGHT)) // shadow matte hack to sample only top hemisphere
+    // {
+    //   if (otherFlagsSMSK & RAY_SHADE_FROM_OTHER_SIDE)
+    //     outPathThroughput *= 0.0f;
+    //   else
+    //     outPathThroughput *= 2.0f;
+    // }
 
     if (!isfinite(outPathThroughput.x)) outPathThroughput.x = 0.0f;
     if (!isfinite(outPathThroughput.y)) outPathThroughput.y = 0.0f;
