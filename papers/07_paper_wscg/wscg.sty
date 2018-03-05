@@ -1,0 +1,379 @@
+%%% Style file for WSCG conferences
+%%%
+%%% Based on style wscg.sty by Gabriel Zachmann, Oct 2004, Oct 2005
+%%% % http://zach.in.tu-clausthal.de/latex/
+%%%
+%%% Slightly modified in Apr 2012 to match WSCG layout
+%%%
+%%% Includes packages: sectsty, footmisc, pslatex, caption2, flushend,
+%%%                    fix2col, ifpdf
+
+%%% Usage:
+%%%
+%%% \documentclass{article}
+%%% \usepackage{wscg}
+%%% \usepackage{nopageno}
+%%%
+%%% \begin{document}
+%%% \twocolumn[{\csname @twocolumnfalse\endcsname
+%%% \maketitle  % full width title
+%%% \begin{abstract}
+%%% ...
+%%% \end{abstract}
+%%% \subparagraph{Keywords:}
+%%% Normal orientation, mesh repair, visibility, patch connectivity, CAD tools.
+%%% \vspace*{1.0\baselineskip}
+%%% }]
+%%% \section{Introduction}
+%%% \copyrightspace
+%%% 
+%%% Making sure that the printing workflow (in particular, margins) is ok,
+%%% go to http://www.ctan.org/tex-archive/macros/latex/contrib/IEEEtran/testflow/
+%%%
+%%% Bugs:
+%%% -  Doesn't work with natbib.sty
+%%%
+
+\usepackage[latin1]{inputenc}
+\usepackage[T1]{fontenc}
+
+\RequirePackage{ifpdf}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%                                Page layout
+
+\ifpdf
+\usepackage[a4paper,pdftex,verbose]{geometry}
+\else
+\usepackage[a4paper,dvips,verbose]{geometry}
+\fi
+% option 'dvips' tells dvips what paper size it should assume
+% option 'twoside' will swap these for odd pages.
+% option 'showframe' shows boxes for text body and header/footer.
+\geometry{left=25mm,right=25mm,top=25mm,bottom=35mm,noheadfoot}
+
+\twocolumn
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%                                Copyright box
+
+
+%%% The 1" box in the lower left corner for copyright notice
+%%% Copied from sig-alt-full.cls and modified a little
+\def\ftype@copyrightbox{8}
+\def\copyrightspace{
+\@float{copyrightbox}[b]
+\setlength{\unitlength}{1mm}
+\begin{picture}(76,28) % space for copyright notice, size is in mm
+\renewcommand{\baselinestretch}{1}
+\put(-2,0){
+\framebox{\parbox[b]{77mm}{\fontsize{9pt}{11pt}\selectfont
+Permission to make digital or hard copies of all or part of this work for
+personal or classroom use is granted without fee provided that copies are
+not made or distributed for profit or commercial advantage and that copies
+bear this notice and the full citation on the first page.  To copy
+otherwise, or republish, to post on servers or to redistribute to lists,
+requires prior specific permission and/or a fee.
+}}
+}
+\end{picture}
+\end@float}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%                             Font
+
+
+% Times (urgh; see /usr/share/texmf/doc/latex/psnfss/psnfss2e.pdf)
+\usepackage{mathptmx}
+\usepackage[scaled=1.00]{helvet}
+%\usepackage{avant}
+\usepackage{courier}
+%\linespread{1.1}		% changes leading
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%                             My Layout
+
+
+
+
+%
+% Document layout parameters
+%
+
+\widowpenalty 10000			% prevent last line of para on first line of page
+\displaywidowpenalty 10000	% dunno what this does
+\clubpenalty 10000			% prevent first line of para on last line of page
+%\@beginparpenalty 10000		% prohibit breaks at the beginning of all lists
+% hmm, bin mir nicht sicher, dass das nicht noch mehr macht ..
+\tolerance 500				% prevent too many overfull hboxes
+
+\parindent 0pt
+\parskip 4pt plus 1pt minus 2pt
+\addtolength{\columnsep}{1ex}
+
+%
+%   Parameters dealing with placement and layout of floats
+%
+
+\renewcommand{\topfraction}{.8}
+\renewcommand{\bottomfraction}{.8}
+\renewcommand{\textfraction}{0.1}
+\renewcommand{\dbltopfraction}{\topfraction}
+\renewcommand{\floatpagefraction}{0.8}
+\renewcommand{\dblfloatpagefraction}{\floatpagefraction}
+
+\setlength\floatsep{10\p@ \@plus 4\p@ \@minus 2\p@}
+\setlength\dblfloatsep\floatsep
+
+\setcounter{topnumber}{4}     % vorher: 2
+\setcounter{dbltopnumber}{4}
+\setcounter{bottomnumber}{2}  % vorher: 1
+\setcounter{totalnumber}{5}   % vorher: 3
+
+%   Skips (tweaked already for tighter layout, assuming 10pt body font)
+\abovedisplayskip \z@ \@plus2pt \@minus3pt
+\belowdisplayskip \abovedisplayskip
+\abovedisplayshortskip \z@ \@plus2pt
+\belowdisplayshortskip \abovedisplayshortskip
+
+
+%
+%  Footnotes
+%
+
+%  decrease the space between the footnote mark and the preceding
+%  punctuation a little bit, but only, if the preceding char is really a
+%  punctuation. The def of \@footnotemark is stolen from latex.ltx.
+\renewcommand{\@footnotemark}{%
+  \leavevmode
+  \ifhmode\edef\@x@sf{\the\spacefactor}\nobreak\fi
+  \ifnum\spacefactor>1200 \kern-.1em\fi% <- added
+  \@makefnmark
+  \ifhmode\spacefactor\@x@sf\fi
+  \relax}
+
+%  bottom = set footnotes at bottom of page even with \raggedbottom
+%  marginal = set footnote mark in the margin
+%  stable = treat footnotes in section titles correctly
+%  multiple = treat multiple consecutive footnotes correctly
+\usepackage[bottom,marginal,stable,multiple]{footmisc}
+\footnotemargin -0.6em
+
+%  Aus: Axel Reichert, typography.ps ("Typographie -- Gestaltung einer
+%  Beispielklasse"), S.58
+\setlength{\skip\footins}{14.5pt plus 4pt minus 2pt}
+\renewcommand{\footnoterule}{\kern -5pt \hrule width 4cc \kern 4.6pt}
+
+%
+% redefine footnote; just for setting fotn size
+%
+\long\def\@footnotetext#1{\insert\footins{%
+    \reset@font\fontsize{9pt}{11pt}\selectfont%
+    \interlinepenalty\interfootnotelinepenalty
+    \splittopskip\footnotesep
+    \splitmaxdepth \dp\strutbox \floatingpenalty \@MM
+    \hsize\columnwidth \@parboxrestore
+    \protected@edef\@currentlabel{%
+       \csname p@footnote\endcsname\@thefnmark
+    }%
+    \color@begingroup
+      \@makefntext{%
+        \rule\z@\footnotesep\ignorespaces#1\@finalstrut\strutbox}%
+    \color@endgroup}}%
+
+
+%
+%  Blank headers/footers in empty pages
+%  (is better when typesetting books, where chapters always start on odd
+%  pages).
+%  Copied from .../teTeX/share/texmf/tex/latex/base/latex.ltx
+%  and modified according to fancyhdr.dvi
+
+\def\cleardoublepage{\clearpage\if@twoside \ifodd\c@page\else
+	\thispagestyle{empty}
+    \hbox{}\newpage\if@twocolumn\hbox{}\newpage\fi\fi\fi}
+
+
+
+
+%
+%  We must load myalgorithm.sty before caption2.sty,
+%  because myalgorithm loads float.sty, which must be loaded
+%  before caption2!
+%
+
+%\RequirePackage[noend]{myalgorithm}          % must come after hyperref
+%\RequirePackage[noend,small]{myalgorithm}
+
+
+
+% Figure captions in sans-serif small
+% [Center last line of captions]
+% A little bit less space between caption and figure
+%
+
+% SVEN HAVEMANN: caption2 is apparently obsolete [2007]
+% \RequirePackage{caption2}
+% \RequirePackage{caption}
+%\usepackage[centerlast]{caption}
+% \renewcommand{\captionfont}{\sffamily}
+
+\setlength\abovecaptionskip{0.15\baselineskip}
+\setlength{\belowcaptionskip}{-2mm}
+
+
+% Flush two columns vertically on last page
+%\usepackage{flushend}
+
+
+
+
+%
+%   Fix miscellaneous two column mode "features"
+%
+
+\usepackage{fix2col}
+
+
+%
+%   Put list item bullets and enumeration numbers flush with the left margin
+%   Does not work with mylatex.ltx!
+%
+
+\renewcommand\@mklab[1]{#1\hfil}
+\let\DefaultMakelabel\@mklab
+\g@addto@macro\enumerate{\let\makelabel\DefaultMakelabel}
+\g@addto@macro\itemize{\let\makelabel\DefaultMakelabel}
+
+\settowidth{\labelwidth}{0.}
+\setlength{\leftmargini}{\labelwidth}
+\addtolength{\leftmargini}{\labelsep}
+% for equal steps:
+\setlength{\leftmarginii}{\leftmargini}
+\setlength{\leftmarginiii}{\leftmargini}
+\setlength{\itemindent}{0pt}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%                     Redefinitionn of some commands
+%
+%   Redefine \paragraph and \subparagraph,
+%   because I don't like the standard LaTeX def.
+%
+%    BEFORESKIP : Absolute value = skip to leave above the heading.
+%                 If negative, then paragraph indent of text following
+%                 heading is suppressed.
+%    AFTERSKIP  : if positive, then skip to leave below heading, else
+%                 negative of skip to leave to right of run-in heading.
+
+
+% allow section headings a certain amount of "raggedness"
+% reduce the "plus" component to get less raggedness and more hyphenation
+\newcommand{\wscgraggedright}{
+\@rightskip\z@ plus 2ex
+\rightskip\@rightskip
+\pretolerance=1
+\hyphenpenalty=1 \exhyphenpenalty=1
+}
+
+\renewcommand\section{\@startsection{section}{1}{\z@}%
+				   {-1.9ex \@plus -1.5ex \@minus -1ex}%
+				   {0.01ex \@plus.5ex}%
+				   {\normalfont\large\bfseries\wscgraggedright\MakeUppercase}}
+
+\renewcommand\subsection{\@startsection{subsection}{2}{\z@}%
+				   {-1.5ex\@plus -1ex \@minus -1ex}%
+				   {0.01ex \@plus .5ex}%
+				   {\normalfont\large\bfseries\wscgraggedright}}
+
+\renewcommand\subsubsection{\@startsection{subsubsection}{3}{\z@}%
+				   {-1.5ex\@plus -1ex \@minus -1ex}%
+				   {0.01ex \@plus .5ex}%
+				   {\normalfont\fontsize{11pt}{12pt}\itshape\wscgraggedright}}
+
+\renewcommand{\paragraph}{\@startsection{paragraph}%    % the name
+ {4}%                                                   % the level
+ {0pt}%                                                 % the indent
+ {-1.0\baselineskip \@plus -0.5\baselineskip \@minus 0.5\baselineskip}%before..
+ {0.5\baselineskip \@plus 0.2\baselineskip \@minus 0.5\baselineskip}% afterskip
+ {\normalfont\normalsize\bfseries}%                     % the style
+}
+
+\renewcommand\subparagraph{\@startsection{subparagraph}%
+  {5}%
+  {0pt}%
+  {0ex  \@plus  1ex   \@minus  .0ex}%
+  {-1em \@plus -0.5em \@minus -0.8em}%
+  {\normalfont\normalsize\bfseries}%
+}
+
+\renewcommand{\abstractname}{ABSTRACT}
+\renewcommand{\refname}{REFERENCES}
+
+
+%% A few environments are redefined,
+%% stolen from article.cls
+
+\def\@maketitle{%
+  %\newpage
+  %\null
+  %\vskip -9em%
+  \begin{center}%
+  \let \footnote \thanks
+    \sffamily
+    {\fontsize{16pt}{19.2pt} \bfseries \@title \par}%
+    \vskip 1.0em%
+    {%\large
+      \lineskip .5em%
+      \begin{tabular}[t]{c}%
+        \@author
+      \end{tabular}\par}%
+    %\vskip 1em%
+  \end{center}%
+  \par
+  \vskip 0.5em}
+
+
+\renewenvironment{abstract}{%
+  \if@twocolumn
+	\section*{\abstractname}%
+  \else
+	\begin{center}%
+	  {\fontsize{12pt}{14.4pt}\bfseries \abstractname\vspace{-.5em}\vspace{\z@}}%
+	\end{center}%
+	%\quotation
+  \fi}
+  {}
+  %{\if@twocolumn\else\endquotation\fi}
+
+
+
+\renewenvironment{thebibliography}[1]
+ {\section{\refname}%
+  \@mkboth{\MakeUppercase\refname}{\MakeUppercase\refname}%
+  \list{\@biblabel{\@arabic\c@enumiv}}%
+	   {\settowidth\labelwidth{\@biblabel{#1}}%
+		\leftmargin\labelwidth
+		\advance\leftmargin\labelsep
+	   \setlength{\itemsep}{-0.5\parsep}
+	   \wscgraggedright
+	   \setlength{\parsep}{1.0ex}
+		\@openbib@code
+		\usecounter{enumiv}%
+		\let\p@enumiv\@empty
+		\renewcommand\theenumiv{\@arabic\c@enumiv}}%
+  \sloppy
+  \clubpenalty4000
+  \@clubpenalty \clubpenalty
+  \widowpenalty4000%
+  \sfcode`\.\@m}
+ {\def\@noitemerr
+   {\@latex@warning{Empty `thebibliography' environment}}%
+  \endlist}
+
+%\let\@openbib@code{\setlength\itemsep{-\parsep}}
+

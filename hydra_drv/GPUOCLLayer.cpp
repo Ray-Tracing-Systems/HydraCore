@@ -1312,14 +1312,9 @@ void GPUOCLLayer::EvalGBuffer(IHRSharedAccumImage* a_pAccumImage)
   }
 }
 
-void GPUOCLLayer::TraceSBDPTPass()
+void GPUOCLLayer::TraceSBDPTPass(cl_mem a_rpos, cl_mem a_rdir, cl_mem a_outColor, size_t a_size)
 {
-  cl_mem a_rpos     = m_rays.rayPos;
-  cl_mem a_rdir     = m_rays.rayDir;
-  cl_mem a_outColor = m_rays.pathAccColor;
-  size_t a_size     = m_rays.MEGABLOCKSIZE;
-
-  int maxBounce     = 3;
+  int maxBounce   = 3;
 
   for (int bounce = 0; bounce < maxBounce; bounce++)
   {
@@ -1347,7 +1342,7 @@ void GPUOCLLayer::BeginTracingPass()
 
     // (2) trace; 
     //
-    TraceSBDPTPass();
+    TraceSBDPTPass(m_rays.rayPos, m_rays.rayDir, m_rays.pathAccColor, m_rays.MEGABLOCKSIZE);
 
     // (3) Connect
     //

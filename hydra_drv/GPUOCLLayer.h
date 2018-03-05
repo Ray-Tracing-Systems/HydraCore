@@ -58,7 +58,7 @@ public:
   void BeginTracingPass() override;
   void EndTracingPass()   override;
   void EvalGBuffer(IHRSharedAccumImage* a_pAccumImage) override;
-  void TraceSBDPTPass();
+  void TraceSBDPTPass(cl_mem a_rpos, cl_mem a_rdir, cl_mem a_outColor, size_t a_size);
 
   void FinishAll() override;
 

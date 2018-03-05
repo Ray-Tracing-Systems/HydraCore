@@ -962,7 +962,7 @@ __kernel void NextBounce(__global   float4*        restrict a_rpos,
     ///////////////////////////////////////////////// #NOTE: OK, THIS SEEMS TO WORK FINE; JUST CHECK IT WITH WINDOW GLASS WHEN IMPLEMENT TRANSPARENT SHADOWS;
     if (!isThinGlass)  
     {
-      MisData misNext            = a_misDataPrev[tid];  
+      MisData misNext;  
       misNext.matSamplePdf       = brdfSample.pdf;
       misNext.isSpecular         = (int)isPureSpecular(brdfSample);
       misNext.prevMaterialOffset = matOffset;
