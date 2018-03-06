@@ -215,26 +215,24 @@ Recall that earlier we stated 2 problems:
 
 To solve problem \#1 previous works used costly floating point atomics or methods with the same speed. The problem of rendering in large resolutions for advanced light transport algorithms (\#2) was not yet considered at all in previous research. In this way our work is targeted to feel this gap.
 
+\newpage
 \section{Suggested approach}
-\subsection*{Normal or Body Text}
-Please use a 10-point Times Roman font, or other Roman font with serifs, as close as possible in appearance to Times Roman in which these guidelines have been set. The goal is to have a 10-point text, as you see here. Please use sans-serif or non-proportional fonts only for special purposes, such as distinguishing source code text. If Times Roman is not available, try the font named Computer Modern Roman. On a Macintosh, use the font named Times.  Right margins should be justified, not ragged.
 
-\subsection*{Title and Authors}
-The title (Helvetica 18-point bold), authors' names (Helvetica 10-point) and affiliations (Helvetica 10 point) run across the full width of the page -- one column wide. We also recommend e-mail address (Helvetica 10 point). See the top of this page for three addresses. If only one address is needed, center all address text. For two addresses, use two centered tabs, and so on. For more than three authors, you may have to improvise.\footnote{If necessary, you may place some address information in a footnote, or in a named section at the end of your paper, but margins must remain empty.} 
+The proposed approach is based on several provisions:
 
-\subsection*{First Page Copyright Notice}
-Please include 3.8 cm (1.5") text box with the text shown at the bottom of the left column of the first page with the copyright notice.
+1.We always have to use stochastic sampling of the whole image. Sampling of individual pixels, tiles or areas is forbidden. This paragraph is essential for our approach to be unified for all light transport algorithms.
 
-\subsection*{Others Pages}
-Others pages start at the top of the page (margin 2.5 cm) and continue in double-column format.  The two columns on the last even page should be as close to equal length as possible. 
+2.To uniformly cover the image with samples we have to use low-discrepancy quasi-random numbers instead of pseudo-random. The difference between quasi and pseudo random generators in this case is essential and shown on the fig ... . Our implementation uses 4D Sobol sequence \cite{Sobol67} (2 dimentions for image plane and 2 for lens offsets to implement depth of field).
 
-{\bfseries Total length of a paper is max. 8 pages.}
+3.To preserve the coherence of rays (and in this way have high SIMD effitiency) sample sorting should be used. We sort samples according to their Morton codes which was evaluated from the sample screen position \cite{Morton66}.
 
-Footnotes should be Times New Roman 9-point, and justified to the full width of the column.
+4.The accumulated image should be stored on the CPU (host) side in DRAM.
 
-Please, use the standard Journal of WSCG format for references -- that is, a numbered list at the end of the article, ordered alphabetically by first author, and referenced by a name in brackets \cite{con00a}. See the examples of citations at the end of this document. Within this template file, use the style named references for the text of your citation.
+5.Single sample is encoded in a single float4 in analogue to \cite{MMLTGPU} work. The fourth component contain packed pixels coordinates.
 
-The references are also in 9 pt., but that section (see Section \ref{references}) is ragged right. References should be published materials accessible to the public. Internal technical reports may be cited only if they are easily accessible (i.e. you can give the address to obtain the report within your citation) and may be obtained by any reader. Proprietary information may not be cited. Private communications should be acknowledged, not referenced, e.g. "[Adam, personal communication]").
+6.The pipelined copy should be used to copy samples from GPU to CPU in parallel with GPU computations. This is critical to make our approach conditionally-free.
+
+7.The contribution operations is implemented on the CPU in this way ans also pipelined with GPU computations.
 
 \subsection*{Page Numbering, Headers and Footers}
 Do not include headers, footers or page numbers in your submission. These will be added when the publications are assembled.
@@ -325,7 +323,7 @@ Our thanks to ACM SIGCHI and SIGGRAPH for allowing us to modify templates they h
 
 \bibitem[Hachisuka et. all 2014]{Hachisuka14} Toshiya Hachisuka, Anton S. Kaplanyan, and Carsten Dachsbacher. 2014. Multiplexed metropolis light transport. ACM Trans. Graph. 33, 4, Article 100 (July 2014), 10 pages. DOI: https://doi.org/10.1145/2601097.2601138 
 
-\bibitem[Bratincevic10]{VRayDMC} Toni Bratincevic. 2010. \textit{Demystifying V-Ray DMC Sampler} WEB publication. URL = https://www.interstation3d.com/tutorials/vray\_dmc\_sampler/demistyfing\_dmc.html
+\bibitem[Bratincevic10]{VRayDMC} Toni Bratincevic. 2010. \textit{Demystifying V-Ray DMC Sampler} WEB publication. https://www.interstation3d.com/tutorials/ \newline vray\_dmc\_sampler/demistyfing\_dmc.html
 
 
 \bibitem[Bogolepov et. all 2013]{Bogolepov13} Bogolepov D.K., Sopin D., Uljanov D. 2013. Turlapov V.E. \textit{GPU-Optimized Bi-Directional Path Tracing.} WSCG 2013 proceedings. Plzen. Czech Republic.
@@ -347,6 +345,9 @@ Our thanks to ACM SIGCHI and SIGGRAPH for allowing us to modify templates they h
 
 \bibitem[Laine and Karras 2011]{Laine11} Samuli Laine, Tero Karras. 2011. High-performance software rasterization on GPUs. High-Performance Graphics 2011, August 2011. 
 
+\bibitem[Sobol67]{Sobol67} Sobol I. M. 1967. Distribution of points in a cube and approximate evaluation of integrals. U.S.S.R. Comput. Maths. Math. Phys. 7: 86-112. 
+
+\bibitem[Morton66]{Morton66} G. M. Morton. 1966. A Computer Oriented Geodetic Data Base; and a New Technique in File Sequenc-ing. In Research Report, IBM Ltd, ON, Canada
 
 \end{thebibliography}
 
