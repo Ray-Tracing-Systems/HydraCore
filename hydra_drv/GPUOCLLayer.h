@@ -116,6 +116,7 @@ protected:
   void trace1D(cl_mem a_rpos, cl_mem a_rdir, cl_mem a_outColor, size_t a_size);
 
   void DrawNormals();
+  void CopyShadowTo(cl_mem a_color, size_t a_size);
   void AddContributionToScreenGPU(cl_mem in_color, cl_mem in_indices, int a_size, int a_width, int a_height, int a_spp,
                                   cl_mem out_colorHDR, cl_mem out_colorLDR);
 

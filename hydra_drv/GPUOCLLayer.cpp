@@ -12,7 +12,8 @@ extern "C" void initQuasirandomGenerator(unsigned int table[QRNG_DIMENSIONS][QRN
 #undef min
 #undef max
 
-constexpr bool SAVE_BUILD_LOG = false;
+constexpr bool SAVE_BUILD_LOG    = false;
+constexpr bool FORCE_DRAW_SHADOW = true;
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -150,7 +151,7 @@ size_t GPUOCLLayer::CL_BUFFERS_RAYS::resize(cl_context ctx, cl_command_queue cmd
   if (ciErr1 != CL_SUCCESS)
     RUN_TIME_ERROR("Error in resize rays buffers");
 
-  if (a_cpuFB)
+  if (a_cpuFB || FORCE_DRAW_SHADOW)
   {
     pathAuxColor       = clCreateBuffer(ctx, CL_MEM_READ_WRITE,                         4 * sizeof(cl_float)*MEGABLOCKSIZE, NULL, &ciErr1); currSize += buff1Size * 4;
     pathAuxColorCPU    = clCreateBuffer(ctx, CL_MEM_WRITE_ONLY | CL_MEM_ALLOC_HOST_PTR, 4 * sizeof(cl_float)*MEGABLOCKSIZE, NULL, &ciErr1);  
@@ -1103,6 +1104,23 @@ void GPUOCLLayer::ResetPerfCounters()
   memset(&m_stat, 0, sizeof(MRaysStat));
 }
 
+
+void GPUOCLLayer::CopyShadowTo(cl_mem a_color, size_t a_size)
+{
+  size_t localWorkSize   = CMP_RESULTS_BLOCK_SIZE;
+  int iSize              = int(a_size);
+  a_size                 = roundBlocks(a_size, int(localWorkSize));
+
+  cl_kernel kern         = m_progs.screen.kernel("CopyShadowTo");
+
+  CHECK_CL(clSetKernelArg(kern, 0, sizeof(cl_mem), (void*)&m_rays.pathShadow8B));
+  CHECK_CL(clSetKernelArg(kern, 1, sizeof(cl_mem), (void*)&a_color)); 
+  CHECK_CL(clSetKernelArg(kern, 2, sizeof(cl_int), (void*)&iSize));
+
+  CHECK_CL(clEnqueueNDRangeKernel(m_globals.cmdQueue, kern, 1, NULL, &a_size, &localWorkSize, 0, NULL, NULL));
+  waitIfDebug(__FILE__, __LINE__);
+}
+
 void GPUOCLLayer::DrawNormals()
 {
   cl_kernel makeRaysKern = m_progs.screen.kernel("MakeEyeRays");
@@ -1371,7 +1389,15 @@ void GPUOCLLayer::BeginTracingPass()
 
     // (2) Compute sample colors
     //
-    trace1D(m_rays.rayPos, m_rays.rayDir, m_rays.pathAccColor, m_rays.MEGABLOCKSIZE);
+    if (FORCE_DRAW_SHADOW)
+    {
+      runKernel_Trace     (m_rays.rayPos, m_rays.rayDir, m_rays.hits, m_rays.MEGABLOCKSIZE);
+      runKernel_ComputeHit(m_rays.rayPos, m_rays.rayDir,              m_rays.MEGABLOCKSIZE);
+      ShadePass           (m_rays.rayPos, m_rays.rayDir, m_rays.pathShadeColor, m_rays.MEGABLOCKSIZE, false);
+      CopyShadowTo        (m_rays.pathAccColor, m_rays.MEGABLOCKSIZE);
+    }
+    else
+      trace1D(m_rays.rayPos, m_rays.rayDir, m_rays.pathAccColor, m_rays.MEGABLOCKSIZE);
 
     // (3) accumulate colors
     //

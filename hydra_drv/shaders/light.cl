@@ -223,7 +223,7 @@ __kernel void LightSample(__global const float4*  restrict a_rpos,
   //
   const float3 shadowRayDir = normalize(explicitSam.pos - hitPos);
   const float3 shadowRayPos = OffsRayPos(hitPos, hitNorm, shadowRayDir);
-  const float maxDist       = length(shadowRayPos - explicitSam.pos); // recompute max dist based on real (shifted with offset) shadowRayPos
+  const float  maxDist      = length(shadowRayPos - explicitSam.pos); // recompute max dist based on real (shifted with offset) shadowRayPos
 
   out_srpos[tid] = to_float4(shadowRayPos, maxDist);
   out_srdir[tid] = to_float4(shadowRayDir, as_float(lightOffset)); 

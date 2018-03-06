@@ -704,6 +704,18 @@ __kernel void TestAtomicsFloat(__global float4* pValues, int iNumElements)
   atomic_addf(ptr + 2, 3.0f);
 }
 
+
+__kernel void CopyShadowTo(__global const uchar* in_shadow, __global float4* out_color, int iNumElements)
+{
+  int tid = GLOBAL_ID_X;
+  if (tid >= iNumElements)
+    return;
+
+  const float shadow = (float)(in_shadow[tid]) * (1.0f / 255.0f);
+  out_color[tid]     = make_float4(shadow, shadow, shadow, shadow);
+}
+
+
 // change 31.01.2018 15:20;
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////

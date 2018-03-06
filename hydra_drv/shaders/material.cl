@@ -669,7 +669,7 @@ __kernel void Shade(__global const float4*    restrict a_rpos,
     const float cosThetaOut  = underSurface ? cosThetaOut2 : cosThetaOut1;
     const float cosAtLight   = fmax(explicitSam.cosAtLight, 0.0f);
     
-    cosThetaOutAux = cosThetaOut1;
+    cosThetaOutAux = dot(shadowRayDir, hitNorm);
 
     const float bsdfRevWP    = (evalData.pdfFwd == 0.0f) ? 1.0f : evalData.pdfFwd / fmax(cosThetaOut, DEPSILON);
     const float bsdfFwdWP    = (evalData.pdfRev == 0.0f) ? 1.0f : evalData.pdfRev / fmax(cosHere, DEPSILON);
@@ -697,7 +697,7 @@ __kernel void Shade(__global const float4*    restrict a_rpos,
   else
   {
     const float lgtPdf = explicitSam.pdf*lightPickProb;
-    cosThetaOutAux     = fmax(+dot(shadowRayDir, hitNorm), 0.0f);
+    cosThetaOutAux     = dot(shadowRayDir, hitNorm);
 
     misWeight = misWeightHeuristic(lgtPdf, evalData.pdfFwd); // (lgtPdf*lgtPdf) / (lgtPdf*lgtPdf + bsdfPdf*bsdfPdf);
     if (explicitSam.isPoint)
@@ -706,10 +706,11 @@ __kernel void Shade(__global const float4*    restrict a_rpos,
 
   if (out_shadow != 0 && rayBounceNum == 0)
   {
-    if (materialGetType(pHitMaterial) == PLAIN_MAT_CLASS_SHADOW_MATTE && cosThetaOutAux > 1e-5f)
-      cosThetaOutAux = 1.0f;
-    const float shadow1 = cosThetaOutAux*256.0f*0.33333f*(shadow.x + shadow.y + shadow.z);
-    out_shadow[tid]     = (uchar)(255.0f - clamp(shadow1, 0.0f, 255.0f));
+    float shadow1 = 255.0f*0.33333f*(shadow.x + shadow.y + shadow.z);
+    if ( (cosThetaOutAux < 0.1f) || (explicitSam.cosAtLight < 0.1f && lightType(pLight) != PLAIN_LIGHT_TYPE_SKY_DOME))
+      shadow1 = 255.0f;
+   
+    out_shadow[tid] = (uchar)(clamp(shadow1, 0.0f, 255.0f));
   }
 
   const float cosThetaOut1 = fmax(+dot(shadowRayDir, hitNorm), 0.0f);
