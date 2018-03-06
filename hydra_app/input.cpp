@@ -4,7 +4,7 @@
 Input::Input()
 {
   noWindow      = false;           ///< run 'console_main', else run 'window_main'
-  inLibraryPath = "tests/test_42"; ///< cornell box with teapot
+  //inLibraryPath = "tests/test_42"; ///< cornell box with teapot
   //inLibraryPath = "tests/test_01"; ///< cornell box with sphere
 
   //inLibraryPath = "tests/test_223_small"; ///< cornell box with mirror glossy back wall
@@ -15,7 +15,7 @@ Input::Input()
   //inLibraryPath = "D:/PROG/HydraAPI/main/tests_f/test_204";
   //inLibraryPath = "D:/PROG/HydraAPI/main/tests_f/test_153";
 
-  //inLibraryPath = "C:/[Hydra]/pluginFiles/scenelib";
+  inLibraryPath = "C:/[Hydra]/pluginFiles/scenelib";
   //inLibraryPath = "D:/Downloads/blendbug_crash/scenelib";
 
   inDevelopment = true;  ///< recompile shaders each time; note that nvidia have their own shader cache!

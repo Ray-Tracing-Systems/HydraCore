@@ -311,6 +311,7 @@ __kernel void HitEnvOrLightKernel(__global const float4*    restrict in_rpos,
                                   __global float4*          restrict a_thoroughput,
                                   __global MisData*         restrict a_misDataPrev,
                                   __global float4*          restrict out_emission,
+                                  __global uchar*           restrict out_shadow,
                                   
                                   __global const MisData*   restrict in_misDataPrev,
                                   __global PerRayAcc*       restrict a_pdfAcc,
@@ -333,8 +334,6 @@ __kernel void HitEnvOrLightKernel(__global const float4*    restrict in_rpos,
     return;
 
   const uint flags = a_flags[tid];
-
-  //a_debugf4[tid] = make_float4(-1, -1, -1, -1);
 
   // if hit environment
   //
@@ -369,10 +368,16 @@ __kernel void HitEnvOrLightKernel(__global const float4*    restrict in_rpos,
     }
     else
     {
-      int renderLayer = a_globals->varsI[HRT_RENDER_LAYER];
-
-      float3 envColor = environmentColor(ray_dir, a_misDataPrev[tid], flags, a_globals, in_mtlStorage, in_pdfStorage, in_texStorage1);
+      float3 envColor       = environmentColor(ray_dir, a_misDataPrev[tid], flags, a_globals, in_mtlStorage, in_pdfStorage, in_texStorage1);
       float3 pathThroughput = to_float3(a_thoroughput[tid]);
+
+      // const uint rayBounce = unpackBounceNum(flags);
+      // if (out_shadow != 0 && rayBounce == 1)
+      // {
+      //   const float cmult  = clamp(0.3333f*(envColor.x + envColor.y + envColor.z), 0.0f, 1.0f);
+      //   const float shadow = (float)out_shadow[tid];
+      //   out_shadow[tid]    = (unsigned char)(clamp(shadow + cmult * 255.0f, 0.0f, 255.0f));
+      // }
 
       nextPathColor = to_float3(a_color[tid]) + pathThroughput * envColor;
     }
@@ -391,8 +396,8 @@ __kernel void HitEnvOrLightKernel(__global const float4*    restrict in_rpos,
     float3 hitNorm = to_float3(in_hitNormFull[tid]); // or normalize(decodeNormal(as_int(data.w))) where data is in_hitPosNorm[tid];
 
     const float2 hitTexCoord = in_hitTexCoord[tid];
-    const float3 ray_pos = to_float3(in_rpos[tid]);
-    const float3 ray_dir = to_float3(in_rdir[tid]);
+    const float3 ray_pos     = to_float3(in_rpos[tid]);
+    const float3 ray_dir     = to_float3(in_rdir[tid]);
 
     __global const PlainMaterial* pHitMaterial = materialAt(a_globals, in_mtlStorage, GetMaterialId(in_matData[tid]));
 
@@ -523,8 +528,6 @@ __kernel void HitEnvOrLightKernel(__global const float4*    restrict in_rpos,
         }
       }
 
-      // make lights black for 'LAYER_INCOMING_RADIANCE'
-      const uint rayBounceNum = unpackBounceNum(flags);
       const uint rayBounceNumDiff = unpackBounceNumDiff(flags);
 
       if ((materialGetFlags(pHitMaterial) & PLAIN_MATERIAL_FORBID_EMISSIVE_GI) && rayBounceNumDiff > 0)
@@ -539,9 +542,11 @@ __kernel void HitEnvOrLightKernel(__global const float4*    restrict in_rpos,
       out_emission[tid] = make_float4(0, 0, 0, as_float(0));
     }
 
-
   } // \\ else if thread is active
 
+  // account implicit shadows ... 
+  //
+  
 }
 
 

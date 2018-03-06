@@ -13,7 +13,7 @@ extern "C" void initQuasirandomGenerator(unsigned int table[QRNG_DIMENSIONS][QRN
 #undef max
 
 constexpr bool SAVE_BUILD_LOG    = false;
-constexpr bool FORCE_DRAW_SHADOW = true;
+constexpr bool FORCE_DRAW_SHADOW = false;
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -1389,15 +1389,7 @@ void GPUOCLLayer::BeginTracingPass()
 
     // (2) Compute sample colors
     //
-    if (FORCE_DRAW_SHADOW)
-    {
-      runKernel_Trace     (m_rays.rayPos, m_rays.rayDir, m_rays.hits, m_rays.MEGABLOCKSIZE);
-      runKernel_ComputeHit(m_rays.rayPos, m_rays.rayDir,              m_rays.MEGABLOCKSIZE);
-      ShadePass           (m_rays.rayPos, m_rays.rayDir, m_rays.pathShadeColor, m_rays.MEGABLOCKSIZE, false);
-      CopyShadowTo        (m_rays.pathAccColor, m_rays.MEGABLOCKSIZE);
-    }
-    else
-      trace1D(m_rays.rayPos, m_rays.rayDir, m_rays.pathAccColor, m_rays.MEGABLOCKSIZE);
+    trace1D(m_rays.rayPos, m_rays.rayDir, m_rays.pathAccColor, m_rays.MEGABLOCKSIZE);
 
     // (3) accumulate colors
     //
@@ -1712,6 +1704,12 @@ void GPUOCLLayer::trace1D(cl_mem a_rpos, cl_mem a_rdir, cl_mem a_outColor, size_
 
     if ((m_vars.m_flags & HRT_FORWARD_TRACING) == 0)
       runKernel_HitEnvOrLight(m_rays.rayFlags, a_rpos, a_rdir, a_outColor, bounce, a_size);
+
+    if (FORCE_DRAW_SHADOW && bounce == 1)
+    {
+      CopyShadowTo(a_outColor, m_rays.MEGABLOCKSIZE);
+      break;
+    }
 
     if (m_vars.m_varsI[HRT_ENABLE_MRAYS_COUNTERS] && measureThisBounce)
     {
