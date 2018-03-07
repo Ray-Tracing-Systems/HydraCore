@@ -616,6 +616,10 @@ std::vector<float> RenderDriverRTE::CalcLightPickProbTable(std::vector<PlainLigh
         pp = 0.0f;
     }
 
+    const float3 color = lightBaseColor(&a_inOutLights[i]);
+    if (length(color) < 0.01f)
+      pp = 0.0f;
+
     if(a_fwd)
       a_inOutLights[i].data[PLIGHT_PICK_PROB_FWD] = pp; // override light pick probability here! Store it in the light.
     else
