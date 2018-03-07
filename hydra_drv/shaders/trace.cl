@@ -201,7 +201,7 @@ __kernel void ComputeHit(__global const float4*   restrict rpos,
   surfHitWS.texCoord   = make_float2(0, 0);
   surfHitWS.matId      = -1;
   surfHitWS.t          = 0.0f;
-  float hit_poly_size  = 0.0f;
+  surfHitWS.sRayOff    = 0.0f;
   // \\ hit data
 
   {
@@ -228,19 +228,17 @@ __kernel void ComputeHit(__global const float4*   restrict rpos,
     //
     surfHitWS = surfHit;
     
+    const float multInv         = 1.0f/sqrt(3.0f);
+    const float3 shadowStartPos = mul3x3(instanceMatrix, make_float3(multInv*surfHitWS.sRayOff, multInv*surfHitWS.sRayOff, multInv*surfHitWS.sRayOff));
+
     surfHitWS.pos        = mul4x3(instanceMatrix, surfHit.pos);
     surfHitWS.normal     = normalize( mul3x3(instanceMatrix, surfHit.normal));
     surfHitWS.flatNormal = normalize( mul3x3(instanceMatrix, surfHit.flatNormal));
     surfHitWS.tangent    = normalize( mul3x3(instanceMatrix, surfHit.tangent));
     surfHitWS.biTangent  = normalize( mul3x3(instanceMatrix, surfHit.biTangent));
     surfHitWS.t          = length(surfHitWS.pos - ray_pos); // seems this is more precise. VERY strange !!!
+    surfHitWS.sRayOff    = length(shadowStartPos);
   } 
-
-  //__global const PlainMaterial* pHitMaterial = materialAt(a_globals, in_materialStorage, surfHitWS.matId);
-  //const float boundingSphereRadius = a_globals->varsF[HRT_BSPHERE_RADIUS];                             // #TODO: fix
-  //curvedSurvace = (length(A_norm - B_norm) + length(A_norm - C_norm)) > (0.001f*boundingSphereRadius); // #TODO: fix
-  //const bool  curvedSurvace   = true;
-  //const bool  transparent     = materialHasTransparency(pHitMaterial);
 
   ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////// THIS IS FUCKING CRAZY !!!!
   {
@@ -254,11 +252,11 @@ __kernel void ComputeHit(__global const float4*   restrict rpos,
 
   out_hitPosNorm [tid] = to_float4(surfHitWS.pos, as_float(encodeNormal(surfHitWS.normal)));
   out_hitTexCoord[tid] = surfHitWS.texCoord;
-  out_normalsFull[tid] = to_float4(surfHitWS.normal, hit_poly_size);
+  out_normalsFull[tid] = to_float4(surfHitWS.normal, surfHitWS.sRayOff);
 
-  const int remapedId   = remapMaterialId(surfHitWS.matId, hit.instId, 
-                                          in_remapInst, a_totalInstNumber, in_allMatRemapLists, 
-                                          in_remapTable, a_remapTableSize);
+  const int remapedId  = remapMaterialId(surfHitWS.matId, hit.instId, 
+                                         in_remapInst, a_totalInstNumber, in_allMatRemapLists, 
+                                         in_remapTable, a_remapTableSize);
 
   HitMatRef data3 = out_matData[tid];
   {
@@ -357,7 +355,7 @@ __kernel void BVH4TraversalShadowKenrel(__global const uint*         restrict in
     const float  maxDist      = data1.w;
 
     const Lite_Hit hit  = BVH4Traverse(shadowRayPos, shadowRayDir, 0.0f, Make_Lite_Hit(maxDist, -1), a_bvh, a_tris);
-    const float3 shadow = (HitSome(hit) && hit.t > 0.0f && hit.t < maxDist*0.999f) ? make_float3(0.0f, 0.0f, 0.0f) : make_float3(1.0f, 1.0f, 1.0f);
+    const float3 shadow = (HitSome(hit) && hit.t > 0.0f && hit.t < maxDist) ? make_float3(0.0f, 0.0f, 0.0f) : make_float3(1.0f, 1.0f, 1.0f);
     
     a_shadow[tid] = compressShadow(shadow);
   }
@@ -397,7 +395,7 @@ __kernel void BVH4TraversalInstShadowKenrel(__global const uint*         restric
     const float3 shadowRayDir = to_float3(data2);
     const float  maxDist      = data1.w;
 
-    const Lite_Hit hit  = Make_Lite_Hit(maxDist*0.999f, -1);
+    const Lite_Hit hit  = Make_Lite_Hit(maxDist, -1);
     const float3 shadow = BVH4InstTraverseShadow(shadowRayPos, shadowRayDir, 0.0f, hit, a_bvh, a_tris);
                         
     a_shadow[tid] = compressShadow(shadow);
@@ -440,7 +438,7 @@ __kernel void BVH4TraversalInstShadowKenrelAS(__global const uint*         restr
     const float3 shadowRayDir = to_float3(data2);
     const float  maxDist      = data1.w;
 
-    const float3 shadow = BVH4InstTraverseShadowAlphaS(shadowRayPos, shadowRayDir, 0.0f, maxDist*0.999f, a_bvh, a_tris, a_alpha, a_texStorage, a_globals);
+    const float3 shadow = BVH4InstTraverseShadowAlphaS(shadowRayPos, shadowRayDir, 0.0f, maxDist, a_bvh, a_tris, a_alpha, a_texStorage, a_globals);
     
     a_shadow[tid] = compressShadow(shadow);
   }

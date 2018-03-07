@@ -157,10 +157,10 @@ float3 IntegratorMISPT::PathTrace(float3 ray_pos, float3 ray_dir, MisData misPre
     LightSampleRev(pLight, rndFloat3(&gen), surfElem.pos, m_pGlobals, m_pdfStorage, m_texStorage,
                    &explicitSam);
     
-    float3 shadowRayDir = normalize(explicitSam.pos - surfElem.pos);
-    float3 shadowRayPos = OffsRayPos(surfElem.pos, surfElem.normal, shadowRayDir);
-    
-    const float3 shadow = shadowTrace(shadowRayPos, shadowRayDir, explicitSam.maxDist*0.9995f);
+    const float3 shadowRayDir = normalize(explicitSam.pos - surfElem.pos);
+    const float3 shadowRayPos = OffsShadowRayPos(surfElem.pos, surfElem.normal, shadowRayDir, surfElem.sRayOff);
+
+    const float3 shadow = shadowTrace(shadowRayPos, shadowRayDir, length(shadowRayPos - explicitSam.pos)*0.995f);
     
     const PlainMaterial* pHitMaterial = materialAt(m_pGlobals, m_matStorage, surfElem.matId);
     

@@ -1868,6 +1868,7 @@ static inline SurfaceHit surfaceEvalLS(const float3 a_rpos, const float3 a_rdir,
   __global const uint*   vertTangent  = meshTangentsCompressed(mesh);
   __global const int*    vertIndices  = meshTriIndices(mesh);
   __global const int*    matIndices   = meshMatIndices(mesh);
+  __global const float*  shadowRayOff = meshShadowRayOff(mesh);
   
   SurfaceHit surfHit;
   surfHit.matId       = matIndices[hit.primId];
@@ -1881,7 +1882,6 @@ static inline SurfaceHit surfaceEvalLS(const float3 a_rpos, const float3 a_rdir,
   const float3 A_pos  = to_float3(vertPos[offs_A]);
   const float3 B_pos  = to_float3(vertPos[offs_B]);
   const float3 C_pos  = to_float3(vertPos[offs_C]);
-  
   
   const float3 A_norm = to_float3(vertNorm[offs_A]);
   const float3 B_norm = to_float3(vertNorm[offs_B]);
@@ -1897,6 +1897,7 @@ static inline SurfaceHit surfaceEvalLS(const float3 a_rpos, const float3 a_rdir,
   surfHit.texCoord    = (1.0f - uv.x - uv.y)*A_tex  + uv.y*B_tex  + uv.x*C_tex;
   surfHit.normal      = (1.0f - uv.x - uv.y)*A_norm + uv.y*B_norm + uv.x*C_norm;
   surfHit.t           = hit.t;
+  surfHit.sRayOff     = shadowRayOff[hit.primId];
   
   const float3 A_tang = decodeNormal(vertTangent[offs_A]); // GetVertexNorm(offs_A);
   const float3 B_tang = decodeNormal(vertTangent[offs_B]); // GetVertexNorm(offs_B);

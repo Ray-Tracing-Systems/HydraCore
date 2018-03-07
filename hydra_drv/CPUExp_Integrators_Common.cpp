@@ -165,7 +165,7 @@ float3 IntegratorCommon::shadowTrace(float3 a_rpos, float3 a_rdir, float t_far, 
 
     //liteHit = BVH4Traverse(ray_pos, ray_dir, t_rayMin, liteHit, bvhdata, tridata);
     liteHit = BVH4InstTraverse(a_rpos, a_rdir, t_rayMin, liteHit, bvhdata, tridata);
-    return (HitSome(liteHit) && liteHit.t > 0.0f && liteHit.t < t_far*0.9995f) ? make_float3(0.0f, 0.0f, 0.0f) : make_float3(1.0f, 1.0f, 1.0f);
+    return (HitSome(liteHit) && liteHit.t > 0.0f && liteHit.t < t_far) ? make_float3(0.0f, 0.0f, 0.0f) : make_float3(1.0f, 1.0f, 1.0f);
   }
   else
   {
@@ -213,13 +213,16 @@ SurfaceHit IntegratorCommon::surfaceEval(float3 a_rpos, float3 a_rdir, Lite_Hit 
   const float3 transformedNormal = mul3x3(instanceMatrix, surfHit.normal);
   const float  lengthInv         = 1.0f / length(transformedNormal);
 
+  const float multInv            = 1.0f / sqrt(3.0f);
+  const float3 shadowStartPos    = mul3x3(instanceMatrix, make_float3(multInv*surfHitWS.sRayOff, multInv*surfHitWS.sRayOff, multInv*surfHitWS.sRayOff));
+
   surfHitWS.pos        = mul4x3(instanceMatrix, surfHit.pos);
   surfHitWS.normal     = lengthInv*transformedNormal;
   surfHitWS.flatNormal = lengthInv*mul3x3(instanceMatrix, surfHit.flatNormal);
   surfHitWS.tangent    = lengthInv*mul3x3(instanceMatrix, surfHit.tangent);
   surfHitWS.biTangent  = lengthInv*mul3x3(instanceMatrix, surfHit.biTangent);
   surfHitWS.t          = length(surfHitWS.pos - a_rpos); // seems this is more precise. VERY strange !!!
-
+  surfHitWS.sRayOff    = length(shadowStartPos);
 
   if (m_remapAllLists != nullptr && m_remapTable != nullptr && m_remapInstTab != nullptr)
   {

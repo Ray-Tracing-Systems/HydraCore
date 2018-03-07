@@ -670,6 +670,21 @@ static inline float3 OffsRayPos(const float3 a_hitPos, const float3 a_surfaceNor
   return a_hitPos + signOfNormal2*offsetEps*a_surfaceNorm;
 }
 
+/**
+\brief offset reflected ray position by epsilon;
+\param  a_hitPos        - world space position on surface
+\param  a_surfaceNorm   - surface normal at a_hitPos
+\param  a_sampleDir     - ray direction in which we are going to trace reflected ray
+\param  a_shadowOffsAux - per poly auxilarry shadow offset. 
+\return offseted ray position
+*/
+static inline float3 OffsShadowRayPos(const float3 a_hitPos, const float3 a_surfaceNorm, const float3 a_sampleDir, const float a_shadowOffsAux)
+{
+  const float signOfNormal2 = dot(a_sampleDir, a_surfaceNorm) < 0.0f ? -1.0f : 1.0f;
+  const float offsetEps     = epsilonOfPos(a_hitPos);
+  return a_hitPos + signOfNormal2*(offsetEps + a_shadowOffsAux)*a_surfaceNorm;
+}
+
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -2192,6 +2207,7 @@ typedef struct SurfaceHitT
   float2 texCoord;
   int    matId;
   float  t;
+  float  sRayOff;
   bool   hfi;
 } SurfaceHit;
 
