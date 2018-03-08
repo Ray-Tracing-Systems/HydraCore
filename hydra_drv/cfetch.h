@@ -871,7 +871,7 @@ typedef struct ALIGN_S(16) PlainMeshT
   int vTangentNum;
 
   unsigned int totalBytesNum;
-  int dummy1;
+  int polyShadowOffset;
   int dummy2;
 
 } PlainMesh;
@@ -921,6 +921,13 @@ static inline __global const int* meshMatIndices(__global const PlainMesh* a_pMe
   __global const float4* pheader = (__global const float4*)a_pMesh;
   __global const float4* pdata   = pheader + a_pMesh->mIndicesOffset;
   return (__global const int*)pdata;
+}
+
+static inline __global const float* meshShadowRayOff(__global const PlainMesh* a_pMesh)
+{
+  __global const float4* pheader = (__global const float4*)a_pMesh;
+  __global const float4* pdata   = pheader + a_pMesh->polyShadowOffset;
+  return (__global const float*)pdata;
 }
 
 

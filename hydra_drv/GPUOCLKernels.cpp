@@ -619,23 +619,23 @@ void GPUOCLLayer::ShadePass(cl_mem a_rpos, cl_mem a_rdir, cl_mem a_outColor, siz
     CHECK_CL(clSetKernelArg(kernX, 2, sizeof(cl_mem), (void*)&m_rays.rayFlags));
     CHECK_CL(clSetKernelArg(kernX, 3, sizeof(cl_mem), (void*)&m_rays.randGenState));
     
-    CHECK_CL(clSetKernelArg(kernX, 4, sizeof(cl_mem), (void*)&m_rays.hitPosNorm));
+    CHECK_CL(clSetKernelArg(kernX, 4, sizeof(cl_mem), (void*)&m_rays.hitPosNorm));          // hitNormUncompressed
+    CHECK_CL(clSetKernelArg(kernX, 5, sizeof(cl_mem), (void*)&m_rays.hitNormUncompressed)); // 
+
+    CHECK_CL(clSetKernelArg(kernX, 6, sizeof(cl_mem), (void*)&m_rays.lsam1));     // float4
+    CHECK_CL(clSetKernelArg(kernX, 7, sizeof(cl_mem), (void*)&m_rays.lsam2));     // float4
+    CHECK_CL(clSetKernelArg(kernX, 8, sizeof(cl_mem), (void*)&m_rays.lsamProb));  // float
+    CHECK_CL(clSetKernelArg(kernX, 9, sizeof(cl_mem), (void*)&m_rays.lsamCos));   // float
     
-    CHECK_CL(clSetKernelArg(kernX, 5, sizeof(cl_mem), (void*)&m_rays.lsam1));        // float4
-    CHECK_CL(clSetKernelArg(kernX, 6, sizeof(cl_mem), (void*)&m_rays.lsam2));        // float4
-    CHECK_CL(clSetKernelArg(kernX, 7, sizeof(cl_mem), (void*)&m_rays.lsamProb));     // float
-    CHECK_CL(clSetKernelArg(kernX, 8, sizeof(cl_mem), (void*)&m_rays.lsamCos));   // float
+    CHECK_CL(clSetKernelArg(kernX, 10, sizeof(cl_mem), (void*)&m_rays.shadowRayPos)); // float4
+    CHECK_CL(clSetKernelArg(kernX, 11, sizeof(cl_mem), (void*)&m_rays.shadowRayDir)); // float4
     
-    CHECK_CL(clSetKernelArg(kernX, 9, sizeof(cl_mem),  (void*)&m_rays.shadowRayPos)); // float4
-    CHECK_CL(clSetKernelArg(kernX, 10, sizeof(cl_mem), (void*)&m_rays.shadowRayDir)); // float4
+    CHECK_CL(clSetKernelArg(kernX, 12, sizeof(cl_mem), (void*)&m_scene.storageTex));
+    CHECK_CL(clSetKernelArg(kernX, 13, sizeof(cl_mem), (void*)&m_scene.storageTexAux)); // #TODO: add secondary texture storage ?
+    CHECK_CL(clSetKernelArg(kernX, 14, sizeof(cl_mem), (void*)&m_scene.storagePdfs));
     
-    CHECK_CL(clSetKernelArg(kernX, 11, sizeof(cl_mem), (void*)&m_scene.storageTex));
-    
-    CHECK_CL(clSetKernelArg(kernX, 12, sizeof(cl_mem), (void*)&m_scene.storageTexAux)); // #TODO: add secondary texture storage ?
-    CHECK_CL(clSetKernelArg(kernX, 13, sizeof(cl_mem), (void*)&m_scene.storagePdfs));
-    
-    CHECK_CL(clSetKernelArg(kernX, 14, sizeof(cl_int), (void*)&isize));
-    CHECK_CL(clSetKernelArg(kernX, 15, sizeof(cl_mem), (void*)&m_scene.allGlobsData));
+    CHECK_CL(clSetKernelArg(kernX, 15, sizeof(cl_int), (void*)&isize));
+    CHECK_CL(clSetKernelArg(kernX, 16, sizeof(cl_mem), (void*)&m_scene.allGlobsData));
 
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   }

@@ -178,8 +178,8 @@ bool RenderDriverRTE::UpdateSettings(pugi::xml_node a_settingsNode)
     vars.m_flags |= HRT_ENABLE_PT_CAUSTICS;
   }
 
-  //vars.m_flags |= HRT_ENABLE_PT_CAUSTICS;
-  //vars.m_flags |= HRT_STUPID_PT_MODE;
+  // vars.m_flags |= HRT_ENABLE_PT_CAUSTICS;
+  // vars.m_flags |= HRT_STUPID_PT_MODE;
 
   vars.m_varsI[HRT_TRACE_DEPTH]            = 6;
   vars.m_varsI[HRT_DIFFUSE_TRACE_DEPTH]    = 3;
@@ -585,6 +585,49 @@ bool RenderDriverRTE::UpdateLight(int32_t a_lightId, pugi::xml_node a_lightNode)
 }
 
 
+float NormalDiff(float3 n1, float3 n2)
+{
+  if (dot(n1, n2) < 0)
+    n2 *= (-1.0f);
+
+  return length(n1 - n2);
+}
+
+
+std::vector<float> CalcAuxShadowRaysOffsets(const HRMeshDriverInput& a_input)
+{
+  std::vector<float> shadowOffsets(a_input.triNum);
+
+  for (int triId = 0; triId < a_input.triNum; triId++)
+  {
+    const int iA = a_input.indices[triId * 3 + 0];
+    const int iB = a_input.indices[triId * 3 + 1];
+    const int iC = a_input.indices[triId * 3 + 2];
+
+    const float3 A = float3(a_input.pos4f[iA * 4 + 0], a_input.pos4f[iA * 4 + 1], a_input.pos4f[iA * 4 + 2]);
+    const float3 B = float3(a_input.pos4f[iB * 4 + 0], a_input.pos4f[iB * 4 + 1], a_input.pos4f[iB * 4 + 2]);
+    const float3 C = float3(a_input.pos4f[iC * 4 + 0], a_input.pos4f[iC * 4 + 1], a_input.pos4f[iC * 4 + 2]);
+
+    const float3 nA = float3(a_input.norm4f[iA * 4 + 0], a_input.norm4f[iA * 4 + 1], a_input.norm4f[iA * 4 + 2]);
+    const float3 nB = float3(a_input.norm4f[iB * 4 + 0], a_input.norm4f[iB * 4 + 1], a_input.norm4f[iB * 4 + 2]);
+    const float3 nC = float3(a_input.norm4f[iC * 4 + 0], a_input.norm4f[iC * 4 + 1], a_input.norm4f[iC * 4 + 2]);
+
+    const float3 fN = normalize(cross(A-B, A-C));
+
+    const float normDiff = NormalDiff(fN, nA) + NormalDiff(fN, nB) + NormalDiff(fN, nC);
+    const float polySize = fmax(length(A - B), fmax(length(A - C), length(B - C) ));
+
+    if (normDiff > 0.001f)
+      shadowOffsets[triId] = 0.15f*fmin(normDiff, 0.15f)*polySize;
+    else
+      shadowOffsets[triId] = 0.0f;
+  }
+
+  return shadowOffsets;
+}
+
+
+
 bool RenderDriverRTE::UpdateMesh(int32_t a_meshId, pugi::xml_node a_meshNode, const HRMeshDriverInput& a_input, const HRBatchInfo* a_batchList, int32_t listSize)
 {
   const int align     = int(m_pGeomStorage->GetAlignSizeInBytes());
@@ -613,14 +656,25 @@ bool RenderDriverRTE::UpdateMesh(int32_t a_meshId, pugi::xml_node a_meshNode, co
   const size_t triMIndOffset  = triIndOffset + triIndSize;
   const size_t triMIndSize    = roundBlocks(a_input.triNum * sizeof(int), align);
 
-  const size_t totalByteSize  = triMIndOffset + triMIndSize;
+  const size_t triSOffOffset  = triMIndOffset + triMIndSize;
+  const size_t triSOffSize    = roundBlocks(a_input.triNum * sizeof(float), align);
 
+  const size_t totalByteSize  = triSOffOffset + triSOffSize;
+
+  // (1) compress tangents
+  //
   const float4* a_tan = (const float4*)a_input.tan4f;
   std::vector<int> compressedTangent(a_input.vertNum);
 
   for (int i = 0; i < a_input.vertNum; i++)
     compressedTangent[i] = encodeNormal(to_float3(a_tan[i]));
 
+  // (2) calc per-poly shadow rays aux offset and put them to separate array.
+  //
+  std::vector<float> shadowOffsets = CalcAuxShadowRaysOffsets(a_input);
+
+  // (3) put mesh to the storage
+  //
   auto offset = m_pGeomStorage->Update(a_meshId, nullptr, totalByteSize); // alloc new chunk for our mesh
 
   if (offset == -1)
@@ -631,20 +685,21 @@ bool RenderDriverRTE::UpdateMesh(int32_t a_meshId, pugi::xml_node a_meshNode, co
 
   PlainMesh header;
 
-  header.vPosOffset      = int(vertPosOffset  / alignOffs);
-  header.vNormOffset     = int(vertNormOffset / alignOffs);
-  header.vTexCoordOffset = int(vertTexcOffset / alignOffs);
-  header.vTangentOffset  = int(vertTangOffset / alignOffs);
-  header.vIndicesOffset  = int(triIndOffset   / alignOffs);
-  header.mIndicesOffset  = int(triMIndOffset  / alignOffs);
+  header.vPosOffset       = int(vertPosOffset  / alignOffs);
+  header.vNormOffset      = int(vertNormOffset / alignOffs);
+  header.vTexCoordOffset  = int(vertTexcOffset / alignOffs);
+  header.vTangentOffset   = int(vertTangOffset / alignOffs);
+  header.vIndicesOffset   = int(triIndOffset   / alignOffs);
+  header.mIndicesOffset   = int(triMIndOffset  / alignOffs);
+  header.polyShadowOffset = int(triSOffOffset  / alignOffs);
 
-  header.vPosNum         = a_input.vertNum;
-  header.vNormNum        = a_input.vertNum;
-  header.vTexCoordNum    = a_input.vertNum;
-  header.vTangentNum     = a_input.vertNum;
-  header.tIndicesNum     = a_input.triNum * 3;
-  header.mIndicesNum     = a_input.triNum;
-  header.totalBytesNum   = int(totalByteSize);
+  header.vPosNum          = a_input.vertNum;
+  header.vNormNum         = a_input.vertNum;
+  header.vTexCoordNum     = a_input.vertNum;
+  header.vTangentNum      = a_input.vertNum;
+  header.tIndicesNum      = a_input.triNum * 3;
+  header.mIndicesNum      = a_input.triNum;
+  header.totalBytesNum    = int(totalByteSize);
 
   if (totalByteSize > 4294967296)
   {
@@ -657,9 +712,11 @@ bool RenderDriverRTE::UpdateMesh(int32_t a_meshId, pugi::xml_node a_meshNode, co
   m_pGeomStorage->UpdatePartial(a_meshId, a_input.norm4f,        vertNormOffset, a_input.vertNum * sizeof(float4));
   m_pGeomStorage->UpdatePartial(a_meshId, a_input.texcoord2f,    vertTexcOffset, a_input.vertNum * sizeof(float2));
   m_pGeomStorage->UpdatePartial(a_meshId, &compressedTangent[0], vertTangOffset, a_input.vertNum * sizeof(int)); // compressed tangent
+
   m_pGeomStorage->UpdatePartial(a_meshId, a_input.indices,       triIndOffset,   a_input.triNum  * 3 * sizeof(int));
   m_pGeomStorage->UpdatePartial(a_meshId, a_input.triMatIndices, triMIndOffset,  a_input.triNum  * sizeof(int));
-
+  m_pGeomStorage->UpdatePartial(a_meshId, &shadowOffsets[0],     triSOffOffset,  a_input.triNum  * sizeof(float));
+  
   return true;
 }
 

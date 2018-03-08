@@ -159,6 +159,8 @@ __kernel void LightSample(__global const float4*  restrict a_rpos,
                           __global RandomGen*     restrict out_gens,
 
                           __global const float4*  restrict in_hitPosNorm,
+                          __global const float4*  restrict in_hitNormAndShadowOffs,
+
                           __global float4*        restrict out_data1,
                           __global float4*        restrict out_data2,
                           __global float*         restrict out_lPP,
@@ -188,8 +190,10 @@ __kernel void LightSample(__global const float4*  restrict a_rpos,
     return;
 
   const float4 data1   = in_hitPosNorm[tid];
+  const float4 data2   = in_hitNormAndShadowOffs[tid];
   const float3 hitPos  = to_float3(data1);
-  const float3 hitNorm = normalize(decodeNormal(as_int(data1.w)));
+  const float3 hitNorm = to_float3(data2); // normalize(decodeNormal(as_int(data1.w)));
+  const float  sRayOff = data2.w;
   const float3 ray_pos = to_float3(a_rpos[tid]);
   const float3 ray_dir = to_float3(a_rdir[tid]);
 
@@ -201,7 +205,7 @@ __kernel void LightSample(__global const float4*  restrict a_rpos,
 
   // (1) generate light sample
   //
-  float lightPickProb = 1.0f;
+  float lightPickProb   = 1.0f;
   const int lightOffset = SelectRandomLightRev(rands2, hitPos, a_globals,
                                                &lightPickProb);
 
@@ -222,8 +226,8 @@ __kernel void LightSample(__global const float4*  restrict a_rpos,
   // (2) generate shadow ray
   //
   const float3 shadowRayDir = normalize(explicitSam.pos - hitPos);
-  const float3 shadowRayPos = OffsRayPos(hitPos, hitNorm, shadowRayDir);
-  const float  maxDist      = length(shadowRayPos - explicitSam.pos); // recompute max dist based on real (shifted with offset) shadowRayPos
+  const float3 shadowRayPos = OffsShadowRayPos(hitPos, hitNorm, shadowRayDir, sRayOff);
+  const float  maxDist      = length(shadowRayPos - explicitSam.pos)*0.9995f; // recompute max dist based on real (shifted with offset) shadowRayPos
 
   out_srpos[tid] = to_float4(shadowRayPos, maxDist);
   out_srdir[tid] = to_float4(shadowRayDir, as_float(lightOffset)); 
