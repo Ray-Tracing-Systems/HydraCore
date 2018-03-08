@@ -1452,7 +1452,7 @@ void RenderDriverRTE::GetFrameBufferLDR(int32_t w, int32_t h, int32_t* a_out)
   m_pHWLayer->GetLDRImage((uint32_t*)a_out, w, h);
 }
 
-void RenderDriverRTE::GetGBufferLine(int32_t a_lineNumber, HRGBufferPixel* a_lineData, int32_t a_startX, int32_t a_endX) 
+void RenderDriverRTE::GetGBufferLine(int32_t a_lineNumber, HRGBufferPixel* a_lineData, int32_t a_startX, int32_t a_endX, const std::unordered_set<int32_t>& a_shadowCatchers)
 {
 
 }
