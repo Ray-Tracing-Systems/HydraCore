@@ -618,7 +618,7 @@ std::vector<float> CalcAuxShadowRaysOffsets(const HRMeshDriverInput& a_input)
     const float polySize = fmax(length(A - B), fmax(length(A - C), length(B - C) ));
 
     if (normDiff > 0.001f)
-      shadowOffsets[triId] = fmin(normDiff, 0.1f)*polySize;
+      shadowOffsets[triId] = 0.15f*fmin(normDiff, 0.15f)*polySize;
     else
       shadowOffsets[triId] = 0.0f;
   }

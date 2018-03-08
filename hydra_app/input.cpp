@@ -4,7 +4,7 @@
 Input::Input()
 {
   noWindow      = false;           ///< run 'console_main', else run 'window_main'
-  //inLibraryPath = "tests/test_42"; ///< cornell box with teapot
+  inLibraryPath = "tests/test_42"; ///< cornell box with teapot
   //inLibraryPath = "tests/test_01"; ///< cornell box with sphere
 
   //inLibraryPath = "tests/test_223_small"; ///< cornell box with mirror glossy back wall
@@ -13,13 +13,13 @@ Input::Input()
 
   //inLibraryPath = "D:/PROG/HydraAPI/main/tests/test_78";
   //inLibraryPath = "D:/PROG/HydraAPI/main/tests_f/test_211";
-  //inLibraryPath = "D:/PROG/HydraAPI/main/tests_f/test_153";
+  //inLibraryPath = "D:/PROG/HydraAPI/main/tests_f/test_005";
 
-  inLibraryPath = "C:/[Hydra]/pluginFiles/scenelib";
+  //inLibraryPath = "C:/[Hydra]/pluginFiles/scenelib";
   //inLibraryPath = "D:/Downloads/blendbug_crash/scenelib";
 
-  inDevelopment = true;  ///< recompile shaders each time; note that nvidia have their own shader cache!
-  inDeviceId    = 1;     ///< opencl device id
+  inDevelopment = false;  ///< recompile shaders each time; note that nvidia have their own shader cache!
+  inDeviceId    = 0;     ///< opencl device id
   cpuFB         = false; ///< store frame buffer on CPU. Automaticly enabled if
   enableMLT     = false; ///< if use MMLT, you MUST enable it early, when render process just started (here or via command line).
 
