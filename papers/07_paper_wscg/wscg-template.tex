@@ -121,7 +121,7 @@ e@mail
 
 \begin{abstract}
 \noindent
-In this paper we propose a general image sampling technique for GPU implementation of modern light transport algorithms. We test out method with Path Tracing (PT), Light Tracing (LT), Instant Bidirectiobal Path Tracing (IBPT) and Multiplexed Metropolis Light Transport (MMLT). Unlike previous approaches our technique can be called conditionally-free in the sense of GPU computing resources and it can manage extremely large image resolutions with constant and low GPU memory consumption. We were able to render images at 16384x16384 on a 5-years old computer with AMD HD7970 GPU in practice (only 20 MB of GPU memory was used). 
+In this paper we propose a general image sampling technique for GPU implementation of modern light transport algorithms. We test out method with Path Tracing (PT), Light Tracing (LT), Instant Bidirectiobal Path Tracing (IBPT) and Multiplexed Metropolis Light Transport (MMLT). Unlike previous approaches our technique can be called conditionally-free in the sense of GPU computing resources and it can manage extremely large image resolutions with constant and low GPU memory consumption. We were able to render images at 16384x16384 on a 5-years old computer with AMD HD7970 GPU in practice (only 20 MB of GPU memory was used). Our aproach is easy to extent for rendering on multiple GPUs and multiple workstations, and scales lineary with increasing total GPU number.
 
 \end{abstract}
 
@@ -222,7 +222,7 @@ The proposed approach is based on several provisions:
 
 1.We always have to use stochastic sampling of the whole image. Sampling of individual pixels, tiles or areas is forbidden. This paragraph is essential for our approach to be unified for all light transport algorithms.
 
-2.To uniformly cover the image with samples we have to use low-discrepancy quasi-random numbers instead of pseudo-random. The difference between quasi and pseudo random generators in this case is essential and shown on the fig ... . Our implementation uses 4D Sobol sequence \cite{Sobol67} (2 dimentions for image plane and 2 for lens offsets to implement depth of field).
+2.To uniformly cover the image with samples we have to use low-discrepancy quasi-random numbers instead of pseudo-random. The difference between quasi and pseudo random generators in this case is essential and shown on the fig \ref{fig:box2}. Our implementation uses 4D Sobol sequence \cite{Sobol67}. Two dimentions were used for image plane and the other two for lens offsets to implement depth of field.
 
 3.To preserve the coherence of rays (and in this way have high SIMD effitiency) sample sorting should be used. We sort samples according to their Morton codes which was evaluated from the sample screen position \cite{Morton66}.
 
@@ -230,9 +230,42 @@ The proposed approach is based on several provisions:
 
 5.Single sample is encoded in a single float4 in analogue to \cite{MMLTGPU} work. The fourth component contain packed pixels coordinates.
 
-6.The pipelined copy should be used to copy samples from GPU to CPU in parallel with GPU computations. This is critical to make our approach conditionally-free.
+6.The pipelined copy should be used to copy samples from GPU to CPU in parallel with GPU computations. This is critical to make our approach conditionally-free (fig. \ref{fig:box3},\ref{fig:box4}).
 
-7.The contribution operations is implemented on the CPU in this way ans also pipelined with GPU computations.
+7.The contribution operations is implemented on the CPU in this way and also pipelined with GPU computations. 
+
+8.When render on multiple GPUs or multiple workstations, addition image should be allocated if LT or IBPT algorithms are used. This additional image allows us to avoid frequent mutex lock and implement <<hierarchical gather>> (see further) for multiple workstation case.
+
+\begin{figure}[htb]
+	\centering
+	\includegraphics[width=1.0\linewidth]{images/qmc2.png}
+	\caption{Pseudo random numbers (left) vs low discrepancy quasy random (right).}
+	\label{fig:box2}
+\end{figure}
+
+\subsection{Pipelined execution}
+
+The pipelined execution of our contribution scheme is drawn on figures \ref{fig:box3} and \ref{fig:box4}. For demonstration puprose we depicted PT and LT for only 2 ray bounce and simplified set of kernels (trace, shade, next\_bounce) is used per bounce. In fact our implementation run 7 different kernels per bounce, but this is not essential for the description of our idea. The difference between Path Tracing (fig. \ref{fig:box3}) and Light Tracing (fig. \ref{fig:box4}). The Copy and Contribute (paragraph 6 and 7) are represented by a green rectangle.
+
+
+\begin{figure}[htb]
+	\centering
+	\includegraphics[width=1.0\linewidth]{images/pipeline1.png}
+	\caption{Path Tracing pipeline.}
+	\label{fig:box3}
+\end{figure}
+
+\begin{figure}[htb]
+	\centering
+	\includegraphics[width=1.0\linewidth]{images/pipeline2.png}
+	\caption{Light Tracing pipeline.}
+	\label{fig:box4}
+\end{figure}
+
+
+\subsection{Multiple GPUs}
+
+\subsection{Multiple workstations}
 
 \subsection*{Page Numbering, Headers and Footers}
 Do not include headers, footers or page numbers in your submission. These will be added when the publications are assembled.
