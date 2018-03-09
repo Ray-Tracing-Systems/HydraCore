@@ -831,7 +831,11 @@ std::shared_ptr<IMaterial> DiffuseAndTranslucentBlendMaterialFromHydraMtl(const 
     const float fresnelIOR    = 1.5f;
     const int   reflExtrusion = BLEND_MASK_EXTRUSION_STRONG;
     
-    std::shared_ptr<BlendMaskMaterial> pResult = std::make_shared<BlendMaskMaterial>(pTrans, pDiff, colorT, ttexId, sampler, fresnelBlend, true, reflExtrusion, fresnelIOR);
+    SWTexSampler sampler2 = sampler;
+    sampler2.texId        = INVALID_TEXTURE;
+
+    std::shared_ptr<BlendMaskMaterial> pResult = std::make_shared<BlendMaskMaterial>(pTrans, pDiff, make_float3(0.5f,0.5f,0.5f), INVALID_TEXTURE, sampler, 
+                                                                                     fresnelBlend, false, reflExtrusion, fresnelIOR);
     
     return pResult;
 	}

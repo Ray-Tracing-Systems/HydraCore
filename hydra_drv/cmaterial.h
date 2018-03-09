@@ -1215,8 +1215,8 @@ static inline float blendMaskAlpha2(__global const PlainMaterial* pMat,
   if (as_int(pMat->data[BLEND_MASK_FLAGS_OFFSET]) & BLEND_MASK_FALOFF)
   {
     const int faloffStart = as_int(pMat->data[BLEND_MASK_FALOFF_OFFSET]);
-    const int faloffSize = as_int(pMat->data[BLEND_MASK_FALOFF_SIZE]);
-    const int numPoints = faloffSize / 4;
+    const int faloffSize  = as_int(pMat->data[BLEND_MASK_FALOFF_SIZE]);
+    const int numPoints   = faloffSize / 4;
 
     __global const float* points   = floatArraysPtr(a_globals) + faloffStart;
     __global const float* tangents = points + faloffSize / 2;
