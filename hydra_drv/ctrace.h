@@ -1907,11 +1907,16 @@ static inline SurfaceHit surfaceEvalLS(const float3 a_rpos, const float3 a_rdir,
   if (dot(a_rdir, surfHit.flatNormal) > 0.0f)
     surfHit.flatNormal = surfHit.flatNormal*(-1.0f);
 
-  if (dot(a_rdir, surfHit.normal) > 0.0f)
+  if (dot(a_rdir, surfHit.normal) > 0.1f)        // normal flip for smooth low poly surfaces
   {
     surfHit.normal = surfHit.normal*(-1.0f);
     surfHit.hfi    = true;
   }
+  //else if (dot(a_rdir, surfHit.normal) > 0.0f)   // normal flip for flat surfaces
+  //{
+  //  surfHit.normal = surfHit.normal*(-1.0f);
+  //  surfHit.hfi    = true;
+  //}
   else
   {
     surfHit.hfi = false;
