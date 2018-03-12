@@ -1181,10 +1181,8 @@ void GPUOCLLayer::DrawNormals()
 
 void GPUOCLLayer::ConnectEyePass(cl_mem in_rayFlags, cl_mem in_hitPos, cl_mem in_hitNorm, cl_mem in_rayDirOld, cl_mem in_color, int a_bounce, size_t a_size)
 {
-  const int usematerials = (in_rayDirOld == nullptr) ? 0 : 1;
-
-  runKernel_EyeShadowRays(in_rayFlags, in_hitPos, in_hitNorm,
-                          m_rays.shadowRayPos, m_rays.shadowRayDir, a_size, usematerials);
+  runKernel_EyeShadowRays(in_rayFlags, in_hitPos, m_rays.hitFlatNorm, in_rayDirOld,
+                          m_rays.shadowRayPos, m_rays.shadowRayDir, a_size);
 
   runKernel_ShadowTrace(in_rayFlags, m_rays.shadowRayPos, m_rays.shadowRayDir,
                         m_rays.lshadow, a_size);

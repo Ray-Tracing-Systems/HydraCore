@@ -25,7 +25,7 @@ static inline float3 decompressShadow(ushort4 shadowCompressed)
 
 __kernel void MakeEyeShadowRays(__global const uint*          restrict a_flags,
                                 __global const float4*        restrict in_hitPosNorm,
-                                __global const float4*        restrict in_normalsFull,
+                                __global const uint*          restrict in_flatNormal,
                                 __global const HitMatRef*     restrict in_matData,
 
                                 __global const float4*        restrict in_mtlStorage,
@@ -44,11 +44,14 @@ __kernel void MakeEyeShadowRays(__global const uint*          restrict a_flags,
     return;
 
   const float3 hitPos  = to_float3(in_hitPosNorm[tid]);
-  const float3 hitNorm = to_float3(in_normalsFull[tid]); 
+  const float3 hitNorm = decodeNormal(in_flatNormal[tid]); //to_float3(in_normalsFull[tid]);
   
   float3 camDir; float zDepth;
   const float imageToSurfaceFactor = CameraImageToSurfaceFactor(hitPos, hitNorm, a_globals,
                                                                 &camDir, &zDepth);
+
+  // const int s1 = dot(camDir, hitNorm) < 0.0f ? -1 : 1; // note that both flatNorm and hitNorm are already fliped if they needed; so dot(camDir, hitNorm) < -0.01f is enough
+  // const int s2 = dot(rayDir, hitNorm) < 0.0f ? -1 : 1; // note that both flatNorm and hitNorm are already fliped if they needed; so dot(camDir, hitNorm) < -0.01f is enough
 
   float signOfNormal = 1.0f;
 
@@ -58,7 +61,7 @@ __kernel void MakeEyeShadowRays(__global const uint*          restrict a_flags,
     __global const PlainMaterial* pHitMaterial = materialAt(a_globals, in_mtlStorage, matId);
 
     if ((materialGetFlags(pHitMaterial) & PLAIN_MATERIAL_HAVE_BTDF) != 0 && dot(camDir, hitNorm) < -0.01f)
-      signOfNormal = -1.0f;
+      signOfNormal *= -1.0f;
   }
 
   out_sraypos[tid] = to_float4(hitPos + epsilonOfPos(hitPos)*signOfNormal*hitNorm, zDepth); // OffsRayPos(hitPos, hitNorm, camDir);
