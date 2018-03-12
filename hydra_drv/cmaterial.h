@@ -165,7 +165,7 @@ static inline  int2   lambertGetDiffuseTex(__global const PlainMaterial* a_pMat)
 }
 
 
-static inline float  lambertEvalPDF (__global const PlainMaterial* a_pMat, const float3 l, const float3 n) { return fmax(dot(l, n), 0.0f)*INV_PI; }
+static inline float  lambertEvalPDF (__global const PlainMaterial* a_pMat, const float3 l, const float3 n) { return fabs(dot(l, n))*INV_PI; }
 
 static inline float3 lambertEvalBxDF(__global const PlainMaterial* a_pMat, const float2 a_texCoord,
                                      __global const EngineGlobals* a_globals, texture2d_t a_tex)
@@ -303,7 +303,7 @@ static inline float3  orennayarEvalBxDF(__global const PlainMaterial* a_pMat, co
 
 static inline float  orennayarEvalPDF(__global const PlainMaterial* a_pMat, const float3 l, const float3 v, const float3 n)
 { 
-  return fmax(dot(l, n), 0.0f)*INV_PI; 
+  return fabs(dot(l, n))*INV_PI; 
 }
 
 static inline void OrennayarSampleAndEvalBRDF(__global const PlainMaterial* a_pMat, const float a_r1, const float a_r2, const float3 ray_dir, const float3 a_normal, const float2 a_texCoord,
@@ -711,7 +711,7 @@ static inline float phongEvalPDF(__global const PlainMaterial* a_pMat, const flo
                                  const float2 a_texCoord, __global const EngineGlobals* a_globals, texture2d_t a_tex)
 {
   const float3 r        = reflect((-1.0)*v, n);
-  const float  cosTheta = clamp(dot(l, r), 0.0f, M_PI*0.499995f);
+  const float  cosTheta = clamp(dot(l, r), 0.0f, M_PI*0.499995f); //#TODO: what if hit under surface during PT? this may cause LT weight goes to zero while it should not!
 
   const float  gloss    = phongGlosiness(a_pMat, a_texCoord, a_globals, a_tex);
   const float  cosPower = cosPowerFromGlosiness(gloss);
@@ -904,8 +904,8 @@ static inline float blinnEvalPDF(__global const PlainMaterial* a_pMat, const flo
 
   float blinn_pdf = ((exponent + 1.0f) * pow(costheta, exponent)) / (2.f * M_PI * 4.f * dot(l, wh));
 
-  if (dot(l, wh) <= 0.0f)
-    blinn_pdf = 0.0f;
+  if (dot(l, wh) <= 0.0f) // #TODO: this may cause problems when under-surface hit during PT; light strategy weight becobes zero. Or not? see costheta = fabs(dot(wh,n))
+    blinn_pdf = 0.0f;     // #TODO: this may cause problems when under-surface hit during PT; light strategy weight becobes zero. Or not? see costheta = fabs(dot(wh,n))
 
   return blinn_pdf;
 }

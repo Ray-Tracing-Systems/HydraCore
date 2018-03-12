@@ -260,6 +260,8 @@ __kernel void ConnectToEyeKernel(__global const uint*          restrict a_flags,
     const float pdfAccExpA = cameraPdfA * (pdfRevWP*accData.pdfCameraWP)*accData.pdfGTerm*(cancelImplicitLightHitPdf*(lightPdfA*lightPickProbRev));
 
     misWeight = misWeightHeuristic3(pdfAccFwdA, pdfAccRevA, pdfAccExpA);
+    if (!isfinite(misWeight))
+      misWeight = 0.0f;
   }
   
 
@@ -499,7 +501,11 @@ __kernel void HitEnvOrLightKernel(__global const float4*    restrict in_rpos,
             //a_debugf4[tid] = make_float4(pdfAccFwdA, pdfAccRevA, pdfAccExpA, 0);
 
             const float misWeight = misWeightHeuristic3(pdfAccRevA, pdfAccFwdA, pdfAccExpA);
-            emissColor *= misWeight;
+
+            if (isfinite(misWeight))
+              emissColor *= misWeight;
+            else
+              emissColor *= make_float3(0, 0, 0);
           }
           else if (unpackBounceNum(flags) > 0 && !(a_globals->g_flags & HRT_STUPID_PT_MODE) && (misPrev.isSpecular == 0)) // old MIS weights via pdfW
           {
@@ -701,6 +707,8 @@ __kernel void Shade(__global const float4*    restrict a_rpos,
       pdfAccRevA = 0.0f;
 
     misWeight = misWeightHeuristic3(pdfAccExpA, pdfAccRevA, pdfAccFwdA);
+    if (!isfinite(misWeight))
+      misWeight = 0.0f;
   }
   else
   {
