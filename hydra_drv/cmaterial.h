@@ -1629,10 +1629,10 @@ static inline BxDFResult materialLeafEval(__global const PlainMaterial* pMat, __
   
   // Veach phd thesis 5.3.2. The adjoint BSDF for shading normals.
   //
-  if (a_fwdDir)
+  if (a_fwdDir) 
   {
     const float maxVal    = res.diffuse ? 100.0f : 1.0f;
-    const float smoothFix = adjointBsdfShadeNormalFix(sc->v, sc->l, n, sc->fn, maxVal);
+    const float smoothFix = adjointBsdfShadeNormalFix(sc->v, sc->l, sc->n, sc->fn, maxVal); // use old sc->n instead of n here to exclude normal map influence
     res.brdf *= smoothFix;
     //res.btdf *= smoothFix;
   }
