@@ -62,7 +62,8 @@ static inline float CameraImageToSurfaceFactor(const float3 a_hitPos, const floa
   const float cosToCamera = fabs(dot(a_hitNorm, camDir)); 
   const float cosAtCamera = dot(camForward, (-1.0f)*camDir);
 
-  const float fov = fmax(a_globals->varsF[HRT_FOV_X], a_globals->varsF[HRT_FOV_Y]);
+  const float relation = a_globals->varsF[HRT_WIDTH_F] / a_globals->varsF[HRT_HEIGHT_F];
+  const float fov      = relation*fmax(a_globals->varsF[HRT_FOV_X], a_globals->varsF[HRT_FOV_Y]);
   if (cosAtCamera <= cos(fov))
     return 0.0f;
 
