@@ -72,7 +72,7 @@ static inline float CameraImageToSurfaceFactor(const float3 a_hitPos, const floa
   const float imageToSurfaceFactor    = imageToSolidAngleFactor * cosToCamera / (zDepth*zDepth);       // PdfWtoA
 
   if (isfinite(imageToSurfaceFactor))
-    return imageToSurfaceFactor;
+    return imageToSurfaceFactor/(relation*relation);
   else
     return 0.0f;
 }

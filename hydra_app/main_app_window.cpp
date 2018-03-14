@@ -412,7 +412,7 @@ void OnError(int errorCode, const char* msg)
 
 void window_main(std::shared_ptr<IHRRenderDriver> a_pDriverImpl)
 {
-  g_width  = g_input.winHeight;
+  g_width  = g_input.winWidth;
   g_height = g_input.winHeight;
 
   if (!glfwInit())

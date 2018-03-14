@@ -11,11 +11,11 @@ Input::Input()
   //inLibraryPath = "/home/frol/PROG/HydraAPI/main/tests/test_79";
   //inLibraryPath = "D:/[archive]/2017/HydraAPP/hydra_app/tests/hydra_benchmark_07";
 
-  //inLibraryPath = "D:/PROG/HydraAPI/main/tests/test_78";
+  inLibraryPath = "D:/PROG/HydraAPI/main/tests/test_39";
   //inLibraryPath = "D:/PROG/HydraAPI/main/tests_f/test_211";
   //inLibraryPath = "D:/PROG/HydraAPI/main/tests_f/test_005";
 
-  inLibraryPath = "C:/[Hydra]/pluginFiles/scenelib";
+  //inLibraryPath = "C:/[Hydra]/pluginFiles/scenelib";
   //inLibraryPath = "D:/Downloads/blendbug_crash/scenelib";
 
   inDevelopment = true;  ///< recompile shaders each time; note that nvidia have their own shader cache!
@@ -24,7 +24,7 @@ Input::Input()
   enableMLT     = false; ///< if use MMLT, you MUST enable it early, when render process just started (here or via command line).
 
   winWidth      = 1024;  ///< 
-  winHeight     = 1024;  ///< 
+  winHeight     = 512;   ///< 
 
   enableOpenGL1 = false; ///< if you want to draw scene for some debug needs with OpenGL1.
   exitStatus    = false;
