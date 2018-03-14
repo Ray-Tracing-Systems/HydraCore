@@ -13,6 +13,7 @@ typedef struct RandomGenT
   uint2          state;
   unsigned int   maxNumbers;
   unsigned int   lazy; // or dummy to have uint4 generator data.
+  float3         sobol;
 
 #ifdef RAND_MLT_CPU
   __global const float* rptr;

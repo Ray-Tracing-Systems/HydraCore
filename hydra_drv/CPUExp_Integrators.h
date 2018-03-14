@@ -26,6 +26,9 @@
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////// old
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////// old
 
+extern "C" void initQuasirandomGenerator(unsigned int table[QRNG_DIMENSIONS][QRNG_RESOLUTION]);
+
+
 struct SceneBVHData
 {
   std::vector<BVHNode> nodes;
@@ -361,11 +364,13 @@ public:
 class IntegratorMISPT_trofimm : public IntegratorCommon
 {
 public:
-
   IntegratorMISPT_trofimm(int w, int h, EngineGlobals* a_pGlobals, int a_createFlags) : IntegratorCommon(w, h, a_pGlobals, a_createFlags) {}
 
-  float3 PathTrace(float3 a_rpos, float3 a_rdir, MisData misPrev, int a_currDepth, uint flags);
+  float3 PathTrace(float3 a_rpos, float3 a_rdir, MisData misPrev, int a_currDepth, uint flags, RandomGen a_pGen);
   void DoPass(std::vector<uint>& a_imageLDR);
+
+protected:
+  std::tuple<MatSample, int, float3> sampleAndEvalBxDF(float3 ray_dir, const SurfaceHit& surfElem, RandomGen a_pGen, uint flags = 0, float3 shadow = float3(0, 0, 0), bool mmltMode = false);
 
 };
 

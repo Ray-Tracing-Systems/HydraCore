@@ -205,7 +205,7 @@ float3 IntegratorMISPT::PathTrace(float3 ray_pos, float3 ray_dir, MisData misPre
   return explicitColor + cosTheta*bxdfVal*PathTrace(nextRay_pos, nextRay_dir, currMis, a_currDepth + 1, flags);  // --*(1.0 / (1.0 - pabsorb));
 }
 
-float3 IntegratorMISPT_trofimm::PathTrace(float3 ray_pos, float3 ray_dir, MisData misPrev, int a_currDepth, uint flags)
+float3 IntegratorMISPT_trofimm::PathTrace(float3 ray_pos, float3 ray_dir, MisData misPrev, int a_currDepth, uint flags, RandomGen a_pGen)
 {
   if (a_currDepth >= m_maxDepth)
     return float3(0, 0, 0);
@@ -250,7 +250,11 @@ float3 IntegratorMISPT_trofimm::PathTrace(float3 ray_pos, float3 ray_dir, MisDat
     __global const PlainLight* pLight = lightAt(m_pGlobals, lightOffset);
 
     ShadowSample explicitSam;
-    LightSampleRev(pLight, rndFloat3(&gen), surfElem.pos, m_pGlobals, m_pdfStorage, m_texStorage,
+
+    // Использовать следующие 2 квази-случайных числа для выбора позиции сэмпла на 
+    // источнике света. sobolPoint
+
+    LightSampleRev(pLight, a_pGen.sobol /*rndFloat3(&gen)*/, surfElem.pos, m_pGlobals, m_pdfStorage, m_texStorage,
       &explicitSam);
 
     float3 shadowRayDir = normalize(explicitSam.pos - surfElem.pos);
@@ -285,7 +289,7 @@ float3 IntegratorMISPT_trofimm::PathTrace(float3 ray_pos, float3 ray_dir, MisDat
     explicitColor = (1.0f / lightPickProb)*(explicitSam.color * (1.0f / fmax(explicitSam.pdf, DEPSILON2)))*bxdfVal*misWeight*shadow; // clamp brdfVal? test it !!!
   }
 
-  const MatSample matSam = std::get<0>(sampleAndEvalBxDF(ray_dir, surfElem));
+  const MatSample matSam = std::get<0>(sampleAndEvalBxDF(ray_dir, surfElem, a_pGen));
   const float3 bxdfVal = matSam.color * (1.0f / fmaxf(matSam.pdf, 1e-20f));
   const float cosTheta = fabs(dot(matSam.direction, surfElem.normal));
 
@@ -298,7 +302,7 @@ float3 IntegratorMISPT_trofimm::PathTrace(float3 ray_pos, float3 ray_dir, MisDat
 
   flags = flagsNextBounceLite(flags, matSam, m_pGlobals);
 
-  return explicitColor + cosTheta * bxdfVal*PathTrace(nextRay_pos, nextRay_dir, currMis, a_currDepth + 1, flags);  // --*(1.0 / (1.0 - pabsorb));
+  return explicitColor + cosTheta * bxdfVal*PathTrace(nextRay_pos, nextRay_dir, currMis, a_currDepth + 1, flags, a_pGen);  // --*(1.0 / (1.0 - pabsorb));
 }
 
 void IntegratorMISPT_trofimm::DoPass(std::vector<uint>& a_imageLDR)
@@ -327,35 +331,92 @@ void IntegratorMISPT_trofimm::DoPass(std::vector<uint>& a_imageLDR)
 
   // Вместо генерации луча для каждого пиксела использовать квази - случайные 
   // числа и 2 первые координаты для x и y.
+  unsigned int table[QRNG_DIMENSIONS][QRNG_RESOLUTION];
+  initQuasirandomGenerator(table);
   
-  for (int i = 0; i < m_summColors.size(); ++i)
-  {
-    RandomGen& gen = randomGen();
-    float4 offsets = rndUniform(&gen, 0, 1.0f); // rndQmcSobolN
+  const int summColorsSize = m_summColors.size();
 
-    int x = (int)(offsets.x * m_width);
-    int y = (int)(offsets.y * m_height);
+  //#pragma omp parallel for
+  for (int i = 0; i < summColorsSize; ++i)
+  {
+    const int offsetSobol = i + summColorsSize * m_spp;
+    const int x = (int)(rndQmcSobolN(offsetSobol, 0, &table[0][0]) * (m_width - 1));
+    const int y = (int)(rndQmcSobolN(offsetSobol, 1, &table[0][0]) * (m_height - 1));
 
     float3 ray_pos, ray_dir;
     std::tie(ray_pos, ray_dir) = makeEyeRay(x, y);
 
-    const float3 color = PathTrace(ray_pos, ray_dir, makeInitialMisData(), 0, 0);
+    RandomGen a_pGen;
+    a_pGen.sobol.x = rndQmcSobolN(offsetSobol, 2, &table[0][0]);
+    a_pGen.sobol.y = rndQmcSobolN(offsetSobol, 3, &table[0][0]);
+    a_pGen.sobol.z = rndQmcSobolN(offsetSobol, 4, &table[0][0]);
+
+    const float3 color = PathTrace(ray_pos, ray_dir, makeInitialMisData(), 0, 0, a_pGen);
     const float maxCol = maxcomp(color);
 
     m_summColors[y*m_width + x] = m_summColors[y*m_width + x] * (1.0f - alpha) + to_float4(color, maxCol)*alpha;
   }
 
-
-  RandomizeAllGenerators();
-
+  
   m_spp++;
   GetImageToLDR(a_imageLDR);
 
-  //if (m_spp == 1)
-  //DebugSaveGbufferImage(L"C:/[Hydra]/rendered_images/torus_gbuff");
-
   std::cout << "IntegratorCommon: spp = " << m_spp << std::endl;
+}
 
+std::tuple<MatSample, int, float3> IntegratorMISPT_trofimm::sampleAndEvalBxDF(float3 ray_dir, const SurfaceHit & surfElem, RandomGen a_pGen, uint flags, float3 shadow, bool a_mmltMode)
+{
+  const PlainMaterial* pHitMaterial = materialAt(m_pGlobals, m_matStorage, surfElem.matId);
+  auto& gen = randomGen();
+
+
+  int matOffset = materialOffset(m_pGlobals, surfElem.matId);
+  const int rayBounceNum = unpackBounceNum(flags);
+  const uint otherRayFlags = unpackRayFlags(flags);
+
+  const bool canSampleReflOnly = (materialGetFlags(pHitMaterial) & PLAIN_MATERIAL_CAN_SAMPLE_REFL_ONLY) != 0;
+  const bool sampleReflectionOnly = ((otherRayFlags & RAY_GRAMMAR_DIRECT_LIGHT) != 0) && canSampleReflOnly;
+
+  BRDFSelector mixSelector = materialRandomWalkBRDF_Trofimm(pHitMaterial, &a_pGen /*&gen*/, gen.rptr, ray_dir, surfElem.normal, surfElem.texCoord, m_pGlobals, m_texStorage, rayBounceNum, a_mmltMode, sampleReflectionOnly); // a_shadingTexture
+
+                                                                                                                                                                                                                  /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////// --- >
+
+  if ((m_pGlobals->varsI[HRT_RENDER_LAYER] == LAYER_INCOMING_RADIANCE || m_pGlobals->varsI[HRT_RENDER_LAYER] == LAYER_INCOMING_PRIMARY) && (m_pGlobals->varsI[HRT_RENDER_LAYER_DEPTH] == rayBounceNum)) // piss execution way (render incoming radiance)
+  {
+    matOffset = m_pGlobals->varsI[HRT_WHITE_DIFFUSE_OFFSET];
+    pHitMaterial = materialAtOffset(m_matStorage, m_pGlobals->varsI[HRT_WHITE_DIFFUSE_OFFSET]);
+    mixSelector.w = 1.0f;
+  }
+  else // normal execution way
+  {
+    // this is needed component for mis further (misNext.prevMaterialOffset = matOffset;)
+    //
+    matOffset = matOffset + mixSelector.localOffs*(sizeof(PlainMaterial) / sizeof(float4));
+    pHitMaterial = pHitMaterial + mixSelector.localOffs;
+  }
+
+  // const bool hitFromBack        = (unpackRayFlags(flags) & RAY_HIT_SURFACE_FROM_OTHER_SIDE) != 0;
+  // const bool hitGlassFromInside = (materialGetType(pHitMaterial) == PLAIN_MAT_CLASS_GLASS) && hitFromBack;
+
+  ShadeContext sc;
+
+  sc.wp = surfElem.pos;
+  sc.l = ray_dir;
+  sc.v = ray_dir;
+  sc.n = surfElem.normal;
+  sc.fn = surfElem.flatNormal;
+  sc.tg = surfElem.tangent;
+  sc.bn = surfElem.biTangent;
+  sc.tc = surfElem.texCoord;
+  sc.hfi = surfElem.hfi;
+
+  const float3 rands = a_mmltMode ? rndMatMMLT(&gen, gen.rptr, rayBounceNum) : rndMat(&gen, gen.rptr, rayBounceNum);
+  MatSample brdfSample;
+  MaterialLeafSampleAndEvalBRDF(pHitMaterial, rands, &sc, shadow, m_pGlobals, m_texStorage, m_texStorageAux,
+    &brdfSample);
+  brdfSample.pdf *= mixSelector.w;
+
+  return std::make_tuple(brdfSample, matOffset, make_float3(1, 1, 1));
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
