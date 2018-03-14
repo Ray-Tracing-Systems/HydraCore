@@ -230,8 +230,7 @@ static inline float MutateKelemen(float valueX, __private RandomGen* pGen, const
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-//#define QRNG_DIMENSIONS 4 
-#define QRNG_DIMENSIONS 5 // for test 
+#define QRNG_DIMENSIONS 4 
 #define QRNG_RESOLUTION 31
 #define INT_SCALE (1.0f / (float)0x80000001U)
 
