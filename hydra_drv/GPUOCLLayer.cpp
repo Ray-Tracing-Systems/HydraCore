@@ -1288,7 +1288,9 @@ void GPUOCLLayer::EvalGBuffer(IHRSharedAccumImage* a_pAccumImage)
     //
     memsetf4(m_rays.pathThoroughput, make_float4(1, 1, 1, 1), finalSize);
 
-    const int maxBounce = m_vars.m_varsI[HRT_TRACE_DEPTH];
+    int maxBounce = m_vars.m_varsI[HRT_TRACE_DEPTH];
+    if (maxBounce < 2)
+      maxBounce = 2;
     for (int bounce = 1; bounce < maxBounce; bounce++)
     {
       runKernel_NextTransparentBounce(m_rays.rayPos, m_rays.rayDir, m_rays.pathThoroughput, finalSize);
