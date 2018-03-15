@@ -23,8 +23,8 @@ Input::Input()
   cpuFB         = false; ///< store frame buffer on CPU. Automaticly enabled if
   enableMLT     = false; ///< if use MMLT, you MUST enable it early, when render process just started (here or via command line).
 
-  winWidth      = 1024;  ///< 
-  winHeight     = 1024;  ///< 
+  winWidth      = 600;  ///< 
+  winHeight     = 600;  ///< 
 
   enableOpenGL1 = false; ///< if you want to draw scene for some debug needs with OpenGL1.
   exitStatus    = false;

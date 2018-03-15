@@ -251,10 +251,11 @@ float3 IntegratorMISPT_trofimm::PathTrace(float3 ray_pos, float3 ray_dir, MisDat
 
     ShadowSample explicitSam;
 
+    // Пропускаем пока. 
     // Использовать следующие 2 квази-случайных числа для выбора позиции сэмпла на 
-    // источнике света. sobolPoint
+    // источнике света. a_pGen.sobol
 
-    LightSampleRev(pLight, a_pGen.sobol /*rndFloat3(&gen)*/, surfElem.pos, m_pGlobals, m_pdfStorage, m_texStorage,
+    LightSampleRev(pLight, /*a_pGen.sobol*/ rndFloat3(&gen), surfElem.pos, m_pGlobals, m_pdfStorage, m_texStorage,
       &explicitSam);
 
     float3 shadowRayDir = normalize(explicitSam.pos - surfElem.pos);
@@ -410,8 +411,11 @@ std::tuple<MatSample, int, float3> IntegratorMISPT_trofimm::sampleAndEvalBxDF(fl
   sc.tc = surfElem.texCoord;
   sc.hfi = surfElem.hfi;
 
-  const float3 rands = a_mmltMode ? rndMatMMLT(&gen, gen.rptr, rayBounceNum) : rndMat(&gen, gen.rptr, rayBounceNum);
+  //const float3 rands = a_mmltMode ? rndMatMMLT(&gen, gen.rptr, rayBounceNum) : rndMat(&gen, gen.rptr, rayBounceNum);
+  // Соболь для выбора аправления.
+  const float3 rands = a_pGen.sobol; 
   MatSample brdfSample;
+
   MaterialLeafSampleAndEvalBRDF(pHitMaterial, rands, &sc, shadow, m_pGlobals, m_texStorage, m_texStorageAux,
     &brdfSample);
   brdfSample.pdf *= mixSelector.w;
