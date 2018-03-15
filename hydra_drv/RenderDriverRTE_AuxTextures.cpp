@@ -41,6 +41,8 @@ std::wstring RenderDriverRTE::GetNormalMapParameterStringForCache(int textureIdN
   return strOut.str();
 }
 
+//bool HR_SaveLDRImageToFile(const wchar_t* a_fileName, int w, int h, int32_t* data);
+
 int32_t RenderDriverRTE::GetCachedAuxNormalMatId(int32_t a_matId, const PlainMaterial& a_mat, int textureIdNM, pugi::xml_node a_materialNode)
 {
   int32_t auxTexId = INVALID_TEXTURE; // AuxNormalTexPerMaterial(a_matId, textureIdNM);
@@ -54,6 +56,8 @@ int32_t RenderDriverRTE::GetCachedAuxNormalMatId(int32_t a_matId, const PlainMat
     int w, h;
     std::vector<uchar4> noramsDataTemp;
     const uchar4* pNormals = GetAuxNormalMapFromDisaplacement(noramsDataTemp, a_mat, textureIdNM, a_materialNode, &w, &h);
+
+    //HR_SaveLDRImageToFile(L"D:/temp/Cells_Balls_n_calculated.png", w, h, (int32_t*)pNormals);
 
     if (pNormals != nullptr)
       UpdateImageAux(auxTexId, w, h, 4, pNormals);  // #TODO: add normal map compression  here ... ?

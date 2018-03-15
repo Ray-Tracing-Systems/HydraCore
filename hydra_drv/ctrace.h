@@ -1903,25 +1903,42 @@ static inline SurfaceHit surfaceEvalLS(const float3 a_rpos, const float3 a_rdir,
   const float3 B_tang = decodeNormal(vertTangent[offs_B]); // GetVertexNorm(offs_B);
   const float3 C_tang = decodeNormal(vertTangent[offs_C]); // GetVertexNorm(offs_C);
 
+  bool invertFlatNorm = false;
   surfHit.flatNormal  = normalize(cross(A_pos - B_pos, A_pos - C_pos));
-  if (dot(a_rdir, surfHit.flatNormal) > 0.0f)
+  if (dot(a_rdir, surfHit.flatNormal) > 0.025f)
+  {
     surfHit.flatNormal = surfHit.flatNormal*(-1.0f);
-
+    invertFlatNorm     = true;
+  }
   const float maxEdgeSize = fmax(fmax(length(A_pos-B_pos), length(A_pos- C_pos)), length(B_pos - C_pos));
 
-  if (dot(a_rdir, surfHit.normal) > 0.1f && surfHit.sRayOff > 1e-5f*maxEdgeSize)       // normal flip for smooth low poly surfaces
+  //surfHit.normal = surfHit.flatNormal;
+  //surfHit.hfi    = false;
+
+  if (surfHit.sRayOff > 1e-5f*maxEdgeSize) // normal flip for smooth low poly surfaces; 
   {
-    surfHit.normal = surfHit.normal*(-1.0f);
-    surfHit.hfi    = true;
+    if (dot(a_rdir, surfHit.normal) > 0.120f)     
+    {
+      surfHit.normal = surfHit.normal*(-1.0f);
+      surfHit.hfi = true;
+    }
+    else if (dot(a_rdir, surfHit.normal) > 0.0f)  // normal flip for flat surfaces;
+    {
+      surfHit.normal = surfHit.flatNormal;
+      surfHit.hfi = false;
+    }
+    else
+      surfHit.hfi = false;
   }
-  else if (dot(a_rdir, surfHit.normal) > 0.0f && surfHit.sRayOff <= 1e-5f*maxEdgeSize) // normal flip for flat surfaces
+  else                                     // normal flip for flat surfaces;
   {
-    surfHit.normal = surfHit.normal*(-1.0f);
-    surfHit.hfi    = true;
-  }
-  else
-  {
-    surfHit.hfi = false;
+    if (dot(a_rdir, surfHit.normal) > 0.0f)  
+    {
+      surfHit.normal = surfHit.normal*(-1.0f);
+      surfHit.hfi    = true;
+    }
+    else
+      surfHit.hfi = false;
   }
 
   surfHit.tangent     = normalize((1.0f - uv.x - uv.y)*A_tang + uv.y*B_tang + uv.x*C_tang);
