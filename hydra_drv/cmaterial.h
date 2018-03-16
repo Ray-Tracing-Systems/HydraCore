@@ -156,15 +156,9 @@ static inline float sigmoidShifted(float x)
 
 static inline float PreDivCosThetaFixMult(const float gloss, const float cosThetaOut)
 {
-  if (gloss < 0.8f)
-  {
-    const float t       = sigmoidShifted(1.25f*gloss);
-    const float lerpVal = 1.0f + t*(1.0f / fmax(cosThetaOut, 1e-5f) - 1.0f); // mylerp { return u + t * (v - u); }
-    return lerpVal;
-    //return 1.0f;
-  }
-  else
-    return 1.0f/fmax(cosThetaOut, 1e-5f);
+  const float t       = sigmoidShifted(2.0f*gloss);
+  const float lerpVal = 1.0f + t*(1.0f / fmax(cosThetaOut, 1e-5f) - 1.0f); // mylerp { return u + t * (v - u); }
+  return lerpVal;
 }
 
 //////////////////////////////////////////////////////////////// all other components may overlay their offsets
