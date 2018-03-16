@@ -141,15 +141,30 @@ static inline int2 materialGetOpacitytex(__global const PlainMaterial* a_pMat)
 }
 
 
+static inline float sigmoid(float x)
+{
+  return 1.0f / (1.0f + exp(-1.0f*x));
+}
+
+static inline float sigmoidShifted(float x)
+{
+  return sigmoid(20.0f*(x - 0.5f));
+}
+
 // this is needed for high gloss value when it is near mirrors
 //
+
 static inline float PreDivCosThetaFixMult(const float gloss, const float cosThetaOut)
 {
-  // const float t       = 2.0f*clamp(gloss - 0.5f, 0.0f, 0.5f);
-  // const float lerpVal = 1.0f + t * (1.0f / fmax(cosThetaOut, 1e-5f) - 1.0f); // mylerp { return u + t * (v - u); }
-  // const float cosLerp = (gloss < 0.5f) ? 1.0f : lerpVal;
-  // return cosLerp;
-  return 1.0f/fmax(cosThetaOut, 1e-5f);
+  if (gloss < 0.8f)
+  {
+    const float t       = sigmoidShifted(1.25f*gloss);
+    const float lerpVal = 1.0f + t*(1.0f / fmax(cosThetaOut, 1e-5f) - 1.0f); // mylerp { return u + t * (v - u); }
+    return lerpVal;
+    //return 1.0f;
+  }
+  else
+    return 1.0f/fmax(cosThetaOut, 1e-5f);
 }
 
 //////////////////////////////////////////////////////////////// all other components may overlay their offsets
@@ -718,8 +733,8 @@ static inline float phongGlosiness(__global const PlainMaterial* a_pMat, const f
     return a_pMat->data[PHONG_GLOSINESS_OFFSET];
 }
 
-static inline float phongEvalPDF(__global const PlainMaterial* a_pMat, const float3 l, const float3 v, const float3 n, 
-                                 const float2 a_texCoord, __global const EngineGlobals* a_globals, texture2d_t a_tex)
+static inline float phongEvalPDF(__global const PlainMaterial* a_pMat, const float3 l, const float3 v, const float3 n, const float2 a_texCoord, const bool a_fwdDir,
+                                 __global const EngineGlobals* a_globals, texture2d_t a_tex)
 {
   const float3 r        = reflect((-1.0)*v, n);
   const float  cosTheta = clamp(dot(l, r), 0.0f, M_PI*0.499995f); //#TODO: what if hit under surface during PT? this may cause LT weight goes to zero while it should not!
@@ -730,8 +745,8 @@ static inline float phongEvalPDF(__global const PlainMaterial* a_pMat, const flo
   return pow(cosTheta, cosPower) * (cosPower + 1.0f) * (0.5f * INV_PI);
 }
 
-static inline float3 phongEvalBxDF(__global const PlainMaterial* a_pMat, const float3 l, const float3 v, const float3 n, 
-                                   const float2 a_texCoord, __global const EngineGlobals* a_globals, texture2d_t a_tex)
+static inline float3 phongEvalBxDF(__global const PlainMaterial* a_pMat, const float3 l, const float3 v, const float3 n, const float2 a_texCoord, const bool a_fwdDir,
+                                   __global const EngineGlobals* a_globals, texture2d_t a_tex)
 {
   const float3 texColor = sample2D(phongGetTex(a_pMat).y, a_texCoord, (__global const int4*)a_pMat, a_tex, a_globals);
 
@@ -741,6 +756,8 @@ static inline float3 phongEvalBxDF(__global const PlainMaterial* a_pMat, const f
 
   const float3 r        = reflect((-1.0)*v, n);
   const float  cosAlpha = clamp(dot(l, r), 0.0f, M_PI*0.499995f);
+
+  //const float cosThetaFix = a_fwdDir ? PreDivCosThetaFixMultLT(gloss, fabs(dot(v, n))) : 1.0f;
   
   return color*(cosPower + 2.0f)*0.5f*INV_PI*pow(cosAlpha, cosPower); // 
 }
@@ -1575,9 +1592,9 @@ static inline BxDFResult materialLeafEval(__global const PlainMaterial* pMat, __
   switch (materialGetType(pMat))
   {
   case PLAIN_MAT_CLASS_PHONG_SPECULAR: 
-    res.brdf    = phongEvalBxDF(pMat, sc->l, sc->v, n, sc->tc, a_globals, a_tex)*cosMult;
-    res.pdfFwd  = phongEvalPDF (pMat, sc->l, sc->v, n, sc->tc, a_globals, a_tex);
-    res.pdfRev  = phongEvalPDF (pMat, sc->v, sc->l, n, sc->tc, a_globals, a_tex);
+    res.brdf    = phongEvalBxDF(pMat, sc->l, sc->v, n, sc->tc, a_fwdDir, a_globals, a_tex)*cosMult;
+    res.pdfFwd  = phongEvalPDF (pMat, sc->l, sc->v, n, sc->tc, a_fwdDir, a_globals, a_tex);
+    res.pdfRev  = phongEvalPDF (pMat, sc->v, sc->l, n, sc->tc, a_fwdDir, a_globals, a_tex);
     break;
   case PLAIN_MAT_CLASS_BLINN_SPECULAR: 
     res.brdf    = blinnEvalBxDF(pMat, sc->l, sc->v, n, sc->tc, a_globals, a_tex)*cosMult;
@@ -1628,8 +1645,8 @@ static inline BxDFResult materialLeafEval(__global const PlainMaterial* pMat, __
   //
   if (a_fwdDir) 
   {
-    const float maxVal    = res.diffuse ? 100.0f : 1.0f;
-    const float smoothFix = adjointBsdfShadeNormalFix(sc->v, sc->l, sc->n, sc->fn, maxVal); // use old sc->n instead of n here to exclude normal map influence
+    const float maxVal2   = res.diffuse ? 20.0f : 2.0f;
+    const float smoothFix = adjointBsdfShadeNormalFix(sc->v, sc->l, sc->n, sc->fn, maxVal2); // use old sc->n instead of n here to exclude normal map influence
     res.brdf *= smoothFix;
     //res.btdf *= smoothFix;
   }
