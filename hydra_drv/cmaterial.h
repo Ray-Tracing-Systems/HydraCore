@@ -731,7 +731,7 @@ static inline float phongEvalPDF(__global const PlainMaterial* a_pMat, const flo
                                  __global const EngineGlobals* a_globals, texture2d_t a_tex)
 {
   const float3 r        = reflect((-1.0)*v, n);
-  const float  cosTheta = clamp(dot(l, r), 0.0f, M_PI*0.499995f); //#TODO: what if hit under surface during PT? this may cause LT weight goes to zero while it should not!
+  const float  cosTheta = clamp(fabs(dot(l, r)), DEPSILON2, M_PI*0.499995f); 
 
   const float  gloss    = phongGlosiness(a_pMat, a_texCoord, a_globals, a_tex);
   const float  cosPower = cosPowerFromGlosiness(gloss);
@@ -922,8 +922,8 @@ static inline float blinnEvalPDF(__global const PlainMaterial* a_pMat, const flo
 
   float blinn_pdf = ((exponent + 1.0f) * pow(costheta, exponent)) / (2.f * M_PI * 4.f * dot(l, wh));
 
-  if (dot(l, wh) <= 0.0f) // #TODO: this may cause problems when under-surface hit during PT; light strategy weight becobes zero. Or not? see costheta = fabs(dot(wh,n))
-    blinn_pdf = 0.0f;     // #TODO: this may cause problems when under-surface hit during PT; light strategy weight becobes zero. Or not? see costheta = fabs(dot(wh,n))
+  // if (dot(l, wh) <= 0.0f) // #TODO: this may cause problems when under-surface hit during PT; light strategy weight becobes zero. Or not? see costheta = fabs(dot(wh,n))
+  //   blinn_pdf = 0.0f;     // #TODO: this may cause problems when under-surface hit during PT; light strategy weight becobes zero. Or not? see costheta = fabs(dot(wh,n))
 
   return blinn_pdf;
 }
