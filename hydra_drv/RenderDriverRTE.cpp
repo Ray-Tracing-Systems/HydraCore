@@ -737,8 +737,8 @@ bool RenderDriverRTE::UpdateCamera(pugi::xml_node a_camNode)
 
   const wchar_t* camPosStr = a_camNode.child(L"position").text().as_string();
   const wchar_t* camLAtStr = a_camNode.child(L"look_at").text().as_string();
-  const wchar_t* camUpStr  = a_camNode.child(L"up").text().as_string();
-  const wchar_t* testStr   = a_camNode.child(L"test").text().as_string();
+  const wchar_t* camUpStr = a_camNode.child(L"up").text().as_string();
+  const wchar_t* testStr = a_camNode.child(L"test").text().as_string();
 
   if (!a_camNode.child(L"fov").text().empty())
     m_camera.fov = a_camNode.child(L"fov").text().as_float();
@@ -768,15 +768,27 @@ bool RenderDriverRTE::UpdateCamera(pugi::xml_node a_camNode)
   }
 
   auto vars = m_pHWLayer->GetAllFlagsAndVars();
-  vars.m_varsF[HRT_CAM_FOV] = DEG_TO_RAD*m_camera.fov;
+  vars.m_varsF[HRT_CAM_FOV] = DEG_TO_RAD * m_camera.fov;
 
   if (!a_camNode.child(L"dof_lens_radius").text().empty())
     vars.m_varsF[HRT_DOF_LENS_RADIUS] = a_camNode.child(L"dof_lens_radius").text().as_float();
 
   vars.m_varsF[HRT_DOF_FOCAL_PLANE_DIST] = length(m_camera.pos - m_camera.lookAt);
-  
+
   if (!a_camNode.child(L"enable_dof").text().empty())
     vars.m_varsI[HRT_ENABLE_DOF] = a_camNode.child(L"enable_dof").text().as_int();
+
+
+  if (!a_camNode.child(L"tiltRotX").text().empty() || !a_camNode.child(L"tiltRotY").text().empty())
+  {
+    vars.m_varsF[HRT_TILT_ROT_Y] = a_camNode.child(L"tiltRotX").text().as_float();
+    vars.m_varsF[HRT_TILT_ROT_X] = a_camNode.child(L"tiltRotY").text().as_float();
+  }
+  else
+  {
+    vars.m_varsF[HRT_TILT_ROT_Y] = 0.0f;
+    vars.m_varsF[HRT_TILT_ROT_X] = 0.0f;
+  }
 
   m_pHWLayer->SetAllFlagsAndVars(vars);
 

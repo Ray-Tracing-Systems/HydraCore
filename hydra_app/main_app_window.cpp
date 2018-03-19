@@ -241,6 +241,13 @@ static void Draw(void)
   
     hrRenderGetFrameBufferLDR1i(renderRef, g_width, g_height, &image[0]);
   
+    //for (int i = 0; i < g_width * g_height; i++) // draw shadow as red color
+    //{
+    //  int32_t pixelOld = image[i];
+    //  int32_t alpha    = (pixelOld & 0xFF000000) >> 24;
+    //  image[i]         = alpha;
+    //}
+
     glFlush();
     glDisable(GL_TEXTURE_2D);
     glDrawPixels(g_width, g_height, GL_RGBA, GL_UNSIGNED_BYTE, &image[0]);

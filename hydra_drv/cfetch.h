@@ -648,8 +648,8 @@ static inline float3 sample2DAux(int2 a_samplerOffset, float2 texCoord, __global
 
 ID_CALL float3 tiltCorrection(float3 ray_pos, float3 ray_dir, __global const EngineGlobals* a_globals)
 {
-  float tiltX = a_globals->varsF[HRT_TILT_SHIFT_X];
-  float tiltY = a_globals->varsF[HRT_TILT_SHIFT_Y];
+  float tiltX = a_globals->varsF[HRT_TILT_ROT_X];
+  float tiltY = a_globals->varsF[HRT_TILT_ROT_Y];
 
   if ((fabs(tiltX) > 0.0f || fabs(tiltY) > 0.0) && fabs(ray_dir.z) > 0.0f) // tilt shift is enabled
   {

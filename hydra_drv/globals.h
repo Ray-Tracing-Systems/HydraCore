@@ -402,9 +402,9 @@ enum VARIABLE_FLOAT_NAMES{ // float vars
                            HRT_DOF_LENS_RADIUS                     = 0,
                            HRT_DOF_FOCAL_PLANE_DIST                = 1,
                            
-                           HRT_TILT_SHIFT_X                        = 2,
+                           HRT_TILT_ROT_X                        = 2,
                            HRT_TRACE_PROCEEDINGS_TRESHOLD          = 3, 
-                           HRT_TILT_SHIFT_Y                        = 4,
+                           HRT_TILT_ROT_Y                        = 4,
                            HRT_CAUSTIC_POWER_MULT                  = 5,
                            
                            HRT_IMAGE_GAMMA                         = 6,
