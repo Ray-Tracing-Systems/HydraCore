@@ -753,7 +753,7 @@ static inline float3 phongEvalBxDF(__global const PlainMaterial* a_pMat, const f
 
   //const float cosThetaFix = a_fwdDir ? PreDivCosThetaFixMultLT(gloss, fabs(dot(v, n))) : 1.0f;
   
-  return color*(cosPower + 2.0f)*0.5f*INV_PI*pow(cosAlpha, cosPower); // 
+  return color*(cosPower + 2.0f)*0.5f*INV_PI*pow(cosAlpha, cosPower-1.0f); // 
 }
 
 static inline void PhongSampleAndEvalBRDF(__global const PlainMaterial* a_pMat, const float a_r1, const float a_r2, const float3 ray_dir, const float3 a_normal, const float2 a_texCoord,
