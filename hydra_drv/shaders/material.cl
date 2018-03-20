@@ -726,7 +726,7 @@ __kernel void Shade(__global const float4*    restrict a_rpos,
     if ( (cosThetaOutAux < 0.1f) || (explicitSam.cosAtLight < 0.1f && lightType(pLight) != PLAIN_LIGHT_TYPE_SKY_DOME))
       shadow1 = 255.0f;
    
-    out_shadow[tid] = (uchar)(clamp(shadow1, 0.0f, 255.0f));
+    out_shadow[tid] = (uchar)(255.0f - clamp(shadow1, 0.0f, 255.0f));
   }
 
   const float cosThetaOut1 = fmax(+dot(shadowRayDir, hitNorm), 0.0f);
