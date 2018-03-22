@@ -1864,7 +1864,7 @@ static inline SurfaceHit surfaceEvalLS(const float3 a_rpos, const float3 a_rdir,
 {
   __global const float4* vertPos      = meshVerts(mesh);
   __global const float4* vertNorm     = meshNorms(mesh);
-  __global const float2* vertTexCoord = meshTexCoords(mesh);
+  __global const float2* vertTexCoord = meshTexCoords(mesh);             //#TODO: use this for aux tex channel
   __global const uint*   vertTangent  = meshTangentsCompressed(mesh);
   __global const int*    vertIndices  = meshTriIndices(mesh);
   __global const int*    matIndices   = meshMatIndices(mesh);
@@ -1879,17 +1879,29 @@ static inline SurfaceHit surfaceEvalLS(const float3 a_rpos, const float3 a_rdir,
   const int offs_B    = vertIndices[offset + 1];
   const int offs_C    = vertIndices[offset + 2];
 
-  const float3 A_pos  = to_float3(vertPos[offs_A]);
-  const float3 B_pos  = to_float3(vertPos[offs_B]);
-  const float3 C_pos  = to_float3(vertPos[offs_C]);
+  const float4 A_data1 = vertPos[offs_A];
+  const float4 B_data1 = vertPos[offs_B];
+  const float4 C_data1 = vertPos[offs_C];
+             
+  const float4 A_data2 = vertNorm[offs_A];
+  const float4 B_data2 = vertNorm[offs_B];
+  const float4 C_data2 = vertNorm[offs_C];
+
+  const float3 A_pos  = to_float3(A_data1);
+  const float3 B_pos  = to_float3(B_data1);
+  const float3 C_pos  = to_float3(C_data1);
   
-  const float3 A_norm = to_float3(vertNorm[offs_A]);
-  const float3 B_norm = to_float3(vertNorm[offs_B]);
-  const float3 C_norm = to_float3(vertNorm[offs_C]);
+  const float3 A_norm = to_float3(A_data2);
+  const float3 B_norm = to_float3(B_data2);
+  const float3 C_norm = to_float3(C_data2);
   
-  const float2 A_tex  = vertTexCoord[offs_A];
-  const float2 B_tex  = vertTexCoord[offs_B];
-  const float2 C_tex  = vertTexCoord[offs_C];
+  const float2 A_tex  = make_float2(A_data1.w, A_data2.w);
+  const float2 B_tex  = make_float2(B_data1.w, B_data2.w);
+  const float2 C_tex  = make_float2(C_data1.w, C_data2.w);
+
+  //const float2 A_tex  = vertTexCoord[offs_A];  // #TODO: use this for aux tex channel
+  //const float2 B_tex  = vertTexCoord[offs_B];  // #TODO: use this for aux tex channel
+  //const float2 C_tex  = vertTexCoord[offs_C];  // #TODO: use this for aux tex channel
   
   const float2 uv     = triBaricentrics(a_rpos, a_rdir, A_pos, B_pos, C_pos);
 

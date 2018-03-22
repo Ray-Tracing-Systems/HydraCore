@@ -644,8 +644,8 @@ bool RenderDriverRTE::UpdateMesh(int32_t a_meshId, pugi::xml_node a_meshNode, co
   const size_t vertNormOffset = vertPosOffset + vertPosSize;
   const size_t vertNormSize   = roundBlocks(sizeof(float4)*a_input.vertNum, align);
 
-  const size_t vertTexcOffset = vertNormOffset + vertNormSize;
-  const size_t vertTexcSize   = roundBlocks(sizeof(float2)*a_input.vertNum, align);
+  const size_t vertTexcOffset = vertNormOffset + vertNormSize;                       
+  const size_t vertTexcSize   = 0; // roundBlocks(sizeof(float2)*a_input.vertNum, align);   // #TODO: add aux text coord channel if have such.
     
   const size_t vertTangOffset = vertTexcOffset + vertTexcSize;
   const size_t vertTangSize   = roundBlocks(sizeof(int)*a_input.vertNum, align); // compressed tangent
@@ -665,15 +665,28 @@ bool RenderDriverRTE::UpdateMesh(int32_t a_meshId, pugi::xml_node a_meshNode, co
   //
   const float4* a_tan = (const float4*)a_input.tan4f;
   std::vector<int> compressedTangent(a_input.vertNum);
-
   for (int i = 0; i < a_input.vertNum; i++)
     compressedTangent[i] = encodeNormal(to_float3(a_tan[i]));
 
-  // (2) calc per-poly shadow rays aux offset and put them to separate array.
+  // (2) pack first texture coordinates to pos.w and norm.w
+  //
+  const float4* pos4f  = (const float4*)a_input.pos4f;
+  const float4* norm4f = (const float4*)a_input.norm4f;
+
+  std::vector<float4> posAndTx(pos4f,   pos4f  + a_input.vertNum);
+  std::vector<float4> normAndTy(norm4f, norm4f + a_input.vertNum);
+
+  for (size_t i = 0; i < a_input.vertNum; i++)
+  {
+    posAndTx [i].w = a_input.texcoord2f[2 * i + 0];
+    normAndTy[i].w = a_input.texcoord2f[2 * i + 1];
+  }
+
+  // (3) calc per-poly shadow rays aux offset and put them to separate array.
   //
   std::vector<float> shadowOffsets = CalcAuxShadowRaysOffsets(a_input);
 
-  // (3) put mesh to the storage
+  // (4) put mesh to the storage
   //
   auto offset = m_pGeomStorage->Update(a_meshId, nullptr, totalByteSize); // alloc new chunk for our mesh
 
@@ -687,7 +700,7 @@ bool RenderDriverRTE::UpdateMesh(int32_t a_meshId, pugi::xml_node a_meshNode, co
 
   header.vPosOffset       = int(vertPosOffset  / alignOffs);
   header.vNormOffset      = int(vertNormOffset / alignOffs);
-  header.vTexCoordOffset  = int(vertTexcOffset / alignOffs);
+  header.vTexCoordOffset  = int(vertTexcOffset / alignOffs);                                                      //#TODO: put auxilarry tex coord channel if has such
   header.vTangentOffset   = int(vertTangOffset / alignOffs);
   header.vIndicesOffset   = int(triIndOffset   / alignOffs);
   header.mIndicesOffset   = int(triMIndOffset  / alignOffs);
@@ -695,7 +708,7 @@ bool RenderDriverRTE::UpdateMesh(int32_t a_meshId, pugi::xml_node a_meshNode, co
 
   header.vPosNum          = a_input.vertNum;
   header.vNormNum         = a_input.vertNum;
-  header.vTexCoordNum     = a_input.vertNum;
+  header.vTexCoordNum     = a_input.vertNum;                                                                       //#TODO: put auxilarry tex coord channel if has such
   header.vTangentNum      = a_input.vertNum;
   header.tIndicesNum      = a_input.triNum * 3;
   header.mIndicesNum      = a_input.triNum;
@@ -703,14 +716,14 @@ bool RenderDriverRTE::UpdateMesh(int32_t a_meshId, pugi::xml_node a_meshNode, co
 
   if (totalByteSize > 4294967296)
   {
-    std::cerr << "RenderDriverRTE::UpdateMesh(id = " << a_meshId << ") integer overflow for mesh byte size = " << totalByteSize << std::endl;
+    std::cerr << "WARNING: RenderDriverRTE::UpdateMesh(id = " << a_meshId << ") integer overflow for mesh byte size = " << totalByteSize << std::endl;
     return false;
   }
 
   m_pGeomStorage->UpdatePartial(a_meshId, &header, 0, sizeof(header));
-  m_pGeomStorage->UpdatePartial(a_meshId, a_input.pos4f,         vertPosOffset,  a_input.vertNum * sizeof(float4));
-  m_pGeomStorage->UpdatePartial(a_meshId, a_input.norm4f,        vertNormOffset, a_input.vertNum * sizeof(float4));
-  m_pGeomStorage->UpdatePartial(a_meshId, a_input.texcoord2f,    vertTexcOffset, a_input.vertNum * sizeof(float2));
+  m_pGeomStorage->UpdatePartial(a_meshId, &posAndTx[0],          vertPosOffset,  a_input.vertNum * sizeof(float4));
+  m_pGeomStorage->UpdatePartial(a_meshId, &normAndTy[0],         vertNormOffset, a_input.vertNum * sizeof(float4));
+  //m_pGeomStorage->UpdatePartial(a_meshId, a_input.texcoord2f,    vertTexcOffset, a_input.vertNum * sizeof(float2)); //#TODO: put auxilarry tex coord channel if has such
   m_pGeomStorage->UpdatePartial(a_meshId, &compressedTangent[0], vertTangOffset, a_input.vertNum * sizeof(int)); // compressed tangent
 
   m_pGeomStorage->UpdatePartial(a_meshId, a_input.indices,       triIndOffset,   a_input.triNum  * 3 * sizeof(int));
