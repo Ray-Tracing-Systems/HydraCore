@@ -841,7 +841,7 @@ IDH_CALL float3x3 inverse(float3x3 a)
 
 #ifndef COMMON_CPLUS_PLUS_CODE
 
-IDH_CALL float4x4 inverse4x4(float4x4 m1)
+static inline float4x4 inverse4x4(float4x4 m1)
 {
   float tmp[12]; // temp array for pairs
   float4x4 m;
@@ -961,6 +961,28 @@ IDH_CALL float4x4 lookAt(float3 eye, float3 center, float3 up)
   M.row[0].z = z.x; M.row[1].z = z.y; M.row[2].z = z.z; M.row[3].z = -z.x * eye.x - z.y * eye.y - z.z*eye.z;
   M.row[0].w = 0.0; M.row[1].w = 0.0; M.row[2].w = 0.0; M.row[3].w = 1.0;
   return M;
+}
+
+static inline float4x4 transpose(const float4x4 a_mat)
+{
+  float4x4 res;
+  res.row[0].x = a_mat.row[0].x;
+  res.row[0].y = a_mat.row[1].x;
+  res.row[0].z = a_mat.row[2].x;
+  res.row[0].w = a_mat.row[3].x;
+  res.row[1].x = a_mat.row[0].y;
+  res.row[1].y = a_mat.row[1].y;
+  res.row[1].z = a_mat.row[2].y;
+  res.row[1].w = a_mat.row[3].y;
+  res.row[2].x = a_mat.row[0].z;
+  res.row[2].y = a_mat.row[1].z;
+  res.row[2].z = a_mat.row[2].z;
+  res.row[2].w = a_mat.row[3].z;
+  res.row[3].x = a_mat.row[0].w;
+  res.row[3].y = a_mat.row[1].w;
+  res.row[3].z = a_mat.row[2].w;
+  res.row[3].w = a_mat.row[3].w;
+  return res;
 }
 
 #endif

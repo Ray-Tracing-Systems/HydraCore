@@ -228,14 +228,21 @@ __kernel void ComputeHit(__global const float4*   restrict rpos,
     //
     surfHitWS = surfHit;
     
-    const float multInv         = 1.0f/sqrt(3.0f);
-    const float3 shadowStartPos = mul3x3(instanceMatrix, make_float3(multInv*surfHitWS.sRayOff, multInv*surfHitWS.sRayOff, multInv*surfHitWS.sRayOff));
+    const float multInv            = 1.0f/sqrt(3.0f);
+    const float3 shadowStartPos    = mul3x3(instanceMatrix, make_float3(multInv*surfHitWS.sRayOff, multInv*surfHitWS.sRayOff, multInv*surfHitWS.sRayOff));
+
+    //const float3 transformedNormal = mul3x3(instanceMatrix, surfHit.normal);
+    //const float  lengthInv         = 1.0f / length(transformedNormal);
+
+    // gl_NormalMatrix is transpose(inverse(gl_ModelViewMatrix))
+    //
+    const float4x4 normalMatrix = transpose(instanceMatrixInv);  // gl_NormalMatrix is transpose(inverse(gl_ModelViewMatrix))
 
     surfHitWS.pos        = mul4x3(instanceMatrix, surfHit.pos);
-    surfHitWS.normal     = normalize( mul3x3(instanceMatrix, surfHit.normal));
-    surfHitWS.flatNormal = normalize( mul3x3(instanceMatrix, surfHit.flatNormal));
-    surfHitWS.tangent    = normalize( mul3x3(instanceMatrix, surfHit.tangent));
-    surfHitWS.biTangent  = normalize( mul3x3(instanceMatrix, surfHit.biTangent));
+    surfHitWS.normal     = normalize( ( mul3x3(normalMatrix, surfHit.normal)     ));
+    surfHitWS.flatNormal = normalize( ( mul3x3(normalMatrix, surfHit.flatNormal) ));
+    surfHitWS.tangent    = normalize( ( mul3x3(normalMatrix, surfHit.tangent)    ));
+    surfHitWS.biTangent  = normalize( ( mul3x3(normalMatrix, surfHit.biTangent)  ));
     surfHitWS.t          = length(surfHitWS.pos - ray_pos); // seems this is more precise. VERY strange !!!
     surfHitWS.sRayOff    = length(shadowStartPos);
   } 
