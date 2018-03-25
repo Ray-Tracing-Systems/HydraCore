@@ -116,7 +116,10 @@ void RenderDriverRTE::CreateAlphaTestTable(ConvertionResult& a_cnvRes, AlphaBuff
       const PlainMesh* mesh = (const PlainMesh*)(geomStorage + geomTable[geomId]);
 
       const int*    vertIndices  = meshTriIndices(mesh);
-      const float2* vertTexCoord = meshTexCoords(mesh);
+
+      const float4* vertPos      = meshVerts(mesh);
+      const float4* vertNorm     = meshNorms(mesh);
+      //const float2* vertTexCoord = meshTexCoords(mesh);
       const int*    matIndices   = meshMatIndices(mesh);
 
       const int mId = matIndices[primId];
@@ -164,9 +167,9 @@ void RenderDriverRTE::CreateAlphaTestTable(ConvertionResult& a_cnvRes, AlphaBuff
             const int offs_B = vertIndices[offset + 1];
             const int offs_C = vertIndices[offset + 2];
 
-            const float2 A_tex = vertTexCoord[offs_A];
-            const float2 B_tex = vertTexCoord[offs_B];
-            const float2 C_tex = vertTexCoord[offs_C];
+            const float2 A_tex = float2(vertPos[offs_A].w, vertNorm[offs_A].w); //vertTexCoord[offs_A];
+            const float2 B_tex = float2(vertPos[offs_B].w, vertNorm[offs_B].w); //vertTexCoord[offs_B];
+            const float2 C_tex = float2(vertPos[offs_C].w, vertNorm[offs_C].w); //vertTexCoord[offs_C];
 
             a_otrData[triOffset + 0].y = CompressTexCoord16(A_tex);
             a_otrData[triOffset + 1].y = CompressTexCoord16(B_tex);
