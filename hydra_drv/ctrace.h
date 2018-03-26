@@ -1909,7 +1909,7 @@ static inline SurfaceHit surfaceEvalLS(const float3 a_rpos, const float3 a_rdir,
   surfHit.texCoord    = (1.0f - uv.x - uv.y)*A_tex  + uv.y*B_tex  + uv.x*C_tex;
   surfHit.normal      = (1.0f - uv.x - uv.y)*A_norm + uv.y*B_norm + uv.x*C_norm;
   surfHit.t           = hit.t;
-  surfHit.sRayOff     = shadowRayOff[hit.primId];
+  surfHit.sRayOff     = shadowRayOff[hit.primId]; // *fmax(fmin(uv.x + uv.y, fmin(1.0f - uv.x, 1.0f - uv.y)), 0.0f); // offset more in the center of poly and edges, offset less at vertices.
   
   const float3 A_tang = decodeNormal(vertTangent[offs_A]); // GetVertexNorm(offs_A);
   const float3 B_tang = decodeNormal(vertTangent[offs_B]); // GetVertexNorm(offs_B);
