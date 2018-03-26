@@ -1864,7 +1864,7 @@ static inline SurfaceHit surfaceEvalLS(const float3 a_rpos, const float3 a_rdir,
 {
   __global const float4* vertPos      = meshVerts(mesh);
   __global const float4* vertNorm     = meshNorms(mesh);
-  __global const float2* vertTexCoord = meshTexCoords(mesh);             //#TODO: use this for aux tex channel
+  //__global const float2* vertTexCoord = meshTexCoords(mesh);             //#TODO: use this for aux tex channel
   __global const uint*   vertTangent  = meshTangentsCompressed(mesh);
   __global const int*    vertIndices  = meshTriIndices(mesh);
   __global const int*    matIndices   = meshMatIndices(mesh);

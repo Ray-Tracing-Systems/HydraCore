@@ -966,7 +966,7 @@ static inline void MeshLightSamplePos(__global const PlainLight* pLight, float3 
 
   __global const float4* vpos  = meshVerts(pMesh);
   __global const float4* vnorm = meshNorms(pMesh);
-  __global const float2* texc  = meshTexCoords(pMesh);
+  //__global const float2* texc  = meshTexCoords(pMesh);
   __global const int* indices  = meshTriIndices(pMesh);
 
   float pickProb = 1.0f;
@@ -976,17 +976,25 @@ static inline void MeshLightSamplePos(__global const PlainLight* pLight, float3 
   const int iB = indices[triangleId * 3 + 1];
   const int iC = indices[triangleId * 3 + 2];
 
-  const float3 A = to_float3(vpos[iA]);
-  const float3 B = to_float3(vpos[iB]);
-  const float3 C = to_float3(vpos[iC]);
+  const float4 dataA  = vpos[iA];
+  const float4 dataB  = vpos[iB];
+  const float4 dataC  = vpos[iC];
 
-  const float3 nA = to_float3(vnorm[iA]);
-  const float3 nB = to_float3(vnorm[iB]);
-  const float3 nC = to_float3(vnorm[iC]);
+  const float4 datanA = vnorm[iA];
+  const float4 datanB = vnorm[iB];
+  const float4 datanC = vnorm[iC];
 
-  const float2 tA = texc[iA];
-  const float2 tB = texc[iB];
-  const float2 tC = texc[iC];
+  const float3 A  = to_float3(dataA);
+  const float3 B  = to_float3(dataB);
+  const float3 C  = to_float3(dataC);
+
+  const float3 nA = to_float3(datanA);
+  const float3 nB = to_float3(datanB);
+  const float3 nC = to_float3(datanC);
+
+  const float2 tA = make_float2(dataA.w, datanA.w); // texc[iA];
+  const float2 tB = make_float2(dataB.w, datanB.w); // texc[iB];
+  const float2 tC = make_float2(dataC.w, datanC.w); // texc[iC];
   
   // uniform barycentrics
   //
