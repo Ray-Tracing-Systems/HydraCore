@@ -16,7 +16,7 @@ static const float OLD_PHOTOMETRIC_SCALE  = M_PI;
 SWTexSampler DummySampler();
 
 const pugi::xml_node SamplerNode(const pugi::xml_node a_node);
-SWTexSampler SamplerFromTexref(const pugi::xml_node a_node);
+SWTexSampler SamplerFromTexref(const pugi::xml_node a_node, bool aAllowAlphaToRGB = false);
 
 
 static bool UpHemisphereIsBlack(const std::vector<float>& sphericalTexture, int w, int h)

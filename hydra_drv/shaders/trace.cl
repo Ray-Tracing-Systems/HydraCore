@@ -190,62 +190,50 @@ __kernel void ComputeHit(__global const float4*   restrict rpos,
   float3 ray_pos = to_float3(rpos[tid]);
   float3 ray_dir = to_float3(rdir[tid]);
 
-  // hit data
+ 
+
+ 
+  // (1) mul ray with instanceMatrixInv
   //
-  SurfaceHit surfHitWS;
-  surfHitWS.pos        = make_float3(0, 0, 0);
-  surfHitWS.normal     = normalize(make_float3(0, 1, 1));
-  surfHitWS.flatNormal = make_float3(0, 0, 1);
-  surfHitWS.tangent    = make_float3(0, 0, 0);
-  surfHitWS.biTangent  = make_float3(0, 0, 0);
-  surfHitWS.texCoord   = make_float2(0, 0);
-  surfHitWS.matId      = -1;
-  surfHitWS.t          = 0.0f;
-  surfHitWS.sRayOff    = 0.0f;
-  // \\ hit data
-
-  {
-    // (1) mul ray with instanceMatrixInv
-    //
-    const float4x4 instanceMatrixInv = fetchMatrix(hit, in_matrices);
+  const float4x4 instanceMatrixInv = fetchMatrix(hit, in_matrices);
   
-    const float3 rayPosLS = mul4x3(instanceMatrixInv, ray_pos);
-    const float3 rayDirLS = mul3x3(instanceMatrixInv, ray_dir);
+  const float3 rayPosLS = mul4x3(instanceMatrixInv, ray_pos);
+  const float3 rayDirLS = mul3x3(instanceMatrixInv, ray_dir);
   
-    // (2) get pointer to PlainMesh via hit.geomId
-    //
-    __global const PlainMesh* mesh = fetchMeshHeader(hit, in_geomStorage, a_globals);
-    
-    // (3) intersect transformed ray with triangle and get SurfaceHit in local space
-    //
-    const SurfaceHit surfHit = surfaceEvalLS(rayPosLS, rayDirLS, hit, mesh);
-    
-    // (4) get transformation to wold space
-    //
-    const float4x4 instanceMatrix = inverse4x4(instanceMatrixInv);
-    
-    // (5) transform SurfaceHit to world space with instanceMatrix
-    //
-    surfHitWS = surfHit;
-    
-    const float multInv            = 1.0f/sqrt(3.0f);
-    const float3 shadowStartPos    = multInv*mul3x3(instanceMatrix, make_float3(surfHitWS.sRayOff, surfHitWS.sRayOff, surfHitWS.sRayOff));
-
-    //const float3 transformedNormal = mul3x3(instanceMatrix, surfHit.normal);
-    //const float  lengthInv         = 1.0f / length(transformedNormal);
-
-    // gl_NormalMatrix is transpose(inverse(gl_ModelViewMatrix))
-    //
-    const float4x4 normalMatrix = transpose(instanceMatrixInv);  // gl_NormalMatrix is transpose(inverse(gl_ModelViewMatrix))
-
-    surfHitWS.pos        = mul4x3(instanceMatrix, surfHit.pos);
-    surfHitWS.normal     = normalize( ( mul3x3(normalMatrix, surfHit.normal)     ));
-    surfHitWS.flatNormal = normalize( ( mul3x3(normalMatrix, surfHit.flatNormal) ));
-    surfHitWS.tangent    = normalize( ( mul3x3(normalMatrix, surfHit.tangent)    ));
-    surfHitWS.biTangent  = normalize( ( mul3x3(normalMatrix, surfHit.biTangent)  ));
-    surfHitWS.t          = length(surfHitWS.pos - ray_pos); // seems this is more precise. VERY strange !!!
-    surfHitWS.sRayOff    = length(shadowStartPos);
-  } 
+  // (2) get pointer to PlainMesh via hit.geomId
+  //
+  __global const PlainMesh* mesh = fetchMeshHeader(hit, in_geomStorage, a_globals);
+  
+  // (3) intersect transformed ray with triangle and get SurfaceHit in local space
+  //
+  const SurfaceHit surfHit = surfaceEvalLS(rayPosLS, rayDirLS, hit, mesh);
+  
+  // (4) get transformation to wold space
+  //
+  const float4x4 instanceMatrix = inverse4x4(instanceMatrixInv);
+  
+  // (5) transform SurfaceHit to world space with instanceMatrix
+  //
+  SurfaceHit surfHitWS = surfHit;
+  
+  const float multInv            = 1.0f/sqrt(3.0f);
+  const float3 shadowStartPos    = multInv*mul3x3(instanceMatrix, make_float3(surfHitWS.sRayOff, surfHitWS.sRayOff, surfHitWS.sRayOff));
+  
+  //const float3 transformedNormal = mul3x3(instanceMatrix, surfHit.normal);
+  //const float  lengthInv         = 1.0f / length(transformedNormal);
+  
+  // gl_NormalMatrix is transpose(inverse(gl_ModelViewMatrix))
+  //
+  const float4x4 normalMatrix = transpose(instanceMatrixInv);  // gl_NormalMatrix is transpose(inverse(gl_ModelViewMatrix))
+  
+  surfHitWS.pos        = mul4x3(instanceMatrix, surfHit.pos);
+  surfHitWS.normal     = normalize( ( mul3x3(normalMatrix, surfHit.normal)     ));
+  surfHitWS.flatNormal = normalize( ( mul3x3(normalMatrix, surfHit.flatNormal) ));
+  surfHitWS.tangent    = normalize( ( mul3x3(normalMatrix, surfHit.tangent)    ));
+  surfHitWS.biTangent  = normalize( ( mul3x3(normalMatrix, surfHit.biTangent)  ));
+  surfHitWS.t          = length(surfHitWS.pos - ray_pos); // seems this is more precise. VERY strange !!!
+  surfHitWS.sRayOff    = length(shadowStartPos);
+  
 
   ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////// THIS IS FUCKING CRAZY !!!!
   {

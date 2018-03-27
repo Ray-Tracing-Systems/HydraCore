@@ -704,7 +704,7 @@ const pugi::xml_node SamplerNode(const pugi::xml_node a_node)
     return a_node.child(L"texture");
 }
 
-SWTexSampler SamplerFromTexref(const pugi::xml_node a_node)
+SWTexSampler SamplerFromTexref(const pugi::xml_node a_node, bool allowAlphaToRGB = false)
 {
   SWTexSampler res = DummySampler();
 
@@ -726,9 +726,10 @@ SWTexSampler SamplerFromTexref(const pugi::xml_node a_node)
   res.row0 = samplerMatrix.row[0];
   res.row1 = samplerMatrix.row[1];
 
-  const std::wstring modeU = a_node.attribute(L"addressing_mode_u").as_string();
-  const std::wstring modeV = a_node.attribute(L"addressing_mode_v").as_string();
-  const std::wstring modeS = a_node.attribute(L"filter").as_string();
+  const std::wstring modeU    = a_node.attribute(L"addressing_mode_u").as_string();
+  const std::wstring modeV    = a_node.attribute(L"addressing_mode_v").as_string();
+  const std::wstring modeS    = a_node.attribute(L"filter").as_string();
+  const std::wstring alphaSrc = a_node.attribute(L"input_alpha").as_string(); 
 
   if (modeU == L"clamp")
   	res.flags |= TEX_CLAMP_U;
@@ -738,6 +739,9 @@ SWTexSampler SamplerFromTexref(const pugi::xml_node a_node)
 
   if(modeS == L"point" || modeS == L"nearest")
     res.flags |= TEX_POINT_SAM;
+
+  if (allowAlphaToRGB && alphaSrc == L"alpha")
+    res.flags |= TEX_ALPHASRC_W;
 
   return res;
 }
@@ -1156,7 +1160,7 @@ void ReadBumpAndOpacity(std::shared_ptr<IMaterial> pResult, pugi::xml_node a_nod
   if (a_node.child(L"opacity") != nullptr)
   {
     pugi::xml_node opacityTex = a_node.child(L"opacity").child(L"texture");
-    SWTexSampler sampler      = SamplerFromTexref(opacityTex);
+    SWTexSampler sampler      = SamplerFromTexref(opacityTex, true);
     int32_t texId             = sampler.texId;
     pResult->SetOpacitySampler(texId, sampler);
 
