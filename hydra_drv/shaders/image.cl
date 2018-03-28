@@ -90,7 +90,7 @@ __kernel void NormalmapFromHeight(write_only image2d_t a_outImage, image2d_t a_i
   res = res*(1.0f / 8.0f);
 
   res.x *= -1.0f;
-  res.y *= +1.0f;
+  res.y *= -1.0f;
   res.z *= +1.0f;
 
   res = normalize(res);
