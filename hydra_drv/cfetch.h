@@ -523,14 +523,16 @@ static inline float3 sample2D(int a_samplerOffset, float2 texCoord, __global con
     return make_float3(1, 1, 1);
 
   const SWTexSampler sampler = ReadSampler(a_samStorage, a_samplerOffset); 
-  const float2 texCoordT     = mul2x4(sampler.row0, sampler.row1, texCoord);
 
   if (sampler.texId == 0)
     return make_float3(1, 1, 1);
 
-  const int offset           = textureHeaderOffset(a_globals, sampler.texId);
+  const float2 texCoordT = mul2x4(sampler.row0, sampler.row1, texCoord);
 
-  float4 texColor4 = read_imagef_sw4(a_texStorage + offset, texCoordT, sampler.flags);
+  // #TODO: put branch here; if texture is in list of proc. textures, fetch data from 'ProcTextureList' structure instead of offset to table and 'read_imagef_sw4'  
+  //
+  const int offset = textureHeaderOffset(a_globals, sampler.texId);
+  float4 texColor4 = read_imagef_sw4(a_texStorage + offset, texCoordT, sampler.flags); 
 
   texColor4.x = pow(texColor4.x, sampler.gamma);
   texColor4.y = pow(texColor4.y, sampler.gamma);

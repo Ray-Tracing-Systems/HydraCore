@@ -2193,6 +2193,21 @@ typedef struct ShadeContextT
 } ShadeContext;
 
 
+/**
+\brief this structure will store results of precedural texture kernel execution.
+
+*/
+typedef struct ProcTextureListT
+{
+  float4  fdata4[4];  // 16  
+  float   fdata1[4];  // 4
+
+  unsigned int id_f4[4];
+  unsigned int id_f1[4];
+
+} ProcTextureList;
+
+
 typedef struct ShadowSampleT
 {
 

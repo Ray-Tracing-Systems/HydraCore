@@ -364,6 +364,7 @@ void RenderDriverRTE::ClearAll()
   m_materialUpdated.clear();
   m_blendsToUpdate.clear();
   m_texturesProcessedNM.clear();
+  m_procTexturesId.clear();
 
   m_instMatricesInv.clear();
   m_instLightInstId.clear();
@@ -492,6 +493,22 @@ void RenderDriverRTE::GetLastErrorW(wchar_t a_msg[256])
 
 bool RenderDriverRTE::UpdateImage(int32_t a_texId, int32_t w, int32_t h, int32_t bpp, const void* a_data, pugi::xml_node a_texNode)
 {
+  std::wstring type = a_texNode.attribute(L"type").as_string();
+
+  if (type == L"proc")
+  {
+    // (1) remember proc tex id
+    //
+    m_procTexturesId.insert(a_texId);
+
+    // (2) insert code inside opencl program;
+    //
+
+    // (3) end
+    //
+    return true;
+  }
+
   SWTextureHeader texheader;
 
   texheader.width  = w;
@@ -520,6 +537,27 @@ bool RenderDriverRTE::UpdateImage(int32_t a_texId, int32_t w, int32_t h, int32_t
 
 std::shared_ptr<RAYTR::IMaterial> CreateMaterialFromXmlNode(pugi::xml_node a_node, RenderDriverRTE* a_pRTE);
 
+bool MaterialNodeHaveProceduralTextures(pugi::xml_node a_node, const std::unordered_set<int>& a_ids)
+{
+  if (std::wstring(a_node.name()) == L"texture")
+  {
+    int32_t id = a_node.attribute(L"id").as_int();
+    return (a_ids.find(id) != a_ids.end());
+  }
+  
+  bool childHaveProc = false;
+  
+  for (auto child : a_node.children())
+  {
+    childHaveProc = childHaveProc || MaterialNodeHaveProceduralTextures(child, a_ids);
+    if (childHaveProc)
+      break;
+  }
+  
+  return childHaveProc;
+}
+
+
 bool RenderDriverRTE::UpdateMaterial(int32_t a_matId, pugi::xml_node a_materialNode)
 {
   //std::cerr << "RenderDriverRTE::UpdateMaterial(" << a_matId << ") " << std::endl;
@@ -539,6 +577,9 @@ bool RenderDriverRTE::UpdateMaterial(int32_t a_matId, pugi::xml_node a_materialN
     Error(L"RenderDriverRTE::UpdateMaterial, nullptr pMaterial");
     return false;
   }
+
+  if (MaterialNodeHaveProceduralTextures(a_materialNode, m_procTexturesId))
+    pMaterial->AddFlags(PLAIN_MATERIAL_HAVE_PROC_TEXTURES);
 
   m_materialUpdated[a_matId] = pMaterial; // remember that we have updates this material in current update phase (between BeginMaterialUpdate and EndMaterialUpdate)
 
