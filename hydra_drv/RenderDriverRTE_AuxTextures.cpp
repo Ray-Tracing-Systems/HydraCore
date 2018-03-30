@@ -159,3 +159,45 @@ void RenderDriverRTE::AverageStats(const MRaysStat& a_stats, MRaysStat& a_statsR
 
   counter++;
 }
+
+
+
+bool MaterialNodeHaveProceduralTextures(pugi::xml_node a_node, const std::unordered_map<int, int>& a_ids)
+{
+  if (std::wstring(a_node.name()) == L"texture")
+  {
+    int32_t id = a_node.attribute(L"id").as_int();
+    return (a_ids.find(id) != a_ids.end());
+  }
+
+  bool childHaveProc = false;
+
+  for (auto child : a_node.children())
+  {
+    childHaveProc = childHaveProc || MaterialNodeHaveProceduralTextures(child, a_ids);
+    if (childHaveProc)
+      break;
+  }
+
+  return childHaveProc;
+}
+
+void FindAllProcTextures(pugi::xml_node a_node, const std::unordered_map<int, int>& a_ids, std::vector<std::tuple<int, int> >& a_outVector)
+{
+  if (std::wstring(a_node.name()) == L"texture")
+  {
+    const int32_t id = a_node.attribute(L"id").as_int();
+
+    const std::wstring returnType = a_node.child(L"return").attribute(L"type").as_string();
+    const int retT = (returnType == L"float4") ? 4 : 1;
+
+    auto p = a_ids.find(id);
+
+    if (p!= a_ids.end())
+      a_outVector.push_back(std::tuple<int, int>(p->first, p->second));
+  }
+
+  for (auto child : a_node.children())
+    FindAllProcTextures(child, a_ids, a_outVector);
+
+}

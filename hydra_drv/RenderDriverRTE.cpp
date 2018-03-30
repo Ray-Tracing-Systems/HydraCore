@@ -497,9 +497,12 @@ bool RenderDriverRTE::UpdateImage(int32_t a_texId, int32_t w, int32_t h, int32_t
 
   if (type == L"proc")
   {
+    const std::wstring returnType = a_texNode.child(L"return").attribute(L"type").as_string();
+    const int retT = (returnType == L"float4") ? 4 : 1;
+
     // (1) remember proc tex id
     //
-    m_procTexturesId.insert(a_texId);
+    m_procTexturesId[a_texId] = retT;
 
     // (2) insert code inside opencl program;
     //
@@ -537,32 +540,14 @@ bool RenderDriverRTE::UpdateImage(int32_t a_texId, int32_t w, int32_t h, int32_t
 
 std::shared_ptr<RAYTR::IMaterial> CreateMaterialFromXmlNode(pugi::xml_node a_node, RenderDriverRTE* a_pRTE);
 
-bool MaterialNodeHaveProceduralTextures(pugi::xml_node a_node, const std::unordered_set<int>& a_ids)
-{
-  if (std::wstring(a_node.name()) == L"texture")
-  {
-    int32_t id = a_node.attribute(L"id").as_int();
-    return (a_ids.find(id) != a_ids.end());
-  }
-  
-  bool childHaveProc = false;
-  
-  for (auto child : a_node.children())
-  {
-    childHaveProc = childHaveProc || MaterialNodeHaveProceduralTextures(child, a_ids);
-    if (childHaveProc)
-      break;
-  }
-  
-  return childHaveProc;
-}
-
+bool MaterialNodeHaveProceduralTextures(pugi::xml_node a_node, const std::unordered_map<int, int>& a_ids);
+void FindAllProcTextures(pugi::xml_node a_node, const std::unordered_map<int, int>& a_ids, std::vector< std::tuple<int, int> >& a_outVector);
 
 bool RenderDriverRTE::UpdateMaterial(int32_t a_matId, pugi::xml_node a_materialNode)
 {
   //std::cerr << "RenderDriverRTE::UpdateMaterial(" << a_matId << ") " << std::endl;
 
-  std::wstring mtype = a_materialNode.attribute(L"type").as_string();
+  const std::wstring mtype = a_materialNode.attribute(L"type").as_string();
 
   if (a_matId >= m_lastAllocInfo.matNum - 1) // because we reserve one material for white diffuse dummy
   {
@@ -579,7 +564,40 @@ bool RenderDriverRTE::UpdateMaterial(int32_t a_matId, pugi::xml_node a_materialN
   }
 
   if (MaterialNodeHaveProceduralTextures(a_materialNode, m_procTexturesId))
+  { 
     pMaterial->AddFlags(PLAIN_MATERIAL_HAVE_PROC_TEXTURES);
+
+    //#TODO: put proc tex ids inside 'ProcTextureList' structure and insert it in the material head structure.
+    //
+    std::vector< std::tuple<int, int> > procTextureIds;
+    FindAllProcTextures(a_materialNode, m_procTexturesId, procTextureIds);
+    
+    ProcTextureList ptl;
+    InitProcTextureList(&ptl);
+    
+    int counterf4 = 0;
+    int counterf1 = 0;
+    
+    for (auto texIdAndType : procTextureIds)
+    {
+      int texId = std::get<0>(texIdAndType);
+      int texTy = std::get<1>(texIdAndType);
+
+      if (texTy == 4)
+      {
+        ptl.id_f4[counterf4] = texId;
+        counterf4++;
+      }
+      else
+      {
+        ptl.id_f1[counterf1] = texId;
+        counterf1++;
+      }
+    }
+
+    int a = 2;
+
+  }
 
   m_materialUpdated[a_matId] = pMaterial; // remember that we have updates this material in current update phase (between BeginMaterialUpdate and EndMaterialUpdate)
 

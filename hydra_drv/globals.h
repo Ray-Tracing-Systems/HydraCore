@@ -2208,6 +2208,20 @@ typedef struct ProcTextureListT
 } ProcTextureList;
 
 
+static inline void InitProcTextureList(__private ProcTextureList* a_pList)
+{
+  a_pList->id_f4[0] = INVALID_TEXTURE;
+  a_pList->id_f4[1] = INVALID_TEXTURE;
+  a_pList->id_f4[2] = INVALID_TEXTURE;
+  a_pList->id_f4[3] = INVALID_TEXTURE;
+  
+  a_pList->id_f1[0] = INVALID_TEXTURE;
+  a_pList->id_f1[1] = INVALID_TEXTURE;
+  a_pList->id_f1[2] = INVALID_TEXTURE;
+  a_pList->id_f1[3] = INVALID_TEXTURE;
+}
+
+
 typedef struct ShadowSampleT
 {
 
