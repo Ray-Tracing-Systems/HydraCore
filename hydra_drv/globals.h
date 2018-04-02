@@ -2214,12 +2214,74 @@ static inline void InitProcTextureList(__private ProcTextureList* a_pList)
   a_pList->id_f4[1] = INVALID_TEXTURE;
   a_pList->id_f4[2] = INVALID_TEXTURE;
   a_pList->id_f4[3] = INVALID_TEXTURE;
-  
+
   a_pList->id_f1[0] = INVALID_TEXTURE;
   a_pList->id_f1[1] = INVALID_TEXTURE;
   a_pList->id_f1[2] = INVALID_TEXTURE;
   a_pList->id_f1[3] = INVALID_TEXTURE;
 }
+
+static inline void ReadProcTextureList(__global float4* fdata, int tid, int size,
+                                       __private ProcTextureList* a_pRes)
+{
+  const float4 f6  = fdata[tid + size * 5];
+  const float4 f7  = fdata[tid + size * 6];
+
+  a_pRes->id_f4[0] = as_int(f6.x);
+  a_pRes->id_f4[1] = as_int(f6.y);
+  a_pRes->id_f4[2] = as_int(f6.z);
+  a_pRes->id_f4[3] = as_int(f6.w);
+
+  a_pRes->id_f1[0] = as_int(f7.x);
+  a_pRes->id_f1[1] = as_int(f7.y);
+  a_pRes->id_f1[2] = as_int(f7.z);
+  a_pRes->id_f1[3] = as_int(f7.w);
+
+  if(a_pRes->id_f4[0] != INVALID_TEXTURE)
+    a_pRes->fdata4[0] = fdata[tid + size*0];
+
+  if (a_pRes->id_f4[1] != INVALID_TEXTURE)
+    a_pRes->fdata4[1] = fdata[tid + size*1];
+
+  if (a_pRes->id_f4[2] != INVALID_TEXTURE)
+    a_pRes->fdata4[2] = fdata[tid + size*2];
+
+  if (a_pRes->id_f4[3] != INVALID_TEXTURE)
+    a_pRes->fdata4[3] = fdata[tid + size*3];
+
+  if (a_pRes->id_f1[0] != INVALID_TEXTURE)
+  {
+    const float4 f5 = fdata[tid + size * 4];
+
+    a_pRes->fdata1[0] = f5.x;
+    a_pRes->fdata1[1] = f5.y;
+    a_pRes->fdata1[2] = f5.z;
+    a_pRes->fdata1[3] = f5.w;
+  }
+}
+
+
+static inline void WriteProcTextureList(__global float4* fdata, int tid, int size, __private const ProcTextureList* a_pRes)
+{
+  fdata[tid + size * 5] = make_float4( as_float(a_pRes->id_f4[0]), as_float(a_pRes->id_f4[1]), as_float(a_pRes->id_f4[2]), as_float(a_pRes->id_f4[3]));
+  fdata[tid + size * 6] = make_float4( as_float(a_pRes->id_f1[0]), as_float(a_pRes->id_f1[1]), as_float(a_pRes->id_f1[2]), as_float(a_pRes->id_f1[3]));
+
+  if (a_pRes->id_f1[0] != INVALID_TEXTURE)
+    fdata[tid + size * 4] = make_float4(a_pRes->fdata1[0], a_pRes->fdata1[1], a_pRes->fdata1[2], a_pRes->fdata1[3]);
+
+  if (a_pRes->id_f4[0] != INVALID_TEXTURE)
+    fdata[tid + size * 0] = a_pRes->fdata4[0];
+
+  if (a_pRes->id_f4[1] != INVALID_TEXTURE)
+    fdata[tid + size * 1] = a_pRes->fdata4[1];
+
+  if (a_pRes->id_f4[2] != INVALID_TEXTURE)
+    fdata[tid + size * 2] = a_pRes->fdata4[2];
+
+  if (a_pRes->id_f4[3] != INVALID_TEXTURE)
+    fdata[tid + size * 3] = a_pRes->fdata4[3];
+}
+
 
 static inline bool isProcTexId(int a_texId, const __private ProcTextureList* a_pList)
 {
