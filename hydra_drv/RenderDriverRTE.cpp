@@ -542,6 +542,7 @@ std::shared_ptr<RAYTR::IMaterial> CreateMaterialFromXmlNode(pugi::xml_node a_nod
 
 bool MaterialNodeHaveProceduralTextures(pugi::xml_node a_node, const std::unordered_map<int, int>& a_ids);
 void FindAllProcTextures(pugi::xml_node a_node, const std::unordered_map<int, int>& a_ids, std::vector< std::tuple<int, int> >& a_outVector);
+ProcTextureList MakePTListFromTupleArray(const std::vector<std::tuple<int, int> >& procTextureIds);
 
 bool RenderDriverRTE::UpdateMaterial(int32_t a_matId, pugi::xml_node a_materialNode)
 {
@@ -567,36 +568,13 @@ bool RenderDriverRTE::UpdateMaterial(int32_t a_matId, pugi::xml_node a_materialN
   { 
     pMaterial->AddFlags(PLAIN_MATERIAL_HAVE_PROC_TEXTURES);
 
-    //#TODO: put proc tex ids inside 'ProcTextureList' structure and insert it in the material head structure.
-    //
     std::vector< std::tuple<int, int> > procTextureIds;
-    FindAllProcTextures(a_materialNode, m_procTexturesId, procTextureIds);
+    FindAllProcTextures(a_materialNode, m_procTexturesId, 
+                        procTextureIds);
     
-    ProcTextureList ptl;
-    InitProcTextureList(&ptl);
-    
-    int counterf4 = 0;
-    int counterf1 = 0;
-    
-    for (auto texIdAndType : procTextureIds)
-    {
-      int texId = std::get<0>(texIdAndType);
-      int texTy = std::get<1>(texIdAndType);
-
-      if (texTy == 4)
-      {
-        ptl.id_f4[counterf4] = texId;
-        counterf4++;
-      }
-      else
-      {
-        ptl.id_f1[counterf1] = texId;
-        counterf1++;
-      }
-    }
-
-    int a = 2;
-
+    ProcTextureList ptl = MakePTListFromTupleArray(procTextureIds);
+ 
+    PutProcTexturesIdListToMaterialHead(&ptl, &pMaterial->m_plain);
   }
 
   m_materialUpdated[a_matId] = pMaterial; // remember that we have updates this material in current update phase (between BeginMaterialUpdate and EndMaterialUpdate)

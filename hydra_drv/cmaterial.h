@@ -98,9 +98,32 @@ static inline bool materialIsInvisLight    (__global const PlainMaterial* a_pMat
 #define NORMAL_SAMPLER_OFFSET        (PLAIN_MATERIAL_CUSTOM_DATA_SIZE+20)
 #define OPACITY_SAMPLER_OFFSET       (PLAIN_MATERIAL_CUSTOM_DATA_SIZE+32)
 
+#define PROC_TEX1_F4_HEAD_OFFSET     (PLAIN_MATERIAL_CUSTOM_DATA_SIZE+33)
+#define PROC_TEX2_F4_HEAD_OFFSET     (PLAIN_MATERIAL_CUSTOM_DATA_SIZE+34)
+#define PROC_TEX3_F4_HEAD_OFFSET     (PLAIN_MATERIAL_CUSTOM_DATA_SIZE+35)
+#define PROC_TEX4_F4_HEAD_OFFSET     (PLAIN_MATERIAL_CUSTOM_DATA_SIZE+36)
+
+#define PROC_TEX1_F1_HEAD_OFFSET     (PLAIN_MATERIAL_CUSTOM_DATA_SIZE+37)
+#define PROC_TEX2_F1_HEAD_OFFSET     (PLAIN_MATERIAL_CUSTOM_DATA_SIZE+38)
+#define PROC_TEX3_F1_HEAD_OFFSET     (PLAIN_MATERIAL_CUSTOM_DATA_SIZE+39)
+#define PROC_TEX4_F1_HEAD_OFFSET     (PLAIN_MATERIAL_CUSTOM_DATA_SIZE+40)
+
+
+static inline void PutProcTexturesIdListToMaterialHead(const ProcTextureList* a_pData, PlainMaterial* a_pMat)
+{
+  ((int*)(a_pMat->data))[PROC_TEX1_F4_HEAD_OFFSET + 0] = a_pData->id_f4[0];
+  ((int*)(a_pMat->data))[PROC_TEX1_F4_HEAD_OFFSET + 1] = a_pData->id_f4[1];
+  ((int*)(a_pMat->data))[PROC_TEX1_F4_HEAD_OFFSET + 2] = a_pData->id_f4[2];
+  ((int*)(a_pMat->data))[PROC_TEX1_F4_HEAD_OFFSET + 3] = a_pData->id_f4[3];
+
+  ((int*)(a_pMat->data))[PROC_TEX1_F1_HEAD_OFFSET + 0] = a_pData->id_f1[0];
+  ((int*)(a_pMat->data))[PROC_TEX1_F1_HEAD_OFFSET + 1] = a_pData->id_f1[1];
+  ((int*)(a_pMat->data))[PROC_TEX1_F1_HEAD_OFFSET + 2] = a_pData->id_f1[2];
+  ((int*)(a_pMat->data))[PROC_TEX1_F1_HEAD_OFFSET + 3] = a_pData->id_f1[3];
+}
 
 static inline float3 materialGetEmission(__global const PlainMaterial* a_pMat) { return make_float3(a_pMat->data[EMISSIVE_COLORX_OFFSET], a_pMat->data[EMISSIVE_COLORY_OFFSET], a_pMat->data[EMISSIVE_COLORZ_OFFSET]); }
-static inline  int2   materialGetEmissionTex(__global const PlainMaterial* a_pMat)
+static inline  int2  materialGetEmissionTex(__global const PlainMaterial* a_pMat)
 {
   int2 res;
   res.x = as_int(a_pMat->data[EMISSIVE_TEXID_OFFSET]);
@@ -139,6 +162,7 @@ static inline int2 materialGetOpacitytex(__global const PlainMaterial* a_pMat)
   res.y = as_int(a_pMat->data[OPACITY_TEX_MATRIX]);
   return res;
 }
+
 
 
 static inline float sigmoid(float x)

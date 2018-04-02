@@ -201,3 +201,43 @@ void FindAllProcTextures(pugi::xml_node a_node, const std::unordered_map<int, in
     FindAllProcTextures(child, a_ids, a_outVector);
 
 }
+
+
+ProcTextureList MakePTListFromTupleArray(const std::vector<std::tuple<int, int> >& procTextureIds)
+{
+  ProcTextureList ptl;
+  InitProcTextureList(&ptl);
+
+  int counterf4 = 0;
+  int counterf1 = 0;
+
+  for (auto texIdAndType : procTextureIds)
+  {
+    int texId = std::get<0>(texIdAndType);
+    int texTy = std::get<1>(texIdAndType);
+
+    if (texTy == 4)
+    {
+      if (counterf4 < 4)
+      {
+        ptl.id_f4[counterf4] = texId;
+        counterf4++;
+      }
+      else
+        std::cerr << "[RTE]: too many float4 procedural textures for tex id = " << texId << std::endl;
+    }
+    else
+    {
+      if (counterf1 < 4)
+      {
+        ptl.id_f1[counterf1] = texId;
+        counterf1++;
+      }
+      else
+        std::cerr << "[RTE]: too many float1 procedural textures for tex id = " << texId << std::endl;
+    }
+
+  }
+
+  return ptl;
+}

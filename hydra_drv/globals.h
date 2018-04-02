@@ -2221,6 +2221,36 @@ static inline void InitProcTextureList(__private ProcTextureList* a_pList)
   a_pList->id_f1[3] = INVALID_TEXTURE;
 }
 
+static inline bool isProcTexId(int a_texId, const __private ProcTextureList* a_pList)
+{
+  return (a_pList->id_f4[0] != INVALID_TEXTURE) || (a_pList->id_f1[0] != INVALID_TEXTURE);
+}
+
+
+/**
+\brief get color for precomputed procedural texture
+\param a_texId       - input tex id
+\param a_pList       - input ptl
+
+\return texture color; 
+*/
+
+static inline float4 readProcTex(int a_texId, const __private ProcTextureList* a_pList)
+{
+  float4 res = make_float4(1, 1, 1, 1);
+
+  res = (a_texId == a_pList->id_f4[0]) ? a_pList->fdata4[0] : res;
+  res = (a_texId == a_pList->id_f4[1]) ? a_pList->fdata4[1] : res;
+  res = (a_texId == a_pList->id_f4[2]) ? a_pList->fdata4[2] : res;
+  res = (a_texId == a_pList->id_f4[3]) ? a_pList->fdata4[3] : res;
+
+  res = (a_texId == a_pList->id_f1[0]) ? make_float4(a_pList->fdata1[0], a_pList->fdata1[0], a_pList->fdata1[0], a_pList->fdata1[0]) : res;
+  res = (a_texId == a_pList->id_f1[1]) ? make_float4(a_pList->fdata1[1], a_pList->fdata1[1], a_pList->fdata1[1], a_pList->fdata1[1]) : res;
+  res = (a_texId == a_pList->id_f1[2]) ? make_float4(a_pList->fdata1[2], a_pList->fdata1[2], a_pList->fdata1[2], a_pList->fdata1[2]) : res;
+  res = (a_texId == a_pList->id_f1[3]) ? make_float4(a_pList->fdata1[3], a_pList->fdata1[3], a_pList->fdata1[3], a_pList->fdata1[3]) : res;
+
+  return res;
+}
 
 typedef struct ShadowSampleT
 {
