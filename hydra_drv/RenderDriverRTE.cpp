@@ -1032,6 +1032,15 @@ void RenderDriverRTE::EndScene() // #TODO: add dirty flags (?) to update only th
     const std::vector<float> tableRev    = PrefixSumm(pickProbRev);
     const std::vector<float> tableFwd    = PrefixSumm(pickProbFwd);
 
+    const float normRev = 1.0f/tableRev[tableRev.size() - 1];
+    const float normFwd = 1.0f/tableFwd[tableFwd.size() - 1];
+
+    for (size_t i = 0; i < m_lightsInstanced.size(); i++)
+    {
+      m_lightsInstanced[i].data[PLIGHT_PICK_PROB_FWD] *= normFwd;
+      m_lightsInstanced[i].data[PLIGHT_PICK_PROB_REV] *= normRev;
+    }
+
     m_pHWLayer->SetAllLightsSelectTable(&tableRev[0], int32_t(tableRev.size()), false);
     m_pHWLayer->SetAllLightsSelectTable(&tableFwd[0], int32_t(tableFwd.size()), true);
     m_pHWLayer->SetAllPODLights(&m_lightsInstanced[0], m_lightsInstanced.size());

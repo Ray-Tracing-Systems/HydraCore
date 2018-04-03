@@ -130,7 +130,7 @@ static void ConnectEyeP(const PathVertex a_lv, int a_ltDepth, float a_mLightSubP
 
   const float surfaceToImageFactor  = 1.f / imageToSurfaceFactor;
 
-  float  pdfRevW = 1.0f;
+  float  pdfRevW      = 1.0f;
   float3 colorConnect = make_float3(1, 1, 1);
   {
     __global const PlainMaterial* pHitMaterial = materialAt(a_globals, a_mltStorage, a_lv.hit.matId);
