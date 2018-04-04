@@ -342,7 +342,7 @@ float3 IntegratorShadowPTSSS::directLightSample(const SurfaceHit surfElem, const
 		sc.bn = surfElem.biTangent;
 		sc.tc = surfElem.texCoord;
 
-		float3 brdfVal = materialEval(pHitMaterial, &sc, false, false, /* global data --> */ m_pGlobals, nullptr, nullptr).brdf; // a_shadingTexture
+		float3 brdfVal = materialEval(pHitMaterial, &sc, false, false, /* global data --> */ m_pGlobals, nullptr, nullptr, &m_ptlDummy).brdf; // a_shadingTexture
 
 		explicitColor = (explicitSam.color * (1.0f / fmax(explicitSam.pdf, DEPSILON)))*brdfVal*shadow; // #ALERT!!! MUST MUL BY cosThetaOut !!!!!
 	}

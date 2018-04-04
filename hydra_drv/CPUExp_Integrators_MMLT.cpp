@@ -745,7 +745,7 @@ void IntegratorMMLT::TraceLightPath(float3 ray_pos, float3 ray_dir, int a_currDe
     sc.bn = surfElem.biTangent;
     sc.tc = surfElem.texCoord;
 
-    const float pdfW         = materialEval(pHitMaterial, &sc, false, false, m_pGlobals, m_texStorage, m_texStorage).pdfFwd;
+    const float pdfW         = materialEval(pHitMaterial, &sc, false, false, m_pGlobals, m_texStorage, m_texStorage, &m_ptlDummy).pdfFwd;
     const float prevPdfRevWP = pdfW / fmax(cosCurr, DEPSILON);
     a_perThread->pdfArray[a_currDepth].pdfRev = prevPdfRevWP*GTermPrev;
   }
@@ -892,7 +892,7 @@ PathVertex IntegratorMMLT::CameraPath(float3 ray_pos, float3 ray_dir, float3 a_p
       sc.bn = surfElem.biTangent;
       sc.tc = surfElem.texCoord;
 
-      const float pdfFwdW  = materialEval(pHitMaterial, &sc, false, false, /* global data --> */ m_pGlobals, m_texStorage, m_texStorage).pdfFwd;
+      const float pdfFwdW  = materialEval(pHitMaterial, &sc, false, false, /* global data --> */ m_pGlobals, m_texStorage, m_texStorage, &m_ptlDummy).pdfFwd;
       const float pdfFwdWP = pdfFwdW / fmax(cosHere, DEPSILON);
 
       a_perThread->pdfArray[prevVertexId].pdfFwd = pdfFwdWP*GTerm;
@@ -948,7 +948,7 @@ float3 IntegratorMMLT::ConnectEye(const PathVertex& a_lv, int a_ltDepth,
   float3 result(0, 0, 0);
 
   ::ConnectEyeP(a_lv, a_ltDepth, mLightSubPathCount, hit, 
-                m_pGlobals, m_matStorage, m_texStorage, m_texStorageAux, 
+                m_pGlobals, m_matStorage, m_texStorage, m_texStorageAux, &m_ptlDummy,
                 &a_perThread->pdfArray[0], pX, pY, &result);
 
   return result;
@@ -991,7 +991,7 @@ float3 IntegratorMMLT::ConnectShadow(const PathVertex& a_cv, PerThreadData* a_pe
      if (dot(shadow, shadow) > 1e-12f)
      {
        explicitColor = shadow*ConnectShadowP(a_cv, a_camDepth, pLight, explicitSam, lightPickProb,
-                                             m_pGlobals, m_matStorage, m_texStorage, m_texStorageAux, m_pdfStorage,
+                                             m_pGlobals, m_matStorage, m_texStorage, m_texStorageAux, m_pdfStorage, &m_ptlDummy,
                                              &a_perThread->pdfArray[0]);
      }
    }
@@ -1027,7 +1027,7 @@ float3 IntegratorMMLT::ConnectEndPoints(const PathVertex& a_lv, const PathVertex
     return float3(0, 0, 0);
   else
     return shadow*ConnectEndPointsP(a_lv, a_cv, a_spit, a_depth,
-                                    m_pGlobals, m_matStorage, m_texStorage, m_texStorageAux,
+                                    m_pGlobals, m_matStorage, m_texStorage, m_texStorageAux, &m_ptlDummy,
                                     &a_perThread->pdfArray[0]);
 }
 
@@ -1097,15 +1097,15 @@ float3 IntegratorMMLT::PathTraceDirectLight(float3 ray_pos, float3 ray_dir, MisD
 
     ShadeContext sc;
     sc.wp = surfElem.pos;
-    sc.l = shadowRayDir;
-    sc.v = (-1.0f)*ray_dir;
-    sc.n = surfElem.normal;
+    sc.l  = shadowRayDir;
+    sc.v  = (-1.0f)*ray_dir;
+    sc.n  = surfElem.normal;
     sc.fn = surfElem.flatNormal;
     sc.tg = surfElem.tangent;
     sc.bn = surfElem.biTangent;
     sc.tc = surfElem.texCoord;
 
-    const auto evalData = materialEval(pHitMaterial, &sc, false, false, /* global data --> */ m_pGlobals, m_texStorage, m_texStorage);
+    const auto evalData = materialEval(pHitMaterial, &sc, false, false, /* global data --> */ m_pGlobals, m_texStorage, m_texStorage, &m_ptlDummy);
 
     const float cosThetaOut1 = fmax(+dot(shadowRayDir, surfElem.normal), 0.0f);
     const float cosThetaOut2 = fmax(-dot(shadowRayDir, surfElem.normal), 0.0f);

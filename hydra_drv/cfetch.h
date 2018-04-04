@@ -529,10 +529,43 @@ static inline float3 sample2D(int a_samplerOffset, float2 texCoord, __global con
 
   const float2 texCoordT = mul2x4(sampler.row0, sampler.row1, texCoord);
 
-  // #TODO: put branch here; if texture is in list of proc. textures, fetch data from 'ProcTextureList' structure instead of offset to table and 'read_imagef_sw4'  
-  //
   const int offset = textureHeaderOffset(a_globals, sampler.texId);
   float4 texColor4 = read_imagef_sw4(a_texStorage + offset, texCoordT, sampler.flags); 
+
+  texColor4.x = pow(texColor4.x, sampler.gamma);
+  texColor4.y = pow(texColor4.y, sampler.gamma);
+  texColor4.z = pow(texColor4.z, sampler.gamma);
+
+  if (sampler.flags & TEX_ALPHASRC_W)
+  {
+    texColor4.x = texColor4.w;
+    texColor4.y = texColor4.w;
+    texColor4.z = texColor4.w;
+  }
+
+  return to_float3(texColor4);
+}
+
+static inline float3 sample2DExt(int a_samplerOffset, float2 texCoord, 
+                                 __global const int4* a_samStorage, __global const int4* a_texStorage, 
+                                 __global const EngineGlobals* a_globals, __private const ProcTextureList* a_ptList)
+{
+  if (a_samplerOffset == INVALID_TEXTURE)
+    return make_float3(1, 1, 1);
+
+  const SWTexSampler sampler = ReadSampler(a_samStorage, a_samplerOffset);
+
+  if (sampler.texId == 0)
+    return make_float3(1, 1, 1);
+
+  float4 texColor4 = readProcTex(sampler.texId, a_ptList);
+  if (fabs(texColor4.w + 1.0f) < 1e-5f)                                   // didn't find proc texture
+  {
+    const float2 texCoordT = mul2x4(sampler.row0, sampler.row1, texCoord);
+
+    int offset = textureHeaderOffset(a_globals, sampler.texId);
+    texColor4  = read_imagef_sw4(a_texStorage + offset, texCoordT, sampler.flags);
+  }
 
   texColor4.x = pow(texColor4.x, sampler.gamma);
   texColor4.y = pow(texColor4.y, sampler.gamma);

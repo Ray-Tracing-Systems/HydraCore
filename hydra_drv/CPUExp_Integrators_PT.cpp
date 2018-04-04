@@ -87,7 +87,7 @@ float3  IntegratorShadowPT::PathTrace(float3 ray_pos, float3 ray_dir, MisData mi
     sc.bn = surfElem.biTangent;
     sc.tc = surfElem.texCoord;
 
-    const float3 brdfVal    = materialEval(pHitMaterial, &sc, false, false, /* global data --> */ m_pGlobals, m_texStorage, m_texStorage).brdf; // a_shadingTexture
+    const float3 brdfVal    = materialEval(pHitMaterial, &sc, false, false, /* global data --> */ m_pGlobals, m_texStorage, m_texStorage, &m_ptlDummy).brdf; // a_shadingTexture
     const float cosThetaOut = fmax(dot(shadowRayDir, surfElem.normal), 0.0f);
 
     explicitColor = (1.0f / lightPickProb)*(explicitSam.color * (1.0f / fmax(explicitSam.pdf, DEPSILON)))*cosThetaOut*brdfVal*shadow; // clamp brdfVal ? test it !!!
@@ -174,7 +174,7 @@ float3 IntegratorMISPT::PathTrace(float3 ray_pos, float3 ray_dir, MisData misPre
     sc.bn = surfElem.biTangent;
     sc.tc = surfElem.texCoord;
     
-    const auto evalData = materialEval(pHitMaterial, &sc, false, false, /* global data --> */ m_pGlobals, m_texStorage, m_texStorage); 
+    const auto evalData = materialEval(pHitMaterial, &sc, false, false, /* global data --> */ m_pGlobals, m_texStorage, m_texStorage, &m_ptlDummy);
     
     const float cosThetaOut1 = fmax(+dot(shadowRayDir, surfElem.normal), 0.0f);
     const float cosThetaOut2 = fmax(-dot(shadowRayDir, surfElem.normal), 0.0f);
@@ -270,7 +270,7 @@ float3 IntegratorMISPT_trofimm::PathTrace(float3 ray_pos, float3 ray_dir, MisDat
     sc.bn = surfElem.biTangent;
     sc.tc = surfElem.texCoord;
 
-    const auto evalData = materialEval(pHitMaterial, &sc, false, false, /* global data --> */ m_pGlobals, m_texStorage, m_texStorage);
+    const auto evalData = materialEval(pHitMaterial, &sc, false, false, /* global data --> */ m_pGlobals, m_texStorage, m_texStorage, &m_ptlDummy);
 
     const float cosThetaOut1 = fmax(+dot(shadowRayDir, surfElem.normal), 0.0f);
     const float cosThetaOut2 = fmax(-dot(shadowRayDir, surfElem.normal), 0.0f);

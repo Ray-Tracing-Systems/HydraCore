@@ -310,7 +310,7 @@ void IntegratorSBDPT::TraceLightPath(float3 ray_pos, float3 ray_dir, int a_currD
     sc.bn = surfElem.biTangent;
     sc.tc = surfElem.texCoord;
 
-    const float pdfW         = materialEval(pHitMaterial, &sc, false, false, /* global data --> */ m_pGlobals, m_texStorage, m_texStorage).pdfFwd;
+    const float pdfW         = materialEval(pHitMaterial, &sc, false, false, /* global data --> */ m_pGlobals, m_texStorage, m_texStorage, &m_ptlDummy).pdfFwd;
     const float prevPdfRevWP = pdfW / fmax(cosCurr, DEPSILON);
     a_perThread->pdfArray[a_currDepth].pdfRev = prevPdfRevWP*GTermPrev;
   }
@@ -467,7 +467,7 @@ PathVertex IntegratorSBDPT::CameraPath(float3 ray_pos, float3 ray_dir, float3 a_
       sc.bn = surfElem.biTangent;
       sc.tc = surfElem.texCoord;
 
-      const float pdfFwdW  = materialEval(pHitMaterial, &sc, false, false, /* global data --> */ m_pGlobals, m_texStorage, m_texStorage).pdfFwd;
+      const float pdfFwdW  = materialEval(pHitMaterial, &sc, false, false, /* global data --> */ m_pGlobals, m_texStorage, m_texStorage, &m_ptlDummy).pdfFwd;
       const float pdfFwdWP = pdfFwdW / fmax(cosHere, DEPSILON);
 
       a_perThread->pdfArray[prevVertexId].pdfFwd = pdfFwdWP*GTerm;
@@ -517,7 +517,7 @@ float3 IntegratorSBDPT::ConnectEye(const PathVertex& a_lv, int a_ltDepth,
   float3 result(0, 0, 0);
 
   ::ConnectEyeP(a_lv, a_ltDepth, mLightSubPathCount, hit, 
-                m_pGlobals, m_matStorage, m_texStorage, m_texStorageAux, 
+                m_pGlobals, m_matStorage, m_texStorage, m_texStorageAux, &m_ptlDummy,
                 &a_perThread->pdfArray[0], pX, pY, &result);
 
   return result;
@@ -555,7 +555,7 @@ float3 IntegratorSBDPT::ConnectShadow(const PathVertex& a_cv, PerThreadData* a_p
     if (dot(shadow, shadow) > 1e-12f)
     {
       explicitColor = shadow*ConnectShadowP(a_cv, a_camDepth, pLight, explicitSam, lightPickProb,
-                                            m_pGlobals, m_matStorage, m_texStorage, m_texStorageAux, m_pdfStorage,
+                                            m_pGlobals, m_matStorage, m_texStorage, m_texStorageAux, m_pdfStorage, &m_ptlDummy,
                                             &a_perThread->pdfArray[0]);
     }
   }
@@ -582,7 +582,7 @@ float3 IntegratorSBDPT::ConnectEndPoints(const PathVertex& a_lv, const PathVerte
     return float3(0, 0, 0);
   else
     return shadow*ConnectEndPointsP(a_lv, a_cv, a_spit, a_depth,
-                                    m_pGlobals, m_matStorage, m_texStorage, m_texStorageAux,
+                                    m_pGlobals, m_matStorage, m_texStorage, m_texStorageAux, &m_ptlDummy,
                                     &a_perThread->pdfArray[0]);
 }
 

@@ -87,6 +87,16 @@ IntegratorCommon::IntegratorCommon(int w, int h, EngineGlobals* a_pGlobals, int 
   m_remapAllLists = nullptr; m_remapAllSize  = 0;
   m_remapTable    = nullptr; m_remapTabSize  = 0;
   m_remapInstTab  = nullptr; m_remapInstSize = 0;
+
+  InitProcTextureList(&m_ptlDummy);
+  for (int i = 0; i < 4; i++)
+  {
+    m_ptlDummy.fdata1[i] = 1.0f;
+    m_ptlDummy.fdata4[i] = make_float4(2,0,1,0);
+  }
+
+  // m_ptlDummy.id_f4[0] = 3;
+
 }
 
 
@@ -556,7 +566,9 @@ std::tuple<MatSample, int, float3> IntegratorCommon::sampleAndEvalBxDF(float3 ra
   const bool canSampleReflOnly    = (materialGetFlags(pHitMaterial) & PLAIN_MATERIAL_CAN_SAMPLE_REFL_ONLY) != 0;
   const bool sampleReflectionOnly = ((otherRayFlags & RAY_GRAMMAR_DIRECT_LIGHT) != 0) && canSampleReflOnly; 
 
-  BRDFSelector mixSelector = materialRandomWalkBRDF(pHitMaterial, &gen, gen.rptr, ray_dir, surfElem.normal, surfElem.texCoord, m_pGlobals, m_texStorage, rayBounceNum, a_mmltMode, sampleReflectionOnly); // a_shadingTexture
+  BRDFSelector mixSelector = materialRandomWalkBRDF(pHitMaterial, &gen, gen.rptr, ray_dir, surfElem.normal, surfElem.texCoord, 
+                                                    m_pGlobals, m_texStorage, &m_ptlDummy, 
+                                                    rayBounceNum, a_mmltMode, sampleReflectionOnly); // 
 
   /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////// --- >
 
@@ -591,7 +603,7 @@ std::tuple<MatSample, int, float3> IntegratorCommon::sampleAndEvalBxDF(float3 ra
 
   const float3 rands   = a_mmltMode ? rndMatMMLT(&gen, gen.rptr, rayBounceNum) : rndMat(&gen, gen.rptr, rayBounceNum);
   MatSample brdfSample;
-  MaterialLeafSampleAndEvalBRDF(pHitMaterial, rands, &sc, shadow, m_pGlobals, m_texStorage, m_texStorageAux,
+  MaterialLeafSampleAndEvalBRDF(pHitMaterial, rands, &sc, shadow, m_pGlobals, m_texStorage, m_texStorageAux, &m_ptlDummy,
                                 &brdfSample);
 
   brdfSample.pdf /= fmax(mixSelector.w, DEPSILON);

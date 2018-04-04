@@ -210,7 +210,6 @@ public:
                                 const int a_size1, const int a_size2, const int a_size3) override;
 
   virtual void RandomizeAllGenerators();
-  void UpdateLightPickProbTableFwd(const std::vector<float>& a_table, int a_spp);
 
 protected:
 
@@ -232,6 +231,8 @@ protected:
   const int4*       m_texStorage;
   const int4*       m_texStorageAux;
   const float4*     m_pdfStorage;
+
+  ProcTextureList   m_ptlDummy;
 
   int  m_width;
   int  m_height;

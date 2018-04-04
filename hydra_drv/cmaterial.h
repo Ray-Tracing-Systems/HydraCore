@@ -213,17 +213,17 @@ static inline  int2   lambertGetDiffuseTex(__global const PlainMaterial* a_pMat)
 static inline float  lambertEvalPDF (__global const PlainMaterial* a_pMat, const float3 l, const float3 n) { return fabs(dot(l, n))*INV_PI; }
 
 static inline float3 lambertEvalBxDF(__global const PlainMaterial* a_pMat, const float2 a_texCoord,
-                                     __global const EngineGlobals* a_globals, texture2d_t a_tex)
+                                     __global const EngineGlobals* a_globals, texture2d_t a_tex, __private const ProcTextureList* a_ptList)
 {
-  const float3 texColor = sample2D(lambertGetDiffuseTex(a_pMat).y, a_texCoord, (__global const int4*)a_pMat, a_tex, a_globals);
+  const float3 texColor = sample2DExt(lambertGetDiffuseTex(a_pMat).y, a_texCoord, (__global const int4*)a_pMat, a_tex, a_globals, a_ptList);
   return clamp(texColor*lambertGetDiffuseColor(a_pMat), 0.0f, 1.0f)*INV_PI;
 }
 
 static inline void LambertSampleAndEvalBRDF(__global const PlainMaterial* a_pMat, const float a_r1, const float a_r2, const float3 a_normal, const float2 a_texCoord,
-                                            __global const EngineGlobals* a_globals, texture2d_t a_tex,
+                                            __global const EngineGlobals* a_globals, texture2d_t a_tex, __private const ProcTextureList* a_ptList,
                                             __private MatSample* a_out)
 {
-  const float3 texColor   = sample2D(lambertGetDiffuseTex(a_pMat).y, a_texCoord, (__global const int4*)a_pMat, a_tex, a_globals);
+  const float3 texColor   = sample2DExt(lambertGetDiffuseTex(a_pMat).y, a_texCoord, (__global const int4*)a_pMat, a_tex, a_globals, a_ptList);
   const float3 kd         = clamp(texColor*lambertGetDiffuseColor(a_pMat), 0.0f, 1.0f);
 
   const float3 newDir     = MapSampleToCosineDistribution(a_r1, a_r2, a_normal, a_normal, 1.0f);
@@ -1357,7 +1357,8 @@ static inline float  sssGetTransmission(__global const PlainMaterial* a_pMat) { 
 
 static inline BRDFSelector materialRandomWalkBRDF(__global const PlainMaterial* a_pMat, __private RandomGen* a_pGen, __global const float* a_pssVec, 
                                                   const float3 rayDir, const float3 hitNorm, const float2 hitTexCoord,
-                                                  __global const EngineGlobals* a_globals, texture2d_t a_tex, const int a_rayBounce, const bool a_mmltMode, const bool a_reflOnly)
+                                                  __global const EngineGlobals* a_globals, texture2d_t a_tex, __private const ProcTextureList* a_ptList, 
+                                                  const int a_rayBounce, const bool a_mmltMode, const bool a_reflOnly)
 {
   BRDFSelector res, sel;
 
@@ -1438,7 +1439,7 @@ static inline float3 BumpMapping(const float3 tangent, const float3 bitangent, c
 }
 
 static inline void MaterialLeafSampleAndEvalBRDF(__global const PlainMaterial* pMat, const float3 rands, __private const ShadeContext* sc, const float3 a_shadow,
-                                                 __global const EngineGlobals* a_globals, texture2d_t a_tex, texture2d_t a_texNormal,
+                                                 __global const EngineGlobals* a_globals, texture2d_t a_tex, texture2d_t a_texNormal, __private const ProcTextureList* a_ptList,
                                                  __private MatSample* a_out)
 {
   const float3 ray_dir = sc->v;
@@ -1497,7 +1498,7 @@ static inline void MaterialLeafSampleAndEvalBRDF(__global const PlainMaterial* p
     break;
 
   case PLAIN_MAT_CLASS_LAMBERT       : 
-    LambertSampleAndEvalBRDF(pMat, rands.x, rands.y, hitNorm, sc->tc, a_globals, a_tex,
+    LambertSampleAndEvalBRDF(pMat, rands.x, rands.y, hitNorm, sc->tc, a_globals, a_tex, a_ptList,
                              a_out);
     break;
 
@@ -1575,7 +1576,7 @@ static inline float adjointBsdfShadeNormalFix(const float3 toLightWo, const floa
 
 */
 static inline BxDFResult materialLeafEval(__global const PlainMaterial* pMat, __private const ShadeContext* sc, const bool a_fwdDir,
-                                          __global const EngineGlobals* a_globals, texture2d_t a_tex, texture2d_t a_texNormal)
+                                          __global const EngineGlobals* a_globals, texture2d_t a_tex, texture2d_t a_texNormal, __private const ProcTextureList* a_ptList)
 {
   ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////// cosThetaFix for normalmap
   float3 n       = sc->n;
@@ -1663,7 +1664,7 @@ static inline BxDFResult materialLeafEval(__global const PlainMaterial* pMat, __
     res.diffuse = true;
     break;
   case PLAIN_MAT_CLASS_LAMBERT:  
-    res.brdf    = lambertEvalBxDF(pMat, sc->tc, a_globals, a_tex)*cosMult;
+    res.brdf    = lambertEvalBxDF(pMat, sc->tc, a_globals, a_tex, a_ptList)*cosMult;
     res.pdfFwd  = lambertEvalPDF (pMat, sc->l, n);
     res.pdfRev  = lambertEvalPDF (pMat, sc->v, n);
     res.diffuse = true;
@@ -1685,7 +1686,7 @@ static inline BxDFResult materialLeafEval(__global const PlainMaterial* pMat, __
 
 
 static inline BxDFResult materialEval(__global const PlainMaterial* a_pMat, __private const ShadeContext* sc, const bool disableCaustics, const bool a_fwdDir,
-                                      __global const EngineGlobals* a_globals, texture2d_t a_tex, texture2d_t a_texNormal)
+                                      __global const EngineGlobals* a_globals, texture2d_t a_tex, texture2d_t a_texNormal, __private const ProcTextureList* a_ptList)
 {
   BxDFResult val;
   val.brdf    = make_float3(0, 0, 0);
@@ -1745,7 +1746,7 @@ static inline BxDFResult materialEval(__global const PlainMaterial* a_pMat, __pr
     }
     else  if (!(disableCaustics && materialCastCaustics(pMat)))
     {
-      const BxDFResult bxdfAndPdf = materialLeafEval(pMat, sc, a_fwdDir, a_globals, a_tex, a_texNormal);
+      const BxDFResult bxdfAndPdf = materialLeafEval(pMat, sc, a_fwdDir, a_globals, a_tex, a_texNormal, a_ptList);
       val.brdf   += currW*bxdfAndPdf.brdf;
       val.btdf   += currW*bxdfAndPdf.btdf;
       val.pdfFwd += currW*bxdfAndPdf.pdfFwd;

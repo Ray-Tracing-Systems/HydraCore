@@ -134,7 +134,7 @@ void IntegratorLT::ConnectEye(SurfaceHit a_hit, float3 ray_dir, float3 a_accColo
     sc.bn = a_hit.biTangent;
     sc.tc = a_hit.texCoord;
   
-    BxDFResult matRes = materialEval(pHitMaterial, &sc, false, true, /* global data --> */ m_pGlobals, m_texStorage, m_texStorageAux);
+    BxDFResult matRes = materialEval(pHitMaterial, &sc, false, true, /* global data --> */ m_pGlobals, m_texStorage, m_texStorageAux, &m_ptlDummy);
     colorConnect = matRes.brdf + matRes.btdf; 
   }
 

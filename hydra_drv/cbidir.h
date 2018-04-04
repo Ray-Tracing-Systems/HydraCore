@@ -104,6 +104,7 @@ static inline float2 worldPosToScreenSpace(float3 a_wpos, __global const EngineG
 \param  a_mltStorage         - material storage
 \param  a_texStorage1        - main texture storage (color)
 \param  a_texStorage2        - auxilarry texture storage (for normalmaps and other)
+\param  a_ptList             - proc textures list data
 
 \param  a_pdfArray           - pdfArea array for fwd and reverse pdf's
 \param  pX                   - resulting screen X position
@@ -113,7 +114,7 @@ static inline float2 worldPosToScreenSpace(float3 a_wpos, __global const EngineG
 */
 
 static void ConnectEyeP(const PathVertex a_lv, int a_ltDepth, float a_mLightSubPathCount, Lite_Hit a_shadowHit,
-                        __global const EngineGlobals* a_globals, __global const float4* a_mltStorage, texture2d_t a_texStorage1, texture2d_t a_texStorage2,
+                        __global const EngineGlobals* a_globals, __global const float4* a_mltStorage, texture2d_t a_texStorage1, texture2d_t a_texStorage2, __private const ProcTextureList* a_ptList,
                         __global PdfVertex* a_pdfArray, int* pX, int* pY, __private float3* a_outColor)
 {
   float3 camDir; float zDepth;
@@ -145,7 +146,7 @@ static void ConnectEyeP(const PathVertex a_lv, int a_ltDepth, float a_mLightSubP
     sc.bn = a_lv.hit.biTangent;
     sc.tc = a_lv.hit.texCoord;
 
-    BxDFResult colorAndPdf = materialEval(pHitMaterial, &sc, false, true, a_globals, a_texStorage1, a_texStorage2);
+    BxDFResult colorAndPdf = materialEval(pHitMaterial, &sc, false, true, a_globals, a_texStorage1, a_texStorage2, a_ptList);
 
     colorConnect     = colorAndPdf.brdf + colorAndPdf.btdf;
     pdfRevW          = colorAndPdf.pdfRev;
@@ -213,6 +214,7 @@ static inline float3 bsdfClamping(float3 a_val)
 \param  a_mltStorage  - materials storage 
 \param  a_texStorage1 - general texture storage
 \param  a_texStorage2 - aux texture storage
+\param  a_ptList      - proc texture list data
 
 \param  a_tableStorage - pdf table storage
 \param  a_pdfArray     - out pdfArea array 
@@ -223,7 +225,7 @@ static inline float3 bsdfClamping(float3 a_val)
 */
 
 static float3 ConnectShadowP(PathVertex a_cv, const int a_camDepth, __global const PlainLight* a_pLight, const ShadowSample a_explicitSam, const float a_lightPickProb,
-                             __global const EngineGlobals* a_globals, __global const float4* a_mltStorage, texture2d_t a_texStorage1, texture2d_t a_texStorage2, __global const float4* a_tableStorage,
+                             __global const EngineGlobals* a_globals, __global const float4* a_mltStorage, texture2d_t a_texStorage1, texture2d_t a_texStorage2, __global const float4* a_tableStorage, __private const ProcTextureList* a_ptList,
                              __global PdfVertex* a_pdfArray)
 {
   const float3 shadowRayDir = normalize(a_explicitSam.pos - a_cv.hit.pos); // explicitSam.direction;
@@ -240,7 +242,7 @@ static float3 ConnectShadowP(PathVertex a_cv, const int a_camDepth, __global con
   sc.bn = a_cv.hit.biTangent;
   sc.tc = a_cv.hit.texCoord;
   
-  const BxDFResult evalData = materialEval(pHitMaterial, &sc, false, false, a_globals, a_texStorage1, a_texStorage2);
+  const BxDFResult evalData = materialEval(pHitMaterial, &sc, false, false, a_globals, a_texStorage1, a_texStorage2, a_ptList);
   const float pdfFwdAt1W    = evalData.pdfRev;
   
   const float cosThetaOut1  = fmax(+dot(shadowRayDir, a_cv.hit.normal), DEPSILON);
@@ -283,13 +285,15 @@ static float3 ConnectShadowP(PathVertex a_cv, const int a_camDepth, __global con
 \param  a_mltStorage  - materials storage 
 \param  a_texStorage1 - general texture storage
 \param  a_texStorage2 - aux texture storage
+\param  a_ptList      - proc tex list data
+
 \param  a_pdfArray    - out pdfArea array 
 \return connection throughput color without shadow
 
 */
 
 static float3 ConnectEndPointsP(const PathVertex a_lv, const PathVertex a_cv, const int a_spit, const int a_depth,
-                                __global const EngineGlobals* a_globals, __global const float4* a_mltStorage, texture2d_t a_texStorage1, texture2d_t a_texStorage2,
+                                __global const EngineGlobals* a_globals, __global const float4* a_mltStorage, texture2d_t a_texStorage1, texture2d_t a_texStorage2, __private const ProcTextureList* a_ptList,
                                 __global PdfVertex* a_pdfArray)
 {
   if (!a_lv.valid || !a_cv.valid)
@@ -316,7 +320,7 @@ static float3 ConnectEndPointsP(const PathVertex a_lv, const PathVertex a_cv, co
     sc.tc = a_lv.hit.texCoord;
 
     __global const PlainMaterial* pHitMaterial = materialAt(a_globals, a_mltStorage, a_lv.hit.matId);
-    BxDFResult evalData = materialEval(pHitMaterial, &sc, false, true, /* global data --> */ a_globals, a_texStorage1, a_texStorage2);
+    BxDFResult evalData = materialEval(pHitMaterial, &sc, false, true, /* global data --> */ a_globals, a_texStorage1, a_texStorage2, a_ptList);
     lightBRDF     = evalData.brdf + evalData.btdf;
     lightVPdfFwdW = evalData.pdfFwd;
     lightVPdfRevW = evalData.pdfRev;
@@ -342,7 +346,7 @@ static float3 ConnectEndPointsP(const PathVertex a_lv, const PathVertex a_cv, co
     sc.tc = a_cv.hit.texCoord;
 
     __global const PlainMaterial* pHitMaterial = materialAt(a_globals, a_mltStorage, a_cv.hit.matId);
-    BxDFResult evalData = materialEval(pHitMaterial, &sc, false, false, /* global data --> */ a_globals, a_texStorage1, a_texStorage2);
+    BxDFResult evalData = materialEval(pHitMaterial, &sc, false, false, /* global data --> */ a_globals, a_texStorage1, a_texStorage2, a_ptList);
     camBRDF       = evalData.brdf + evalData.btdf;
     camVPdfRevW   = evalData.pdfFwd;
     camVPdfFwdW   = evalData.pdfRev;

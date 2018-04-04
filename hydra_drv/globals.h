@@ -2299,7 +2299,7 @@ static inline bool isProcTexId(int a_texId, const __private ProcTextureList* a_p
 
 static inline float4 readProcTex(int a_texId, const __private ProcTextureList* a_pList)
 {
-  float4 res = make_float4(1, 1, 1, 1);
+  float4 res = make_float4(1, 1, 1, -1.0f);
 
   res = (a_texId == a_pList->id_f4[0]) ? a_pList->fdata4[0] : res;
   res = (a_texId == a_pList->id_f4[1]) ? a_pList->fdata4[1] : res;

@@ -3,20 +3,20 @@
 //#include "crandom.h"
 #include "cmaterial.h"
 
-__kernel void ProcTexExec(__global       uint*      restrict a_flags,
-                    
-                          __global const float4*    restrict in_hitPosNorm,
-                          __global const float2*    restrict in_hitTexCoord,
-                          __global const uint*      restrict in_flatNorm,
-                          __global const HitMatRef* restrict in_matData,
-                          __global const Hit_Part4* restrict in_hitTangent,  
-                          __global const float4*    restrict in_normalsFull,
-                          
-                          __global       float4*    restrict out_procTexData,
-                          
-                          __global const float4*    restrict in_texStorage1,
-                          __global const float4*    restrict in_mtlStorage,
-                          __global const float4*    restrict in_pdfStorage,
+__kernel void ProcTexExec(__global       uint*          restrict a_flags,
+                                                        
+                          __global const float4*        restrict in_hitPosNorm,
+                          __global const float2*        restrict in_hitTexCoord,
+                          __global const uint*          restrict in_flatNorm,
+                          __global const HitMatRef*     restrict in_matData,
+                          __global const Hit_Part4*     restrict in_hitTangent,  
+                          __global const float4*        restrict in_normalsFull,
+                                                        
+                          __global       float4*        restrict out_procTexData,
+                                                        
+                          __global const float4*        restrict in_texStorage1,
+                          __global const float4*        restrict in_mtlStorage,
+                          __global const float4*        restrict in_pdfStorage,
                           __global const EngineGlobals* restrict in_globals,
                           int iNumElements)
 {
