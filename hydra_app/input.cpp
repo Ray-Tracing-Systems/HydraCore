@@ -11,11 +11,11 @@ Input::Input()
   //inLibraryPath = "/home/frol/PROG/HydraAPI/main/tests/test_79";
   //inLibraryPath = "D:/[archive]/2017/HydraAPP/hydra_app/tests/hydra_benchmark_07";
 
-  //inLibraryPath = "D:/PROG/HydraAPI/main/tests/test_82";
+  inLibraryPath = "D:/PROG/HydraAPI/main/tests/test_82";
   //inLibraryPath = "D:/PROG/HydraAPI/main/tests_f/test_241";
   //inLibraryPath = "D:/PROG/HydraAPI/main/tests_f/test_005";
 
-  inLibraryPath = "C:/[Hydra]/pluginFiles/scenelib";
+  //inLibraryPath = "C:/[Hydra]/pluginFiles/scenelib";
   //inLibraryPath = "D:/temp/um_000007/scenelib";
   //inLibraryPath = "D:/Downloads/umm_000066/scenelib";
 
@@ -24,8 +24,8 @@ Input::Input()
   cpuFB         = false; ///< store frame buffer on CPU. Automaticly enabled if
   enableMLT     = false; ///< if use MMLT, you MUST enable it early, when render process just started (here or via command line).
 
-  winWidth      = 1280; ///< 
-  winHeight     = 512;  ///< 
+  winWidth      = 1024; ///< 
+  winHeight     = 1024;  ///< 
 
   enableOpenGL1 = false; ///< if you want to draw scene for some debug needs with OpenGL1.
   exitStatus    = false;

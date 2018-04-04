@@ -227,6 +227,7 @@
     <None Include="shaders\mlt.cl" />
     <None Include="shaders\screen.cl" />
     <None Include="shaders\sort.cl" />
+    <None Include="shaders\texproc.cl" />
     <None Include="shaders\trace.cl" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

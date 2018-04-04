@@ -613,6 +613,7 @@ GPUOCLLayer::GPUOCLLayer(int w, int h, int a_flags, int a_deviceId) : Base(w, h,
   std::string mshaderpath  = "../hydra_drv/shaders/mlt.cl";      // !!!! the hole in security !!!
   std::string lshaderpath  = "../hydra_drv/shaders/light.cl";    // !!!! the hole in security !!!
   std::string yshaderpath  = "../hydra_drv/shaders/material.cl"; // !!!! the hole in security !!!
+  std::string pshaderpath  = "../hydra_drv/shaders/texproc.cl";
 
 #ifdef WIN32
   const std::string installPath2 = "C:/[Hydra]/bin2/";
@@ -632,6 +633,7 @@ GPUOCLLayer::GPUOCLLayer(int w, int h, int a_flags, int a_deviceId) : Base(w, h,
   if (!isFileExists(mshaderpath))  mshaderpath  = installPath2 + "shaders/mlt.cl";
   if (!isFileExists(lshaderpath))  lshaderpath  = installPath2 + "shaders/light.cl";
   if (!isFileExists(yshaderpath))  yshaderpath  = installPath2 + "shaders/material.cl";
+  if (!isFileExists(pshaderpath))  pshaderpath  = installPath2 + "shaders/texproc.cl";
 
   std::string devHash = deviceHash(m_globals.device, m_globals.platform);
 
@@ -647,6 +649,7 @@ GPUOCLLayer::GPUOCLLayer(int w, int h, int a_flags, int a_deviceId) : Base(w, h,
   std::string moshaderpathBin = installPath2 + "shadercache/" + "mltxxx_" + devHash + ".bin";
   std::string loshaderpathBin = installPath2 + "shadercache/" + "lightx_" + devHash + ".bin";
   std::string yoshaderpathBin = installPath2 + "shadercache/" + "matsxx_" + devHash + ".bin";
+  std::string poshaderpathBin = installPath2 + "shadercache/" + "texprc_" + devHash + ".bin";
 
   bool inDevelopment = (a_flags & GPU_RT_IN_DEVELOPMENT);
   std::string loadEncrypted = "load"; // ("crypt", "load", "")
@@ -662,6 +665,7 @@ GPUOCLLayer::GPUOCLLayer(int w, int h, int a_flags, int a_deviceId) : Base(w, h,
     std::remove(moshaderpathBin.c_str());
     std::remove(loshaderpathBin.c_str());
     std::remove(yoshaderpathBin.c_str());
+    std::remove(poshaderpathBin.c_str());
   }
 
   //
@@ -698,6 +702,9 @@ GPUOCLLayer::GPUOCLLayer(int w, int h, int a_flags, int a_deviceId) : Base(w, h,
   std::cout << "[cl_core]: building " << yshaderpath.c_str() << " ..." << std::endl;
   m_progs.material = CLProgram(m_globals.device, m_globals.ctx, yshaderpath.c_str(), options.c_str(), HydraInstallPath(), loadEncrypted, yoshaderpathBin, SAVE_BUILD_LOG);
 
+  std::cout << "[cl_core]: building " << pshaderpath.c_str() << " ..." << std::endl;
+  m_progs.texproc = CLProgram(m_globals.device, m_globals.ctx, pshaderpath.c_str(), options.c_str(), HydraInstallPath(), loadEncrypted, poshaderpathBin, SAVE_BUILD_LOG);
+
   std::cout << "[cl_core]: build cl programs complete" << std::endl << std::endl;
 
   if (!inDevelopment)
@@ -722,6 +729,9 @@ GPUOCLLayer::GPUOCLLayer(int w, int h, int a_flags, int a_deviceId) : Base(w, h,
 
     if (!isFileExists(yoshaderpathBin))
       m_progs.material.saveBinary(yoshaderpathBin);
+
+    if (!isFileExists(poshaderpathBin))
+      m_progs.texproc.saveBinary(poshaderpathBin);
   }
 
   // create morton table

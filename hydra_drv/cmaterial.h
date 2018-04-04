@@ -122,6 +122,7 @@ static inline void PutProcTexturesIdListToMaterialHead(const ProcTextureList* a_
   ((int*)(a_pMat->data))[PROC_TEX1_F1_HEAD_OFFSET + 3] = a_pData->id_f1[3];
 }
 
+
 static inline float3 materialGetEmission(__global const PlainMaterial* a_pMat) { return make_float3(a_pMat->data[EMISSIVE_COLORX_OFFSET], a_pMat->data[EMISSIVE_COLORY_OFFSET], a_pMat->data[EMISSIVE_COLORZ_OFFSET]); }
 static inline  int2  materialGetEmissionTex(__global const PlainMaterial* a_pMat)
 {
@@ -1282,6 +1283,8 @@ static inline BRDFSelector blendSelectBRDF(__global const PlainMaterial* pMat, c
 
   mat1.w         = 2.0f*(alpha);
   mat2.w         = 2.0f*(1.0f-alpha);
+
+  // #TODO: effective sampling of highlights on glass when evaluate Direct Light; select reflection; never select refraction;
   
   if (a_r3 <= 0.5f)
     return mat1;

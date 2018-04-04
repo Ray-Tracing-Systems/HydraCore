@@ -351,6 +351,7 @@ protected:
     CLProgram imagep;
     CLProgram material;
     CLProgram lightp;
+    CLProgram texproc;
 
   } m_progs;
 
