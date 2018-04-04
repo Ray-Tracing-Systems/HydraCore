@@ -1276,31 +1276,39 @@ static inline BRDFSelector blendSelectBRDF(__global const PlainMaterial* pMat, c
   float alpha = blendMaskAlpha2(pMat, rayDir, hitNorm, hitTexCoord, a_globals, a_tex);
 
   BRDFSelector mat1, mat2;
-
+  
   mat1.localOffs = as_int(pMat->data[BLEND_MASK_MATERIAL1_OFFSET]);
-  mat1.w         = 1.0f;
-
   mat2.localOffs = as_int(pMat->data[BLEND_MASK_MATERIAL2_OFFSET]);
-  mat2.w         = 1.0f;
 
-  __global const PlainMaterial* pComponent1 = pMat + mat1.localOffs;
-
-  if ((as_int(pMat->data[BLEND_MASK_FLAGS_OFFSET]) & BLEND_MASK_REFLECTION_WEIGHT_IS_ONE) && materialIsLeafBRDF(pComponent1))
-  {
-    mat1.w = alpha;
-    mat2.w = 1.0f;
-  }
-
-  if ((as_int(pMat->data[BLEND_MASK_FLAGS_OFFSET]) & BLEND_MASK_FRESNEL) != 0 && a_sampleReflectionOnly) // effective sampling of highlights on glass when evaluate Direct Light
-  {                                                                                                      // deterministic select
-    mat1.w = alpha;                                                                                      // deterministic select, must use weight
-    alpha  = 1.0f;                                                                                       // select reflection; never select refraction;
-  }
-
-  if (a_r3 <= alpha)
+  mat1.w         = 2.0f*(alpha);
+  mat2.w         = 2.0f*(1.0f-alpha);
+  
+  if (a_r3 <= 0.5f)
     return mat1;
   else
     return mat2;
+
+  // mat1.w         = 1.0f;
+  // mat2.w         = 1.0f;
+  // 
+  // __global const PlainMaterial* pComponent1 = pMat + mat1.localOffs;
+  // 
+  // if ((as_int(pMat->data[BLEND_MASK_FLAGS_OFFSET]) & BLEND_MASK_REFLECTION_WEIGHT_IS_ONE) && materialIsLeafBRDF(pComponent1))
+  // {
+  //   mat1.w = alpha;
+  //   mat2.w = 1.0f;
+  // }
+  // 
+  // if ((as_int(pMat->data[BLEND_MASK_FLAGS_OFFSET]) & BLEND_MASK_FRESNEL) != 0 && a_sampleReflectionOnly) // effective sampling of highlights on glass when evaluate Direct Light
+  // {                                                                                                      // deterministic select
+  //   mat1.w = alpha;                                                                                      // deterministic select, must use weight
+  //   alpha  = 1.0f;                                                                                       // select reflection; never select refraction;
+  // }
+  // 
+  // if (a_r3 <= alpha)
+  //   return mat1;
+  // else
+  //   return mat2;
 }
 
 

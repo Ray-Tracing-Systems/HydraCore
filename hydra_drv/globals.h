@@ -2194,7 +2194,7 @@ typedef struct ShadeContextT
 
 
 /**
-\brief this structure will store results of precedural texture kernel execution.
+\brief this structure will store results of procedural texture kernel execution.
 
 */
 typedef struct ProcTextureListT

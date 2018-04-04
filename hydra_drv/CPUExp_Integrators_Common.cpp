@@ -593,7 +593,8 @@ std::tuple<MatSample, int, float3> IntegratorCommon::sampleAndEvalBxDF(float3 ra
   MatSample brdfSample;
   MaterialLeafSampleAndEvalBRDF(pHitMaterial, rands, &sc, shadow, m_pGlobals, m_texStorage, m_texStorageAux,
                                 &brdfSample);
-  brdfSample.pdf *= mixSelector.w;
+
+  brdfSample.pdf /= fmax(mixSelector.w, DEPSILON);
 
   return std::make_tuple(brdfSample, matOffset, make_float3(1,1,1));
 }
