@@ -20,7 +20,7 @@ Input::Input()
   //inLibraryPath = "D:/Downloads/umm_000066/scenelib";
 
   inDevelopment = true;  ///< recompile shaders each time; note that nvidia have their own shader cache!
-  inDeviceId    = -1;    ///< opencl device id
+  inDeviceId    = 1;    ///< opencl device id
   cpuFB         = false; ///< store frame buffer on CPU. Automaticly enabled if
   enableMLT     = false; ///< if use MMLT, you MUST enable it early, when render process just started (here or via command line).
 

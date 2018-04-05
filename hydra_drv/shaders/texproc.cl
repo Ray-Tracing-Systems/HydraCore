@@ -47,15 +47,7 @@ __kernel void ProcTexExec(__global       uint*          restrict a_flags,
     ProcTextureList ptl;
     InitProcTextureList(&ptl);
 
-    ptl.id_f4[0] = as_int(pHitMaterial->data[PROC_TEX1_F4_HEAD_OFFSET]);
-    ptl.id_f4[1] = as_int(pHitMaterial->data[PROC_TEX2_F4_HEAD_OFFSET]);
-    ptl.id_f4[2] = as_int(pHitMaterial->data[PROC_TEX3_F4_HEAD_OFFSET]);
-    ptl.id_f4[3] = as_int(pHitMaterial->data[PROC_TEX4_F4_HEAD_OFFSET]);
-
-    ptl.id_f1[0] = as_int(pHitMaterial->data[PROC_TEX1_F1_HEAD_OFFSET]);
-    ptl.id_f1[1] = as_int(pHitMaterial->data[PROC_TEX2_F1_HEAD_OFFSET]);
-    ptl.id_f1[2] = as_int(pHitMaterial->data[PROC_TEX3_F1_HEAD_OFFSET]);
-    ptl.id_f1[3] = as_int(pHitMaterial->data[PROC_TEX4_F1_HEAD_OFFSET]);
+    GetProcTexturesIdListFromMaterialHead(pHitMaterial, &ptl);
 
     ptl.fdata4[0] = make_float4(hitTexCoord.x, hitTexCoord.y, 0.0f, 0.0f);
 

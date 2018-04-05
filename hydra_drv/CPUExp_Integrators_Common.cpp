@@ -566,8 +566,11 @@ std::tuple<MatSample, int, float3> IntegratorCommon::sampleAndEvalBxDF(float3 ra
   const bool canSampleReflOnly    = (materialGetFlags(pHitMaterial) & PLAIN_MATERIAL_CAN_SAMPLE_REFL_ONLY) != 0;
   const bool sampleReflectionOnly = ((otherRayFlags & RAY_GRAMMAR_DIRECT_LIGHT) != 0) && canSampleReflOnly; 
 
+  auto ptlCopy = m_ptlDummy;
+  GetProcTexturesIdListFromMaterialHead(pHitMaterial, &ptlCopy);
+
   BRDFSelector mixSelector = materialRandomWalkBRDF(pHitMaterial, &gen, gen.rptr, ray_dir, surfElem.normal, surfElem.texCoord, 
-                                                    m_pGlobals, m_texStorage, &m_ptlDummy, 
+                                                    m_pGlobals, m_texStorage, &ptlCopy,
                                                     rayBounceNum, a_mmltMode, sampleReflectionOnly); // 
 
   /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////// --- >
@@ -603,7 +606,7 @@ std::tuple<MatSample, int, float3> IntegratorCommon::sampleAndEvalBxDF(float3 ra
 
   const float3 rands   = a_mmltMode ? rndMatMMLT(&gen, gen.rptr, rayBounceNum) : rndMat(&gen, gen.rptr, rayBounceNum);
   MatSample brdfSample;
-  MaterialLeafSampleAndEvalBRDF(pHitMaterial, rands, &sc, shadow, m_pGlobals, m_texStorage, m_texStorageAux, &m_ptlDummy,
+  MaterialLeafSampleAndEvalBRDF(pHitMaterial, rands, &sc, shadow, m_pGlobals, m_texStorage, m_texStorageAux, &ptlCopy,
                                 &brdfSample);
 
   brdfSample.pdf /= fmax(mixSelector.w, DEPSILON);

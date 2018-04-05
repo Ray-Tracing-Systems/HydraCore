@@ -2224,6 +2224,9 @@ static inline void InitProcTextureList(__private ProcTextureList* a_pList)
 static inline void ReadProcTextureList(__global float4* fdata, int tid, int size,
                                        __private ProcTextureList* a_pRes)
 {
+  if (fdata == 0)
+    return;
+
   const float4 f6  = fdata[tid + size * 5];
   const float4 f7  = fdata[tid + size * 6];
 

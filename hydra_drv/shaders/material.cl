@@ -129,7 +129,10 @@ __kernel void UpdateForwardPdfFor3Way(__global const uint*          restrict a_f
     sc.bn = decodeNormal(btanAndN.bitangentCompressed);
     sc.tc = in_hitTexCoord[tid];
 
-    const float pdfW = materialEval(pHitMaterial, &sc, false, false, /* global data --> */ a_globals, in_texStorage1, in_texStorage2).pdfFwd;
+    ProcTextureList ptl;
+    InitProcTextureList(&ptl);
+
+    const float pdfW = materialEval(pHitMaterial, &sc, false, false, /* global data --> */ a_globals, in_texStorage1, in_texStorage2, &ptl).pdfFwd;
 
     accData.pdfCameraWP *= (pdfW / fmax(cosCurr, DEPSILON));
     accData.pdfLightWP  *= (matSamplePdf / fmax(cosNext, DEPSILON));
@@ -163,6 +166,7 @@ __kernel void ConnectToEyeKernel(__global const uint*          restrict a_flags,
                                  __global const PerRayAcc*     restrict in_pdfAcc,
                                  __global const int*           restrict in_lightId,
                                  __global const float4*        restrict in_lsam2,
+                                 __global const float4*        restrict in_procTexData,
                                  
                                  __global const float4*        restrict in_mtlStorage,
                                  __global const EngineGlobals* restrict a_globals,
@@ -228,7 +232,12 @@ __kernel void ConnectToEyeKernel(__global const uint*          restrict a_flags,
     sc.bn = decodeNormal(btanAndN.bitangentCompressed);
     sc.tc = hitTexCoord;
    
-    BxDFResult matRes = materialEval(pHitMaterial, &sc, false, true, /* global data --> */ a_globals, in_texStorage1, in_texStorage2);
+    ProcTextureList ptl;
+    InitProcTextureList(&ptl);
+    ReadProcTextureList(in_procTexData, tid, iNumElements, 
+                        &ptl);
+
+    BxDFResult matRes = materialEval(pHitMaterial, &sc, false, true, /* global data --> */ a_globals, in_texStorage1, in_texStorage2, &ptl);
     colorConnect      = matRes.brdf + matRes.btdf; 
     pdfRevW           = matRes.pdfRev;
   }
@@ -574,8 +583,8 @@ __kernel void Shade(__global const float4*    restrict a_rpos,
                     __global const ushort4*   restrict in_shadow,
                     __global const float*     restrict in_lightPickProb,
                     __global const float*     restrict in_lcos,
-  
                     __global const float4*    restrict in_normalsFull,
+                    __global const float4*    restrict in_procTexData,
 
                     __global const PerRayAcc* restrict in_pdfAccPrev,
                     __global const float4*    restrict in_rayDirAndLightId,
@@ -661,11 +670,16 @@ __kernel void Shade(__global const float4*    restrict a_rpos,
   sc.bn = hitBiNorm;
   sc.tc = hitTexCoord;
 
-  const BxDFResult evalData = materialEval(pHitMaterial, &sc, disableCaustics, false, /* global data --> */ a_globals, in_texStorage1, in_texStorage2);
+  ProcTextureList ptl;
+  InitProcTextureList(&ptl);
+  ReadProcTextureList(in_procTexData, tid, iNumElements,
+                      &ptl);
+
+  const BxDFResult evalData = materialEval(pHitMaterial, &sc, disableCaustics, false, /* global data --> */ a_globals, in_texStorage1, in_texStorage2, &ptl);
   const float3 shadow       = decompressShadow(in_shadow[tid]);
   const float lightPickProb = in_lightPickProb[tid];
 
-  const int lightOffset = as_int(in_rayDirAndLightId[tid].w);
+  const int lightOffset     = as_int(in_rayDirAndLightId[tid].w);
 
   __global const PlainLight* pLight = lightAt(a_globals, lightOffset);
 
@@ -781,6 +795,7 @@ __kernel void NextBounce(__global   float4*        restrict a_rpos,
                          __global const HitMatRef* restrict in_matData,
                          __global const Hit_Part4* restrict in_hitTangent,
                          __global const float4*    restrict in_hitNormFull,
+                         __global const float4*    restrict in_procTexData,
 
                          __global float4*          restrict a_color,
                          __global float4*          restrict a_thoroughput,
@@ -860,8 +875,13 @@ __kernel void NextBounce(__global   float4*        restrict a_rpos,
   if (rayIsActiveU(flags))
   {
     matOffset = materialOffset(a_globals, GetMaterialId(in_matData[tid]));
-  
-    BRDFSelector mixSelector = materialRandomWalkBRDF(pHitMaterial, &gen, pssVec, ray_dir, hitNorm, hitTexCoord, a_globals, in_texStorage1, unpackBounceNum(flags), false, false);
+   
+    ProcTextureList ptl;
+    InitProcTextureList(&ptl);
+    ReadProcTextureList(in_procTexData, tid, iNumElements,
+                        &ptl);
+
+    BRDFSelector mixSelector = materialRandomWalkBRDF(pHitMaterial, &gen, pssVec, ray_dir, hitNorm, hitTexCoord, a_globals, in_texStorage1, &ptl, unpackBounceNum(flags), false, false);
   
     const  uint rayBounceNum = unpackBounceNum(flags);
    
@@ -887,7 +907,7 @@ __kernel void NextBounce(__global   float4*        restrict a_rpos,
   
       const float3 randsm = rndMat(&gen, pssVec, unpackBounceNum(flags));
   
-      MaterialLeafSampleAndEvalBRDF(pHitMaterial, randsm, &sc, shadow, a_globals, in_texStorage1, in_texStorage2,
+      MaterialLeafSampleAndEvalBRDF(pHitMaterial, randsm, &sc, shadow, a_globals, in_texStorage1, in_texStorage2, &ptl,
                                     &brdfSample);
 
       isThinGlass = isPureSpecular(brdfSample) && (rayBounceNum > 0) && !(a_globals->g_flags & HRT_ENABLE_PT_CAUSTICS) && materialIsThinGlass(pHitMaterial);
@@ -1043,7 +1063,10 @@ __kernel void NextBounce(__global   float4*        restrict a_rpos,
               sc.bn = hitBiNorm;
               sc.tc = hitTexCoord;
 
-              const float pdfFwdW = materialEval(pHitMaterial, &sc, false, false, /* global data --> */  a_globals, in_texStorage1, in_texStorage2).pdfFwd;
+              ProcTextureList ptl;
+              InitProcTextureList(&ptl);
+
+              const float pdfFwdW = materialEval(pHitMaterial, &sc, false, false, /* global data --> */  a_globals, in_texStorage1, in_texStorage2, &ptl).pdfFwd;
              
               accPdf.pdfLightWP *= (pdfFwdW / fmax(cosHere, DEPSILON));
             }

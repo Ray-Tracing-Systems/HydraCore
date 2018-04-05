@@ -77,6 +77,9 @@ float3  IntegratorShadowPT::PathTrace(float3 ray_pos, float3 ray_dir, MisData mi
 
     const PlainMaterial* pHitMaterial = materialAt(m_pGlobals, m_matStorage, surfElem.matId);
    
+    auto ptlCopy = m_ptlDummy;
+    GetProcTexturesIdListFromMaterialHead(pHitMaterial, &ptlCopy);
+
     ShadeContext sc;
     sc.wp = surfElem.pos;
     sc.l  = shadowRayDir;
@@ -87,7 +90,7 @@ float3  IntegratorShadowPT::PathTrace(float3 ray_pos, float3 ray_dir, MisData mi
     sc.bn = surfElem.biTangent;
     sc.tc = surfElem.texCoord;
 
-    const float3 brdfVal    = materialEval(pHitMaterial, &sc, false, false, /* global data --> */ m_pGlobals, m_texStorage, m_texStorage, &m_ptlDummy).brdf; // a_shadingTexture
+    const float3 brdfVal    = materialEval(pHitMaterial, &sc, false, false, /* global data --> */ m_pGlobals, m_texStorage, m_texStorage, &ptlCopy).brdf; // a_shadingTexture
     const float cosThetaOut = fmax(dot(shadowRayDir, surfElem.normal), 0.0f);
 
     explicitColor = (1.0f / lightPickProb)*(explicitSam.color * (1.0f / fmax(explicitSam.pdf, DEPSILON)))*cosThetaOut*brdfVal*shadow; // clamp brdfVal ? test it !!!
@@ -151,6 +154,7 @@ float3 IntegratorMISPT::PathTrace(float3 ray_pos, float3 ray_dir, MisData misPre
 
   if (lightOffset >= 0) // if need to sample direct light ?
   { 
+    const PlainMaterial* pHitMaterial = materialAt(m_pGlobals, m_matStorage, surfElem.matId);
     __global const PlainLight* pLight = lightAt(m_pGlobals, lightOffset);
     
     ShadowSample explicitSam;
@@ -161,9 +165,7 @@ float3 IntegratorMISPT::PathTrace(float3 ray_pos, float3 ray_dir, MisData misPre
     const float3 shadowRayPos = OffsShadowRayPos(surfElem.pos, surfElem.normal, shadowRayDir, surfElem.sRayOff);
 
     const float3 shadow = shadowTrace(shadowRayPos, shadowRayDir, length(shadowRayPos - explicitSam.pos)*0.995f);
-    
-    const PlainMaterial* pHitMaterial = materialAt(m_pGlobals, m_matStorage, surfElem.matId);
-    
+        
     ShadeContext sc;
     sc.wp = surfElem.pos;
     sc.l  = shadowRayDir;
@@ -173,8 +175,11 @@ float3 IntegratorMISPT::PathTrace(float3 ray_pos, float3 ray_dir, MisData misPre
     sc.tg = surfElem.tangent;
     sc.bn = surfElem.biTangent;
     sc.tc = surfElem.texCoord;
+
+    auto ptlCopy = m_ptlDummy;
+    GetProcTexturesIdListFromMaterialHead(pHitMaterial, &ptlCopy);
     
-    const auto evalData = materialEval(pHitMaterial, &sc, false, false, /* global data --> */ m_pGlobals, m_texStorage, m_texStorage, &m_ptlDummy);
+    const auto evalData      = materialEval(pHitMaterial, &sc, false, false, /* global data --> */ m_pGlobals, m_texStorage, m_texStorage, &ptlCopy);
     
     const float cosThetaOut1 = fmax(+dot(shadowRayDir, surfElem.normal), 0.0f);
     const float cosThetaOut2 = fmax(-dot(shadowRayDir, surfElem.normal), 0.0f);

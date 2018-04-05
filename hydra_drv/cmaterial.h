@@ -122,6 +122,18 @@ static inline void PutProcTexturesIdListToMaterialHead(const ProcTextureList* a_
   ((int*)(a_pMat->data))[PROC_TEX1_F1_HEAD_OFFSET + 3] = a_pData->id_f1[3];
 }
 
+static inline void GetProcTexturesIdListFromMaterialHead(__global const PlainMaterial* a_pMat, __private ProcTextureList* a_pData)
+{
+  a_pData->id_f4[0] = as_int(a_pMat->data[PROC_TEX1_F4_HEAD_OFFSET]);
+  a_pData->id_f4[1] = as_int(a_pMat->data[PROC_TEX2_F4_HEAD_OFFSET]);
+  a_pData->id_f4[2] = as_int(a_pMat->data[PROC_TEX3_F4_HEAD_OFFSET]);
+  a_pData->id_f4[3] = as_int(a_pMat->data[PROC_TEX4_F4_HEAD_OFFSET]);
+
+  a_pData->id_f1[0] = as_int(a_pMat->data[PROC_TEX1_F1_HEAD_OFFSET]);
+  a_pData->id_f1[1] = as_int(a_pMat->data[PROC_TEX2_F1_HEAD_OFFSET]);
+  a_pData->id_f1[2] = as_int(a_pMat->data[PROC_TEX3_F1_HEAD_OFFSET]);
+  a_pData->id_f1[3] = as_int(a_pMat->data[PROC_TEX4_F1_HEAD_OFFSET]);
+}
 
 static inline float3 materialGetEmission(__global const PlainMaterial* a_pMat) { return make_float3(a_pMat->data[EMISSIVE_COLORX_OFFSET], a_pMat->data[EMISSIVE_COLORY_OFFSET], a_pMat->data[EMISSIVE_COLORZ_OFFSET]); }
 static inline  int2  materialGetEmissionTex(__global const PlainMaterial* a_pMat)
