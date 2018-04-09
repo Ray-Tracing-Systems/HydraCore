@@ -1360,55 +1360,6 @@ static inline BRDFSelector materialRandomWalkBRDF(__global const PlainMaterial* 
   return res;
 }
 
-static inline BRDFSelector materialRandomWalkBRDF_Trofimm(__global const PlainMaterial* a_pMat, __private RandomGen* a_pGen, __global const float* qmcVec,
-  const float3 rayDir, const float3 hitNorm, const float2 hitTexCoord,
-  __global const EngineGlobals* a_globals, texture2d_t a_tex, const int a_rayBounce, const bool a_mmltMode, const bool a_reflOnly)
-{
-  BRDFSelector res, sel;
-
-  res.localOffs = 0;
-  res.w = 1.0f;
-
-  sel.localOffs = 0;
-  sel.w = 1.0f;
-
-  __global const PlainMaterial* node = a_pMat;
-  int i = 0;
-  while (!materialIsLeafBRDF(node) && i < MLT_FLOATS_PER_MLAYER)
-  {
-    float rndVal;
-    if (a_mmltMode)
-      //rndVal = rndMatLayerMMLT(a_pGen, qmcVec, a_rayBounce, i);
-      rndVal = a_pGen->sobol.z;
-    else
-      //rndVal = rndMatLayer(a_pGen, qmcVec, a_rayBounce, i);
-      rndVal = a_pGen->sobol.z;
-
-    //////////////////////////////////////////////////////////////////////////
-    const int type = materialGetType(node);
-
-    if (type == PLAIN_MAT_CLASS_BLEND_MASK)
-      sel = blendSelectBRDF(node, rndVal, rayDir, hitNorm, hitTexCoord, (a_reflOnly && (i == 0)), a_globals, a_tex);
-
-    //////////////////////////////////////////////////////////////////////////
-
-    res.w = res.w*sel.w;
-    res.localOffs = res.localOffs + sel.localOffs;
-
-    node = node + sel.localOffs;
-    i++;
-  }
-
-  for (; i < MLT_FLOATS_PER_MLAYER; i++)  // we must generate these numbers to get predefined state of seed for each bounce
-  {
-    if (a_mmltMode)
-      rndMatLayerMMLT(a_pGen, qmcVec, a_rayBounce, i);
-    else
-      rndMatLayer(a_pGen, qmcVec, a_rayBounce, i);
-  }
-
-  return res;
-}
 
 static inline float3 materialNormalMapFetch(__global const PlainMaterial* pHitMaterial, const float2 a_texCoord, texture2d_t a_tex, __global const EngineGlobals* a_globals)
 {

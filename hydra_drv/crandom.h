@@ -17,6 +17,8 @@ typedef struct RandomGenT
 
 #ifdef RAND_MLT_CPU
   __global const float* rptr;
+  __global const float* rptr2;
+
 #endif
 
 } RandomGen;
@@ -232,7 +234,7 @@ static inline float MutateKelemen(float valueX, __private RandomGen* pGen, const
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 //#define QRNG_DIMENSIONS 4 
-#define QRNG_DIMENSIONS 5 // for test 
+#define QRNG_DIMENSIONS 7 // for test 
 #define QRNG_RESOLUTION 31
 #define INT_SCALE (1.0f / (float)0x80000001U)
 

@@ -1,0 +1,330 @@
+<?xml version="1.0"?>
+<textures_lib>
+  <texture name="Map#0" id="0" loc="data/chunk_00000.image4ub" offset="8" bytesize="16" width="2" height="2" dl="0" />
+</textures_lib>
+<materials_lib>
+  <material id="0" name="hydra_placeholder_material" type="hydra_material">
+    <diffuse brdf_type="lambert">
+      <color>0.078 0.0 0.156</color>
+    </diffuse>
+  </material>
+  <material id="1" name="Material #46" type="hydra_material">
+    <emission>
+      <color val="0 0 0" />
+      <cast_gi val="1" />
+      <multiplier val="0" />
+    </emission>
+    <diffuse brdf_type="lambert">
+      <color val="0.7 0.7 0.7" />
+      <roughness val="0" />
+    </diffuse>
+    <reflectivity brdf_type="phong">
+      <extrusion val="luminance" />
+      <color val="0 0 0" />
+      <glossiness val="1" />
+      <fresnel val="1" />
+      <fresnel_ior val="1.5" />
+    </reflectivity>
+    <transparency brdf_type="phong">
+      <color val="0 0 0" />
+      <glossiness val="1" />
+      <thin_walled val="0" />
+      <fog_color val="1 1 1" />
+      <fog_multiplier val="0" />
+      <ior val="1.5" />
+    </transparency>
+    <opacity smooth="0">
+      <skip_shadow val="0" />
+    </opacity>
+    <translucency>
+      <color val="0 0 0" />
+      <multiplier val="0" />
+    </translucency>
+  </material>
+  <material id="2" name="Material #46" type="hydra_material">
+    <emission>
+      <color val="0 0 0" />
+      <cast_gi val="1" />
+      <multiplier val="0" />
+    </emission>
+    <diffuse brdf_type="lambert">
+      <color val="0.362353 0.027451 0.027451" />
+      <roughness val="0" />
+    </diffuse>
+    <reflectivity brdf_type="phong">
+      <extrusion val="luminance" />
+      <color val="0 0 0" />
+      <glossiness val="1" />
+      <fresnel val="1" />
+      <fresnel_ior val="1.5" />
+    </reflectivity>
+    <transparency brdf_type="phong">
+      <color val="0 0 0" />
+      <glossiness val="1" />
+      <thin_walled val="0" />
+      <fog_color val="1 1 1" />
+      <fog_multiplier val="0" />
+      <ior val="1.5" />
+    </transparency>
+    <opacity smooth="0">
+      <skip_shadow val="0" />
+    </opacity>
+    <translucency>
+      <color val="0 0 0" />
+      <multiplier val="0" />
+    </translucency>
+  </material>
+  <material id="3" name="Sphere1" type="hydra_material">
+    <emission>
+      <color val="0 0 0" />
+      <cast_gi val="1" />
+      <multiplier val="0" />
+    </emission>
+    <diffuse brdf_type="lambert">
+      <color val="0.7 0.7 0.7" />
+      <roughness val="0" />
+    </diffuse>
+    <reflectivity brdf_type="phong">
+      <extrusion val="luminance" />
+      <color val="0 0 0" />
+      <glossiness val="1" />
+      <fresnel val="1" />
+      <fresnel_ior val="1.5" />
+    </reflectivity>
+    <transparency brdf_type="phong">
+      <color val="0 0 0" />
+      <glossiness val="1" />
+      <thin_walled val="0" />
+      <fog_color val="1 1 1" />
+      <fog_multiplier val="0" />
+      <ior val="1.5" />
+    </transparency>
+    <opacity smooth="0">
+      <skip_shadow val="0" />
+    </opacity>
+    <translucency>
+      <color val="0 0 0" />
+      <multiplier val="0" />
+    </translucency>
+  </material>
+  <material id="4" name="Material #46" type="hydra_material">
+    <emission>
+      <color val="0 0 0" />
+      <cast_gi val="1" />
+      <multiplier val="0" />
+    </emission>
+    <diffuse brdf_type="lambert">
+      <color val="0.027451 0.362353 0.027451" />
+      <roughness val="0" />
+    </diffuse>
+    <reflectivity brdf_type="phong">
+      <extrusion val="luminance" />
+      <color val="0 0 0" />
+      <glossiness val="1" />
+      <fresnel val="1" />
+      <fresnel_ior val="1.5" />
+    </reflectivity>
+    <transparency brdf_type="phong">
+      <color val="0 0 0" />
+      <glossiness val="1" />
+      <thin_walled val="0" />
+      <fog_color val="1 1 1" />
+      <fog_multiplier val="0" />
+      <ior val="1.5" />
+    </transparency>
+    <opacity smooth="0">
+      <skip_shadow val="0" />
+    </opacity>
+    <translucency>
+      <color val="0 0 0" />
+      <multiplier val="0" />
+    </translucency>
+  </material>
+  <material id="5" name="Sphere2" type="hydra_material">
+    <emission>
+      <color val="0 0 0" />
+      <cast_gi val="1" />
+      <multiplier val="0" />
+    </emission>
+    <diffuse brdf_type="lambert">
+      <color val="0.7 0.7 0.7" />
+      <roughness val="0" />
+    </diffuse>
+    <reflectivity brdf_type="phong">
+      <extrusion val="luminance" />
+      <color val="1 1 1" />
+      <glossiness val="1" />
+      <fresnel val="1" />
+      <fresnel_ior val="1.5" />
+    </reflectivity>
+    <transparency brdf_type="phong">
+      <color val="0 0 0" />
+      <glossiness val="1" />
+      <thin_walled val="0" />
+      <fog_color val="1 1 1" />
+      <fog_multiplier val="0" />
+      <ior val="1.5" />
+    </transparency>
+    <opacity smooth="0">
+      <skip_shadow val="0" />
+    </opacity>
+    <translucency>
+      <color val="0 0 0" />
+      <multiplier val="0" />
+    </translucency>
+  </material>
+  <material id="6" name="Sphere3" type="hydra_material">
+    <emission>
+      <color val="0 0 0" />
+      <cast_gi val="1" />
+      <multiplier val="0" />
+    </emission>
+    <diffuse brdf_type="lambert">
+      <color val="0 0 0" />
+      <roughness val="0" />
+    </diffuse>
+    <reflectivity brdf_type="phong">
+      <extrusion val="luminance" />
+      <color val="1 1 1" />
+      <glossiness val="1" />
+      <fresnel val="1" />
+      <fresnel_ior val="1.5" />
+    </reflectivity>
+    <transparency brdf_type="phong">
+      <color val="1 1 1" />
+      <glossiness val="1" />
+      <thin_walled val="0" />
+      <fog_color val="1 1 1" />
+      <fog_multiplier val="0" />
+      <ior val="1.5" />
+    </transparency>
+    <opacity smooth="0">
+      <skip_shadow val="0" />
+    </opacity>
+    <translucency>
+      <color val="0 0 0" />
+      <multiplier val="0" />
+    </translucency>
+  </material>
+  <material id="7" name="environment_material" type="hydra_material" light_id="0" visible="1">
+    <emission>
+      <color val="0 0 0" />
+    </emission>
+  </material>
+  <material id="8" name="PhotometricLight001_material" type="hydra_material" light_id="1" visible="1">
+    <emission>
+      <color val="6.3 6.3 6.3" />
+    </emission>
+  </material>
+</materials_lib>
+<lights_lib>
+  <light id="0" name="environment" type="sky" shape="point" distribution="uniform" visible="1" mat_id="7">
+    <intensity>
+      <color val="0 0 0" />
+      <multiplier val="1" />
+    </intensity>
+  </light>
+  <light id="1" name="PhotometricLight001" type="area" shape="rect" distribution="diffuse" visible="1" mat_id="8" mesh_id="4">
+    <intensity>
+      <multiplier val="6.29999971" />
+      <color val="1 1 1" />
+    </intensity>
+    <size radius="0.5" half_length="0.5" half_width="0.5" />
+  </light>
+</lights_lib>
+<cam_lib>
+  <camera id="0" name="PhysCamera001" type="uvn">
+    <fov>30.7686367</fov>
+    <nearClipPlane>0.00999999978</nearClipPlane>
+    <farClipPlane>100</farClipPlane>
+    <up>0 1 1.62921e-07</up>
+    <position>1.3265e-07 1.5 7.12531</position>
+    <look_at>1.3265e-07 1.50002 -92.8747</look_at>
+    <tiltRotX>0</tiltRotX>
+    <tiltRotY>0</tiltRotY>
+    <tiltShiftX>0</tiltShiftX>
+    <tiltShiftY>0</tiltShiftY>
+    <enable_dof>0</enable_dof>
+  </camera>
+</cam_lib>
+<geometry_lib>
+  <mesh id="0" name="Box001" type="vsgf" bytesize="1864" loc="data/chunk_00001.vsgf" offset="0" vertNum="30" triNum="10" dl="0" path="">
+    <positions type="array4f" bytesize="480" offset="24" apply="vertex" />
+    <normals type="array4f" bytesize="480" offset="504" apply="vertex" />
+    <tangents type="array4f" bytesize="480" offset="984" apply="vertex" />
+    <texcoords type="array2f" bytesize="240" offset="1464" apply="vertex" />
+    <indices type="array1i" bytesize="120" offset="1704" apply="tlist" />
+    <matindices type="array1i" bytesize="40" offset="1824" apply="primitive" />
+  </mesh>
+  <mesh id="1" name="GeoSphere001" type="vsgf" bytesize="368024" loc="data/chunk_00002.vsgf" offset="0" vertNum="6000" triNum="2000" dl="0" path="">
+    <positions type="array4f" bytesize="96000" offset="24" apply="vertex" />
+    <normals type="array4f" bytesize="96000" offset="96024" apply="vertex" />
+    <tangents type="array4f" bytesize="96000" offset="192024" apply="vertex" />
+    <texcoords type="array2f" bytesize="48000" offset="288024" apply="vertex" />
+    <indices type="array1i" bytesize="24000" offset="336024" apply="tlist" />
+    <matindices type="array1i" bytesize="8000" offset="360024" apply="primitive" />
+  </mesh>
+  <mesh id="2" name="GeoSphere002" type="vsgf" bytesize="368024" loc="data/chunk_00003.vsgf" offset="0" vertNum="6000" triNum="2000" dl="0" path="">
+    <positions type="array4f" bytesize="96000" offset="24" apply="vertex" />
+    <normals type="array4f" bytesize="96000" offset="96024" apply="vertex" />
+    <tangents type="array4f" bytesize="96000" offset="192024" apply="vertex" />
+    <texcoords type="array2f" bytesize="48000" offset="288024" apply="vertex" />
+    <indices type="array1i" bytesize="24000" offset="336024" apply="tlist" />
+    <matindices type="array1i" bytesize="8000" offset="360024" apply="primitive" />
+  </mesh>
+  <mesh id="3" name="GeoSphere003" type="vsgf" bytesize="368024" loc="data/chunk_00004.vsgf" offset="0" vertNum="6000" triNum="2000" dl="0" path="">
+    <positions type="array4f" bytesize="96000" offset="24" apply="vertex" />
+    <normals type="array4f" bytesize="96000" offset="96024" apply="vertex" />
+    <tangents type="array4f" bytesize="96000" offset="192024" apply="vertex" />
+    <texcoords type="array2f" bytesize="48000" offset="288024" apply="vertex" />
+    <indices type="array1i" bytesize="24000" offset="336024" apply="tlist" />
+    <matindices type="array1i" bytesize="8000" offset="360024" apply="primitive" />
+  </mesh>
+  <mesh id="4" name="PhotometricLight001_lightmesh" type="vsgf" bytesize="280" loc="data/chunk_00005.vsgf" offset="0" vertNum="4" triNum="2" dl="0" path="" light_id="1">
+    <positions type="array4f" bytesize="64" offset="24" apply="vertex" />
+    <normals type="array4f" bytesize="64" offset="88" apply="vertex" />
+    <tangents type="array4f" bytesize="64" offset="152" apply="vertex" />
+    <texcoords type="array2f" bytesize="32" offset="216" apply="vertex" />
+    <indices type="array1i" bytesize="24" offset="248" apply="tlist" />
+    <matindices type="array1i" bytesize="8" offset="272" apply="primitive" />
+  </mesh>
+</geometry_lib>
+<render_lib>
+  <render_settings type="HydraModern" id="0">
+    <width>1024</width>
+    <height>1024</height>
+    <method_primary>pathtracing</method_primary>
+    <method_secondary>pathtracing</method_secondary>
+    <method_tertiary>pathtracing</method_tertiary>
+    <method_caustic>pathtracing</method_caustic>
+    <shadows>1</shadows>
+    <trace_depth>8</trace_depth>
+    <diff_trace_depth>4</diff_trace_depth>
+    <pt_error>2.5</pt_error>
+    <minRaysPerPixel>256</minRaysPerPixel>
+    <maxRaysPerPixel>64</maxRaysPerPixel>
+    <mlt_plarge>0.5</mlt_plarge>
+    <mlt_iters_mult>2</mlt_iters_mult>
+    <mlt_burn_iters>256</mlt_burn_iters>
+    <envclamp>1000000</envclamp>
+    <bsdfclamp>1000000</bsdfclamp>
+    <separate_swap>0</separate_swap>
+    <forceGPUFrameBuffer>0</forceGPUFrameBuffer>
+    <evalgbuffer>1</evalgbuffer>
+    <dont_run>0</dont_run>
+    <tmGamma>2.20000005</tmGamma>
+    <outputRedirect>0</outputRedirect>
+  </render_settings>
+</render_lib>
+<scenes>
+  <scene id="0" name="my scene" discard="1">
+    <instance id="0" mesh_id="0" rmap_id="-1" matrix="1 0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 " />
+    <instance id="1" mesh_id="1" rmap_id="-1" matrix="1 0 0 0.933398 0 -1.62921e-07 -1 0.399968 0 1 -1.62921e-07 3.73196e-08 0 0 0 1 " />
+    <instance id="2" mesh_id="2" rmap_id="-1" matrix="1 0 0 0.000471774 0 -1.62921e-07 -1 0.399968 0 1 -1.62921e-07 3.73196e-08 0 0 0 1 " />
+    <instance id="3" mesh_id="3" rmap_id="-1" matrix="1 0 0 -0.944702 0 -1.62921e-07 -1 0.399968 0 1 -1.62921e-07 3.73196e-08 0 0 0 1 " />
+    <instance_light id="0" light_id="0" matrix="1 0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 " lgroup_id="-1" />
+    <instance_light id="1" light_id="1" matrix="1 0 0 0 0 1 0 2.97376 0 0 1 4.25645e-08 0 0 0 1 " lgroup_id="-1" />
+    <instance id="4" mesh_id="4" rmap_id="-1" matrix="1 0 0 0 0 1 0 2.97376 0 0 1 4.25645e-08 0 0 0 1 " light_id="1" linst_id="1" />
+  </scene>
+</scenes>
+<trash />

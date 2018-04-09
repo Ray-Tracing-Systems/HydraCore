@@ -203,6 +203,9 @@
     <ClCompile Include="CPUExp_Integrators_MMLTDebug.cpp">
       <Filter>CPULayer</Filter>
     </ClCompile>
+    <ClCompile Include="CPUExp_Integrator_PT_Trofimm.cpp">
+      <Filter>CPULayer</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="shaders\image.cl">
