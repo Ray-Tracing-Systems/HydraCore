@@ -74,7 +74,7 @@ std::tuple<MatSample, int, float3> IntegratorMISPT_trofimm::sampleAndEvalBxDF(fl
   auto& gen = randomGen();
 
   int matOffset = materialOffset(m_pGlobals, surfElem.matId);
-  const int rayBounceNum = unpackBounceNum(flags);
+  const int rayBounceNum = a_currDepth;// unpackBounceNum(flags);
   const uint otherRayFlags = unpackRayFlags(flags);
 
   const bool canSampleReflOnly = (materialGetFlags(pHitMaterial) & PLAIN_MATERIAL_CAN_SAMPLE_REFL_ONLY) != 0;
