@@ -45,8 +45,9 @@ RenderDriverRTE::RenderDriverRTE(const wchar_t* a_options, int w, int h, int a_d
   else
 	  m_initFlags = GPU_RT_HW_LAYER_OCL;    
 
-  m_useConvertedLayout = false || (m_initFlags & GPU_RT_HW_LAYER_OCL);
-  m_useBvhInstInsert   = false;
+  m_useConvertedLayout      = false || (m_initFlags & GPU_RT_HW_LAYER_OCL);
+  m_useBvhInstInsert        = false;
+  m_texShadersWasRecompiled = false;
 
   if (MEASURE_RAYS)
     m_initFlags |= GPU_RT_MEMORY_FULL_SIZE_MODE;
@@ -491,13 +492,59 @@ void RenderDriverRTE::GetLastErrorW(wchar_t a_msg[256])
   m_msg = L"";
 }
 
+void RenderDriverRTE::BeginTexturesUpdate()
+{
+  if (m_texShadersWasRecompiled)
+    return;
+
+  m_inProcTexFile.open("../hydra_drv/shaders/texproc.cl");
+  m_outProcTexFile.open("../hydra_drv/shaders/texproc_generated.cl");
+
+  if (!m_inProcTexFile.is_open())
+    std::cerr << "RenderDriverRTE::BeginTexturesUpdate(): can't open in texproc file";
+
+  if (!m_outProcTexFile.is_open())
+    std::cerr << "RenderDriverRTE::BeginTexturesUpdate(): can't open out texproc file";
+
+  std::string line;
+  while (std::getline(m_inProcTexFile, line))
+  {
+    m_outProcTexFile << line.c_str() << std::endl;
+
+    if (line.find("#PUT_YOUR_PROCEDURAL_TEXTURES_HERE:") != std::string::npos)
+      break;
+  }
+
+  m_outProcTexFile << std::endl;
+
+}
+
+void RenderDriverRTE::EndTexturesUpdate()
+{
+  if (m_texShadersWasRecompiled)
+    return;
+
+  std::string line;
+  while (std::getline(m_inProcTexFile, line))
+    m_outProcTexFile << line.c_str() << std::endl;
+
+  m_inProcTexFile.close();
+  m_outProcTexFile.close();
+
+
+
+  m_texShadersWasRecompiled = true;
+}
+
+//std::wstring LocalDataPathOfCurrentSceneLibrary();
+
 bool RenderDriverRTE::UpdateImage(int32_t a_texId, int32_t w, int32_t h, int32_t bpp, const void* a_data, pugi::xml_node a_texNode)
 {
   std::wstring type = a_texNode.attribute(L"type").as_string();
 
   if (type == L"proc")
   {
-    const std::wstring returnType = a_texNode.child(L"return").attribute(L"type").as_string();
+    const std::wstring returnType = a_texNode.child(L"code").child(L"generated").child(L"return").attribute(L"type").as_string();
     const int retT = (returnType == L"float4") ? 4 : 1;
 
     // (1) remember proc tex id
@@ -506,6 +553,17 @@ bool RenderDriverRTE::UpdateImage(int32_t a_texId, int32_t w, int32_t h, int32_t
 
     // (2) insert code inside opencl program;
     //
+    const std::wstring fileName = m_libPath + L"/" + a_texNode.child(L"code").attribute(L"loc").as_string();
+    const std::string  fileNameS(fileName.begin(), fileName.end());
+
+    std::ifstream procTexIn(fileNameS.c_str());
+
+    if (procTexIn.is_open())
+    {
+      std::string line;
+      while (std::getline(procTexIn, line))
+        m_outProcTexFile << line.c_str() << std::endl;
+    }
 
     // (3) end
     //

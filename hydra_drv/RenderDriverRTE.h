@@ -100,6 +100,9 @@ struct RenderDriverRTE : public IHRRenderDriver
   void BeginMaterialUpdate();
   void EndMaterialUpdate();
 
+  void BeginTexturesUpdate();
+  void EndTexturesUpdate();
+
   float3 GetMLTAvgBrightness() { return m_legacy.m_averageBrightness; }
 
 protected:
@@ -205,6 +208,9 @@ protected:
   bool m_sceneHaveSkyPortals;
   bool m_needToFreeCPUMem;
 
+  std::ifstream m_inProcTexFile;
+  std::ofstream m_outProcTexFile;
+  bool m_texShadersWasRecompiled;
   /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
   int32_t AuxNormalTexPerMaterial(const int32_t matId, const int32_t texId);
@@ -257,6 +263,7 @@ protected:
   friend void ReadBumpAndOpacity(std::shared_ptr<RAYTR::IMaterial> pResult, pugi::xml_node a_node, RenderDriverRTE* a_pRTE);
 
   void FreeCPUMem();
+
 };
 
 IHRRenderDriver* CreateDriverRTE(const wchar_t* a_cfg, int w, int h, int a_devId, int a_flags, IHRSharedAccumImage* pExternalImage);

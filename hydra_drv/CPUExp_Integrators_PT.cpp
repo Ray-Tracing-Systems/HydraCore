@@ -179,6 +179,11 @@ float3 IntegratorMISPT::PathTrace(float3 ray_pos, float3 ray_dir, MisData misPre
     auto ptlCopy = m_ptlDummy;
     GetProcTexturesIdListFromMaterialHead(pHitMaterial, &ptlCopy);
     
+    if (ptlCopy.id_f4[0] != INVALID_TEXTURE)
+    {
+      int a = 2;
+    }
+
     const auto evalData      = materialEval(pHitMaterial, &sc, false, false, /* global data --> */ m_pGlobals, m_texStorage, m_texStorage, &ptlCopy);
     
     const float cosThetaOut1 = fmax(+dot(shadowRayDir, surfElem.normal), 0.0f);

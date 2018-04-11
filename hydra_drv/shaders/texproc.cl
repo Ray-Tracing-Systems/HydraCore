@@ -12,7 +12,6 @@ static inline float4 InternalFetch(int a_texId, const float2 texCoord, const int
 
 #define texture2D(texName, texCoord, flags) InternalFetch((texName), (texCoord), (flags), in_texStorage1, in_globals)
 
-
 typedef struct SurfaceInfoT
 {
   float3 wp;
@@ -42,6 +41,8 @@ float4 userProc(const SurfaceInfo* sHit, __global const float4* restrict in_texS
   const float4 texColor = texture2D(1, texCoord, TEX_CLAMP_U | TEX_CLAMP_V);
   return make_float4(texCoord.x, texCoord.y, 0.0f, 0.0f)*texColor;
 }
+
+//#PUT_YOUR_PROCEDURAL_TEXTURES_HERE:
 
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////

@@ -167,7 +167,7 @@ bool MaterialNodeHaveProceduralTextures(pugi::xml_node a_node, const std::unorde
   if (std::wstring(a_node.name()) == L"texture")
   {
     int32_t id = a_node.attribute(L"id").as_int();
-    return (a_ids.find(id) != a_ids.end());
+    return (a_ids.find(id) != a_ids.end()) || (std::wstring(a_node.attribute(L"type").as_string()) == L"texref_proc");
   }
 
   bool childHaveProc = false;
@@ -188,13 +188,14 @@ void FindAllProcTextures(pugi::xml_node a_node, const std::unordered_map<int, in
   {
     const int32_t id = a_node.attribute(L"id").as_int();
 
-    const std::wstring returnType = a_node.child(L"return").attribute(L"type").as_string();
-    const int retT = (returnType == L"float4") ? 4 : 1;
-
     auto p = a_ids.find(id);
 
-    if (p!= a_ids.end())
+    if (p != a_ids.end() || (std::wstring(a_node.attribute(L"type").as_string()) == L"texref_proc"))
+    {
+
+
       a_outVector.push_back(std::tuple<int, int>(p->first, p->second));
+    }
   }
 
   for (auto child : a_node.children())

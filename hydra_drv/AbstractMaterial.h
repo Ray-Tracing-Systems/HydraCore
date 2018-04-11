@@ -30,9 +30,9 @@ namespace RAYTR
     { 
       memset(m_plain.data, 0, sizeof(PlainMaterial));
 
-      ((int*)(m_plain.data))[EMISSIVE_TEXID_OFFSET] = INVALID_TEXTURE;
+      ((int*)(m_plain.data))[EMISSIVE_TEXID_OFFSET]       = INVALID_TEXTURE;
       ((int*)(m_plain.data))[EMISSIVE_TEXMATRIXID_OFFSET] = INVALID_TEXTURE;
-      ((int*)(m_plain.data))[EMISSIVE_LIGHTID_OFFSET] = -1;
+      ((int*)(m_plain.data))[EMISSIVE_LIGHTID_OFFSET]     = -1;
 
       ((int*)(m_plain.data))[OPACITY_TEX_OFFSET] = INVALID_TEXTURE;
       ((int*)(m_plain.data))[OPACITY_TEX_MATRIX] = INVALID_TEXTURE;
@@ -44,6 +44,10 @@ namespace RAYTR
       SetNormalSampler(INVALID_TEXTURE, sampler);
       SetOpacitySampler(INVALID_TEXTURE, sampler);
       SetEmissiveSampler(INVALID_TEXTURE, sampler);
+
+      ProcTextureList ptl;
+      InitProcTextureList(&ptl);
+      PutProcTexturesIdListToMaterialHead(&ptl, &m_plain);
     }
 
     virtual ~IMaterial() {}
