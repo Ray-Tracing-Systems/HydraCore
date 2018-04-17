@@ -50,3 +50,6 @@ So in general there should be no problem to use HydraCore in your open source or
 
 However if you find that for some reason you can't use one of these components, please let us know!
 Most of these components can be replaced.
+
+# Acknowlegments
+This project is supported by RFBR 16-31-60048 "mol_a_dk".
