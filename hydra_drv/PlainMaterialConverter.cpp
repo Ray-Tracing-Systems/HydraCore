@@ -1522,7 +1522,20 @@ bool RenderDriverRTE::PutAbstractMaterialToStorage(const int32_t a_matId, std::s
   const int32_t align = int32_t(m_pMaterialStorage->GetAlignSizeInBytes());
   assert(align >= sizeof(int4));
 
-  // (2) send plain data to device 
+  // (2) extend mdata with proc tex data;
+  //
+  int oldSize = mdata.size();
+  mdata.push_back(pMaterial->prtexDataTail.offsetTable);
+  for (const auto& argd : pMaterial->prtexDataTail.data)
+    mdata.push_back(argd);
+
+  if (mdata.size() == 0)
+    return false;
+
+  int* pTableOffset = (int*)(&mdata[0].data[PROC_TEX_TABLE_OFFSET]);
+  (*pTableOffset)   = oldSize * PLAIN_MATERIAL_DATA_SIZE;
+
+  // (3) send plain data to device 
   //
   m_pMaterialStorage->Update(a_matId, &mdata[0], mdata.size() * sizeof(PlainMaterial));
 

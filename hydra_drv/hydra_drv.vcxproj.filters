@@ -203,6 +203,9 @@
     <ClCompile Include="CPUExp_Integrators_MMLTDebug.cpp">
       <Filter>CPULayer</Filter>
     </ClCompile>
+    <ClCompile Include="RenderDriverRTE_ProcTex.cpp">
+      <Filter>Файлы исходного кода</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="shaders\image.cl">

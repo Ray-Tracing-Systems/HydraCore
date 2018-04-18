@@ -205,6 +205,7 @@
     <ClCompile Include="RenderDriverRTE_DebugBVH.cpp" />
     <ClCompile Include="RenderDriverRTE_PdfTables.cpp" />
     <ClCompile Include="CPUExp_Integrators_MMLTDebug.cpp" />
+    <ClCompile Include="RenderDriverRTE_ProcTex.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\HydraAPI\clew\clew.vcxproj">

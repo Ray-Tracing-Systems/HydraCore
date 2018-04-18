@@ -109,6 +109,8 @@ protected:
 
   void CalcCameraMatrices(float4x4* a_pModelViewMatrixInv, float4x4* a_projMatrixInv, float4x4* a_pModelViewMatrix, float4x4* a_projMatrix);
 
+  bool UpdateImageProc(int32_t a_texId, int32_t w, int32_t h, int32_t bpp, const void* a_data, pugi::xml_node a_texNode);
+
   std::wstring m_msg;
   std::wstring m_libPath;
   size_t       m_memAllocated;
@@ -151,7 +153,8 @@ protected:
   std::unordered_map<std::wstring, int2>                      m_iesCache;
   std::unordered_map<int, std::shared_ptr<RAYTR::IMaterial> > m_materialUpdated;
   std::unordered_map<std::wstring, int32_t>                   m_texturesProcessedNM;
-  std::unordered_map<int, int>                                m_procTexturesId;
+  std::unordered_map<int, int>                                m_procTexturesRetT;
+  std::unordered_map<int, std::string>                        m_procTexturesCall;
 
   using DefferedMaterialDataTuple = std::tuple<std::shared_ptr<RAYTR::IMaterial>, pugi::xml_node>;
   std::unordered_map<int, DefferedMaterialDataTuple > m_blendsToUpdate;
@@ -266,4 +269,11 @@ protected:
 
 };
 
+struct ProcTexParams
+{
+  std::vector<float> data;
+  int32_t            texId;
+};
+
 IHRRenderDriver* CreateDriverRTE(const wchar_t* a_cfg, int w, int h, int a_devId, int a_flags, IHRSharedAccumImage* pExternalImage);
+

@@ -4,6 +4,7 @@
 #include <iostream>
 #include <queue>
 #include <string>
+#include <regex>
 
 #include "../../HydraAPI/hydra_api/HydraXMLHelpers.h"
 #include "../../HydraAPI/hydra_api/HydraInternal.h"
@@ -365,7 +366,7 @@ void RenderDriverRTE::ClearAll()
   m_materialUpdated.clear();
   m_blendsToUpdate.clear();
   m_texturesProcessedNM.clear();
-  m_procTexturesId.clear();
+  m_procTexturesRetT.clear();
 
   m_instMatricesInv.clear();
   m_instLightInstId.clear();
@@ -384,7 +385,7 @@ HRDriverAllocInfo RenderDriverRTE::AllocAll(HRDriverAllocInfo a_info)
 
   // create memory storages and tables
   //
-  const size_t approxSizeOfMatBlock = sizeof(PlainMaterial) * 4;
+  const size_t approxSizeOfMatBlock = sizeof(PlainMaterial) * 8;
   const size_t approxSizeOfLight    = sizeof(PlainLight)    * 4;
 
   size_t totalMem   = m_pHWLayer->GetAvaliableMemoryAmount(true);
@@ -492,83 +493,13 @@ void RenderDriverRTE::GetLastErrorW(wchar_t a_msg[256])
   m_msg = L"";
 }
 
-void RenderDriverRTE::BeginTexturesUpdate()
-{
-  if (m_texShadersWasRecompiled)
-    return;
-
-  m_inProcTexFile.open("../hydra_drv/shaders/texproc.cl");
-  m_outProcTexFile.open("../hydra_drv/shaders/texproc_generated.cl");
-
-  if (!m_inProcTexFile.is_open())
-    std::cerr << "RenderDriverRTE::BeginTexturesUpdate(): can't open in texproc file";
-
-  if (!m_outProcTexFile.is_open())
-    std::cerr << "RenderDriverRTE::BeginTexturesUpdate(): can't open out texproc file";
-
-  std::string line;
-  while (std::getline(m_inProcTexFile, line))
-  {
-    m_outProcTexFile << line.c_str() << std::endl;
-
-    if (line.find("#PUT_YOUR_PROCEDURAL_TEXTURES_HERE:") != std::string::npos)
-      break;
-  }
-
-  m_outProcTexFile << std::endl;
-
-}
-
-void RenderDriverRTE::EndTexturesUpdate()
-{
-  if (m_texShadersWasRecompiled)
-    return;
-
-  std::string line;
-  while (std::getline(m_inProcTexFile, line))
-    m_outProcTexFile << line.c_str() << std::endl;
-
-  m_inProcTexFile.close();
-  m_outProcTexFile.close();
-
-
-
-  m_texShadersWasRecompiled = true;
-}
-
-//std::wstring LocalDataPathOfCurrentSceneLibrary();
 
 bool RenderDriverRTE::UpdateImage(int32_t a_texId, int32_t w, int32_t h, int32_t bpp, const void* a_data, pugi::xml_node a_texNode)
 {
   std::wstring type = a_texNode.attribute(L"type").as_string();
 
   if (type == L"proc")
-  {
-    const std::wstring returnType = a_texNode.child(L"code").child(L"generated").child(L"return").attribute(L"type").as_string();
-    const int retT = (returnType == L"float4") ? 4 : 1;
-
-    // (1) remember proc tex id
-    //
-    m_procTexturesId[a_texId] = retT;
-
-    // (2) insert code inside opencl program;
-    //
-    const std::wstring fileName = m_libPath + L"/" + a_texNode.child(L"code").attribute(L"loc").as_string();
-    const std::string  fileNameS(fileName.begin(), fileName.end());
-
-    std::ifstream procTexIn(fileNameS.c_str());
-
-    if (procTexIn.is_open())
-    {
-      std::string line;
-      while (std::getline(procTexIn, line))
-        m_outProcTexFile << line.c_str() << std::endl;
-    }
-
-    // (3) end
-    //
-    return true;
-  }
+    return UpdateImageProc(a_texId, w, h, bpp, a_data, a_texNode);
 
   SWTextureHeader texheader;
 
@@ -601,6 +532,9 @@ std::shared_ptr<RAYTR::IMaterial> CreateMaterialFromXmlNode(pugi::xml_node a_nod
 bool MaterialNodeHaveProceduralTextures(pugi::xml_node a_node, const std::unordered_map<int, int>& a_ids);
 void FindAllProcTextures(pugi::xml_node a_node, const std::unordered_map<int, int>& a_ids, std::vector< std::tuple<int, int> >& a_outVector);
 ProcTextureList MakePTListFromTupleArray(const std::vector<std::tuple<int, int> >& procTextureIds);
+void ReadAllProcTexArgsFromMaterialNode(pugi::xml_node a_node, std::vector<ProcTexParams>& a_procTexParams);
+void PutTexParamsToMaterialWithDamnTable(std::vector<ProcTexParams>& a_procTexParams, const std::unordered_map<int, int>& a_allProcTextures, 
+                                         std::shared_ptr<RAYTR::IMaterial> a_pMaterial);
 
 bool RenderDriverRTE::UpdateMaterial(int32_t a_matId, pugi::xml_node a_materialNode)
 {
@@ -622,17 +556,24 @@ bool RenderDriverRTE::UpdateMaterial(int32_t a_matId, pugi::xml_node a_materialN
     return false;
   }
 
-  if (MaterialNodeHaveProceduralTextures(a_materialNode, m_procTexturesId))
+  if (MaterialNodeHaveProceduralTextures(a_materialNode, m_procTexturesRetT))
   { 
     pMaterial->AddFlags(PLAIN_MATERIAL_HAVE_PROC_TEXTURES);
 
+    // 
+    //
     std::vector< std::tuple<int, int> > procTextureIds;
-    FindAllProcTextures(a_materialNode, m_procTexturesId, 
+    FindAllProcTextures(a_materialNode, m_procTexturesRetT, 
                         procTextureIds);
     
     ProcTextureList ptl = MakePTListFromTupleArray(procTextureIds);
- 
     PutProcTexturesIdListToMaterialHead(&ptl, &pMaterial->m_plain);
+
+    // prepare argumens for reading them inside procedural textures kernel
+    //
+    std::vector<ProcTexParams> procTexParams;
+    ReadAllProcTexArgsFromMaterialNode(a_materialNode, procTexParams);
+    PutTexParamsToMaterialWithDamnTable(procTexParams, m_procTexturesRetT, pMaterial);
   }
 
   m_materialUpdated[a_matId] = pMaterial; // remember that we have updates this material in current update phase (between BeginMaterialUpdate and EndMaterialUpdate)

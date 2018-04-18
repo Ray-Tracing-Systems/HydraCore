@@ -90,6 +90,14 @@ namespace RAYTR
 
     bool smoothOpacity;
     bool skipShadow;
+
+
+    struct ProcTexData
+    {
+      PlainMaterial              offsetTable;
+      std::vector<PlainMaterial> data;
+    
+    } prtexDataTail;
   };
 
 

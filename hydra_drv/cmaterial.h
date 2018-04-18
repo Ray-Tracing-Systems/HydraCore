@@ -108,6 +108,7 @@ static inline bool materialIsInvisLight    (__global const PlainMaterial* a_pMat
 #define PROC_TEX3_F1_HEAD_OFFSET     (PLAIN_MATERIAL_CUSTOM_DATA_SIZE+39)
 #define PROC_TEX4_F1_HEAD_OFFSET     (PLAIN_MATERIAL_CUSTOM_DATA_SIZE+40)
 
+#define PROC_TEX_TABLE_OFFSET        (PLAIN_MATERIAL_CUSTOM_DATA_SIZE+41)
 
 static inline void PutProcTexturesIdListToMaterialHead(const ProcTextureList* a_pData, PlainMaterial* a_pMat)
 {

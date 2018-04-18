@@ -96,6 +96,7 @@ __kernel void ProcTexExec(__global       uint*          restrict a_flags,
 
     // (3) evaluate all proc textures
     //
+    //#PUT_YOUR_PROCEDURAL_TEXTURES_EVAL_HERE:
 
     // (4) take what we need from all array
     //
