@@ -430,8 +430,8 @@ CLProgram::CLProgram() : m_refCounter(0)
 }
 
 CLProgram::CLProgram(cl_device_id a_devId, cl_context a_ctx, 
-                     const std::string& cs_path, const std::string& options, const std::string& includeFolderPath, 
-                     const std::string& encrypted, const std::string& binPath, bool a_saveLog) : m_refCounter(0)
+                     const std::string cs_path, const std::string options, const std::string includeFolderPath, 
+                     const std::string encrypted, const std::string binPath, bool a_saveLog) : m_refCounter(0)
 {
   m_ctx = a_ctx;
   m_dev = a_devId;

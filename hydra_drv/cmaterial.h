@@ -136,6 +136,23 @@ static inline void GetProcTexturesIdListFromMaterialHead(__global const PlainMat
   a_pData->id_f1[3] = as_int(a_pMat->data[PROC_TEX4_F1_HEAD_OFFSET]);
 }
 
+static inline bool materialHeadHaveTargetProcTex(__global const PlainMaterial* a_pMat, int a_texId)
+{
+  return (as_int(a_pMat->data[PROC_TEX1_F4_HEAD_OFFSET]) == a_texId || 
+          as_int(a_pMat->data[PROC_TEX2_F4_HEAD_OFFSET]) == a_texId ||
+          as_int(a_pMat->data[PROC_TEX3_F4_HEAD_OFFSET]) == a_texId ||
+          as_int(a_pMat->data[PROC_TEX4_F4_HEAD_OFFSET]) == a_texId ||
+          as_int(a_pMat->data[PROC_TEX1_F1_HEAD_OFFSET]) == a_texId ||
+          as_int(a_pMat->data[PROC_TEX2_F1_HEAD_OFFSET]) == a_texId ||
+          as_int(a_pMat->data[PROC_TEX3_F1_HEAD_OFFSET]) == a_texId ||
+          as_int(a_pMat->data[PROC_TEX4_F1_HEAD_OFFSET]) == a_texId);
+}
+
+static inline bool MaterialHaveAtLeastOneProcTex(__global const PlainMaterial* a_pMat)
+{
+  return as_int(a_pMat->data[PROC_TEX1_F4_HEAD_OFFSET]) != INVALID_TEXTURE || as_int(a_pMat->data[PROC_TEX1_F1_HEAD_OFFSET]) != INVALID_TEXTURE;
+}
+
 static inline float3 materialGetEmission(__global const PlainMaterial* a_pMat) { return make_float3(a_pMat->data[EMISSIVE_COLORX_OFFSET], a_pMat->data[EMISSIVE_COLORY_OFFSET], a_pMat->data[EMISSIVE_COLORZ_OFFSET]); }
 static inline  int2  materialGetEmissionTex(__global const PlainMaterial* a_pMat)
 {

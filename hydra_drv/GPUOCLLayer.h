@@ -98,6 +98,7 @@ public:
   float4 MLT_Burn(int a_iters);
   void   MLT_DoPass();
 
+  void RecompileProcTexShaders(const char* a_shaderPath);
 
 protected:
 

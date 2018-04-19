@@ -1524,16 +1524,22 @@ bool RenderDriverRTE::PutAbstractMaterialToStorage(const int32_t a_matId, std::s
 
   // (2) extend mdata with proc tex data;
   //
-  int oldSize = mdata.size();
-  mdata.push_back(pMaterial->prtexDataTail.offsetTable);
-  for (const auto& argd : pMaterial->prtexDataTail.data)
-    mdata.push_back(argd);
-
   if (mdata.size() == 0)
+  {
+    std::cerr << "RenderDriverRTE::PutAbstractMaterialToStorage: empty material" << std::endl;
     return false;
+  }
 
-  int* pTableOffset = (int*)(&mdata[0].data[PROC_TEX_TABLE_OFFSET]);
-  (*pTableOffset)   = oldSize * PLAIN_MATERIAL_DATA_SIZE;
+  if (MaterialHaveAtLeastOneProcTex(&mdata[0]))
+  {
+    int oldSize = mdata.size();
+    mdata.push_back(pMaterial->prtexDataTail.offsetTable);
+    for (const auto& argd : pMaterial->prtexDataTail.data)
+      mdata.push_back(argd);
+
+    int* pTableOffset = (int*)(&mdata[0].data[PROC_TEX_TABLE_OFFSET]);
+    (*pTableOffset)   = oldSize * PLAIN_MATERIAL_DATA_SIZE;
+  }
 
   // (3) send plain data to device 
   //

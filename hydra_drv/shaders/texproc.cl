@@ -35,15 +35,27 @@ typedef struct SurfaceInfoT
 //#define TEX_CLAMP_U   0x40000000
 //#define TEX_CLAMP_V   0x80000000
 
-float4 userProc(const SurfaceInfo* sHit, __global const float4* restrict in_texStorage1, __global const EngineGlobals* restrict in_globals)
-{
-  const float2 texCoord = readAttr_TexCoord0(sHit);
-  const float4 texColor = texture2D(1, texCoord, TEX_CLAMP_U | TEX_CLAMP_V);
-  return make_float4(texCoord.x, texCoord.y, 0.0f, 0.0f)*texColor;
-}
-
 //#PUT_YOUR_PROCEDURAL_TEXTURES_HERE:
 
+
+///////////////////////////////////////////////////////////////
+
+const int findArgDataOffsetInTable(int a_texId, __global const int* a_table)
+{
+  const int totalTexNum = a_table[PLAIN_MATERIAL_DATA_SIZE-1];
+  
+  int offset = 0;
+  for (int i = 0; i < totalTexNum; i++)
+  {
+    if (a_table[i * 2 + 0] == a_texId)
+    {
+      offset = a_table[i * 2 + 1];
+      break;
+    }
+  }
+
+  return offset;
+}
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -81,18 +93,32 @@ __kernel void ProcTexExec(__global       uint*          restrict a_flags,
     // (1) read common attributes to 'surfaceHit'
     //
     SurfaceInfo surfHit;
-
     surfHit.wp  = to_float3(in_hitPosNorm[tid]);
     surfHit.n   = to_float3(in_normalsFull[tid]); // normalize(decodeNormal(as_int(data.w)));
     surfHit.tc0 = in_hitTexCoord[tid];
+    __private SurfaceInfo* sHit = &surfHit;
 
     // (2) read custom attributes to 'surfHit' if target mesh have them.
     //
 
+    // read proc texture list for target 'pHitMaterial' material
+    // 
     ProcTextureList ptl;
     InitProcTextureList(&ptl);
 
     GetProcTexturesIdListFromMaterialHead(pHitMaterial, &ptl);
+
+    // get arg data pointers from material
+    //
+    __global const int* head    = (__global const int*)pHitMaterial;
+    __global const int* table   = head  + as_int(pHitMaterial->data[PROC_TEX_TABLE_OFFSET]);
+    __global const int* argdata = table + PLAIN_MATERIAL_DATA_SIZE;
+    __global const float* fdata = (__global const float*)argdata;
+
+    ptl.fdata4[0] = make_float4(0, 0, 1, 0);
+    ptl.fdata4[1] = make_float4(0, 0, 1, 0);
+    ptl.fdata4[2] = make_float4(0, 0, 1, 0);
+    ptl.fdata4[3] = make_float4(0, 0, 1, 0);
 
     // (3) evaluate all proc textures
     //
@@ -100,8 +126,6 @@ __kernel void ProcTexExec(__global       uint*          restrict a_flags,
 
     // (4) take what we need from all array
     //
-    ptl.fdata4[0] = userProc(&surfHit, in_texStorage1, in_globals);
-
     WriteProcTextureList(out_procTexData, tid, iNumElements, &ptl);
   }
 

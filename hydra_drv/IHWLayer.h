@@ -206,6 +206,8 @@ public:
 
   virtual EngineGlobals* GetEngineGlobals(); //#NOTE: this function used for debug needs only!!!
 
+  virtual void RecompileProcTexShaders(const char* a_shaderPath) {}
+
 protected:
 
   virtual void renderSubPixelData(const char* a_dataName, const std::vector<ushort2>& a_pixels, int spp, float4* a_pixValues, float4* a_subPixValues) {}

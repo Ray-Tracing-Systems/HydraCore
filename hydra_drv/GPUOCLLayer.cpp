@@ -756,6 +756,35 @@ GPUOCLLayer::GPUOCLLayer(int w, int h, int a_flags, int a_deviceId) : Base(w, h,
   m_raysWasSorted = false;
 }
 
+void GPUOCLLayer::RecompileProcTexShaders(const char* a_shaderPath)
+{
+  //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  std::string specDefines = "";
+
+  if (m_globals.liteCore)
+    specDefines = " -D BUGGY_INTEL "; // -D ENABLE_OPACITY_TEX  -D SHADOW_TRACE_COLORED_SHADOWS
+  else
+    specDefines = " -D SHADOW_TRACE_COLORED_SHADOWS -D ENABLE_OPACITY_TEX -D ENABLE_BLINN "; // -D NEXT_BOUNCE_RR
+
+  if (!m_globals.devIsCPU && !m_globals.liteCore)
+    specDefines += " -D RAYTR_THREAD_COMPACTION ";
+
+  std::string optionsGeneral = "-cl-mad-enable -cl-no-signed-zeros -cl-single-precision-constant -cl-denorms-are-zero "; // -cl-uniform-work-group-size 
+  std::string optionsInclude = "-I ../hydra_drv -I " + HydraInstallPath() + "bin2/shaders -D OCL_COMPILER ";  // put function that will find shader include folder
+
+  if (SAVE_BUILD_LOG)
+    optionsGeneral += "-cl-nv-verbose ";
+
+  std::string options = optionsGeneral + optionsInclude + specDefines; // + " -cl-nv-maxrregcount=32 ";
+  //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+  std::cout << "[cl_core]: recompile " << a_shaderPath << " ..." << std::endl;
+  m_progs.texproc = CLProgram(m_globals.device, m_globals.ctx, a_shaderPath, options, HydraInstallPath(), "", "", SAVE_BUILD_LOG);
+
+}
+
 void GPUOCLLayer::FinishAll()
 {
   if (m_globals.cmdQueue == 0)
