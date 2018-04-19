@@ -131,11 +131,28 @@ void PutTexParamsToMaterialWithDamnTable(std::vector<ProcTexParams>& a_procTexPa
 {
   if (a_procTexParams.size() == 0)
     return;
+  
+  // estimate needed size
+  //
+  int allSize = 0;
+  for (auto procTex : a_allProcTextures)
+  {
+    auto p = std::find_if(a_procTexParams.begin(), a_procTexParams.end(),
+                          [procTex](ProcTexParams x) { return (x.texId == procTex.first); });
 
-  a_pMaterial->prtexDataTail.data.resize(1);
+    if (p != a_procTexParams.end())
+      allSize += p->data.size();
+  }
 
-  int* table  = (int*)(&a_pMaterial->prtexDataTail.offsetTable.data[0]);
+  // allocate memory in 'prtexDataTail.data' and get pointer
+  //
+  const int numOfMaterialPagesForArgData = allSize / PLAIN_MATERIAL_DATA_SIZE + 1;
+  a_pMaterial->prtexDataTail.data.resize(numOfMaterialPagesForArgData);
   float* data = &(a_pMaterial->prtexDataTail.data[0].data[0]);
+
+  // fill table and put args
+  //
+  int* table  = (int*)(&a_pMaterial->prtexDataTail.offsetTable.data[0]);
 
   const int MAX_TABLE_SIZE  = PLAIN_MATERIAL_DATA_SIZE;
   const int MAX_TABLE_ELEMS = MAX_TABLE_SIZE/2;
@@ -157,6 +174,7 @@ void PutTexParamsToMaterialWithDamnTable(std::vector<ProcTexParams>& a_procTexPa
 
         for (int i = 0; i < p->data.size(); i++)
           data[currOffset + i] = p->data[i];
+
         currOffset += p->data.size();
       }
       else
@@ -226,6 +244,18 @@ void RenderDriverRTE::BeginTexturesUpdate()
   m_procTexturesCall.clear();
 }
 
+static const std::string currentDateTime()
+{
+  time_t     now = time(0);
+  struct tm  tstruct;
+  char       buf[80];
+  tstruct = *localtime(&now);
+  // Visit http://en.cppreference.com/w/cpp/chrono/c/strftime
+  // for more information about date/time format
+  strftime(buf, sizeof(buf), "%Y-%m-%d.%X", &tstruct);
+  return buf;
+}
+
 void RenderDriverRTE::EndTexturesUpdate()
 {
   if (m_texShadersWasRecompiled)
@@ -275,6 +305,8 @@ void RenderDriverRTE::EndTexturesUpdate()
         counter++;
       }
 
+      std::string currtime = currentDateTime();
+      m_outProcTexFile << "    // BREAK SHADER CACHE AT: " << currtime << "\n";
     }
   }
 
