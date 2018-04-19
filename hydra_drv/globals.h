@@ -2199,11 +2199,8 @@ typedef struct ShadeContextT
 */
 typedef struct ProcTextureListT
 {
-  float4  fdata4[4];  // 16  
-  float   fdata1[4];  // 4
-
-  unsigned int id_f4[4];
-  unsigned int id_f1[4];
+  float3  fdata4[5];  
+  int     id_f4 [5];
 
 } ProcTextureList;
 
@@ -2214,11 +2211,7 @@ static inline void InitProcTextureList(__private ProcTextureList* a_pList)
   a_pList->id_f4[1] = INVALID_TEXTURE;
   a_pList->id_f4[2] = INVALID_TEXTURE;
   a_pList->id_f4[3] = INVALID_TEXTURE;
-
-  a_pList->id_f1[0] = INVALID_TEXTURE;
-  a_pList->id_f1[1] = INVALID_TEXTURE;
-  a_pList->id_f1[2] = INVALID_TEXTURE;
-  a_pList->id_f1[3] = INVALID_TEXTURE;
+  a_pList->id_f4[4] = INVALID_TEXTURE;
 }
 
 static inline void ReadProcTextureList(__global float4* fdata, int tid, int size,
@@ -2227,68 +2220,67 @@ static inline void ReadProcTextureList(__global float4* fdata, int tid, int size
   if (fdata == 0)
     return;
 
-  const float4 f6  = fdata[tid + size * 5];
-  const float4 f7  = fdata[tid + size * 6];
+  const float4 f3 = fdata[tid + size * 3];
+  const float4 f4 = fdata[tid + size * 4];
 
-  a_pRes->id_f4[0] = as_int(f6.x);
-  a_pRes->id_f4[1] = as_int(f6.y);
-  a_pRes->id_f4[2] = as_int(f6.z);
-  a_pRes->id_f4[3] = as_int(f6.w);
+  a_pRes->id_f4[0] = as_int(f4.x);
+  a_pRes->id_f4[1] = as_int(f4.y);
+  a_pRes->id_f4[2] = as_int(f4.z);
+  a_pRes->id_f4[3] = as_int(f4.w);
+  a_pRes->id_f4[4] = as_int(f3.w);
 
-  a_pRes->id_f1[0] = as_int(f7.x);
-  a_pRes->id_f1[1] = as_int(f7.y);
-  a_pRes->id_f1[2] = as_int(f7.z);
-  a_pRes->id_f1[3] = as_int(f7.w);
+  a_pRes->fdata4[3] = to_float3(f3);
 
-  if(a_pRes->id_f4[0] != INVALID_TEXTURE)
-    a_pRes->fdata4[0] = fdata[tid + size*0];
-
-  if (a_pRes->id_f4[1] != INVALID_TEXTURE)
-    a_pRes->fdata4[1] = fdata[tid + size*1];
-
-  if (a_pRes->id_f4[2] != INVALID_TEXTURE)
-    a_pRes->fdata4[2] = fdata[tid + size*2];
-
-  if (a_pRes->id_f4[3] != INVALID_TEXTURE)
-    a_pRes->fdata4[3] = fdata[tid + size*3];
-
-  if (a_pRes->id_f1[0] != INVALID_TEXTURE)
+  if (a_pRes->id_f4[0] != INVALID_TEXTURE || a_pRes->id_f4[4] != INVALID_TEXTURE)
   {
-    const float4 f5 = fdata[tid + size * 4];
-
-    a_pRes->fdata1[0] = f5.x;
-    a_pRes->fdata1[1] = f5.y;
-    a_pRes->fdata1[2] = f5.z;
-    a_pRes->fdata1[3] = f5.w;
+    const float4 f0     = fdata[tid + size * 0];
+    a_pRes->fdata4[0]   = to_float3(f0);
+    a_pRes->fdata4[4].x = f0.w;
   }
+
+  if (a_pRes->id_f4[1] != INVALID_TEXTURE || a_pRes->id_f4[4] != INVALID_TEXTURE)
+  {
+    const float4 f1     = fdata[tid + size * 1];
+    a_pRes->fdata4[1]   = to_float3(f1);
+    a_pRes->fdata4[4].y = f1.w;
+  }
+  
+  if (a_pRes->id_f4[2] != INVALID_TEXTURE || a_pRes->id_f4[4] != INVALID_TEXTURE)
+  {
+    const float4 f2     = fdata[tid + size * 2];
+    a_pRes->fdata4[2]   = to_float3(f2);
+    a_pRes->fdata4[4].z = f2.w;
+  }
+ 
 }
 
 
 static inline void WriteProcTextureList(__global float4* fdata, int tid, int size, __private const ProcTextureList* a_pRes)
 {
-  fdata[tid + size * 5] = make_float4( as_float(a_pRes->id_f4[0]), as_float(a_pRes->id_f4[1]), as_float(a_pRes->id_f4[2]), as_float(a_pRes->id_f4[3]));
-  fdata[tid + size * 6] = make_float4( as_float(a_pRes->id_f1[0]), as_float(a_pRes->id_f1[1]), as_float(a_pRes->id_f1[2]), as_float(a_pRes->id_f1[3]));
+  const float4 f0 = make_float4(a_pRes->fdata4[0].x, a_pRes->fdata4[0].y, a_pRes->fdata4[0].z, a_pRes->fdata4[4].x);
+  const float4 f1 = make_float4(a_pRes->fdata4[1].x, a_pRes->fdata4[1].y, a_pRes->fdata4[1].z, a_pRes->fdata4[4].y);
+  const float4 f2 = make_float4(a_pRes->fdata4[2].x, a_pRes->fdata4[2].y, a_pRes->fdata4[2].z, a_pRes->fdata4[4].z);
+  const float4 f3 = make_float4(a_pRes->fdata4[3].x, a_pRes->fdata4[3].y, a_pRes->fdata4[3].z, as_float(a_pRes->id_f4[4]));
 
-  if (a_pRes->id_f1[0] != INVALID_TEXTURE)
-    fdata[tid + size * 4] = make_float4(a_pRes->fdata1[0], a_pRes->fdata1[1], a_pRes->fdata1[2], a_pRes->fdata1[3]);
+  if (a_pRes->id_f4[0] != INVALID_TEXTURE || a_pRes->id_f4[4] != INVALID_TEXTURE)
+    fdata[tid + size * 0] = f0;
+  
+  if (a_pRes->id_f4[1] != INVALID_TEXTURE || a_pRes->id_f4[4] != INVALID_TEXTURE)
+    fdata[tid + size * 1] = f1;
 
-  if (a_pRes->id_f4[0] != INVALID_TEXTURE)
-    fdata[tid + size * 0] = a_pRes->fdata4[0];
+  if (a_pRes->id_f4[2] != INVALID_TEXTURE || a_pRes->id_f4[4] != INVALID_TEXTURE)
+    fdata[tid + size * 2] = f2;
 
-  if (a_pRes->id_f4[1] != INVALID_TEXTURE)
-    fdata[tid + size * 1] = a_pRes->fdata4[1];
+  if (a_pRes->id_f4[3] != INVALID_TEXTURE || a_pRes->id_f4[4] != INVALID_TEXTURE)
+    fdata[tid + size * 3] = f3;
 
-  if (a_pRes->id_f4[2] != INVALID_TEXTURE)
-    fdata[tid + size * 2] = a_pRes->fdata4[2];
-
-  if (a_pRes->id_f4[3] != INVALID_TEXTURE)
-    fdata[tid + size * 3] = a_pRes->fdata4[3];
+  fdata[tid + size * 4] = make_float4( as_float(a_pRes->id_f4[0]), as_float(a_pRes->id_f4[1]), as_float(a_pRes->id_f4[2]), as_float(a_pRes->id_f4[3]));
 }
 
 
 static inline bool isProcTexId(int a_texId, const __private ProcTextureList* a_pList)
 {
-  return (a_pList->id_f4[0] != INVALID_TEXTURE) || (a_pList->id_f1[0] != INVALID_TEXTURE);
+  return (a_pList->id_f4[0] != INVALID_TEXTURE);
 }
 
 
@@ -2304,15 +2296,11 @@ static inline float4 readProcTex(int a_texId, const __private ProcTextureList* a
 {
   float4 res = make_float4(1, 1, 1, -1.0f);
 
-  res = (a_texId == a_pList->id_f4[0]) ? a_pList->fdata4[0] : res;
-  res = (a_texId == a_pList->id_f4[1]) ? a_pList->fdata4[1] : res;
-  res = (a_texId == a_pList->id_f4[2]) ? a_pList->fdata4[2] : res;
-  res = (a_texId == a_pList->id_f4[3]) ? a_pList->fdata4[3] : res;
-
-  res = (a_texId == a_pList->id_f1[0]) ? make_float4(a_pList->fdata1[0], a_pList->fdata1[0], a_pList->fdata1[0], a_pList->fdata1[0]) : res;
-  res = (a_texId == a_pList->id_f1[1]) ? make_float4(a_pList->fdata1[1], a_pList->fdata1[1], a_pList->fdata1[1], a_pList->fdata1[1]) : res;
-  res = (a_texId == a_pList->id_f1[2]) ? make_float4(a_pList->fdata1[2], a_pList->fdata1[2], a_pList->fdata1[2], a_pList->fdata1[2]) : res;
-  res = (a_texId == a_pList->id_f1[3]) ? make_float4(a_pList->fdata1[3], a_pList->fdata1[3], a_pList->fdata1[3], a_pList->fdata1[3]) : res;
+  res = (a_texId == a_pList->id_f4[0]) ? to_float4(a_pList->fdata4[0], 0.0f) : res;
+  res = (a_texId == a_pList->id_f4[1]) ? to_float4(a_pList->fdata4[1], 0.0f) : res;
+  res = (a_texId == a_pList->id_f4[2]) ? to_float4(a_pList->fdata4[2], 0.0f) : res;
+  res = (a_texId == a_pList->id_f4[3]) ? to_float4(a_pList->fdata4[3], 0.0f) : res;
+  res = (a_texId == a_pList->id_f4[4]) ? to_float4(a_pList->fdata4[4], 0.0f) : res;
 
   return res;
 }

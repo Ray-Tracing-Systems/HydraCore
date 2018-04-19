@@ -89,13 +89,8 @@ IntegratorCommon::IntegratorCommon(int w, int h, EngineGlobals* a_pGlobals, int 
   m_remapInstTab  = nullptr; m_remapInstSize = 0;
 
   InitProcTextureList(&m_ptlDummy);
-  for (int i = 0; i < 4; i++)
-  {
-    m_ptlDummy.fdata1[i] = 1.0f;
-    m_ptlDummy.fdata4[i] = make_float4(2,0,1,0);
-  }
-
-  // m_ptlDummy.id_f4[0] = 3;
+  for (int i = 0; i < 5; i++)
+    m_ptlDummy.fdata4[i] = make_float3(2,0,1);
 
 }
 

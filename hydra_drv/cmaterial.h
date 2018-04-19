@@ -102,25 +102,17 @@ static inline bool materialIsInvisLight    (__global const PlainMaterial* a_pMat
 #define PROC_TEX2_F4_HEAD_OFFSET     (PLAIN_MATERIAL_CUSTOM_DATA_SIZE+34)
 #define PROC_TEX3_F4_HEAD_OFFSET     (PLAIN_MATERIAL_CUSTOM_DATA_SIZE+35)
 #define PROC_TEX4_F4_HEAD_OFFSET     (PLAIN_MATERIAL_CUSTOM_DATA_SIZE+36)
+#define PROC_TEX4_F5_HEAD_OFFSET     (PLAIN_MATERIAL_CUSTOM_DATA_SIZE+37)
 
-#define PROC_TEX1_F1_HEAD_OFFSET     (PLAIN_MATERIAL_CUSTOM_DATA_SIZE+37)
-#define PROC_TEX2_F1_HEAD_OFFSET     (PLAIN_MATERIAL_CUSTOM_DATA_SIZE+38)
-#define PROC_TEX3_F1_HEAD_OFFSET     (PLAIN_MATERIAL_CUSTOM_DATA_SIZE+39)
-#define PROC_TEX4_F1_HEAD_OFFSET     (PLAIN_MATERIAL_CUSTOM_DATA_SIZE+40)
-
-#define PROC_TEX_TABLE_OFFSET        (PLAIN_MATERIAL_CUSTOM_DATA_SIZE+41)
+#define PROC_TEX_TABLE_OFFSET        (PLAIN_MATERIAL_CUSTOM_DATA_SIZE+38)
 
 static inline void PutProcTexturesIdListToMaterialHead(const ProcTextureList* a_pData, PlainMaterial* a_pMat)
 {
-  ((int*)(a_pMat->data))[PROC_TEX1_F4_HEAD_OFFSET + 0] = a_pData->id_f4[0];
-  ((int*)(a_pMat->data))[PROC_TEX1_F4_HEAD_OFFSET + 1] = a_pData->id_f4[1];
-  ((int*)(a_pMat->data))[PROC_TEX1_F4_HEAD_OFFSET + 2] = a_pData->id_f4[2];
-  ((int*)(a_pMat->data))[PROC_TEX1_F4_HEAD_OFFSET + 3] = a_pData->id_f4[3];
-
-  ((int*)(a_pMat->data))[PROC_TEX1_F1_HEAD_OFFSET + 0] = a_pData->id_f1[0];
-  ((int*)(a_pMat->data))[PROC_TEX1_F1_HEAD_OFFSET + 1] = a_pData->id_f1[1];
-  ((int*)(a_pMat->data))[PROC_TEX1_F1_HEAD_OFFSET + 2] = a_pData->id_f1[2];
-  ((int*)(a_pMat->data))[PROC_TEX1_F1_HEAD_OFFSET + 3] = a_pData->id_f1[3];
+  ((int*)(a_pMat->data))[PROC_TEX4_F4_HEAD_OFFSET + 0] = a_pData->id_f4[0];
+  ((int*)(a_pMat->data))[PROC_TEX4_F4_HEAD_OFFSET + 1] = a_pData->id_f4[1];
+  ((int*)(a_pMat->data))[PROC_TEX4_F4_HEAD_OFFSET + 2] = a_pData->id_f4[2];
+  ((int*)(a_pMat->data))[PROC_TEX4_F4_HEAD_OFFSET + 3] = a_pData->id_f4[3];
+  ((int*)(a_pMat->data))[PROC_TEX4_F5_HEAD_OFFSET + 4] = a_pData->id_f4[4];
 }
 
 static inline void GetProcTexturesIdListFromMaterialHead(__global const PlainMaterial* a_pMat, __private ProcTextureList* a_pData)
@@ -129,11 +121,7 @@ static inline void GetProcTexturesIdListFromMaterialHead(__global const PlainMat
   a_pData->id_f4[1] = as_int(a_pMat->data[PROC_TEX2_F4_HEAD_OFFSET]);
   a_pData->id_f4[2] = as_int(a_pMat->data[PROC_TEX3_F4_HEAD_OFFSET]);
   a_pData->id_f4[3] = as_int(a_pMat->data[PROC_TEX4_F4_HEAD_OFFSET]);
-
-  a_pData->id_f1[0] = as_int(a_pMat->data[PROC_TEX1_F1_HEAD_OFFSET]);
-  a_pData->id_f1[1] = as_int(a_pMat->data[PROC_TEX2_F1_HEAD_OFFSET]);
-  a_pData->id_f1[2] = as_int(a_pMat->data[PROC_TEX3_F1_HEAD_OFFSET]);
-  a_pData->id_f1[3] = as_int(a_pMat->data[PROC_TEX4_F1_HEAD_OFFSET]);
+  a_pData->id_f4[4] = as_int(a_pMat->data[PROC_TEX4_F5_HEAD_OFFSET]);
 }
 
 static inline bool materialHeadHaveTargetProcTex(__global const PlainMaterial* a_pMat, int a_texId)
@@ -142,15 +130,12 @@ static inline bool materialHeadHaveTargetProcTex(__global const PlainMaterial* a
           as_int(a_pMat->data[PROC_TEX2_F4_HEAD_OFFSET]) == a_texId ||
           as_int(a_pMat->data[PROC_TEX3_F4_HEAD_OFFSET]) == a_texId ||
           as_int(a_pMat->data[PROC_TEX4_F4_HEAD_OFFSET]) == a_texId ||
-          as_int(a_pMat->data[PROC_TEX1_F1_HEAD_OFFSET]) == a_texId ||
-          as_int(a_pMat->data[PROC_TEX2_F1_HEAD_OFFSET]) == a_texId ||
-          as_int(a_pMat->data[PROC_TEX3_F1_HEAD_OFFSET]) == a_texId ||
-          as_int(a_pMat->data[PROC_TEX4_F1_HEAD_OFFSET]) == a_texId);
+          as_int(a_pMat->data[PROC_TEX4_F5_HEAD_OFFSET]) == a_texId);
 }
 
 static inline bool MaterialHaveAtLeastOneProcTex(__global const PlainMaterial* a_pMat)
 {
-  return as_int(a_pMat->data[PROC_TEX1_F4_HEAD_OFFSET]) != INVALID_TEXTURE || as_int(a_pMat->data[PROC_TEX1_F1_HEAD_OFFSET]) != INVALID_TEXTURE;
+  return as_int(a_pMat->data[PROC_TEX1_F4_HEAD_OFFSET]) != INVALID_TEXTURE;
 }
 
 static inline float3 materialGetEmission(__global const PlainMaterial* a_pMat) { return make_float3(a_pMat->data[EMISSIVE_COLORX_OFFSET], a_pMat->data[EMISSIVE_COLORY_OFFSET], a_pMat->data[EMISSIVE_COLORZ_OFFSET]); }

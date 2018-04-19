@@ -115,10 +115,10 @@ __kernel void ProcTexExec(__global       uint*          restrict a_flags,
     __global const int* argdata = table + PLAIN_MATERIAL_DATA_SIZE;
     __global const float* fdata = (__global const float*)argdata;
 
-    ptl.fdata4[0] = make_float4(0, 0, 1, 0);
-    ptl.fdata4[1] = make_float4(0, 0, 1, 0);
-    ptl.fdata4[2] = make_float4(0, 0, 1, 0);
-    ptl.fdata4[3] = make_float4(0, 0, 1, 0);
+    ptl.fdata4[0] = make_float3(0, 0, 1);
+    ptl.fdata4[1] = make_float3(0, 0, 1);
+    ptl.fdata4[2] = make_float3(0, 0, 1);
+    ptl.fdata4[3] = make_float3(0, 0, 1);
 
     // (3) evaluate all proc textures
     //
