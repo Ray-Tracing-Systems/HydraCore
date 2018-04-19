@@ -2197,10 +2197,13 @@ typedef struct ShadeContextT
 \brief this structure will store results of procedural texture kernel execution.
 
 */
+
+#define MAXPROCTEX 5
+
 typedef struct ProcTextureListT
 {
-  float3  fdata4[5];  
-  int     id_f4 [5];
+  float3  fdata4[MAXPROCTEX];  
+  int     id_f4 [MAXPROCTEX];
 
 } ProcTextureList;
 
