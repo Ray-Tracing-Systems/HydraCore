@@ -280,13 +280,13 @@ void RenderDriverRTE::EndTexturesUpdate()
         m_outProcTexFile << "    {" << std::endl;
         m_outProcTexFile << spaces.c_str() << "  __global const float* stack = fdata + findArgDataOffsetInTable(" << ptex.first << ", table);" << std::endl;
         m_outProcTexFile << spaces.c_str() << "  " << "texcolor[" << counter << "] = to_float3(" << ptex.second.c_str() << ");" << std::endl;
-        m_outProcTexFile << spaces.c_str() << "  " << "texid   [" << counter << "] = " << ptex.first << ";" << std::endl;
+        m_outProcTexFile << spaces.c_str() << "  " << "texid   [" << counter << "] = "           << ptex.first << ";" << std::endl;
         m_outProcTexFile << "    }" << std::endl;
         m_outProcTexFile << "    else" << std::endl;
         m_outProcTexFile << "    {" << std::endl;
         m_outProcTexFile << spaces.c_str() << "  " << "texcolor[" << counter << "] = " << "make_float3(0,0,1)" << ";" << std::endl;
         m_outProcTexFile << spaces.c_str() << "  " << "texid   [" << counter << "] = " << ptex.first << ";" << std::endl;
-        m_outProcTexFile << "    }" << std::endl; 
+        m_outProcTexFile << "    }" << std::endl << std::endl; 
         counter++;
       }
 

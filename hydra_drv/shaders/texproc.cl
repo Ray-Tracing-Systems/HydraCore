@@ -22,9 +22,9 @@ typedef struct SurfaceInfoT
 
 } SurfaceInfo;
 
-#define readAttr_WorldPos (sHit) (sHit->wp);
-#define readAttr_ShadeNorm(sHit) (sHit->n);
-#define readAttr_TexCoord0(sHit) (sHit->tc0);
+#define readAttr_WorldPos(sHit) (sHit->wp)
+#define readAttr_ShadeNorm(sHit) (sHit->n)
+#define readAttr_TexCoord0(sHit) (sHit->tc0)
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -96,7 +96,7 @@ __kernel void ProcTexExec(__global       uint*          restrict a_flags,
     surfHit.wp  = to_float3(in_hitPosNorm[tid]);
     surfHit.n   = to_float3(in_normalsFull[tid]); // normalize(decodeNormal(as_int(data.w)));
     surfHit.tc0 = in_hitTexCoord[tid];
-    __private SurfaceInfo* sHit = &surfHit;
+    __private const SurfaceInfo* sHit = &surfHit;
 
     // (2) read custom attributes to 'surfHit' if target mesh have them.
     //
