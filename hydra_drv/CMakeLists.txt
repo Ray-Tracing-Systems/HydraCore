@@ -53,6 +53,8 @@ set(SOURCE_FILES
         RenderDriverRTE_DebugBVH.cpp
         RenderDriverRTE.h
         RenderDriverRTE_PdfTables.cpp
+        RenderDriverRTE_ProcTex.cpp
+        CPUExp_GBuffer.cpp
     )
 
 if (CMAKE_BUILD_TYPE STREQUAL "Debug")
