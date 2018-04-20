@@ -850,6 +850,7 @@ HRDriverDependencyInfo RenderDriverRTE::DependencyInfo()
 { 
   HRDriverDependencyInfo res;
   res.needRedrawWhenCameraChanges = false;
+  res.allowInstanceReorder        = false;
   return res; 
 }
 
