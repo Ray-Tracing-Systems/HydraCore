@@ -798,7 +798,7 @@ std::string GPUOCLLayer::GetOCLShaderCompilerOptions()
     specDefines += " -D RAYTR_THREAD_COMPACTION ";
 
   std::string optionsGeneral = "-cl-mad-enable -cl-no-signed-zeros -cl-single-precision-constant -cl-denorms-are-zero "; // -cl-uniform-work-group-size 
-  std::string optionsInclude = "-I ../hydra_drv -I " + HydraInstallPath() + "bin2/shaders -D OCL_COMPILER ";             // put function that will find shader include folder
+  std::string optionsInclude = "-I ../hydra_drv -I " + HydraInstallPath() + "/shaders -D OCL_COMPILER ";             // put function that will find shader include folder
 
   if (SAVE_BUILD_LOG)
     optionsGeneral += "-cl-nv-verbose ";
