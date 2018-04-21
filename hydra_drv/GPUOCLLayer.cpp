@@ -539,16 +539,6 @@ GPUOCLLayer::GPUOCLLayer(int w, int h, int a_flags, int a_deviceId) : Base(w, h,
   else
     std::cout << "[cl_core]: use OCL trace " << std::endl;
 
-  std::string specDefines = "";
-
-  if (m_globals.liteCore)
-    specDefines = " -D BUGGY_INTEL "; // -D ENABLE_OPACITY_TEX  -D SHADOW_TRACE_COLORED_SHADOWS
-  else
-    specDefines = " -D SHADOW_TRACE_COLORED_SHADOWS -D ENABLE_OPACITY_TEX -D ENABLE_BLINN "; // -D NEXT_BOUNCE_RR
-
-  if (!m_globals.devIsCPU && !m_globals.liteCore)
-    specDefines += " -D RAYTR_THREAD_COMPACTION ";
-
   //
   //
   m_clglSharing = 0;
@@ -614,16 +604,7 @@ GPUOCLLayer::GPUOCLLayer(int w, int h, int a_flags, int a_deviceId) : Base(w, h,
   std::string lshaderpath  = "../hydra_drv/shaders/light.cl";    // !!!! the hole in security !!!
   std::string yshaderpath  = "../hydra_drv/shaders/material.cl"; // !!!! the hole in security !!!
 
-#ifdef WIN32
-  const std::string installPath2 = "C:/[Hydra]/bin2/";
-#else
-  //const std::string installPath2 = "./";
-  char user_name[L_cuserid];
-  cuserid(user_name);
-  std::stringstream ss;
-  ss << "/home/" << user_name << "/hydra/";
-  const std::string installPath2 = ss.str();
-#endif
+  const std::string installPath2 = HydraInstallPath();
   
   if (!isFileExists(sshaderpath))  sshaderpath  = installPath2 + "shaders/screen.cl";
   if (!isFileExists(tshaderpath))  tshaderpath  = installPath2 + "shaders/trace.cl";
@@ -664,17 +645,8 @@ GPUOCLLayer::GPUOCLLayer(int w, int h, int a_flags, int a_deviceId) : Base(w, h,
     std::remove(yoshaderpathBin.c_str());
   }
 
-  //
-  //
-  std::string optionsGeneral = "-cl-mad-enable -cl-no-signed-zeros -cl-single-precision-constant -cl-denorms-are-zero "; // -cl-uniform-work-group-size 
-  std::string optionsInclude = "-I ../hydra_drv -I " + HydraInstallPath() + "bin2/shaders -D OCL_COMPILER ";  // put function that will find shader include folder
-
-  if (SAVE_BUILD_LOG)
-    optionsGeneral += "-cl-nv-verbose ";
-
-  std::string options = optionsGeneral + optionsInclude + specDefines; // + " -cl-nv-maxrregcount=32 ";
+  std::string options = GetOCLShaderCompilerOptions();
   std::cout << "[cl_core]: building cl programs ..." << std::endl;
- 
 
   //m_progressBar("Compiling shaders", 0.1f);
   std::cout << "[cl_core]: building " << ishaderpath.c_str() << "    ..." << std::endl;
@@ -748,27 +720,7 @@ GPUOCLLayer::GPUOCLLayer(int w, int h, int a_flags, int a_deviceId) : Base(w, h,
 
 void GPUOCLLayer::RecompileProcTexShaders(const char* a_shaderPath)
 {
-  //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-  //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-  std::string specDefines = "";
-
-  if (m_globals.liteCore)
-    specDefines = " -D BUGGY_INTEL "; // -D ENABLE_OPACITY_TEX  -D SHADOW_TRACE_COLORED_SHADOWS
-  else
-    specDefines = " -D SHADOW_TRACE_COLORED_SHADOWS -D ENABLE_OPACITY_TEX -D ENABLE_BLINN "; // -D NEXT_BOUNCE_RR
-
-  if (!m_globals.devIsCPU && !m_globals.liteCore)
-    specDefines += " -D RAYTR_THREAD_COMPACTION ";
-
-  std::string optionsGeneral = "-cl-mad-enable -cl-no-signed-zeros -cl-single-precision-constant -cl-denorms-are-zero "; // -cl-uniform-work-group-size 
-  std::string optionsInclude = "-I ../hydra_drv -I " + HydraInstallPath() + "bin2/shaders -D OCL_COMPILER ";             // put function that will find shader include folder
-
-  if (SAVE_BUILD_LOG)
-    optionsGeneral += "-cl-nv-verbose ";
-
-  std::string options = optionsGeneral + optionsInclude + specDefines; // + " -cl-nv-maxrregcount=32 ";
-  //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-  //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  std::string options = GetOCLShaderCompilerOptions();
 
   std::cout << "[cl_core]: recompile " << a_shaderPath << " ..." << std::endl;
   m_progs.texproc = CLProgram(m_globals.device, m_globals.ctx, a_shaderPath, options, HydraInstallPath(), "", "", SAVE_BUILD_LOG);
@@ -831,6 +783,27 @@ size_t GPUOCLLayer::CalcMegaBlockSize()
   else
     return 1024 * 1024;
 
+}
+
+std::string GPUOCLLayer::GetOCLShaderCompilerOptions()
+{
+  std::string specDefines = "";
+
+  if (m_globals.liteCore)
+    specDefines = " -D BUGGY_INTEL "; // -D ENABLE_OPACITY_TEX  -D SHADOW_TRACE_COLORED_SHADOWS
+  else
+    specDefines = " -D SHADOW_TRACE_COLORED_SHADOWS -D ENABLE_OPACITY_TEX -D ENABLE_BLINN "; // -D NEXT_BOUNCE_RR
+
+  if (!m_globals.devIsCPU && !m_globals.liteCore)
+    specDefines += " -D RAYTR_THREAD_COMPACTION ";
+
+  std::string optionsGeneral = "-cl-mad-enable -cl-no-signed-zeros -cl-single-precision-constant -cl-denorms-are-zero "; // -cl-uniform-work-group-size 
+  std::string optionsInclude = "-I ../hydra_drv -I " + HydraInstallPath() + "bin2/shaders -D OCL_COMPILER ";             // put function that will find shader include folder
+
+  if (SAVE_BUILD_LOG)
+    optionsGeneral += "-cl-nv-verbose ";
+
+  return optionsGeneral + optionsInclude + specDefines; // + " -cl-nv-maxrregcount=32 ";
 }
 
 

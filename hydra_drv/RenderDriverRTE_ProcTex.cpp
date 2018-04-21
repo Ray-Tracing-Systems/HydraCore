@@ -224,8 +224,18 @@ void RenderDriverRTE::BeginTexturesUpdate()
   if (m_texShadersWasRecompiled)
     return;
 
-  m_inProcTexFile.open("../hydra_drv/shaders/texproc.cl");
-  m_outProcTexFile.open("../hydra_drv/shaders/texproc_generated.cl");
+  std::string pathIn  = "../hydra_drv/shaders/texproc.cl";
+  std::string pathOut = "../hydra_drv/shaders/texproc_generated.cl";
+
+  const std::string installPath2 = HydraInstallPath();
+
+  if (!isFileExists(pathIn))   pathIn  = installPath2 + "shaders/texproc.cl";
+  if (!isFileExists(pathOut))  pathOut = installPath2 + "shaders/texproc_generated.cl";
+
+  m_inProcTexFile.open(pathIn.c_str());
+  m_outProcTexFile.open(pathOut.c_str());
+
+  m_outProcTexFileName = pathOut;
 
   if (!m_inProcTexFile.is_open())
     std::cerr << "RenderDriverRTE::BeginTexturesUpdate(): can't open in texproc file";
@@ -323,7 +333,7 @@ void RenderDriverRTE::EndTexturesUpdate()
   m_inProcTexFile.close();
   m_outProcTexFile.close();
 
-  m_pHWLayer->RecompileProcTexShaders("../hydra_drv/shaders/texproc_generated.cl");
+  m_pHWLayer->RecompileProcTexShaders(m_outProcTexFileName.c_str());
 
   m_texShadersWasRecompiled = true;
 }

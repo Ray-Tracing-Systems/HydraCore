@@ -128,6 +128,7 @@ protected:
   void Denoise(cl_mem textureIn, cl_mem textureOut, int w, int h, float smoothLvl);
 
   size_t CalcMegaBlockSize();
+  std::string GetOCLShaderCompilerOptions();
 
   void inPlaceScanAnySize1f(cl_mem buff, size_t a_size);
   void testScan();
