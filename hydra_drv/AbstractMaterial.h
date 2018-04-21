@@ -1,7 +1,7 @@
 #define ABSTRACT_MATERIAL_GUARDIAN
 
 #ifndef RTGLOBALS
-  #include "globals.h"
+  #include "cglobals.h"
 #endif
 
 #ifndef RTCMATERIAL

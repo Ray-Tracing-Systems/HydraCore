@@ -1,7 +1,7 @@
 #ifndef RTCMATERIAL
 #define RTCMATERIAL
 
-#include "globals.h"
+#include "cglobals.h"
 #include "cfetch.h"
 #include "crandom.h"
 

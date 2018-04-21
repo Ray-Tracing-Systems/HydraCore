@@ -1,6 +1,6 @@
 #pragma once
 
-#include "globals.h"
+#include "cglobals.h"
 
 #define MAXBVHTREES 4
 

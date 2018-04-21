@@ -1,4 +1,4 @@
-#include "globals.h"
+#include "cglobals.h"
 #include "cfetch.h"
 
 static inline float4 InternalFetch(int a_texId, const float2 texCoord, const int a_flags, 

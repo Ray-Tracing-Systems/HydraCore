@@ -1,7 +1,7 @@
 #ifndef CTFETCH
 #define CTFETCH
 
-#include "globals.h"
+#include "cglobals.h"
 
 #define LIGHT_DATA_SIZE 128
 
