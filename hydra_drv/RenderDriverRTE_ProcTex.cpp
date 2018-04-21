@@ -216,6 +216,9 @@ ProcTextureList MakePTListFromTupleArray(const std::vector<std::tuple<int, int> 
   return ptl;
 }
 
+//#TODO: move m_texShadersWasRecompiled outside of this, don't call BeginTexturesUpdate/EndTexturesUpdate if don't have textures tp update
+//
+
 void RenderDriverRTE::BeginTexturesUpdate()
 {
   if (m_texShadersWasRecompiled)
@@ -258,8 +261,15 @@ static const std::string currentDateTime()
 
 void RenderDriverRTE::EndTexturesUpdate()
 {
-  if (m_texShadersWasRecompiled)
+  if (m_texShadersWasRecompiled) 
     return;
+
+  if (m_procTexturesCall.size() == 0)
+  {
+    m_inProcTexFile.close();
+    m_outProcTexFile.close();
+    return;
+  }
 
   const std::string spaces = "    ";
 

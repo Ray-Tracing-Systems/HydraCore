@@ -158,6 +158,29 @@ static inline __global const float* lightSelPdfTableFwd(__global const EngineGlo
 static inline int lightSelPdfTableSizeFwd(__global const EngineGlobals* a_pGlobals) { return a_pGlobals->lightSelectorTableSizeFwd; }
 static inline int lightSelPdfTableSizeRev(__global const EngineGlobals* a_pGlobals) { return a_pGlobals->lightSelectorTableSizeRev; }
 
+static inline int materialOffset(__global const EngineGlobals* a_pGlobals, const int matId)
+{
+  __global const int*    pBegin = (__global const int*)a_pGlobals;
+  __global const int*    ids = pBegin + a_pGlobals->materialsTableOffset;
+  return ids[matId];
+}
+
+static inline __global const PlainMaterial* materialAtOffset(__global const float4* a_mltStorage, const int matOffset)
+{
+  return (__global const PlainMaterial*)(a_mltStorage + matOffset);
+}
+
+static inline __global const PlainMaterial* materialAt(__global const EngineGlobals* a_pGlobals, __global const float4* a_mltStorage, const int matId)
+{
+  if (matId == -1)
+    return 0;
+  else
+  {
+    const int matOffset = materialOffset(a_pGlobals, matId);
+    return materialAtOffset(a_mltStorage, matOffset);
+  }
+}
+
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 static inline float2 projectedPixelSize2(float dist, __global const EngineGlobals* a_globals)
