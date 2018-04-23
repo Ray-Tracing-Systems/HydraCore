@@ -1088,7 +1088,7 @@ void RenderDriverRTE::FreeCPUMem()
   m_instLightInstId      = std::vector<int32_t>();
   m_lightIdByLightInstId = std::vector<int32_t>();
   m_meshIdByInstId       = std::vector<int32_t>();
-  m_instIdByInstId       = std::vector<int32_t>();
+  //m_instIdByInstId       = std::vector<int32_t>();
   m_meshRemapListId      = std::vector<int32_t>();
 
   if (m_pBVH != nullptr)
