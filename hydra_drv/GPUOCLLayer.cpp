@@ -1205,7 +1205,7 @@ void GPUOCLLayer::ConnectEyePass(cl_mem in_rayFlags, cl_mem in_hitPos, cl_mem in
 
 void DebugSaveFuckingGBufferAsManyImages(int a_width, int a_height, const std::vector<GBufferAll>& gbuffer, const wchar_t* a_path);
 
-void GPUOCLLayer::EvalGBuffer(IHRSharedAccumImage* a_pAccumImage)
+void GPUOCLLayer::EvalGBuffer(IHRSharedAccumImage* a_pAccumImage, const std::vector<int32_t>& a_instIdByInstId)
 {
   // std::vector<float4> data1(m_width*m_height);
   // std::vector<float4> data2(m_width*m_height);
@@ -1316,6 +1316,14 @@ void GPUOCLLayer::EvalGBuffer(IHRSharedAccumImage* a_pAccumImage)
     //
     CHECK_CL(clEnqueueReadBuffer(m_globals.cmdQueue, m_rays.pathAccColor,    CL_FALSE, 0, (finalSize/GBUFFER_SAMPLES)*sizeof(float4), &data1[line*m_width], 0, NULL, NULL));
     CHECK_CL(clEnqueueReadBuffer(m_globals.cmdQueue, m_rays.pathShadeColor,  CL_FALSE, 0, (finalSize/GBUFFER_SAMPLES)*sizeof(float4), &data2[line*m_width], 0, NULL, NULL));
+  
+    for (int x = 0; x < m_width; x++)
+    {
+      int* pInstId  = (int*)(&data2[line*m_width + x].w);
+      int oldInstId = (*pInstId);
+      if (oldInstId >= 0 && oldInstId <= a_instIdByInstId.size())
+        (*pInstId) = a_instIdByInstId[oldInstId];
+    }
   }
 
   clFinish(m_globals.cmdQueue);

@@ -134,7 +134,7 @@ public:
 
   virtual void BeginTracingPass()  = 0;
   virtual void EndTracingPass()    = 0;
-  virtual void EvalGBuffer(IHRSharedAccumImage* a_pAccumImage) {}
+  virtual void EvalGBuffer(IHRSharedAccumImage* a_pAccumImage, const std::vector<int32_t>& a_instIdByInstId) {}
   virtual void FinishAll() {}
 
   virtual void InitPathTracing(int seed) = 0;
