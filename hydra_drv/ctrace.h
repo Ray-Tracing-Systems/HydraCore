@@ -1,7 +1,7 @@
 #ifndef RTCTRACE
 #define RTCTRACE
 
-#include "globals.h"
+#include "cglobals.h"
 #include "cfetch.h"
 #include "crandom.h"
 

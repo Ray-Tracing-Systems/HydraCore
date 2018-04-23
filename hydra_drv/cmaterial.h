@@ -1,142 +1,12 @@
 #ifndef RTCMATERIAL
 #define RTCMATERIAL
 
-#include "globals.h"
+#include "cglobals.h"
 #include "cfetch.h"
 #include "crandom.h"
 
+#define MIX_TREE_MAX_DEEP            16
 
-enum PLAIN_MAT_TYPES {
-
-  PLAIN_MAT_CLASS_PHONG_SPECULAR = 0,
-  PLAIN_MAT_CLASS_BLINN_SPECULAR = 1, // Micro Facet Torrance Sparrow model with Blinn distribution
-  PLAIN_MAT_CLASS_PERFECT_MIRROR = 2,
-  PLAIN_MAT_CLASS_THIN_GLASS     = 3,
-  PLAIN_MAT_CLASS_GLASS          = 4,
-  PLAIN_MAT_CLASS_TRANSLUCENT    = 5,
-  PLAIN_MAT_CLASS_SHADOW_MATTE   = 6,
-  PLAIN_MAT_CLASS_LAMBERT        = 7,
-  PLAIN_MAT_CLASS_OREN_NAYAR     = 8,
-  PLAIN_MAT_CLASS_BLEND_MASK     = 9,
-  PLAIN_MAT_CLASS_EMISSIVE       = 10,
-  PLAIN_MAT_CLASS_VOLUME_PERLIN  = 11,
-	PLAIN_MAT_CLASS_SSS            = 12
-};
-
-
-enum PLAIN_MAT_FLAGS{
-
-  PLAIN_MATERIAL_IS_LIGHT         = 1,
-  PLAIN_MATERIAL_CAST_CAUSTICS    = 2,
-  PLAIN_MATERIAL_HAS_DIFFUSE      = 4,
-  PLAIN_MATERIAL_HAS_TRANSPARENCY = 8,
-
-  PLAIN_MATERIAL_INVERT_NMAP_X       = 16,
-  PLAIN_MATERIAL_INVERT_NMAP_Y       = 32,
-  PLAIN_MATERIAL_INVERT_SWAP_NMAP_XY = 64,
-  PLAIN_MATERIAL_INVERT_HEIGHT       = 128,
-  PLAIN_MATERIAL_SKIP_SHADOW         = 256,
-  PLAIN_MATERIAL_FORBID_EMISSIVE_GI  = 512,
-  PLAIN_MATERIAL_SKIP_SKY_PORTAL     = 1024,
-  PLAIN_MATERIAL_EMISSION_FALOFF     = 2048,
-
-  // This flag marks node as a real blend of different materials.
-  // It used for blending emissive properties and normal maps.
-  //
-  PLAIN_MATERIAL_SURFACE_BLEND        = 4096,
-  PLAIN_MATERIAL_HAVE_BTDF            = 8192,
-  PLAIN_MATERIAL_INVIS_LIGHT          = 16384,
-  PLAIN_MATERIAL_CAN_SAMPLE_REFL_ONLY = 32768,
-  PLAIN_MATERIAL_HAVE_PROC_TEXTURES   = 32768*2,
-};
-
-#define PLAIN_MATERIAL_DATA_SIZE        128
-#define PLAIN_MATERIAL_CUSTOM_DATA_SIZE 64
-#define MIX_TREE_MAX_DEEP               16
-
-struct PlainMaterialT
-{
-  float data[PLAIN_MATERIAL_DATA_SIZE];
-};
-
-typedef struct PlainMaterialT PlainMaterial;
-
-
-#define PLAIN_MAT_TYPE_OFFSET        0
-#define PLAIN_MAT_FLAGS_OFFSET       1
-#define PLAIN_MAT_COMPONENTS_OFFSET  2
-
-static inline int  materialGetType         (__global const PlainMaterial* a_pMat) { return as_int(a_pMat->data[PLAIN_MAT_TYPE_OFFSET]); }
-static inline int  materialGetFlags        (__global const PlainMaterial* a_pMat) { return as_int(a_pMat->data[PLAIN_MAT_FLAGS_OFFSET]); }
-
-static inline bool materialCastCaustics    (__global const PlainMaterial* a_pMat) { return (as_int(a_pMat->data[PLAIN_MAT_FLAGS_OFFSET]) & PLAIN_MATERIAL_CAST_CAUSTICS) != 0; }
-static inline bool materialHasTransparency (__global const PlainMaterial* a_pMat) { return (as_int(a_pMat->data[PLAIN_MAT_FLAGS_OFFSET]) & PLAIN_MATERIAL_HAS_TRANSPARENCY) != 0; }
-static inline bool materialIsSkyPortal     (__global const PlainMaterial* a_pMat) { return (as_int(a_pMat->data[PLAIN_MAT_FLAGS_OFFSET]) & PLAIN_MATERIAL_SKIP_SKY_PORTAL) != 0; }
-static inline bool materialIsInvisLight    (__global const PlainMaterial* a_pMat) { return (as_int(a_pMat->data[PLAIN_MAT_FLAGS_OFFSET]) & PLAIN_MATERIAL_INVIS_LIGHT) != 0; }
-
-
-// emissive component, always present in material to speed-up code
-//
-#define EMISSIVE_COLORX_OFFSET       4
-#define EMISSIVE_COLORY_OFFSET       5
-#define EMISSIVE_COLORZ_OFFSET       6
-
-#define EMISSIVE_TEXID_OFFSET        7
-#define EMISSIVE_TEXMATRIXID_OFFSET  8
-#define EMISSIVE_LIGHTID_OFFSET      9
-
-#define OPACITY_TEX_OFFSET           (PLAIN_MATERIAL_CUSTOM_DATA_SIZE+1)
-#define OPACITY_TEX_MATRIX           (PLAIN_MATERIAL_CUSTOM_DATA_SIZE+2)
-
-#define NORMAL_TEX_OFFSET            (PLAIN_MATERIAL_CUSTOM_DATA_SIZE+3)
-#define NORMAL_TEX_MATRIX            (PLAIN_MATERIAL_CUSTOM_DATA_SIZE+4)
-
-#define EMISSIVE_BLEND_OFFSET        (PLAIN_MATERIAL_CUSTOM_DATA_SIZE+5)
-#define PARALLAX_HEIGHT              (PLAIN_MATERIAL_CUSTOM_DATA_SIZE+6)
-
-#define EMISSIVE_SAMPLER_OFFSET      (PLAIN_MATERIAL_CUSTOM_DATA_SIZE+8)
-#define NORMAL_SAMPLER_OFFSET        (PLAIN_MATERIAL_CUSTOM_DATA_SIZE+20)
-#define OPACITY_SAMPLER_OFFSET       (PLAIN_MATERIAL_CUSTOM_DATA_SIZE+32)
-
-#define PROC_TEX1_F4_HEAD_OFFSET     (PLAIN_MATERIAL_CUSTOM_DATA_SIZE+33)
-#define PROC_TEX2_F4_HEAD_OFFSET     (PLAIN_MATERIAL_CUSTOM_DATA_SIZE+34)
-#define PROC_TEX3_F4_HEAD_OFFSET     (PLAIN_MATERIAL_CUSTOM_DATA_SIZE+35)
-#define PROC_TEX4_F4_HEAD_OFFSET     (PLAIN_MATERIAL_CUSTOM_DATA_SIZE+36)
-#define PROC_TEX4_F5_HEAD_OFFSET     (PLAIN_MATERIAL_CUSTOM_DATA_SIZE+37)
-
-#define PROC_TEX_TABLE_OFFSET        (PLAIN_MATERIAL_CUSTOM_DATA_SIZE+38)
-
-static inline void PutProcTexturesIdListToMaterialHead(const ProcTextureList* a_pData, PlainMaterial* a_pMat)
-{
-  ((int*)(a_pMat->data))[PROC_TEX4_F4_HEAD_OFFSET + 0] = a_pData->id_f4[0];
-  ((int*)(a_pMat->data))[PROC_TEX4_F4_HEAD_OFFSET + 1] = a_pData->id_f4[1];
-  ((int*)(a_pMat->data))[PROC_TEX4_F4_HEAD_OFFSET + 2] = a_pData->id_f4[2];
-  ((int*)(a_pMat->data))[PROC_TEX4_F4_HEAD_OFFSET + 3] = a_pData->id_f4[3];
-  ((int*)(a_pMat->data))[PROC_TEX4_F5_HEAD_OFFSET + 4] = a_pData->id_f4[4];
-}
-
-static inline void GetProcTexturesIdListFromMaterialHead(__global const PlainMaterial* a_pMat, __private ProcTextureList* a_pData)
-{
-  a_pData->id_f4[0] = as_int(a_pMat->data[PROC_TEX1_F4_HEAD_OFFSET]);
-  a_pData->id_f4[1] = as_int(a_pMat->data[PROC_TEX2_F4_HEAD_OFFSET]);
-  a_pData->id_f4[2] = as_int(a_pMat->data[PROC_TEX3_F4_HEAD_OFFSET]);
-  a_pData->id_f4[3] = as_int(a_pMat->data[PROC_TEX4_F4_HEAD_OFFSET]);
-  a_pData->id_f4[4] = as_int(a_pMat->data[PROC_TEX4_F5_HEAD_OFFSET]);
-}
-
-static inline bool materialHeadHaveTargetProcTex(__global const PlainMaterial* a_pMat, int a_texId)
-{
-  return (as_int(a_pMat->data[PROC_TEX1_F4_HEAD_OFFSET]) == a_texId || 
-          as_int(a_pMat->data[PROC_TEX2_F4_HEAD_OFFSET]) == a_texId ||
-          as_int(a_pMat->data[PROC_TEX3_F4_HEAD_OFFSET]) == a_texId ||
-          as_int(a_pMat->data[PROC_TEX4_F4_HEAD_OFFSET]) == a_texId ||
-          as_int(a_pMat->data[PROC_TEX4_F5_HEAD_OFFSET]) == a_texId);
-}
-
-static inline bool MaterialHaveAtLeastOneProcTex(__global const PlainMaterial* a_pMat)
-{
-  return as_int(a_pMat->data[PROC_TEX1_F4_HEAD_OFFSET]) != INVALID_TEXTURE;
-}
 
 static inline float3 materialGetEmission(__global const PlainMaterial* a_pMat) { return make_float3(a_pMat->data[EMISSIVE_COLORX_OFFSET], a_pMat->data[EMISSIVE_COLORY_OFFSET], a_pMat->data[EMISSIVE_COLORZ_OFFSET]); }
 static inline  int2  materialGetEmissionTex(__global const PlainMaterial* a_pMat)
@@ -178,7 +48,6 @@ static inline int2 materialGetOpacitytex(__global const PlainMaterial* a_pMat)
   res.y = as_int(a_pMat->data[OPACITY_TEX_MATRIX]);
   return res;
 }
-
 
 
 static inline float sigmoid(float x)
@@ -2296,37 +2165,6 @@ static inline float3 materialEvalEmission(__global const PlainMaterial* a_pMat, 
 //   //a_hitPos += parallaxDirectionWS*tAlongSurface;
 //   //a_hitPos += RayEpsilon(a_hitPos)*oldNormal;
 // }
-
-
-
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-
-static inline int materialOffset(__global const EngineGlobals* a_pGlobals, const int matId)
-{
-  __global const int*    pBegin  = (__global const int*)a_pGlobals;
-  __global const int*    ids     = pBegin + a_pGlobals->materialsTableOffset;
-  return ids[matId];
-}
-
-static inline __global const PlainMaterial* materialAtOffset(__global const float4* a_mltStorage, const int matOffset)
-{
-  return (__global const PlainMaterial*)(a_mltStorage + matOffset);
-}
-
-static inline __global const PlainMaterial* materialAt(__global const EngineGlobals* a_pGlobals, __global const float4* a_mltStorage, const int matId)
-{
-  if (matId == -1)
-    return 0;
-  else
-  {
-    const int matOffset = materialOffset(a_pGlobals, matId);
-    return materialAtOffset(a_mltStorage, matOffset);
-  }
-}
 
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////

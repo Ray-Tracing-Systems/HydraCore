@@ -4,7 +4,7 @@
   #define RAND_MLT_CPU
 #endif
 
-#include "globals.h"
+#include "cglobals.h"
 #include "crandom.h"
 #include "cfetch.h"
 #include "cbidir.h"

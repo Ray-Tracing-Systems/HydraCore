@@ -1,7 +1,7 @@
 #ifndef RTCRANDOM
 #define RTCRANDOM
 
-#include "globals.h"
+#include "cglobals.h"
 
 #define SIMPLE_RANDOM_GEN
 

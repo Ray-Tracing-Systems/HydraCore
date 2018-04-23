@@ -1,19 +1,25 @@
 #include "globals_sys.h"
 
 
-
 std::string HydraInstallPath()
 {
-  return std::string("C:/[Hydra]/");
+#ifdef WIN32
+  return "C:/[Hydra]/bin2/";
+#else
+  //const std::string installPath2 = "./";
+  char user_name[L_cuserid];
+  cuserid(user_name);
+  std::stringstream ss;
+  ss << "/home/" << user_name << "/hydra/";
+  return ss.str();
+#endif
 }
-
 
 bool isFileExists(const std::string& a_fileName)
 {
   std::ifstream fin(a_fileName.c_str());
   return fin.is_open();
 }
-
 
 void PlaneHammersley(float *result, int n)
 {

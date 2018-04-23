@@ -1,7 +1,5 @@
-//#include "globals.h"
-//#include "cfetch.h"
-//#include "crandom.h"
-#include "cmaterial.h"
+#include "cglobals.h"
+#include "cfetch.h"
 
 static inline float4 InternalFetch(int a_texId, const float2 texCoord, const int a_flags, 
                                    __global const float4* restrict in_texStorage1, __global const EngineGlobals* restrict in_globals)
@@ -119,6 +117,7 @@ __kernel void ProcTexExec(__global       uint*          restrict a_flags,
     ptl.fdata4[1] = make_float3(0, 0, 1);
     ptl.fdata4[2] = make_float3(0, 0, 1);
     ptl.fdata4[3] = make_float3(0, 0, 1);
+    ptl.fdata4[4] = make_float3(0, 0, 1);
 
     // (3) evaluate all proc textures
     //
@@ -134,7 +133,6 @@ __kernel void ProcTexExec(__global       uint*          restrict a_flags,
 } 
 
 
-// change 31.01.2018 15:20;
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////

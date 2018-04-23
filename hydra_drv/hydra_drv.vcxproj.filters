@@ -36,9 +36,6 @@
     <ClInclude Include="IBVHBuilderAPI.h">
       <Filter>Заголовочные файлы</Filter>
     </ClInclude>
-    <ClInclude Include="globals.h">
-      <Filter>core</Filter>
-    </ClInclude>
     <ClInclude Include="cfetch.h">
       <Filter>core</Filter>
     </ClInclude>
@@ -95,6 +92,9 @@
     </ClInclude>
     <ClInclude Include="HDRImageLite.h">
       <Filter>Заголовочные файлы</Filter>
+    </ClInclude>
+    <ClInclude Include="cglobals.h">
+      <Filter>core</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

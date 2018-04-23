@@ -1,7 +1,7 @@
 #ifndef RTCBIDIR
 #define RTCBIDIR
 
-#include "globals.h"
+#include "cglobals.h"
 #include "cfetch.h"
 #include "cmaterial.h"
 #include "clight.h"

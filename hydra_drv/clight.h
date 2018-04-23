@@ -1,7 +1,7 @@
 #ifndef RTCLIGHT
 #define RTCLIGHT
 
-#include "globals.h"
+#include "cglobals.h"
 #include "cfetch.h"
 
 static inline float mylocalsmoothstep(float edge0, float edge1, float x)

@@ -216,13 +216,26 @@ ProcTextureList MakePTListFromTupleArray(const std::vector<std::tuple<int, int> 
   return ptl;
 }
 
+//#TODO: move m_texShadersWasRecompiled outside of this, don't call BeginTexturesUpdate/EndTexturesUpdate if don't have textures tp update
+//
+
 void RenderDriverRTE::BeginTexturesUpdate()
 {
   if (m_texShadersWasRecompiled)
     return;
 
-  m_inProcTexFile.open("../hydra_drv/shaders/texproc.cl");
-  m_outProcTexFile.open("../hydra_drv/shaders/texproc_generated.cl");
+  std::string pathIn  = "../hydra_drv/shaders/texproc.cl";
+  std::string pathOut = "../hydra_drv/shaders/texproc_generated.cl";
+
+  const std::string installPath2 = HydraInstallPath();
+
+  if (!isFileExists(pathIn))   pathIn  = installPath2 + "shaders/texproc.cl";
+  if (!isFileExists(pathOut))  pathOut = installPath2 + "shaders/texproc_generated.cl";
+
+  m_inProcTexFile.open(pathIn.c_str());
+  m_outProcTexFile.open(pathOut.c_str());
+
+  m_outProcTexFileName = pathOut;
 
   if (!m_inProcTexFile.is_open())
     std::cerr << "RenderDriverRTE::BeginTexturesUpdate(): can't open in texproc file";
@@ -258,8 +271,15 @@ static const std::string currentDateTime()
 
 void RenderDriverRTE::EndTexturesUpdate()
 {
-  if (m_texShadersWasRecompiled)
+  if (m_texShadersWasRecompiled) 
     return;
+
+  if (m_procTexturesCall.size() == 0)
+  {
+    m_inProcTexFile.close();
+    m_outProcTexFile.close();
+    return;
+  }
 
   const std::string spaces = "    ";
 
@@ -313,7 +333,7 @@ void RenderDriverRTE::EndTexturesUpdate()
   m_inProcTexFile.close();
   m_outProcTexFile.close();
 
-  m_pHWLayer->RecompileProcTexShaders("../hydra_drv/shaders/texproc_generated.cl");
+  m_pHWLayer->RecompileProcTexShaders(m_outProcTexFileName.c_str());
 
   m_texShadersWasRecompiled = true;
 }

@@ -371,6 +371,7 @@ void RenderDriverRTE::ClearAll()
   m_instMatricesInv.clear();
   m_instLightInstId.clear();
   m_meshIdByInstId.clear();
+  m_instIdByInstId.clear();
   m_meshRemapListId.clear();
 
   m_auxImageNumber = 0;
@@ -850,7 +851,7 @@ HRDriverDependencyInfo RenderDriverRTE::DependencyInfo()
 { 
   HRDriverDependencyInfo res;
   res.needRedrawWhenCameraChanges = false;
-  res.allowInstanceReorder        = false;
+  res.allowInstanceReorder        = true;
   return res; 
 }
 
@@ -878,6 +879,7 @@ void RenderDriverRTE::BeginScene(pugi::xml_node a_sceneNode)
   m_lightsInstanced.resize(0);
   m_instLightInstId.resize(0);
   m_meshIdByInstId.resize(0);
+  m_instIdByInstId.resize(0);
   m_lightIdByLightInstId.resize(0);
   m_meshRemapListId.resize(0);
 
@@ -1086,6 +1088,7 @@ void RenderDriverRTE::FreeCPUMem()
   m_instLightInstId      = std::vector<int32_t>();
   m_lightIdByLightInstId = std::vector<int32_t>();
   m_meshIdByInstId       = std::vector<int32_t>();
+  //m_instIdByInstId       = std::vector<int32_t>();
   m_meshRemapListId      = std::vector<int32_t>();
 
   if (m_pBVH != nullptr)
@@ -1382,10 +1385,11 @@ void RenderDriverRTE::Draw()
 
 void RenderDriverRTE::EvalGBuffer()
 {
-  m_pHWLayer->EvalGBuffer(m_pAccumImageForGBuff);
+  m_pHWLayer->EvalGBuffer(m_pAccumImageForGBuff, m_instIdByInstId);
 }
 
-void RenderDriverRTE::InstanceMeshes(int32_t a_mesh_id, const float* a_matrices, int32_t a_instNum, const int* a_lightInstId, const int* a_remapId)
+void RenderDriverRTE::InstanceMeshes(int32_t a_mesh_id, const float* a_matrices, int32_t a_instNum, 
+                                     const int* a_lightInstId, const int* a_remapId, const int* a_realInstId)
 {
   if (m_pBVH == nullptr)
     return;
@@ -1431,11 +1435,13 @@ void RenderDriverRTE::InstanceMeshes(int32_t a_mesh_id, const float* a_matrices,
   for (int32_t instId = 0; instId < a_instNum; instId++)
   {
     const float4x4 mTransform(a_matrices + 16 * instId);
-    const float4x4 invMatrix = inverse4x4(mTransform);
-    const int      remapId   = a_remapId[instId];
+    const float4x4 invMatrix  = inverse4x4(mTransform);
+    const int      remapId    = a_remapId[instId];
+    const int      instIdReal = a_realInstId[instId];
     m_instMatricesInv.push_back(invMatrix);
     m_instLightInstId.push_back(a_lightInstId[instId]);
     m_meshIdByInstId.push_back(meshId);
+    m_instIdByInstId.push_back(instIdReal);
     m_meshRemapListId.push_back(remapId);
   }
  

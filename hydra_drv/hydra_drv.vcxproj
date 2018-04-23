@@ -158,7 +158,7 @@
     <ClInclude Include="crandom.h" />
     <ClInclude Include="ctrace.h" />
     <ClInclude Include="FastList.h" />
-    <ClInclude Include="globals.h" />
+    <ClInclude Include="cglobals.h" />
     <ClInclude Include="globals_sys.h" />
     <ClInclude Include="GPUOCLLayer.h" />
     <ClInclude Include="HDRImageLite.h" />

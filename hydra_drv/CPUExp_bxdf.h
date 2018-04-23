@@ -3,7 +3,7 @@
 
 #define RAND_MLT_CPU
 
-#include "globals.h"
+#include "cglobals.h"
 #include "crandom.h"
 #include "cfetch.h"
 #include "ctrace.h"

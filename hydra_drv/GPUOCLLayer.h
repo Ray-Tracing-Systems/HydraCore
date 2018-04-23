@@ -57,7 +57,7 @@ public:
 
   void BeginTracingPass() override;
   void EndTracingPass()   override;
-  void EvalGBuffer(IHRSharedAccumImage* a_pAccumImage) override;
+  void EvalGBuffer(IHRSharedAccumImage* a_pAccumImage, const std::vector<int32_t>& a_instIdByInstId) override;
   void TraceSBDPTPass(cl_mem a_rpos, cl_mem a_rdir, cl_mem a_outColor, size_t a_size);
 
   void FinishAll() override;
@@ -128,6 +128,7 @@ protected:
   void Denoise(cl_mem textureIn, cl_mem textureOut, int w, int h, float smoothLvl);
 
   size_t CalcMegaBlockSize();
+  std::string GetOCLShaderCompilerOptions();
 
   void inPlaceScanAnySize1f(cl_mem buff, size_t a_size);
   void testScan();

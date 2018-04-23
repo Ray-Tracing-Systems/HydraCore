@@ -1,4 +1,4 @@
-#include "globals.h"
+#include "cglobals.h"
 #include "crandom.h"
 #include "cfetch.h"
 
