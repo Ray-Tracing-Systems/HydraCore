@@ -1328,6 +1328,17 @@ void GPUOCLLayer::EvalGBuffer(IHRSharedAccumImage* a_pAccumImage, const std::vec
 
   clFinish(m_globals.cmdQueue);
 
+  #pragma omp parallel for
+  for (int32_t line = 0; line < m_height; line++)
+  {
+    for (int x = 0; x < m_width; x++)
+    {
+      int oldInstId = as_int(data2[line*m_width + x].w);
+      if (oldInstId >= 0 && oldInstId < a_instIdByInstId.size())
+        data2[line*m_width + x].w = as_float(a_instIdByInstId[oldInstId]);
+    }
+  }
+  
   // //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   // std::vector<GBufferAll> gbuffer(m_width*m_height);
   // #pragma omp parallel for
