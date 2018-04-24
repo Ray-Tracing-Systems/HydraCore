@@ -244,7 +244,10 @@ SurfaceHit IntegratorCommon::surfaceEval(float3 a_rpos, float3 a_rdir, Lite_Hit 
 float3 IntegratorCommon::evalDiffuseColor(float3 ray_dir, const SurfaceHit& a_hit)
 {
   const PlainMaterial* pHitMaterial = materialAt(m_pGlobals, m_matStorage, a_hit.matId);
-  return materialEvalDiffuse(pHitMaterial, ray_dir, a_hit.normal, a_hit.texCoord, m_pGlobals, m_texStorage);
+
+  ProcTextureList ptl;
+  InitProcTextureList(&ptl);
+  return materialEvalDiffuse(pHitMaterial, ray_dir, a_hit.normal, a_hit.texCoord, m_pGlobals, m_texStorage, &ptl);
 }
 
 float3 IntegratorCommon::EnviromnentColor(float3 a_rdir, MisData misPrev, uint flags)
@@ -521,7 +524,10 @@ float3 IntegratorCommon::emissionEval(const float3 ray_pos, const float3 ray_dir
 
   if (dot(ray_dir, normal) < 0.0f)
   {
-    float3 outPathColor = materialEvalEmission(pHitMaterial, ray_dir, normal, surfElem.texCoord, m_pGlobals, m_texStorage, m_texStorage); // a_shadingTexture, a_shadingTextureHDR
+    ProcTextureList ptl;
+    InitProcTextureList(&ptl);
+
+    float3 outPathColor = materialEvalEmission(pHitMaterial, ray_dir, normal, surfElem.texCoord, m_pGlobals, m_texStorage, m_texStorage, &ptl); // a_shadingTexture, a_shadingTextureHDR
    
 		if ((materialGetFlags(pHitMaterial) & PLAIN_MATERIAL_FORBID_EMISSIVE_GI) && unpackBounceNumDiff(flags) > 0)
 			outPathColor = float3(0, 0, 0);
@@ -613,7 +619,11 @@ std::tuple<MatSample, int, float3> IntegratorCommon::sampleAndEvalBxDF(float3 ra
 float3 IntegratorCommon::evalAlphaTransparency(float3 ray_pos, float3 ray_dir, const SurfaceHit& currSurfaceHit, int a_currDepth)
 {
   const PlainMaterial* pHitMaterial  = materialAt(m_pGlobals, m_matStorage, currSurfaceHit.matId);
-  TransparencyAndFog matFogAndTransp = materialEvalTransparencyAndFog(pHitMaterial, ray_dir, currSurfaceHit.normal, currSurfaceHit.texCoord, m_pGlobals, nullptr);
+  
+  ProcTextureList ptl;
+  InitProcTextureList(&ptl);
+  
+  TransparencyAndFog matFogAndTransp = materialEvalTransparencyAndFog(pHitMaterial, ray_dir, currSurfaceHit.normal, currSurfaceHit.texCoord, m_pGlobals, nullptr, &ptl);
 
   if (length(matFogAndTransp.transparency) < 1e-4f || a_currDepth > 16)
     return make_float3(0.0f, 0.0f, 0.0f);

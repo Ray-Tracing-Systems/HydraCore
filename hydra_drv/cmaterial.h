@@ -222,9 +222,9 @@ static inline float orennayarFunc(const float3 l, const float3 v, const float3 n
 
 
 static inline float3  orennayarEvalBxDF(__global const PlainMaterial* a_pMat, const float3 l, const float3 v, const float3 n, const float2 a_texCoord,
-                                        __global const EngineGlobals* a_globals, texture2d_t a_tex)
+                                        __global const EngineGlobals* a_globals, texture2d_t a_tex, __private const ProcTextureList* a_ptList)
 {
-  const float3 texColor = sample2D(orennayarGetDiffuseTex(a_pMat).y, a_texCoord, (__global const int4*)a_pMat, a_tex, a_globals);
+  const float3 texColor = sample2DExt(orennayarGetDiffuseTex(a_pMat).y, a_texCoord, (__global const int4*)a_pMat, a_tex, a_globals, a_ptList);
   const float3 kd       = clamp(texColor*orennayarGetDiffuseColor(a_pMat), 0.0f, 1.0f);
 
   return kd*INV_PI*orennayarFunc(l, v, n, a_pMat->data[ORENNAYAR_A], a_pMat->data[ORENNAYAR_B]);
@@ -236,10 +236,10 @@ static inline float  orennayarEvalPDF(__global const PlainMaterial* a_pMat, cons
 }
 
 static inline void OrennayarSampleAndEvalBRDF(__global const PlainMaterial* a_pMat, const float a_r1, const float a_r2, const float3 ray_dir, const float3 a_normal, const float2 a_texCoord,
-                                              __global const EngineGlobals* a_globals, texture2d_t a_tex,
+                                              __global const EngineGlobals* a_globals, texture2d_t a_tex, __private const ProcTextureList* a_ptList,
                                               __private MatSample* a_out)
 {
-  const float3 texColor   = sample2D(orennayarGetDiffuseTex(a_pMat).y, a_texCoord, (__global const int4*)a_pMat, a_tex, a_globals);
+  const float3 texColor   = sample2DExt(orennayarGetDiffuseTex(a_pMat).y, a_texCoord, (__global const int4*)a_pMat, a_tex, a_globals, a_ptList);
   const float3 kd         = clamp(texColor*orennayarGetDiffuseColor(a_pMat), 0.0f, 1.0f);
 
   const float3 newDir     = MapSampleToCosineDistribution(a_r1, a_r2, a_normal, a_normal, 1.0f);
@@ -290,10 +290,10 @@ static inline float3 mirrorEvalBxDF(__global const PlainMaterial* a_pMat, float3
 }
 
 static inline void MirrorSampleAndEvalBRDF(__global const PlainMaterial* a_pMat, const float a_r1, const float a_r2, const float3 ray_dir, const float3 a_normal, const float2 a_texCoord,
-                                           __global const EngineGlobals* a_globals, texture2d_t a_tex,
+                                           __global const EngineGlobals* a_globals, texture2d_t a_tex, __private const ProcTextureList* a_ptList,
                                            __private MatSample* a_out)
 {
-  const float3 texColor = sample2D(mirrorGetTex(a_pMat).y, a_texCoord, (__global const int4*)a_pMat, a_tex, a_globals);
+  const float3 texColor = sample2DExt(mirrorGetTex(a_pMat).y, a_texCoord, (__global const int4*)a_pMat, a_tex, a_globals, a_ptList);
   
   float3 newDir = reflect(ray_dir, a_normal);
   if (dot(ray_dir, a_normal) > 0.0f)
@@ -384,10 +384,10 @@ static inline  int2   thinglassGetTex(__global const PlainMaterial* a_pMat)
 }
 
 static inline float thinglassCosPower(__global const PlainMaterial* a_pMat, const float2 a_texCoord,
-                                      __global const EngineGlobals* a_globals, texture2d_t a_tex)
+                                      __global const EngineGlobals* a_globals, texture2d_t a_tex, __private const ProcTextureList* a_ptList)
 {
   const int2   texId      = make_int2(as_int(a_pMat->data[THINGLASS_GLOSINESS_TEXID_OFFSET]), as_int(a_pMat->data[THINGLASS_GLOSINESS_TEXMATRIXID_OFFSET]));
-  const float3 glossColor = sample2D(texId.y, a_texCoord, (__global const int4*)a_pMat, a_tex, a_globals);
+  const float3 glossColor = sample2DExt(texId.y, a_texCoord, (__global const int4*)a_pMat, a_tex, a_globals, a_ptList);
   const float  glossMult  = a_pMat->data[THINGLASS_GLOSINESS];
   const float  glosiness  = clamp(glossMult*maxcomp(glossColor), 0.0f, 1.0f);
   return cosPowerFromGlosiness(glosiness);
@@ -406,11 +406,11 @@ static inline float3 thinglassEvalBxDF(__global const PlainMaterial* a_pMat, flo
 }
 
 static inline void ThinglassSampleAndEvalBRDF(__global const PlainMaterial* a_pMat, const float a_r1, const float a_r2, float3 ray_dir, const float3 a_normal, const float2 a_texCoord,
-                                              __global const EngineGlobals* a_globals, texture2d_t a_tex,
+                                              __global const EngineGlobals* a_globals, texture2d_t a_tex, __private const ProcTextureList* a_ptList,
                                               __private MatSample* a_out)
 {
-  const float3 texColor = sample2D(thinglassGetTex(a_pMat).y, a_texCoord, (__global const int4*)a_pMat, a_tex, a_globals);
-  const float cosPower  = thinglassCosPower(a_pMat, a_texCoord, a_globals, a_tex); // a_pMat->data[THINGLASS_COS_POWER];
+  const float3 texColor = sample2DExt(thinglassGetTex(a_pMat).y, a_texCoord, (__global const int4*)a_pMat, a_tex, a_globals, a_ptList);
+  const float cosPower  = thinglassCosPower(a_pMat, a_texCoord, a_globals, a_tex, a_ptList); // a_pMat->data[THINGLASS_COS_POWER];
 
   float pdf  = 1.0f;
   float fVal = 1.0f;
@@ -480,10 +480,10 @@ static inline  int2   glassGetTex(__global const PlainMaterial* a_pMat)
 }
 
 static inline float glassCosPower(__global const PlainMaterial* a_pMat, const float2 a_texCoord, 
-                                  __global const EngineGlobals* a_globals, texture2d_t a_tex)
+                                  __global const EngineGlobals* a_globals, texture2d_t a_tex, __private const ProcTextureList* a_ptList)
 {
   const int2   texId      = make_int2(as_int(a_pMat->data[GLASS_GLOSINESS_TEXID_OFFSET]), as_int(a_pMat->data[GLASS_GLOSINESS_TEXMATRIXID_OFFSET]));
-  const float3 glossColor = sample2D(texId.y, a_texCoord, (__global const int4*)a_pMat, a_tex, a_globals);
+  const float3 glossColor = sample2DExt(texId.y, a_texCoord, (__global const int4*)a_pMat, a_tex, a_globals, a_ptList);
   const float  glossMult  = a_pMat->data[GLASS_GLOSINESS];
   const float  glosiness  = clamp(glossMult*maxcomp(glossColor), 0.0f, 1.0f);
   return cosPowerFromGlosiness(glosiness);
@@ -543,7 +543,7 @@ static inline RefractResult myrefract(float3 ray_dir, float3 a_normal, float a_m
 }
 
 static inline void GlassSampleAndEvalBRDF(__global const PlainMaterial* a_pMat, const float3 rands, const float3 ray_dir, float3 a_normal, const float2 a_texCoord, const bool a_hitFromInside,
-                                          __global const EngineGlobals* a_globals, texture2d_t a_tex,
+                                          __global const EngineGlobals* a_globals, texture2d_t a_tex, __private const ProcTextureList* a_ptList,
                                           __private MatSample* a_out)
 {
   const float3 normal2 = a_hitFromInside ? (-1.0f)*a_normal : a_normal;
@@ -551,8 +551,8 @@ static inline void GlassSampleAndEvalBRDF(__global const PlainMaterial* a_pMat, 
 
   RefractResult refractData = myrefract(ray_dir, normal2, IOR, 1.0f, rands.z);
 
-  const float3 texColor = sample2D(glassGetTex(a_pMat).y, a_texCoord, (__global const int4*)a_pMat, a_tex, a_globals);
-  const float  cosPower = glassCosPower(a_pMat, a_texCoord, a_globals, a_tex); 
+  const float3 texColor = sample2DExt(glassGetTex(a_pMat).y, a_texCoord, (__global const int4*)a_pMat, a_tex, a_globals, a_ptList);
+  const float  cosPower = glassCosPower(a_pMat, a_texCoord, a_globals, a_tex, a_ptList);
 
   float pdf  = 1.0f;
   float fVal = 1.0f;
@@ -622,12 +622,12 @@ static inline int2   phongGetTex(__global const PlainMaterial* a_pMat)
 
 
 static inline float phongGlosiness(__global const PlainMaterial* a_pMat, const float2 a_texCoord,
-                                   __global const EngineGlobals* a_globals, texture2d_t a_tex)
+                                   __global const EngineGlobals* a_globals, texture2d_t a_tex, __private const ProcTextureList* a_ptList)
 {
   if (as_int(a_pMat->data[PHONG_GLOSINESS_TEXID_OFFSET]) != INVALID_TEXTURE)
   {
     const int2   texId      = make_int2(as_int(a_pMat->data[PHONG_GLOSINESS_TEXID_OFFSET]), as_int(a_pMat->data[PHONG_GLOSINESS_TEXMATRIXID_OFFSET]));
-    const float3 glossColor = sample2D(texId.y, a_texCoord, (__global const int4*)a_pMat, a_tex, a_globals);
+    const float3 glossColor = sample2DExt(texId.y, a_texCoord, (__global const int4*)a_pMat, a_tex, a_globals, a_ptList);
     const float  glossMult  = a_pMat->data[PHONG_GLOSINESS_OFFSET];
     const float  glosiness  = clamp(glossMult*maxcomp(glossColor), 0.0f, 1.0f);
     return glosiness; //  cosPowerFromGlosiness(glosiness);
@@ -637,24 +637,24 @@ static inline float phongGlosiness(__global const PlainMaterial* a_pMat, const f
 }
 
 static inline float phongEvalPDF(__global const PlainMaterial* a_pMat, const float3 l, const float3 v, const float3 n, const float2 a_texCoord, const bool a_fwdDir,
-                                 __global const EngineGlobals* a_globals, texture2d_t a_tex)
+                                 __global const EngineGlobals* a_globals, texture2d_t a_tex, __private const ProcTextureList* a_ptList)
 {
   const float3 r        = reflect((-1.0)*v, n);
   const float  cosTheta = clamp(fabs(dot(l, r)), DEPSILON2, M_PI*0.499995f); 
 
-  const float  gloss    = phongGlosiness(a_pMat, a_texCoord, a_globals, a_tex);
+  const float  gloss    = phongGlosiness(a_pMat, a_texCoord, a_globals, a_tex, a_ptList);
   const float  cosPower = cosPowerFromGlosiness(gloss);
 
   return pow(cosTheta, cosPower) * (cosPower + 1.0f) * (0.5f * INV_PI);
 }
 
 static inline float3 phongEvalBxDF(__global const PlainMaterial* a_pMat, const float3 l, const float3 v, const float3 n, const float2 a_texCoord, const bool a_fwdDir,
-                                   __global const EngineGlobals* a_globals, texture2d_t a_tex)
+                                   __global const EngineGlobals* a_globals, texture2d_t a_tex, __private const ProcTextureList* a_ptList)
 {
-  const float3 texColor = sample2D(phongGetTex(a_pMat).y, a_texCoord, (__global const int4*)a_pMat, a_tex, a_globals);
+  const float3 texColor = sample2DExt(phongGetTex(a_pMat).y, a_texCoord, (__global const int4*)a_pMat, a_tex, a_globals, a_ptList);
 
   const float3 color    = clamp(phongGetColor(a_pMat)*texColor, 0.0f, 1.0f);
-  const float  gloss    = phongGlosiness(a_pMat, a_texCoord, a_globals, a_tex); 
+  const float  gloss    = phongGlosiness(a_pMat, a_texCoord, a_globals, a_tex, a_ptList); 
   const float  cosPower = cosPowerFromGlosiness(gloss);
 
   const float3 r        = reflect((-1.0)*v, n);
@@ -666,13 +666,13 @@ static inline float3 phongEvalBxDF(__global const PlainMaterial* a_pMat, const f
 }
 
 static inline void PhongSampleAndEvalBRDF(__global const PlainMaterial* a_pMat, const float a_r1, const float a_r2, const float3 ray_dir, const float3 a_normal, const float2 a_texCoord,
-                                          __global const EngineGlobals* a_globals, texture2d_t a_tex,
+                                          __global const EngineGlobals* a_globals, texture2d_t a_tex, __private const ProcTextureList* a_ptList,
                                           __private MatSample* a_out)
 {
-  const float3 texColor = sample2D(phongGetTex(a_pMat).y, a_texCoord, (__global const int4*)a_pMat, a_tex, a_globals);
+  const float3 texColor = sample2DExt(phongGetTex(a_pMat).y, a_texCoord, (__global const int4*)a_pMat, a_tex, a_globals, a_ptList);
 
   const float3 color    = clamp(phongGetColor(a_pMat)*texColor, 0.0f, 1.0f);
-  const float  gloss    = phongGlosiness(a_pMat, a_texCoord, a_globals, a_tex);
+  const float  gloss    = phongGlosiness(a_pMat, a_texCoord, a_globals, a_tex, a_ptList);
   const float  cosPower = cosPowerFromGlosiness(gloss);
 
   const float3 r        = reflect(ray_dir, a_normal);
@@ -801,12 +801,12 @@ static inline float TorranceSparrowGF2(const float3 wo, const float3 wi, const f
 
 
 static inline float blinnGlosiness(__global const PlainMaterial* a_pMat, const float2 a_texCoord, 
-                                   __global const EngineGlobals* a_globals, texture2d_t a_tex)
+                                   __global const EngineGlobals* a_globals, texture2d_t a_tex, __private const ProcTextureList* a_ptList)
 {
   if (as_int(a_pMat->data[BLINN_GLOSINESS_TEXID_OFFSET]) != INVALID_TEXTURE)
   {
     const int2   texId      = make_int2(as_int(a_pMat->data[BLINN_GLOSINESS_TEXID_OFFSET]), as_int(a_pMat->data[BLINN_GLOSINESS_TEXMATRIXID_OFFSET]));
-    const float3 glossColor = sample2D(texId.y, a_texCoord, (__global const int4*)a_pMat, a_tex, a_globals);
+    const float3 glossColor = sample2DExt(texId.y, a_texCoord, (__global const int4*)a_pMat, a_tex, a_globals, a_ptList);
     const float  glossMult  = a_pMat->data[BLINN_GLOSINESS_OFFSET];
     const float  glosiness  = clamp(glossMult*maxcomp(glossColor), 0.0f, 1.0f);
     return glosiness;
@@ -815,16 +815,17 @@ static inline float blinnGlosiness(__global const PlainMaterial* a_pMat, const f
     return a_pMat->data[BLINN_GLOSINESS_OFFSET];
 }
 
-static inline float blinnCosPower(__global const PlainMaterial* a_pMat, const float2 a_texCoord, __global const EngineGlobals* a_globals, texture2d_t a_tex)
+static inline float blinnCosPower(__global const PlainMaterial* a_pMat, const float2 a_texCoord, 
+                                  __global const EngineGlobals* a_globals, texture2d_t a_tex, __private const ProcTextureList* a_ptList)
 {
-  return cosPowerFromGlosiness(blinnGlosiness(a_pMat, a_texCoord, a_globals, a_tex));
+  return cosPowerFromGlosiness(blinnGlosiness(a_pMat, a_texCoord, a_globals, a_tex, a_ptList));
 }
 
 
 static inline float blinnEvalPDF(__global const PlainMaterial* a_pMat, const float3 l, const float3 v, const float3 n, 
-                                 const float2 a_texCoord, __global const EngineGlobals* a_globals, texture2d_t a_tex)
+                                 const float2 a_texCoord, __global const EngineGlobals* a_globals, texture2d_t a_tex, __private const ProcTextureList* a_ptList)
 {
-  const float  exponent = blinnCosPower(a_pMat, a_texCoord, a_globals, a_tex); // a_pMat->data[BLINN_COSPOWER_OFFSET];
+  const float  exponent = blinnCosPower(a_pMat, a_texCoord, a_globals, a_tex, a_ptList); // a_pMat->data[BLINN_COSPOWER_OFFSET];
 
   const float3 wh      = normalize(l + v);
   const float costheta = fabs(dot(wh,n));
@@ -840,12 +841,12 @@ static inline float blinnEvalPDF(__global const PlainMaterial* a_pMat, const flo
 #define BLINN_COLOR_MULT 2.0f
 
 static inline float3 blinnEvalBxDF(__global const PlainMaterial* a_pMat, const float3 l, const float3 v, const float3 n, 
-                                   const float2 a_texCoord, __global const EngineGlobals* a_globals, texture2d_t a_tex)
+                                   const float2 a_texCoord, __global const EngineGlobals* a_globals, texture2d_t a_tex, __private const ProcTextureList* a_ptList)
 {
-  const float3 texColor = sample2D(blinnGetTex(a_pMat).y, a_texCoord, (__global const int4*)a_pMat, a_tex, a_globals);
+  const float3 texColor = sample2DExt(blinnGetTex(a_pMat).y, a_texCoord, (__global const int4*)a_pMat, a_tex, a_globals, a_ptList);
 
   const float3 color    = BLINN_COLOR_MULT*clamp(blinnGetColor(a_pMat)*texColor, 0.0f, 1.0f);
-  const float  gloss    = blinnGlosiness(a_pMat, a_texCoord, a_globals, a_tex);
+  const float  gloss    = blinnGlosiness(a_pMat, a_texCoord, a_globals, a_tex, a_ptList);
   const float  exponent = cosPowerFromGlosiness(gloss); 
 
   const float3 wh       = normalize(l + v);
@@ -858,12 +859,12 @@ static inline float3 blinnEvalBxDF(__global const PlainMaterial* a_pMat, const f
 }
 
 static inline void BlinnSampleAndEvalBRDF(__global const PlainMaterial* a_pMat, const float a_r1, const float a_r2, const float3 ray_dir, const float3 a_normal, const float2 a_texCoord,
-                                          __global const EngineGlobals* a_globals, texture2d_t a_tex,
+                                          __global const EngineGlobals* a_globals, texture2d_t a_tex, __private const ProcTextureList* a_ptList,
                                           __private MatSample* a_out)
 {
-  const float3 texColor = sample2D(blinnGetTex(a_pMat).y, a_texCoord, (__global const int4*)a_pMat, a_tex, a_globals);
+  const float3 texColor = sample2DExt(blinnGetTex(a_pMat).y, a_texCoord, (__global const int4*)a_pMat, a_tex, a_globals, a_ptList);
   const float3 color    = BLINN_COLOR_MULT*clamp(blinnGetColor(a_pMat)*texColor, 0.0f, 1.0f);
-  const float  gloss    = blinnGlosiness(a_pMat, a_texCoord, a_globals, a_tex);
+  const float  gloss    = blinnGlosiness(a_pMat, a_texCoord, a_globals, a_tex, a_ptList);
   const float  cosPower = cosPowerFromGlosiness(gloss);
 
   ///////////////////////////////////////////////////////////////////////////// to PBRT coordinate system
@@ -949,9 +950,9 @@ static inline float  translucentEvalPDF(__global const PlainMaterial* a_pMat, co
 }
 
 static inline float3 translucentEvalBxDF(__global const PlainMaterial* a_pMat, const float3 l, const float3 v, const float3 n, const float2 a_texCoord,
-                                         __global const EngineGlobals* a_globals, texture2d_t a_tex)
+                                         __global const EngineGlobals* a_globals, texture2d_t a_tex, __private const ProcTextureList* a_ptList)
 {
-  const float3 texColor = sample2D(translucentGetDiffuseTex(a_pMat).y, a_texCoord, (__global const int4*)a_pMat, a_tex, a_globals);
+  const float3 texColor = sample2DExt(translucentGetDiffuseTex(a_pMat).y, a_texCoord, (__global const int4*)a_pMat, a_tex, a_globals, a_ptList);
 
   const float sign1 = dot(l,n) > 0 ? 1.0f : -1.0f;
   const float sign2 = dot(v,n) > 0 ? 1.0f : -1.0f;
@@ -961,10 +962,10 @@ static inline float3 translucentEvalBxDF(__global const PlainMaterial* a_pMat, c
 }
 
 static inline void TranslucentSampleAndEvalBRDF(__global const PlainMaterial* a_pMat, const float a_r1, const float a_r2, const float3 ray_dir, const float3 a_normal, const float2 a_texCoord,
-                                                __global const EngineGlobals* a_globals, texture2d_t a_tex,
+                                                __global const EngineGlobals* a_globals, texture2d_t a_tex, __private const ProcTextureList* a_ptList,
                                                 __private MatSample* a_out)
 {
-  const float3 texColor = sample2D(translucentGetDiffuseTex(a_pMat).y, a_texCoord, (__global const int4*)a_pMat, a_tex, a_globals);
+  const float3 texColor = sample2DExt(translucentGetDiffuseTex(a_pMat).y, a_texCoord, (__global const int4*)a_pMat, a_tex, a_globals, a_ptList);
   const float3 kd       = clamp(texColor*translucentGetDiffuseColor(a_pMat), 0.0f, 1.0f);
   const float3 newDir   = MapSampleToCosineDistribution(a_r1, a_r2, (-1.0f)*a_normal, (-1.0f)*a_normal, 1.0f);
   const float  cosTheta = dot(newDir, (-1.0f)*a_normal);
@@ -1113,10 +1114,10 @@ static inline float maxSigmoid(const float x, const float gamma)
 
 static inline float blendMaskAlpha2(__global const PlainMaterial* pMat, 
                                     const float3 v, const float3 n, const float2 hitTexCoord, 
-                                    __global const EngineGlobals* a_globals, texture2d_t a_tex)
+                                    __global const EngineGlobals* a_globals, texture2d_t a_tex, __private const ProcTextureList* a_ptList)
 {
   const int2   texId    = make_int2(as_int(pMat->data[BLEND_MASK_TEXID_OFFSET]), as_int(pMat->data[BLEND_MASK_TEXMATRIXID_OFFSET]));
-  const float3 texColor = sample2D(texId.y, hitTexCoord, (__global const int4*)pMat, a_tex, a_globals);
+  const float3 texColor = sample2DExt(texId.y, hitTexCoord, (__global const int4*)pMat, a_tex, a_globals, a_ptList);
   
   const float3 lum1     = clamp(texColor*make_float3(pMat->data[BLEND_MASK_COLORX_OFFSET], pMat->data[BLEND_MASK_COLORY_OFFSET], pMat->data[BLEND_MASK_COLORZ_OFFSET]), 0.0f, 1.0f);
 
@@ -1156,9 +1157,9 @@ static inline float blendMaskAlpha2(__global const PlainMaterial* pMat,
 
 static inline BRDFSelector blendSelectBRDF(__global const PlainMaterial* pMat, const float a_r3, 
                                            const float3 rayDir, const float3 hitNorm, const float2 hitTexCoord, const bool a_sampleReflectionOnly,
-                                           __global const EngineGlobals* a_globals, texture2d_t a_tex)
+                                           __global const EngineGlobals* a_globals, texture2d_t a_tex, __private const ProcTextureList* a_ptList)
 {
-  float alpha = blendMaskAlpha2(pMat, rayDir, hitNorm, hitTexCoord, a_globals, a_tex);
+  float alpha = blendMaskAlpha2(pMat, rayDir, hitNorm, hitTexCoord, a_globals, a_tex, a_ptList);
 
   BRDFSelector mat1, mat2;
   
@@ -1270,7 +1271,7 @@ static inline BRDFSelector materialRandomWalkBRDF(__global const PlainMaterial* 
     const int type = materialGetType(node);
 
     if (type == PLAIN_MAT_CLASS_BLEND_MASK)
-      sel = blendSelectBRDF(node, rndVal, rayDir, hitNorm, hitTexCoord, (a_reflOnly && (i==0)), a_globals, a_tex);
+      sel = blendSelectBRDF(node, rndVal, rayDir, hitNorm, hitTexCoord, (a_reflOnly && (i==0)), a_globals, a_tex, a_ptList);
 
     //////////////////////////////////////////////////////////////////////////
 
@@ -1352,36 +1353,36 @@ static inline void MaterialLeafSampleAndEvalBRDF(__global const PlainMaterial* p
   switch (materialGetType(pMat))
   {
   case PLAIN_MAT_CLASS_PHONG_SPECULAR: 
-    PhongSampleAndEvalBRDF(pMat, rands.x, rands.y, ray_dir, hitNorm, sc->tc, a_globals, a_tex, 
+    PhongSampleAndEvalBRDF(pMat, rands.x, rands.y, ray_dir, hitNorm, sc->tc, a_globals, a_tex, a_ptList,
                            a_out);
     break;
 
   case PLAIN_MAT_CLASS_BLINN_SPECULAR: 
-    BlinnSampleAndEvalBRDF(pMat, rands.x, rands.y, ray_dir, hitNorm, sc->tc, a_globals, a_tex,
+    BlinnSampleAndEvalBRDF(pMat, rands.x, rands.y, ray_dir, hitNorm, sc->tc, a_globals, a_tex, a_ptList,
                            a_out);
     break;
 
   case PLAIN_MAT_CLASS_PERFECT_MIRROR: 
-    MirrorSampleAndEvalBRDF(pMat, rands.x, rands.y, ray_dir, hitNorm, sc->tc, a_globals, a_tex,
+    MirrorSampleAndEvalBRDF(pMat, rands.x, rands.y, ray_dir, hitNorm, sc->tc, a_globals, a_tex, a_ptList,
                             a_out);
     break;
 
   case PLAIN_MAT_CLASS_THIN_GLASS: 
-    ThinglassSampleAndEvalBRDF(pMat, rands.x, rands.y, ray_dir, hitNorm, sc->tc, a_globals, a_tex,
+    ThinglassSampleAndEvalBRDF(pMat, rands.x, rands.y, ray_dir, hitNorm, sc->tc, a_globals, a_tex, a_ptList,
                                a_out);
     break;
   case PLAIN_MAT_CLASS_GLASS: 
-    GlassSampleAndEvalBRDF(pMat, rands, ray_dir, hitNorm, sc->tc, sc->hfi, a_globals, a_tex,
+    GlassSampleAndEvalBRDF(pMat, rands, ray_dir, hitNorm, sc->tc, sc->hfi, a_globals, a_tex, a_ptList,
                            a_out);
     break;
 
   case PLAIN_MAT_CLASS_TRANSLUCENT   : 
-    TranslucentSampleAndEvalBRDF(pMat, rands.x, rands.y, ray_dir, hitNorm, sc->tc, a_globals, a_tex,
+    TranslucentSampleAndEvalBRDF(pMat, rands.x, rands.y, ray_dir, hitNorm, sc->tc, a_globals, a_tex, a_ptList,
                                  a_out);
     break;
 
   case PLAIN_MAT_CLASS_OREN_NAYAR    : 
-    OrennayarSampleAndEvalBRDF(pMat, rands.x, rands.y, ray_dir, hitNorm, sc->tc, a_globals, a_tex,
+    OrennayarSampleAndEvalBRDF(pMat, rands.x, rands.y, ray_dir, hitNorm, sc->tc, a_globals, a_tex, a_ptList,
                                a_out);
     break;
 
@@ -1510,14 +1511,14 @@ static inline BxDFResult materialLeafEval(__global const PlainMaterial* pMat, __
   switch (materialGetType(pMat))
   {
   case PLAIN_MAT_CLASS_PHONG_SPECULAR: 
-    res.brdf    = phongEvalBxDF(pMat, sc->l, sc->v, n, sc->tc, a_fwdDir, a_globals, a_tex)*cosMult;
-    res.pdfFwd  = phongEvalPDF (pMat, sc->l, sc->v, n, sc->tc, a_fwdDir, a_globals, a_tex);
-    res.pdfRev  = phongEvalPDF (pMat, sc->v, sc->l, n, sc->tc, a_fwdDir, a_globals, a_tex);
+    res.brdf    = phongEvalBxDF(pMat, sc->l, sc->v, n, sc->tc, a_fwdDir, a_globals, a_tex, a_ptList)*cosMult;
+    res.pdfFwd  = phongEvalPDF (pMat, sc->l, sc->v, n, sc->tc, a_fwdDir, a_globals, a_tex, a_ptList);
+    res.pdfRev  = phongEvalPDF (pMat, sc->v, sc->l, n, sc->tc, a_fwdDir, a_globals, a_tex, a_ptList);
     break;
   case PLAIN_MAT_CLASS_BLINN_SPECULAR: 
-    res.brdf    = blinnEvalBxDF(pMat, sc->l, sc->v, n, sc->tc, a_globals, a_tex)*cosMult;
-    res.pdfFwd  = blinnEvalPDF (pMat, sc->l, sc->v, n, sc->tc, a_globals, a_tex);
-    res.pdfRev  = blinnEvalPDF (pMat, sc->v, sc->l, n, sc->tc, a_globals, a_tex);
+    res.brdf    = blinnEvalBxDF(pMat, sc->l, sc->v, n, sc->tc, a_globals, a_tex, a_ptList)*cosMult;
+    res.pdfFwd  = blinnEvalPDF (pMat, sc->l, sc->v, n, sc->tc, a_globals, a_tex, a_ptList);
+    res.pdfRev  = blinnEvalPDF (pMat, sc->v, sc->l, n, sc->tc, a_globals, a_tex, a_ptList);
     break;
   case PLAIN_MAT_CLASS_PERFECT_MIRROR: 
     res.brdf   = mirrorEvalBxDF(pMat, sc->l, sc->v, n)*cosMult;
@@ -1535,7 +1536,7 @@ static inline BxDFResult materialLeafEval(__global const PlainMaterial* pMat, __
     res.pdfRev = glassEvalPDF (pMat, sc->v, sc->l, n);
     break;
   case PLAIN_MAT_CLASS_TRANSLUCENT:
-    res.btdf    = translucentEvalBxDF(pMat, sc->l, sc->v, n, sc->tc, a_globals, a_tex)*cosMult2;
+    res.btdf    = translucentEvalBxDF(pMat, sc->l, sc->v, n, sc->tc, a_globals, a_tex, a_ptList)*cosMult2;
     res.pdfFwd  = translucentEvalPDF (pMat, sc->l, sc->v, n);
     res.pdfRev  = translucentEvalPDF (pMat, sc->v, sc->l, n);
     res.diffuse = true;
@@ -1546,7 +1547,7 @@ static inline BxDFResult materialLeafEval(__global const PlainMaterial* pMat, __
     res.pdfRev = shadowmatteEvalPDF (pMat, sc->v, sc->l, n);
     break;
   case PLAIN_MAT_CLASS_OREN_NAYAR: 
-    res.brdf    = orennayarEvalBxDF(pMat, sc->l, sc->v, n, sc->tc, a_globals, a_tex)*cosMult;
+    res.brdf    = orennayarEvalBxDF(pMat, sc->l, sc->v, n, sc->tc, a_globals, a_tex, a_ptList)*cosMult;
     res.pdfFwd  = orennayarEvalPDF (pMat, sc->l, sc->v, n);
     res.pdfRev  = orennayarEvalPDF (pMat, sc->v, sc->l, n);
     res.diffuse = true;
@@ -1605,7 +1606,7 @@ static inline BxDFResult materialEval(__global const PlainMaterial* a_pMat, __pr
     {
       BRDFSelector mat1, mat2;
 
-      const float alpha = blendMaskAlpha2(pMat, sc->v, sc->n, sc->tc, a_globals, a_tex);
+      const float alpha = blendMaskAlpha2(pMat, sc->v, sc->n, sc->tc, a_globals, a_tex, a_ptList);
 
       mat1.localOffs = as_int(pMat->data[BLEND_MASK_MATERIAL1_OFFSET]);
       mat1.w         = alpha;
@@ -1727,7 +1728,8 @@ typedef struct TransAndFogT
 
 static inline TransparencyAndFog materialEvalTransparencyAndFog(__global const PlainMaterial* a_pMat, 
                                                                 const float3 l, const float3 n, const float2 hitTexCoord,
-                                                                __global const EngineGlobals* a_globals, texture2d_t a_tex)
+                                                                __global const EngineGlobals* a_globals, texture2d_t a_tex, 
+                                                                __private const ProcTextureList* a_ptList)
 {
   float4 val  = make_float4(0.0f, 0.0f, 0.0f, 0.0f);
   float3 valT = make_float3(0.0f, 0.0f, 0.0f);
@@ -1755,7 +1757,7 @@ static inline TransparencyAndFog materialEvalTransparencyAndFog(__global const P
     {
       BRDFSelector mat1, mat2;
 
-      const float alpha = blendMaskAlpha2(pMat, l, n, hitTexCoord, a_globals, a_tex);;
+      const float alpha = blendMaskAlpha2(pMat, l, n, hitTexCoord, a_globals, a_tex, a_ptList);
 
       mat1.localOffs = as_int(pMat->data[BLEND_MASK_MATERIAL1_OFFSET]);
       mat1.w = alpha;
@@ -1872,7 +1874,7 @@ static inline float3 materialLeafEvalDiffuse(__global const PlainMaterial* a_pMa
 
 static inline float3 materialEvalDiffuse(__global const PlainMaterial* a_pMat,
                                          const float3 l, const float3 n, const float2 hitTexCoord,
-                                         __global const EngineGlobals* a_globals, texture2d_t a_tex)
+                                         __global const EngineGlobals* a_globals, texture2d_t a_tex, __private const ProcTextureList* a_ptList)
 {
   float3 val = make_float3(0.0f, 0.0f, 0.0f);
 
@@ -1898,7 +1900,7 @@ static inline float3 materialEvalDiffuse(__global const PlainMaterial* a_pMat,
     {
       BRDFSelector mat1, mat2;
 
-      const float alpha = blendMaskAlpha2(pMat, l, n, hitTexCoord, a_globals, a_tex);
+      const float alpha = blendMaskAlpha2(pMat, l, n, hitTexCoord, a_globals, a_tex, a_ptList);
 
       mat1.localOffs = as_int(pMat->data[BLEND_MASK_MATERIAL1_OFFSET]);
       mat1.w         = alpha;
@@ -1936,7 +1938,7 @@ static inline float3 materialEvalDiffuse(__global const PlainMaterial* a_pMat,
 }
 
 static inline float3 materialEvalEmission(__global const PlainMaterial* a_pMat, const float3 v, const float3 n, const float2 a_texCoord,
-                                          __global const EngineGlobals* a_globals, texture2d_t a_tex, texture2d_t a_tex2)
+                                          __global const EngineGlobals* a_globals, texture2d_t a_tex, texture2d_t a_tex2, __private const ProcTextureList* a_ptList)
 {
   
   float3 val = make_float3(0.0f, 0.0f, 0.0f);
@@ -1963,7 +1965,7 @@ static inline float3 materialEvalEmission(__global const PlainMaterial* a_pMat, 
     {
       BRDFSelector mat1, mat2;
 
-      const float alpha = blendMaskAlpha2(pMat, v, n, a_texCoord, a_globals, a_tex);
+      const float alpha = blendMaskAlpha2(pMat, v, n, a_texCoord, a_globals, a_tex, a_ptList);
 
       mat1.localOffs = as_int(pMat->data[BLEND_MASK_MATERIAL1_OFFSET]);
       mat1.w         = alpha;
@@ -2199,7 +2201,10 @@ static inline float3 transparencyStep(__private TransparencyShadowStepData* pDat
 
   __global const PlainMaterial* pShadowHitMaterial = materialAt(a_globals, a_mltStorage, alphaMatId);
 
-  TransparencyAndFog matFogAndTransp = materialEvalTransparencyAndFog(pShadowHitMaterial, a_rdir, shadowHitNorm, texCoordS, a_globals, a_shadingTexture);
+  ProcTextureList ptl;       // #TODO: read this from outside!!!
+  InitProcTextureList(&ptl); // #TODO: read this from outside!!!
+
+  TransparencyAndFog matFogAndTransp = materialEvalTransparencyAndFog(pShadowHitMaterial, a_rdir, shadowHitNorm, texCoordS, a_globals, a_shadingTexture, &ptl);
 
   if (disableCaustics)
     shadow *= matFogAndTransp.transparency;

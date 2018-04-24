@@ -129,8 +129,8 @@ __kernel void UpdateForwardPdfFor3Way(__global const uint*          restrict a_f
     sc.bn = decodeNormal(btanAndN.bitangentCompressed);
     sc.tc = in_hitTexCoord[tid];
 
-    ProcTextureList ptl;
-    InitProcTextureList(&ptl);
+    ProcTextureList ptl;        //#TODO: read from memory
+    InitProcTextureList(&ptl);  //#TODO: read from memory
 
     const float pdfW = materialEval(pHitMaterial, &sc, false, false, /* global data --> */ a_globals, in_texStorage1, in_texStorage2, &ptl).pdfFwd;
 
@@ -448,9 +448,12 @@ __kernel void HitEnvOrLightKernel(__global const float4*    restrict in_rpos,
 
     // now check if we hit light
     //
+    ProcTextureList ptl;        // #TODO: read from memory.
+    InitProcTextureList(&ptl);  // #TODO: read from memory.
+
     bool hitEmissiveMaterialMLT = false;
     const bool skipPieceOfShit  = materialIsInvisLight(pHitMaterial) && isEyeRay(flags);
-    const float3 emissionVal    = (pHitMaterial == 0) ? make_float3(0, 0, 0) : materialEvalEmission(pHitMaterial, ray_dir, hitNorm, hitTexCoord, a_globals, in_texStorage1, in_texStorage2);
+    const float3 emissionVal    = (pHitMaterial == 0) ? make_float3(0, 0, 0) : materialEvalEmission(pHitMaterial, ray_dir, hitNorm, hitTexCoord, a_globals, in_texStorage1, in_texStorage2, &ptl);
 
     if (dot(emissionVal, emissionVal) > 1e-6f && !skipPieceOfShit)
     {
@@ -1062,8 +1065,8 @@ __kernel void NextBounce(__global   float4*        restrict a_rpos,
               sc.bn = hitBiNorm;
               sc.tc = hitTexCoord;
 
-              ProcTextureList ptl;
-              InitProcTextureList(&ptl);
+              ProcTextureList ptl;       // #TODO: read from memory
+              InitProcTextureList(&ptl); // #TODO: read from memory
 
               const float pdfFwdW = materialEval(pHitMaterial, &sc, false, false, /* global data --> */  a_globals, in_texStorage1, in_texStorage2, &ptl).pdfFwd;
              
@@ -1149,7 +1152,10 @@ __kernel void NextTransparentBounce(__global   float4*    a_rpos,
       const float3 ray_pos = to_float3(a_rpos[tid]);
       const float3 ray_dir = to_float3(a_rdir[tid]);
 
-      TransparencyAndFog matFogAndTransp = materialEvalTransparencyAndFog(pHitMaterial, ray_dir, hitNorm, hitTexCoord, in_globals, in_shadingTexture);
+      ProcTextureList ptl;       //#TODO: read from memory
+      InitProcTextureList(&ptl); //#TODO: read from memory
+
+      TransparencyAndFog matFogAndTransp = materialEvalTransparencyAndFog(pHitMaterial, ray_dir, hitNorm, hitTexCoord, in_globals, in_shadingTexture, &ptl);
 
       float4 newPathThroughput = a_thoroughput[tid] * to_float4(matFogAndTransp.transparency, 1.0f);
 
@@ -1349,7 +1355,10 @@ __kernel void ReadDiffuseColor(__global const float4*    a_rdir,
     float2 txcrd = in_texCoord[tid];
     float3 norm  = normalize(decodeNormal(as_int(in_posNorm[tid].w)));
 
-    color = materialEvalDiffuse(pHitMaterial, to_float3(a_rdir[tid]), norm, txcrd, a_globals, a_shadingTexture);
+    ProcTextureList ptl;
+    InitProcTextureList(&ptl);
+
+    color = materialEvalDiffuse(pHitMaterial, to_float3(a_rdir[tid]), norm, txcrd, a_globals, a_shadingTexture, &ptl);
   }
 
   a_color[tid] = to_float4(color, 0.0f);
@@ -1387,8 +1396,11 @@ __kernel void GetGBufferSample(__global const float4*    a_rdir,
     const float2 txcrd   = in_hitTexCoord[tid];
     const float3 normal  = normalize(decodeNormal(as_int(hitPosNorm.w)));
 
+    ProcTextureList ptl;        //#TODO: read from memory!
+    InitProcTextureList(&ptl);  //#TODO: read from memory!
+
     __global const PlainMaterial* pHitMaterial = materialAt(a_globals, in_mtlStorage, materialId);
-    const float3 diffColor = materialEvalDiffuse(pHitMaterial, to_float3(a_rdir[tid]), normal, txcrd, a_globals, a_shadingTexture);
+    const float3 diffColor = materialEvalDiffuse(pHitMaterial, to_float3(a_rdir[tid]), normal, txcrd, a_globals, a_shadingTexture, &ptl);
 
     samples[LOCAL_ID_X].data1.depth    = liteHit.t;
     samples[LOCAL_ID_X].data1.norm     = normal;
