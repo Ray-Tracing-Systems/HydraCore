@@ -918,8 +918,7 @@ __kernel void NextBounce(__global   float4*        restrict a_rpos,
   
     const float invPdf      = 1.0f / fmax(brdfSample.pdf, DEPSILON);
     const float cosTheta    = fabs(dot(brdfSample.direction, hitNorm));
-
-    outPathThroughput = mixSelector.w*clamp(cosTheta*brdfSample.color*invPdf, 0.0f, 1.0f); //#TODO: this is not correct actually !!!
+    outPathThroughput       = clamp(cosTheta*brdfSample.color*invPdf, 0.0f, 1.0f) / fmax(mixSelector.w, 0.01f); //#TODO: clamp is not correct actually ???
    
     // const int otherFlagsSMSK = unpackRayFlags(flags);
     // if ((materialGetType(pHitMaterial) == PLAIN_MAT_CLASS_SHADOW_MATTE) && (otherFlagsSMSK & RAY_SHADE_FROM_SKY_LIGHT)) // shadow matte hack to sample only top hemisphere
