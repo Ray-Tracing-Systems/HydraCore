@@ -1266,8 +1266,7 @@ void GPUOCLLayer::EvalGBuffer(IHRSharedAccumImage* a_pAccumImage, const std::vec
 
   assert(bufferSize % lineSize == 0);
 
-  int32_t linesPerBlock = bufferSize / lineSize;
-
+  int32_t linesPerBlock = int32_t(bufferSize / lineSize);
 
   for (int32_t line = 0; line < m_height; line += linesPerBlock)
   {

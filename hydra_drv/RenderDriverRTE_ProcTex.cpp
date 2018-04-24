@@ -141,7 +141,7 @@ void PutTexParamsToMaterialWithDamnTable(std::vector<ProcTexParams>& a_procTexPa
                           [procTex](ProcTexParams x) { return (x.texId == procTex.first); });
 
     if (p != a_procTexParams.end())
-      allSize += p->data.size();
+      allSize += int(p->data.size());
   }
 
   // allocate memory in 'prtexDataTail.data' and get pointer
@@ -175,7 +175,7 @@ void PutTexParamsToMaterialWithDamnTable(std::vector<ProcTexParams>& a_procTexPa
         for (int i = 0; i < p->data.size(); i++)
           data[currOffset + i] = p->data[i];
 
-        currOffset += p->data.size();
+        currOffset += int(p->data.size());
       }
       else
       {

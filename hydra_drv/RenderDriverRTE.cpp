@@ -502,6 +502,9 @@ bool RenderDriverRTE::UpdateImage(int32_t a_texId, int32_t w, int32_t h, int32_t
   if (type == L"proc")
     return UpdateImageProc(a_texId, w, h, bpp, a_data, a_texNode);
 
+  if (a_data == nullptr)
+    return false;
+
   SWTextureHeader texheader;
 
   texheader.width  = w;

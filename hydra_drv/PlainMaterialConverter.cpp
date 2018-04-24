@@ -1532,7 +1532,7 @@ bool RenderDriverRTE::PutAbstractMaterialToStorage(const int32_t a_matId, std::s
 
   if (MaterialHaveAtLeastOneProcTex(&mdata[0]))
   {
-    int oldSize = mdata.size();
+    int oldSize = int(mdata.size());
     mdata.push_back(pMaterial->prtexDataTail.offsetTable);
     for (const auto& argd : pMaterial->prtexDataTail.data)
       mdata.push_back(argd);
