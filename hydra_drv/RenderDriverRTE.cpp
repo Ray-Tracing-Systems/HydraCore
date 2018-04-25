@@ -366,7 +366,7 @@ void RenderDriverRTE::ClearAll()
   m_materialUpdated.clear();
   m_blendsToUpdate.clear();
   m_texturesProcessedNM.clear();
-  m_procTexturesRetT.clear();
+  m_procTextures.clear();
 
   m_instMatricesInv.clear();
   m_instLightInstId.clear();
@@ -533,11 +533,13 @@ bool RenderDriverRTE::UpdateImage(int32_t a_texId, int32_t w, int32_t h, int32_t
 
 std::shared_ptr<RAYTR::IMaterial> CreateMaterialFromXmlNode(pugi::xml_node a_node, RenderDriverRTE* a_pRTE);
 
-bool MaterialNodeHaveProceduralTextures(pugi::xml_node a_node, const std::unordered_map<int, int>& a_ids);
-void FindAllProcTextures(pugi::xml_node a_node, const std::unordered_map<int, int>& a_ids, std::vector< std::tuple<int, int> >& a_outVector);
-ProcTextureList MakePTListFromTupleArray(const std::vector<std::tuple<int, int> >& procTextureIds);
+using ProcTexInfo = RenderDriverRTE::ProcTexInfo;
+
+bool MaterialNodeHaveProceduralTextures(pugi::xml_node a_node, const std::unordered_map<int, ProcTexInfo>& a_ids);
+void FindAllProcTextures(pugi::xml_node a_node, const std::unordered_map<int, ProcTexInfo>& a_ids, std::vector< std::tuple<int, ProcTexInfo> >& a_outVector);
+ProcTextureList MakePTListFromTupleArray(const std::vector<std::tuple<int, ProcTexInfo> >& procTextureIds);
 void ReadAllProcTexArgsFromMaterialNode(pugi::xml_node a_node, std::vector<ProcTexParams>& a_procTexParams);
-void PutTexParamsToMaterialWithDamnTable(std::vector<ProcTexParams>& a_procTexParams, const std::unordered_map<int, int>& a_allProcTextures, 
+void PutTexParamsToMaterialWithDamnTable(std::vector<ProcTexParams>& a_procTexParams, const std::unordered_map<int, ProcTexInfo>& a_allProcTextures,
                                          std::shared_ptr<RAYTR::IMaterial> a_pMaterial);
 
 bool RenderDriverRTE::UpdateMaterial(int32_t a_matId, pugi::xml_node a_materialNode)
@@ -560,14 +562,14 @@ bool RenderDriverRTE::UpdateMaterial(int32_t a_matId, pugi::xml_node a_materialN
     return false;
   }
 
-  if (MaterialNodeHaveProceduralTextures(a_materialNode, m_procTexturesRetT))
+  if (MaterialNodeHaveProceduralTextures(a_materialNode, m_procTextures))
   { 
     pMaterial->AddFlags(PLAIN_MATERIAL_HAVE_PROC_TEXTURES);
 
     // 
     //
-    std::vector< std::tuple<int, int> > procTextureIds;
-    FindAllProcTextures(a_materialNode, m_procTexturesRetT, 
+    std::vector< std::tuple<int, ProcTexInfo> > procTextureIds;
+    FindAllProcTextures(a_materialNode, m_procTextures, 
                         procTextureIds);
     
     ProcTextureList ptl = MakePTListFromTupleArray(procTextureIds);
@@ -577,7 +579,7 @@ bool RenderDriverRTE::UpdateMaterial(int32_t a_matId, pugi::xml_node a_materialN
     //
     std::vector<ProcTexParams> procTexParams;
     ReadAllProcTexArgsFromMaterialNode(a_materialNode, procTexParams);
-    PutTexParamsToMaterialWithDamnTable(procTexParams, m_procTexturesRetT, pMaterial);
+    PutTexParamsToMaterialWithDamnTable(procTexParams, m_procTextures, pMaterial);
   }
 
   m_materialUpdated[a_matId] = pMaterial; // remember that we have updates this material in current update phase (between BeginMaterialUpdate and EndMaterialUpdate)

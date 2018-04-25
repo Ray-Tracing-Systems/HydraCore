@@ -10,8 +10,9 @@
 #include "../../HydraAPI/hydra_api/HydraXMLHelpers.h"
 #include "../../HydraAPI/hydra_api/HydraInternal.h"
 
+using ProcTexInfo = RenderDriverRTE::ProcTexInfo;
 
-bool MaterialNodeHaveProceduralTextures(pugi::xml_node a_node, const std::unordered_map<int, int>& a_ids)
+bool MaterialNodeHaveProceduralTextures(pugi::xml_node a_node, const std::unordered_map<int, ProcTexInfo>& a_ids)
 {
   if (std::wstring(a_node.name()) == L"texture")
   {
@@ -31,7 +32,7 @@ bool MaterialNodeHaveProceduralTextures(pugi::xml_node a_node, const std::unorde
   return childHaveProc;
 }
 
-void FindAllProcTextures(pugi::xml_node a_node, const std::unordered_map<int, int>& a_ids, std::vector<std::tuple<int, int> >& a_outVector)
+void FindAllProcTextures(pugi::xml_node a_node, const std::unordered_map<int, ProcTexInfo>& a_ids, std::vector<std::tuple<int, ProcTexInfo> >& a_outVector)
 {
   if (std::wstring(a_node.name()) == L"texture")
   {
@@ -41,7 +42,7 @@ void FindAllProcTextures(pugi::xml_node a_node, const std::unordered_map<int, in
 
     if (p != a_ids.end() || (std::wstring(a_node.attribute(L"type").as_string()) == L"texref_proc"))
     {
-      a_outVector.push_back(std::tuple<int, int>(p->first, p->second));
+      a_outVector.push_back(std::tuple<int, ProcTexInfo>(p->first, p->second));
     }
   }
 
@@ -126,7 +127,7 @@ void ReadAllProcTexArgsFromMaterialNode(pugi::xml_node a_node, std::vector<ProcT
 }
 
 
-void PutTexParamsToMaterialWithDamnTable(std::vector<ProcTexParams>& a_procTexParams, const std::unordered_map<int, int>& a_allProcTextures, 
+void PutTexParamsToMaterialWithDamnTable(std::vector<ProcTexParams>& a_procTexParams, const std::unordered_map<int, ProcTexInfo>& a_allProcTextures,
                                          std::shared_ptr<RAYTR::IMaterial> a_pMaterial)
 {
   if (a_procTexParams.size() == 0)
@@ -192,7 +193,7 @@ void PutTexParamsToMaterialWithDamnTable(std::vector<ProcTexParams>& a_procTexPa
 }
 
 
-ProcTextureList MakePTListFromTupleArray(const std::vector<std::tuple<int, int> >& procTextureIds)
+ProcTextureList MakePTListFromTupleArray(const std::vector<std::tuple<int, ProcTexInfo> >& procTextureIds)
 {
   ProcTextureList ptl;
   InitProcTextureList(&ptl);
@@ -202,7 +203,6 @@ ProcTextureList MakePTListFromTupleArray(const std::vector<std::tuple<int, int> 
   for (auto texIdAndType : procTextureIds)
   {
     int texId = std::get<0>(texIdAndType);
-    int texTy = std::get<1>(texIdAndType);
 
     if (counterf4 < MAXPROCTEX)
     {
@@ -254,7 +254,7 @@ void RenderDriverRTE::BeginTexturesUpdate()
 
   m_outProcTexFile << std::endl;
 
-  m_procTexturesCall.clear();
+  m_procTextures.clear();
 }
 
 static const std::string currentDateTime()
@@ -274,7 +274,7 @@ void RenderDriverRTE::EndTexturesUpdate()
   if (m_texShadersWasRecompiled) 
     return;
 
-  if (m_procTexturesCall.size() == 0)
+  if (m_procTextures.size() == 0)
   {
     m_inProcTexFile.close();
     m_outProcTexFile.close();
@@ -289,17 +289,17 @@ void RenderDriverRTE::EndTexturesUpdate()
     m_outProcTexFile << line.c_str() << std::endl;
     if (line.find("#PUT_YOUR_PROCEDURAL_TEXTURES_EVAL_HERE:") != std::string::npos)
     {
-      m_outProcTexFile << spaces.c_str() << "float3 texcolor[" << m_procTexturesCall.size() << "];" << std::endl;
-      m_outProcTexFile << spaces.c_str() << "int    texid[" << m_procTexturesCall.size() << "];" << std::endl;
+      m_outProcTexFile << spaces.c_str() << "float3 texcolor[" << m_procTextures.size() << "];" << std::endl;
+      m_outProcTexFile << spaces.c_str() << "int    texid[" << m_procTextures.size() << "];" << std::endl;
       m_outProcTexFile << std::endl;
 
       int counter = 0;
-      for (auto ptex : m_procTexturesCall)
+      for (auto ptex : m_procTextures)
       {
         m_outProcTexFile << "    if(materialHeadHaveTargetProcTex(pHitMaterial," << ptex.first << "))" << std::endl;
         m_outProcTexFile << "    {" << std::endl;
         m_outProcTexFile << spaces.c_str() << "  __global const float* stack = fdata + findArgDataOffsetInTable(" << ptex.first << ", table);" << std::endl;
-        m_outProcTexFile << spaces.c_str() << "  " << "texcolor[" << counter << "] = to_float3(" << ptex.second.c_str() << ");" << std::endl;
+        m_outProcTexFile << spaces.c_str() << "  " << "texcolor[" << counter << "] = to_float3(" << ptex.second.call.c_str() << ");" << std::endl;
         m_outProcTexFile << spaces.c_str() << "  " << "texid   [" << counter << "] = "           << ptex.first << ";" << std::endl;
         m_outProcTexFile << "    }" << std::endl;
         m_outProcTexFile << "    else" << std::endl;
@@ -313,7 +313,7 @@ void RenderDriverRTE::EndTexturesUpdate()
       m_outProcTexFile << std::endl;
       
       counter = 0;
-      for (auto ptex : m_procTexturesCall)
+      for (auto ptex : m_procTextures)
       {
         for (int j = 0; j < MAXPROCTEX; j++)
         {
@@ -354,8 +354,11 @@ bool RenderDriverRTE::UpdateImageProc(int32_t a_texId, int32_t w, int32_t h, int
   callS = std::regex_replace(callS, tail,  "in_texStorage1, in_globals");
   //callS = std::regex_replace(callS, stack, "pMat->data[");
 
-  m_procTexturesRetT[a_texId] = retT;
-  m_procTexturesCall[a_texId] = callS;
+  float aoLength     = 0.0f;
+  int   aoUpDownType = 0;
+  bool  aoHitOnlySameInstance = false;
+
+  m_procTextures[a_texId] = ProcTexInfo(retT, callS, aoLength, aoUpDownType, aoHitOnlySameInstance);
 
   // (2) insert code inside opencl program;
   //

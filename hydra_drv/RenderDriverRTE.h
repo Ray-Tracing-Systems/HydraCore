@@ -105,6 +105,21 @@ struct RenderDriverRTE : public IHRRenderDriver
 
   float3 GetMLTAvgBrightness() { return m_legacy.m_averageBrightness; }
 
+  struct ProcTexInfo
+  {
+    ProcTexInfo() {}
+    ProcTexInfo(int a_retT, const std::string& a_call,
+      float a_aoRayLength, int a_aoUpDownType, bool a_aoHitOnlySameInstance) : retT(a_retT), call(a_call),
+      aoRayLength(a_aoRayLength), aoUpDownType(a_aoUpDownType), aoHitOnlySameInstance(a_aoHitOnlySameInstance) {}
+
+    int         retT;
+    std::string call;
+
+    float       aoRayLength;
+    int         aoUpDownType;
+    bool        aoHitOnlySameInstance;
+  };
+
 protected:
 
   void CalcCameraMatrices(float4x4* a_pModelViewMatrixInv, float4x4* a_projMatrixInv, float4x4* a_pModelViewMatrix, float4x4* a_projMatrix);
@@ -153,8 +168,8 @@ protected:
   std::unordered_map<std::wstring, int2>                      m_iesCache;
   std::unordered_map<int, std::shared_ptr<RAYTR::IMaterial> > m_materialUpdated;
   std::unordered_map<std::wstring, int32_t>                   m_texturesProcessedNM;
-  std::unordered_map<int, int>                                m_procTexturesRetT;
-  std::unordered_map<int, std::string>                        m_procTexturesCall;
+
+  std::unordered_map<int, ProcTexInfo>  m_procTextures;
 
   using DefferedMaterialDataTuple = std::tuple<std::shared_ptr<RAYTR::IMaterial>, pugi::xml_node>;
   std::unordered_map<int, DefferedMaterialDataTuple > m_blendsToUpdate;

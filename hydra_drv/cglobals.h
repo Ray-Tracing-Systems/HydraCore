@@ -639,8 +639,6 @@ static inline float3 SafeInverse(float3 d)
 }
 
 static inline float epsilonOfPos(float3 hitPos) { return fmax(fmax(fabs(hitPos.x), fmax(fabs(hitPos.y), fabs(hitPos.z))), 2.0f*GEPSILON)*GEPSILON; }
-static inline float myluminance(const float3 a_lum) { return dot(make_float3(0.35f, 0.51f, 0.14f), a_lum); }
-
 static inline float misHeuristicPower1(float p) { return isfinite(p) ? fabs(p) : 0.0f; }
 static inline float misHeuristicPower2(float p) { return isfinite(p) ? p*p     : 0.0f; }
 

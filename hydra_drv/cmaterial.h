@@ -1112,6 +1112,8 @@ static inline float maxSigmoid(const float x, const float gamma)
   return 1.04f / (1.0f + exp(-gamma*x2)) - 0.02f;
 }
 
+static inline float myluminance(const float3 a_lum) { return dot(make_float3(0.35f, 0.51f, 0.14f), a_lum); }
+
 static inline float blendMaskAlpha2(__global const PlainMaterial* pMat, 
                                     const float3 v, const float3 n, const float2 hitTexCoord, 
                                     __global const EngineGlobals* a_globals, texture2d_t a_tex, __private const ProcTextureList* a_ptList)
@@ -1123,7 +1125,7 @@ static inline float blendMaskAlpha2(__global const PlainMaterial* pMat,
 
   float lum;
   if ((as_int(pMat->data[BLEND_MASK_FLAGS_OFFSET]) & BLEND_MASK_EXTRUSION_LUMINANCE) != 0)
-    lum = myluminance(lum1);
+    lum = myluminance(lum1); // dot(lum1, make_float3(0.3333f, 0.3334f, 0.3333f)); // myluminance(lum1);
   else
     lum = fmax(lum1.x, fmax(lum1.y, lum1.z));
 
