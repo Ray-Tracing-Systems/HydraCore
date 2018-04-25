@@ -15,6 +15,7 @@ typedef struct SurfaceInfoT
   float3 wp;
   float3 n;
   float2 tc0;
+  float  ao;
 
   //#TODO: add custom attributes
 
@@ -23,6 +24,7 @@ typedef struct SurfaceInfoT
 #define readAttr_WorldPos(sHit) (sHit->wp)
 #define readAttr_ShadeNorm(sHit) (sHit->n)
 #define readAttr_TexCoord0(sHit) (sHit->tc0)
+#define readAttr_AO(sHit) (sHit->ao)
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -94,6 +96,7 @@ __kernel void ProcTexExec(__global       uint*          restrict a_flags,
     surfHit.wp  = to_float3(in_hitPosNorm[tid]);
     surfHit.n   = to_float3(in_normalsFull[tid]); // normalize(decodeNormal(as_int(data.w)));
     surfHit.tc0 = in_hitTexCoord[tid];
+    surfHit.ao  = 1.0f;
     __private const SurfaceInfo* sHit = &surfHit;
 
     // (2) read custom attributes to 'surfHit' if target mesh have them.

@@ -48,6 +48,12 @@ namespace RAYTR
       ProcTextureList ptl;
       InitProcTextureList(&ptl);
       PutProcTexturesIdListToMaterialHead(&ptl, &m_plain);
+
+      ((int*)(m_plain.data))[PROC_TEX_AO_TYPE]  = AO_TYPE_NONE;
+      ((int*)(m_plain.data))[PROC_TEX_TEX_ID]   = INVALID_TEXTURE;
+      ((int*)(m_plain.data))[PROC_TEXMATRIX_ID] = INVALID_TEXTURE;
+      m_plain.data[PROC_TEX_AO_LENGTH] = 0.0f;
+      //#TODO: SetAOSampler
     }
 
     virtual ~IMaterial() {}

@@ -542,6 +542,8 @@ void ReadAllProcTexArgsFromMaterialNode(pugi::xml_node a_node, std::vector<ProcT
 void PutTexParamsToMaterialWithDamnTable(std::vector<ProcTexParams>& a_procTexParams, const std::unordered_map<int, ProcTexInfo>& a_allProcTextures,
                                          std::shared_ptr<RAYTR::IMaterial> a_pMaterial);
 
+void PutAOToMaterialHead(const std::vector< std::tuple<int, ProcTexInfo> >& a_procTextureIds, std::shared_ptr<RAYTR::IMaterial> a_pMaterial);
+
 bool RenderDriverRTE::UpdateMaterial(int32_t a_matId, pugi::xml_node a_materialNode)
 {
   //std::cerr << "RenderDriverRTE::UpdateMaterial(" << a_matId << ") " << std::endl;
@@ -566,7 +568,7 @@ bool RenderDriverRTE::UpdateMaterial(int32_t a_matId, pugi::xml_node a_materialN
   { 
     pMaterial->AddFlags(PLAIN_MATERIAL_HAVE_PROC_TEXTURES);
 
-    // 
+    // list all proc textures bound to this material
     //
     std::vector< std::tuple<int, ProcTexInfo> > procTextureIds;
     FindAllProcTextures(a_materialNode, m_procTextures, 
@@ -580,6 +582,10 @@ bool RenderDriverRTE::UpdateMaterial(int32_t a_matId, pugi::xml_node a_materialN
     std::vector<ProcTexParams> procTexParams;
     ReadAllProcTexArgsFromMaterialNode(a_materialNode, procTexParams);
     PutTexParamsToMaterialWithDamnTable(procTexParams, m_procTextures, pMaterial);
+
+    // put AO params to material head
+    //
+    PutAOToMaterialHead(procTextureIds, pMaterial);
   }
 
   m_materialUpdated[a_matId] = pMaterial; // remember that we have updates this material in current update phase (between BeginMaterialUpdate and EndMaterialUpdate)

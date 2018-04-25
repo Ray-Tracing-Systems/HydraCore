@@ -216,6 +216,35 @@ ProcTextureList MakePTListFromTupleArray(const std::vector<std::tuple<int, ProcT
   return ptl;
 }
 
+
+void PutAOToMaterialHead(const std::vector< std::tuple<int, ProcTexInfo> >& a_procTextureIds, std::shared_ptr<RAYTR::IMaterial> a_pMaterial)
+{
+  ProcTexInfo textureThatUsesAO;
+
+  for (auto ptex : a_procTextureIds)
+  {
+    auto texInfo = std::get<1>(ptex);
+
+    if (texInfo.aoUpDownType != AO_TYPE_NONE)
+    {
+      textureThatUsesAO = texInfo;
+      break;
+    }
+  }
+
+  if (textureThatUsesAO.aoUpDownType == AO_TYPE_NONE)
+    return;
+
+  ((int*)(a_pMaterial->m_plain.data))[PROC_TEX_AO_TYPE] = textureThatUsesAO.aoUpDownType;
+  a_pMaterial->m_plain.data[PROC_TEX_AO_LENGTH]         = textureThatUsesAO.aoRayLength;
+
+  SWTexSampler samplerAO     = DummySampler();  // #TODO: get from ProcTexInfo
+  const int aoRayLengthTexId = INVALID_TEXTURE; // #TODO: get from ProcTexInfo
+
+  a_pMaterial->PutSamplerAt(aoRayLengthTexId, samplerAO, PROC_TEX_TEX_ID, PROC_TEXMATRIX_ID, PROC_TEX_AO_SAMPLER);
+}
+
+
 //#TODO: move m_texShadersWasRecompiled outside of this, don't call BeginTexturesUpdate/EndTexturesUpdate if don't have textures tp update
 //
 
@@ -352,11 +381,19 @@ bool RenderDriverRTE::UpdateImageProc(int32_t a_texId, int32_t w, int32_t h, int
 
   std::string callS(callW.begin(), callW.end());
   callS = std::regex_replace(callS, tail,  "in_texStorage1, in_globals");
-  //callS = std::regex_replace(callS, stack, "pMat->data[");
+  
+  const std::wstring aoType = a_texNode.child(L"ao").attribute(L"hemisphere").as_string();
 
-  float aoLength     = 0.0f;
-  int   aoUpDownType = 0;
-  bool  aoHitOnlySameInstance = false;
+  float aoLength              = a_texNode.child(L"ao").attribute(L"length").as_float();
+  int   aoUpDownType          = AO_TYPE_NONE;
+  bool  aoHitOnlySameInstance = (a_texNode.child(L"ao").attribute(L"local").as_int() == 1);
+
+  if (aoType == L"up" || aoType == L"corner")
+    aoUpDownType = AO_TYPE_UP;
+  else if (aoType == L"down" || aoType == L"edge")
+    aoUpDownType = AO_TYPE_DOWN;
+  else if (aoType == L"both")
+    aoUpDownType = AO_TYPE_BOTH;
 
   m_procTextures[a_texId] = ProcTexInfo(retT, callS, aoLength, aoUpDownType, aoHitOnlySameInstance);
 
