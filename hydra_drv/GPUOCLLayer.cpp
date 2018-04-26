@@ -1836,7 +1836,7 @@ void GPUOCLLayer::trace1DPrimaryOnly(cl_mem a_rpos, cl_mem a_rdir, cl_mem a_outC
     m_stat.raysPerSec = float(a_size) / m_timer.getElapsed();
   }
   
-  runKernel_ComputeHit(a_rpos, a_rdir, a_size);
+  runKernel_ComputeHit(a_rpos, a_rdir, a_size, true);
 
   //
   //

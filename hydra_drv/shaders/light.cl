@@ -253,7 +253,7 @@ __kernel void CopyAndPackForConnectEye(__global const uint*    restrict in_flags
 }
 
 
-__kernel void MakeAORays(__global       uint*      restrict a_flags,
+__kernel void MakeAORays(__global const uint*      restrict in_flags,
                          __global RandomGen*       restrict a_gens,
 
                          __global const float4*    restrict in_hitPosNorm,
@@ -272,9 +272,7 @@ __kernel void MakeAORays(__global       uint*      restrict a_flags,
   if (tid >= iNumElements)
     return;
 
-  const uint flags        = a_flags[tid];
-  const uint rayBounceNum = unpackBounceNum(flags);
-
+  const uint flags = in_flags[tid];
   if (!rayIsActiveU(flags))
     return;
 
@@ -300,17 +298,25 @@ __kernel void MakeAORays(__global       uint*      restrict a_flags,
     if (aoType == AO_TYPE_UP)
     {
       sRayDir = MapSampleToCosineDistribution(rands.x, rands.y, hitNorm, hitNorm, 1.0f);
+      sRayPos = OffsRayPos(sRayPos, hitNorm, sRayDir);
     }
     else if (aoType == AO_TYPE_DOWN)
     {
       sRayDir = MapSampleToCosineDistribution(rands.x, rands.y, (-1.0f)*hitNorm, (-1.0f)*hitNorm, 1.0f);
+      sRayPos = OffsRayPos(sRayPos, (-1.0f)*hitNorm, sRayDir);
     }
     else if (aoType == AO_TYPE_BOTH)
     {
-      if(rands.z <= 0.5f)
+      if (rands.z <= 0.5f)
+      {
         sRayDir = MapSampleToCosineDistribution(rands.x, rands.y, hitNorm, hitNorm, 1.0f);
+        sRayPos = OffsRayPos(sRayPos, hitNorm, sRayDir);
+      }
       else
+      {
         sRayDir = MapSampleToCosineDistribution(rands.x, rands.y, (-1.0f)*hitNorm, (-1.0f)*hitNorm, 1.0f);
+        sRayPos = OffsRayPos(sRayPos, (-1.0f)*hitNorm, sRayDir);
+      }
     }
 
   }
@@ -320,8 +326,42 @@ __kernel void MakeAORays(__global       uint*      restrict a_flags,
 
 }
 
+static inline float3 decompressShadow(ushort4 shadowCompressed)
+{
+  const float invNormCoeff = 1.0f / 65535.0f;
+  return invNormCoeff * make_float3((float)shadowCompressed.x, (float)shadowCompressed.y, (float)shadowCompressed.z);
+}
 
-// change 31.01.2018 15:20;
+__kernel void PackAO(__global const uint*      restrict in_flags,
+                     __global const ushort4*   restrict in_shadowAO,
+                     __global       uchar*     restrict out_ao,
+                     int i, int numIter, int iNumElements)
+
+{
+  int tid = GLOBAL_ID_X;
+  if (tid >= iNumElements)
+    return;
+
+  const uint flags = in_flags[tid];
+  if (!rayIsActiveU(flags))
+    return;
+
+  const float3 shadow = decompressShadow(in_shadowAO[tid]);
+  const float  aoIn   = 0.333334f*(shadow.x + shadow.y + shadow.z);
+
+  const uchar  aoChaCur = (aoIn > 0.5f) ? 1 : 0;
+  const uchar  aoChaOld = (i == 0) ? 0 : out_ao[tid];
+  const uchar  aoSumm   = aoChaCur + aoChaOld;
+
+  const float  aoFinRes = (float)(aoSumm) / ((float)numIter);
+
+  if (i == numIter - 1)
+    out_ao[tid] = (uchar)(aoFinRes*255.0f);
+  else
+    out_ao[tid] = aoSumm;
+
+}
+
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////

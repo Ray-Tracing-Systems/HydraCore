@@ -322,7 +322,7 @@ void GPUOCLLayer::runKernel_Trace(cl_mem a_rpos, cl_mem a_rdir, cl_mem a_hits, s
 
 }
 
-void GPUOCLLayer::runKernel_ComputeHit(cl_mem a_rpos, cl_mem a_rdir, size_t a_size)
+void GPUOCLLayer::runKernel_ComputeHit(cl_mem a_rpos, cl_mem a_rdir, size_t a_size, bool a_doNotEvaluateProcTex)
 {
   // eval common surface parameters
   //
@@ -360,6 +360,9 @@ void GPUOCLLayer::runKernel_ComputeHit(cl_mem a_rpos, cl_mem a_rdir, size_t a_si
   CHECK_CL(clEnqueueNDRangeKernel(m_globals.cmdQueue, kernHit, 1, NULL, &a_size, &localWorkSize, 0, NULL, NULL));
   waitIfDebug(__FILE__, __LINE__);
 
+  if (a_doNotEvaluateProcTex)
+    return;
+
   // eval AO
   //
   if (m_rays.aoCompressed != nullptr)
@@ -367,33 +370,48 @@ void GPUOCLLayer::runKernel_ComputeHit(cl_mem a_rpos, cl_mem a_rdir, size_t a_si
     // (1) read AO params and put (rpos, tmax) to m_rays.shadowRayPos
     // (2) create random vector in hemisphere and put it to m_rays.shadowRayDir
     //
-    cl_kernel kernAO = m_progs.lightp.kernel("MakeAORays");
-    
-    CHECK_CL(clSetKernelArg(kernAO, 0, sizeof(cl_mem), (void*)&m_rays.rayFlags));
-    CHECK_CL(clSetKernelArg(kernAO, 1, sizeof(cl_mem), (void*)&m_rays.randGenState));
+    int numIters = 2;
 
-    CHECK_CL(clSetKernelArg(kernAO, 2, sizeof(cl_mem), (void*)&m_rays.hitPosNorm));
-    CHECK_CL(clSetKernelArg(kernAO, 3, sizeof(cl_mem), (void*)&m_rays.hitTexCoord));
-    CHECK_CL(clSetKernelArg(kernAO, 4, sizeof(cl_mem), (void*)&m_rays.hitMatId));
+    for (int iter = 0; iter < numIters; iter++)
+    {
+      cl_kernel kernAO = m_progs.lightp.kernel("MakeAORays");
 
-    CHECK_CL(clSetKernelArg(kernAO, 5, sizeof(cl_mem), (void*)&m_rays.shadowRayPos));
-    CHECK_CL(clSetKernelArg(kernAO, 6, sizeof(cl_mem), (void*)&m_rays.shadowRayDir));
+      CHECK_CL(clSetKernelArg(kernAO, 0, sizeof(cl_mem), (void*)&m_rays.rayFlags));
+      CHECK_CL(clSetKernelArg(kernAO, 1, sizeof(cl_mem), (void*)&m_rays.randGenState));
 
-    CHECK_CL(clSetKernelArg(kernAO, 7, sizeof(cl_mem), (void*)&m_scene.storageTex));
-    CHECK_CL(clSetKernelArg(kernAO, 8, sizeof(cl_mem), (void*)&m_scene.storageMat));
-    CHECK_CL(clSetKernelArg(kernAO, 9, sizeof(cl_mem), (void*)&m_scene.allGlobsData));
-    CHECK_CL(clSetKernelArg(kernAO,10, sizeof(cl_int), (void*)&isize));
+      CHECK_CL(clSetKernelArg(kernAO, 2, sizeof(cl_mem), (void*)&m_rays.hitPosNorm));
+      CHECK_CL(clSetKernelArg(kernAO, 3, sizeof(cl_mem), (void*)&m_rays.hitTexCoord));
+      CHECK_CL(clSetKernelArg(kernAO, 4, sizeof(cl_mem), (void*)&m_rays.hitMatId));
 
-    CHECK_CL(clEnqueueNDRangeKernel(m_globals.cmdQueue, kernAO, 1, NULL, &a_size, &localWorkSize, 0, NULL, NULL));
-    waitIfDebug(__FILE__, __LINE__);
+      CHECK_CL(clSetKernelArg(kernAO, 5, sizeof(cl_mem), (void*)&m_rays.shadowRayPos));
+      CHECK_CL(clSetKernelArg(kernAO, 6, sizeof(cl_mem), (void*)&m_rays.shadowRayDir));
 
-    // (3) calc shadows
-    //
-    runKernel_ShadowTrace(m_rays.rayFlags, m_rays.shadowRayPos, m_rays.shadowRayDir, m_rays.lshadow, a_size);
+      CHECK_CL(clSetKernelArg(kernAO, 7, sizeof(cl_mem), (void*)&m_scene.storageTex));
+      CHECK_CL(clSetKernelArg(kernAO, 8, sizeof(cl_mem), (void*)&m_scene.storageMat));
+      CHECK_CL(clSetKernelArg(kernAO, 9, sizeof(cl_mem), (void*)&m_scene.allGlobsData));
+      CHECK_CL(clSetKernelArg(kernAO, 10, sizeof(cl_int), (void*)&isize));
 
-    // (4) pack them in m_rays.aoCompressed
-    //
+      CHECK_CL(clEnqueueNDRangeKernel(m_globals.cmdQueue, kernAO, 1, NULL, &a_size, &localWorkSize, 0, NULL, NULL));
+      waitIfDebug(__FILE__, __LINE__);
 
+      // (3) calc shadows
+      //
+      runKernel_ShadowTrace(m_rays.rayFlags, m_rays.shadowRayPos, m_rays.shadowRayDir, m_rays.lshadow, a_size);
+
+      // (4) pack them in m_rays.aoCompressed
+      //
+      cl_kernel kernAOPack = m_progs.lightp.kernel("PackAO");
+
+      CHECK_CL(clSetKernelArg(kernAOPack, 0, sizeof(cl_mem), (void*)&m_rays.rayFlags));
+      CHECK_CL(clSetKernelArg(kernAOPack, 1, sizeof(cl_mem), (void*)&m_rays.lshadow));
+      CHECK_CL(clSetKernelArg(kernAOPack, 2, sizeof(cl_mem), (void*)&m_rays.aoCompressed));
+      CHECK_CL(clSetKernelArg(kernAOPack, 3, sizeof(cl_int), (void*)&iter));
+      CHECK_CL(clSetKernelArg(kernAOPack, 4, sizeof(cl_int), (void*)&numIters));
+      CHECK_CL(clSetKernelArg(kernAOPack, 5, sizeof(cl_int), (void*)&isize));
+
+      CHECK_CL(clEnqueueNDRangeKernel(m_globals.cmdQueue, kernAOPack, 1, NULL, &a_size, &localWorkSize, 0, NULL, NULL));
+      waitIfDebug(__FILE__, __LINE__);
+    }
   }
 
   // eval procedure textures
@@ -408,7 +426,8 @@ void GPUOCLLayer::runKernel_ComputeHit(cl_mem a_rpos, cl_mem a_rdir, size_t a_si
     CHECK_CL(clSetKernelArg(kernProcT, 2, sizeof(cl_mem), (void*)&m_rays.hitTexCoord));
     CHECK_CL(clSetKernelArg(kernProcT, 3, sizeof(cl_mem), (void*)&m_rays.hitMatId));
     CHECK_CL(clSetKernelArg(kernProcT, 4, sizeof(cl_mem), (void*)&m_rays.hitNormUncompressed));
-    CHECK_CL(clSetKernelArg(kernProcT, 5, sizeof(cl_mem), (void*)&m_rays.lshadow));
+    //CHECK_CL(clSetKernelArg(kernProcT, 5, sizeof(cl_mem), (void*)&m_rays.lshadow));
+    CHECK_CL(clSetKernelArg(kernProcT, 5, sizeof(cl_mem), (void*)&m_rays.aoCompressed));
 
     CHECK_CL(clSetKernelArg(kernProcT, 6, sizeof(cl_mem), (void*)&m_rays.hitProcTexData));
     
