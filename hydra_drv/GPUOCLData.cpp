@@ -18,14 +18,20 @@ void GPUOCLLayer::Clear(CLEAR_FLAGS a_flags)
 
 void GPUOCLLayer::SetNamedBuffer(const char* a_name, void* a_data, size_t a_size)
 {
+  cl_int ciErr1 = CL_SUCCESS;
+
+  if (std::string(a_name) == "ao" && a_size == size_t(-1))
+  {
+    m_rays.aoCompressed = clCreateBuffer(m_globals.ctx, CL_MEM_READ_WRITE, m_rays.MEGABLOCKSIZE, nullptr, &ciErr1); // byte buffer
+    return;
+  }
+
   auto p = m_scene.namedBuffers.find(a_name);
   if (p != m_scene.namedBuffers.end())
   {
     clReleaseMemObject(p->second);
     p->second = 0;
   }
-
-  cl_int ciErr1 = CL_SUCCESS;
 
   m_scene.namedBuffers[a_name] = clCreateBuffer(m_globals.ctx, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, a_size, a_data, &ciErr1);
 

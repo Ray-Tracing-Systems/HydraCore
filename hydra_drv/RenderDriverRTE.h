@@ -279,6 +279,7 @@ protected:
   void DebugTestAlphaTestTable(const std::vector<uint2>& a_alphaTable, int a_trif4Num);
 
   bool m_alreadyDeleted;
+  bool m_haveAtLeastOneAOMat;
 
   friend void ReadBumpAndOpacity(std::shared_ptr<RAYTR::IMaterial> pResult, pugi::xml_node a_node, RenderDriverRTE* a_pRTE);
 

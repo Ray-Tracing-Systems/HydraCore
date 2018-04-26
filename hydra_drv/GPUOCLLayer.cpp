@@ -78,6 +78,7 @@ void GPUOCLLayer::CL_BUFFERS_RAYS::free()
                        
   if (fogAtten)        { clReleaseMemObject(fogAtten);   fogAtten   = nullptr; }
   if (samZindex)       { clReleaseMemObject(samZindex);  samZindex  = nullptr; }
+  if (aoCompressed)    { clReleaseMemObject(aoCompressed);  aoCompressed = nullptr; }
   if (packedXY)        { clReleaseMemObject(packedXY);   packedXY   = nullptr; }
   if (debugf4)         { clReleaseMemObject(debugf4);    debugf4    = nullptr; }
 }

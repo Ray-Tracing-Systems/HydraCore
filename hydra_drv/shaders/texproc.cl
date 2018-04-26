@@ -57,6 +57,12 @@ const int findArgDataOffsetInTable(int a_texId, __global const int* a_table)
   return offset;
 }
 
+static inline float3 decompressShadow(ushort4 shadowCompressed)
+{
+  const float invNormCoeff = 1.0f / 65535.0f;
+  return invNormCoeff * make_float3((float)shadowCompressed.x, (float)shadowCompressed.y, (float)shadowCompressed.z);
+}
+
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -68,6 +74,7 @@ __kernel void ProcTexExec(__global       uint*          restrict a_flags,
                           __global const float2*        restrict in_hitTexCoord,
                           __global const HitMatRef*     restrict in_matData,
                           __global const float4*        restrict in_normalsFull,
+                          __global const ushort4*       restrict in_shadowAO,
                                                         
                           __global       float4*        restrict out_procTexData,
                                                         
@@ -92,11 +99,14 @@ __kernel void ProcTexExec(__global       uint*          restrict a_flags,
   {
     // (1) read common attributes to 'surfaceHit'
     //
+
+    const float3 shadow = decompressShadow(in_shadowAO[tid]);
+
     SurfaceInfo surfHit;
     surfHit.wp  = to_float3(in_hitPosNorm[tid]);
     surfHit.n   = to_float3(in_normalsFull[tid]); // normalize(decodeNormal(as_int(data.w)));
     surfHit.tc0 = in_hitTexCoord[tid];
-    surfHit.ao  = 1.0f;
+    surfHit.ao  = 0.333334f*(shadow.x + shadow.y + shadow.z);
     __private const SurfaceInfo* sHit = &surfHit;
 
     // (2) read custom attributes to 'surfHit' if target mesh have them.

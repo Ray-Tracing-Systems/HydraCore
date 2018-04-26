@@ -252,6 +252,75 @@ __kernel void CopyAndPackForConnectEye(__global const uint*    restrict in_flags
   out_raydir[tid] = in_raydir[tid];
 }
 
+
+__kernel void MakeAORays(__global       uint*      restrict a_flags,
+                         __global RandomGen*       restrict a_gens,
+
+                         __global const float4*    restrict in_hitPosNorm,
+                         __global const float2*    restrict in_hitTexCoord,
+                         __global const HitMatRef* restrict in_matData,
+
+                         __global float4*          restrict out_rpos,
+                         __global float4*          restrict out_rdir,
+  
+                         __global const float4*    restrict in_texStorage1,
+                         __global const float4*    restrict in_mtlStorage,
+                         __global const EngineGlobals* restrict a_globals,
+                         int iNumElements)
+{
+  int tid = GLOBAL_ID_X;
+  if (tid >= iNumElements)
+    return;
+
+  const uint flags        = a_flags[tid];
+  const uint rayBounceNum = unpackBounceNum(flags);
+
+  if (!rayIsActiveU(flags))
+    return;
+
+  const float4 data1   = in_hitPosNorm[tid];
+  const float3 hitPos  = to_float3(data1);
+  const float3 hitNorm = decodeNormal(as_int(data1.w));
+
+  __global const PlainMaterial* pMaterialHead = materialAt(a_globals, in_mtlStorage, GetMaterialId(in_matData[tid]));
+
+  float3 sRayPos    = make_float3(0, 1e30f, 0);
+  float3 sRayDir    = make_float3(0, 1, 0);
+  float  sRayLength = pMaterialHead->data[PROC_TEX_AO_LENGTH];
+
+  if (MaterialHaveAO(pMaterialHead))
+  {
+    RandomGen gen = a_gens[tid];
+    float3 rands  = to_float3(rndFloat4_Pseudo(&gen));
+    a_gens[tid]   = gen;
+
+    sRayPos       = hitPos;
+
+    int aoType = MaterialAOType(pMaterialHead);
+    if (aoType == AO_TYPE_UP)
+    {
+      sRayDir = MapSampleToCosineDistribution(rands.x, rands.y, hitNorm, hitNorm, 1.0f);
+    }
+    else if (aoType == AO_TYPE_DOWN)
+    {
+      sRayDir = MapSampleToCosineDistribution(rands.x, rands.y, (-1.0f)*hitNorm, (-1.0f)*hitNorm, 1.0f);
+    }
+    else if (aoType == AO_TYPE_BOTH)
+    {
+      if(rands.z <= 0.5f)
+        sRayDir = MapSampleToCosineDistribution(rands.x, rands.y, hitNorm, hitNorm, 1.0f);
+      else
+        sRayDir = MapSampleToCosineDistribution(rands.x, rands.y, (-1.0f)*hitNorm, (-1.0f)*hitNorm, 1.0f);
+    }
+
+  }
+
+  out_rpos[tid] = to_float4(sRayPos, sRayLength);
+  out_rdir[tid] = to_float4(sRayDir, 0.0f);
+
+}
+
+
 // change 31.01.2018 15:20;
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////

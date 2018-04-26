@@ -571,6 +571,7 @@ __kernel void HitEnvOrLightKernel(__global const float4*    restrict in_rpos,
 }
 
 
+
 __kernel void Shade(__global const float4*    restrict a_rpos,
                     __global const float4*    restrict a_rdir,
                     __global       uint*      restrict a_flags,

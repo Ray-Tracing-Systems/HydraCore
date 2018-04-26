@@ -66,6 +66,7 @@ RenderDriverRTE::RenderDriverRTE(const wchar_t* a_options, int w, int h, int a_d
 
   m_auxImageNumber  = 0;
   m_avgStatsId      = 0;
+  m_haveAtLeastOneAOMat = false;
 
   ///////////////////////////////////////////////////////////////////////////////////////////////////
   if (m_initFlags & GPU_RT_HW_LAYER_OCL)
@@ -376,6 +377,8 @@ void RenderDriverRTE::ClearAll()
 
   m_auxImageNumber = 0;
   m_auxTexNormalsPerMat.clear();
+
+  m_haveAtLeastOneAOMat = false;
 }
 
 std::shared_ptr<RAYTR::IMaterial> CreateDiffuseWhiteMaterial();
@@ -586,6 +589,9 @@ bool RenderDriverRTE::UpdateMaterial(int32_t a_matId, pugi::xml_node a_materialN
     // put AO params to material head
     //
     PutAOToMaterialHead(procTextureIds, pMaterial);
+
+    if (MaterialHaveAO(&pMaterial->m_plain))
+      m_haveAtLeastOneAOMat = true;
   }
 
   m_materialUpdated[a_matId] = pMaterial; // remember that we have updates this material in current update phase (between BeginMaterialUpdate and EndMaterialUpdate)
@@ -1067,6 +1073,9 @@ void RenderDriverRTE::EndScene() // #TODO: add dirty flags (?) to update only th
   }
   /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+  if (m_haveAtLeastOneAOMat && m_procTextures.size() != 0)
+    m_pHWLayer->SetNamedBuffer("ao", nullptr, size_t(-1));
 
   m_pHWLayer->PrepareEngineTables();
 

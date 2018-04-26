@@ -1094,11 +1094,6 @@ IDH_CALL float2 RaySphereIntersect(float3 rayPos, float3 rayDir, float3 sphPos, 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 
-// \F1\F2\F0\F3\81E\F3\F0\81E\E1\F3\E4\E5\81E\F2\E0\81E\FF:
-// \81E\F0\E2\FB\E5 16 \E1\E0\E9\F2 - \F1\E0\81E \F1\F2\F0\F3\81E\F0\F3\F2\E0 ObjectList
-// \F1\ED\E0\F7\E0\EB\81E\E8\E4\F3\F2 \F2\F0\E5\F3\E3\EE\81E\FBG\81E, \81E\F2\EE\81E\F1\F4\E5\F0\81E \D7\E8\F2\E0\E5\81E\F2\E5\81E\F2\F3\F0\ED\FB\EC\81E\E2\FB\E1\EE\F0\EA\E0\EC\81E\81E float4 (\E8\EB\81Euint4)
-//
-
 struct ObjectListTriangle
 {
   float4 v1;
@@ -2284,7 +2279,6 @@ static inline bool isProcTexId(int a_texId, const __private ProcTextureList* a_p
   return (a_pList->id_f4[0] != INVALID_TEXTURE);
 }
 
-
 /**
 \brief get color for precomputed procedural texture
 \param a_texId       - input tex id
@@ -2501,6 +2495,15 @@ static inline bool MaterialHaveAtLeastOneProcTex(__global const PlainMaterial* a
   return as_int(a_pMat->data[PROC_TEX1_F4_HEAD_OFFSET]) != INVALID_TEXTURE;
 }
 
+static inline bool MaterialHaveAO(__global const PlainMaterial* a_pMat)
+{
+  return as_int(a_pMat->data[PROC_TEX_AO_TYPE]) != AO_TYPE_NONE;
+}
+
+static inline int MaterialAOType(__global const PlainMaterial* a_pMat)
+{
+  return as_int(a_pMat->data[PROC_TEX_AO_TYPE]);
+}
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
