@@ -79,6 +79,7 @@ void GPUOCLLayer::CL_BUFFERS_RAYS::free()
   if (fogAtten)        { clReleaseMemObject(fogAtten);   fogAtten   = nullptr; }
   if (samZindex)       { clReleaseMemObject(samZindex);  samZindex  = nullptr; }
   if (aoCompressed)    { clReleaseMemObject(aoCompressed);  aoCompressed = nullptr; }
+  if (lightOffsetBuff) { clReleaseMemObject(lightOffsetBuff);  lightOffsetBuff = nullptr; }
   if (packedXY)        { clReleaseMemObject(packedXY);   packedXY   = nullptr; }
   if (debugf4)         { clReleaseMemObject(debugf4);    debugf4    = nullptr; }
 }
@@ -175,8 +176,9 @@ size_t GPUOCLLayer::CL_BUFFERS_RAYS::resize(cl_context ctx, cl_command_queue cmd
   if (ciErr1 != CL_SUCCESS)
     RUN_TIME_ERROR("Error in resize rays buffers");
 
-  samZindex = clCreateBuffer(ctx, CL_MEM_READ_WRITE, 1 * 2 * sizeof(int)*MEGABLOCKSIZE, NULL, &ciErr1); currSize += buff1Size * 2;
-  packedXY  = clCreateBuffer(ctx, CL_MEM_READ_WRITE, sizeof(int)*MEGABLOCKSIZE, NULL, &ciErr1);  currSize += buff1Size*1;
+  samZindex       = clCreateBuffer(ctx, CL_MEM_READ_WRITE, 1*2*sizeof(int)*MEGABLOCKSIZE, NULL, &ciErr1); currSize += buff1Size * 2;
+  packedXY        = clCreateBuffer(ctx, CL_MEM_READ_WRITE, sizeof(int)*MEGABLOCKSIZE, NULL, &ciErr1);     currSize += buff1Size*1;
+  lightOffsetBuff = clCreateBuffer(ctx, CL_MEM_READ_WRITE, sizeof(int)*MEGABLOCKSIZE, NULL, &ciErr1);     currSize += buff1Size * 1;
 
   if (ciErr1 != CL_SUCCESS)
     RUN_TIME_ERROR("Error in resize rays buffers");

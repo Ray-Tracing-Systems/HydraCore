@@ -591,7 +591,7 @@ __kernel void Shade(__global const float4*    restrict a_rpos,
                     __global const float4*    restrict in_procTexData,
 
                     __global const PerRayAcc* restrict in_pdfAccPrev,
-                    __global const float4*    restrict in_rayDirAndLightId,
+                    __global const int*       restrict in_loffs,
                     __global const float*     restrict in_pdfCamA,
 
                     __global float4*          restrict out_color,
@@ -683,7 +683,7 @@ __kernel void Shade(__global const float4*    restrict a_rpos,
   const float3 shadow       = decompressShadow(in_shadow[tid]);
   const float lightPickProb = in_lightPickProb[tid];
 
-  const int lightOffset     = as_int(in_rayDirAndLightId[tid].w);
+  const int lightOffset     = in_loffs[tid];
 
   __global const PlainLight* pLight = lightAt(a_globals, lightOffset);
 

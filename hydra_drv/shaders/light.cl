@@ -168,6 +168,7 @@ __kernel void LightSample(__global const float4*  restrict a_rpos,
 
                           __global float4*        restrict out_srpos,
                           __global float4*        restrict out_srdir,
+                          __global int*           restrict out_loffs,
 
                           __global const float4*  restrict a_texStorage1,  //
                           __global const float4*  restrict a_texStorage2,  //
@@ -230,8 +231,8 @@ __kernel void LightSample(__global const float4*  restrict a_rpos,
   const float  maxDist      = length(shadowRayPos - explicitSam.pos)*0.995f;            // recompute max dist based on real (shifted with offset) shadowRayPos
 
   out_srpos[tid] = to_float4(shadowRayPos, maxDist);
-  out_srdir[tid] = to_float4(shadowRayDir, as_float(lightOffset)); 
-
+  out_srdir[tid] = to_float4(shadowRayDir, as_float(-1)); 
+  out_loffs[tid] = lightOffset;
 }
 
 __kernel void CopyAndPackForConnectEye(__global const uint*    restrict in_flags,
@@ -322,7 +323,7 @@ __kernel void MakeAORays(__global const uint*      restrict in_flags,
   }
 
   out_rpos[tid] = to_float4(sRayPos, sRayLength);
-  out_rdir[tid] = to_float4(sRayDir, 0.0f);
+  out_rdir[tid] = to_float4(sRayDir, as_float(-1));
 
 }
 

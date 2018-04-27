@@ -925,7 +925,7 @@ static inline Lite_Hit BVH4InstTraverse(float3 ray_pos, float3 ray_dir, float t_
 
 
 static inline float3 BVH4InstTraverseShadow(float3 ray_pos, float3 ray_dir, float t_rayMin, Lite_Hit a_hit, 
-                                            __global const float4* a_bvh, __global const float4* a_tris)
+                                            __global const float4* a_bvh, __global const float4* a_tris, const int a_targetInstId)
 {
   float3 invDir = SafeInverse(ray_dir);
 
@@ -1607,7 +1607,7 @@ static inline Lite_Hit BVH4InstTraverseAlphaS(float3 ray_pos, float3 ray_dir, fl
 
 static inline float3 BVH4InstTraverseShadowAlphaS(float3 ray_pos, float3 ray_dir, float t_rayMin, float t_rayMax,
                                                   __global const float4* a_bvh, __global const float4* a_tris, __global const uint2* a_alpha,
-                                                  __global const int4* a_texStorage, __global const EngineGlobals* a_globals)
+                                                  __global const int4* a_texStorage, __global const EngineGlobals* a_globals, const int a_targetInstId)
 {
   float3 invDir = SafeInverse(ray_dir);
 
