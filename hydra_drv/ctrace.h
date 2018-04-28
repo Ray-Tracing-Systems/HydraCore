@@ -1097,53 +1097,46 @@ static inline float3 BVH4InstTraverseShadow(float3 ray_pos, float3 ray_dir, floa
     //
     if (top >= 0 && instDeep == 1)
     {
-      const float maxHit = a_hit.t;
-      a_hit = IntersectAllPrimitivesInLeaf(ray_pos, ray_dir, leftNodeOffset, t_rayMin, a_hit, a_tris, instId);
+      if (a_targetInstId == -1 || a_targetInstId == instId)
+      {
+        const float maxHit = a_hit.t;
+        a_hit = IntersectAllPrimitivesInLeaf(ray_pos, ray_dir, leftNodeOffset, t_rayMin, a_hit, a_tris, instId);
 
-      if (HitSome(a_hit) && a_hit.t > 0.0f && a_hit.t < maxHit)
-        top = 0;
-      else
-        a_hit.t = maxHit;
+        if (HitSome(a_hit) && a_hit.t > 0.0f && a_hit.t < maxHit)
+          top = 0;
+        else
+          a_hit.t = maxHit;
+      }
 
       top--;
       leftNodeOffset = stack[top];
     }
     else if (top >= 0 && instDeep == 0)
     {
-      const int newInstId = as_int(a_bvh[leftNodeOffset * 8 + 6].x);
-
-      if (a_targetInstId == -1 || a_targetInstId == newInstId)
-      {
-        instDeep = 1;
-        old_ray_pos = ray_pos;
-        old_ray_dir = ray_dir;
-
-        // (1) read matrix and next offset
-        //
-        const int nextOffset = as_int(a_bvh[leftNodeOffset * 8 + 0].w);
-
-        float4x4 matrix;
-        matrix.row[0] = a_bvh[leftNodeOffset * 8 + 2];
-        matrix.row[1] = a_bvh[leftNodeOffset * 8 + 3];
-        matrix.row[2] = a_bvh[leftNodeOffset * 8 + 4];
-        matrix.row[3] = a_bvh[leftNodeOffset * 8 + 5];
-
-        instId = newInstId;
-
-        // (2) mult ray with matrix
-        //    
-        ray_pos = mul4x3(matrix, ray_pos);
-        ray_dir = mul3x3(matrix, ray_dir); // DON'T NORMALIZE IT !!!! When we transform to local space of node, ray_dir must be unnormalized!!!
-        invDir  = SafeInverse(ray_dir);
-        instTop = top;
-
-        leftNodeOffset = nextOffset;
-      }
-      else
-      {
-        top--;
-        leftNodeOffset = stack[top];
-      }
+      instDeep    = 1;
+      old_ray_pos = ray_pos;
+      old_ray_dir = ray_dir;
+      
+      // (1) read matrix and next offset
+      //
+      const int nextOffset = as_int(a_bvh[leftNodeOffset * 8 + 0].w);
+      
+      float4x4 matrix;
+      matrix.row[0] = a_bvh[leftNodeOffset * 8 + 2];
+      matrix.row[1] = a_bvh[leftNodeOffset * 8 + 3];
+      matrix.row[2] = a_bvh[leftNodeOffset * 8 + 4];
+      matrix.row[3] = a_bvh[leftNodeOffset * 8 + 5];
+      
+      instId = as_int(a_bvh[leftNodeOffset * 8 + 6].x);
+      
+      // (2) mult ray with matrix
+      //    
+      ray_pos = mul4x3(matrix, ray_pos);
+      ray_dir = mul3x3(matrix, ray_dir); // DON'T NORMALIZE IT !!!! When we transform to local space of node, ray_dir must be unnormalized!!!
+      invDir  = SafeInverse(ray_dir);
+      instTop = top;
+      
+      leftNodeOffset = nextOffset;
     }
 
     searchingForLeaf = !IS_LEAF(leftNodeOffset);
@@ -1790,49 +1783,42 @@ static inline float3 BVH4InstTraverseShadowAlphaS(float3 ray_pos, float3 ray_dir
     //
     if (top >= 0 && instDeep == 1)
     {
-      IntersectAllPrimitivesInLeafShadowAlphaS(ray_pos, ray_dir, leftNodeOffset, t_rayMin, t_rayMax, &shadow, a_tris, instId, a_alpha, a_texStorage, a_globals);
-      if (shadow < 0.0001f)
-        top = 0;
-     
+      if (a_targetInstId == -1 || a_targetInstId == instId)
+      {
+        IntersectAllPrimitivesInLeafShadowAlphaS(ray_pos, ray_dir, leftNodeOffset, t_rayMin, t_rayMax, &shadow, a_tris, instId, a_alpha, a_texStorage, a_globals);
+        if (shadow < 0.0001f)
+          top = 0;
+      }
+
       top--;
       leftNodeOffset = stack[top];
     }
     else if (top >= 0 && instDeep == 0)
     {
-      const int newInstId = as_int(a_bvh[leftNodeOffset * 8 + 6].x);
-
-      if (a_targetInstId == -1 || a_targetInstId == newInstId)
-      {
-        instDeep    = 1;
-        old_ray_pos = ray_pos;
-        old_ray_dir = ray_dir;
-
-        // (1) read matrix and next offset
-        //
-        const int nextOffset = as_int(a_bvh[leftNodeOffset * 8 + 0].w);
-
-        float4x4 matrix;
-        matrix.row[0] = a_bvh[leftNodeOffset * 8 + 2];
-        matrix.row[1] = a_bvh[leftNodeOffset * 8 + 3];
-        matrix.row[2] = a_bvh[leftNodeOffset * 8 + 4];
-        matrix.row[3] = a_bvh[leftNodeOffset * 8 + 5];
-
-        instId = newInstId;
-
-        // (2) mult ray with matrix
-        //    
-        ray_pos = mul4x3(matrix, ray_pos);
-        ray_dir = mul3x3(matrix, ray_dir); // DON'T NORMALIZE IT !!!! When we transform to local space of node, ray_dir must be unnormalized!!!
-        invDir  = SafeInverse(ray_dir);
-        instTop = top;
-
-        leftNodeOffset = nextOffset;
-      }
-      else
-      {
-        top--;
-        leftNodeOffset = stack[top];
-      }
+      instDeep    = 1;
+      old_ray_pos = ray_pos;
+      old_ray_dir = ray_dir;
+      
+      // (1) read matrix and next offset
+      //
+      const int nextOffset = as_int(a_bvh[leftNodeOffset * 8 + 0].w);
+      
+      float4x4 matrix;
+      matrix.row[0] = a_bvh[leftNodeOffset * 8 + 2];
+      matrix.row[1] = a_bvh[leftNodeOffset * 8 + 3];
+      matrix.row[2] = a_bvh[leftNodeOffset * 8 + 4];
+      matrix.row[3] = a_bvh[leftNodeOffset * 8 + 5];
+      
+      instId = as_int(a_bvh[leftNodeOffset * 8 + 6].x);
+      
+      // (2) mult ray with matrix
+      //    
+      ray_pos = mul4x3(matrix, ray_pos);
+      ray_dir = mul3x3(matrix, ray_dir); // DON'T NORMALIZE IT !!!! When we transform to local space of node, ray_dir must be unnormalized!!!
+      invDir  = SafeInverse(ray_dir);
+      instTop = top;
+      
+      leftNodeOffset = nextOffset;
     }
 
     searchingForLeaf = !IS_LEAF(leftNodeOffset);

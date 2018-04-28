@@ -370,7 +370,7 @@ void GPUOCLLayer::runKernel_ComputeHit(cl_mem a_rpos, cl_mem a_rdir, size_t a_si
     // (1) read AO params and put (rpos, tmax) to m_rays.shadowRayPos
     // (2) create random vector in hemisphere and put it to m_rays.shadowRayDir
     //
-    int numIters = 2;
+    int numIters = 4;
 
     for (int iter = 0; iter < numIters; iter++)
     {
