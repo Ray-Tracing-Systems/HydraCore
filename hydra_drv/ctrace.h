@@ -1110,31 +1110,40 @@ static inline float3 BVH4InstTraverseShadow(float3 ray_pos, float3 ray_dir, floa
     }
     else if (top >= 0 && instDeep == 0)
     {
-      instDeep    = 1;
-      old_ray_pos = ray_pos;
-      old_ray_dir = ray_dir;
+      const int newInstId = as_int(a_bvh[leftNodeOffset * 8 + 6].x);
 
-      // (1) read matrix and next offset
-      //
-      const int nextOffset = as_int(a_bvh[leftNodeOffset * 8 + 0].w);
+      if (a_targetInstId == -1 || a_targetInstId == newInstId)
+      {
+        instDeep = 1;
+        old_ray_pos = ray_pos;
+        old_ray_dir = ray_dir;
 
-      float4x4 matrix;
-      matrix.row[0] = a_bvh[leftNodeOffset * 8 + 2];
-      matrix.row[1] = a_bvh[leftNodeOffset * 8 + 3];
-      matrix.row[2] = a_bvh[leftNodeOffset * 8 + 4];
-      matrix.row[3] = a_bvh[leftNodeOffset * 8 + 5];
+        // (1) read matrix and next offset
+        //
+        const int nextOffset = as_int(a_bvh[leftNodeOffset * 8 + 0].w);
 
-      instId = as_int(a_bvh[leftNodeOffset * 8 + 6].x);
-      //instId = leftNodeOffset * 8 + 2; // save instAddr instead of instId
+        float4x4 matrix;
+        matrix.row[0] = a_bvh[leftNodeOffset * 8 + 2];
+        matrix.row[1] = a_bvh[leftNodeOffset * 8 + 3];
+        matrix.row[2] = a_bvh[leftNodeOffset * 8 + 4];
+        matrix.row[3] = a_bvh[leftNodeOffset * 8 + 5];
 
-      // (2) mult ray with matrix
-      //    
-      ray_pos = mul4x3(matrix, ray_pos);
-      ray_dir = mul3x3(matrix, ray_dir); // DON'T NORMALIZE IT !!!! When we transform to local space of node, ray_dir must be unnormalized!!!
-      invDir  = SafeInverse(ray_dir);
-      instTop = top;
+        instId = newInstId;
 
-      leftNodeOffset = nextOffset;
+        // (2) mult ray with matrix
+        //    
+        ray_pos = mul4x3(matrix, ray_pos);
+        ray_dir = mul3x3(matrix, ray_dir); // DON'T NORMALIZE IT !!!! When we transform to local space of node, ray_dir must be unnormalized!!!
+        invDir  = SafeInverse(ray_dir);
+        instTop = top;
+
+        leftNodeOffset = nextOffset;
+      }
+      else
+      {
+        top--;
+        leftNodeOffset = stack[top];
+      }
     }
 
     searchingForLeaf = !IS_LEAF(leftNodeOffset);
@@ -1790,31 +1799,40 @@ static inline float3 BVH4InstTraverseShadowAlphaS(float3 ray_pos, float3 ray_dir
     }
     else if (top >= 0 && instDeep == 0)
     {
-      instDeep    = 1;
-      old_ray_pos = ray_pos;
-      old_ray_dir = ray_dir;
+      const int newInstId = as_int(a_bvh[leftNodeOffset * 8 + 6].x);
 
-      // (1) read matrix and next offset
-      //
-      const int nextOffset = as_int(a_bvh[leftNodeOffset * 8 + 0].w);
+      if (a_targetInstId == -1 || a_targetInstId == newInstId)
+      {
+        instDeep    = 1;
+        old_ray_pos = ray_pos;
+        old_ray_dir = ray_dir;
 
-      float4x4 matrix;
-      matrix.row[0] = a_bvh[leftNodeOffset * 8 + 2];
-      matrix.row[1] = a_bvh[leftNodeOffset * 8 + 3];
-      matrix.row[2] = a_bvh[leftNodeOffset * 8 + 4];
-      matrix.row[3] = a_bvh[leftNodeOffset * 8 + 5];
+        // (1) read matrix and next offset
+        //
+        const int nextOffset = as_int(a_bvh[leftNodeOffset * 8 + 0].w);
 
-      instId = as_int(a_bvh[leftNodeOffset * 8 + 6].x);
-      //instId = leftNodeOffset * 8 + 2; // save instAddr instead of instId
+        float4x4 matrix;
+        matrix.row[0] = a_bvh[leftNodeOffset * 8 + 2];
+        matrix.row[1] = a_bvh[leftNodeOffset * 8 + 3];
+        matrix.row[2] = a_bvh[leftNodeOffset * 8 + 4];
+        matrix.row[3] = a_bvh[leftNodeOffset * 8 + 5];
 
-      // (2) mult ray with matrix
-      //    
-      ray_pos = mul4x3(matrix, ray_pos);
-      ray_dir = mul3x3(matrix, ray_dir); // DON'T NORMALIZE IT !!!! When we transform to local space of node, ray_dir must be unnormalized!!!
-      invDir  = SafeInverse(ray_dir);
-      instTop = top;
+        instId = newInstId;
 
-      leftNodeOffset = nextOffset;
+        // (2) mult ray with matrix
+        //    
+        ray_pos = mul4x3(matrix, ray_pos);
+        ray_dir = mul3x3(matrix, ray_dir); // DON'T NORMALIZE IT !!!! When we transform to local space of node, ray_dir must be unnormalized!!!
+        invDir  = SafeInverse(ray_dir);
+        instTop = top;
+
+        leftNodeOffset = nextOffset;
+      }
+      else
+      {
+        top--;
+        leftNodeOffset = stack[top];
+      }
     }
 
     searchingForLeaf = !IS_LEAF(leftNodeOffset);

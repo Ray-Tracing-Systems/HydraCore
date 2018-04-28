@@ -268,7 +268,7 @@ __kernel void MakeAORays(__global const uint*      restrict in_flags,
                          __global const float4*    restrict in_texStorage1,
                          __global const float4*    restrict in_mtlStorage,
                          __global const EngineGlobals* restrict a_globals,
-                         int iNumElements)
+                         int iterNum, int iNumElements)
 {
   int tid = GLOBAL_ID_X;
   if (tid >= iNumElements)
@@ -326,7 +326,9 @@ __kernel void MakeAORays(__global const uint*      restrict in_flags,
       targetInstId = in_hits[tid].instId;
   }
 
-  out_rpos[tid] = to_float4(sRayPos, sRayLength);
+  if(iterNum == 0)
+    out_rpos[tid] = to_float4(sRayPos, sRayLength);
+
   out_rdir[tid] = to_float4(sRayDir, as_float(targetInstId));
 }
 
