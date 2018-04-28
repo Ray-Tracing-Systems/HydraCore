@@ -257,6 +257,7 @@ __kernel void CopyAndPackForConnectEye(__global const uint*    restrict in_flags
 __kernel void MakeAORays(__global const uint*      restrict in_flags,
                          __global RandomGen*       restrict a_gens,
 
+                         __global const Lite_Hit*  restrict in_hits,
                          __global const float4*    restrict in_hitPosNorm,
                          __global const float2*    restrict in_hitTexCoord,
                          __global const HitMatRef* restrict in_matData,
@@ -286,6 +287,7 @@ __kernel void MakeAORays(__global const uint*      restrict in_flags,
   float3 sRayPos    = make_float3(0, 1e30f, 0);
   float3 sRayDir    = make_float3(0, 1, 0);
   float  sRayLength = pMaterialHead->data[PROC_TEX_AO_LENGTH];
+  int targetInstId  = -1;
 
   if (MaterialHaveAO(pMaterialHead))
   {
@@ -320,11 +322,12 @@ __kernel void MakeAORays(__global const uint*      restrict in_flags,
       }
     }
 
+    if (materialGetFlags(pMaterialHead) & PLAIN_MATERIAL_LOCAL_AO)
+      targetInstId = in_hits[tid].instId;
   }
 
   out_rpos[tid] = to_float4(sRayPos, sRayLength);
-  out_rdir[tid] = to_float4(sRayDir, as_float(-1));
-
+  out_rdir[tid] = to_float4(sRayDir, as_float(targetInstId));
 }
 
 static inline float3 decompressShadow(ushort4 shadowCompressed)

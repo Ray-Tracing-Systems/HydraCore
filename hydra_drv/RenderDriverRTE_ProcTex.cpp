@@ -241,6 +241,9 @@ void PutAOToMaterialHead(const std::vector< std::tuple<int, ProcTexInfo> >& a_pr
   SWTexSampler samplerAO     = DummySampler();  // #TODO: get from ProcTexInfo
   const int aoRayLengthTexId = INVALID_TEXTURE; // #TODO: get from ProcTexInfo
 
+  if (textureThatUsesAO.aoHitOnlySameInstance)
+    a_pMaterial->AddFlags(PLAIN_MATERIAL_LOCAL_AO);
+
   a_pMaterial->PutSamplerAt(aoRayLengthTexId, samplerAO, PROC_TEX_TEX_ID, PROC_TEXMATRIX_ID, PROC_TEX_AO_SAMPLER);
 }
 
