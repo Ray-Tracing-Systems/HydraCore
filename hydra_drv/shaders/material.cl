@@ -65,7 +65,7 @@ __kernel void MakeEyeShadowRays(__global const uint*          restrict a_flags,
   }
 
   out_sraypos[tid] = to_float4(hitPos + epsilonOfPos(hitPos)*signOfNormal*hitNorm, zDepth); // OffsRayPos(hitPos, hitNorm, camDir);
-  out_sraydir[tid] = to_float4(camDir, imageToSurfaceFactor);
+  out_sraydir[tid] = to_float4(camDir, as_float(-1));
 }
 
 
@@ -203,10 +203,10 @@ __kernel void ConnectToEyeKernel(__global const uint*          restrict a_flags,
   const float3 ray_dir = (in_oraydir == 0) ? make_float3(0,0,0) : to_float3(in_oraydir[tid]);
   const float3 hitPos  = to_float3(in_hitPosNorm[tid]); //  
   const float3 hitNorm = to_float3(in_normalsFull[tid]);
-  const float4 data2   = in_sraydir[tid];
-
-  const float3 camDir              = to_float3(data2); // compute it in MakeEyeShadowRays kernel
-  const float imageToSurfaceFactor = data2.w;          // compute it in MakeEyeShadowRays kernel
+  
+  float3 camDir; float zDepth;
+  const float imageToSurfaceFactor = CameraImageToSurfaceFactor(hitPos, hitNorm, a_globals,
+                                                                &camDir, &zDepth);
 
   float  signOfNormal = 1.0f;
   float  pdfRevW      = 1.0f;
