@@ -490,12 +490,12 @@ static inline float read_imagef_sw1(texture2d_t a_tex, const float2 a_texCoord, 
 
 static inline SWTexSampler ReadSampler(__global const int4* a_samStorage, int a_samplerOffset)
 {
-  __global const float4* a_samStoragef = (__global const float4*)a_samStorage;
-
-  int4 header = a_samStorage[a_samplerOffset + 0];
-
   SWTexSampler res;
- 
+
+  __global const float4* a_samStoragef = (__global const float4*)a_samStorage;
+  
+  const int4 header = a_samStorage[a_samplerOffset + 0];
+  
   res.flags  = header.x;
   res.gamma  = as_float(header.y);
   res.texId  = header.z;
@@ -503,6 +503,16 @@ static inline SWTexSampler ReadSampler(__global const int4* a_samStorage, int a_
   res.row0   = a_samStoragef[a_samplerOffset + 1];
   res.row1   = a_samStoragef[a_samplerOffset + 2];
  
+  //__global const float* dataF = (__global const float*)(a_samStorage + a_samplerOffset);
+  //
+  //res.flags  = as_int(dataF[0]);
+  //res.gamma  = dataF[1];
+  //res.texId  = as_int(dataF[2]);
+  //res.dummy2 = as_int(dataF[3]);
+  //
+  //res.row0   = make_float4(dataF[4 + 0], dataF[4 + 1], dataF[4 + 2], dataF[4 + 3]);
+  //res.row1   = make_float4(dataF[8 + 0], dataF[8 + 1], dataF[8 + 2], dataF[8 + 3]);
+
   return res;
 }
 
@@ -590,7 +600,8 @@ static inline float3 sample2DExt(int a_samplerOffset, float2 texCoord,
     const float2 texCoordT = mul2x4(sampler.row0, sampler.row1, texCoord);
 
     int offset = textureHeaderOffset(a_globals, sampler.texId);
-    texColor4  = read_imagef_sw4(a_texStorage + offset, texCoordT, sampler.flags);
+    if(offset >= 0)
+      texColor4 = read_imagef_sw4(a_texStorage + offset, texCoordT, sampler.flags);
   }
 
   texColor4.x = pow(texColor4.x, sampler.gamma);
