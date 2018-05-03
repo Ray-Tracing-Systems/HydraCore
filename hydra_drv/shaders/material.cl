@@ -118,7 +118,7 @@ __kernel void UpdateForwardPdfFor3Way(__global const uint*          restrict a_f
   {
     __global const PlainMaterial* pHitMaterial = materialAt(a_globals, in_mtlStorage, GetMaterialId(in_matData[tid]));
     const Hit_Part4 btanAndN = in_hitTangent[tid];
-
+    
     ShadeContext sc;
     sc.wp = to_float3(in_hitPosNorm[tid]);
     sc.l  = (-1.0f)*ray_dir;
@@ -128,15 +128,15 @@ __kernel void UpdateForwardPdfFor3Way(__global const uint*          restrict a_f
     sc.tg = decodeNormal(btanAndN.tangentCompressed);
     sc.bn = decodeNormal(btanAndN.bitangentCompressed);
     sc.tc = in_hitTexCoord[tid];
-
+    
     ProcTextureList ptl;        //#TODO: read from memory
     InitProcTextureList(&ptl);  //#TODO: read from memory
-
+     
     const float pdfW = materialEval(pHitMaterial, &sc, false, false, /* global data --> */ a_globals, in_texStorage1, in_texStorage2, &ptl).pdfFwd;
-
+    
     accData.pdfCameraWP *= (pdfW / fmax(cosCurr, DEPSILON));
     accData.pdfLightWP  *= (matSamplePdf / fmax(cosNext, DEPSILON));
-
+    
     if (a_currDepth == 1)
       accData.pdfCamA0 *= (pdfW / fmax(cosCurr, DEPSILON)); // now pdfRevA0 will do store correct product pdfWP[0]*G[0] (if [0] means light)
   }

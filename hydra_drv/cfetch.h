@@ -553,6 +553,9 @@ static inline float3 sample2D(int a_samplerOffset, float2 texCoord, __global con
   const float2 texCoordT = mul2x4(sampler.row0, sampler.row1, texCoord);
 
   const int offset = textureHeaderOffset(a_globals, sampler.texId);
+  if(offset < 0)
+    return make_float3(1, 1, 1);
+
   float4 texColor4 = read_imagef_sw4(a_texStorage + offset, texCoordT, sampler.flags); 
 
   texColor4.x = pow(texColor4.x, sampler.gamma);
@@ -578,7 +581,7 @@ static inline float3 sample2DExt(int a_samplerOffset, float2 texCoord,
 
   const SWTexSampler sampler = ReadSampler(a_samStorage, a_samplerOffset);
 
-  if (sampler.texId == 0)
+  if (sampler.texId <= 0)
     return make_float3(1, 1, 1);
 
   float4 texColor4 = readProcTex(sampler.texId, a_ptList);
