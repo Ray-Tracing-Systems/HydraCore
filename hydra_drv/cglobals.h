@@ -2297,6 +2297,17 @@ static inline float4 readProcTex(int a_texId, const __private ProcTextureList* a
   res = (a_texId == a_pList->id_f4[3]) ? to_float4(a_pList->fdata4[3], 0.0f) : res;
   res = (a_texId == a_pList->id_f4[4]) ? to_float4(a_pList->fdata4[4], 0.0f) : res;
 
+  //if (a_texId == a_pList->id_f4[0])
+  //  res = to_float4(a_pList->fdata4[0], 0.0f);
+  //if (a_texId == a_pList->id_f4[1])
+  //  res = to_float4(a_pList->fdata4[1], 0.0f);
+  //if (a_texId == a_pList->id_f4[2])
+  //  res = to_float4(a_pList->fdata4[2], 0.0f);
+  //if (a_texId == a_pList->id_f4[3])
+  //  res = to_float4(a_pList->fdata4[3], 0.0f);
+  //if (a_texId == a_pList->id_f4[4])
+  //  res = to_float4(a_pList->fdata4[4], 0.0f);
+
   return res;
 }
 

@@ -117,8 +117,8 @@ std::vector<int32_t> IMemoryStorage::GetTable()
 
   std::vector<int32_t> res(maxId + 1);
 
-  for (auto& beginOffset : res)
-    beginOffset = -1;
+  for (auto& initialOffset : res)
+    initialOffset = -1;
 
   for (auto p = objects.begin(); p != objects.end(); ++p)
     res[p->first] = p->second.begin * mult;

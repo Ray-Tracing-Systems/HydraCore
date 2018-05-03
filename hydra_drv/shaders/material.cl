@@ -80,6 +80,7 @@ __kernel void UpdateForwardPdfFor3Way(__global const uint*          restrict a_f
                                       __global const uint*          restrict in_flatNorm,
                                       __global const HitMatRef*     restrict in_matData,
                                       __global const Hit_Part4*     restrict in_hitTangent,
+                                      __global const float4*        restrict in_procTexData,
 
                                       __global const MisData*       restrict in_misDataCurr,
                                       __global PerRayAcc*           restrict a_pdfAcc,
@@ -129,9 +130,11 @@ __kernel void UpdateForwardPdfFor3Way(__global const uint*          restrict a_f
     sc.bn = decodeNormal(btanAndN.bitangentCompressed);
     sc.tc = in_hitTexCoord[tid];
     
-    ProcTextureList ptl;        //#TODO: read from memory
-    InitProcTextureList(&ptl);  //#TODO: read from memory
-     
+    ProcTextureList ptl;        
+    InitProcTextureList(&ptl);  
+    ReadProcTextureList(in_procTexData, tid, iNumElements, 
+                        &ptl);
+
     const float pdfW = materialEval(pHitMaterial, &sc, false, false, /* global data --> */ a_globals, in_texStorage1, in_texStorage2, &ptl).pdfFwd;
     
     accData.pdfCameraWP *= (pdfW / fmax(cosCurr, DEPSILON));
