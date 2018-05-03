@@ -397,7 +397,7 @@ HRDriverAllocInfo RenderDriverRTE::AllocAll(HRDriverAllocInfo a_info)
   size_t memUsedByR = totalMem - freeMem;
   const size_t MB   = size_t(1024 * 1024);
 
-  size_t auxMemGeom = 0, auxMemTex = 64 * MB;
+  size_t auxMemGeom   = 0, auxMemTex = 64 * MB;
   size_t newMemForGeo = a_info.geomMem; // size_t(0.85*double(a_info.geomMem)); // we can save ~ 15% due to tangent compression but thhis is hard to estimate precisly.
   size_t newMemForMat = a_info.matNum*approxSizeOfMatBlock;
   size_t newMemForTab = (MAX_ENV_LIGHT_PDF_SIZE*MAX_ENV_LIGHT_PDF_SIZE)*sizeof(float) + 4*MB;
@@ -546,6 +546,7 @@ void PutTexParamsToMaterialWithDamnTable(std::vector<ProcTexParams>& a_procTexPa
                                          std::shared_ptr<RAYTR::IMaterial> a_pMaterial);
 
 void PutAOToMaterialHead(const std::vector< std::tuple<int, ProcTexInfo> >& a_procTextureIds, std::shared_ptr<RAYTR::IMaterial> a_pMaterial);
+void OverrideAOInMaterialHead(pugi::xml_node a_materialNode, std::shared_ptr<RAYTR::IMaterial> a_pMaterial);
 
 bool RenderDriverRTE::UpdateMaterial(int32_t a_matId, pugi::xml_node a_materialNode)
 {
@@ -588,7 +589,8 @@ bool RenderDriverRTE::UpdateMaterial(int32_t a_matId, pugi::xml_node a_materialN
 
     // put AO params to material head
     //
-    PutAOToMaterialHead(procTextureIds, pMaterial);
+    PutAOToMaterialHead(procTextureIds, pMaterial);       // read initial ao params from proc texture
+    OverrideAOInMaterialHead(a_materialNode, pMaterial);  // override ao params; take new values from first ao node inside 'a_materialNode'
 
     if (MaterialHaveAO(&pMaterial->m_plain))
       m_haveAtLeastOneAOMat = true;

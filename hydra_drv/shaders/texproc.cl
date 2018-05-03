@@ -4,8 +4,13 @@
 static inline float4 InternalFetch(int a_texId, const float2 texCoord, const int a_flags, 
                                    __global const float4* restrict in_texStorage1, __global const EngineGlobals* restrict in_globals)
 {
-  const int offset = textureHeaderOffset(in_globals, a_texId);
-  return read_imagef_sw4(in_texStorage1 + offset, texCoord, a_flags);
+  if (a_texId < 0)
+    return make_float4(1, 1, 1, 1);
+  else
+  {
+    const int offset = textureHeaderOffset(in_globals, a_texId);
+    return read_imagef_sw4(in_texStorage1 + offset, texCoord, a_flags);
+  }
 }
 
 #define texture2D(texName, texCoord, flags) InternalFetch((texName), (texCoord), (flags), in_texStorage1, in_globals)

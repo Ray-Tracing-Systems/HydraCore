@@ -248,6 +248,65 @@ void PutAOToMaterialHead(const std::vector< std::tuple<int, ProcTexInfo> >& a_pr
 }
 
 
+static pugi::xml_node FindAONode(pugi::xml_node a_node)
+{
+  if (a_node.name() == std::wstring(L"ao"))
+    return a_node;
+  else
+  {
+    for (auto child : a_node.children())
+    {
+      auto node = FindAONode(child);
+      if (node != nullptr)
+        return node;
+    }
+  }
+
+  return pugi::xml_node();
+}
+
+void OverrideAOInMaterialHead(pugi::xml_node a_materialNode, std::shared_ptr<RAYTR::IMaterial> a_pMaterial)
+{
+  pugi::xml_node aoNode = FindAONode(a_materialNode);
+  if (aoNode == nullptr)
+    return;
+
+  // read params from xml
+  //
+  const std::wstring aoType   = aoNode.attribute(L"hemisphere").as_string();
+
+  float aoLength              = aoNode.attribute(L"length").as_float();
+  int   aoUpDownType          = AO_TYPE_NONE;
+  bool  aoHitOnlySameInstance = (aoNode.attribute(L"local").as_int() == 1);
+
+  if (aoType == L"up" || aoType == L"corner")
+    aoUpDownType = AO_TYPE_UP;
+  else if (aoType == L"down" || aoType == L"edge")
+    aoUpDownType = AO_TYPE_DOWN;
+  else if (aoType == L"both")
+    aoUpDownType = AO_TYPE_BOTH;
+
+  // put them in material head
+  //
+  if (aoUpDownType == AO_TYPE_NONE)
+    return;
+
+  ((int*)(a_pMaterial->m_plain.data))[PROC_TEX_AO_TYPE] = aoUpDownType;
+  a_pMaterial->m_plain.data[PROC_TEX_AO_LENGTH]         = aoLength;
+
+  SWTexSampler samplerAO     = DummySampler();  // #TODO: get from ProcTexInfo
+  const int aoRayLengthTexId = INVALID_TEXTURE; // #TODO: get from ProcTexInfo
+
+  if (aoHitOnlySameInstance)
+    a_pMaterial->AddFlags(PLAIN_MATERIAL_LOCAL_AO);
+  else
+    a_pMaterial->SetFlags( a_pMaterial->GetFlags() & (~PLAIN_MATERIAL_LOCAL_AO) );
+
+  a_pMaterial->PutSamplerAt(aoRayLengthTexId, samplerAO, PROC_TEX_TEX_ID, PROC_TEXMATRIX_ID, PROC_TEX_AO_SAMPLER);
+
+}
+
+
 //#TODO: move m_texShadersWasRecompiled outside of this, don't call BeginTexturesUpdate/EndTexturesUpdate if don't have textures tp update
 //
 
