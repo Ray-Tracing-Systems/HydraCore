@@ -167,7 +167,9 @@ protected:
   std::unordered_set<int>                                     m_lightHavePdfTable;
   std::unordered_map<std::wstring, int2>                      m_iesCache;
   std::unordered_map<int, std::shared_ptr<RAYTR::IMaterial> > m_materialUpdated;
+  std::unordered_map<int, pugi::xml_node >                    m_materialNodes;
   std::unordered_map<std::wstring, int32_t>                   m_texturesProcessedNM;
+
 
   std::unordered_map<int, ProcTexInfo>  m_procTextures;
 

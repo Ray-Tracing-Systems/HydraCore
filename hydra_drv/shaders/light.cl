@@ -278,9 +278,10 @@ __kernel void MakeAORays(__global const uint*      restrict in_flags,
   if (!rayIsActiveU(flags))
     return;
 
-  const float4 data1   = in_hitPosNorm[tid];
-  const float3 hitPos  = to_float3(data1);
-  const float3 hitNorm = decodeNormal(as_int(data1.w));
+  const float4 data1    = in_hitPosNorm[tid];
+  const float3 hitPos   = to_float3(data1);
+  const float3 hitNorm  = decodeNormal(as_int(data1.w));
+  const float2 texCoord = in_hitTexCoord[tid];
 
   __global const PlainMaterial* pMaterialHead = materialAt(a_globals, in_mtlStorage, GetMaterialId(in_matData[tid]));
 
@@ -288,6 +289,11 @@ __kernel void MakeAORays(__global const uint*      restrict in_flags,
   float3 sRayDir    = make_float3(0, 1, 0);
   float  sRayLength = pMaterialHead->data[PROC_TEX_AO_LENGTH];
   int targetInstId  = -1;
+
+  const float3 lenTexColor = sample2D(as_int(pMaterialHead->data[PROC_TEXMATRIX_ID]), texCoord, (__global const int4*)pMaterialHead, in_texStorage1, a_globals);
+  //const int offset   = textureHeaderOffset(a_globals, 4);
+  //float3 lenTexColor = to_float3(read_imagef_sw4(in_texStorage1 + offset, texCoord, 0));
+  sRayLength *= maxcomp(lenTexColor);
 
   if (MaterialHaveAO(pMaterialHead))
   {
