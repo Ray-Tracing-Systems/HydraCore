@@ -26,7 +26,7 @@ set(SOURCE_FILES
         crandom.h
         ctrace.h
         FastList.h
-        globals.h
+        cglobals.h
         globals_sys.cpp
         globals_sys.h
         GPUOCLData.cpp
