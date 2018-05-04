@@ -32,8 +32,25 @@ bool MaterialNodeHaveProceduralTextures(pugi::xml_node a_node, const std::unorde
   return childHaveProc;
 }
 
-void FindAllProcTextures(pugi::xml_node a_node, const std::unordered_map<int, ProcTexInfo>& a_ids, std::vector<std::tuple<int, ProcTexInfo> >& a_outVector)
+void FindAllProcTextures(pugi::xml_node a_node, const std::unordered_map<int, ProcTexInfo>& a_ids, const std::unordered_map<int, pugi::xml_node >& a_matNodes,
+                         std::vector<std::tuple<int, ProcTexInfo> >& a_outVector)
 {
+
+  if (a_node.name() == std::wstring(L"material") && a_node.attribute(L"type").as_string() == std::wstring(L"hydra_blend"))
+  {
+    int mid1 = a_node.attribute(L"node_top").as_int();
+    int mid2 = a_node.attribute(L"node_bottom").as_int();
+
+    auto p1 = a_matNodes.find(mid1);
+    auto p2 = a_matNodes.find(mid2);
+
+    if(p1!= a_matNodes.end())
+      FindAllProcTextures(p1->second, a_ids, a_matNodes, a_outVector);
+
+    if (p2 != a_matNodes.end())
+      FindAllProcTextures(p2->second, a_ids, a_matNodes, a_outVector);
+  }
+
   if (std::wstring(a_node.name()) == L"texture")
   {
     const int32_t id = a_node.attribute(L"id").as_int();
@@ -47,7 +64,7 @@ void FindAllProcTextures(pugi::xml_node a_node, const std::unordered_map<int, Pr
   }
 
   for (auto child : a_node.children())
-    FindAllProcTextures(child, a_ids, a_outVector);
+    FindAllProcTextures(child, a_ids, a_matNodes, a_outVector);
 
 }
 
@@ -265,6 +282,9 @@ static pugi::xml_node FindAONode(pugi::xml_node a_node)
   return pugi::xml_node();
 }
 
+SWTexSampler SamplerFromTexref(const pugi::xml_node a_node, bool allowAlphaToRGB = false);
+const pugi::xml_node SamplerNode(const pugi::xml_node a_node);
+
 void OverrideAOInMaterialHead(pugi::xml_node a_materialNode, std::shared_ptr<RAYTR::IMaterial> a_pMaterial)
 {
   pugi::xml_node aoNode = FindAONode(a_materialNode);
@@ -294,8 +314,14 @@ void OverrideAOInMaterialHead(pugi::xml_node a_materialNode, std::shared_ptr<RAY
   ((int*)(a_pMaterial->m_plain.data))[PROC_TEX_AO_TYPE] = aoUpDownType;
   a_pMaterial->m_plain.data[PROC_TEX_AO_LENGTH]         = aoLength;
 
-  SWTexSampler samplerAO     = DummySampler();  // #TODO: get from ProcTexInfo
-  const int aoRayLengthTexId = INVALID_TEXTURE; // #TODO: get from ProcTexInfo
+  SWTexSampler samplerAO  = DummySampler();  // #TODO: get from ProcTexInfo
+  int aoRayLengthTexId    = INVALID_TEXTURE; // #TODO: get from ProcTexInfo
+
+  if (SamplerNode(aoNode) != nullptr)
+  {
+    samplerAO        = SamplerFromTexref(SamplerNode(aoNode));
+    aoRayLengthTexId = samplerAO.texId;
+  }
 
   if (aoHitOnlySameInstance)
     a_pMaterial->AddFlags(PLAIN_MATERIAL_LOCAL_AO);
@@ -444,11 +470,13 @@ bool RenderDriverRTE::UpdateImageProc(int32_t a_texId, int32_t w, int32_t h, int
   std::string callS(callW.begin(), callW.end());
   callS = std::regex_replace(callS, tail,  "in_texStorage1, in_globals");
   
-  const std::wstring aoType = a_texNode.child(L"ao").attribute(L"hemisphere").as_string();
+  pugi::xml_node aoNode       = a_texNode.child(L"ao");
 
-  float aoLength              = a_texNode.child(L"ao").attribute(L"length").as_float();
+  const std::wstring aoType   = aoNode.attribute(L"hemisphere").as_string();
+
+  float aoLength              = aoNode.attribute(L"length").as_float();
   int   aoUpDownType          = AO_TYPE_NONE;
-  bool  aoHitOnlySameInstance = (a_texNode.child(L"ao").attribute(L"local").as_int() == 1);
+  bool  aoHitOnlySameInstance = (aoNode.attribute(L"local").as_int() == 1);
 
   if (aoType == L"up" || aoType == L"corner")
     aoUpDownType = AO_TYPE_UP;

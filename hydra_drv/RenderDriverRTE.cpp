@@ -365,6 +365,7 @@ void RenderDriverRTE::ClearAll()
   m_lightHavePdfTable.clear();
   m_iesCache.clear();
   m_materialUpdated.clear();
+  m_materialNodes.clear();
   m_blendsToUpdate.clear();
   m_texturesProcessedNM.clear();
   m_procTextures.clear();
@@ -539,7 +540,8 @@ std::shared_ptr<RAYTR::IMaterial> CreateMaterialFromXmlNode(pugi::xml_node a_nod
 using ProcTexInfo = RenderDriverRTE::ProcTexInfo;
 
 bool MaterialNodeHaveProceduralTextures(pugi::xml_node a_node, const std::unordered_map<int, ProcTexInfo>& a_ids);
-void FindAllProcTextures(pugi::xml_node a_node, const std::unordered_map<int, ProcTexInfo>& a_ids, std::vector< std::tuple<int, ProcTexInfo> >& a_outVector);
+void FindAllProcTextures(pugi::xml_node a_node, const std::unordered_map<int, ProcTexInfo>& a_ids, const std::unordered_map<int, pugi::xml_node >& a_matNodes,
+                         std::vector< std::tuple<int, ProcTexInfo> >& a_outVector);
 ProcTextureList MakePTListFromTupleArray(const std::vector<std::tuple<int, ProcTexInfo> >& procTextureIds);
 void ReadAllProcTexArgsFromMaterialNode(pugi::xml_node a_node, std::vector<ProcTexParams>& a_procTexParams);
 void PutTexParamsToMaterialWithDamnTable(std::vector<ProcTexParams>& a_procTexParams, const std::unordered_map<int, ProcTexInfo>& a_allProcTextures,
@@ -575,7 +577,7 @@ bool RenderDriverRTE::UpdateMaterial(int32_t a_matId, pugi::xml_node a_materialN
     // list all proc textures bound to this material
     //
     std::vector< std::tuple<int, ProcTexInfo> > procTextureIds;
-    FindAllProcTextures(a_materialNode, m_procTextures, 
+    FindAllProcTextures(a_materialNode, m_procTextures, m_materialNodes,
                         procTextureIds);
     
     ProcTextureList ptl = MakePTListFromTupleArray(procTextureIds);
@@ -597,6 +599,7 @@ bool RenderDriverRTE::UpdateMaterial(int32_t a_matId, pugi::xml_node a_materialN
   }
 
   m_materialUpdated[a_matId] = pMaterial; // remember that we have updates this material in current update phase (between BeginMaterialUpdate and EndMaterialUpdate)
+  m_materialNodes  [a_matId] = a_materialNode;
 
   if (mtype == L"hydra_blend")  // put blend material to storage later
   {
@@ -1098,6 +1101,7 @@ void RenderDriverRTE::FreeCPUMem()
   m_lightHavePdfTable   = std::unordered_set<int>();
   m_iesCache            = std::unordered_map<std::wstring, int2>();
   m_materialUpdated     = std::unordered_map<int, std::shared_ptr<RAYTR::IMaterial> >();
+  m_materialNodes       = std::unordered_map<int, pugi::xml_node>();
   m_texturesProcessedNM = std::unordered_map<std::wstring, int32_t>();
   m_blendsToUpdate      = std::unordered_map<int, DefferedMaterialDataTuple >();
 
