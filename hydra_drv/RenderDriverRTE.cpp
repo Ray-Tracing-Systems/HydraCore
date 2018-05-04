@@ -539,11 +539,14 @@ std::shared_ptr<RAYTR::IMaterial> CreateMaterialFromXmlNode(pugi::xml_node a_nod
 
 using ProcTexInfo = RenderDriverRTE::ProcTexInfo;
 
-bool MaterialNodeHaveProceduralTextures(pugi::xml_node a_node, const std::unordered_map<int, ProcTexInfo>& a_ids);
+bool MaterialNodeHaveProceduralTextures(pugi::xml_node a_node, const std::unordered_map<int, ProcTexInfo>& a_ids, const std::unordered_map<int, pugi::xml_node >& a_matNodes);
 void FindAllProcTextures(pugi::xml_node a_node, const std::unordered_map<int, ProcTexInfo>& a_ids, const std::unordered_map<int, pugi::xml_node >& a_matNodes,
                          std::vector< std::tuple<int, ProcTexInfo> >& a_outVector);
 ProcTextureList MakePTListFromTupleArray(const std::vector<std::tuple<int, ProcTexInfo> >& procTextureIds);
-void ReadAllProcTexArgsFromMaterialNode(pugi::xml_node a_node, std::vector<ProcTexParams>& a_procTexParams);
+
+void ReadAllProcTexArgsFromMaterialNode(pugi::xml_node a_node, const std::unordered_map<int, pugi::xml_node >& a_matNodes, 
+                                        std::vector<ProcTexParams>& a_procTexParams);
+
 void PutTexParamsToMaterialWithDamnTable(std::vector<ProcTexParams>& a_procTexParams, const std::unordered_map<int, ProcTexInfo>& a_allProcTextures,
                                          std::shared_ptr<RAYTR::IMaterial> a_pMaterial);
 
@@ -570,7 +573,7 @@ bool RenderDriverRTE::UpdateMaterial(int32_t a_matId, pugi::xml_node a_materialN
     return false;
   }
 
-  if (MaterialNodeHaveProceduralTextures(a_materialNode, m_procTextures))
+  if (MaterialNodeHaveProceduralTextures(a_materialNode, m_procTextures, m_materialNodes))
   { 
     pMaterial->AddFlags(PLAIN_MATERIAL_HAVE_PROC_TEXTURES);
 
@@ -586,8 +589,11 @@ bool RenderDriverRTE::UpdateMaterial(int32_t a_matId, pugi::xml_node a_materialN
     // prepare argumens for reading them inside procedural textures kernel
     //
     std::vector<ProcTexParams> procTexParams;
-    ReadAllProcTexArgsFromMaterialNode(a_materialNode, procTexParams);
-    PutTexParamsToMaterialWithDamnTable(procTexParams, m_procTextures, pMaterial);
+    ReadAllProcTexArgsFromMaterialNode(a_materialNode, m_materialNodes, 
+                                       procTexParams);
+
+    PutTexParamsToMaterialWithDamnTable(procTexParams, m_procTextures, 
+                                        pMaterial);
 
     // put AO params to material head
     //
