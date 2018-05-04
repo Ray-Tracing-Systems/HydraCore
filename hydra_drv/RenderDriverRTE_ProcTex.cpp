@@ -12,8 +12,31 @@
 
 using ProcTexInfo = RenderDriverRTE::ProcTexInfo;
 
-bool MaterialNodeHaveProceduralTextures(pugi::xml_node a_node, const std::unordered_map<int, ProcTexInfo>& a_ids)
+bool MaterialNodeHaveProceduralTextures(pugi::xml_node a_node, const std::unordered_map<int, ProcTexInfo>& a_ids, const std::unordered_map<int, pugi::xml_node >& a_matNodes)
 {
+  if (a_node.name() == std::wstring(L"material") && a_node.attribute(L"type").as_string() == std::wstring(L"hydra_blend"))
+  {
+    int mid1 = a_node.attribute(L"node_top").as_int();
+    int mid2 = a_node.attribute(L"node_bottom").as_int();
+
+    auto p1 = a_matNodes.find(mid1);
+    auto p2 = a_matNodes.find(mid2);
+
+    if (p1 != a_matNodes.end())
+    {
+      bool childHaveProcTextures = MaterialNodeHaveProceduralTextures(p1->second, a_ids, a_matNodes);
+      if (childHaveProcTextures)
+        return true;
+    }
+
+    if (p2 != a_matNodes.end())
+    {
+      bool childHaveProcTextures = MaterialNodeHaveProceduralTextures(p2->second, a_ids, a_matNodes);
+      if (childHaveProcTextures)
+        return true;
+    }
+  }
+
   if (std::wstring(a_node.name()) == L"texture")
   {
     int32_t id = a_node.attribute(L"id").as_int();
@@ -24,7 +47,7 @@ bool MaterialNodeHaveProceduralTextures(pugi::xml_node a_node, const std::unorde
 
   for (auto child : a_node.children())
   {
-    childHaveProc = childHaveProc || MaterialNodeHaveProceduralTextures(child, a_ids);
+    childHaveProc = childHaveProc || MaterialNodeHaveProceduralTextures(child, a_ids, a_matNodes);
     if (childHaveProc)
       break;
   }
@@ -69,8 +92,24 @@ void FindAllProcTextures(pugi::xml_node a_node, const std::unordered_map<int, Pr
 }
 
 
-void ReadAllProcTexArgsFromMaterialNode(pugi::xml_node a_node, std::vector<ProcTexParams>& a_procTexParams)
+void ReadAllProcTexArgsFromMaterialNode(pugi::xml_node a_node, const std::unordered_map<int, pugi::xml_node >& a_matNodes, 
+                                        std::vector<ProcTexParams>& a_procTexParams)
 {
+  if (a_node.name() == std::wstring(L"material") && a_node.attribute(L"type").as_string() == std::wstring(L"hydra_blend"))
+  {
+    int mid1 = a_node.attribute(L"node_top").as_int();
+    int mid2 = a_node.attribute(L"node_bottom").as_int();
+
+    auto p1 = a_matNodes.find(mid1);
+    auto p2 = a_matNodes.find(mid2);
+
+    if (p1 != a_matNodes.end())
+      ReadAllProcTexArgsFromMaterialNode(p1->second, a_matNodes, a_procTexParams);
+
+    if (p2 != a_matNodes.end())
+      ReadAllProcTexArgsFromMaterialNode(p2->second, a_matNodes, a_procTexParams);
+  }
+
   if (std::wstring(a_node.name()) == L"texture")
   {
     if (std::wstring(a_node.attribute(L"type").as_string()) == L"texref_proc")
@@ -140,7 +179,7 @@ void ReadAllProcTexArgsFromMaterialNode(pugi::xml_node a_node, std::vector<ProcT
   }
 
   for (auto child : a_node.children())
-    ReadAllProcTexArgsFromMaterialNode(child, a_procTexParams);
+    ReadAllProcTexArgsFromMaterialNode(child, a_matNodes, a_procTexParams);
 }
 
 
