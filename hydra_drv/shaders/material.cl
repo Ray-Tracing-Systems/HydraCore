@@ -65,7 +65,7 @@ __kernel void MakeEyeShadowRays(__global const uint*          restrict a_flags,
   }
 
   out_sraypos[tid] = to_float4(hitPos + epsilonOfPos(hitPos)*signOfNormal*hitNorm, zDepth); // OffsRayPos(hitPos, hitNorm, camDir);
-  out_sraydir[tid] = to_float4(camDir, imageToSurfaceFactor);
+  out_sraydir[tid] = to_float4(camDir, as_float(-1));
 }
 
 
@@ -80,6 +80,7 @@ __kernel void UpdateForwardPdfFor3Way(__global const uint*          restrict a_f
                                       __global const uint*          restrict in_flatNorm,
                                       __global const HitMatRef*     restrict in_matData,
                                       __global const Hit_Part4*     restrict in_hitTangent,
+                                      __global const float4*        restrict in_procTexData,
 
                                       __global const MisData*       restrict in_misDataCurr,
                                       __global PerRayAcc*           restrict a_pdfAcc,
@@ -118,7 +119,7 @@ __kernel void UpdateForwardPdfFor3Way(__global const uint*          restrict a_f
   {
     __global const PlainMaterial* pHitMaterial = materialAt(a_globals, in_mtlStorage, GetMaterialId(in_matData[tid]));
     const Hit_Part4 btanAndN = in_hitTangent[tid];
-
+    
     ShadeContext sc;
     sc.wp = to_float3(in_hitPosNorm[tid]);
     sc.l  = (-1.0f)*ray_dir;
@@ -128,15 +129,17 @@ __kernel void UpdateForwardPdfFor3Way(__global const uint*          restrict a_f
     sc.tg = decodeNormal(btanAndN.tangentCompressed);
     sc.bn = decodeNormal(btanAndN.bitangentCompressed);
     sc.tc = in_hitTexCoord[tid];
-
-    ProcTextureList ptl;        //#TODO: read from memory
-    InitProcTextureList(&ptl);  //#TODO: read from memory
+    
+    ProcTextureList ptl;        
+    InitProcTextureList(&ptl);  
+    ReadProcTextureList(in_procTexData, tid, iNumElements, 
+                        &ptl);
 
     const float pdfW = materialEval(pHitMaterial, &sc, false, false, /* global data --> */ a_globals, in_texStorage1, in_texStorage2, &ptl).pdfFwd;
-
+    
     accData.pdfCameraWP *= (pdfW / fmax(cosCurr, DEPSILON));
     accData.pdfLightWP  *= (matSamplePdf / fmax(cosNext, DEPSILON));
-
+    
     if (a_currDepth == 1)
       accData.pdfCamA0 *= (pdfW / fmax(cosCurr, DEPSILON)); // now pdfRevA0 will do store correct product pdfWP[0]*G[0] (if [0] means light)
   }
@@ -203,10 +206,10 @@ __kernel void ConnectToEyeKernel(__global const uint*          restrict a_flags,
   const float3 ray_dir = (in_oraydir == 0) ? make_float3(0,0,0) : to_float3(in_oraydir[tid]);
   const float3 hitPos  = to_float3(in_hitPosNorm[tid]); //  
   const float3 hitNorm = to_float3(in_normalsFull[tid]);
-  const float4 data2   = in_sraydir[tid];
-
-  const float3 camDir              = to_float3(data2); // compute it in MakeEyeShadowRays kernel
-  const float imageToSurfaceFactor = data2.w;          // compute it in MakeEyeShadowRays kernel
+  
+  float3 camDir; float zDepth;
+  const float imageToSurfaceFactor = CameraImageToSurfaceFactor(hitPos, hitNorm, a_globals,
+                                                                &camDir, &zDepth);
 
   float  signOfNormal = 1.0f;
   float  pdfRevW      = 1.0f;

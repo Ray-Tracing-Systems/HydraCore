@@ -911,15 +911,16 @@ void GPUOCLLayer::runKernel_UpdateForwardPdfFor3Way(cl_mem a_flags, cl_mem old_r
   CHECK_CL(clSetKernelArg(kern, 6, sizeof(cl_mem), (void*)&m_rays.hitFlatNorm));
   CHECK_CL(clSetKernelArg(kern, 7, sizeof(cl_mem), (void*)&m_rays.hitMatId));
   CHECK_CL(clSetKernelArg(kern, 8, sizeof(cl_mem), (void*)&m_rays.hitTangent));
-  CHECK_CL(clSetKernelArg(kern, 9, sizeof(cl_mem), (void*)&m_rays.pathMisDataPrev));
+  CHECK_CL(clSetKernelArg(kern, 9, sizeof(cl_mem), (void*)&m_rays.hitProcTexData));
 
-  CHECK_CL(clSetKernelArg(kern,10, sizeof(cl_mem), (void*)&acc_pdf)); // m_rays.accPdf
+  CHECK_CL(clSetKernelArg(kern,10, sizeof(cl_mem), (void*)&m_rays.pathMisDataPrev));
+  CHECK_CL(clSetKernelArg(kern,11, sizeof(cl_mem), (void*)&acc_pdf)); // m_rays.accPdf
 
-  CHECK_CL(clSetKernelArg(kern,11, sizeof(cl_mem), (void*)&m_scene.storageTex));
-  CHECK_CL(clSetKernelArg(kern,12, sizeof(cl_mem), (void*)&m_scene.storageTexAux));
-  CHECK_CL(clSetKernelArg(kern,13, sizeof(cl_mem), (void*)&m_scene.storageMat));
-  CHECK_CL(clSetKernelArg(kern,14, sizeof(cl_mem), (void*)&m_scene.allGlobsData));
-  CHECK_CL(clSetKernelArg(kern,15, sizeof(cl_int), (void*)&isize));
+  CHECK_CL(clSetKernelArg(kern,12, sizeof(cl_mem), (void*)&m_scene.storageTex));
+  CHECK_CL(clSetKernelArg(kern,13, sizeof(cl_mem), (void*)&m_scene.storageTexAux));
+  CHECK_CL(clSetKernelArg(kern,14, sizeof(cl_mem), (void*)&m_scene.storageMat));
+  CHECK_CL(clSetKernelArg(kern,15, sizeof(cl_mem), (void*)&m_scene.allGlobsData));
+  CHECK_CL(clSetKernelArg(kern,16, sizeof(cl_int), (void*)&isize));
 
   CHECK_CL(clEnqueueNDRangeKernel(m_globals.cmdQueue, kern, 1, NULL, &a_size, &localWorkSize, 0, NULL, NULL));
   waitIfDebug(__FILE__, __LINE__);

@@ -627,7 +627,8 @@ static inline float phongGlosiness(__global const PlainMaterial* a_pMat, const f
   if (as_int(a_pMat->data[PHONG_GLOSINESS_TEXID_OFFSET]) != INVALID_TEXTURE)
   {
     const int2   texId      = make_int2(as_int(a_pMat->data[PHONG_GLOSINESS_TEXID_OFFSET]), as_int(a_pMat->data[PHONG_GLOSINESS_TEXMATRIXID_OFFSET]));
-    const float3 glossColor = sample2DExt(texId.y, a_texCoord, (__global const int4*)a_pMat, a_tex, a_globals, a_ptList);
+    const float3 glossColor = sample2D(texId.y, a_texCoord, (__global const int4*)a_pMat, a_tex, a_globals);
+    //const float3 glossColor = sample2DExt(texId.y, a_texCoord, (__global const int4*)a_pMat, a_tex, a_globals, a_ptList);
     const float  glossMult  = a_pMat->data[PHONG_GLOSINESS_OFFSET];
     const float  glosiness  = clamp(glossMult*maxcomp(glossColor), 0.0f, 1.0f);
     return glosiness; //  cosPowerFromGlosiness(glosiness);
@@ -806,7 +807,8 @@ static inline float blinnGlosiness(__global const PlainMaterial* a_pMat, const f
   if (as_int(a_pMat->data[BLINN_GLOSINESS_TEXID_OFFSET]) != INVALID_TEXTURE)
   {
     const int2   texId      = make_int2(as_int(a_pMat->data[BLINN_GLOSINESS_TEXID_OFFSET]), as_int(a_pMat->data[BLINN_GLOSINESS_TEXMATRIXID_OFFSET]));
-    const float3 glossColor = sample2DExt(texId.y, a_texCoord, (__global const int4*)a_pMat, a_tex, a_globals, a_ptList);
+    const float3 glossColor = sample2D(texId.y, a_texCoord, (__global const int4*)a_pMat, a_tex, a_globals);
+    //const float3 glossColor = sample2DExt(texId.y, a_texCoord, (__global const int4*)a_pMat, a_tex, a_globals, a_ptList);
     const float  glossMult  = a_pMat->data[BLINN_GLOSINESS_OFFSET];
     const float  glosiness  = clamp(glossMult*maxcomp(glossColor), 0.0f, 1.0f);
     return glosiness;
