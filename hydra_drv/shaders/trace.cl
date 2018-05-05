@@ -308,7 +308,8 @@ __kernel void BVH4TraversalShadowKenrel(__global const uint*         restrict in
                                        int a_size,                    
                                        __global const float4*        restrict a_bvh,
                                        __global const float4*        restrict a_tris,
-                                       __global const EngineGlobals* restrict a_globals)
+                                       __global const EngineGlobals* restrict a_globals,
+                                       int iPack4Mode)
 {
   int tid = GLOBAL_ID_X;
   if (tid >= a_size)
@@ -342,13 +343,34 @@ __kernel void BVH4TraversalShadowKenrel(__global const uint*         restrict in
   bool disableThread = !rayIsActiveU(flags);
 
   if (!disableThread && activeAfterCompaction)
-  {
-    const float4 data1        = in_sraypos[tid];
-    const float4 data2        = in_sraydir[tid];
-    const float3 shadowRayPos = to_float3(data1);
-    const float3 shadowRayDir = to_float3(data2);
-    const float  maxDist      = fabs(data1.w);
-    const int    targetInstId = as_int(data2.w); // single instance id, this is for dirtAO computations; 
+  { 
+    float3 shadowRayPos;
+    float3 shadowRayDir;
+    float  maxDist;
+    int    targetInstId; 
+
+    if (iPack4Mode == 1)
+    {
+      __global const int* in_sraydirI = (__global const int*)in_sraydir;
+
+      const float4 data1 = in_sraypos[tid/4];
+
+      shadowRayPos = to_float3(data1);
+      maxDist      = fabs(data1.w);
+
+      shadowRayDir = decodeNormal(in_sraydirI[tid]);
+      targetInstId = -1;                               //// !!! #TODO: READ IT FROM AUX BUFFER !!!
+    }
+    else
+    {
+      const float4 data1 = in_sraypos[tid];
+      const float4 data2 = in_sraydir[tid];
+
+      shadowRayPos = to_float3(data1);
+      shadowRayDir = to_float3(data2);
+      maxDist      = fabs(data1.w);
+      targetInstId = as_int(data2.w);
+    }
 
     if (maxDist > 0.0f)
     {
@@ -371,7 +393,8 @@ __kernel void BVH4TraversalInstShadowKenrel(__global const uint*         restric
                                             int a_size,                    
                                             __global const float4*        restrict a_bvh,
                                             __global const float4*        restrict a_tris,
-                                            __global const EngineGlobals* restrict a_globals)
+                                            __global const EngineGlobals* restrict a_globals,
+                                            int iPack4Mode)
 {
   int tid = GLOBAL_ID_X;
   if (tid >= a_size)
@@ -420,7 +443,8 @@ __kernel void BVH4TraversalInstShadowKenrelAS(__global const uint*         restr
                                               __global const float4*        restrict a_tris,
                                               __global const uint2*         restrict a_alpha,
                                               __global const float4*        restrict a_texStorage, 
-                                              __global const EngineGlobals* restrict a_globals)
+                                              __global const EngineGlobals* restrict a_globals,
+                                              int iPack4Mode)
 {
   int tid = GLOBAL_ID_X;
   if (tid >= a_size)
