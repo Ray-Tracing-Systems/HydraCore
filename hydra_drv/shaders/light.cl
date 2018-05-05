@@ -254,6 +254,54 @@ __kernel void CopyAndPackForConnectEye(__global const uint*    restrict in_flags
 }
 
 
+/**
+\brief 
+\param a_hitPos  - in surface point position
+\param a_hitNorm - in surface point normal
+\param aoType    - in (AO_TYPE_UP, AO_TYPE_DOWN, AO_TYPE_BOTH)
+\param pGen      - inout random gen
+
+\param out_sRayPos - out shadow ray position
+\param out_sRayDir - out shadow ray normal
+
+*/
+
+static inline void MakeAORay(float3 a_hitPos, float3 a_hitNorm, int aoType, __private RandomGen* pGen,
+                             __private float3* out_sRayPos, __private float3* out_sRayDir)
+{
+  float3 rands   = to_float3(rndFloat4_Pseudo(pGen));
+
+  float3 sRayPos = a_hitPos;
+  float3 sRayDir = make_float3(0, 1, 0);
+
+  if (aoType == AO_TYPE_UP)
+  {
+    sRayDir = MapSampleToCosineDistribution(rands.x, rands.y, a_hitNorm, a_hitNorm, 1.0f);
+    sRayPos = OffsRayPos(sRayPos, a_hitNorm, sRayDir);
+  }
+  else if (aoType == AO_TYPE_DOWN)
+  {
+    sRayDir = MapSampleToCosineDistribution(rands.x, rands.y, (-1.0f)*a_hitNorm, (-1.0f)*a_hitNorm, 1.0f);
+    sRayPos = OffsRayPos(sRayPos, (-1.0f)*a_hitNorm, sRayDir);
+  }
+  else if (aoType == AO_TYPE_BOTH)
+  {
+    if (rands.z <= 0.5f)
+    {
+      sRayDir = MapSampleToCosineDistribution(rands.x, rands.y, a_hitNorm, a_hitNorm, 1.0f);
+      sRayPos = OffsRayPos(sRayPos, a_hitNorm, sRayDir);
+    }
+    else
+    {
+      sRayDir = MapSampleToCosineDistribution(rands.x, rands.y, (-1.0f)*a_hitNorm, (-1.0f)*a_hitNorm, 1.0f);
+      sRayPos = OffsRayPos(sRayPos, (-1.0f)*a_hitNorm, sRayDir);
+    }
+  }
+
+  (*out_sRayPos) = sRayPos;
+  (*out_sRayDir) = sRayDir;
+}
+
 __kernel void MakeAORays(__global const uint*      restrict in_flags,
                          __global RandomGen*       restrict a_gens,
 
@@ -299,43 +347,102 @@ __kernel void MakeAORays(__global const uint*      restrict in_flags,
   {
     RandomGen gen = a_gens[tid];
     float3 rands  = to_float3(rndFloat4_Pseudo(&gen));
-    a_gens[tid]   = gen;
 
-    sRayPos       = hitPos;
+    MakeAORay(hitPos, hitNorm, MaterialAOType(pMaterialHead), &gen,
+              &sRayPos, &sRayDir);
 
-    int aoType = MaterialAOType(pMaterialHead);
-    if (aoType == AO_TYPE_UP)
-    {
-      sRayDir = MapSampleToCosineDistribution(rands.x, rands.y, hitNorm, hitNorm, 1.0f);
-      sRayPos = OffsRayPos(sRayPos, hitNorm, sRayDir);
-    }
-    else if (aoType == AO_TYPE_DOWN)
-    {
-      sRayDir = MapSampleToCosineDistribution(rands.x, rands.y, (-1.0f)*hitNorm, (-1.0f)*hitNorm, 1.0f);
-      sRayPos = OffsRayPos(sRayPos, (-1.0f)*hitNorm, sRayDir);
-    }
-    else if (aoType == AO_TYPE_BOTH)
-    {
-      if (rands.z <= 0.5f)
-      {
-        sRayDir = MapSampleToCosineDistribution(rands.x, rands.y, hitNorm, hitNorm, 1.0f);
-        sRayPos = OffsRayPos(sRayPos, hitNorm, sRayDir);
-      }
-      else
-      {
-        sRayDir = MapSampleToCosineDistribution(rands.x, rands.y, (-1.0f)*hitNorm, (-1.0f)*hitNorm, 1.0f);
-        sRayPos = OffsRayPos(sRayPos, (-1.0f)*hitNorm, sRayDir);
-      }
-    }
+    a_gens[tid] = gen;
 
     if (materialGetFlags(pMaterialHead) & PLAIN_MATERIAL_LOCAL_AO)
       targetInstId = in_hits[tid].instId;
+
+    out_rdir[tid] = to_float4(sRayDir, as_float(targetInstId));
+  }
+  else
+  {
+    sRayLength = 0.0f;
   }
 
   if(iterNum == 0)
     out_rpos[tid] = to_float4(sRayPos, sRayLength);
+}
 
-  out_rdir[tid] = to_float4(sRayDir, as_float(targetInstId));
+
+__kernel void MakeAORaysPacked4(__global const uint*      restrict in_flags,
+                                __global RandomGen*       restrict a_gens,
+                                
+                                __global const Lite_Hit*  restrict in_hits,
+                                __global const float4*    restrict in_hitPosNorm,
+                                __global const float2*    restrict in_hitTexCoord,
+                                __global const HitMatRef* restrict in_matData,
+                                
+                                __global float4*          restrict out_rpos,
+                                __global int4*            restrict out_rdir,
+                                __global int*             restrict out_instId,
+                                
+                                __global const float4*    restrict in_texStorage1,
+                                __global const float4*    restrict in_mtlStorage,
+                                __global const EngineGlobals* restrict a_globals,
+                                int iNumElements)
+{
+  int tid = GLOBAL_ID_X;
+  if (tid >= iNumElements)
+    return;
+
+  const uint flags = in_flags[tid];
+  if (!rayIsActiveU(flags))
+    return;
+
+  const float4 data1    = in_hitPosNorm[tid];
+  const float3 hitPos   = to_float3(data1);
+  const float3 hitNorm  = decodeNormal(as_int(data1.w));
+  const float2 texCoord = in_hitTexCoord[tid];
+
+  __global const PlainMaterial* pMaterialHead = materialAt(a_globals, in_mtlStorage, GetMaterialId(in_matData[tid]));
+
+  float3 sRayPos  = make_float3(0, 1e30f, 0);
+  float3 sRayDir1 = make_float3(0, 1, 0);
+  float3 sRayDir2 = make_float3(0, 1, 0);
+  float3 sRayDir3 = make_float3(0, 1, 0);
+  float3 sRayDir4 = make_float3(0, 1, 0);
+
+  float  sRayLength = pMaterialHead->data[PROC_TEX_AO_LENGTH];
+  int targetInstId  = -1;
+
+  const float3 lenTexColor = sample2D(as_int(pMaterialHead->data[PROC_TEXMATRIX_ID]), texCoord, (__global const int4*)pMaterialHead, in_texStorage1, a_globals);
+  sRayLength *= maxcomp(lenTexColor);
+
+  if (MaterialHaveAO(pMaterialHead))
+  {
+    RandomGen gen = a_gens[tid];
+    float3 rands  = to_float3(rndFloat4_Pseudo(&gen));
+
+    MakeAORay(hitPos, hitNorm, MaterialAOType(pMaterialHead), &gen,
+              &sRayPos, &sRayDir1);
+
+    MakeAORay(hitPos, hitNorm, MaterialAOType(pMaterialHead), &gen,
+              &sRayPos, &sRayDir2);
+
+    MakeAORay(hitPos, hitNorm, MaterialAOType(pMaterialHead), &gen,
+              &sRayPos, &sRayDir3);
+
+    MakeAORay(hitPos, hitNorm, MaterialAOType(pMaterialHead), &gen,
+              &sRayPos, &sRayDir4);
+
+    a_gens[tid] = gen;
+
+    if (materialGetFlags(pMaterialHead) & PLAIN_MATERIAL_LOCAL_AO)
+      targetInstId = in_hits[tid].instId;
+
+    out_rdir  [tid] = make_int4(encodeNormal(sRayDir1), encodeNormal(sRayDir2), encodeNormal(sRayDir3), encodeNormal(sRayDir4));
+    out_instId[tid] = targetInstId;
+  }
+  else
+  {
+    sRayLength = 0.0f;
+  }
+
+  out_rpos[tid] = to_float4(sRayPos, sRayLength);
 }
 
 static inline float3 decompressShadow(ushort4 shadowCompressed)

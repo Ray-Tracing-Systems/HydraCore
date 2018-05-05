@@ -347,13 +347,18 @@ __kernel void BVH4TraversalShadowKenrel(__global const uint*         restrict in
     const float4 data2        = in_sraydir[tid];
     const float3 shadowRayPos = to_float3(data1);
     const float3 shadowRayDir = to_float3(data2);
-    const float  maxDist      = data1.w;
+    const float  maxDist      = fabs(data1.w);
     const int    targetInstId = as_int(data2.w); // single instance id, this is for dirtAO computations; 
 
-    const Lite_Hit hit  = BVH4Traverse(shadowRayPos, shadowRayDir, 0.0f, Make_Lite_Hit(maxDist, -1), a_bvh, a_tris);
-    const float3 shadow = (HitSome(hit) && hit.t > 0.0f && hit.t < maxDist) ? make_float3(0.0f, 0.0f, 0.0f) : make_float3(1.0f, 1.0f, 1.0f);
-    
-    a_shadow[tid] = compressShadow(shadow);
+    if (maxDist > 0.0f)
+    {
+      const Lite_Hit hit  = BVH4Traverse(shadowRayPos, shadowRayDir, 0.0f, Make_Lite_Hit(maxDist, -1), a_bvh, a_tris);
+      const float3 shadow = (HitSome(hit) && hit.t > 0.0f && hit.t < maxDist) ? make_float3(0.0f, 0.0f, 0.0f) : make_float3(1.0f, 1.0f, 1.0f);
+
+      a_shadow[tid] = compressShadow(shadow);
+    }
+    else
+      a_shadow[tid] = compressShadow(make_float3(1, 1, 1));
   }
 
 }
@@ -389,13 +394,18 @@ __kernel void BVH4TraversalInstShadowKenrel(__global const uint*         restric
     const float4 data2        = in_sraydir[tid];
     const float3 shadowRayPos = to_float3(data1);
     const float3 shadowRayDir = to_float3(data2);
-    const float  maxDist      = data1.w;
+    const float  maxDist      = fabs(data1.w);
     const int    targetInstId = as_int(data2.w); // single instance id, this is for dirtAO computations; 
 
-    const Lite_Hit hit  = Make_Lite_Hit(maxDist, -1);
-    const float3 shadow = BVH4InstTraverseShadow(shadowRayPos, shadowRayDir, 0.0f, hit, a_bvh, a_tris, targetInstId);
-                        
-    a_shadow[tid] = compressShadow(shadow);
+    if (maxDist > 0.0f)
+    {
+      const Lite_Hit hit  = Make_Lite_Hit(maxDist, -1);
+      const float3 shadow = BVH4InstTraverseShadow(shadowRayPos, shadowRayDir, 0.0f, hit, a_bvh, a_tris, targetInstId);
+
+      a_shadow[tid] = compressShadow(shadow);
+    }
+    else
+      a_shadow[tid] = compressShadow(make_float3(1, 1, 1));
   }
 
 }
@@ -433,12 +443,16 @@ __kernel void BVH4TraversalInstShadowKenrelAS(__global const uint*         restr
     const float4 data2        = in_sraydir[tid];
     const float3 shadowRayPos = to_float3(data1);
     const float3 shadowRayDir = to_float3(data2);
-    const float  maxDist      = data1.w;
+    const float  maxDist      = fabs(data1.w);
     const int    targetInstId = as_int(data2.w); // single instance id, this is for dirtAO computations; 
 
-    const float3 shadow = BVH4InstTraverseShadowAlphaS(shadowRayPos, shadowRayDir, 0.0f, maxDist, a_bvh, a_tris, a_alpha, a_texStorage, a_globals, targetInstId);
-    
-    a_shadow[tid] = compressShadow(shadow);
+    if (maxDist > 0.0f)
+    {
+      const float3 shadow = BVH4InstTraverseShadowAlphaS(shadowRayPos, shadowRayDir, 0.0f, maxDist, a_bvh, a_tris, a_alpha, a_texStorage, a_globals, targetInstId);
+      a_shadow[tid] = compressShadow(shadow);
+    }
+    else
+      a_shadow[tid] = compressShadow(make_float3(1,1,1));
   }
 
 }
