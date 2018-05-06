@@ -432,6 +432,29 @@ __kernel void PackAO(__global const uint*      restrict in_flags,
 
 }
 
+__kernel void PackAO4(__global const uint*     restrict in_flags,
+                      __global const ushort*   restrict in_shadowAO,
+                      __global       uchar*    restrict out_ao,
+                     int iNumElements)
+
+{
+  int tid = GLOBAL_ID_X;
+  if (tid >= iNumElements)
+    return;
+
+  const uint flags = in_flags[tid];
+  if (!rayIsActiveU(flags))
+    return;
+
+  const float  aoIn0 = (float)(in_shadowAO[tid * 4 + 0]) * (1.0f / 65535.0f);
+  const float  aoIn1 = (float)(in_shadowAO[tid * 4 + 1]) * (1.0f / 65535.0f);
+  const float  aoIn2 = (float)(in_shadowAO[tid * 4 + 2]) * (1.0f / 65535.0f);
+  const float  aoIn3 = (float)(in_shadowAO[tid * 4 + 3]) * (1.0f / 65535.0f);
+  const float  aoRes = 0.25f*(aoIn0 + aoIn1 + aoIn2 + aoIn3);
+
+  out_ao[tid] = (uchar)(aoRes*255.0f);
+}
+
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////

@@ -398,7 +398,7 @@ void GPUOCLLayer::runKernel_ComputeAO2(cl_mem outCompressedAO, size_t a_size) //
 
   CHECK_CL(clSetKernelArg(kernAO, 6, sizeof(cl_mem), (void*)&m_rays.shadowRayPos));
   CHECK_CL(clSetKernelArg(kernAO, 7, sizeof(cl_mem), (void*)&m_rays.shadowRayDir));
-  //CHECK_CL(clSetKernelArg(kernAO, 8, sizeof(cl_mem), (void*)&m_rays.hitInstanceId)); // #TODO: find some tmp data, for example 'm_rays.hitProcTexData'  
+  CHECK_CL(clSetKernelArg(kernAO, 8, sizeof(cl_mem), (void*)&m_rays.lightOffsetBuff)); // put target inst id to 'lightOffsetBuff'
 
   CHECK_CL(clSetKernelArg(kernAO, 9, sizeof(cl_mem), (void*)&m_scene.storageTex));
   CHECK_CL(clSetKernelArg(kernAO, 10, sizeof(cl_mem), (void*)&m_scene.storageMat));
@@ -410,8 +410,20 @@ void GPUOCLLayer::runKernel_ComputeAO2(cl_mem outCompressedAO, size_t a_size) //
 
   // (3) calc shadows
   //
-  runKernel_ShadowTraceAO(m_rays.rayFlags, m_rays.shadowRayPos, m_rays.shadowRayDir, m_rays.lshadow, 4*a_size); 
+  runKernel_ShadowTraceAO(m_rays.rayFlags, m_rays.shadowRayPos, m_rays.shadowRayDir, m_rays.lightOffsetBuff, // read target inst id from 'lightOffsetBuff'
+                          m_rays.lshadow, 4*a_size); 
 
+  // (4) pack them in outCompressedAO
+  //
+  cl_kernel kernAOPack = m_progs.lightp.kernel("PackAO4");
+
+  CHECK_CL(clSetKernelArg(kernAOPack, 0, sizeof(cl_mem), (void*)&m_rays.rayFlags));
+  CHECK_CL(clSetKernelArg(kernAOPack, 1, sizeof(cl_mem), (void*)&m_rays.lshadow));
+  CHECK_CL(clSetKernelArg(kernAOPack, 2, sizeof(cl_mem), (void*)&outCompressedAO));
+  CHECK_CL(clSetKernelArg(kernAOPack, 3, sizeof(cl_int), (void*)&isize));
+
+  CHECK_CL(clEnqueueNDRangeKernel(m_globals.cmdQueue, kernAOPack, 1, NULL, &a_size, &localWorkSize, 0, NULL, NULL));
+  waitIfDebug(__FILE__, __LINE__);
 }
 
 void GPUOCLLayer::runKernel_ComputeHit(cl_mem a_rpos, cl_mem a_rdir, size_t a_size, bool a_doNotEvaluateProcTex)
@@ -725,9 +737,63 @@ void GPUOCLLayer::runKernel_ShadowTrace(cl_mem a_rayFlags, cl_mem a_rpos, cl_mem
   }
 }
 
-void GPUOCLLayer::runKernel_ShadowTraceAO(cl_mem a_rayFlags, cl_mem a_rpos, cl_mem a_rdir, cl_mem a_outShadow, size_t a_size)
+void GPUOCLLayer::runKernel_ShadowTraceAO(cl_mem a_rayFlags, cl_mem a_rpos, cl_mem a_rdir, cl_mem a_instId,
+                                          cl_mem a_outShadow, size_t a_size)
 {
+  size_t localWorkSize = 256;
+  int    isize         = int(a_size);
+  a_size               = roundBlocks(a_size, int(localWorkSize));
 
+  cl_kernel kernTrace1 = m_progs.trace.kernel("BVH4TraversalShadowKenrel_Packed");
+  cl_kernel kernTrace2 = m_progs.trace.kernel("BVH4TraversalInstShadowKenrel_Packed");
+  cl_kernel kernTrace4 = m_progs.trace.kernel("BVH4TraversalInstShadowKenrelAS_Packed");
+
+  for (int runId = 0; runId < m_scene.bvhNumber; runId++)
+  {
+    cl_mem bvhBuff  = m_scene.bvhBuff    [runId];
+    cl_mem triBuff  = m_scene.objListBuff[runId];
+    cl_mem triAlpha = m_scene.alphTstBuff[runId];
+
+    cl_kernel kernY = m_scene.bvhHaveInst[runId] ? kernTrace2 : kernTrace1;
+
+    if (triAlpha != nullptr)
+    {
+      kernY = kernTrace4;
+
+      CHECK_CL(clSetKernelArg(kernY, 0, sizeof(cl_mem), (void*)&a_rayFlags));
+      CHECK_CL(clSetKernelArg(kernY, 1, sizeof(cl_mem), (void*)&a_rpos));
+      CHECK_CL(clSetKernelArg(kernY, 2, sizeof(cl_mem), (void*)&a_rdir));
+      CHECK_CL(clSetKernelArg(kernY, 3, sizeof(cl_mem), (void*)&a_instId));
+      CHECK_CL(clSetKernelArg(kernY, 4, sizeof(cl_mem), (void*)&a_outShadow));
+     
+      CHECK_CL(clSetKernelArg(kernY, 5, sizeof(cl_mem), (void*)&bvhBuff));
+      CHECK_CL(clSetKernelArg(kernY, 6, sizeof(cl_mem), (void*)&triBuff));
+      CHECK_CL(clSetKernelArg(kernY, 7, sizeof(cl_mem), (void*)&triAlpha));
+      CHECK_CL(clSetKernelArg(kernY, 8, sizeof(cl_mem), (void*)&m_scene.storageTex));
+      CHECK_CL(clSetKernelArg(kernY, 9, sizeof(cl_mem), (void*)&m_scene.allGlobsData));
+
+      CHECK_CL(clSetKernelArg(kernY,10, sizeof(cl_int), (void*)&runId));
+      CHECK_CL(clSetKernelArg(kernY,11, sizeof(cl_int), (void*)&isize));
+    }
+    else
+    {
+      CHECK_CL(clSetKernelArg(kernY, 0, sizeof(cl_mem), (void*)&a_rayFlags));
+      CHECK_CL(clSetKernelArg(kernY, 1, sizeof(cl_mem), (void*)&a_rpos));
+      CHECK_CL(clSetKernelArg(kernY, 2, sizeof(cl_mem), (void*)&a_rdir));
+      CHECK_CL(clSetKernelArg(kernY, 3, sizeof(cl_mem), (void*)&a_instId));
+      CHECK_CL(clSetKernelArg(kernY, 4, sizeof(cl_mem), (void*)&a_outShadow));
+
+      CHECK_CL(clSetKernelArg(kernY, 5, sizeof(cl_mem), (void*)&bvhBuff));
+      CHECK_CL(clSetKernelArg(kernY, 6, sizeof(cl_mem), (void*)&triBuff));
+      CHECK_CL(clSetKernelArg(kernY, 7, sizeof(cl_mem), (void*)&m_scene.allGlobsData));
+
+      CHECK_CL(clSetKernelArg(kernY, 8, sizeof(cl_int), (void*)&runId));
+      CHECK_CL(clSetKernelArg(kernY, 9, sizeof(cl_int), (void*)&isize));
+    }
+
+    CHECK_CL(clEnqueueNDRangeKernel(m_globals.cmdQueue, kernY, 1, NULL, &a_size, &localWorkSize, 0, NULL, NULL));
+    waitIfDebug(__FILE__, __LINE__);
+  }
 }
 
 void GPUOCLLayer::ShadePass(cl_mem a_rpos, cl_mem a_rdir, cl_mem a_outColor, size_t a_size, bool a_measureTime)
