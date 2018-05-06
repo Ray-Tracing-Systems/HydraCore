@@ -271,8 +271,13 @@ __kernel void ComputeHit(__global const float4*   restrict rpos,
   out_flatNorm  [tid] = encodeNormal(surfHitWS.flatNormal);
 }
 
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-IDH_CALL ushort4 compressShadow(float3 shadow)
+
+static inline ushort4 compressShadow(float3 shadow)
 {
   ushort4 shadowCompressed;
 
@@ -284,7 +289,7 @@ IDH_CALL ushort4 compressShadow(float3 shadow)
   return shadowCompressed;
 }
 
-IDH_CALL float3 decompressShadow(ushort4 shadowCompressed)
+static inline float3 decompressShadow(ushort4 shadowCompressed)
 {
   const float invNormCoeff = 1.0f / 65535.0f;
   return invNormCoeff*make_float3((float)shadowCompressed.x, (float)shadowCompressed.y, (float)shadowCompressed.z);
@@ -304,11 +309,11 @@ __kernel void BVH4TraversalShadowKenrel(__global const uint*         restrict in
                                         __global const float4*       restrict in_sraypos,
                                         __global const float4*       restrict in_sraydir,
                                         __global       ushort4*      restrict a_shadow,
-                                       int a_runId,    
-                                       int a_size,                    
-                                       __global const float4*        restrict a_bvh,
-                                       __global const float4*        restrict a_tris,
-                                       __global const EngineGlobals* restrict a_globals)
+                                                          
+                                        __global const float4*        restrict a_bvh,
+                                        __global const float4*        restrict a_tris,
+                                        __global const EngineGlobals* restrict a_globals,
+                                        int a_runId, int a_size)
 {
   int tid = GLOBAL_ID_X;
   if (tid >= a_size)
@@ -343,33 +348,14 @@ __kernel void BVH4TraversalShadowKenrel(__global const uint*         restrict in
 
   if (!disableThread && activeAfterCompaction)
   { 
-    //float3 shadowRayPos;
-    //float3 shadowRayDir;
-    //float  maxDist;
-    //int    targetInstId; 
-    //
-    //if (iPack4Mode == 1)
-    //{
-    //  __global const int* in_sraydirI = (__global const int*)in_sraydir;
-    //
-    //  const float4 data1 = in_sraypos[tid/4];
-    //
-    //  shadowRayPos = to_float3(data1);
-    //  maxDist      = fabs(data1.w);
-    //
-    //  shadowRayDir = decodeNormal(in_sraydirI[tid]);
-    //  targetInstId = -1; //in_inst_id[tid/4]  //// !!! #TODO: READ IT FROM AUX BUFFER !!!
-    //}
-    //else
-    //{
-      const float4 data1 = in_sraypos[tid];
-      const float4 data2 = in_sraydir[tid];
-
-      const float3 shadowRayPos = to_float3(data1);
-      const float3 shadowRayDir = to_float3(data2);
-      const float maxDist       = fabs(data1.w);
-      const int targetInstId    = as_int(data2.w);
-    //}
+    const float4 data1 = in_sraypos[tid];
+    const float4 data2 = in_sraydir[tid];
+    
+    const float3 shadowRayPos = to_float3(data1);
+    const float3 shadowRayDir = to_float3(data2);
+    const float maxDist       = fabs(data1.w);
+    const int targetInstId    = as_int(data2.w);
+    
 
     if (maxDist > 0.0f)
     {
@@ -388,11 +374,11 @@ __kernel void BVH4TraversalInstShadowKenrel(__global const uint*         restric
                                             __global const float4*       restrict in_sraypos,
                                             __global const float4*       restrict in_sraydir,
                                             __global       ushort4*      restrict a_shadow,
-                                            int a_runId,
-                                            int a_size,                    
+
                                             __global const float4*        restrict a_bvh,
                                             __global const float4*        restrict a_tris,
-                                            __global const EngineGlobals* restrict a_globals)
+                                            __global const EngineGlobals* restrict a_globals,
+                                            int a_runId, int a_size)
 {
   int tid = GLOBAL_ID_X;
   if (tid >= a_size)
@@ -435,13 +421,13 @@ __kernel void BVH4TraversalInstShadowKenrelAS(__global const uint*         restr
                                               __global const float4*       restrict in_sraypos,
                                               __global const float4*       restrict in_sraydir,
                                               __global       ushort4*      restrict a_shadow,
-                                              int a_runId,
-                                              int a_size,                    
+                                                      
                                               __global const float4*        restrict a_bvh,
                                               __global const float4*        restrict a_tris,
                                               __global const uint2*         restrict a_alpha,
                                               __global const float4*        restrict a_texStorage, 
-                                              __global const EngineGlobals* restrict a_globals)
+                                              __global const EngineGlobals* restrict a_globals,
+                                               int a_runId, int a_size)
 {
   int tid = GLOBAL_ID_X;
   if (tid >= a_size)
@@ -478,14 +464,159 @@ __kernel void BVH4TraversalInstShadowKenrelAS(__global const uint*         restr
 
 }
 
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+#define AO_RAYS_PACKED 4
+
+
+__kernel void BVH4TraversalShadowKenrel_Packed(__global const uint*         restrict in_flags,
+                                               __global const float4*       restrict in_sraypos,
+                                               __global const int*          restrict in_sraydirI,
+                                               __global const int*          restrict in_inst_id,
+                                               __global       ushort*       restrict a_shadow,
+                
+                                              __global const float4*        restrict a_bvh,
+                                              __global const float4*        restrict a_tris,
+                                              __global const EngineGlobals* restrict a_globals,
+                                              int a_runId, int a_size)
+{
+  int tid = GLOBAL_ID_X;
+  if (tid >= a_size)
+    tid = a_size - 1;
+
+  bool activeAfterCompaction = (GLOBAL_ID_X < a_size);
+  uint flags = in_flags[tid];
+
+  bool disableThread = !rayIsActiveU(flags);
+
+  if (!disableThread && activeAfterCompaction)
+  {     
+    const float4 data1  = in_sraypos[tid / AO_RAYS_PACKED];
+    int targetInstId    = in_inst_id[tid / AO_RAYS_PACKED]; 
+    float3 shadowRayPos = to_float3(data1);
+    float maxDist       = fabs(data1.w);
+    float3 shadowRayDir = decodeNormal(in_sraydirI[tid]);
+   
+    if (maxDist > 0.0f)
+    {
+      const Lite_Hit hit  = BVH4Traverse(shadowRayPos, shadowRayDir, 0.0f, Make_Lite_Hit(maxDist, -1), a_bvh, a_tris);
+      const float3 shadow = (HitSome(hit) && hit.t > 0.0f && hit.t < maxDist) ? make_float3(0.0f, 0.0f, 0.0f) : make_float3(1.0f, 1.0f, 1.0f);
+
+      const float shadowS = 0.33334f*(shadow.x + shadow.y + shadow.z);
+      a_shadow[tid] = (ushort)(65535.0f * shadowS);
+    }
+    else
+      a_shadow[tid] = 65535;
+  }
+
+}
 
 
 
+__kernel void BVH4TraversalInstShadowKenrel_Packed(__global const uint*         restrict in_flags,
+                                                   __global const float4*       restrict in_sraypos,
+                                                   __global const int*          restrict in_sraydirI,
+                                                   __global const int*          restrict in_inst_id,
+                                                   __global       ushort*       restrict a_shadow,
+                                                   
+                                                   __global const float4*        restrict a_bvh,
+                                                   __global const float4*        restrict a_tris,
+                                                   __global const EngineGlobals* restrict a_globals,
+                                                   int a_runId, int a_size)
+{
+  int tid = GLOBAL_ID_X;
+  if (tid >= a_size)
+    tid = a_size - 1;
+
+  bool activeAfterCompaction = (GLOBAL_ID_X < a_size);
+  uint flags = in_flags[tid];
+
+  bool disableThread = !rayIsActiveU(flags);
+
+  if (a_runId > 0)
+  {
+    const float3 shadowOld = decompressShadow(a_shadow[tid]);
+    disableThread = disableThread || (dot(shadowOld, shadowOld) < 0.001f);
+  }
+
+  if (!disableThread && activeAfterCompaction)
+  {
+    const float4 data1  = in_sraypos[tid / AO_RAYS_PACKED];
+    int targetInstId    = in_inst_id[tid / AO_RAYS_PACKED]; 
+    float3 shadowRayPos = to_float3(data1);
+    float maxDist       = fabs(data1.w);
+    float3 shadowRayDir = decodeNormal(in_sraydirI[tid]);
+
+    if (maxDist > 0.0f)
+    {
+      const Lite_Hit hit  = Make_Lite_Hit(maxDist, -1);
+      const float3 shadow = BVH4InstTraverseShadow(shadowRayPos, shadowRayDir, 0.0f, hit, a_bvh, a_tris, targetInstId);
+
+      const float shadowS = 0.33334f*(shadow.x + shadow.y + shadow.z);
+      a_shadow[tid] = (ushort)(65535.0f * shadowS);
+    }
+    else
+      a_shadow[tid] = 65535;
+  }
+
+}
 
 
+__kernel void BVH4TraversalInstShadowKenrelAS_Packed(__global const uint*         restrict in_flags,
+                                                     __global const float4*       restrict in_sraypos,
+                                                     __global const int*          restrict in_sraydirI,
+                                                     __global const int*          restrict in_inst_id,
+                                                     __global       ushort*       restrict a_shadow,
+                                                     
+                                                     __global const float4*        restrict a_bvh,
+                                                     __global const float4*        restrict a_tris,
+                                                     __global const uint2*         restrict a_alpha,
+                                                     __global const float4*        restrict a_texStorage, 
+                                                     __global const EngineGlobals* restrict a_globals,
+                                                     int a_runId, int a_size)
+{
+  int tid = GLOBAL_ID_X;
+  if (tid >= a_size)
+    tid = a_size - 1;
 
+  bool activeAfterCompaction = (GLOBAL_ID_X < a_size);
+  uint flags = in_flags[tid];
 
+  bool disableThread = !rayIsActiveU(flags);
 
+  if(a_runId > 0)
+  { 
+    const float3 shadowOld = decompressShadow(a_shadow[tid]);
+    disableThread = disableThread || (dot(shadowOld, shadowOld) < 0.001f);
+  }
+
+  if (!disableThread && activeAfterCompaction)
+  {
+    const float4 data1  = in_sraypos[tid / AO_RAYS_PACKED];
+    int targetInstId    = in_inst_id[tid / AO_RAYS_PACKED]; 
+    float3 shadowRayPos = to_float3(data1);
+    float maxDist       = fabs(data1.w);
+    float3 shadowRayDir = decodeNormal(in_sraydirI[tid]); 
+
+    if (maxDist > 0.0f)
+    {
+      const float3 shadow = BVH4InstTraverseShadowAlphaS(shadowRayPos, shadowRayDir, 0.0f, maxDist, a_bvh, a_tris, a_alpha, a_texStorage, a_globals, targetInstId);
+      const float shadowS = 0.33334f*(shadow.x + shadow.y + shadow.z);
+      a_shadow[tid] = (ushort)(65535.0f * shadowS);
+    }
+    else
+      a_shadow[tid] = 65535;
+  }
+
+}
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 
 
