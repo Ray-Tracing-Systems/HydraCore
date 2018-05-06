@@ -253,55 +253,6 @@ __kernel void CopyAndPackForConnectEye(__global const uint*    restrict in_flags
   out_raydir[tid] = in_raydir[tid];
 }
 
-
-/**
-\brief 
-\param a_hitPos  - in surface point position
-\param a_hitNorm - in surface point normal
-\param aoType    - in (AO_TYPE_UP, AO_TYPE_DOWN, AO_TYPE_BOTH)
-\param pGen      - inout random gen
-
-\param out_sRayPos - out shadow ray position
-\param out_sRayDir - out shadow ray normal
-
-*/
-
-static inline void MakeAORay(float3 a_hitPos, float3 a_hitNorm, int aoType, __private RandomGen* pGen,
-                             __private float3* out_sRayPos, __private float3* out_sRayDir)
-{
-  float3 rands   = to_float3(rndFloat4_Pseudo(pGen));
-
-  float3 sRayPos = a_hitPos;
-  float3 sRayDir = make_float3(0, 1, 0);
-
-  if (aoType == AO_TYPE_UP)
-  {
-    sRayDir = MapSampleToCosineDistribution(rands.x, rands.y, a_hitNorm, a_hitNorm, 1.0f);
-    sRayPos = OffsRayPos(sRayPos, a_hitNorm, sRayDir);
-  }
-  else if (aoType == AO_TYPE_DOWN)
-  {
-    sRayDir = MapSampleToCosineDistribution(rands.x, rands.y, (-1.0f)*a_hitNorm, (-1.0f)*a_hitNorm, 1.0f);
-    sRayPos = OffsRayPos(sRayPos, (-1.0f)*a_hitNorm, sRayDir);
-  }
-  else if (aoType == AO_TYPE_BOTH)
-  {
-    if (rands.z <= 0.5f)
-    {
-      sRayDir = MapSampleToCosineDistribution(rands.x, rands.y, a_hitNorm, a_hitNorm, 1.0f);
-      sRayPos = OffsRayPos(sRayPos, a_hitNorm, sRayDir);
-    }
-    else
-    {
-      sRayDir = MapSampleToCosineDistribution(rands.x, rands.y, (-1.0f)*a_hitNorm, (-1.0f)*a_hitNorm, 1.0f);
-      sRayPos = OffsRayPos(sRayPos, (-1.0f)*a_hitNorm, sRayDir);
-    }
-  }
-
-  (*out_sRayPos) = sRayPos;
-  (*out_sRayDir) = sRayDir;
-}
-
 __kernel void MakeAORays(__global const uint*      restrict in_flags,
                          __global RandomGen*       restrict a_gens,
 
@@ -347,11 +298,12 @@ __kernel void MakeAORays(__global const uint*      restrict in_flags,
   {
     RandomGen gen = a_gens[tid];
     float3 rands  = to_float3(rndFloat4_Pseudo(&gen));
+    a_gens[tid]   = gen;
 
-    MakeAORay(hitPos, hitNorm, MaterialAOType(pMaterialHead), &gen,
-              &sRayPos, &sRayDir);
+    const float3 aoDir = (MaterialAOType(pMaterialHead) == AO_TYPE_UP) ? hitNorm : -1.0f*(hitNorm);
 
-    a_gens[tid] = gen;
+    sRayDir = MapSampleToCosineDistribution(rands.x, rands.y, aoDir, aoDir, 1.0f);
+    sRayPos = OffsRayPos(hitPos, aoDir, aoDir);
 
     if (materialGetFlags(pMaterialHead) & PLAIN_MATERIAL_LOCAL_AO)
       targetInstId = in_hits[tid].instId;
@@ -415,21 +367,20 @@ __kernel void MakeAORaysPacked4(__global const uint*      restrict in_flags,
   if (MaterialHaveAO(pMaterialHead))
   {
     RandomGen gen = a_gens[tid];
-    float3 rands  = to_float3(rndFloat4_Pseudo(&gen));
+    float3 rands1 = to_float3(rndFloat4_Pseudo(&gen));
+    float3 rands2 = to_float3(rndFloat4_Pseudo(&gen));
+    float3 rands3 = to_float3(rndFloat4_Pseudo(&gen));
+    float3 rands4 = to_float3(rndFloat4_Pseudo(&gen));
+    a_gens[tid]   = gen;
 
-    MakeAORay(hitPos, hitNorm, MaterialAOType(pMaterialHead), &gen,
-              &sRayPos, &sRayDir1);
+    const float3 aoDir = (MaterialAOType(pMaterialHead) == AO_TYPE_UP) ? hitNorm : -1.0f*(hitNorm);
 
-    MakeAORay(hitPos, hitNorm, MaterialAOType(pMaterialHead), &gen,
-              &sRayPos, &sRayDir2);
+    sRayDir1 = MapSampleToCosineDistribution(rands1.x, rands1.y, aoDir, aoDir, 1.0f);
+    sRayDir2 = MapSampleToCosineDistribution(rands2.x, rands2.y, aoDir, aoDir, 1.0f);
+    sRayDir3 = MapSampleToCosineDistribution(rands3.x, rands3.y, aoDir, aoDir, 1.0f);
+    sRayDir4 = MapSampleToCosineDistribution(rands4.x, rands4.y, aoDir, aoDir, 1.0f);
+    sRayPos  = OffsRayPos(hitPos, aoDir, aoDir);
 
-    MakeAORay(hitPos, hitNorm, MaterialAOType(pMaterialHead), &gen,
-              &sRayPos, &sRayDir3);
-
-    MakeAORay(hitPos, hitNorm, MaterialAOType(pMaterialHead), &gen,
-              &sRayPos, &sRayDir4);
-
-    a_gens[tid] = gen;
 
     if (materialGetFlags(pMaterialHead) & PLAIN_MATERIAL_LOCAL_AO)
       targetInstId = in_hits[tid].instId;

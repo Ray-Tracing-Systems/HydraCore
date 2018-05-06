@@ -377,7 +377,7 @@ void GPUOCLLayer::runKernel_ComputeAO(cl_mem outCompressedAO, size_t a_size)
   }
 }
 
-void GPUOCLLayer::runKernel_ComputeAO4(cl_mem outCompressedAO, size_t a_size) // #TODO: implement this! Both Up and down !!!
+void GPUOCLLayer::runKernel_ComputeAO2(cl_mem outCompressedAO, size_t a_size) // #TODO: implement this! Both Up and down !!!
 {
   size_t localWorkSize = 256;
   int    isize         = int(a_size);
@@ -410,7 +410,7 @@ void GPUOCLLayer::runKernel_ComputeAO4(cl_mem outCompressedAO, size_t a_size) //
 
   // (3) calc shadows
   //
-  // runKernel_ShadowTrace(m_rays.rayFlags, m_rays.shadowRayPos, m_rays.shadowRayDir, m_rays.lshadow, a_size); // #TODO: a_size*4
+  runKernel_ShadowTrace(m_rays.rayFlags, m_rays.shadowRayPos, m_rays.shadowRayDir, m_rays.lshadow, 4*a_size, true); //#TODO: change m_rays.lshadow to sms else ?
 
 }
 
@@ -669,7 +669,7 @@ void GPUOCLLayer::runKernel_NextTransparentBounce(cl_mem a_rpos, cl_mem a_rdir, 
   waitIfDebug(__FILE__, __LINE__);
 }
 
-void GPUOCLLayer::runKernel_ShadowTrace(cl_mem a_rayFlags, cl_mem a_rpos, cl_mem a_rdir, cl_mem a_outShadow, size_t a_size)
+void GPUOCLLayer::runKernel_ShadowTrace(cl_mem a_rayFlags, cl_mem a_rpos, cl_mem a_rdir, cl_mem a_outShadow, size_t a_size, bool a_packed4Mode)
 {
   size_t localWorkSize = 256;
   int    isize         = int(a_size);
@@ -677,8 +677,9 @@ void GPUOCLLayer::runKernel_ShadowTrace(cl_mem a_rayFlags, cl_mem a_rpos, cl_mem
 
   cl_kernel kernTrace1 = m_progs.trace.kernel("BVH4TraversalShadowKenrel");
   cl_kernel kernTrace2 = m_progs.trace.kernel("BVH4TraversalInstShadowKenrel");
-  //cl_kernel kernTrace3 = m_progs.trace.kernel("BVH4TraversalInstShadowKenrelA");
   cl_kernel kernTrace4 = m_progs.trace.kernel("BVH4TraversalInstShadowKenrelAS");
+
+  int iPack4Mode = a_packed4Mode ? 1 : 0;
 
   for (int runId = 0; runId < m_scene.bvhNumber; runId++)
   {
@@ -703,7 +704,7 @@ void GPUOCLLayer::runKernel_ShadowTrace(cl_mem a_rayFlags, cl_mem a_rpos, cl_mem
       CHECK_CL(clSetKernelArg(kernY, 7, sizeof(cl_mem), (void*)&triBuff));
       CHECK_CL(clSetKernelArg(kernY, 8, sizeof(cl_mem), (void*)&triAlpha));
       CHECK_CL(clSetKernelArg(kernY, 9, sizeof(cl_mem), (void*)&m_scene.storageTex));
-      CHECK_CL(clSetKernelArg(kernY,10, sizeof(cl_mem), (void*)&m_scene.allGlobsData));
+      CHECK_CL(clSetKernelArg(kernY,10, sizeof(cl_mem), (void*)&m_scene.allGlobsData));;
     }
     else
     {
