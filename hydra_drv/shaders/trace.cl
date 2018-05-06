@@ -488,7 +488,7 @@ __kernel void BVH4TraversalShadowKenrel_Packed(__global const uint*         rest
     tid = a_size - 1;
 
   bool activeAfterCompaction = (GLOBAL_ID_X < a_size);
-  uint flags = in_flags[tid];
+  uint flags = in_flags[tid / AO_RAYS_PACKED];
 
   bool disableThread = !rayIsActiveU(flags);
 
@@ -532,14 +532,14 @@ __kernel void BVH4TraversalInstShadowKenrel_Packed(__global const uint*         
     tid = a_size - 1;
 
   bool activeAfterCompaction = (GLOBAL_ID_X < a_size);
-  uint flags = in_flags[tid];
+  uint flags = in_flags[tid / AO_RAYS_PACKED];
 
   bool disableThread = !rayIsActiveU(flags);
 
   if (a_runId > 0)
   {
-    const float3 shadowOld = decompressShadow(a_shadow[tid]);
-    disableThread = disableThread || (dot(shadowOld, shadowOld) < 0.001f);
+    float a_shadowVal = (float)(a_shadow[tid])*(1.0f / 65535.0f);
+    disableThread = disableThread || (a_shadowVal < 0.001f);
   }
 
   if (!disableThread && activeAfterCompaction)
@@ -583,14 +583,14 @@ __kernel void BVH4TraversalInstShadowKenrelAS_Packed(__global const uint*       
     tid = a_size - 1;
 
   bool activeAfterCompaction = (GLOBAL_ID_X < a_size);
-  uint flags = in_flags[tid];
+  uint flags = in_flags[tid / AO_RAYS_PACKED];
 
   bool disableThread = !rayIsActiveU(flags);
 
   if(a_runId > 0)
   { 
-    const float3 shadowOld = decompressShadow(a_shadow[tid]);
-    disableThread = disableThread || (dot(shadowOld, shadowOld) < 0.001f);
+    float a_shadowVal = (float)(a_shadow[tid])*(1.0f / 65535.0f);
+    disableThread = disableThread || (a_shadowVal < 0.001f);
   }
 
   if (!disableThread && activeAfterCompaction)
