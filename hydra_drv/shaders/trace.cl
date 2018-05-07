@@ -505,8 +505,7 @@ __kernel void BVH4TraversalShadowKenrel_Packed(__global const uint*         rest
       const Lite_Hit hit  = BVH4Traverse(shadowRayPos, shadowRayDir, 0.0f, Make_Lite_Hit(maxDist, -1), a_bvh, a_tris);
       const float3 shadow = (HitSome(hit) && hit.t > 0.0f && hit.t < maxDist) ? make_float3(0.0f, 0.0f, 0.0f) : make_float3(1.0f, 1.0f, 1.0f);
 
-      const float shadowS = 0.33334f*(shadow.x + shadow.y + shadow.z);
-      a_shadow[tid] = (ushort)(65535.0f * shadowS);
+      a_shadow[tid] = (ushort)fmin(65535.0f*0.333334f*(shadow.x + shadow.y + shadow.z), 65535.0f);
     }
     else
       a_shadow[tid] = 65535;
@@ -555,8 +554,7 @@ __kernel void BVH4TraversalInstShadowKenrel_Packed(__global const uint*         
       const Lite_Hit hit  = Make_Lite_Hit(maxDist, -1);
       const float3 shadow = BVH4InstTraverseShadow(shadowRayPos, shadowRayDir, 0.0f, hit, a_bvh, a_tris, targetInstId);
 
-      const float shadowS = 0.33334f*(shadow.x + shadow.y + shadow.z);
-      a_shadow[tid] = (ushort)(65535.0f * shadowS);
+      a_shadow[tid] = (ushort)fmin(65535.0f*0.333334f*(shadow.x + shadow.y + shadow.z), 65535.0f);
     }
     else
       a_shadow[tid] = 65535;
@@ -604,8 +602,7 @@ __kernel void BVH4TraversalInstShadowKenrelAS_Packed(__global const uint*       
     if (maxDist > 0.0f)
     {
       const float3 shadow = BVH4InstTraverseShadowAlphaS(shadowRayPos, shadowRayDir, 0.0f, maxDist, a_bvh, a_tris, a_alpha, a_texStorage, a_globals, targetInstId);
-      const float shadowS = 0.33334f*(shadow.x + shadow.y + shadow.z);
-      a_shadow[tid] = (ushort)(65535.0f * shadowS);
+      a_shadow[tid] = (ushort)fmin(65535.0f*0.333334f*(shadow.x + shadow.y + shadow.z), 65535.0f);
     }
     else
       a_shadow[tid] = 65535;

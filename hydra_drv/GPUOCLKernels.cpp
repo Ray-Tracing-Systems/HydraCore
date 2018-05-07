@@ -470,7 +470,7 @@ void GPUOCLLayer::runKernel_ComputeHit(cl_mem a_rpos, cl_mem a_rdir, size_t a_si
   // eval AO
   //
   if (m_rays.aoCompressed != nullptr)
-    runKernel_ComputeAO(m_rays.aoCompressed, a_size);
+    runKernel_ComputeAO2(m_rays.aoCompressed, a_size);
 
   // eval procedure textures
   //
