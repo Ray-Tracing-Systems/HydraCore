@@ -296,9 +296,7 @@ AOProcTexInfo ReadAOFromNode(pugi::xml_node aoNode)
   if (aoUpDownType == AO_TYPE_NONE)
     return AOProcTexInfo();
 
-  SWTexSampler samplerAO = DummySampler();  // #TODO: get from ProcTexInfo
-  int aoRayLengthTexId = INVALID_TEXTURE; // #TODO: get from ProcTexInfo
-
+  SWTexSampler samplerAO = DummySampler(); 
   if (SamplerNode(aoNode) != nullptr)
     samplerAO = SamplerFromTexref(SamplerNode(aoNode));
 
@@ -380,6 +378,14 @@ static void FindAllAONodes(pugi::xml_node a_node, const std::unordered_map<int, 
                            std::vector<pugi::xml_node>& out_AONodes)
 {
 
+  if (a_node.name() == std::wstring(L"ao"))
+    out_AONodes.push_back(a_node);
+  else
+  {
+    for (auto child : a_node.children())
+      FindAllAONodes(child, a_matNodes, out_AONodes);
+  }
+
   if (a_node.name() == std::wstring(L"material") && a_node.attribute(L"type").as_string() == std::wstring(L"hydra_blend"))
   {
     int mid1 = a_node.attribute(L"node_top").as_int();
@@ -395,13 +401,6 @@ static void FindAllAONodes(pugi::xml_node a_node, const std::unordered_map<int, 
       FindAllAONodes(p2->second, a_matNodes, out_AONodes);
   }
 
-  if (a_node.name() == std::wstring(L"ao"))
-    out_AONodes.push_back(a_node);
-  else
-  {
-    for (auto child : a_node.children())
-      FindAllAONodes(child, a_matNodes, out_AONodes);
-  }
 }
 
 
@@ -424,12 +423,8 @@ void OverrideAOInMaterialHead(pugi::xml_node a_materialNode, const std::unordere
   //
   if (groupedNodes.size() == 1)
   {
-    // read params from xml
-    //
     auto aoParams = ReadAOFromNode(groupedNodes[0]);
 
-    // put them in material head
-    //
     if (aoParams.upDownType == AO_TYPE_NONE)
       return;
 

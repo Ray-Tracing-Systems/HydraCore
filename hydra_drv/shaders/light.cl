@@ -300,7 +300,7 @@ __kernel void MakeAORays(__global const uint*      restrict in_flags,
     float3 rands  = to_float3(rndFloat4_Pseudo(&gen));
     a_gens[tid]   = gen;
 
-    const float3 aoDir = (MaterialAOType(pMaterialHead) == AO_TYPE_UP) ? hitNorm : -1.0f*(hitNorm);
+    const float3 aoDir = (as_int(pMaterialHead->data[PROC_TEX_AO_TYPE]) == AO_TYPE_UP) ? hitNorm : -1.0f*(hitNorm);
 
     sRayDir = MapSampleToCosineDistribution(rands.x, rands.y, aoDir, aoDir, 1.0f);
     sRayPos = OffsRayPos(hitPos, aoDir, aoDir);
@@ -362,6 +362,8 @@ __kernel void MakeAORaysPacked4(__global const uint*      restrict in_flags,
   float  sRayLength   = (aoId == 1) ? pMaterialHead->data[PROC_TEX_AO_LENGTH2]        : pMaterialHead->data[PROC_TEX_AO_LENGTH];
   const int texId     = (aoId == 1) ? as_int(pMaterialHead->data[PROC_TEXMATRIX_ID2]) : as_int(pMaterialHead->data[PROC_TEXMATRIX_ID]);
   const int flagLocal = (aoId == 1) ? (mflags & PLAIN_MATERIAL_LOCAL_AO2)             : (mflags & PLAIN_MATERIAL_LOCAL_AO1);
+  const int aoType    = (aoId == 1) ? as_int(pMaterialHead->data[PROC_TEX_AO_TYPE2])  : as_int(pMaterialHead->data[PROC_TEX_AO_TYPE]);
+
   int targetInstId    = -1;
 
   const float3 lenTexColor = sample2D(texId, texCoord, (__global const int4*)pMaterialHead, in_texStorage1, a_globals);
@@ -376,7 +378,7 @@ __kernel void MakeAORaysPacked4(__global const uint*      restrict in_flags,
     float3 rands4 = to_float3(rndFloat4_Pseudo(&gen));
     a_gens[tid]   = gen;
 
-    const float3 aoDir = (MaterialAOType(pMaterialHead) == AO_TYPE_UP) ? hitNorm : -1.0f*(hitNorm);
+    const float3 aoDir = (aoType == AO_TYPE_UP) ? hitNorm : -1.0f*(hitNorm);
 
     sRayDir1 = MapSampleToCosineDistribution(rands1.x, rands1.y, aoDir, aoDir, 1.0f);
     sRayDir2 = MapSampleToCosineDistribution(rands2.x, rands2.y, aoDir, aoDir, 1.0f);
