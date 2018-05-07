@@ -551,7 +551,8 @@ void PutTexParamsToMaterialWithDamnTable(std::vector<ProcTexParams>& a_procTexPa
                                          std::shared_ptr<RAYTR::IMaterial> a_pMaterial);
 
 void PutAOToMaterialHead(const std::vector< std::tuple<int, ProcTexInfo> >& a_procTextureIds, std::shared_ptr<RAYTR::IMaterial> a_pMaterial);
-void OverrideAOInMaterialHead(pugi::xml_node a_materialNode, std::shared_ptr<RAYTR::IMaterial> a_pMaterial);
+void OverrideAOInMaterialHead(pugi::xml_node a_materialNode, const std::unordered_map<int, pugi::xml_node >& a_matNodes, 
+                              std::shared_ptr<RAYTR::IMaterial> a_pMaterial);
 
 bool RenderDriverRTE::UpdateMaterial(int32_t a_matId, pugi::xml_node a_materialNode)
 {
@@ -597,8 +598,9 @@ bool RenderDriverRTE::UpdateMaterial(int32_t a_matId, pugi::xml_node a_materialN
 
     // put AO params to material head
     //
-    PutAOToMaterialHead(procTextureIds, pMaterial);       // read initial ao params from proc texture
-    OverrideAOInMaterialHead(a_materialNode, pMaterial);  // override ao params; take new values from first ao node inside 'a_materialNode'
+    PutAOToMaterialHead(procTextureIds, pMaterial);            // read initial ao params from proc texture
+    OverrideAOInMaterialHead(a_materialNode, m_materialNodes,  // override ao params; take new values from first ao node inside 'a_materialNode'
+                             pMaterial); 
 
     if (MaterialHaveAO(&pMaterial->m_plain))
       m_haveAtLeastOneAOMat = true;

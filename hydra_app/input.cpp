@@ -14,7 +14,7 @@ Input::Input()
 
   //inLibraryPath = "D:/Downloads/hydra_scene_car_ao";
   //inLibraryPath = "D:/PROG/HydraAPI/main/tests/test_88";
-  inLibraryPath = "D:/PROG/HydraAPI/main/tests_f/test_159";
+  inLibraryPath = "D:/PROG/HydraAPI/main/tests_f/test_158";
 
   //inLibraryPath = "C:/[Hydra]/pluginFiles/scenelib";
   //inLibraryPath = "/tmp/hydra_scene";

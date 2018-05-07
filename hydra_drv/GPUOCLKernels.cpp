@@ -377,7 +377,7 @@ void GPUOCLLayer::runKernel_ComputeAO(cl_mem outCompressedAO, size_t a_size)
   }
 }
 
-void GPUOCLLayer::runKernel_ComputeAO2(cl_mem outCompressedAO, size_t a_size) // #TODO: implement this! Both Up and down !!!
+void GPUOCLLayer::runKernel_ComputeAO2(cl_mem outCompressedAO, size_t a_size, int aoId) // #TODO: implement this! Both Up and down !!!
 {
   size_t localWorkSize = 256;
   int    isize         = int(a_size);
@@ -400,10 +400,11 @@ void GPUOCLLayer::runKernel_ComputeAO2(cl_mem outCompressedAO, size_t a_size) //
   CHECK_CL(clSetKernelArg(kernAO, 7, sizeof(cl_mem), (void*)&m_rays.shadowRayDir));
   CHECK_CL(clSetKernelArg(kernAO, 8, sizeof(cl_mem), (void*)&m_rays.lightOffsetBuff)); // put target inst id to 'lightOffsetBuff'
 
-  CHECK_CL(clSetKernelArg(kernAO, 9, sizeof(cl_mem), (void*)&m_scene.storageTex));
+  CHECK_CL(clSetKernelArg(kernAO, 9,  sizeof(cl_mem), (void*)&m_scene.storageTex));
   CHECK_CL(clSetKernelArg(kernAO, 10, sizeof(cl_mem), (void*)&m_scene.storageMat));
   CHECK_CL(clSetKernelArg(kernAO, 11, sizeof(cl_mem), (void*)&m_scene.allGlobsData));
-  CHECK_CL(clSetKernelArg(kernAO, 12, sizeof(cl_int), (void*)&isize));
+  CHECK_CL(clSetKernelArg(kernAO, 12, sizeof(cl_int), (void*)&aoId));
+  CHECK_CL(clSetKernelArg(kernAO, 13, sizeof(cl_int), (void*)&isize));
 
   CHECK_CL(clEnqueueNDRangeKernel(m_globals.cmdQueue, kernAO, 1, NULL, &a_size, &localWorkSize, 0, NULL, NULL));
   waitIfDebug(__FILE__, __LINE__);
@@ -411,7 +412,7 @@ void GPUOCLLayer::runKernel_ComputeAO2(cl_mem outCompressedAO, size_t a_size) //
   // (3) calc shadows
   //
   runKernel_ShadowTraceAO(m_rays.rayFlags, m_rays.shadowRayPos, m_rays.shadowRayDir, m_rays.lightOffsetBuff, // read target inst id from 'lightOffsetBuff'
-                          m_rays.lshadow, 4*a_size); 
+                          m_rays.lshadow, AO_RAYS_PACKED*a_size);
 
   // (4) pack them in outCompressedAO
   //
@@ -470,7 +471,10 @@ void GPUOCLLayer::runKernel_ComputeHit(cl_mem a_rpos, cl_mem a_rdir, size_t a_si
   // eval AO
   //
   if (m_rays.aoCompressed != nullptr)
-    runKernel_ComputeAO2(m_rays.aoCompressed, a_size);
+  {
+    runKernel_ComputeAO2(m_rays.aoCompressed , a_size, 0);
+    runKernel_ComputeAO2(m_rays.aoCompressed2, a_size, 1);
+  }
 
   // eval procedure textures
   //

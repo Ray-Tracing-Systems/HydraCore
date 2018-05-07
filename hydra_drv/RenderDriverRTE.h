@@ -105,19 +105,22 @@ struct RenderDriverRTE : public IHRRenderDriver
 
   float3 GetMLTAvgBrightness() { return m_legacy.m_averageBrightness; }
 
+  struct AOProcTexInfo
+  {
+    AOProcTexInfo() { rayLenSam = DummySampler(); rayLen = 0.0f; upDownType = AO_TYPE_NONE; hitOnlySameInstance = false; }
+
+    SWTexSampler rayLenSam;
+    float        rayLen;
+    int          upDownType;
+    bool         hitOnlySameInstance;
+  };
+
   struct ProcTexInfo //#TODO: add aoRayLength texture parameters
   {
-    ProcTexInfo() { aoUpDownType = AO_TYPE_NONE; }
-    ProcTexInfo(int a_retT, const std::string& a_call,
-                float a_aoRayLength, int a_aoUpDownType, bool a_aoHitOnlySameInstance) : retT(a_retT), call(a_call),
-                                                                                         aoRayLength(a_aoRayLength), aoUpDownType(a_aoUpDownType), aoHitOnlySameInstance(a_aoHitOnlySameInstance) {}
-
-    int         retT;
-    std::string call;
-
-    float       aoRayLength;
-    int         aoUpDownType;
-    bool        aoHitOnlySameInstance;
+    ProcTexInfo() { }
+    int           retT;
+    std::string   call;
+    AOProcTexInfo ao;
   };
 
 protected:

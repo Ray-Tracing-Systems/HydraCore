@@ -10,7 +10,8 @@
 #include "../../HydraAPI/hydra_api/HydraXMLHelpers.h"
 #include "../../HydraAPI/hydra_api/HydraInternal.h"
 
-using ProcTexInfo = RenderDriverRTE::ProcTexInfo;
+using ProcTexInfo   = RenderDriverRTE::ProcTexInfo;
+using AOProcTexInfo = RenderDriverRTE::AOProcTexInfo;
 
 bool MaterialNodeHaveProceduralTextures(pugi::xml_node a_node, const std::unordered_map<int, ProcTexInfo>& a_ids, const std::unordered_map<int, pugi::xml_node >& a_matNodes)
 {
@@ -272,67 +273,12 @@ ProcTextureList MakePTListFromTupleArray(const std::vector<std::tuple<int, ProcT
   return ptl;
 }
 
-
-void PutAOToMaterialHead(const std::vector< std::tuple<int, ProcTexInfo> >& a_procTextureIds, std::shared_ptr<RAYTR::IMaterial> a_pMaterial)
-{
-  ProcTexInfo textureThatUsesAO;
-
-  for (auto ptex : a_procTextureIds)
-  {
-    auto texInfo = std::get<1>(ptex);
-
-    if (texInfo.aoUpDownType != AO_TYPE_NONE)
-    {
-      textureThatUsesAO = texInfo;
-      break;
-    }
-  }
-
-  if (textureThatUsesAO.aoUpDownType == AO_TYPE_NONE)
-    return;
-
-  ((int*)(a_pMaterial->m_plain.data))[PROC_TEX_AO_TYPE] = textureThatUsesAO.aoUpDownType;
-  a_pMaterial->m_plain.data[PROC_TEX_AO_LENGTH]         = textureThatUsesAO.aoRayLength;
-
-  SWTexSampler samplerAO     = DummySampler();  // #TODO: get from ProcTexInfo
-  const int aoRayLengthTexId = INVALID_TEXTURE; // #TODO: get from ProcTexInfo
-
-  if (textureThatUsesAO.aoHitOnlySameInstance)
-    a_pMaterial->AddFlags(PLAIN_MATERIAL_LOCAL_AO);
-
-  a_pMaterial->PutSamplerAt(aoRayLengthTexId, samplerAO, PROC_TEX_TEX_ID, PROC_TEXMATRIX_ID, PROC_TEX_AO_SAMPLER);
-}
-
-
-static pugi::xml_node FindAONode(pugi::xml_node a_node)
-{
-  if (a_node.name() == std::wstring(L"ao"))
-    return a_node;
-  else
-  {
-    for (auto child : a_node.children())
-    {
-      auto node = FindAONode(child);
-      if (node != nullptr)
-        return node;
-    }
-  }
-
-  return pugi::xml_node();
-}
-
 SWTexSampler SamplerFromTexref(const pugi::xml_node a_node, bool allowAlphaToRGB = false);
 const pugi::xml_node SamplerNode(const pugi::xml_node a_node);
 
-void OverrideAOInMaterialHead(pugi::xml_node a_materialNode, std::shared_ptr<RAYTR::IMaterial> a_pMaterial)
+AOProcTexInfo ReadAOFromNode(pugi::xml_node aoNode)
 {
-  pugi::xml_node aoNode = FindAONode(a_materialNode);
-  if (aoNode == nullptr)
-    return;
-
-  // read params from xml
-  //
-  const std::wstring aoType   = aoNode.attribute(L"hemisphere").as_string();
+  const std::wstring aoType = aoNode.attribute(L"hemisphere").as_string();
 
   float aoLength              = aoNode.attribute(L"length").as_float();
   int   aoUpDownType          = AO_TYPE_NONE;
@@ -348,26 +294,158 @@ void OverrideAOInMaterialHead(pugi::xml_node a_materialNode, std::shared_ptr<RAY
   // put them in material head
   //
   if (aoUpDownType == AO_TYPE_NONE)
-    return;
+    return AOProcTexInfo();
 
-  ((int*)(a_pMaterial->m_plain.data))[PROC_TEX_AO_TYPE] = aoUpDownType;
-  a_pMaterial->m_plain.data[PROC_TEX_AO_LENGTH]         = aoLength;
-
-  SWTexSampler samplerAO  = DummySampler();  // #TODO: get from ProcTexInfo
-  int aoRayLengthTexId    = INVALID_TEXTURE; // #TODO: get from ProcTexInfo
+  SWTexSampler samplerAO = DummySampler();  // #TODO: get from ProcTexInfo
+  int aoRayLengthTexId = INVALID_TEXTURE; // #TODO: get from ProcTexInfo
 
   if (SamplerNode(aoNode) != nullptr)
+    samplerAO = SamplerFromTexref(SamplerNode(aoNode));
+
+  AOProcTexInfo res;
+  res.hitOnlySameInstance = aoHitOnlySameInstance;
+  res.rayLen              = aoLength;
+  res.rayLenSam           = samplerAO;
+  res.upDownType          = aoUpDownType;
+  return res;
+}
+
+void PutAOToMaterialSlot(std::shared_ptr<RAYTR::IMaterial> a_pMaterial, AOProcTexInfo a_aoInfo, int a_slotId)
+{
+
+  if (a_slotId == 0)
   {
-    samplerAO        = SamplerFromTexref(SamplerNode(aoNode));
-    aoRayLengthTexId = samplerAO.texId;
+    ((int*)(a_pMaterial->m_plain.data))[PROC_TEX_AO_TYPE] = a_aoInfo.upDownType;
+    a_pMaterial->m_plain.data[PROC_TEX_AO_LENGTH]         = a_aoInfo.rayLen;
+
+    SWTexSampler samplerAO = a_aoInfo.rayLenSam;
+
+    if (a_aoInfo.hitOnlySameInstance)
+      a_pMaterial->AddFlags(PLAIN_MATERIAL_LOCAL_AO1);
+    else
+      a_pMaterial->AddFlags(a_pMaterial->GetFlags() & (~PLAIN_MATERIAL_LOCAL_AO1));
+
+    a_pMaterial->PutSamplerAt(samplerAO.texId, samplerAO, PROC_TEX_TEX_ID, PROC_TEXMATRIX_ID, PROC_TEX_AO_SAMPLER);
+  }
+  else if (a_slotId == 1)
+  {
+    ((int*)(a_pMaterial->m_plain.data))[PROC_TEX_AO_TYPE2] = a_aoInfo.upDownType;
+    a_pMaterial->m_plain.data[PROC_TEX_AO_LENGTH2]         = a_aoInfo.rayLen;
+
+    SWTexSampler samplerAO = a_aoInfo.rayLenSam;
+
+    if (a_aoInfo.hitOnlySameInstance)
+      a_pMaterial->AddFlags(PLAIN_MATERIAL_LOCAL_AO2); // #TODO: Add different flags for second ao slot !!!
+    else
+      a_pMaterial->AddFlags(a_pMaterial->GetFlags() & (~PLAIN_MATERIAL_LOCAL_AO2));
+
+    a_pMaterial->PutSamplerAt(samplerAO.texId, samplerAO, PROC_TEX_TEX_ID2, PROC_TEXMATRIX_ID2, PROC_TEX_AO_SAMPLER2);
   }
 
-  if (aoHitOnlySameInstance)
-    a_pMaterial->AddFlags(PLAIN_MATERIAL_LOCAL_AO);
-  else
-    a_pMaterial->SetFlags( a_pMaterial->GetFlags() & (~PLAIN_MATERIAL_LOCAL_AO) );
 
-  a_pMaterial->PutSamplerAt(aoRayLengthTexId, samplerAO, PROC_TEX_TEX_ID, PROC_TEXMATRIX_ID, PROC_TEX_AO_SAMPLER);
+}
+
+
+void PutAOToMaterialHead(const std::vector< std::tuple<int, ProcTexInfo> >& a_procTextureIds, std::shared_ptr<RAYTR::IMaterial> a_pMaterial)
+{
+  ProcTexInfo textureThatUsesAO;
+
+  for (auto ptex : a_procTextureIds)
+  {
+    auto texInfo = std::get<1>(ptex);
+
+    if (texInfo.ao.upDownType != AO_TYPE_NONE)
+    {
+      textureThatUsesAO = texInfo;
+      break;
+    }
+  }
+
+  if (textureThatUsesAO.ao.upDownType == AO_TYPE_NONE)
+    return;
+
+  ((int*)(a_pMaterial->m_plain.data))[PROC_TEX_AO_TYPE] = textureThatUsesAO.ao.upDownType;
+  a_pMaterial->m_plain.data[PROC_TEX_AO_LENGTH]         = textureThatUsesAO.ao.rayLen;
+
+  SWTexSampler samplerAO = textureThatUsesAO.ao.rayLenSam;
+
+  if (textureThatUsesAO.ao.hitOnlySameInstance)
+    a_pMaterial->AddFlags(PLAIN_MATERIAL_LOCAL_AO1);
+
+  a_pMaterial->PutSamplerAt(samplerAO.texId, samplerAO, PROC_TEX_TEX_ID, PROC_TEXMATRIX_ID, PROC_TEX_AO_SAMPLER);
+}
+
+
+static void FindAllAONodes(pugi::xml_node a_node, const std::unordered_map<int, pugi::xml_node >& a_matNodes, 
+                           std::vector<pugi::xml_node>& out_AONodes)
+{
+
+  if (a_node.name() == std::wstring(L"material") && a_node.attribute(L"type").as_string() == std::wstring(L"hydra_blend"))
+  {
+    int mid1 = a_node.attribute(L"node_top").as_int();
+    int mid2 = a_node.attribute(L"node_bottom").as_int();
+
+    auto p1 = a_matNodes.find(mid1);
+    auto p2 = a_matNodes.find(mid2);
+
+    if (p1 != a_matNodes.end())
+      FindAllAONodes(p1->second, a_matNodes, out_AONodes);
+
+    if (p2 != a_matNodes.end())
+      FindAllAONodes(p2->second, a_matNodes, out_AONodes);
+  }
+
+  if (a_node.name() == std::wstring(L"ao"))
+    out_AONodes.push_back(a_node);
+  else
+  {
+    for (auto child : a_node.children())
+      FindAllAONodes(child, a_matNodes, out_AONodes);
+  }
+}
+
+
+void OverrideAOInMaterialHead(pugi::xml_node a_materialNode, const std::unordered_map<int, pugi::xml_node >& a_matNodes, 
+                              std::shared_ptr<RAYTR::IMaterial> a_pMaterial)
+{ 
+  // (1) get all ao nodes from material
+  //
+  std::vector<pugi::xml_node> aoNodes;
+  FindAllAONodes(a_materialNode, a_matNodes, aoNodes);
+
+  if (aoNodes.size() == 0)
+    return;
+
+  // (2) group all nodes by their hemisphere.
+  //
+  std::vector<pugi::xml_node> groupedNodes = aoNodes;  //#TODO: implement this carefully !!!
+
+  // (3) write droup data to 2 ao slots in material head
+  //
+  if (groupedNodes.size() == 1)
+  {
+    // read params from xml
+    //
+    auto aoParams = ReadAOFromNode(groupedNodes[0]);
+
+    // put them in material head
+    //
+    if (aoParams.upDownType == AO_TYPE_NONE)
+      return;
+
+    PutAOToMaterialSlot(a_pMaterial, aoParams, 0);
+  }
+  else if (groupedNodes.size() >= 2)
+  {
+    auto aoParams0 = ReadAOFromNode(groupedNodes[0]);
+    auto aoParams1 = ReadAOFromNode(groupedNodes[1]);
+
+    if (aoParams0.upDownType == AO_TYPE_NONE)
+      return;
+
+    PutAOToMaterialSlot(a_pMaterial, aoParams0, 0);
+    PutAOToMaterialSlot(a_pMaterial, aoParams1, 1);
+  }
 
 }
 
@@ -508,23 +586,13 @@ bool RenderDriverRTE::UpdateImageProc(int32_t a_texId, int32_t w, int32_t h, int
 
   std::string callS(callW.begin(), callW.end());
   callS = std::regex_replace(callS, tail,  "in_texStorage1, in_globals");
-  
-  pugi::xml_node aoNode       = a_texNode.child(L"ao");
 
-  const std::wstring aoType   = aoNode.attribute(L"hemisphere").as_string();
+  ProcTexInfo prTexInfo;
+  prTexInfo.call = callS;
+  prTexInfo.retT = retT;
+  prTexInfo.ao   = ReadAOFromNode(a_texNode.child(L"ao"));
 
-  float aoLength              = aoNode.attribute(L"length").as_float();
-  int   aoUpDownType          = AO_TYPE_NONE;
-  bool  aoHitOnlySameInstance = (aoNode.attribute(L"local").as_int() == 1);
-
-  if (aoType == L"up" || aoType == L"corner")
-    aoUpDownType = AO_TYPE_UP;
-  else if (aoType == L"down" || aoType == L"edge")
-    aoUpDownType = AO_TYPE_DOWN;
-  else if (aoType == L"both")
-    aoUpDownType = AO_TYPE_BOTH;
-
-  m_procTextures[a_texId] = ProcTexInfo(retT, callS, aoLength, aoUpDownType, aoHitOnlySameInstance);
+  m_procTextures[a_texId] = prTexInfo;
 
   // (2) insert code inside opencl program;
   //

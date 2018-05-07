@@ -305,7 +305,7 @@ __kernel void MakeAORays(__global const uint*      restrict in_flags,
     sRayDir = MapSampleToCosineDistribution(rands.x, rands.y, aoDir, aoDir, 1.0f);
     sRayPos = OffsRayPos(hitPos, aoDir, aoDir);
 
-    if (materialGetFlags(pMaterialHead) & PLAIN_MATERIAL_LOCAL_AO)
+    if (materialGetFlags(pMaterialHead) & PLAIN_MATERIAL_LOCAL_AO1)
       targetInstId = in_hits[tid].instId;
 
     out_rdir[tid] = to_float4(sRayDir, as_float(targetInstId));
@@ -335,7 +335,7 @@ __kernel void MakeAORaysPacked4(__global const uint*      restrict in_flags,
                                 __global const float4*    restrict in_texStorage1,
                                 __global const float4*    restrict in_mtlStorage,
                                 __global const EngineGlobals* restrict a_globals,
-                                int iNumElements)
+                                int aoId, int iNumElements)
 {
   int tid = GLOBAL_ID_X;
   if (tid >= iNumElements)
@@ -358,10 +358,13 @@ __kernel void MakeAORaysPacked4(__global const uint*      restrict in_flags,
   float3 sRayDir3 = make_float3(0, 1, 0);
   float3 sRayDir4 = make_float3(0, 1, 0);
 
-  float  sRayLength = pMaterialHead->data[PROC_TEX_AO_LENGTH];
-  int targetInstId  = -1;
+  const int mflags    = materialGetFlags(pMaterialHead);
+  float  sRayLength   = (aoId == 1) ? pMaterialHead->data[PROC_TEX_AO_LENGTH2]        : pMaterialHead->data[PROC_TEX_AO_LENGTH];
+  const int texId     = (aoId == 1) ? as_int(pMaterialHead->data[PROC_TEXMATRIX_ID2]) : as_int(pMaterialHead->data[PROC_TEXMATRIX_ID]);
+  const int flagLocal = (aoId == 1) ? (mflags & PLAIN_MATERIAL_LOCAL_AO2)             : (mflags & PLAIN_MATERIAL_LOCAL_AO1);
+  int targetInstId    = -1;
 
-  const float3 lenTexColor = sample2D(as_int(pMaterialHead->data[PROC_TEXMATRIX_ID]), texCoord, (__global const int4*)pMaterialHead, in_texStorage1, a_globals);
+  const float3 lenTexColor = sample2D(texId, texCoord, (__global const int4*)pMaterialHead, in_texStorage1, a_globals);
   sRayLength *= maxcomp(lenTexColor);
 
   if (MaterialHaveAO(pMaterialHead))
@@ -381,8 +384,7 @@ __kernel void MakeAORaysPacked4(__global const uint*      restrict in_flags,
     sRayDir4 = MapSampleToCosineDistribution(rands4.x, rands4.y, aoDir, aoDir, 1.0f);
     sRayPos  = OffsRayPos(hitPos, aoDir, aoDir);
 
-
-    if (materialGetFlags(pMaterialHead) & PLAIN_MATERIAL_LOCAL_AO)
+    if (flagLocal)
       targetInstId = in_hits[tid].instId;
 
     out_rdir  [tid] = make_int4(encodeNormal(sRayDir1), encodeNormal(sRayDir2), encodeNormal(sRayDir3), encodeNormal(sRayDir4));
