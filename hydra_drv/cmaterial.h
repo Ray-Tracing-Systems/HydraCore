@@ -17,9 +17,10 @@ static inline  int2  materialGetEmissionTex(__global const PlainMaterial* a_pMat
   return res;
 }
 
-static inline float3 materialLeafEvalEmission(__global const PlainMaterial* a_pMat, const float2 a_texCoord, __global const EngineGlobals* a_globals, texture2d_t a_tex, texture2d_t a_tex2)
+static inline float3 materialLeafEvalEmission(__global const PlainMaterial* a_pMat, const float2 a_texCoord, 
+                                              __global const EngineGlobals* a_globals, texture2d_t a_tex, texture2d_t a_tex2, __private const ProcTextureList* a_ptList)
 {
-  const float3 texColor = sample2D(materialGetEmissionTex(a_pMat).y, a_texCoord, (__global const int4*)a_pMat, a_tex, a_globals);
+  const float3 texColor = sample2DExt(materialGetEmissionTex(a_pMat).y, a_texCoord, (__global const int4*)a_pMat, a_tex, a_globals, a_ptList);
   return materialGetEmission(a_pMat)*texColor;
 }
 
@@ -1994,7 +1995,7 @@ static inline float3 materialEvalEmission(__global const PlainMaterial* a_pMat, 
 
     }
     else
-      val += currW*materialLeafEvalEmission(pMat, a_texCoord, a_globals, a_tex, a_tex2);
+      val += currW*materialLeafEvalEmission(pMat, a_texCoord, a_globals, a_tex, a_tex2, a_ptList);
 
   } while (top > 0);
 

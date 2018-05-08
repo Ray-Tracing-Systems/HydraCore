@@ -323,6 +323,7 @@ __kernel void HitEnvOrLightKernel(__global const float4*    restrict in_rpos,
                                   __global const HitMatRef* restrict in_matData,
                                   __global const Hit_Part4* restrict in_hitTangent,
                                   __global const float4*    restrict in_hitNormFull,
+                                  __global const float4*    restrict in_procTexData,
                                   
                                   __global float4*          restrict a_color,
                                   __global float4*          restrict a_thoroughput,
@@ -451,8 +452,10 @@ __kernel void HitEnvOrLightKernel(__global const float4*    restrict in_rpos,
 
     // now check if we hit light
     //
-    ProcTextureList ptl;        // #TODO: read from memory.
-    InitProcTextureList(&ptl);  // #TODO: read from memory.
+    ProcTextureList ptl;        
+    InitProcTextureList(&ptl);  
+    ReadProcTextureList(in_procTexData, tid, iNumElements, 
+                        &ptl);
 
     bool hitEmissiveMaterialMLT = false;
     const bool skipPieceOfShit  = materialIsInvisLight(pHitMaterial) && isEyeRay(flags);
