@@ -22,7 +22,12 @@ void GPUOCLLayer::SetNamedBuffer(const char* a_name, void* a_data, size_t a_size
 
   if (std::string(a_name) == "ao" && a_size == size_t(-1))
   {
-    m_rays.aoCompressed  = clCreateBuffer(m_globals.ctx, CL_MEM_READ_WRITE, m_rays.MEGABLOCKSIZE, nullptr, &ciErr1); // byte buffer
+    m_rays.aoCompressed = clCreateBuffer(m_globals.ctx, CL_MEM_READ_WRITE, m_rays.MEGABLOCKSIZE, nullptr, &ciErr1); // byte buffer
+    return;
+  }
+
+  if (std::string(a_name) == "ao2" && a_size == size_t(-1))
+  {
     m_rays.aoCompressed2 = clCreateBuffer(m_globals.ctx, CL_MEM_READ_WRITE, m_rays.MEGABLOCKSIZE, nullptr, &ciErr1); // byte buffer
     return;
   }

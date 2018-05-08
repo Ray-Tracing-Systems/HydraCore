@@ -2484,11 +2484,11 @@ static inline bool materialIsInvisLight    (__global const PlainMaterial* a_pMat
 
 static inline void PutProcTexturesIdListToMaterialHead(const ProcTextureList* a_pData, PlainMaterial* a_pMat)
 {
-  ((int*)(a_pMat->data))[PROC_TEX4_F4_HEAD_OFFSET + 0] = a_pData->id_f4[0];
-  ((int*)(a_pMat->data))[PROC_TEX4_F4_HEAD_OFFSET + 1] = a_pData->id_f4[1];
-  ((int*)(a_pMat->data))[PROC_TEX4_F4_HEAD_OFFSET + 2] = a_pData->id_f4[2];
-  ((int*)(a_pMat->data))[PROC_TEX4_F4_HEAD_OFFSET + 3] = a_pData->id_f4[3];
-  ((int*)(a_pMat->data))[PROC_TEX5_F4_HEAD_OFFSET + 4] = a_pData->id_f4[4];
+  ((int*)(a_pMat->data))[PROC_TEX1_F4_HEAD_OFFSET] = a_pData->id_f4[0];
+  ((int*)(a_pMat->data))[PROC_TEX2_F4_HEAD_OFFSET] = a_pData->id_f4[1];
+  ((int*)(a_pMat->data))[PROC_TEX3_F4_HEAD_OFFSET] = a_pData->id_f4[2];
+  ((int*)(a_pMat->data))[PROC_TEX4_F4_HEAD_OFFSET] = a_pData->id_f4[3];
+  ((int*)(a_pMat->data))[PROC_TEX5_F4_HEAD_OFFSET] = a_pData->id_f4[4];
 }
 
 static inline void GetProcTexturesIdListFromMaterialHead(__global const PlainMaterial* a_pMat, __private ProcTextureList* a_pData)
@@ -2517,6 +2517,11 @@ static inline bool MaterialHaveAtLeastOneProcTex(__global const PlainMaterial* a
 static inline bool MaterialHaveAO(__global const PlainMaterial* a_pMat)
 {
   return as_int(a_pMat->data[PROC_TEX_AO_TYPE]) != AO_TYPE_NONE;
+}
+
+static inline bool MaterialHaveAO2(__global const PlainMaterial* a_pMat)
+{
+  return as_int(a_pMat->data[PROC_TEX_AO_TYPE]) != AO_TYPE_NONE && as_int(a_pMat->data[PROC_TEX_AO_TYPE2]) != AO_TYPE_NONE;
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////

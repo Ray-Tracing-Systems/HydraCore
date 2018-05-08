@@ -15,6 +15,8 @@ static inline float4 InternalFetch(int a_texId, const float2 texCoord, const int
 
 #define texture2D(texName, texCoord, flags) InternalFetch((texName), (texCoord), (flags), in_texStorage1, in_globals)
 
+typedef int sampler2D;
+
 typedef struct SurfaceInfoT
 {
   float3 wp;
@@ -107,10 +109,14 @@ __kernel void ProcTexExec(__global       uint*          restrict a_flags,
   {
     // (1) read common attributes to 'surfaceHit'
     //
+    float shadow1 = 1.0f;
+    float shadow2 = 1.0f;
 
-    //const float3 shadow = decompressShadow(in_shadowAO[tid]);
-    const float shadow1 = ((float)in_shadowAOCompressed1[tid]) / 255.0f;
-    const float shadow2 = ((float)in_shadowAOCompressed2[tid]) / 255.0f;
+    if(in_shadowAOCompressed1 != 0)
+      shadow1 = ((float)in_shadowAOCompressed1[tid]) / 255.0f;
+
+    if(in_shadowAOCompressed2 != 0 )
+      shadow2 = ((float)in_shadowAOCompressed2[tid]) / 255.0f;
 
     SurfaceInfo surfHit;
     surfHit.wp  = to_float3(in_hitPosNorm[tid]);
