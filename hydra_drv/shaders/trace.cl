@@ -126,17 +126,6 @@ __kernel void BVH4TraversalInstKernelAS(__global const float4* restrict  rpos,  
 
 }
 
-static inline float4x4 fetchMatrix(const Lite_Hit hit, __global const float4* in_matrices)
-{
-  float4x4 res;
-  res.row[0] = in_matrices[hit.instId * 4 + 0];
-  res.row[1] = in_matrices[hit.instId * 4 + 1];
-  res.row[2] = in_matrices[hit.instId * 4 + 2];
-  res.row[3] = in_matrices[hit.instId * 4 + 3];
-  return res;
-}
-
-
 
 __kernel void ComputeHit(__global const float4*   restrict rpos, 
                          __global const float4*   restrict rdir, 

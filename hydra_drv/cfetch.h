@@ -1006,5 +1006,14 @@ static inline __global const float* meshShadowRayOff(__global const PlainMesh* a
   return (__global const float*)pdata;
 }
 
+static inline float4x4 fetchMatrix(const Lite_Hit hit, __global const float4* in_matrices)
+{
+  float4x4 res;
+  res.row[0] = in_matrices[hit.instId * 4 + 0];
+  res.row[1] = in_matrices[hit.instId * 4 + 1];
+  res.row[2] = in_matrices[hit.instId * 4 + 2];
+  res.row[3] = in_matrices[hit.instId * 4 + 3];
+  return res;
+}
 
 #endif
