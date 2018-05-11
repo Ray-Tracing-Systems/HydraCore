@@ -483,11 +483,12 @@ void GPUOCLLayer::runKernel_ComputeHit(cl_mem a_rpos, cl_mem a_rdir, size_t a_si
     cl_kernel kernProcT = m_progs.texproc.kernel("ProcTexExec");
 
     CHECK_CL(clSetKernelArg(kernProcT, 0, sizeof(cl_mem), (void*)&m_rays.rayFlags));
+    CHECK_CL(clSetKernelArg(kernProcT, 1, sizeof(cl_mem), (void*)&m_rays.rayDir));
 
-    CHECK_CL(clSetKernelArg(kernProcT, 1, sizeof(cl_mem), (void*)&m_rays.hitPosNorm));
-    CHECK_CL(clSetKernelArg(kernProcT, 2, sizeof(cl_mem), (void*)&m_rays.hitTexCoord));
-    CHECK_CL(clSetKernelArg(kernProcT, 3, sizeof(cl_mem), (void*)&m_rays.hitMatId));
-    CHECK_CL(clSetKernelArg(kernProcT, 4, sizeof(cl_mem), (void*)&m_rays.hitNormUncompressed));
+    CHECK_CL(clSetKernelArg(kernProcT, 2, sizeof(cl_mem), (void*)&m_rays.hitPosNorm));
+    CHECK_CL(clSetKernelArg(kernProcT, 3, sizeof(cl_mem), (void*)&m_rays.hitTexCoord));
+    CHECK_CL(clSetKernelArg(kernProcT, 4, sizeof(cl_mem), (void*)&m_rays.hitMatId));
+
     CHECK_CL(clSetKernelArg(kernProcT, 5, sizeof(cl_mem), (void*)&m_rays.aoCompressed));
     CHECK_CL(clSetKernelArg(kernProcT, 6, sizeof(cl_mem), (void*)&m_rays.aoCompressed2));
     CHECK_CL(clSetKernelArg(kernProcT, 7, sizeof(cl_mem), (void*)&m_rays.hits));

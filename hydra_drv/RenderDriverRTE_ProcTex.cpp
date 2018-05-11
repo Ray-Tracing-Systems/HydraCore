@@ -580,7 +580,7 @@ bool RenderDriverRTE::UpdateImageProc(int32_t a_texId, int32_t w, int32_t h, int
   const std::wstring callW = a_texNode.child(L"code").child(L"generated").child(L"call").text().as_string();
 
   std::string callS(callW.begin(), callW.end());
-  callS = std::regex_replace(callS, tail,  "in_texStorage1, in_globals");
+  callS = std::regex_replace(callS, tail,  "in_texStorage1, in_globals, hr_viewVectorHack");
 
   ProcTexInfo prTexInfo;
   prTexInfo.call = callS;
@@ -601,7 +601,8 @@ bool RenderDriverRTE::UpdateImageProc(int32_t a_texId, int32_t w, int32_t h, int
     std::string line;
     while (std::getline(procTexIn, line))
     {
-      line = std::regex_replace(line.c_str(), tail, " __global const float4* restrict in_texStorage1, __global const EngineGlobals* restrict in_globals");
+      line = std::regex_replace(line.c_str(), tail, 
+                                " __global const float4* restrict in_texStorage1, __global const EngineGlobals* restrict in_globals, const float3 hr_viewVectorHack");
       m_outProcTexFile << line.c_str() << std::endl;
     }
   }

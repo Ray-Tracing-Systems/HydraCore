@@ -81,11 +81,12 @@ static inline float3 decompressShadow(ushort4 shadowCompressed)
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 __kernel void ProcTexExec(__global       uint*          restrict a_flags,
-                                                        
+                          __global const float4*        restrict in_rdir,                                                      
+
                           __global const float4*        restrict in_hitPosNorm,
                           __global const float2*        restrict in_hitTexCoord,
                           __global const HitMatRef*     restrict in_matData,
-                          __global const float4*        restrict in_normalsFull,
+ 
                           __global const uchar*         restrict in_shadowAOCompressed1,
                           __global const uchar*         restrict in_shadowAOCompressed2,
                           __global const Lite_Hit*      restrict in_hits,
@@ -126,14 +127,18 @@ __kernel void ProcTexExec(__global       uint*          restrict a_flags,
     const Lite_Hit hit = in_hits[tid];
     const float4x4 instanceMatrixInv = fetchMatrix(hit, in_matrices);
 
+    const float4 dataPos = in_hitPosNorm[tid];
+
     SurfaceInfo surfHit;
     surfHit.wp  = to_float3(in_hitPosNorm[tid]);
     surfHit.lp  = mul4x3(instanceMatrixInv, surfHit.wp);
-    surfHit.n   = to_float3(in_normalsFull[tid]); // normalize(decodeNormal(as_int(data.w)));
+    surfHit.n   = normalize(decodeNormal(as_int(dataPos.w)));
     surfHit.tc0 = in_hitTexCoord[tid];
     surfHit.ao  = shadow1; 
     surfHit.ao2 = shadow2;
     __private const SurfaceInfo* sHit = &surfHit;
+
+    const float3 hr_viewVectorHack = to_float3(in_rdir[tid]); // make dependence of this vector is not physycally correct but useful for artists ... 
 
     // (2) read custom attributes to 'surfHit' if target mesh have them.
     //
