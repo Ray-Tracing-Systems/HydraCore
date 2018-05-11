@@ -1074,6 +1074,8 @@ __kernel void NextBounce(__global   float4*        restrict a_rpos,
 
               ProcTextureList ptl;       // #TODO: read from memory
               InitProcTextureList(&ptl); // #TODO: read from memory
+              ReadProcTextureList(in_procTexData, tid, iNumElements,
+                                  &ptl);
 
               const float pdfFwdW = materialEval(pHitMaterial, &sc, false, false, /* global data --> */  a_globals, in_texStorage1, in_texStorage2, &ptl).pdfFwd;
              
@@ -1116,13 +1118,14 @@ __kernel void NextBounce(__global   float4*        restrict a_rpos,
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-__kernel void NextTransparentBounce(__global   float4*    a_rpos,
-                                    __global   float4*    a_rdir,
-                                    __global   uint*      a_flags,
-                                    
-                                    __global float4*      in_hitPosNorm,
-                                    __global float2*      in_hitTexCoord,
-                                    __global HitMatRef*   in_matData,
+__kernel void NextTransparentBounce(__global   float4*        restrict a_rpos,
+                                    __global   float4*        restrict a_rdir,
+                                    __global   uint*          restrict a_flags,
+                                                             
+                                    __global float4*          restrict in_hitPosNorm,
+                                    __global float2*          restrict in_hitTexCoord,
+                                    __global HitMatRef*       restrict in_matData,
+                                    __global const float4*    restrict in_procTexData,
                                     
                                     __global float4*              a_thoroughput,  
                                     __global const float4*        in_mtlStorage,
@@ -1159,8 +1162,10 @@ __kernel void NextTransparentBounce(__global   float4*    a_rpos,
       const float3 ray_pos = to_float3(a_rpos[tid]);
       const float3 ray_dir = to_float3(a_rdir[tid]);
 
-      ProcTextureList ptl;       //#TODO: read from memory
-      InitProcTextureList(&ptl); //#TODO: read from memory
+      ProcTextureList ptl;       
+      InitProcTextureList(&ptl); 
+      ReadProcTextureList(in_procTexData, tid, iNumElements,
+                          &ptl);
 
       TransparencyAndFog matFogAndTransp = materialEvalTransparencyAndFog(pHitMaterial, ray_dir, hitNorm, hitTexCoord, in_globals, in_shadingTexture, &ptl);
 
@@ -1336,13 +1341,15 @@ __kernel void TransparentShadowKenrel(__global const uint*     in_flags,
 }
 
 
-__kernel void ReadDiffuseColor(__global const float4*    a_rdir, 
-                               __global const Lite_Hit*  in_hits,
-                               __global const float4*    in_posNorm,
-                               __global const float2*    in_texCoord,
-                               __global const HitMatRef* in_matData,
+__kernel void ReadDiffuseColor(__global const float4*    restrict a_rdir, 
+                               __global const Lite_Hit*  restrict in_hits,
+                               __global const float4*    restrict in_posNorm,
+                               __global const float2*    restrict in_texCoord,
+                               __global const HitMatRef* restrict in_matData,
 
-                               texture2d_t                   a_shadingTexture,
+                               __global const float4*    restrict in_procTexData,
+                               __global const int4*      restrict in_texStorage1,
+
                                __global const EngineGlobals* a_globals, 
                                __global float4* a_color, int iNumElements)
 {
@@ -1364,8 +1371,10 @@ __kernel void ReadDiffuseColor(__global const float4*    a_rdir,
 
     ProcTextureList ptl;
     InitProcTextureList(&ptl);
+    ReadProcTextureList(in_procTexData, tid, iNumElements,
+                        &ptl);
 
-    color = materialEvalDiffuse(pHitMaterial, to_float3(a_rdir[tid]), norm, txcrd, a_globals, a_shadingTexture, &ptl);
+    color = materialEvalDiffuse(pHitMaterial, to_float3(a_rdir[tid]), norm, txcrd, a_globals, in_texStorage1, &ptl);
   }
 
   a_color[tid] = to_float4(color, 0.0f);
@@ -1378,7 +1387,8 @@ __kernel void GetGBufferSample(__global const float4*    a_rdir,
                                __global const float4*    restrict in_hitPosNorm,
                                __global const float2*    restrict in_hitTexCoord,
                                __global const HitMatRef* restrict in_matData,
-                               
+                               __global const float4*    restrict in_procTexData,
+
                                __global float4*          restrict out_gbuff1,
                                __global float4*          restrict out_gbuff2,
 
@@ -1403,8 +1413,10 @@ __kernel void GetGBufferSample(__global const float4*    a_rdir,
     const float2 txcrd   = in_hitTexCoord[tid];
     const float3 normal  = normalize(decodeNormal(as_int(hitPosNorm.w)));
 
-    ProcTextureList ptl;        //#TODO: read from memory!
-    InitProcTextureList(&ptl);  //#TODO: read from memory!
+    ProcTextureList ptl;        
+    InitProcTextureList(&ptl);  
+    ReadProcTextureList(in_procTexData, tid, a_size,
+                        &ptl);
 
     __global const PlainMaterial* pHitMaterial = materialAt(a_globals, in_mtlStorage, materialId);
     const float3 diffColor = materialEvalDiffuse(pHitMaterial, to_float3(a_rdir[tid]), normal, txcrd, a_globals, a_shadingTexture, &ptl);

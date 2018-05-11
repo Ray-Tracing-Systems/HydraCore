@@ -1856,20 +1856,19 @@ static inline float3 attenuationStep(__global const PlainMaterial* pHitMaterial,
 // extract diffuse component for ML filter, IC and photons
 //
 
-static inline float3 materialLeafEvalDiffuse(__global const PlainMaterial* a_pMat, 
-                                             const float3 l, const float3 n, const float2 hitTexCoord,
-                                             __global const EngineGlobals* a_globals, texture2d_t a_tex)
+static inline float3 materialLeafEvalDiffuse(__global const PlainMaterial* a_pMat, const float3 l, const float3 n, const float2 hitTexCoord,
+                                             __global const EngineGlobals* a_globals, __global const int4* in_texStorage, __private const ProcTextureList* a_ptList)
 {
   if (materialGetType(a_pMat) == PLAIN_MAT_CLASS_LAMBERT)
   {
     const int2   texIds   = lambertGetDiffuseTex(a_pMat);
-    const float3 texColor = sample2D(texIds.y, hitTexCoord, (__global const int4*)a_pMat, a_tex, a_globals);
+    const float3 texColor = sample2DExt(texIds.y, hitTexCoord, (__global const int4*)a_pMat, in_texStorage, a_globals, a_ptList);
     return texColor*lambertGetDiffuseColor(a_pMat);
   }
   else if (materialGetType(a_pMat) == PLAIN_MAT_CLASS_OREN_NAYAR)
   {
     const int2   texIds   = orennayarGetDiffuseTex(a_pMat);
-    const float3 texColor = sample2D(texIds.y, hitTexCoord, (__global const int4*)a_pMat, a_tex, a_globals);
+    const float3 texColor = sample2DExt(texIds.y, hitTexCoord, (__global const int4*)a_pMat, in_texStorage, a_globals, a_ptList);
     return texColor*orennayarGetDiffuseColor(a_pMat);
   }
   else
@@ -1879,7 +1878,7 @@ static inline float3 materialLeafEvalDiffuse(__global const PlainMaterial* a_pMa
 
 static inline float3 materialEvalDiffuse(__global const PlainMaterial* a_pMat,
                                          const float3 l, const float3 n, const float2 hitTexCoord,
-                                         __global const EngineGlobals* a_globals, texture2d_t a_tex, __private const ProcTextureList* a_ptList)
+                                         __global const EngineGlobals* a_globals, __global const int4* in_texStorage, __private const ProcTextureList* a_ptList)
 {
   float3 val = make_float3(0.0f, 0.0f, 0.0f);
 
@@ -1905,7 +1904,7 @@ static inline float3 materialEvalDiffuse(__global const PlainMaterial* a_pMat,
     {
       BRDFSelector mat1, mat2;
 
-      const float alpha = blendMaskAlpha2(pMat, l, n, hitTexCoord, a_globals, a_tex, a_ptList);
+      const float alpha = blendMaskAlpha2(pMat, l, n, hitTexCoord, a_globals, in_texStorage, a_ptList);
 
       mat1.localOffs = as_int(pMat->data[BLEND_MASK_MATERIAL1_OFFSET]);
       mat1.w         = alpha;
@@ -1933,7 +1932,7 @@ static inline float3 materialEvalDiffuse(__global const PlainMaterial* a_pMat,
 
     }
     else
-      val += currW*materialLeafEvalDiffuse(pMat, l, n, hitTexCoord, a_globals, a_tex);
+      val += currW*materialLeafEvalDiffuse(pMat, l, n, hitTexCoord, a_globals, in_texStorage, a_ptList);
 
 
   } while (top > 0);
