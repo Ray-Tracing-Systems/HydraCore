@@ -999,7 +999,7 @@ __kernel void NextBounce(__global   float4*        restrict a_rpos,
     const uint rayBounceNum  = unpackBounceNum(flags);
     const uint diffBounceNum = unpackBounceNumDiff(flags);
 
-    float4 shadeData  = in_shadeColor[tid];
+    const float3 shadeColor  = (a_globals->g_flags & HRT_STUPID_PT_MODE) ? make_float3(0,0,0) : to_float3(in_shadeColor[tid]);
 
     oldPathThroughput = to_float3(a_thoroughput[tid])*fogAtten;
     newPathThroughput = oldPathThroughput*outPathThroughput;
@@ -1044,7 +1044,7 @@ __kernel void NextBounce(__global   float4*        restrict a_rpos,
     }
     else                                                                                     // more complex case, need to add color from shade on each bounce
     { 
-      outPathColor   += to_float3(shadeData);
+      outPathColor   += shadeColor;
       nextPathColor   = a_color[tid] + to_float4(oldPathThroughput*outPathColor, 0.0f);
       nextPathColor.w = 1.0f;
 
@@ -1072,8 +1072,8 @@ __kernel void NextBounce(__global   float4*        restrict a_rpos,
               sc.bn = hitBiNorm;
               sc.tc = hitTexCoord;
 
-              ProcTextureList ptl;       // #TODO: read from memory
-              InitProcTextureList(&ptl); // #TODO: read from memory
+              ProcTextureList ptl;       
+              InitProcTextureList(&ptl); 
               ReadProcTextureList(in_procTexData, tid, iNumElements,
                                   &ptl);
 
