@@ -395,6 +395,7 @@ enum VARIABLE_NAMES { // int vars
                       HRT_MLT_ITERS_MULT           = 32,
                       HRT_MLT_BURN_ITERS           = 33,
                       HRT_MMLT_FIRST_BOUNCE        = 34,
+                      HRT_SHADOW_MATTE_BACK        = 35,
 };
 
 enum VARIABLE_FLOAT_NAMES{ // float vars
@@ -443,6 +444,7 @@ enum VARIABLE_FLOAT_NAMES{ // float vars
                            HRT_MLT_BKELEMEN                        = 33,
                            HRT_MLT_SCREEN_SCALE_X                  = 34,
                            HRT_MLT_SCREEN_SCALE_Y                  = 35,
+                           HRT_BACK_TEXINPUT_GAMMA                 = 36,
 };
 
 
@@ -1233,6 +1235,7 @@ enum MATERIAL_EVENT {
 static inline bool isPureSpecular(const MatSample a_sample) { return (a_sample.flags & RAY_EVENT_S) != 0; }
 static inline bool isDiffuse     (const MatSample a_sample) { return (a_sample.flags & RAY_EVENT_D) != 0; }
 static inline bool isGlossy      (const MatSample a_sample) { return (a_sample.flags & RAY_EVENT_G) != 0; }
+static inline bool isTransparent (const MatSample a_sample) { return (a_sample.flags & RAY_EVENT_T) != 0; }
 
 enum {
   RAY_GRAMMAR_DIRECT_LIGHT         = 64,

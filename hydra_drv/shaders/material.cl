@@ -317,6 +317,7 @@ __kernel void ConnectToEyeKernel(__global const uint*          restrict a_flags,
 __kernel void HitEnvOrLightKernel(__global const float4*    restrict in_rpos,
                                   __global const float4*    restrict in_rdir,
                                   __global uint*            restrict a_flags,
+                                  __global const int*       restrict in_packXY,
                                   
                                   __global const float4*    restrict in_hitPosNorm,
                                   __global const float2*    restrict in_hitTexCoord,
@@ -389,13 +390,28 @@ __kernel void HitEnvOrLightKernel(__global const float4*    restrict in_rpos,
       float3 envColor       = environmentColor(ray_dir, a_misDataPrev[tid], flags, a_globals, in_mtlStorage, in_pdfStorage, in_texStorage1);
       float3 pathThroughput = to_float3(a_thoroughput[tid]);
 
-      // const uint rayBounce = unpackBounceNum(flags);
-      // if (out_shadow != 0 && rayBounce == 1)
-      // {
-      //   const float cmult  = clamp(0.3333f*(envColor.x + envColor.y + envColor.z), 0.0f, 1.0f);
-      //   const float shadow = (float)out_shadow[tid];
-      //   out_shadow[tid]    = (unsigned char)(clamp(shadow + cmult * 255.0f, 0.0f, 255.0f));
-      // }
+      const uint rayBounce     = unpackBounceNum(flags);
+      unsigned int otherFlags  = unpackRayFlags(flags);
+      const int backTextureId  = a_globals->varsI[HRT_SHADOW_MATTE_BACK];
+      const bool transparent   = (rayBounce == 1 && (otherFlags & RAY_EVENT_T) != 0);
+      if (backTextureId != INVALID_TEXTURE && (rayBounce == 0 || transparent))
+      {
+        const int packedXY = in_packXY[tid];
+        const int screenX  = (packedXY & 0x0000FFFF);
+        const int screenY  = (packedXY & 0xFFFF0000) >> 16;
+
+        const float texCoordX = (float)screenX / a_globals->varsF[HRT_WIDTH_F];
+        const float texCoordY = (float)screenY / a_globals->varsF[HRT_HEIGHT_F];
+
+        const float gammaInv = a_globals->varsF[HRT_BACK_TEXINPUT_GAMMA];
+
+        const int offset = textureHeaderOffset(a_globals, backTextureId);
+        envColor = to_float3(read_imagef_sw4(in_texStorage1 + offset, make_float2(texCoordX, texCoordY), TEX_CLAMP_U | TEX_CLAMP_V));
+
+        envColor.x = pow(envColor.x, gammaInv);
+        envColor.y = pow(envColor.y, gammaInv);
+        envColor.z = pow(envColor.z, gammaInv);
+      }
 
       nextPathColor = to_float3(a_color[tid]) + pathThroughput * envColor;
     }

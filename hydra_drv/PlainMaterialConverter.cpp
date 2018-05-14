@@ -1366,7 +1366,20 @@ std::shared_ptr<IMaterial> CreateMaterialFromXmlNode(pugi::xml_node a_node, Rend
   if (mtype == L"hydra_blend")
     pResult = CreateBlendDefferedProxyFromXmlNode(a_node);
   else if (mtype == L"shadow_catcher")
+  {
     pResult = std::make_shared<ShadowMatteMaterial>();
+
+    pugi::xml_node back = a_node.child(L"back");
+    if (back != nullptr)
+    {
+      a_pRTE->m_shadowMatteBackTexId = back.child(L"texture").attribute(L"id").as_int();
+      if (a_pRTE->m_shadowMatteBackTexId == 0)
+        a_pRTE->m_shadowMatteBackTexId = INVALID_TEXTURE;
+
+      if (back.child(L"texture").attribute(L"input_gamma") != nullptr)
+        a_pRTE->m_shadowMatteBackGamma = back.child(L"texture").attribute(L"input_gamma").as_float();
+    }
+  }
   else if(mtype == L"sky_portal_mtl")
     pResult = CreateSkyPortalMaterial(a_node);
   else

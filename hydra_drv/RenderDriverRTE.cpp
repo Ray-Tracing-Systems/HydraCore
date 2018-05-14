@@ -124,9 +124,11 @@ RenderDriverRTE::RenderDriverRTE(const wchar_t* a_options, int w, int h, int a_d
     m_pHWLayer->SetExternalImageAccumulator(a_sharedImage);     // 
   }
 
-  m_pAccumImageForGBuff = a_sharedImage;
-  m_drawPassNumber      = 0;
-  m_maxRaysPerPixel     = 1000000;
+  m_pAccumImageForGBuff  = a_sharedImage;
+  m_drawPassNumber       = 0;
+  m_maxRaysPerPixel      = 1000000;
+  m_shadowMatteBackTexId = INVALID_TEXTURE;
+  m_shadowMatteBackGamma = 2.2f;
   ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 }
@@ -1053,6 +1055,8 @@ void RenderDriverRTE::EndScene() // #TODO: add dirty flags (?) to update only th
   vars.m_varsF[HRT_BSPHERE_CENTER_Y] = m_sceneBoundingSphere.y;
   vars.m_varsF[HRT_BSPHERE_CENTER_Z] = m_sceneBoundingSphere.z;
   vars.m_varsF[HRT_BSPHERE_RADIUS  ] = m_sceneBoundingSphere.w;
+  vars.m_varsI[HRT_SHADOW_MATTE_BACK]   = this->m_shadowMatteBackTexId;
+  vars.m_varsF[HRT_BACK_TEXINPUT_GAMMA] = this->m_shadowMatteBackGamma;
   m_pHWLayer->SetAllFlagsAndVars(vars);
 
   // calculate light selector pdf tables

@@ -1011,7 +1011,7 @@ static inline void ShadowmatteSampleAndEvalBRDF(__global const PlainMaterial* a_
   a_out->direction    = ray_dir;
   a_out->pdf          = 1.0f;
   a_out->color        = a_shadowVal/fmax(cosThetaOut, 1e-5f);
-  a_out->flags        = RAY_EVENT_S;
+  a_out->flags        = RAY_EVENT_S | RAY_EVENT_T;
 }
 
 
@@ -2270,6 +2270,9 @@ static inline unsigned int flagsNextBounce(unsigned int flags, const MatSample a
   if (isDiffuse(a_matSample))
     otherFlags |= RAY_EVENT_D;
 
+  if(isTransparent(a_matSample))
+    otherFlags |= RAY_EVENT_T;
+
   // specific render layer output
 
   const bool stopP = (a_globals->varsI[HRT_RENDER_LAYER] == LAYER_INCOMING_PRIMARY) && (rayBounceNum >= 1);
@@ -2308,6 +2311,9 @@ static inline unsigned int flagsNextBounceLite(unsigned int flags, const MatSamp
 
   if (isDiffuse(a_matSample))
     otherFlags |= RAY_EVENT_D;
+
+  if (isTransparent(a_matSample))
+    otherFlags |= RAY_EVENT_T;
 
   return packRayFlags(flags, otherFlags);
 }

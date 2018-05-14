@@ -31,10 +31,11 @@ struct AllRenderVarialbes
     m_varsF[HRT_ABLOW_SCALE_X] = 1.0f;
     m_varsF[HRT_ABLOW_SCALE_Y] = 1.0f;
 
-    m_varsF[HRT_MLT_PLARGE]      = 0.05f;
-    m_varsI[HRT_MLT_MAX_NUMBERS] = 128;
-    m_varsI[HRT_MLT_ITERS_MULT]  = 2;
-    m_varsI[HRT_MLT_BURN_ITERS]  = 128;
+    m_varsF[HRT_MLT_PLARGE]        = 0.05f;
+    m_varsI[HRT_MLT_MAX_NUMBERS]   = 128;
+    m_varsI[HRT_MLT_ITERS_MULT]    = 2;
+    m_varsI[HRT_MLT_BURN_ITERS]    = 128;
+    m_varsI[HRT_SHADOW_MATTE_BACK] = INVALID_TEXTURE;
   }
 
   int          m_varsI[GMAXVARS];

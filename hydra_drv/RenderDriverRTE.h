@@ -123,6 +123,9 @@ struct RenderDriverRTE : public IHRRenderDriver
     AOProcTexInfo ao;
   };
 
+  int m_shadowMatteBackTexId;
+  float m_shadowMatteBackGamma;
+
 protected:
 
   void CalcCameraMatrices(float4x4* a_pModelViewMatrixInv, float4x4* a_projMatrixInv, float4x4* a_pModelViewMatrix, float4x4* a_projMatrix);
