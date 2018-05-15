@@ -602,6 +602,7 @@ std::vector<float> RenderDriverRTE::CalcLightPickProbTable(std::vector<PlainLigh
     int groupId = as_int(a_inOutLights[i].data[PLIGHT_GROUP_ID]);
 
     float pp = 1.0f;
+
     if (groupId == -1)
       pp = pickGroupprob;
     else
@@ -619,6 +620,9 @@ std::vector<float> RenderDriverRTE::CalcLightPickProbTable(std::vector<PlainLigh
     const float3 color = lightBaseColor(&a_inOutLights[i]);
     if (length(color) < 0.01f)
       pp = 0.0f;
+
+    if(a_inOutLights[i].data[PLIGHT_PROB_MULT] > 0.0f)
+      pp *= a_inOutLights[i].data[PLIGHT_PROB_MULT];
 
     if(a_fwd)
       a_inOutLights[i].data[PLIGHT_PICK_PROB_FWD] = pp; // override light pick probability here! Store it in the light.

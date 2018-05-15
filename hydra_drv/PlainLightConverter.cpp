@@ -135,8 +135,6 @@ public:
 
   AreaDiffuseLight(pugi::xml_node a_node, IMemoryStorage* a_storage, std::unordered_map<std::wstring, int2>& a_iesCache, const std::wstring& a_libPath)
   {
-    memset(m_plain.data, 0, sizeof(m_plain.data));
-
     const std::wstring lshape = a_node.attribute(L"shape").as_string();
     const std::wstring distr  = a_node.attribute(L"distribution").as_string();
 
@@ -353,8 +351,6 @@ public:
 
   CylinderLight(float zMin, float zMax, float radius, float phiMax, float3 a_intensity, SWTexSampler samplerColor, int32_t texIdColor)
   {
-    memset(m_plain.data, 0, sizeof(m_plain.data));
-
     m_plain.data[PLIGHT_POS_X]   = 0.0f;
     m_plain.data[PLIGHT_POS_Y]   = 0.0f;
     m_plain.data[PLIGHT_POS_Z]   = 0.0f;
@@ -450,8 +446,6 @@ public:
 
   SphereLight(float3 a_pos, float a_radius, float3 a_intensity)
   {
-    memset(m_plain.data, 0, sizeof(m_plain.data));
-
     m_plain.data[PLIGHT_POS_X]   = a_pos.x;
     m_plain.data[PLIGHT_POS_Y]   = a_pos.y;
     m_plain.data[PLIGHT_POS_Z]   = a_pos.z;
@@ -510,8 +504,6 @@ public:
 
   DirectLight(float3 a_pos, float3 a_norm, float3 a_intensity, float a_radius1, float a_radius2, float a_shadowSoftAngleRadius)
   {
-    memset(m_plain.data, 0, sizeof(m_plain.data));
-
     m_plain.data[PLIGHT_POS_X] = a_pos.x;
     m_plain.data[PLIGHT_POS_Y] = a_pos.y;
     m_plain.data[PLIGHT_POS_Z] = a_pos.z;
@@ -583,8 +575,6 @@ public:
 
   SpotLight(float3 a_pos, float3 a_norm, float3 a_intensity, float a_cos1, float a_cos2)
   {
-    memset(m_plain.data, 0, sizeof(m_plain.data));
-
     m_plain.data[PLIGHT_POS_X]  = a_pos.x;
     m_plain.data[PLIGHT_POS_Y]  = a_pos.y;
     m_plain.data[PLIGHT_POS_Z]  = a_pos.z;
@@ -650,8 +640,6 @@ public:
 
   PointLight(pugi::xml_node a_node, IMemoryStorage* a_storage, std::unordered_map<std::wstring, int2>& a_iesCache, const std::wstring& a_libPath)
   {
-    memset(m_plain.data, 0, sizeof(m_plain.data));
-
     float3 pos(0, 0, 0);
     float3 intensity = OLD_PHOTOMETRIC_SCALE*HydraXMLHelpers::ReadLightIntensity(a_node);
     float4x4 iesMatrix;
@@ -731,8 +719,6 @@ public:
 
   MeshLight(pugi::xml_node a_node, IMemoryStorage* a_storage, std::unordered_map<std::wstring, int2>& a_iesCache, const std::wstring& a_libPath, const PlainMesh* pLMesh)
   {
-    memset(m_plain.data, 0, sizeof(m_plain.data));
-
     float3 pos(0, 0, 0);
     float3 intensity = OLD_PHOTOMETRIC_SCALE*HydraXMLHelpers::ReadLightIntensity(a_node);
 
@@ -920,8 +906,6 @@ public:
 
   SkyDomeLight(pugi::xml_node a_node)
   {
-    memset(m_plain.data, 0, sizeof(m_plain.data));
-
     float3 a_intensity  = HydraXMLHelpers::ReadLightIntensity(a_node);
     float3 a_intensity2 = a_intensity; // a_light.color2*a_light.intensity;
 

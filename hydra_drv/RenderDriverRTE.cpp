@@ -1532,6 +1532,10 @@ void RenderDriverRTE::InstanceLights(int32_t a_lightId, const float* a_matrix, p
         pugi::xml_attribute skip = node.attribute(L"do_not_sample_me");
         if (skip != nullptr)
           doNotSampleMe = skip.as_bool();
+
+        pugi::xml_attribute probMult = node.attribute(L"prob_mult");
+        if (probMult != nullptr)
+          ldata.data[PLIGHT_PROB_MULT] = probMult.as_float();
       }
     }
 

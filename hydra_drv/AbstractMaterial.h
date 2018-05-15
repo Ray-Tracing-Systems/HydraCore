@@ -118,7 +118,12 @@ namespace RAYTR
   public:
 
 
-    ILight(){}
+    ILight()
+    {
+      memset(m_plain.data, 0, sizeof(m_plain.data));
+      m_plain.data[PLIGHT_PROB_MULT] = 1.0f;
+    }
+
     virtual ~ILight(){}
 
     virtual PlainLight ConvertToPlainLight() const  { return m_plain; }

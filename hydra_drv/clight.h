@@ -32,6 +32,8 @@ static inline float mylocalsmoothstep(float edge0, float edge1, float x)
 #define PLIGHT_SURFACE_AREA     13
 #define SPHERE_LIGHT_RADIUS     14
 
+
+#define PLIGHT_PROB_MULT       (LIGHT_DATA_SIZE-24)
 #define PLIGHT_GROUP_ID        (LIGHT_DATA_SIZE-23)
 #define PLIGHT_PICK_PROB_FWD   (LIGHT_DATA_SIZE-22)
 #define PLIGHT_PICK_PROB_REV   (LIGHT_DATA_SIZE-21)
