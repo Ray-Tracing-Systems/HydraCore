@@ -1378,6 +1378,10 @@ std::shared_ptr<IMaterial> CreateMaterialFromXmlNode(pugi::xml_node a_node, Rend
 
       if (back.child(L"texture").attribute(L"input_gamma") != nullptr)
         a_pRTE->m_shadowMatteBackGamma = back.child(L"texture").attribute(L"input_gamma").as_float();
+
+      int enableRefl = back.attribute(L"reflection").as_int();
+      if (enableRefl == 1)
+        pResult->AddFlags(PLAIN_MATERIAL_CAMERA_MAPPED_REFL);
     }
   }
   else if(mtype == L"sky_portal_mtl")

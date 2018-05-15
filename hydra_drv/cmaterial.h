@@ -993,9 +993,6 @@ static inline bool materialHasDiffuse(__global const PlainMaterial* a_pMat) // #
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-// Shadow Matte material
-
-
 static inline float  shadowmatteEvalPDF(__global const PlainMaterial* a_pMat, float3 l, float3 v, float3 n) { return 0.0f; }
 
 static inline float3 shadowmatteEvalBxDF(__global const PlainMaterial* a_pMat, float3 l, float3 n, float2 a_texCoord)
@@ -1007,6 +1004,10 @@ static inline void ShadowmatteSampleAndEvalBRDF(__global const PlainMaterial* a_
                                                 __private MatSample* a_out)
 {
   const float cosThetaOut = dot(ray_dir, a_normal);
+
+  // const float t           = fmin(a_shadowVal.x, fmin(a_shadowVal.y, a_shadowVal.x));
+  // const float3 colorBlack = shadowMatteColor(a_pMat);
+  // const float3 colorRes   = (t < 0.5f) ? colorBlack : make_float3(1,1,1);
 
   a_out->direction    = ray_dir;
   a_out->pdf          = 1.0f;

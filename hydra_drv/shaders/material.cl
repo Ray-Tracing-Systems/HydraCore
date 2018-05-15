@@ -394,6 +394,7 @@ __kernel void HitEnvOrLightKernel(__global const float4*    restrict in_rpos,
       unsigned int otherFlags  = unpackRayFlags(flags);
       const int backTextureId  = a_globals->varsI[HRT_SHADOW_MATTE_BACK];
       const bool transparent   = (rayBounce == 1 && (otherFlags & RAY_EVENT_T) != 0);
+      
       if (backTextureId != INVALID_TEXTURE && (rayBounce == 0 || transparent))
       {
         const int packedXY = in_packXY[tid];
@@ -465,6 +466,20 @@ __kernel void HitEnvOrLightKernel(__global const float4*    restrict in_rpos,
         a_pdfAccCopy[tid] = prevData;
       }
     }
+
+    bool reflectProjectedBack = false;
+    {
+      const uint rayBounce    = unpackBounceNum(flags);
+      unsigned int otherFlags = unpackRayFlags(flags);
+      const int backTextureId = a_globals->varsI[HRT_SHADOW_MATTE_BACK];
+      const bool reflected    = (rayBounce >= 1 && (otherFlags & RAY_EVENT_T) == 0 &&
+                                 ((otherFlags & RAY_EVENT_S) != 0 || (otherFlags & RAY_EVENT_D) != 0 || (otherFlags & RAY_EVENT_G) != 0)
+                                );
+
+      reflectProjectedBack = (backTextureId != INVALID_TEXTURE) && reflected && (materialGetType(pHitMaterial) == PLAIN_MAT_CLASS_SHADOW_MATTE) &&
+                             ((materialGetFlags(pHitMaterial) & PLAIN_MATERIAL_CAMERA_MAPPED_REFL) != 0);
+    }
+
 
     // now check if we hit light
     //
@@ -580,6 +595,32 @@ __kernel void HitEnvOrLightKernel(__global const float4*    restrict in_rpos,
       out_emission[tid] = to_float4(emissColor, as_float(packedIsLight));
 
     } // \\ if light emission is not zero
+    else if (reflectProjectedBack) // fucking shadow catcher (camera mapped reflections)
+    {
+      const float3 hitPos         = to_float3(in_hitPosNorm[tid]);
+      const float2 posScreenSpace = worldPosToScreenSpace(hitPos, a_globals);
+      const int backTextureId     = a_globals->varsI[HRT_SHADOW_MATTE_BACK];
+
+      const float x   = (posScreenSpace.x + 0.5f);
+      const float y   = (posScreenSpace.y + 0.5f);
+      float3 envColor = make_float3(0, 0, 0);
+
+      if (x >= 0.0f && y >= 0.0f && x <= a_globals->varsF[HRT_WIDTH_F] && y <= a_globals->varsF[HRT_HEIGHT_F])
+      {
+        const float texCoordX = x / a_globals->varsF[HRT_WIDTH_F];
+        const float texCoordY = y / a_globals->varsF[HRT_HEIGHT_F];
+        const float gammaInv  = a_globals->varsF[HRT_BACK_TEXINPUT_GAMMA];
+
+        const int offset = textureHeaderOffset(a_globals, backTextureId);
+        envColor = to_float3(read_imagef_sw4(in_texStorage1 + offset, make_float2(texCoordX, texCoordY), TEX_CLAMP_U | TEX_CLAMP_V));
+
+        envColor.x = pow(envColor.x, gammaInv);
+        envColor.y = pow(envColor.y, gammaInv);
+        envColor.z = pow(envColor.z, gammaInv);
+      }
+
+      out_emission[tid] = to_float4(envColor, 0.0f);
+    }
     else
     {
       out_emission[tid] = make_float4(0, 0, 0, as_float(0));
