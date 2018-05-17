@@ -68,6 +68,7 @@ RenderDriverRTE::RenderDriverRTE(const wchar_t* a_options, int w, int h, int a_d
   m_avgStatsId      = 0;
   m_haveAtLeastOneAOMat  = false;
   m_haveAtLeastOneAOMat2 = false;
+  m_texResizeEnabled     = false;
 
   ///////////////////////////////////////////////////////////////////////////////////////////////////
   if (m_initFlags & GPU_RT_HW_LAYER_OCL)
@@ -442,6 +443,9 @@ HRDriverAllocInfo RenderDriverRTE::AllocAll(HRDriverAllocInfo a_info)
 
   size_t maxBufferSize = m_pHWLayer->GetMaxBufferSizeInBytes();
 
+  if (true) // newMemForTex1 > maxBufferSize || newMemForTex2 > maxBufferSize
+    m_texResizeEnabled = false;
+
   newMemForTex1      = std::min<size_t>(newMemForTex1, maxBufferSize);
   newMemForTex2      = std::min<size_t>(newMemForTex2, maxBufferSize);
   newMemForGeo       = std::min<size_t>(newMemForGeo,  maxBufferSize);
@@ -512,6 +516,46 @@ bool RenderDriverRTE::UpdateImage(int32_t a_texId, int32_t w, int32_t h, int32_t
 
   if (a_data == nullptr)
     return false;
+
+  std::vector<uint32_t> dataResizedI;
+  HDRImage4f dst;
+
+  if (m_texResizeEnabled)
+  {
+    int rwidth  = a_texNode.attribute(L"r_width").as_int();
+    int rheight = a_texNode.attribute(L"r_height").as_int();
+
+    if (rwidth < w || rheight < h)
+    {
+      std::cout << "resize tex id = " << a_texId << " from (" << w << "," << h << ") to (" << rwidth << "," << rheight << ")" << std::endl;
+
+      HDRImage4f src;
+
+      if (bpp == 4)
+      {
+        src.resize(w, h);
+        src.convertFromLDR(2.2f, (const unsigned int*)a_data, w*h);
+      }
+      else
+        src = HDRImage4f(w, h, (const float*)a_data);
+
+      dst.resize(rwidth, rheight);
+      src.resampleTo(dst);
+
+      if (bpp == 4)
+      {
+        dataResizedI.resize(rwidth*rheight);
+        dst.convertToLDR(2.2f, dataResizedI);
+        a_data = dataResizedI.data();
+      }
+      else
+        a_data = dst.data();
+
+      w = rwidth;
+      h = rheight;
+    }
+
+  }
 
   SWTextureHeader texheader;
 

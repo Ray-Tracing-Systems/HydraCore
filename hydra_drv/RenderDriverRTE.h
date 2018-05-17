@@ -162,6 +162,7 @@ protected:
   IMemoryStorage* m_pGeomStorage;
   IMemoryStorage* m_pMaterialStorage;
   IMemoryStorage* m_pPdfStorage;
+  bool            m_texResizeEnabled;
 
   std::vector<int> m_geomTable;
   std::vector<int> m_texTable;
