@@ -525,6 +525,9 @@ bool RenderDriverRTE::UpdateImage(int32_t a_texId, int32_t w, int32_t h, int32_t
     int rwidth  = a_texNode.attribute(L"r_width").as_int();
     int rheight = a_texNode.attribute(L"r_height").as_int();
 
+    if (rwidth < 256)  rwidth  = 256;
+    if (rheight < 256) rheight = 256;
+
     if (rwidth < w || rheight < h)
     {
       std::cout << "resize tex id = " << a_texId << " from (" << w << "," << h << ") to (" << rwidth << "," << rheight << ")" << std::endl;

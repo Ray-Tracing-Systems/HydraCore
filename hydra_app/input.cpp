@@ -14,13 +14,13 @@ Input::Input()
 
   //inLibraryPath = "D:/Downloads/hydra_scene_car_ao";
   //inLibraryPath = "D:/PROG/HydraAPI/main/tests/test_82";  
-  inLibraryPath = "D:/PROG/HydraAPI/main/tests_f/test_163";
+  //inLibraryPath = "D:/PROG/HydraAPI/main/tests_f/test_163";
 
-  //inLibraryPath = "C:/[Hydra]/pluginFiles/scenelib";
+  inLibraryPath = "C:/[Hydra]/pluginFiles/scenelib";
   //inLibraryPath = "/tmp/hydra_scene";
   //inLibraryPath = "D:/Downloads/umm_000066/scenelib";
 
-  inDevelopment = false; ///< recompile shaders each time; note that nvidia have their own shader cache!
+  inDevelopment = true; ///< recompile shaders each time; note that nvidia have their own shader cache!
   inDeviceId    = 1;     ///< opencl device id
   cpuFB         = false; ///< store frame buffer on CPU. Automaticly enabled if
   enableMLT     = false; ///< if use MMLT, you MUST enable it early, when render process just started (here or via command line).

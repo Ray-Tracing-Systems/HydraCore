@@ -1994,8 +1994,8 @@ static inline float3 materialEvalEmission(__global const PlainMaterial* a_pMat, 
       }
 
     }
-    else
-      val += currW*materialLeafEvalEmission(pMat, a_texCoord, a_globals, a_tex, a_tex2, a_ptList);
+    //else //#NOTE: BLEND NODES CAN HAVE EMISSIVE HEADERS!, so we can not skip blend itself!!! 
+    val += currW*materialLeafEvalEmission(pMat, a_texCoord, a_globals, a_tex, a_tex2, a_ptList);
 
   } while (top > 0);
 
