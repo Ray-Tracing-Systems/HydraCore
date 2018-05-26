@@ -83,6 +83,9 @@ const uchar4* RenderDriverRTE::GetAuxNormalMapFromDisaplacement(std::vector<ucha
   assert(m_texTable.size() > textureIdNM);
 
   const int texOffset = m_texTable[textureIdNM];
+  if (texOffset < 0)
+    return nullptr;
+
   const int4* begin   = (const int4*)m_pTexStorage->GetBegin();
   const int4* header  = begin + texOffset;
 

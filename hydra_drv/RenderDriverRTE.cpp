@@ -1065,6 +1065,10 @@ void RenderDriverRTE::EndScene() // #TODO: add dirty flags (?) to update only th
     const size_t totalMem = m_pHWLayer->GetAvaliableMemoryAmount(true);
     std::cout << "[EndScene]: MEM(TAKEN)  = " << m_memAllocated / size_t(1024 * 1024) << "\tMB" << std::endl;
     std::cout << "[EndScene]: MEM(TOTAL)  = " << totalMem / size_t(1024 * 1024) << "\tMB" << std::endl;
+ 
+    std::cout << "[EndScene]: TexStorageS = " << m_pTexStorage->GetSize() / size_t(1024 * 1024) << "\tMB" << std::endl;
+    std::cout << "[EndScene]: TexStorageC = " << m_pTexStorage->GetCapacity() / size_t(1024 * 1024) << "\tMB" << std::endl;
+
     std::cout << std::endl;
 
     int oclVer = 0;
