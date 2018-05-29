@@ -444,7 +444,7 @@ HRDriverAllocInfo RenderDriverRTE::AllocAll(HRDriverAllocInfo a_info)
   size_t maxBufferSize = m_pHWLayer->GetMaxBufferSizeInBytes();
 
   if (true) // newMemForTex1 > maxBufferSize || newMemForTex2 > maxBufferSize
-    m_texResizeEnabled = false;
+    m_texResizeEnabled = true;
 
   newMemForTex1      = std::min<size_t>(newMemForTex1, maxBufferSize);
   newMemForTex2      = std::min<size_t>(newMemForTex2, maxBufferSize);
@@ -506,7 +506,6 @@ void RenderDriverRTE::GetLastErrorW(wchar_t a_msg[256])
   m_msg = L"";
 }
 
-
 bool RenderDriverRTE::UpdateImage(int32_t a_texId, int32_t w, int32_t h, int32_t bpp, const void* a_data, pugi::xml_node a_texNode)
 {
   std::wstring type = a_texNode.attribute(L"type").as_string();
@@ -520,13 +519,10 @@ bool RenderDriverRTE::UpdateImage(int32_t a_texId, int32_t w, int32_t h, int32_t
   std::vector<uint32_t> dataResizedI;
   HDRImage4f dst;
 
-  if (m_texResizeEnabled)
+  if (m_texResizeEnabled && a_texNode.attribute(L"rwidth") != nullptr && a_texNode.attribute(L"rheight") != nullptr)
   {
-    int rwidth  = a_texNode.attribute(L"r_width").as_int();
-    int rheight = a_texNode.attribute(L"r_height").as_int();
-
-    if (rwidth < 256)  rwidth  = 256;
-    if (rheight < 256) rheight = 256;
+    int rwidth  = a_texNode.attribute(L"rwidth").as_int();
+    int rheight = a_texNode.attribute(L"rheight").as_int();
 
     if (rwidth < w || rheight < h)
     {
