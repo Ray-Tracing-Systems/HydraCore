@@ -413,7 +413,7 @@ HRDriverAllocInfo RenderDriverRTE::AllocAll(HRDriverAllocInfo a_info)
     newMemForTab = 64 * MB;
 
   size_t newMemForTex1 = auxMemTex + a_info.imgMem;
-  size_t newMemForTex2 = auxMemTex + a_info.imgMem;
+  size_t newMemForTex2 = auxMemTex + a_info.imgMemAux;
   size_t newMemForTex3 = newMemForTex1 + newMemForTex2;
   size_t newTotalMem   = newMemForTex3 + newMemForGeo + newMemForMat + newMemForTab;
 
