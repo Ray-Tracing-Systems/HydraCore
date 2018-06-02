@@ -9,6 +9,11 @@
 #include "../../HydraAPI/hydra_api/HydraXMLHelpers.h"
 #include "../../HydraAPI/hydra_api/HydraInternal.h"
 
+#ifdef WIN32
+#undef min
+#undef max
+#endif
+
 constexpr bool MEASURE_RAYS   = false;
 constexpr int  MEASURE_BOUNCE = 0;
 
@@ -389,19 +394,145 @@ void RenderDriverRTE::ClearAll()
 
 std::shared_ptr<RAYTR::IMaterial> CreateDiffuseWhiteMaterial();
 
+std::tuple<size_t, size_t> EstimateMemNeeded(const std::vector<HRTexResInfo>& a_texuresInfo)
+{
+  size_t memCommon = 0;
+  size_t memBump   = 0;
+
+  for (auto texInfo : a_texuresInfo)
+  {
+    size_t txSize = size_t(texInfo.aw*texInfo.ah)*size_t(texInfo.bpp);
+
+    memCommon += txSize;
+    if (texInfo.usedAsBump)
+      memBump += txSize;
+  }
+
+  return std::tuple<size_t, size_t>(memCommon, memBump);
+}
+
+int ResizeMostHeavyTexture(std::vector<HRTexResInfo>& a_texuresInfo, bool bump_only)
+{
+  size_t currSize = 0;
+  int currId = 0;
+  bool foundAtLeastOne = false;
+
+  // find most heavy one
+  //
+  for (int i = 0; i<int(a_texuresInfo.size()); i++)
+  {
+    const auto& texInfo = a_texuresInfo[i];
+    size_t txSize = size_t(texInfo.aw*texInfo.ah)*size_t(texInfo.bpp);
+
+    const bool accountIt = !bump_only || texInfo.usedAsBump;
+    const bool canResize = (texInfo.aw > texInfo.rw) && (texInfo.ah > texInfo.rh);
+
+    if (txSize > currSize && accountIt && canResize)
+    {
+      currSize = txSize;
+      currId   = i;
+      foundAtLeastOne = true;
+    }
+  }
+
+  if (!foundAtLeastOne)
+    return -1;
+
+  a_texuresInfo[currId].aw /= 2;
+  a_texuresInfo[currId].ah /= 2;
+
+  return currId;
+
+}
+
+/**
+\brief allow to resize less textures
+\param a_texuresInfo - in out texture res info
+\param in_memToFit - memory amount we have to fit all our textures
+\param in_memToFitBump - memory amount we have to fit all our textures that used for bump
+
+Change recomended tex resolution in the way that render shout not resize more that it really needed.
+For example if we have enough memory both for geom and full res textures, use full res textures.
+
+*/
+void FitTextureRes(std::vector<HRTexResInfo>& a_texuresInfo, size_t in_memToFit, size_t in_memToFitBump)
+{
+  if (a_texuresInfo.size() == 0)
+    return;
+
+  size_t memCommon = 0;
+  size_t memBump   = 0;
+
+  std::tie(memCommon, memBump) = EstimateMemNeeded(a_texuresInfo);
+
+  const int maxItrer = a_texuresInfo.size()*3; // max mip level = 4, so 3 times resize for each texture
+  int iterNum = 0;
+
+  while (memCommon > in_memToFit || memBump > in_memToFitBump || iterNum > maxItrer)
+  {
+    int resizedId2 = -1;
+    int resizedId = ResizeMostHeavyTexture(a_texuresInfo, false);
+    if (resizedId >= 0)
+    {
+      if (!a_texuresInfo[resizedId].usedAsBump && memBump > in_memToFitBump)
+        resizedId2 = ResizeMostHeavyTexture(a_texuresInfo, true);
+    }
+
+    if (resizedId == -1 && resizedId2 == -1)               // can not resize anymore, sorry ... 
+      break;
+
+    if (memCommon <= in_memToFit && resizedId2 == -1)      // can not resize bump textures, but ok with common textures
+      break;
+
+    if (memBump <= in_memToFitBump && resizedId == -1)     // can not resize common textures, but ok with bump 
+      break;
+
+    std::tie(memCommon, memBump) = EstimateMemNeeded(a_texuresInfo);
+    iterNum++;
+  }
+}
+
 HRDriverAllocInfo RenderDriverRTE::AllocAll(HRDriverAllocInfo a_info)
 {
   m_libPath = std::wstring(a_info.libraryPath);
+
+  const size_t maxBufferSize = m_pHWLayer->GetMaxBufferSizeInBytes();
+  const size_t totalMem      = m_pHWLayer->GetAvaliableMemoryAmount(true);
+  const size_t freeMem       = m_pHWLayer->GetAvaliableMemoryAmount(false);
+  const size_t memUsedByR    = totalMem - freeMem;
+  const size_t MB            = size_t(1024 * 1024);
 
   // create memory storages and tables
   //
   const size_t approxSizeOfMatBlock = sizeof(PlainMaterial) * 8;
   const size_t approxSizeOfLight    = sizeof(PlainLight)    * 4;
 
-  size_t totalMem   = m_pHWLayer->GetAvaliableMemoryAmount(true);
-  size_t freeMem    = m_pHWLayer->GetAvaliableMemoryAmount(false);
-  size_t memUsedByR = totalMem - freeMem;
-  const size_t MB   = size_t(1024 * 1024);
+  m_allTexInfo.clear(); 
+  m_allTexInfo.reserve(a_info.imgNum);
+
+  if (a_info.imgResInfoArray != nullptr)
+  {
+    std::vector<HRTexResInfo> allTexInfoVec;
+    allTexInfoVec.reserve(a_info.imgNum);
+
+    for (int i = 0; i < a_info.imgNum; i++)
+    {
+      const auto& info = a_info.imgResInfoArray[i];
+      if (info.w != 0 && info.h != 0)
+        allTexInfoVec.push_back(info);
+    }
+
+    const int64_t geomMem = int64_t( std::min(size_t(a_info.geomMem), maxBufferSize));
+    const int64_t memRest = std::max(int64_t(freeMem) - geomMem - int64_t(64 * MB), int64_t(0));
+ 
+    const int64_t memForTex  = std::min(std::min(memRest, int64_t(maxBufferSize)), a_info.imgMem + int64_t(16*MB));
+    const int64_t memRest2   = std::max(int64_t(freeMem) - geomMem - memForTex, int64_t(0));
+    const int64_t memForTex2 = std::min(std::min(memRest2, a_info.imgMemAux + int64_t(16 * MB)), int64_t(maxBufferSize));
+
+    FitTextureRes(allTexInfoVec, size_t(memForTex) - 1*MB, size_t(memForTex2) - 1*MB);
+    for (const auto& info : allTexInfoVec)
+      m_allTexInfo[info.id] = info;
+  }
 
   size_t auxMemGeom   = 0, auxMemTex = 64 * MB;
   size_t newMemForGeo = a_info.geomMem; // size_t(0.85*double(a_info.geomMem)); // we can save ~ 15% due to tangent compression but thhis is hard to estimate precisly.
@@ -440,8 +571,6 @@ HRDriverAllocInfo RenderDriverRTE::AllocAll(HRDriverAllocInfo a_info)
     newMemForTex3 = newMemForTex1 + newMemForTex2;
     newTotalMem   = newMemForTex3 + newMemForGeo + newMemForMat + newMemForTab;
   }
-
-  size_t maxBufferSize = m_pHWLayer->GetMaxBufferSizeInBytes();
 
   if (true) // newMemForTex1 > maxBufferSize || newMemForTex2 > maxBufferSize
     m_texResizeEnabled = true;
@@ -523,6 +652,13 @@ bool RenderDriverRTE::UpdateImage(int32_t a_texId, int32_t w, int32_t h, int32_t
   {
     int rwidth  = a_texNode.attribute(L"rwidth").as_int();
     int rheight = a_texNode.attribute(L"rheight").as_int();
+
+    auto p = m_allTexInfo.find(a_texId);
+    if (p != m_allTexInfo.end())
+    {
+      rwidth  = p->second.aw;
+      rheight = p->second.ah;
+    }
 
     if (rwidth < w || rheight < h)
     {
