@@ -175,10 +175,9 @@ protected:
   std::unordered_map<std::wstring, int2>                      m_iesCache;
   std::unordered_map<int, std::shared_ptr<RAYTR::IMaterial> > m_materialUpdated;
   std::unordered_map<int, pugi::xml_node >                    m_materialNodes;
+  std::unordered_map<int32_t, HRTexResInfo>                   m_allTexInfo;
   std::unordered_map<std::wstring, int32_t>                   m_texturesProcessedNM;
-
-
-  std::unordered_map<int, ProcTexInfo>  m_procTextures;
+  std::unordered_map<int, ProcTexInfo>                        m_procTextures;
 
   using DefferedMaterialDataTuple = std::tuple<std::shared_ptr<RAYTR::IMaterial>, pugi::xml_node>;
   std::unordered_map<int, DefferedMaterialDataTuple > m_blendsToUpdate;

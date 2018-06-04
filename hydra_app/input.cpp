@@ -4,7 +4,7 @@
 Input::Input()
 {
   noWindow      = false;           ///< run 'console_main', else run 'window_main'
-  inLibraryPath = "tests/test_42"; ///< cornell box with teapot
+  inLibraryPath = "tests/test_42"; ///< cornell box with teapot 
   //inLibraryPath = "tests/test_01"; ///< cornell box with sphere
   //inLibraryPath = "tests/test_223_small"; ///< cornell box with mirror glossy back wall
   
@@ -13,7 +13,7 @@ Input::Input()
   //inLibraryPath = "D:/[archive]/2017/HydraOldRepo/HydraAPP/hydra_app/tests/hydra_benchmark_07";
 
   //inLibraryPath = "D:/Downloads/hydra_scene_car_ao";
-  //inLibraryPath = "D:/PROG/HydraAPI/main/tests/test_82";  
+  //inLibraryPath = "D:/PROG/HydraAPI/main/tests/test_97";  
   //inLibraryPath = "D:/PROG/HydraAPI/main/tests_f/test_163";
 
   //inLibraryPath = "C:/[Hydra]/pluginFiles/scenelib";

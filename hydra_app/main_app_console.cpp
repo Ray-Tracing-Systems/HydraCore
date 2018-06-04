@@ -100,9 +100,9 @@ bool InitSceneLibAndRTE(HRCameraRef& a_camRef, HRSceneInstRef& a_scnRef, HRRende
   if (scnInfo.camerasNum == 0) // create some default camera
     a_camRef = hrCameraCreate(L"defaultCam");
 
-  a_renderRef.id = 0;
-  a_camRef.id    = 0;
-  a_scnRef.id    = 0;
+  a_renderRef = hrFindRenderByTypeName(L"HydraModern");
+  a_camRef.id = 0;
+  a_scnRef.id = 0;
 
   // copy render settings for newly created render of type L"HydraInternalRTE"
   //
