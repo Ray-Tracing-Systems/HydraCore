@@ -53,3 +53,8 @@ endif()
 
 include_directories(${ADDITIONAL_INCLUDE_DIRS})
 
+add_custom_command(TARGET shaderpack POST_BUILD
+        COMMAND ${CMAKE_BINARY_DIR}/shaderpack/shaderpack
+        WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+        COMMENT "packing shaders..."
+        )

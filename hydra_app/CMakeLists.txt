@@ -73,16 +73,17 @@ include_directories(${ADDITIONAL_INCLUDE_DIRS})
 
 
 install(TARGETS hydra DESTINATION hydra)
+
 install(FILES ${CMAKE_SOURCE_DIR}/hydra_drv/cfetch.h
               ${CMAKE_SOURCE_DIR}/hydra_drv/cglobals.h
               ${CMAKE_SOURCE_DIR}/hydra_drv/shaders/texproc.cl
-              ${CMAKE_SOURCE_DIR}/../HydraAPI/bin2/shaders/image.xx
-              ${CMAKE_SOURCE_DIR}/../HydraAPI/bin2/shaders/light.xx
-              ${CMAKE_SOURCE_DIR}/../HydraAPI/bin2/shaders/material.xx
-              ${CMAKE_SOURCE_DIR}/../HydraAPI/bin2/shaders/mlt.xx
-              ${CMAKE_SOURCE_DIR}/../HydraAPI/bin2/shaders/screen.xx
-              ${CMAKE_SOURCE_DIR}/../HydraAPI/bin2/shaders/sort.xx
-              ${CMAKE_SOURCE_DIR}/../HydraAPI/bin2/shaders/trace.xx
+              ${CMAKE_SOURCE_DIR}/hydra_drv/shaders/image.xx
+              ${CMAKE_SOURCE_DIR}/hydra_drv/shaders/light.xx
+              ${CMAKE_SOURCE_DIR}/hydra_drv/shaders/material.xx
+              ${CMAKE_SOURCE_DIR}/hydra_drv/shaders/mlt.xx
+              ${CMAKE_SOURCE_DIR}/hydra_drv/shaders/screen.xx
+              ${CMAKE_SOURCE_DIR}/hydra_drv/shaders/sort.xx
+              ${CMAKE_SOURCE_DIR}/hydra_drv/shaders/trace.xx
         DESTINATION hydra/shaders)
 
 install(CODE "FILE(MAKE_DIRECTORY \${ENV}\${CMAKE_INSTALL_PREFIX}/hydra/shadercache)")
