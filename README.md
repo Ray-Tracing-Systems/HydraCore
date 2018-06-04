@@ -36,7 +36,7 @@ Or to install the renderer core on Linux:
 1. Clone HydraAPI repo is some folder (for example 'myfolder/HydraAPI'). 
 2. Build HydraAPI with Cmake.
 3. Clone HydraCore repo in the same folder (to form 'myfolder/HydraCore').
-4. Use the following command to build and install HydraCore (for example from 'myfolder/HydraCore/build') 
+4. Use the following command to build and install HydraCore (for example from 'myfolder/HydraCore/build')   
 cmake -DCMAKE_INSTALL_PREFIX=/home/YourUserName .. && make all install
 
 
@@ -54,7 +54,7 @@ HydraCore uses MIT licence itself, however it depends on the other software as f
 * 09 - glfw BSD-like license (glfw is used in form of binaries only for demonstration purposes).
 
 Most of them are simple MIT-like-licences without any serious restrictions. 
-So in general there should be no problem to use HydraCore in your open source or commertial projects. 
+So in general there should be no problem to use HydraCore in your open source or commercial projects. 
 
 However if you find that for some reason you can't use one of these components, please let us know!
 Most of these components can be replaced.
