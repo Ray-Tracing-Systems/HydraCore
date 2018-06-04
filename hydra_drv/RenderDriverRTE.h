@@ -148,6 +148,10 @@ protected:
     float nearPlane;
     float farPlane;
 
+    float4x4 mProj;
+    float4x4 mWorldView;
+    bool     mUseMatrices;
+
   } m_camera;
 
   int   m_width;

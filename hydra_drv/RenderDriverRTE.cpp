@@ -1001,36 +1001,65 @@ bool RenderDriverRTE::UpdateCamera(pugi::xml_node a_camNode)
   if (a_camNode == nullptr)
     return true;
 
-  const wchar_t* camPosStr = a_camNode.child(L"position").text().as_string();
-  const wchar_t* camLAtStr = a_camNode.child(L"look_at").text().as_string();
-  const wchar_t* camUpStr = a_camNode.child(L"up").text().as_string();
-  const wchar_t* testStr = a_camNode.child(L"test").text().as_string();
+  m_camera.mUseMatrices = false;
 
-  if (!a_camNode.child(L"fov").text().empty())
-    m_camera.fov = a_camNode.child(L"fov").text().as_float();
-
-  if (!a_camNode.child(L"nearClipPlane").text().empty())
-    m_camera.nearPlane = a_camNode.child(L"nearClipPlane").text().as_float();
-
-  if (!a_camNode.child(L"farClipPlane").text().empty())
-    m_camera.farPlane = a_camNode.child(L"farClipPlane").text().as_float();
-
-  if (std::wstring(camPosStr) != L"")
+  if (std::wstring(a_camNode.attribute(L"type").as_string()) == L"two_matrices")
+  //if(false)
   {
-    std::wstringstream input(camPosStr);
-    input >> m_camera.pos.x >> m_camera.pos.y >> m_camera.pos.z;
+    const wchar_t* m1 = a_camNode.child(L"mWorldView").text().as_string();
+    const wchar_t* m2 = a_camNode.child(L"mProj").text().as_string();
+
+    float mWorldView[16];
+    float mProj[16];
+
+    std::wstringstream str1(m1), str2(m2);
+    for (int i = 0; i < 16; i++)
+    {
+      str1 >> mWorldView[i];
+      str2 >> mProj[i];
+    }
+
+    m_camera.mProj        = float4x4(mProj);
+    m_camera.mWorldView   = float4x4(mWorldView);
+    m_camera.mUseMatrices = true;
+
+    // restore FOV from projection matrix
+    //
+    m_camera.fov = 2.0f*atan(1.0f/m_camera.mProj.M(1, 1))*(180.f/M_PI);
   }
-
-  if (std::wstring(camLAtStr) != L"")
+  else
   {
-    std::wstringstream input(camLAtStr);
-    input >> m_camera.lookAt.x >> m_camera.lookAt.y >> m_camera.lookAt.z;
-  }
+    const wchar_t* camPosStr = a_camNode.child(L"position").text().as_string();
+    const wchar_t* camLAtStr = a_camNode.child(L"look_at").text().as_string();
+    const wchar_t* camUpStr = a_camNode.child(L"up").text().as_string();
+    const wchar_t* testStr = a_camNode.child(L"test").text().as_string();
 
-  if (std::wstring(camUpStr) != L"")
-  {
-    std::wstringstream input(camUpStr);
-    input >> m_camera.up.x >> m_camera.up.y >> m_camera.up.z;
+    if (!a_camNode.child(L"fov").text().empty())
+      m_camera.fov = a_camNode.child(L"fov").text().as_float();
+
+    if (!a_camNode.child(L"nearClipPlane").text().empty())
+      m_camera.nearPlane = a_camNode.child(L"nearClipPlane").text().as_float();
+
+    if (!a_camNode.child(L"farClipPlane").text().empty())
+      m_camera.farPlane = a_camNode.child(L"farClipPlane").text().as_float();
+
+    if (std::wstring(camPosStr) != L"")
+    {
+      std::wstringstream input(camPosStr);
+      input >> m_camera.pos.x >> m_camera.pos.y >> m_camera.pos.z;
+    }
+
+    if (std::wstring(camLAtStr) != L"")
+    {
+      std::wstringstream input(camLAtStr);
+      input >> m_camera.lookAt.x >> m_camera.lookAt.y >> m_camera.lookAt.z;
+    }
+
+    if (std::wstring(camUpStr) != L"")
+    {
+      std::wstringstream input(camUpStr);
+      input >> m_camera.up.x >> m_camera.up.y >> m_camera.up.z;
+    }
   }
 
   auto vars = m_pHWLayer->GetAllFlagsAndVars();
@@ -1075,8 +1104,18 @@ void RenderDriverRTE::CalcCameraMatrices(float4x4* a_pModelViewMatrixInv, float4
 {
   const float aspect = float(m_width) / float(m_height);
 
-  float4x4 projTransposed      = projectionMatrixTransposed(m_camera.fov, aspect, m_camera.nearPlane, m_camera.farPlane);
-  float4x4 worldViewTransposed = lookAtTransposed(m_camera.pos, m_camera.lookAt, m_camera.up);
+  float4x4 projTransposed, worldViewTransposed;
+
+  if (m_camera.mUseMatrices)
+  {
+    projTransposed      = transpose(m_camera.mProj);
+    worldViewTransposed = transpose(m_camera.mWorldView);
+  }
+  else
+  {
+    projTransposed      = projectionMatrixTransposed(m_camera.fov, aspect, m_camera.nearPlane, m_camera.farPlane);
+    worldViewTransposed = lookAtTransposed(m_camera.pos, m_camera.lookAt, m_camera.up);
+  }
 
   (*a_pModelViewMatrixInv)     = transpose(inverse4x4(worldViewTransposed));
   (*a_projMatrixInv)           = transpose(inverse4x4(projTransposed));
