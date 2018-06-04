@@ -32,6 +32,14 @@ Linux:
 8. If you want to fly around scene set 'm_screen.m_cpuFrameBuffer = false;' to enable gpu frame buffer.
 9. Press 'P' for Path Tracing, 'L' for light tracing and 'B' for IBPT.
 
+Or to install the renderer core on Linux:
+1. Clone HydraAPI repo is some folder (for example 'myfolder/HydraAPI'). 
+2. Build HydraAPI with Cmake.
+3. Clone HydraCore repo in the same folder (to form 'myfolder/HydraCore').
+4. Use the following command to build and install HydraCore (for example from 'myfolder/HydraCore/build') 
+cmake -DCMAKE_INSTALL_PREFIX=/home/YourUserName .. && make all install
+
+
 # Licence and dependency
 
 HydraCore uses MIT licence itself, however it depends on the other software as follows (see doc/licence directory):

@@ -40,7 +40,7 @@ endif()
 
 link_directories(${CMAKE_SOURCE_DIR}/../HydraAPI/bin/ ${CMAKE_SOURCE_DIR}/LIBRARY/lib_x64_linux/)
 
-add_executable(main ${SOURCE_FILES})
+add_executable(hydra ${SOURCE_FILES})
 
 
 MESSAGE(WARNING "CMAKE_SOURCE_DIR: " ${CMAKE_SOURCE_DIR} )
@@ -52,8 +52,8 @@ if(WIN32)
     #add_definitions(-DNEED_DIR_CHANGE)
     #target_link_libraries(main LINK_PUBLIC ${OPENGL_gl_LIBRARY} hydra_api glfw3dll )
 else()
-    target_compile_options(main PRIVATE -fpermissive -Wnarrowing)
-    target_link_libraries(main LINK_PUBLIC
+    target_compile_options(hydra PRIVATE -fpermissive -Wnarrowing)
+    target_link_libraries(hydra LINK_PUBLIC
             hydra_drv
             hydrabvhbuilder embree sys tasking simd lexers
             vsgl3
@@ -71,3 +71,19 @@ endif()
 
 include_directories(${ADDITIONAL_INCLUDE_DIRS})
 
+
+install(TARGETS hydra DESTINATION hydra)
+
+install(FILES ${CMAKE_SOURCE_DIR}/hydra_drv/cfetch.h
+              ${CMAKE_SOURCE_DIR}/hydra_drv/cglobals.h
+              ${CMAKE_SOURCE_DIR}/hydra_drv/shaders/texproc.cl
+              ${CMAKE_SOURCE_DIR}/hydra_drv/shaders/image.xx
+              ${CMAKE_SOURCE_DIR}/hydra_drv/shaders/light.xx
+              ${CMAKE_SOURCE_DIR}/hydra_drv/shaders/material.xx
+              ${CMAKE_SOURCE_DIR}/hydra_drv/shaders/mlt.xx
+              ${CMAKE_SOURCE_DIR}/hydra_drv/shaders/screen.xx
+              ${CMAKE_SOURCE_DIR}/hydra_drv/shaders/sort.xx
+              ${CMAKE_SOURCE_DIR}/hydra_drv/shaders/trace.xx
+        DESTINATION hydra/shaders)
+
+install(CODE "FILE(MAKE_DIRECTORY \${ENV}\${CMAKE_INSTALL_PREFIX}/hydra/shadercache)")
