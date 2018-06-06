@@ -468,7 +468,7 @@ void FitTextureRes(std::vector<HRTexResInfo>& a_texuresInfo, size_t in_memToFit,
   const int maxItrer = a_texuresInfo.size()*3; // max mip level = 4, so 3 times resize for each texture
   int iterNum = 0;
 
-  while (memCommon > in_memToFit || memBump > in_memToFitBump || iterNum > maxItrer)
+  while(true)
   {
     int resizedId2 = -1;
     int resizedId = ResizeMostHeavyTexture(a_texuresInfo, false);
@@ -477,14 +477,13 @@ void FitTextureRes(std::vector<HRTexResInfo>& a_texuresInfo, size_t in_memToFit,
       if (!a_texuresInfo[resizedId].usedAsBump && memBump > in_memToFitBump)
         resizedId2 = ResizeMostHeavyTexture(a_texuresInfo, true);
     }
+    else if(memBump > in_memToFitBump)
+      resizedId2 = ResizeMostHeavyTexture(a_texuresInfo, true);
 
-    if (resizedId == -1 && resizedId2 == -1)               // can not resize anymore, sorry ... 
-      break;
+    const bool commonOk = (memCommon <= in_memToFit)     || resizedId == -1;
+    const bool auxOk    = (memBump   <= in_memToFitBump) || resizedId2 == -1;
 
-    if (memCommon <= in_memToFit && resizedId2 == -1)      // can not resize bump textures, but ok with common textures
-      break;
-
-    if (memBump <= in_memToFitBump && resizedId == -1)     // can not resize common textures, but ok with bump 
+    if ((commonOk && auxOk) || iterNum > maxItrer)
       break;
 
     std::tie(memCommon, memBump) = EstimateMemNeeded(a_texuresInfo);
@@ -508,7 +507,6 @@ HRDriverAllocInfo RenderDriverRTE::AllocAll(HRDriverAllocInfo a_info)
   const size_t approxSizeOfLight    = sizeof(PlainLight)    * 4;
 
   m_allTexInfo.clear(); 
-  m_allTexInfo.reserve(a_info.imgNum);
 
   if (a_info.imgResInfoArray != nullptr)
   {
@@ -522,16 +520,29 @@ HRDriverAllocInfo RenderDriverRTE::AllocAll(HRDriverAllocInfo a_info)
         allTexInfoVec.push_back(info);
     }
 
-    const int64_t geomMem = int64_t( std::min(size_t(a_info.geomMem), maxBufferSize));
-    const int64_t memRest = std::max(int64_t(freeMem) - geomMem - int64_t(64 * MB), int64_t(0));
- 
-    const int64_t memForTex  = std::min(std::min(memRest, int64_t(maxBufferSize)), a_info.imgMem + int64_t(16*MB));
-    const int64_t memRest2   = std::max(int64_t(freeMem) - geomMem - memForTex, int64_t(0));
-    const int64_t memForTex2 = std::min(std::min(memRest2, a_info.imgMemAux + int64_t(16 * MB)), int64_t(maxBufferSize));
+    const int64_t geomMem      = int64_t( std::min(size_t(a_info.geomMem), maxBufferSize));
+    const double perCentCommon = double(a_info.imgMem)    / double(a_info.imgMemAux + a_info.imgMem);
+    const double perCentAux    = double(a_info.imgMemAux) / double(a_info.imgMemAux + a_info.imgMem);
 
-    FitTextureRes(allTexInfoVec, size_t(memForTex) - 1*MB, size_t(memForTex2) - 1*MB);
-    for (const auto& info : allTexInfoVec)
+    int64_t memRestTotal = std::max(int64_t(freeMem) - geomMem, int64_t(0));
+    int64_t memRest      = int64_t(perCentCommon*double(memRestTotal)) - 1*MB;
+    int64_t memRest2     = int64_t(perCentAux*double(memRestTotal)) - 1*MB;
+ 
+    if (memRest <= int64_t(1*MB))
+      memRest = 16 * MB;
+
+    if (memRest2 <= int64_t(1*MB))
+      memRest2 = 16 * MB;
+
+    const int64_t memForTex    = std::min(std::min(memRest,  int64_t(maxBufferSize)), a_info.imgMem    + int64_t(16*MB));
+    const int64_t memForTex2   = std::min(std::min(memRest2, int64_t(maxBufferSize)), a_info.imgMemAux + int64_t(16*MB));
+
+    FitTextureRes(allTexInfoVec, size_t(memForTex), size_t(memForTex2));
+    for (auto info : allTexInfoVec)  
+    {
       m_allTexInfo[info.id] = info;
+      std::cout << info.id << ": " << info.aw << " " << info.ah << std::endl;  
+    }
   }
 
   size_t auxMemGeom   = 0, auxMemTex = 64 * MB;
