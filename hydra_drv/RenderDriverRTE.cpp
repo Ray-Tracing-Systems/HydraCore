@@ -468,6 +468,9 @@ void FitTextureRes(std::vector<HRTexResInfo>& a_texuresInfo, size_t in_memToFit,
   const int maxItrer = a_texuresInfo.size()*3; // max mip level = 4, so 3 times resize for each texture
   int iterNum = 0;
 
+  if (memCommon <= in_memToFit && memBump <= in_memToFitBump)
+    return;
+
   while(true)
   {
     int resizedId2 = -1;
