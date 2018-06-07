@@ -271,13 +271,36 @@ void IHWLayer::SetAllPODLights(PlainLight* a_lights2, size_t a_number)
     }
   }
 
-  // #TODO: find suns and put their id to special place in engine globals
+  // #TODO: find suns and put them to special place in engine globals
   //
+  int sunNumber = 0;
+  for (int sunId = 0; sunId < MAX_SUN_NUM; sunId++)
+  {
+    int sunCurrOffset = -1;
+    for (int i = 0; i < a_number; i++)
+    {
+      const int*   idata = (const int*)(&a_lights2[i].data[0]);
+      const float* fdata =              &a_lights2[i].data[0];
+      if (idata[PLIGHT_TYPE] == PLAIN_LIGHT_TYPE_DIRECT && fdata[DIRECT_LIGHT_SSOFTNESS] > 1e-6f)
+      {
+        sunCurrOffset = i;
+        break;
+      }
+    }
+
+    if (sunCurrOffset >= 0)
+    {
+      m_globsBuffHeader.suns[sunId] = a_lights2[sunCurrOffset];
+      sunNumber++;
+    }
+    else
+      break;
+  }
 
   m_globsBuffHeader.lightsSize = int(a_number) * sizeof(PlainLight) / sizeof(int);
   m_globsBuffHeader.skyLightId = skyLightOffset;
   m_globsBuffHeader.lightsNum  = int(a_number);
-  m_globsBuffHeader.sunNumber  = 0;
+  m_globsBuffHeader.sunNumber  = sunNumber;
 
 }
 
