@@ -632,7 +632,7 @@ static inline float phongGlosiness(__global const PlainMaterial* a_pMat, const f
     //const float3 glossColor = sample2DExt(texId.y, a_texCoord, (__global const int4*)a_pMat, a_tex, a_globals, a_ptList);
     const float  glossMult  = a_pMat->data[PHONG_GLOSINESS_OFFSET];
     const float  glosiness  = clamp(glossMult*maxcomp(glossColor), 0.0f, 1.0f);
-    return glosiness; //  cosPowerFromGlosiness(glosiness);
+    return glosiness; 
   }
   else
     return a_pMat->data[PHONG_GLOSINESS_OFFSET];

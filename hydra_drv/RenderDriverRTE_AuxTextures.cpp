@@ -92,16 +92,44 @@ const uchar4* RenderDriverRTE::GetAuxNormalMapFromDisaplacement(std::vector<ucha
   (*pW) = header->x;
   (*pH) = header->y;
 
+  const uchar4* pBumpData = (const uchar4*)(header + 1);
+
+  std::vector<uchar4> dataConverted;
+  if (header->w == 16) // convert to 8 bit
+  {
+    dataConverted.resize(header->x*header->y);
+    const float4* dataIn  = (const float4*)(header + 1);
+    uchar4*       dataOut = dataConverted.data();
+    
+    const int totalSize = int(dataConverted.size());
+
+    #pragma omp parallel for
+    for (int i = 0; i < totalSize; i++)
+    {
+      const float4 pixIn  = dataIn[i];
+      const float4 pixOut = clamp(pixIn*255.0f, 0.0f, 255.0f);
+
+      uchar4 res;
+      res.x = (unsigned char)pixOut.x;
+      res.y = (unsigned char)pixOut.y;
+      res.z = (unsigned char)pixOut.z;
+      res.w = (unsigned char)pixOut.w;
+      dataOut[i] = res;
+    }
+
+    pBumpData = dataConverted.data();
+  }
+
   if (btype == L"height_bump")
   {
     const int  flags     = materialGetFlags(&mat);
     const bool invHeight = (flags & PLAIN_MATERIAL_INVERT_HEIGHT) != 0;
 
     auto params = BumpAmtAndLvl(a_materialNode);
-    normals  = m_pHWLayer->NormalMapFromDisplacement(header->x, header->y, (const uchar4*)(header + 1), params.x, invHeight, params.y);
-    pNormals = &normals[0];
+    normals     = m_pHWLayer->NormalMapFromDisplacement(header->x, header->y, pBumpData, params.x, invHeight, params.y);
+    pNormals    = &normals[0];
   }
-  else if (btype == L"normal_bump")
+  else if (btype == L"normal_bump") // #TODO: process (header->w == 16) case ... 
   {
     pNormals = (const uchar4*)(header + 1);
   }
