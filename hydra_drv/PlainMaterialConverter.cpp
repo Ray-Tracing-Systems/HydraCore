@@ -828,6 +828,7 @@ std::shared_ptr<IMaterial> DiffuseAndTranslucentBlendMaterialFromHydraMtl(const 
 
 	if (length(colorD) > 1e-5f && length(colorT) > 1e-5f)
 	{
+
     std::shared_ptr<IMaterial> pDiff  = DiffuseMaterialFromHydraMtl(a_node);
     std::shared_ptr<IMaterial> pTrans = TranslucentMaterialFromHydraMtl(a_node, ttexId, sampler);
     
@@ -838,9 +839,13 @@ std::shared_ptr<IMaterial> DiffuseAndTranslucentBlendMaterialFromHydraMtl(const 
     SWTexSampler sampler2 = sampler;
     sampler2.texId        = INVALID_TEXTURE;
 
-    std::shared_ptr<BlendMaskMaterial> pResult = std::make_shared<BlendMaskMaterial>(pTrans, pDiff, make_float3(0.5f,0.5f,0.5f), INVALID_TEXTURE, sampler, 
-                                                                                     fresnelBlend, true, reflExtrusion, fresnelIOR);
+    // std::shared_ptr<BlendMaskMaterial> pResult = std::make_shared<BlendMaskMaterial>(pTrans, pDiff, make_float3(0.5f, 0.5f, 0.5f), INVALID_TEXTURE, sampler,
+    //                                                                                  fresnelBlend, true, reflExtrusion, fresnelIOR);
     
+
+    std::shared_ptr<BlendMaskMaterial> pResult = std::make_shared<BlendMaskMaterial>(pTrans, pDiff, colorT, ttexId, sampler,
+                                                                                     fresnelBlend, true, reflExtrusion, fresnelIOR);
+
     return pResult;
 	}
 	else if (length(colorT) > 1e-5f)
