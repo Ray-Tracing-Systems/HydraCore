@@ -282,7 +282,7 @@ void GPUOCLLayer::UpdateVarsOnGPU()
   memcpy(m_globsBuffHeader.varsI, m_vars.m_varsI, sizeof(int)*GMAXVARS);
   memcpy(m_globsBuffHeader.varsF, m_vars.m_varsF, sizeof(float)*GMAXVARS);
   m_globsBuffHeader.g_flags = m_vars.m_flags;
-  CHECK_CL(clEnqueueWriteBuffer(m_globals.cmdQueue, m_scene.allGlobsData, CL_FALSE, 0, sizeof(EngineGlobals), &m_globsBuffHeader, 0, NULL, NULL));  // put m_globsBuffHeader to the beggining of the buffer
+  CHECK_CL(clEnqueueWriteBuffer(m_globals.cmdQueue, m_scene.allGlobsData, CL_TRUE, 0, sizeof(EngineGlobals), &m_globsBuffHeader, 0, NULL, NULL));  // put m_globsBuffHeader to the beggining of the buffer
 }
 
 void GPUOCLLayer::PrepareEngineGlobals()
@@ -333,7 +333,7 @@ void GPUOCLLayer::UpdateConstants()
   const size_t constantsSize = sizeof(EngineGlobals);
   int* pbuff = &m_cdataPrepared[0];
   memcpy(pbuff, &m_globsBuffHeader, constantsSize);
-  CHECK_CL(clEnqueueWriteBuffer(m_globals.cmdQueue, m_scene.allGlobsData, CL_TRUE, 0, constantsSize, &m_cdataPrepared[0], 0, NULL, NULL));
+  CHECK_CL(clEnqueueWriteBuffer(m_globals.cmdQueue, m_scene.allGlobsData, CL_FALSE, 0, constantsSize, &m_cdataPrepared[0], 0, NULL, NULL));
 }
 
 void GPUOCLLayer::SetAllFlagsAndVars(const AllRenderVarialbes& a_vars)

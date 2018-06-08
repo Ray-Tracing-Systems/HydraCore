@@ -1488,8 +1488,9 @@ void RenderDriverRTE::Draw()
 
   const float aspect = float(m_width) / float(m_height);
   m_pHWLayer->SetCamMatrices(m_projInv.L(), m_modelViewInv.L(), mProj.L(), mWorldView.L(), aspect, DEG_TO_RAD*m_camera.fov);
-
   m_pHWLayer->PrepareEngineGlobals();
+
+  const int NUM_PASS = 1;
 
   // (2) run rendering pass (depends on enabled algorithm)
   //
@@ -1522,8 +1523,11 @@ void RenderDriverRTE::Draw()
     flagsAndVars.m_flags |= HRT_ENABLE_MMLT;
     m_pHWLayer->SetAllFlagsAndVars(flagsAndVars);
 
-    m_pHWLayer->BeginTracingPass();
-    m_pHWLayer->EndTracingPass();
+    for (int i = 0; i < NUM_PASS; i++)
+    {
+      m_pHWLayer->BeginTracingPass();
+      m_pHWLayer->EndTracingPass();
+    }
 
     // std::cout << "MMLT pass" << std::endl;
   }
@@ -1555,34 +1559,40 @@ void RenderDriverRTE::Draw()
 
     if (m_useIBPT)
     {
-      // LT PASS
-      //
-      auto flagsAndVars = m_pHWLayer->GetAllFlagsAndVars();
-      flagsAndVars.m_flags &= (~HRT_FORWARD_TRACING);
-      flagsAndVars.m_flags &= (~HRT_DRAW_LIGHT_LT);
-      flagsAndVars.m_flags |= HRT_UNIFIED_IMAGE_SAMPLING;
-      flagsAndVars.m_flags |= HRT_FORWARD_TRACING;
-      flagsAndVars.m_flags |= HRT_3WAY_MIS_WEIGHTS;
+      for (int i = 0; i < NUM_PASS; i++)
+      {
+        // LT PASS
+        //
+        auto flagsAndVars = m_pHWLayer->GetAllFlagsAndVars();
+        flagsAndVars.m_flags &= (~HRT_FORWARD_TRACING);
+        flagsAndVars.m_flags &= (~HRT_DRAW_LIGHT_LT);
+        flagsAndVars.m_flags |= HRT_UNIFIED_IMAGE_SAMPLING;
+        flagsAndVars.m_flags |= HRT_FORWARD_TRACING;
+        flagsAndVars.m_flags |= HRT_3WAY_MIS_WEIGHTS;
 
-      m_pHWLayer->SetAllFlagsAndVars(flagsAndVars);
-      m_pHWLayer->BeginTracingPass();
-      // m_pHWLayer->EndTracingPass(); //#NOTE: dont call EndTracingPass, because it will increase m_spp
+        m_pHWLayer->SetAllFlagsAndVars(flagsAndVars);
+        m_pHWLayer->BeginTracingPass();
+        // m_pHWLayer->EndTracingPass(); //#NOTE: dont call EndTracingPass, because it will increase m_spp
 
-      // PT PASS
-      //
-      flagsAndVars.m_flags &= (~HRT_FORWARD_TRACING);
-      flagsAndVars.m_flags &= (~HRT_DRAW_LIGHT_LT);
-      flagsAndVars.m_flags |= HRT_UNIFIED_IMAGE_SAMPLING;
-      flagsAndVars.m_flags |= HRT_3WAY_MIS_WEIGHTS;
+        // PT PASS
+        //
+        flagsAndVars.m_flags &= (~HRT_FORWARD_TRACING);
+        flagsAndVars.m_flags &= (~HRT_DRAW_LIGHT_LT);
+        flagsAndVars.m_flags |= HRT_UNIFIED_IMAGE_SAMPLING;
+        flagsAndVars.m_flags |= HRT_3WAY_MIS_WEIGHTS;
 
-      m_pHWLayer->SetAllFlagsAndVars(flagsAndVars);
-      m_pHWLayer->BeginTracingPass();
-      m_pHWLayer->EndTracingPass();
+        m_pHWLayer->SetAllFlagsAndVars(flagsAndVars);
+        m_pHWLayer->BeginTracingPass();
+        m_pHWLayer->EndTracingPass();
+      }
     }
     else // run PT or LT depends on previous set 'HRT_FORWARD_TRACING' flag
     {
-      m_pHWLayer->BeginTracingPass();
-      m_pHWLayer->EndTracingPass();
+      for (int i = 0; i < NUM_PASS; i++)
+      {
+        m_pHWLayer->BeginTracingPass();
+        m_pHWLayer->EndTracingPass();
+      }
     }
 
     //imageB to imageA contribution
@@ -1602,7 +1612,7 @@ void RenderDriverRTE::Draw()
         m_pHWLayer->ContribToExternalImageAccumulator(m_pAccumImage);
     }
 
-    m_drawPassNumber++;
+    m_drawPassNumber += NUM_PASS;
   }
   else // ray tracing and show normals
   {

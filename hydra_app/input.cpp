@@ -3,7 +3,7 @@
 
 Input::Input()
 {
-  noWindow      = false;           ///< run 'console_main', else run 'window_main'
+  //noWindow      = false;           ///< run 'console_main', else run 'window_main'
   inLibraryPath = "tests/test_42"; ///< cornell box with teapot 
   //inLibraryPath = "tests/test_01"; ///< cornell box with sphere
   //inLibraryPath = "tests/test_223_small"; ///< cornell box with mirror glossy back wall
@@ -12,15 +12,11 @@ Input::Input()
   //inLibraryPath = "D:/[archive]/2017/HydraAPP/hydra_app/tests/hydra_benchmark_07";
   //inLibraryPath = "D:/[archive]/2017/HydraOldRepo/HydraAPP/hydra_app/tests/hydra_benchmark_07";
 
-  //inLibraryPath = "D:/Downloads/hydra_scene_car_ao";
   //inLibraryPath = "D:/PROG/HydraAPI/main/tests/test_97";  
   //inLibraryPath = "D:/PROG/HydraAPI/main/tests_f/test_163";
 
   //inLibraryPath = "C:/[Hydra]/pluginFiles/scenelib";
-  //inLibraryPath = "D:/temp/01_correct/";
-  //inLibraryPath = "D:/temp/02_bug/";
-  //inLibraryPath = "/tmp/hydra_scene";
-  //inLibraryPath = "D:/Downloads/umm_000066/scenelib";
+  //inLibraryPath = "D:/temp/scenelib/"; 
 
   inDevelopment = false;  ///< recompile shaders each time; note that nvidia have their own shader cache!
   inDeviceId    = 0;     ///< opencl device id

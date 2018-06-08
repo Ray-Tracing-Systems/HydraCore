@@ -380,6 +380,10 @@ __kernel void HitEnvOrLightKernel(__global const float4*    restrict in_rpos,
       }
       else if (((misPrev.isSpecular == 1) && (a_globals->g_flags & HRT_ENABLE_PT_CAUSTICS)) || (a_globals->g_flags & HRT_STUPID_PT_MODE))
         lightColor *= (1.0f / pdfW);
+
+      if ((a_globals->g_flags & HRT_3WAY_MIS_WEIGHTS) != 0) //#TODO: fix IBPT
+        lightColor = make_float3(0, 0, 0); 
+
       ///////////////////////////////////////////////////////////////////////////////////////////////////////////
 
       const float3 pathThroughput = to_float3(a_thoroughput[tid]);
