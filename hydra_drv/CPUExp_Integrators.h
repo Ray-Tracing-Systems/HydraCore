@@ -304,7 +304,14 @@ class IntegratorStupidPT : public IntegratorCommon
 {
 public:
 
-  IntegratorStupidPT(int w, int h, EngineGlobals* a_pGlobals) : IntegratorCommon(w, h, a_pGlobals, 0) {}
+  IntegratorStupidPT(int w, int h, EngineGlobals* a_pGlobals) : IntegratorCommon(w, h, a_pGlobals, 0) {  }
+  
+  void DoPass(std::vector<uint>& a_imageLDR) 
+  { 
+    m_pGlobals->g_flags |= HRT_STUPID_PT_MODE; 
+    IntegratorCommon::DoPass(a_imageLDR); 
+  }
+
   float3 PathTrace(float3 a_rpos, float3 a_rdir, MisData misPrev, int a_currDepth, uint flags);
 
   void SetMaxDepth(int a_depth) override { m_maxDepth = a_depth + 1; } // to have the same bounce number than MISPT
