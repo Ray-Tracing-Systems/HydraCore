@@ -834,23 +834,6 @@ __kernel void Shade(__global const float4*    restrict a_rpos,
   // (1) save shaded color 
   //
   out_color [tid] = to_float4(shadeColor, lightPickProb);
-
-  // // (2) signal that we shade from the ground for shadow matte case
-  // //
-  // {
-  //   int otherFlags = unpackRayFlags(flags);
-  //   if (cosThetaOutAux <= 0.0f)
-  //     otherFlags = otherFlags | RAY_SHADE_FROM_OTHER_SIDE;
-  //   else
-  //     otherFlags = otherFlags & (~RAY_SHADE_FROM_OTHER_SIDE);
-  // 
-  //   if (lightType(pLight) == PLAIN_LIGHT_TYPE_SKY_DOME)
-  //     otherFlags = otherFlags | RAY_SHADE_FROM_SKY_LIGHT;
-  //   else
-  //     otherFlags = otherFlags & (~RAY_SHADE_FROM_SKY_LIGHT);
-  // 
-  //   a_flags[tid] = packRayFlags(flags, otherFlags);
-  // }
 } 
 
 
@@ -981,15 +964,18 @@ __kernel void NextBounce(__global   float4*        restrict a_rpos,
       MaterialLeafSampleAndEvalBRDF(pHitMaterial, randsm, &sc, shadow, a_globals, in_texStorage1, in_texStorage2, &ptl,
                                     &brdfSample);
 
+      if (materialIsSkyPortal(pHitMaterial) && isEyeRay(flags))
+        brdfSample.color = make_float3(1, 1, 1);
+
       isThinGlass = isPureSpecular(brdfSample) && (rayBounceNum > 0) && !(a_globals->g_flags & HRT_ENABLE_PT_CAUSTICS) && materialIsThinGlass(pHitMaterial);
-	  //isThinGlass = isPureSpecular(brdfSample) && (rayBounceNum > 0) && materialIsThinGlass(pHitMaterial);
     }
 
     /////////////////////////////////////////////////////////////////////////////// end   sample material
   
+    const float clampMax    = materialIsSkyPortal(pHitMaterial) ? 100.0f : 1.0f;
     const float invPdf      = 1.0f / fmax(brdfSample.pdf, DEPSILON);
     const float cosTheta    = fabs(dot(brdfSample.direction, hitNorm));
-    outPathThroughput       = clamp(cosTheta*brdfSample.color*invPdf, 0.0f, 1.0f) / fmax(mixSelector.w, 0.01f); //#TODO: clamp is not correct actually ???
+    outPathThroughput       = clamp(cosTheta*brdfSample.color*invPdf, 0.0f, clampMax) / fmax(mixSelector.w, 0.025f); //#TODO: clamp is not correct actually ???
    
     // const int otherFlagsSMSK = unpackRayFlags(flags);
     // if ((materialGetType(pHitMaterial) == PLAIN_MAT_CLASS_SHADOW_MATTE) && (otherFlagsSMSK & RAY_SHADE_FROM_SKY_LIGHT)) // shadow matte hack to sample only top hemisphere

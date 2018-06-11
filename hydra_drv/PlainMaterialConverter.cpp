@@ -1344,8 +1344,14 @@ std::shared_ptr<IMaterial> CreateFromHydraMaterialXmlNode(pugi::xml_node a_node)
 
 std::shared_ptr<IMaterial> CreateSkyPortalMaterial(pugi::xml_node a_node)
 {
-  const bool visible = (a_node.attribute(L"visible").as_int() == 1);
-  return std::make_shared<SkyPortalMaterial>(float3(1,1,1), INVALID_TEXTURE, SWTexSampler(), visible);
+  const bool visible   = (a_node.attribute(L"visible").as_int() == 1);
+  const auto colorNode = a_node.child(L"emission").child(L"color");
+  const auto multNode  = a_node.child(L"emission").child(L"multiplier");
+
+  float mult   = (multNode == nullptr) ? 1.0f : multNode.attribute(L"val").as_float();
+  float3 color = HydraXMLHelpers::ReadFloat3(colorNode.attribute(L"val"));
+
+  return std::make_shared<SkyPortalMaterial>(mult*color , INVALID_TEXTURE, SWTexSampler(), visible);
 }
 
 
@@ -1403,7 +1409,7 @@ std::shared_ptr<IMaterial> CreateMaterialFromXmlNode(pugi::xml_node a_node, Rend
 
     // Read Emission
     // 
-    if (length(colorE) > 1e-5f && pResult != pMaterialE)
+    if (length(colorE) > 1e-5f && pResult != pMaterialE && ((pResult->GetFlags() & PLAIN_MATERIAL_SKIP_SKY_PORTAL) == 0) )
     {
       const bool visible = (a_node.attribute(L"visible").as_int() == 1); // spetial flag for invisiable lights
       if (!visible && a_node.attribute(L"light_id") != nullptr)

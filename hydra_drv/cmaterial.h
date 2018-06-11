@@ -432,7 +432,7 @@ static inline void ThinglassSampleAndEvalBRDF(__global const PlainMaterial* a_pM
 
   a_out->direction    = ray_dir;
   a_out->pdf          = pdf;
-  a_out->color        = fVal*clamp(thinglassGetColor(a_pMat)*texColor, 0.0f, 1.0f)*cosMult;
+  a_out->color        = fVal*thinglassGetColor(a_pMat)*texColor*cosMult;
   if (cosThetaOut >= -1e-6f) // refraction/transparency must be under surface!
     a_out->color = make_float3(0, 0, 0);
 
