@@ -972,7 +972,7 @@ __kernel void NextBounce(__global   float4*        restrict a_rpos,
 
     /////////////////////////////////////////////////////////////////////////////// end   sample material
   
-    const float clampMax    = materialIsSkyPortal(pHitMaterial) ? 100.0f : 1.0f;
+    const float clampMax    = materialIsSkyPortal(pHitMaterial) ? 10.0f : 1.0f;
     const float invPdf      = 1.0f / fmax(brdfSample.pdf, DEPSILON);
     const float cosTheta    = fabs(dot(brdfSample.direction, hitNorm));
     outPathThroughput       = clamp(cosTheta*brdfSample.color*invPdf, 0.0f, clampMax) / fmax(mixSelector.w, 0.025f); //#TODO: clamp is not correct actually ???

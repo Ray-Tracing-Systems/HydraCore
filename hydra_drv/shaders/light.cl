@@ -224,7 +224,9 @@ __kernel void LightSample(__global const float4*  restrict a_rpos,
   out_lPP  [tid] = lightPickProb;
   out_lcos [tid] = explicitSam.cosAtLight;
 
-  const float lightShadowDistScale = (as_int(pLight->data[PLIGHT_TYPE]) == PLAIN_LIGHT_TYPE_SKY_DOME) ? 2.0f : 0.995f;
+  float lightShadowDistScale = (as_int(pLight->data[PLIGHT_TYPE]) == PLAIN_LIGHT_TYPE_SKY_DOME) ? 2.0f : 0.995f;
+  if (as_int(pLight->data[PLIGHT_FLAGS]) & AREA_LIGHT_SKY_PORTAL)
+    lightShadowDistScale = 1.1f;
 
   // (2) generate shadow ray
   //
