@@ -99,7 +99,9 @@ public:
   void   MLT_DoPass();
 
   void RecompileProcTexShaders(const char* a_shaderPath);
-
+  
+  float GetSPP() const override {return m_spp;}
+  
 protected:
 
   void CreateBuffersGeom(InputGeom a_input, cl_mem_flags a_flags);

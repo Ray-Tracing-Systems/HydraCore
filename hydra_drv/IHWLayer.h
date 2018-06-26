@@ -209,6 +209,8 @@ public:
 
   virtual void RecompileProcTexShaders(const char* a_shaderPath) {}
 
+  virtual float GetSPP() const {return 0.0f;}
+  
 protected:
 
   virtual void renderSubPixelData(const char* a_dataName, const std::vector<ushort2>& a_pixels, int spp, float4* a_pixValues, float4* a_subPixValues) {}
