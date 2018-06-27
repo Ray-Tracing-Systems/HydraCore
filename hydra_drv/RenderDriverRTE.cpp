@@ -1811,7 +1811,7 @@ HRRenderUpdateInfo RenderDriverRTE::HaveUpdateNow(int a_maxRaysperPixel)
 
   const float spp = m_pHWLayer->GetSPP();
   
-  res.progress    = spp/float(a_maxRaysperPixel); 
+  res.progress    = spp/float(a_maxRaysperPixel);
   res.finalUpdate = (res.progress >= 0.995f);
   // std::cout << "progress = " << res.progress << std::endl;
   

@@ -1653,7 +1653,7 @@ void GPUOCLLayer::EndTracingPass()
 
       auto precOld = std::cout.precision(2);
       std::cout << "spp =\t" << int(m_spp) << "\tspeed = " << halfIfIBPT * float(m_rays.MEGABLOCKSIZE) / (1e6f*time) << " M(samples)/s         \r";
-      
+      std::cout.flush();
       std::cout.precision(precOld);
     }
   }
