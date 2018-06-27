@@ -44,6 +44,7 @@ static void DispatchCommand(const char* message)
     std::string sessId  = "0";
     std::string messId  = "0";
     std::string pass_id = "0";
+    std::string stateFile = "";
 
     // read values
     {
@@ -69,6 +70,9 @@ static void DispatchCommand(const char* message)
 
         if (std::string(name) == "-pass_id")
           pass_id = value;
+  
+        if (std::string(name) == "-statefile")
+          g_input.inStateFile = value;
       }
 
       if (action == "start")
@@ -89,7 +93,9 @@ bool InitSceneLibAndRTE(HRCameraRef& a_camRef, HRSceneInstRef& a_scnRef, HRRende
 {
   hrErrorCallerPlace(L"InitSceneLibAndRTE");
 
-  const std::wstring libraryPath = s2ws(g_input.inLibraryPath);
+  const std::wstring libraryPath = (g_input.inStateFile == "") ? s2ws(g_input.inLibraryPath) : s2ws(g_input.inLibraryPath + "/" + g_input.inStateFile);
+  //const std::string libPathFinal = ws2s(libraryPath);
+  //std::cout << "InitSceneLibAndRTE: " << libPathFinal.c_str() << std::endl;
   
   int32_t stateId = hrSceneLibraryOpen(libraryPath.c_str(), HR_OPEN_EXISTING);
   if (stateId < 0)

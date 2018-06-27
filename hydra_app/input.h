@@ -21,6 +21,7 @@ struct Input
   bool getGBufferBeforeRender;
 
   std::string   inLibraryPath;
+  std::string   inStateFile;
   std::string   outLDRImage;
   std::string   inLogDirCust;
   std::string   inSharedImageName;
