@@ -1089,6 +1089,8 @@ void GPUOCLLayer::ContribToExternalImageAccumulator(IHRSharedAccumImage* a_pImag
 
 void GPUOCLLayer::InitPathTracing(int seed)
 {
+  std::cout << "[cl_core]: InitRandomGen seed = " << seed << std::endl;
+  
   runKernel_InitRandomGen(m_rays.randGenState, m_rays.MEGABLOCKSIZE, seed);
   m_passNumber = 0;
   m_spp        = 0.0f;
