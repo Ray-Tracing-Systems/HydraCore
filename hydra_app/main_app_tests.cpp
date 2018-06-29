@@ -140,6 +140,7 @@ void tests_main(std::shared_ptr<IHRRenderDriver> a_pDetachedRenderDriverPointer)
       else
       {
         std::cout << "progress = " << std::fixed << 100.0f*info.progress << "%                        \r";
+        std::cout.flush();
       }
 
     } while (!finished);

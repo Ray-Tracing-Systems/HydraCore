@@ -118,8 +118,11 @@ int main(int argc, const char** argv)
 
   if (g_input.inLogDirCust != "")
   {
-    const std::string stdpath = g_input.inLogDirCust + "stdout.txt";
-    const std::string errpath = g_input.inLogDirCust + "stderr.txt";
+    std::stringstream devStr;
+    devStr << g_input.inDeviceId;
+    
+    const std::string stdpath = g_input.inLogDirCust + "stdout" + devStr.str() + ".txt";
+    const std::string errpath = g_input.inLogDirCust + "stderr" + devStr.str() + ".txt";
     
     std::cout << "[main]: redirect stdout to " << stdpath.c_str() << std::endl;
     std::cout << "[main]: redirect stderr to " << errpath.c_str() << std::endl;
@@ -164,7 +167,7 @@ int main(int argc, const char** argv)
 
         if (!externalImageIsOk)
         {
-          //std::cerr << "failed to attach to external image" << std::endl;
+          std::cerr << "failed to attach to external image" << std::endl;
           delete g_pExternalImage;
           g_pExternalImage = nullptr;
         }

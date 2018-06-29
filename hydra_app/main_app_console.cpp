@@ -131,12 +131,16 @@ bool InitSceneLibAndRTE(HRCameraRef& a_camRef, HRSceneInstRef& a_scnRef, HRRende
         if(std::wstring(node2.child(L"method_caustic").text().as_string()) != L"none")
           node2.child(L"method_caustic").text()   = L"mlt";
       }
-
+      
       if (g_input.runTests)
         node2.force_child(L"seed").text() = 777;
       else
-        node2.force_child(L"seed").text() = GetTickCount();
-
+      {
+        auto currtime = std::chrono::system_clock::now();
+        auto now_ms = std::chrono::time_point_cast<std::chrono::milliseconds>(currtime).time_since_epoch().count();
+        node2.force_child(L"seed").text() = int(now_ms & 0xEFFFFFFF);
+      }
+      
     }
     hrRenderClose(a_renderRef);
   }

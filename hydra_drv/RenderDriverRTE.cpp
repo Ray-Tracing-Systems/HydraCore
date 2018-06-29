@@ -22,6 +22,7 @@ extern bool g_exitDueToSamplesLimit;
 void UpdateProgress(const wchar_t* a_message, float a_progress)
 {
   fwprintf(stdout, L"%s: %.0f%%            \r", a_message, a_progress*100.0f);
+  fflush(stdout);
 }
 
 #ifndef WIN32
@@ -66,7 +67,8 @@ RenderDriverRTE::RenderDriverRTE(const wchar_t* a_options, int w, int h, int a_d
   m_useIBPT    = false;
   m_useMMLT    = false;
   m_ptInitDone = false;
-  m_legacy.m_lastSeed = GetTickCount();
+  m_legacy.m_lastSeed         = GetTickCount();
+  std::cout << "[main]::RenderDriverRTE(): SEED = " << m_legacy.m_lastSeed << std::endl;
   m_legacy.updateProgressCall = &UpdateProgress;
 
   m_auxImageNumber  = 0;

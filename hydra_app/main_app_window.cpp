@@ -283,14 +283,20 @@ static void Draw(void)
     if (saveImages > saveImageLast)
     {
       std::wstringstream fname1, fname2;
+      #ifdef WIN32
       fname1 << L"C:/[Hydra]/rendered_images/a_" << int(time) << L".png";
       fname2 << L"C:/[Hydra]/rendered_images/b_" << int(time) << L".hdr";
+      #else
+      fname1 << L"/home/frol/hydra/rendered_images/a_" << int(time) << L".png";
+      fname2 << L"/home/frol/hydra/rendered_images/b_" << int(time) << L".hdr";
+      #endif
       const std::wstring outStr1 = fname1.str();
       const std::wstring outStr2 = fname2.str();
       hrRenderSaveFrameBufferLDR(renderRef, outStr1.c_str());
       hrRenderSaveFrameBufferHDR(renderRef, outStr2.c_str());
       saveImageLast = saveImages;
       std::wcout << L"image " << outStr1.c_str() << L" saved " << std::endl;
+      std::wcout.flush();
     }
   }
 }
