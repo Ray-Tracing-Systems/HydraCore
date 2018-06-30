@@ -170,7 +170,12 @@ static void Draw(std::shared_ptr<IHRRenderDriver> a_pDetachedRenderDriverPointer
 
   if (g_firstCall)
   {
-    InitSceneLibAndRTE(camRef, scnRef, renderRef, a_pDetachedRenderDriverPointer);
+    if (!InitSceneLibAndRTE(camRef, scnRef, renderRef, a_pDetachedRenderDriverPointer))
+    {
+      std::cerr << "can not load scene library at " << g_input.inLibraryPath << std::endl;
+      exit(0);
+    }
+
     hrCommit(scnRef, renderRef, camRef);
     timer.start();
     g_firstCall = false;
