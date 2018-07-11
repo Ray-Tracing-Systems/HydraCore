@@ -29,7 +29,7 @@ void UpdateProgress(const wchar_t* a_message, float a_progress)
 extern "C" IBVHBuilder2* CreateBuilder2(char* cfg);
 #endif
 
-RenderDriverRTE::RenderDriverRTE(const wchar_t* a_options, int w, int h, int a_devId, int a_flags, IHRSharedAccumImage* a_sharedImage) : m_pBVH(nullptr), m_pHWLayer(nullptr),
+RenderDriverRTE::RenderDriverRTE(const wchar_t* a_options, int w, int h, int a_devId, int a_flags, IHRSharedAccumImage* a_sharedImage) : m_pBVH(nullptr), m_pHWLayer(nullptr), m_pSysMutex(nullptr),
                                                                                                                                          m_pTexStorage(nullptr), m_pTexStorageAux(nullptr), 
                                                                                                                                          m_pGeomStorage(nullptr), m_pMaterialStorage(nullptr), 
                                                                                                                                          m_pPdfStorage(nullptr), m_pAccumImage(nullptr), m_pAccumImageForGBuff(nullptr)
@@ -141,6 +141,8 @@ RenderDriverRTE::RenderDriverRTE(const wchar_t* a_options, int w, int h, int a_d
   m_boxModeOn             = false;
   m_boxModeMaxSamples     = 1000000.0f;
   m_boxModeContribSamples = 1000000.0f;
+  
+  m_pSysMutex = hr_create_system_mutex("hydrabvh");
 }
 
 bool RenderDriverRTE::UpdateSettings(pugi::xml_node a_settingsNode)
@@ -329,6 +331,12 @@ RenderDriverRTE::~RenderDriverRTE()
     m_pBVH = nullptr;
   }
 
+  if(m_pSysMutex != nullptr)
+  {
+    hr_free_system_mutex(m_pSysMutex);
+    m_pSysMutex = nullptr;
+  }
+  
   m_alreadyDeleted = true;
 }
 
@@ -1224,12 +1232,14 @@ size_t EstimateBVHSize(const ConvertionResult& a_bvh)
 }
 
 
-
 void RenderDriverRTE::EndScene() // #TODO: add dirty flags (?) to update only those things that were changed
 {
   if (m_pBVH == nullptr)
     return;
-
+  
+  if(m_pSysMutex != nullptr)
+    hr_lock_system_mutex(m_pSysMutex, 5000); // dont allow simultanoius bvh building in several processes
+  
   m_pBVH->CommitScene();
   
   if (m_useConvertedLayout)
@@ -1258,6 +1268,7 @@ void RenderDriverRTE::EndScene() // #TODO: add dirty flags (?) to update only th
     //DebugPrintBVHInfo(convertedData, "z_bvhinfo.txt");
 
     m_pBVH->ConvertUnmap();
+    
 
     for(int i=0;i<MAXBVHTREES;i++)
       m_alphaAuxBuffers.buf[i] = std::vector<uint2>();
@@ -1280,6 +1291,9 @@ void RenderDriverRTE::EndScene() // #TODO: add dirty flags (?) to update only th
   {
     m_pHWLayer->SetAllBVH4(ConvertionResult(), m_pBVH, 0); // set pointer to bvh builder to trace rays on the cpu
   }
+  
+  if(m_pSysMutex != nullptr)
+    hr_unlock_system_mutex(m_pSysMutex);
 
   m_pBVH->GetBounds(&m_sceneBoundingBoxMin.x, &m_sceneBoundingBoxMax.x);
 

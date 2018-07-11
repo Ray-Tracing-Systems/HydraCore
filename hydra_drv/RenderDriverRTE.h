@@ -158,8 +158,9 @@ protected:
   int   m_height;
   int   m_maxRaysPerPixel;
 
-  IBVHBuilder2* m_pBVH;
-  IHWLayer*     m_pHWLayer;
+  IBVHBuilder2*  m_pBVH;
+  IHWLayer*      m_pHWLayer;
+  HRSystemMutex* m_pSysMutex;
 
   IMemoryStorage* m_pTexStorage;
   IMemoryStorage* m_pTexStorageAux;
