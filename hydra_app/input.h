@@ -22,6 +22,7 @@ struct Input
   bool boxMode;
 
   std::string   inLibraryPath;
+  std::string   inTargetState;
   std::string   inStateFile;
   std::string   outLDRImage;
   std::string   inLogDirCust;

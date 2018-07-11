@@ -1840,6 +1840,11 @@ HRRenderUpdateInfo RenderDriverRTE::HaveUpdateNow(int a_maxRaysperPixel)
       res.finalUpdate = true;
   }
   
+  // std::cout << std::endl;
+  // std::cout << "m_boxModeOn             = " << m_boxModeOn << std::endl;
+  // std::cout << "m_boxModeContribSamples = " << m_boxModeContribSamples << std::endl;
+  // std::cout << "m_boxModeMaxSamples     = " << m_boxModeMaxSamples << std::endl;
+  
   return res;
 }
 

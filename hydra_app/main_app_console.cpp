@@ -238,8 +238,18 @@ static void Draw(std::shared_ptr<IHRRenderDriver> a_pDetachedRenderDriverPointer
 static void GetGBuffer(std::shared_ptr<IHRRenderDriver> a_pDetachedRenderDriverPointer)
 {
   hrErrorCallerPlace(L"GetGBuffer");
-
+  
   InitSceneLibAndRTE(camRef, scnRef, renderRef, a_pDetachedRenderDriverPointer);
+  
+  hrRenderOpen(renderRef, HR_OPEN_EXISTING); // #TODO: refector; this is needed here due to we update settings only once if g_firstCall == true
+  {
+    auto paramNode = hrRenderParamNode(renderRef);
+    paramNode.force_child(L"boxmode").text()        = g_input.boxMode ? 1 : 0;
+    paramNode.force_child(L"maxsamples").text()     = g_input.maxSamples;
+    paramNode.force_child(L"contribsamples").text() = g_input.maxSamplesContrib;
+  }
+  hrRenderClose(renderRef);
+  
   hrCommit(scnRef, renderRef, camRef);
   g_firstCall = false;
   

@@ -1,5 +1,6 @@
 #include "input.h"
 #include <time.h>
+#include <iostream>
 
 Input::Input()
 {
@@ -170,10 +171,17 @@ void Input::ParseCommandLineParams(const std::unordered_map<std::string, std::st
   ReadIntCmd(a_params,    "-maxsamples",       &maxSamples);
   ReadIntCmd(a_params,    "-contribsamples",   &maxSamplesContrib);
   
-  ReadStringCmd(a_params, "-inputlib",    &inLibraryPath);  
+  ReadStringCmd(a_params, "-inputlib",    &inLibraryPath);
+  ReadStringCmd(a_params, "-statefile",   &inTargetState);
+  
   ReadStringCmd(a_params, "-out",         &outLDRImage); 
   ReadStringCmd(a_params, "-logdir",      &inLogDirCust);
   ReadStringCmd(a_params, "-sharedimage", &inSharedImageName);
+  
+  if(inTargetState != "")
+    inLibraryPath = inLibraryPath + "/" + inTargetState;
 
+  //std::cout << "Input::ParseCommandLineParams, inLibraryPath = " << inLibraryPath.c_str() << std::endl;
+  //std::cout << "Input::ParseCommandLineParams, boxMode       = " << boxMode               << std::endl;
 }
 
