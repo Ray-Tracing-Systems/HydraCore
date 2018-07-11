@@ -137,8 +137,10 @@ RenderDriverRTE::RenderDriverRTE(const wchar_t* a_options, int w, int h, int a_d
   m_maxRaysPerPixel      = 1000000;
   m_shadowMatteBackTexId = INVALID_TEXTURE;
   m_shadowMatteBackGamma = 2.2f;
-  ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-  ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  
+  m_boxModeOn             = false;
+  m_boxModeMaxSamples     = 1000000.0f;
+  m_boxModeContribSamples = 1000000.0f;
 }
 
 bool RenderDriverRTE::UpdateSettings(pugi::xml_node a_settingsNode)
@@ -289,8 +291,19 @@ bool RenderDriverRTE::UpdateSettings(pugi::xml_node a_settingsNode)
   else
     vars.m_varsI[HRT_STORE_SHADOW_COLOR_W] = 0;
 
-  //vars.m_varsI[HRT_TRACE_DEPTH] = 2;
-
+  if(a_settingsNode.child(L"boxmode") != nullptr)
+  {
+    m_boxModeOn             = (a_settingsNode.child(L"boxmode").text().as_int() == 1);
+    m_boxModeMaxSamples     = a_settingsNode.child(L"maxsamples").text().as_float();
+    m_boxModeContribSamples = a_settingsNode.child(L"contribsamples").text().as_float();
+  }
+  else
+  {
+    m_boxModeOn             = false;
+    m_boxModeMaxSamples     = 1000000.0f;
+    m_boxModeContribSamples = 1000000.0f;
+  }
+  
   m_pHWLayer->SetAllFlagsAndVars(vars);
 
   return true;
@@ -1816,6 +1829,16 @@ HRRenderUpdateInfo RenderDriverRTE::HaveUpdateNow(int a_maxRaysperPixel)
   res.progress    = spp/float(a_maxRaysperPixel);
   res.finalUpdate = false; // (res.progress >= 1.5f);  //#TODO: this is due to the possibility of render to finish earlier than API get upgate from it
   // std::cout << "progress = " << res.progress << std::endl;
+  
+  float sppDone    = m_pHWLayer->GetSPPDone();
+  float sppContrib = m_pHWLayer->GetSPPContrib();
+  
+  if(m_boxModeOn)
+  {
+    res.progress  = sppContrib / m_boxModeContribSamples;
+    if(sppContrib > m_boxModeContribSamples || sppDone > m_boxModeMaxSamples)
+      res.finalUpdate = true;
+  }
   
   return res;
 }

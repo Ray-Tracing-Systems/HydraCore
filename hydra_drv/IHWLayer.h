@@ -209,7 +209,9 @@ public:
 
   virtual void RecompileProcTexShaders(const char* a_shaderPath) {}
 
-  virtual float GetSPP() const {return 0.0f;}
+  virtual float GetSPP       () const { return 0.0f;}
+  virtual float GetSPPDone   () const { return GetSPP(); }
+  virtual float GetSPPContrib() const { return GetSPP(); }
   
 protected:
 

@@ -361,7 +361,7 @@ enum FLAG_BITS{HRT_COMPUTE_SHADOWS                 = 1,
 enum VARIABLE_NAMES { // int vars
                       //
                       HRT_ENABLE_DOF               = 0,
-                      HRT_DEBUG_DRAW_LAYER         = 1,
+                      HRT_VAR_INT_DUMMY1           = 1,
                       HRT_FIRST_BOUNCE_STORE_CACHE = 2,
                       HRT_ENABLE_MRAYS_COUNTERS    = 3,
                       HRT_DEBUG_OUTPUT             = 4,
@@ -403,9 +403,9 @@ enum VARIABLE_FLOAT_NAMES{ // float vars
                            HRT_DOF_LENS_RADIUS                     = 0,
                            HRT_DOF_FOCAL_PLANE_DIST                = 1,
                            
-                           HRT_TILT_ROT_X                        = 2,
+                           HRT_TILT_ROT_X                          = 2,
                            HRT_TRACE_PROCEEDINGS_TRESHOLD          = 3, 
-                           HRT_TILT_ROT_Y                        = 4,
+                           HRT_TILT_ROT_Y                          = 4,
                            HRT_CAUSTIC_POWER_MULT                  = 5,
                            
                            HRT_IMAGE_GAMMA                         = 6,
@@ -438,10 +438,10 @@ enum VARIABLE_FLOAT_NAMES{ // float vars
                            HRT_ABLOW_OFFSET_Y                      = 28,
                            HRT_ABLOW_SCALE_X                       = 29,
                            HRT_ABLOW_SCALE_Y                       = 30,
-
-                           HRT_IMG_AVG_LUM                         = 31,
+  
+                           HRT_VAR_FLOAT_DUMMY31                   = 31,
                            HRT_MLT_PLARGE                          = 32,
-                           HRT_MLT_BKELEMEN                        = 33,
+                           HRT_VAR_FLOAT_DUMMY33                   = 33,
                            HRT_MLT_SCREEN_SCALE_X                  = 34,
                            HRT_MLT_SCREEN_SCALE_Y                  = 35,
                            HRT_BACK_TEXINPUT_GAMMA                 = 36,

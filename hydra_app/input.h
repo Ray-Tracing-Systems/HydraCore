@@ -19,6 +19,7 @@ struct Input
   bool cpuFB;
   bool inDevelopment;
   bool getGBufferBeforeRender;
+  bool boxMode;
 
   std::string   inLibraryPath;
   std::string   inStateFile;
@@ -32,6 +33,9 @@ struct Input
   int32_t     inDeviceId;
   int32_t     winWidth;
   int32_t     winHeight;
+  
+  int32_t     maxSamples;
+  int32_t     maxSamplesContrib;
 
   // mouse and keyboad/oher gui input
   //

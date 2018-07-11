@@ -100,7 +100,9 @@ public:
 
   void RecompileProcTexShaders(const char* a_shaderPath);
   
-  float GetSPP() const override {return m_spp;}
+  float GetSPP       () const override { return m_spp;       }
+  float GetSPPDone   () const override { return m_sppDone;   }
+  float GetSPPContrib() const override { return m_sppContrib;}
   
 protected:
 
@@ -145,10 +147,11 @@ protected:
   //
   //
   int   m_initFlags;
-  int   m_megaBlockSize;
   int   m_passNumber;
   int   m_passNumberForQMC;
   float m_spp;
+  float m_sppDone;
+  float m_sppContrib;
   bool  m_raysWasSorted;
 
   struct CL_SCREEN_BUFFERS

@@ -123,7 +123,7 @@ struct RenderDriverRTE : public IHRRenderDriver
     AOProcTexInfo ao;
   };
 
-  int m_shadowMatteBackTexId;
+  int   m_shadowMatteBackTexId;
   float m_shadowMatteBackGamma;
 
 protected:
@@ -290,10 +290,13 @@ protected:
   void DebugPrintBVHInfo(const ConvertionResult& a_inBVH, const char* a_fileName);
   void DebugTestAlphaTestTable(const std::vector<uint2>& a_alphaTable, int a_trif4Num);
 
-  bool m_alreadyDeleted;
-  bool m_haveAtLeastOneAOMat;
-  bool m_haveAtLeastOneAOMat2;
-
+  bool  m_alreadyDeleted;
+  bool  m_haveAtLeastOneAOMat;
+  bool  m_haveAtLeastOneAOMat2;
+  bool  m_boxModeOn;
+  float m_boxModeMaxSamples;
+  float m_boxModeContribSamples;
+  
   friend void ReadBumpAndOpacity(std::shared_ptr<RAYTR::IMaterial> pResult, pugi::xml_node a_node, RenderDriverRTE* a_pRTE);
 
   void FreeCPUMem();

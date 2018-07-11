@@ -176,6 +176,15 @@ static void Draw(std::shared_ptr<IHRRenderDriver> a_pDetachedRenderDriverPointer
       exit(0);
     }
 
+    hrRenderOpen(renderRef, HR_OPEN_EXISTING);
+    {
+      auto paramNode = hrRenderParamNode(renderRef);
+      paramNode.force_child(L"boxmode").text()        = g_input.boxMode ? 1 : 0;
+      paramNode.force_child(L"maxsamples").text()     = g_input.maxSamples;
+      paramNode.force_child(L"contribsamples").text() = g_input.maxSamplesContrib;
+    }
+    hrRenderClose(renderRef);
+    
     hrCommit(scnRef, renderRef, camRef);
     timer.start();
     g_firstCall = false;
@@ -247,13 +256,16 @@ void console_main(std::shared_ptr<IHRRenderDriver> a_pDetachedRenderDriverPointe
   
   // GetGBuffer(a_pDetachedRenderDriverPointer);
   // g_input.exitStatus = true;
-
+  
+  if(g_input.boxMode && g_state == STATE_WAIT) // don't wait for commands in 'box mode'
+    g_state = STATE_RENDER;
+    
   while (!g_input.exitStatus)
   {
-    if (a_pSharedImage != nullptr)
+    
+    if (a_pSharedImage != nullptr && !g_input.boxMode)
     {
       auto pHeader = a_pSharedImage->Header();
-
       if (pHeader->counterSnd > prevMessageId)
       {
         DispatchCommand(a_pSharedImage->MessageSendData());

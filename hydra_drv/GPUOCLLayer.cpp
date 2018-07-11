@@ -720,6 +720,9 @@ GPUOCLLayer::GPUOCLLayer(int w, int h, int a_flags, int a_deviceId) : Base(w, h,
   waitIfDebug(__FILE__, __LINE__);
 
   m_raysWasSorted = false;
+  m_spp           = 0.0f;
+  m_sppDone       = 0.0f;
+  m_sppContrib    = 0.0f;
 }
 
 void GPUOCLLayer::RecompileProcTexShaders(const char* a_shaderPath)
@@ -864,8 +867,6 @@ void GPUOCLLayer::ResizeScreen(int width, int height, int a_flags)
   m_height = height;
 
   const size_t MEGABLOCK_SIZE = CalcMegaBlockSize(); // calcMegaBlockSize(m_width, m_height, memAmount);
-
-  m_megaBlockSize = int(MEGABLOCK_SIZE);
 
   if (ciErr1 != CL_SUCCESS)
     RUN_TIME_ERROR("[cl_core]: Failed to create cl half screen zblocks buffer ");
@@ -1083,7 +1084,11 @@ void GPUOCLLayer::ContribToExternalImageAccumulator(IHRSharedAccumImage* a_pImag
     a_pImage->Unlock();
 
     ClearAccumulatedColor();
+  
+    m_sppContrib += m_spp;
+    m_sppDone    += m_spp;
   }
+  
 }
 
 
@@ -1094,6 +1099,8 @@ void GPUOCLLayer::InitPathTracing(int seed)
   runKernel_InitRandomGen(m_rays.randGenState, m_rays.MEGABLOCKSIZE, seed);
   m_passNumber = 0;
   m_spp        = 0.0f;
+  m_sppDone    = 0.0f;
+  m_sppContrib = 0.0f;
   m_passNumberForQMC = 0;
 
   ClearAccumulatedColor();
@@ -1380,7 +1387,6 @@ void GPUOCLLayer::TraceSBDPTPass(cl_mem a_rpos, cl_mem a_rdir, cl_mem a_outColor
 
 }
 
-
 void GPUOCLLayer::BeginTracingPass()
 {
   m_timer.start();
@@ -1429,8 +1435,7 @@ void GPUOCLLayer::BeginTracingPass()
     //
     if ((m_vars.m_flags & HRT_FORWARD_TRACING) == 0)
       AddContributionToScreen(m_rays.pathAccColor);
-
-    //m_spp += float(double(m_rays.MEGABLOCKSIZE) / double(m_width*m_height));
+    
   }
   else if(!m_screen.m_cpuFrameBuffer)
   { 
@@ -1577,7 +1582,9 @@ void GPUOCLLayer::AddContributionToScreenCPU(cl_mem& in_color, cl_mem in_indices
       //clFinish(m_globals.cmdQueueDevToHost);
       timeCopy = copyTimer.getElapsed();
     }
-
+  
+    const float contribSPP = float(double(a_size) / double(a_width*a_height));
+    
     bool lockSuccess = (m_pExternalImage == nullptr);
     if (m_pExternalImage != nullptr)
       lockSuccess = m_pExternalImage->Lock(1); // can wait 1 ms for success lock
@@ -1594,12 +1601,14 @@ void GPUOCLLayer::AddContributionToScreenCPU(cl_mem& in_color, cl_mem in_indices
         if (!ltPassOfIBPT) // don't update counters if this is only first pass of two-pass IBPT
         {
           m_pExternalImage->Header()->counterRcv++;
-          m_pExternalImage->Header()->spp += float(double(a_size) / double(a_width*a_height));
+          m_pExternalImage->Header()->spp += contribSPP;
+          m_sppContrib                    += contribSPP;
         }
         m_pExternalImage->Unlock();
       }
     }
-
+  
+    m_sppDone += contribSPP;
 
     if (measureTime && lockSuccess)
     {
