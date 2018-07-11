@@ -1237,9 +1237,12 @@ void RenderDriverRTE::EndScene() // #TODO: add dirty flags (?) to update only th
   if (m_pBVH == nullptr)
     return;
   
+  std::cout << "[EndScene]: BVH wait ... " << std::endl;
   if(m_pSysMutex != nullptr)
-    hr_lock_system_mutex(m_pSysMutex, 5000); // dont allow simultanoius bvh building in several processes
+    hr_lock_system_mutex(m_pSysMutex, 5000); // don't allow simultanoius bvh building in several processes
   
+  std::cout << "[EndScene]: BVH build ... " << std::endl;
+
   m_pBVH->CommitScene();
   
   if (m_useConvertedLayout)
@@ -1291,9 +1294,7 @@ void RenderDriverRTE::EndScene() // #TODO: add dirty flags (?) to update only th
   {
     m_pHWLayer->SetAllBVH4(ConvertionResult(), m_pBVH, 0); // set pointer to bvh builder to trace rays on the cpu
   }
-  
-  if(m_pSysMutex != nullptr)
-    hr_unlock_system_mutex(m_pSysMutex);
+ 
 
   m_pBVH->GetBounds(&m_sceneBoundingBoxMin.x, &m_sceneBoundingBoxMax.x);
 
@@ -1371,6 +1372,11 @@ void RenderDriverRTE::EndScene() // #TODO: add dirty flags (?) to update only th
 
   if (m_needToFreeCPUMem)
     FreeCPUMem();
+
+  if (m_pSysMutex != nullptr)
+    hr_unlock_system_mutex(m_pSysMutex);
+
+  std::cout << "[EndScene]: BVH finished." << std::endl;
 }
 
 void RenderDriverRTE::FreeCPUMem()
