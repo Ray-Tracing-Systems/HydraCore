@@ -50,7 +50,7 @@ __kernel void MLTContribToScreenAtomics(__global const float4* xColor,  __global
   const float4 newRands = make_float4(0,0,0,0); // rndLensGroupNew(&oldGen, qmcVec, qmcPos, a_qmcTable, make_float2(screenScaleX, screenScaleY));
   
   const float plarge = a_globals->varsF[HRT_MLT_PLARGE];
-  const float b      = a_globals->varsF[HRT_MLT_BKELEMEN];
+  const float b      = 1.0f; // a_globals->varsF[HRT_MLT_BKELEMEN];
   const bool enableKelemenMIS = false; // (b > 1e-5f);
 
   const float x_x0 = oldRands.x;
