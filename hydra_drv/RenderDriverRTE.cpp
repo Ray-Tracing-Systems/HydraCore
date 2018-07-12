@@ -1317,10 +1317,10 @@ void RenderDriverRTE::EndScene() // #TODO: add dirty flags (?) to update only th
   // put bounding sphere to engine globals
   //
   auto vars = m_pHWLayer->GetAllFlagsAndVars();
-  vars.m_varsF[HRT_BSPHERE_CENTER_X] = m_sceneBoundingSphere.x;
-  vars.m_varsF[HRT_BSPHERE_CENTER_Y] = m_sceneBoundingSphere.y;
-  vars.m_varsF[HRT_BSPHERE_CENTER_Z] = m_sceneBoundingSphere.z;
-  vars.m_varsF[HRT_BSPHERE_RADIUS  ] = m_sceneBoundingSphere.w;
+  vars.m_varsF[HRT_BSPHERE_CENTER_X]    = m_sceneBoundingSphere.x;
+  vars.m_varsF[HRT_BSPHERE_CENTER_Y]    = m_sceneBoundingSphere.y;
+  vars.m_varsF[HRT_BSPHERE_CENTER_Z]    = m_sceneBoundingSphere.z;
+  vars.m_varsF[HRT_BSPHERE_RADIUS  ]    = m_sceneBoundingSphere.w;
   vars.m_varsI[HRT_SHADOW_MATTE_BACK]   = this->m_shadowMatteBackTexId;
   vars.m_varsF[HRT_BACK_TEXINPUT_GAMMA] = this->m_shadowMatteBackGamma;
   m_pHWLayer->SetAllFlagsAndVars(vars);
@@ -1635,7 +1635,7 @@ void RenderDriverRTE::Draw()
     if ((m_useLT || m_gpuFB || m_useIBPT) && m_pAccumImage != nullptr)
     {
       auto size = m_pHWLayer->GetRayBuffSize();
-      const double freq = 2.0*double(m_width*m_height)/double(size);
+      const double freq = 8.0*double(m_width*m_height)/double(size);
 
       int freqInt = int(freq);   
       if (freqInt < 2) 
