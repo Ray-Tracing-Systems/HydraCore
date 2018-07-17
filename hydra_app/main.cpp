@@ -22,6 +22,8 @@ void InfoCallBack(const wchar_t* message, const wchar_t* callerPlace, HR_SEVERIT
 {
   if (a_level >= HR_SEVERITY_WARNING)
     std::wcerr << callerPlace << L": " << message << std::endl;
+  else if(a_level == HR_SEVERITY_INFO)
+    std::wcout << callerPlace << L": " << message;
   else
     std::wcout << callerPlace << L": " << message << std::endl;
 }

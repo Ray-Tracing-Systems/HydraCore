@@ -1237,6 +1237,8 @@ void RenderDriverRTE::EndScene() // #TODO: add dirty flags (?) to update only th
   if (m_pBVH == nullptr)
     return;
   
+  auto timeBeg  = std::chrono::system_clock::now();
+  
   std::cout << "[EndScene]: BVH wait ... " << std::endl;
   if(m_pSysMutex != nullptr)
     hr_lock_system_mutex(m_pSysMutex, 5000); // don't allow simultanoius bvh building in several processes
@@ -1375,8 +1377,11 @@ void RenderDriverRTE::EndScene() // #TODO: add dirty flags (?) to update only th
 
   if (m_pSysMutex != nullptr)
     hr_unlock_system_mutex(m_pSysMutex);
-
-  std::cout << "[EndScene]: BVH finished." << std::endl;
+  
+  auto timeEnd  = std::chrono::system_clock::now();
+  auto msPassed = std::chrono::duration_cast<std::chrono::milliseconds>(timeEnd - timeBeg).count();
+  
+  std::cout << "[EndScene]: BVH finished; bvh build time = " << float(msPassed)/1000.0f << " s" << std::endl;
 }
 
 void RenderDriverRTE::FreeCPUMem()
