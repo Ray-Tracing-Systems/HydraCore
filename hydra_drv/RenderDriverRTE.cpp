@@ -5,6 +5,7 @@
 #include <queue>
 #include <string>
 #include <regex>
+#include <chrono>
 
 #include "../../HydraAPI/hydra_api/HydraXMLHelpers.h"
 #include "../../HydraAPI/hydra_api/HydraInternal.h"
