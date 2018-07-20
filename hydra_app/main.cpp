@@ -7,6 +7,7 @@
   #include <windows.h> 
 #else
   #include <unistd.h>
+  #include <signal.h>
 #endif
 
 using pugi::xml_node;
@@ -40,6 +41,10 @@ void destroy()
   g_pExternalImage = nullptr;
 }
 
+// init and call one of main loops depen on mode
+//
+std::shared_ptr<IHRRenderDriver> g_pDriver = nullptr;
+
 #ifdef WIN32
 BOOL WINAPI HandlerExit(_In_ DWORD fdwControl)
 {
@@ -48,11 +53,43 @@ BOOL WINAPI HandlerExit(_In_ DWORD fdwControl)
 
   //std::wcout << L"[main]: HandlerExit()" << std::endl;
   hrDestroy();
+  g_pDriver->~IHRRenderDriver();
+  g_pDriver = nullptr;
   
   delete g_pExternalImage;
   g_pExternalImage = nullptr;
 
   return TRUE;
+}
+#else
+bool destroyedBySig = false;
+void sig_handler(int signo)
+{
+  if(destroyedBySig)
+    return;
+  switch(signo)
+  {
+    case SIGINT : std::cerr << "\nhydra, SIGINT";      break;
+    case SIGABRT: std::cerr << "\nhydra, SIGABRT";     break;
+    case SIGILL : std::cerr << "\nhydra, SIGINT";      break;
+    case SIGTERM: std::cerr << "\nhydra, SIGILL";      break;
+    case SIGSEGV: std::cerr << "\nhydra, SIGSEGV";     break;
+    case SIGFPE : std::cerr << "\nhydra, SIGFPE";      break;
+    default     : std::cerr << "\nhydra, SIG_UNKNOWN"; break;
+      break;
+  }
+  std::cerr << " --> hrDestroy()" << std::endl;
+  hrDestroy();
+  
+  delete g_pExternalImage;
+  g_pExternalImage = nullptr;
+  
+  if(g_pDriver != nullptr)
+  {
+    g_pDriver->~IHRRenderDriver();
+    g_pDriver = nullptr;
+  }
+  destroyedBySig = true;
 }
 #endif
 
@@ -86,10 +123,25 @@ int main(int argc, const char** argv)
 
   hrInfoCallback(&InfoCallBack);
   hrErrorCallerPlace(L"main");  // for debug needs only
-
-  atexit(&destroy);                           // if application will terminated in an unusual way, you have to call hrDestroy to safely free all resourced
+  
+  // if application will terminated in an unusual way, you have to call hrDestroy to safely free all resourced
+  //
+  atexit(&destroy);
 #ifdef WIN32
   SetConsoleCtrlHandler(&HandlerExit, TRUE);  // if some one kill console :)
+#else
+  {
+    struct sigaction sigIntHandler;
+    sigIntHandler.sa_handler = sig_handler;
+    sigemptyset(&sigIntHandler.sa_mask);
+    sigIntHandler.sa_flags = SA_RESETHAND;
+    sigaction(SIGINT,  &sigIntHandler, NULL);
+    sigaction(SIGABRT, &sigIntHandler, NULL);
+    sigaction(SIGILL,  &sigIntHandler, NULL);
+    sigaction(SIGTERM, &sigIntHandler, NULL);
+    sigaction(SIGSEGV, &sigIntHandler, NULL);
+    sigaction(SIGFPE,  &sigIntHandler, NULL);
+  }
 #endif
 
   // read input parameters
@@ -135,21 +187,17 @@ int main(int argc, const char** argv)
     if (r1 == nullptr || r2 == nullptr)
       std::cerr << "[main]: freopen failed!" << std::endl;
   }
-
-
-  // init and call one of main loops depen on mode
-  //
-  std::shared_ptr<IHRRenderDriver> pDriver = nullptr;
+  
 
   try
   {
     if (g_input.runTests)
     {
-      pDriver = std::shared_ptr<IHRRenderDriver>(CreateDriverRTE(L"", g_input.winWidth, g_input.winHeight, g_input.inDeviceId, GPU_RT_NOWINDOW | GPU_RT_DO_NOT_PRINT_PASS_NUMBER, nullptr));
+      g_pDriver = std::shared_ptr<IHRRenderDriver>(CreateDriverRTE(L"", g_input.winWidth, g_input.winHeight, g_input.inDeviceId, GPU_RT_NOWINDOW | GPU_RT_DO_NOT_PRINT_PASS_NUMBER, nullptr));
       
       std::cout << "[main]: detached render driver was created for [tests_main]" << std::endl;
 
-      tests_main(pDriver);
+      tests_main(g_pDriver);
     }
     else if (g_input.noWindow)
     {
@@ -187,18 +235,18 @@ int main(int argc, const char** argv)
       if (g_input.enableMLT)
         flags |= GPU_MLT_ENABLED_AT_START;
       
-      pDriver = std::shared_ptr<IHRRenderDriver>(CreateDriverRTE(L"", g_input.winWidth, g_input.winHeight, g_input.inDeviceId, flags, g_pExternalImage));
+      g_pDriver = std::shared_ptr<IHRRenderDriver>(CreateDriverRTE(L"", g_input.winWidth, g_input.winHeight, g_input.inDeviceId, flags, g_pExternalImage));
 
       std::cout << "[main]: detached render driver was created for [console_main]" << std::endl;
 
       if(!g_input.listDevicesAndExit)
-        console_main(pDriver, g_pExternalImage);
+        console_main(g_pDriver, g_pExternalImage);
       else
       {
         std::string path = "C:\\[Hydra]\\logs\\devlist.txt";
         std::wofstream fout(path);
 
-        HRRenderRef renderRef = hrRenderCreateFromExistingDriver(L"HydraInternalRTE", pDriver);
+        HRRenderRef renderRef = hrRenderCreateFromExistingDriver(L"HydraInternalRTE", g_pDriver);
         auto pList = hrRenderGetDeviceList(renderRef);
 
         while (pList != nullptr)
@@ -227,11 +275,11 @@ int main(int argc, const char** argv)
       if (g_input.enableMLT)
         flags |= GPU_MLT_ENABLED_AT_START;
       
-      pDriver = std::shared_ptr<IHRRenderDriver>(CreateDriverRTE(L"", g_width, g_height, g_input.inDeviceId, flags, nullptr));
+      g_pDriver = std::shared_ptr<IHRRenderDriver>(CreateDriverRTE(L"", g_width, g_height, g_input.inDeviceId, flags, nullptr));
 
       std::cout << "[main]: detached render driver was created for [window_main]" << std::endl;
 
-      window_main(pDriver);
+      window_main(g_pDriver);
     }
   }
   catch (std::runtime_error& e)
@@ -246,7 +294,7 @@ int main(int argc, const char** argv)
   hrErrorCallerPlace(L"main"); // for debug needs only
   hrDestroy();
   
-  pDriver = nullptr; // destroy render driber explicitly
+  g_pDriver = nullptr;
   
   delete g_pExternalImage;
   g_pExternalImage = nullptr;
