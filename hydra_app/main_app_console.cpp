@@ -170,6 +170,7 @@ static void Draw(std::shared_ptr<IHRRenderDriver> a_pDetachedRenderDriverPointer
 
   if (g_firstCall)
   {
+    std::cout << "[main]: loading scene ... " << std::endl;
     if (!InitSceneLibAndRTE(camRef, scnRef, renderRef, a_pDetachedRenderDriverPointer))
     {
       std::cerr << "can not load scene library at " << g_input.inLibraryPath << std::endl;
@@ -185,6 +186,8 @@ static void Draw(std::shared_ptr<IHRRenderDriver> a_pDetachedRenderDriverPointer
     }
     hrRenderClose(renderRef);
     
+    std::cout << "[main]: commit scene ... " << std::endl;
+
     hrCommit(scnRef, renderRef, camRef);
     timer.start();
     g_firstCall = false;
@@ -238,7 +241,7 @@ static void Draw(std::shared_ptr<IHRRenderDriver> a_pDetachedRenderDriverPointer
 static void GetGBuffer(std::shared_ptr<IHRRenderDriver> a_pDetachedRenderDriverPointer)
 {
   hrErrorCallerPlace(L"GetGBuffer");
-  
+
   InitSceneLibAndRTE(camRef, scnRef, renderRef, a_pDetachedRenderDriverPointer);
   
   hrRenderOpen(renderRef, HR_OPEN_EXISTING); // #TODO: refector; this is needed here due to we update settings only once if g_firstCall == true
@@ -252,7 +255,7 @@ static void GetGBuffer(std::shared_ptr<IHRRenderDriver> a_pDetachedRenderDriverP
   
   hrCommit(scnRef, renderRef, camRef);
   g_firstCall = false;
-  
+
   hrRenderEvalGbuffer(renderRef);  
 }
 
