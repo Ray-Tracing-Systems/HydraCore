@@ -5,7 +5,7 @@
     <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <LocalDebuggerCommandArguments>-nowindow 0 -saveinterval 60</LocalDebuggerCommandArguments>
+    <LocalDebuggerCommandArguments>-nowindow 1 -inputlib "C:\[Hydra]\pluginFiles\scenelib" -width 1280 -height 720 -cpu_fb 1 -sharedimage hydraimage_1531906994126  -cl_device_id 1</LocalDebuggerCommandArguments>
     <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
   </PropertyGroup>
 </Project>
