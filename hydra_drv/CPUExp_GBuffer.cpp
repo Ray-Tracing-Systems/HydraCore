@@ -3,7 +3,7 @@
 #include "CPUExp_Integrators.h"
 #include "ctrace.h"
 
-#include <math.h>
+#include <cmath>
 #include <algorithm>
 #include <unordered_map>
 

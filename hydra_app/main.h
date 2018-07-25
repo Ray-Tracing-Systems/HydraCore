@@ -4,10 +4,10 @@
 #define _USE_MATH_DEFINES // Make MS math.h define M_PI
 #endif
 
-#include <math.h>
-#include <stdlib.h>
-#include <stdio.h>
-#include <string.h>
+#include <cmath>
+#include <cstdlib>
+#include <cstdio>
+#include <cstring>
 
 #include <iostream>
 #include <sstream>

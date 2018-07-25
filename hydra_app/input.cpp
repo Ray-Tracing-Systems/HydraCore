@@ -9,7 +9,7 @@ Input::Input()
   //inLibraryPath = "tests/test_01"; ///< cornell box with sphere
   //inLibraryPath = "tests/test_223_small"; ///< cornell box with mirror glossy back wall
   
-  //inLibraryPath = "/home/frol/temp/hydra_debug_scene";
+  //inLibraryPath = "/home/frol/PROG/HydraAPI/main/tests/test_82";
   //inLibraryPath = "D:/[archive]/2017/HydraAPP/hydra_app/tests/hydra_benchmark_07";
   //inLibraryPath = "D:/[archive]/2017/HydraOldRepo/HydraAPP/hydra_app/tests/hydra_benchmark_07";
 

@@ -7,7 +7,7 @@
 
 #include <cstdint>
 #include <windows.h>
-#include <math.h>
+#include <cmath>
 
 #ifdef max
 #undef max
@@ -20,9 +20,8 @@
 #else
 
 #include <cstdint>
-#include <math.h>
-
-#include <string.h>
+#include <cmath>
+#include <cstring>
 
 #endif
 

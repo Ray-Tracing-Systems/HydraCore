@@ -1,4 +1,4 @@
-#include <math.h>
+#include <cmath>
 
 typedef long long int INT64;
 

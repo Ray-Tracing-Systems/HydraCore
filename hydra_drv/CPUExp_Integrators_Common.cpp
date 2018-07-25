@@ -3,9 +3,9 @@
 #include "CPUExp_Integrators.h"
 #include "ctrace.h"
 
-#include <math.h>
+#include <cmath>
 #include <algorithm>
-#include <assert.h>
+#include <cassert>
 
 void IntegratorCommon::SetConstants(EngineGlobals* a_pGlobals)
 {
