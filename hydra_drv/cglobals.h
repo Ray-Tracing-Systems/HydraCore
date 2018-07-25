@@ -235,8 +235,6 @@ enum MEGATEX_USAGE{ MEGATEX_SHADING      = 1,
     #endif
 
     #undef  M_PI
-    #include <math.h>
-    #undef  M_PI
     #define M_PI 3.14159265358979323846f
     
     #include "../../HydraAPI/hydra_api/LiteMath.h"  

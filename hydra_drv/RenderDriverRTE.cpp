@@ -33,7 +33,7 @@ extern "C" IBVHBuilder2* CreateBuilder2(char* cfg);
 RenderDriverRTE::RenderDriverRTE(const wchar_t* a_options, int w, int h, int a_devId, int a_flags, IHRSharedAccumImage* a_sharedImage) : m_pBVH(nullptr), m_pHWLayer(nullptr), m_pSysMutex(nullptr),
                                                                                                                                          m_pTexStorage(nullptr), m_pTexStorageAux(nullptr), 
                                                                                                                                          m_pGeomStorage(nullptr), m_pMaterialStorage(nullptr), 
-                                                                                                                                         m_pPdfStorage(nullptr), m_pAccumImage(nullptr), m_pAccumImageForGBuff(nullptr)
+                                                                                                                                         m_pPdfStorage(nullptr), m_pAccumImage(nullptr)
 {
   m_alreadyDeleted = false;
   m_msg = L"";
@@ -121,19 +121,17 @@ RenderDriverRTE::RenderDriverRTE(const wchar_t* a_options, int w, int h, int a_d
       std::cout << "[sharedimage]: external (w,h) = " << "(" << pHeader->width << "," << pHeader->height << ")" << std::endl;
     }
   }
-
+  
+  m_pAccumImage = a_sharedImage;
   if ((a_flags & GPU_RT_ALLOC_INTERNAL_IMAGEB) || (a_flags & GPU_RT_CPU_FRAMEBUFFER) == 0) // light tracing or ibpt is enabled, or we need to store framebuffer on GPU for some reason. 
   {
-    m_pAccumImage = a_sharedImage;                              // we will manage image contribution on the level of render driver;
-    m_pHWLayer->SetExternalImageAccumulator(nullptr);           // 
+    m_pHWLayer->SetExternalImageAccumulator(nullptr);       // we will manage image contribution on the level of render driver;
   }
   else
   {
-    m_pAccumImage = nullptr;                                    // we will manage image contribution on the level of HWLayer;
-    m_pHWLayer->SetExternalImageAccumulator(a_sharedImage);     // 
+    m_pHWLayer->SetExternalImageAccumulator(a_sharedImage); // we will manage image contribution on the level of HWLayer;
   }
-
-  m_pAccumImageForGBuff  = a_sharedImage;
+  
   m_drawPassNumber       = 0;
   m_maxRaysPerPixel      = 1000000;
   m_shadowMatteBackTexId = INVALID_TEXTURE;
@@ -1701,9 +1699,9 @@ void RenderDriverRTE::Draw()
   // for some unknown reason command "exitnow" passed via shared memory does not works in some Linux systems
   // So, we have to have this aux. exit condition
   //
-  if(m_pAccumImageForGBuff!=nullptr)
+  if(m_pAccumImage != nullptr)
   {
-    const float currSPP = m_pAccumImageForGBuff->Header()->spp;
+    const float currSPP = m_pAccumImage->Header()->spp;
     if(currSPP >= m_maxRaysPerPixel)
     {
       std::cout << std::endl;
@@ -1718,7 +1716,10 @@ void RenderDriverRTE::Draw()
 
 void RenderDriverRTE::EvalGBuffer()
 {
-  m_pHWLayer->EvalGBuffer(m_pAccumImageForGBuff, m_instIdByInstId);
+  if(m_pAccumImage != nullptr)
+    m_pHWLayer->EvalGBuffer(m_pAccumImage, m_instIdByInstId);
+  else
+    std::cerr << "RenderDriverRTE::EvalGBuffer: nullptr m_pAccumImage" << std::endl;
 }
 
 void RenderDriverRTE::InstanceMeshes(int32_t a_mesh_id, const float* a_matrices, int32_t a_instNum, 
@@ -1859,7 +1860,7 @@ HRRenderUpdateInfo RenderDriverRTE::HaveUpdateNow(int a_maxRaysperPixel)
   float sppDone    = m_pHWLayer->GetSPPDone();
   float sppContrib = m_pHWLayer->GetSPPContrib();
   
-  if(m_boxModeOn)
+  if(m_boxModeOn) // it does not work whrn GPU frame buffer enabled for some unknown reason ...
   {
     res.progress  = sppContrib / m_boxModeContribSamples;
     if(sppContrib > m_boxModeContribSamples || sppDone > m_boxModeMaxSamples)

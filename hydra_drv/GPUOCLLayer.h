@@ -100,8 +100,8 @@ public:
 
   void RecompileProcTexShaders(const char* a_shaderPath);
   
-  float GetSPP       () const override { return m_spp;       }
-  float GetSPPDone   () const override { return m_sppDone;   }
+  float GetSPP       () const override { return m_spp; }
+  float GetSPPDone   () const override { return m_sppDone + m_spp; }
   float GetSPPContrib() const override { return m_sppContrib;}
   
 protected:

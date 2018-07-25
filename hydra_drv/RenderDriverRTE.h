@@ -188,7 +188,6 @@ protected:
   std::unordered_map<int, DefferedMaterialDataTuple > m_blendsToUpdate;
 
   IHRSharedAccumImage* m_pAccumImage;
-  IHRSharedAccumImage* m_pAccumImageForGBuff;
   int m_drawPassNumber;
 
   float4x4 m_modelViewInv;
