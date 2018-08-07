@@ -25,6 +25,7 @@ float3 IntegratorStupidPT::PathTrace(float3 ray_pos, float3 ray_dir, MisData mis
   const PlainMaterial* pHitMaterial = materialAt(m_pGlobals, m_matStorage, surfElem.matId);
 
   const MatSample matSam = std::get<0>(sampleAndEvalBxDF(ray_dir, surfElem));
+
   const float3 bxdfVal   = matSam.color * (1.0f / fmaxf(matSam.pdf, DEPSILON2));
   const float  cosTheta  = dot(matSam.direction, surfElem.normal);
 
