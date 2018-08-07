@@ -122,7 +122,7 @@ float3 IntegratorMISPT::PathTrace(float3 ray_pos, float3 ray_dir, MisData misPre
     return float3(0, 0, 0);
 
   SurfaceHit surfElem = surfaceEval(ray_pos, ray_dir, hit);
-
+  
   float3 emission = emissionEval(ray_pos, ray_dir, surfElem, flags, misPrev, fetchInstId(hit));
   if (dot(emission, emission) > 1e-3f)
   {
@@ -179,11 +179,6 @@ float3 IntegratorMISPT::PathTrace(float3 ray_pos, float3 ray_dir, MisData misPre
     auto ptlCopy = m_ptlDummy;
     GetProcTexturesIdListFromMaterialHead(pHitMaterial, &ptlCopy);
     
-    if (ptlCopy.id_f4[0] != INVALID_TEXTURE)
-    {
-      int a = 2;
-    }
-
     const auto evalData      = materialEval(pHitMaterial, &sc, false, false, /* global data --> */ m_pGlobals, m_texStorage, m_texStorage, &ptlCopy);
     
     const float cosThetaOut1 = fmax(+dot(shadowRayDir, surfElem.normal), 0.0f);
@@ -198,7 +193,7 @@ float3 IntegratorMISPT::PathTrace(float3 ray_pos, float3 ray_dir, MisData misPre
     
     explicitColor = (1.0f / lightPickProb)*(explicitSam.color * (1.0f / fmax(explicitSam.pdf, DEPSILON2)))*bxdfVal*misWeight*shadow; // clamp brdfVal? test it !!!
   }
-
+  
   const MatSample matSam = std::get<0>( sampleAndEvalBxDF(ray_dir, surfElem) );
   const float3 bxdfVal   = matSam.color * (1.0f / fmaxf(matSam.pdf, 1e-20f));
   const float cosTheta   = fabs(dot(matSam.direction, surfElem.normal));
@@ -335,8 +330,8 @@ void IntegratorMISPT_trofimm::DoPass(std::vector<uint>& a_imageLDR)
   //  }
   //}
 
-  // Вместо генерации луча для каждого пиксела использовать квази - случайные 
-  // числа и 2 первые координаты для x и y.
+  // пїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅ пїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅ - пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ 
+  // пїЅпїЅпїЅпїЅпїЅ пїЅ 2 пїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅ x пїЅ y.
   
   for (int i = 0; i < m_summColors.size(); ++i)
   {

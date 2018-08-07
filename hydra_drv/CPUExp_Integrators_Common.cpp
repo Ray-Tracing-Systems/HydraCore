@@ -557,6 +557,11 @@ RandomGen& IntegratorCommon::randomGen()
 
 std::tuple<MatSample, int, float3> IntegratorCommon::sampleAndEvalBxDF(float3 ray_dir, const SurfaceHit& surfElem, uint flags, float3 shadow, bool a_mmltMode)
 {
+  if(surfElem.matId == 1)
+  {
+    int a = 2;
+  }
+  
   const PlainMaterial* pHitMaterial = materialAt(m_pGlobals, m_matStorage, surfElem.matId);
   auto& gen = randomGen();
 
