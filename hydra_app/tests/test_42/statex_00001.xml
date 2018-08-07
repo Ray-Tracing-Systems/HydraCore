@@ -146,9 +146,7 @@
     <shadows>1</shadows>
     <trace_depth>5</trace_depth>
     <diff_trace_depth>3</diff_trace_depth>
-    <pt_error>0.5</pt_error>
-    <minRaysPerPixel>4096</minRaysPerPixel>
-    <maxRaysPerPixel>16384</maxRaysPerPixel>
+    <maxRaysPerPixel>4096</maxRaysPerPixel>
     <draw_tiles>0</draw_tiles>
   </render_settings>
 </render_lib>

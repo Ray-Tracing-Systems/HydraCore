@@ -136,11 +136,7 @@ RenderDriverRTE::RenderDriverRTE(const wchar_t* a_options, int w, int h, int a_d
   m_maxRaysPerPixel      = 1000000;
   m_shadowMatteBackTexId = INVALID_TEXTURE;
   m_shadowMatteBackGamma = 2.2f;
-  
-  m_boxModeOn             = false;
-  m_boxModeMaxSamples     = 1000000.0f;
-  m_boxModeContribSamples = 1000000.0f;
-  
+  m_boxModeOn            = false;
   m_pSysMutex = hr_create_system_mutex("hydrabvh");
 }
 
@@ -293,17 +289,9 @@ bool RenderDriverRTE::UpdateSettings(pugi::xml_node a_settingsNode)
     vars.m_varsI[HRT_STORE_SHADOW_COLOR_W] = 0;
 
   if(a_settingsNode.child(L"boxmode") != nullptr)
-  {
-    m_boxModeOn             = (a_settingsNode.child(L"boxmode").text().as_int() == 1);
-    m_boxModeMaxSamples     = a_settingsNode.child(L"maxsamples").text().as_float();
-    m_boxModeContribSamples = a_settingsNode.child(L"contribsamples").text().as_float();
-  }
+    m_boxModeOn = (a_settingsNode.child(L"boxmode").text().as_int() == 1);
   else
-  {
-    m_boxModeOn             = false;
-    m_boxModeMaxSamples     = 1000000.0f;
-    m_boxModeContribSamples = 1000000.0f;
-  }
+    m_boxModeOn = false;
   
   m_pHWLayer->SetAllFlagsAndVars(vars);
 
@@ -1862,8 +1850,8 @@ HRRenderUpdateInfo RenderDriverRTE::HaveUpdateNow(int a_maxRaysperPixel)
   
   if(m_boxModeOn) // it does not work whrn GPU frame buffer enabled for some unknown reason ...
   {
-    res.progress  = sppContrib / m_boxModeContribSamples;
-    if(sppContrib > m_boxModeContribSamples || sppDone > m_boxModeMaxSamples)
+    res.progress  = sppContrib / a_maxRaysperPixel;
+    if(sppContrib > a_maxRaysperPixel || sppDone > a_maxRaysperPixel)
       res.finalUpdate = true;
   }
   

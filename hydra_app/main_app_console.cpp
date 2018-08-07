@@ -176,16 +176,14 @@ static void Draw(std::shared_ptr<IHRRenderDriver> a_pDetachedRenderDriverPointer
       std::cerr << "can not load scene library at " << g_input.inLibraryPath << std::endl;
       exit(0);
     }
-
+  
     hrRenderOpen(renderRef, HR_OPEN_EXISTING);
-    {
-      auto paramNode = hrRenderParamNode(renderRef);
-      paramNode.force_child(L"boxmode").text()        = g_input.boxMode ? 1 : 0;
-      paramNode.force_child(L"maxsamples").text()     = g_input.maxSamples;
-      paramNode.force_child(L"contribsamples").text() = g_input.maxSamplesContrib;
-    }
+    auto paramNode = hrRenderParamNode(renderRef);
+    if(g_input.outLDRImage != "")
+      paramNode.force_child(L"boxmode").text() = 1;
+    else
+      paramNode.force_child(L"boxmode").text() = g_input.boxMode ? 1 : 0;
     hrRenderClose(renderRef);
-    
     std::cout << "[main]: commit scene ... " << std::endl;
 
     hrCommit(scnRef, renderRef, camRef);
