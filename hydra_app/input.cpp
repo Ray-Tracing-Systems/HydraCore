@@ -2,6 +2,8 @@
 #include <time.h>
 #include <iostream>
 
+// 
+
 Input::Input()
 {
   //noWindow      = false;           ///< run 'console_main', else run 'window_main'
