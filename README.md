@@ -39,14 +39,14 @@ Or to install the renderer core on Linux:
 4. Use the following command to build and install HydraCore (for example from 'myfolder/HydraCore/build')   
 cmake -DCMAKE_INSTALL_PREFIX=/home/YourUserName .. && make all install
 
-# Core command line by examples
+# Command line by examples
 
 * simple image render
 ```bash
 hydra -inputlib "tests/test_42" -out "/home/frol/temp/z_out.png" -nowindow 1 
 ```
 
-* simple image render (target statefile tests/test_42/statex_00012.xml)
+* simple image render (takes statefile "tests/test_42/statex_00012.xml")
 ```bash
 hydra -inputlib "tests/test_42" -statefile "statex_00012.xml" -out "/home/frol/temp/z_out.png" -nowindow 1 
 ```
