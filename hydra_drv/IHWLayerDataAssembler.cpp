@@ -243,11 +243,12 @@ static void SetQMCVarRemapTable(EngineGlobals *a_globals)
     break;
   
     case 5:
-      a_globals->rmQMC[QMC_VAR_SCR_X] = 0; // all
+      
+      a_globals->rmQMC[QMC_VAR_SCR_X] = 0; // all of them
       a_globals->rmQMC[QMC_VAR_SCR_Y] = 1;
       a_globals->rmQMC[QMC_VAR_DOF_X] = 2;
       a_globals->rmQMC[QMC_VAR_DOF_Y] = 3;
-    
+      
       a_globals->rmQMC[QMC_VAR_MAT_L] = 4;
       a_globals->rmQMC[QMC_VAR_MAT_0] = 5;
       a_globals->rmQMC[QMC_VAR_MAT_1] = 6;
@@ -256,8 +257,9 @@ static void SetQMCVarRemapTable(EngineGlobals *a_globals)
       a_globals->rmQMC[QMC_VAR_LGT_0] = 8;
       a_globals->rmQMC[QMC_VAR_LGT_1] = 9;
       a_globals->rmQMC[QMC_VAR_LGT_2] = 10;
+      
     break;
-
+    
     default:
       a_globals->rmQMC[QMC_VAR_SCR_X] = 0; // screen xy and dof only;
       a_globals->rmQMC[QMC_VAR_SCR_Y] = 1;

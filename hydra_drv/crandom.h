@@ -226,9 +226,8 @@ static inline float MutateKelemen(float valueX, __private RandomGen* pGen, const
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-#define QRNG_DIMENSIONS 9
+#define QRNG_DIMENSIONS 11
 #define QRNG_RESOLUTION 31
-//#define QRNG_RESOLUTION 63
 #define INT_SCALE (1.0f / (float)0x80000001U)
 
 static inline float rndQmcSobolN(unsigned int pos, int dim, __constant unsigned int *c_Table)
