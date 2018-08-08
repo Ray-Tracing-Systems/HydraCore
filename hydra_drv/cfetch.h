@@ -16,6 +16,7 @@ typedef struct PlainLightT PlainLight;
 
 #define MAX_SKY_PDFS 32
 #define MAX_SUN_NUM  8
+#define QMC_VARS_NUM 16
 
 typedef struct GlobalRenderDataT
 {
@@ -29,6 +30,7 @@ typedef struct GlobalRenderDataT
 
   int   varsI[GMAXVARS];
   float varsF[GMAXVARS];
+  int   rmQMC[QMC_VARS_NUM];
 
   float camForward[3];  ///< needed for light tracing
   float imagePlaneDist; ///< needed for light tracing
@@ -66,14 +68,21 @@ typedef struct GlobalRenderDataT
   int dummy1;
   int dummy2;
   int dummy3;
-
-
+  
   int        sunNumber;           // #change this?
   PlainLight suns[MAX_SUN_NUM];   // #change this?
 
 
 } EngineGlobals;
 
+#ifndef OCL_COMPILER
+static inline void InitEngineGlobals(EngineGlobals* a_pGlobals)
+{
+  memset(a_pGlobals, 0, sizeof(EngineGlobals));
+  for(int i=0;i<QMC_VARS_NUM;i++)
+    a_pGlobals->rmQMC[i] = -1;
+}
+#endif
 
 typedef struct SWTextureHeaderT
 {

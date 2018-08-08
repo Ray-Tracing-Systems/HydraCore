@@ -430,8 +430,8 @@ GPUOCLLayer::GPUOCLLayer(int w, int h, int a_flags, int a_deviceId) : Base(w, h,
   m_initFlags = a_flags;
   for (int i = 0; i < MEM_TAKEN_OBJECTS_NUM; i++)
     m_memoryTaken[i] = 0;
-
-  memset(&m_globsBuffHeader, 0, sizeof(EngineGlobals));
+  
+  InitEngineGlobals(&m_globsBuffHeader);
   
   #ifdef WIN32
   int initRes = clewInit(L"opencl.dll");

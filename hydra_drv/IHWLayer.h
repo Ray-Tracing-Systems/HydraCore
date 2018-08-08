@@ -102,7 +102,7 @@ class IHWLayer
 {
 public:
 
-  IHWLayer() : m_progressBar(nullptr), m_width(0), m_height(0), m_pExternalImage(nullptr) { memset(&m_globsBuffHeader, 0, sizeof(EngineGlobals)); }
+  IHWLayer() : m_progressBar(nullptr), m_width(0), m_height(0), m_pExternalImage(nullptr) { InitEngineGlobals(&m_globsBuffHeader); }
   virtual ~IHWLayer();
 
   virtual void Clear(CLEAR_FLAGS a_flags)   = 0;

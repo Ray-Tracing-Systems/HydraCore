@@ -7,7 +7,6 @@
 
 #ifdef SIMPLE_RANDOM_GEN
 
-
 typedef struct RandomGenT
 {
   uint2          state;
@@ -106,7 +105,6 @@ static inline float rndFloat1_Pseudo(RandomGen* gen)
 
 #else
 
-
 typedef struct RandomGenT
 {
   unsigned int x[5];
@@ -185,7 +183,6 @@ static inline float4 rndFloat4_Pseudo(RandomGen* gen)
   return res;
 }
 
-
 #endif // SIMPLE_RANDOM_GEN or COMPLEX
 
 
@@ -217,7 +214,6 @@ static inline float MutateKelemen(float valueX, __private RandomGen* pGen, const
   return valueX;
 }
 
-
 //#define MCMC_LAZY
 //#define COMPRESS_RAND
 
@@ -232,6 +228,7 @@ static inline float MutateKelemen(float valueX, __private RandomGen* pGen, const
 
 #define QRNG_DIMENSIONS 4 
 #define QRNG_RESOLUTION 31
+//#define QRNG_RESOLUTION 63
 #define INT_SCALE (1.0f / (float)0x80000001U)
 
 static inline float rndQmcSobolN(unsigned int pos, int dim, __constant unsigned int *c_Table)
@@ -244,6 +241,50 @@ static inline float rndQmcSobolN(unsigned int pos, int dim, __constant unsigned 
 
   return (float)(result + 1) * INT_SCALE;
 }
+
+/**
+ * These defines are for the QMC remap table to support different mappings in run time.
+ * for example you may decide to map (0,1) to screen (x,y) and (2,3) to DOF (x,y) or
+ *             you may decide to map (0,1) to screen (x,y) and (2,3,4) to material sampling
+ * if no mapping presents in the table (id == -1) pseudo random should be used.
+ *
+ */
+#define QMC_VAR_SCREEN_X 0
+#define QMC_VAR_SCREEN_Y 1
+#define QMC_VAR_DOF_X    2
+#define QMC_VAR_DOF Y    3
+
+#define QMC_VAR_MAT_L    4
+#define QMC_VAR_MAT_0    5
+#define QMC_VAR_MAT_1    6
+
+#define QMC_VAR_LGT_N    7
+#define QMC_VAR_LGT_0    8
+#define QMC_VAR_LGT_1    9
+#define QMC_VAR_LGT_2    10
+
+
+/**
+\brief get qmc number for target qmc var (see defines up)
+\param pGen      - inout pseudo random generator
+\param a_tab     - remap table that store numbers for target defines; i.e. a_tab[QMC_VAR_SCREEN_X]
+\param pos       - id of qmc number
+\param pickProb  - a_varName - name of qmc number
+\param c_Table   - qmc table for sobol-neideriter
+\return quasi random float in range [0,1]
+
+*/
+static inline float rndQmcTab(__private RandomGen* pGen, __constant unsigned int* a_tab,
+                              unsigned int pos, int a_varName, __constant unsigned int *c_Table)
+{
+  const int dim = a_tab[a_varName];
+  
+  if(dim < 0)
+    return rndFloat1_Pseudo(pGen);
+  else
+    return rndQmcSobolN(pos, dim, c_Table);
+}
+
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -458,7 +499,8 @@ static inline float4 rndLensOld(__global const float* rptr)
   return make_float4(rptr[0], rptr[1], rptr[2], rptr[3]);
 }
 
-static inline float4 rndLens(RandomGen* gen, __global const float* rptr, const float2 screenScale, __constant unsigned int* a_qmcTable, const unsigned int qmcPos)
+static inline float4 rndLens(RandomGen* gen, __global const float* rptr, const float2 screenScale,
+                             __constant unsigned int* a_qmcTable, const unsigned int qmcPos)
 {
   if (rptr != 0 && (gen->lazy != MUTATE_LAZY_LARGE))
   {
