@@ -147,7 +147,7 @@ void MakeProposalAsInGPUVer(RandomGen* gen, float* yVecOut, const float* xVecIn,
     if (bounceId == 0)
       l_i = rndLens(gen, xVecIn, lensMutateCoeff, 0, 0, a_globals->rmQMC);
     else
-      l_i = rndLight(gen, xVecIn, bounceId);
+      l_i = rndLight(gen, xVecIn, bounceId, a_globals->rmQMC, 0, 0);  // TOFIX:  rndLens and rndLight have different args order
 
     yVecOut[lightOffset + 0] = l_i.x;
     yVecOut[lightOffset + 1] = l_i.y;

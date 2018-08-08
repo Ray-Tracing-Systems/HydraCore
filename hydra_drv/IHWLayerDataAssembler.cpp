@@ -185,7 +185,7 @@ static void SetQMCVarRemapTable(EngineGlobals *a_globals)
     a_globals->rmQMC[i] = -1;
   
   
-  const int tableVariant = 1;
+  const int tableVariant = 3;
   
   // variant 0 (default); screen xy and dof only;
   //
@@ -221,7 +221,7 @@ static void SetQMCVarRemapTable(EngineGlobals *a_globals)
     case 3:
       a_globals->rmQMC[QMC_VAR_SCR_X] = 0; // screen xy, material and light
       a_globals->rmQMC[QMC_VAR_SCR_Y] = 1;
-
+    
       a_globals->rmQMC[QMC_VAR_MAT_L] = 2;
       a_globals->rmQMC[QMC_VAR_MAT_0] = 3;
       a_globals->rmQMC[QMC_VAR_MAT_1] = 4;
@@ -231,8 +231,18 @@ static void SetQMCVarRemapTable(EngineGlobals *a_globals)
       a_globals->rmQMC[QMC_VAR_LGT_1] = 7;
       a_globals->rmQMC[QMC_VAR_LGT_2] = 8;
     break;
-  
+    
     case 4:
+      a_globals->rmQMC[QMC_VAR_SCR_X] = 0; // screen xy and light
+      a_globals->rmQMC[QMC_VAR_SCR_Y] = 1;
+      
+      a_globals->rmQMC[QMC_VAR_LGT_N] = 2;
+      a_globals->rmQMC[QMC_VAR_LGT_0] = 3;
+      a_globals->rmQMC[QMC_VAR_LGT_1] = 4;
+      a_globals->rmQMC[QMC_VAR_LGT_2] = 5;
+    break;
+  
+    case 5:
       a_globals->rmQMC[QMC_VAR_SCR_X] = 0; // all
       a_globals->rmQMC[QMC_VAR_SCR_Y] = 1;
       a_globals->rmQMC[QMC_VAR_DOF_X] = 2;

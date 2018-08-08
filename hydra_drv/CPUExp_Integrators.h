@@ -369,17 +369,6 @@ public:
   float3 PathTrace(float3 a_rpos, float3 a_rdir, MisData misPrev, int a_currDepth, uint flags);
 };
 
-class IntegratorMISPT_trofimm : public IntegratorCommon
-{
-public:
-
-  IntegratorMISPT_trofimm(int w, int h, EngineGlobals* a_pGlobals, int a_createFlags) : IntegratorCommon(w, h, a_pGlobals, a_createFlags) {}
-
-  float3 PathTrace(float3 a_rpos, float3 a_rdir, MisData misPrev, int a_currDepth, uint flags);
-  void DoPass(std::vector<uint>& a_imageLDR);
-
-};
-
 class IntegratorMISPT_QMC : public IntegratorMISPT
 {
 public:

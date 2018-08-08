@@ -226,7 +226,7 @@ static inline float MutateKelemen(float valueX, __private RandomGen* pGen, const
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-#define QRNG_DIMENSIONS 5
+#define QRNG_DIMENSIONS 9
 #define QRNG_RESOLUTION 31
 //#define QRNG_RESOLUTION 63
 #define INT_SCALE (1.0f / (float)0x80000001U)
@@ -536,7 +536,8 @@ static inline float4 rndLens(RandomGen* gen, __global const float* rptr, const f
   }
 }
 
-static inline float4 rndLight(RandomGen* gen, __global const float* rptr, const int bounceId)
+static inline float4 rndLight(RandomGen* gen, __global const float* rptr, const int bounceId,
+                              __global const int* a_tab, const unsigned int qmcPos, __constant unsigned int* a_qmcTable)
 {
   const int MLT_MAX_BOUNCE = rndMaxBounce(gen);
 
@@ -558,6 +559,15 @@ static inline float4 rndLight(RandomGen* gen, __global const float* rptr, const 
     }
 
     return make_float4(x, y, z, w);
+  }
+  else if(bounceId == 0 && a_tab != 0 && a_qmcTable != 0)
+  {
+    float4 res;
+    res.x = rndQmcTab(gen, a_tab, qmcPos, QMC_VAR_LGT_0, a_qmcTable);
+    res.y = rndQmcTab(gen, a_tab, qmcPos, QMC_VAR_LGT_1, a_qmcTable);
+    res.z = rndQmcTab(gen, a_tab, qmcPos, QMC_VAR_LGT_2, a_qmcTable);
+    res.w = rndFloat1_Pseudo(gen);
+    return res;
   }
   else
     return rndFloat4_Pseudo(gen);
@@ -585,19 +595,16 @@ static inline float3 rndMat(RandomGen* gen, __global const float* rptr, const in
 
     return make_float3(x, y, z);
   }
-  else
+  else if(bounceId == 0 && a_tab != 0 && a_qmcTable != 0)
   {
-    if(bounceId == 0 && a_tab != 0 && a_qmcTable != 0)
-    {
-      float3 res;
-      res.x = rndQmcTab(gen, a_tab, qmcPos, QMC_VAR_MAT_0, a_qmcTable);
-      res.y = rndQmcTab(gen, a_tab, qmcPos, QMC_VAR_MAT_1, a_qmcTable);
-      res.z = rndFloat1_Pseudo(gen);
-      return res;
-    }
-    else
-      return to_float3(rndFloat4_Pseudo(gen));
+    float3 res;
+    res.x = rndQmcTab(gen, a_tab, qmcPos, QMC_VAR_MAT_0, a_qmcTable);
+    res.y = rndQmcTab(gen, a_tab, qmcPos, QMC_VAR_MAT_1, a_qmcTable);
+    res.z = rndFloat1_Pseudo(gen);
+    return res;
   }
+  else
+    return to_float3(rndFloat4_Pseudo(gen));
 }
 
 static inline float rndMatLayer(RandomGen* gen, __global const float* rptr, const int bounceId, const int layerId,
