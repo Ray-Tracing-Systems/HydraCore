@@ -360,8 +360,51 @@ void IntegratorMISPT_trofimm::DoPass(std::vector<uint>& a_imageLDR)
   //if (m_spp == 1)
   //DebugSaveGbufferImage(L"C:/[Hydra]/rendered_images/torus_gbuff");
 
-  std::cout << "IntegratorCommon: spp = " << m_spp << std::endl;
+  std::cout << "IntegratorMISPT_trofimm: spp = " << m_spp << std::endl;
 
+}
+
+void IntegratorMISPT_QMC::DoPass(std::vector<uint>& a_imageLDR)
+{
+  if (m_width*m_height != a_imageLDR.size())
+    RUN_TIME_ERROR("DoPass: bad output bufffer size");
+  
+  const float alpha = 1.0f / float(m_spp + 1);  // Update HDR image coeff
+  
+  const auto size = m_summColors.size();
+
+  #pragma omp parallel for
+  for (int i = 0; i < size; ++i)
+  {
+    RandomGen& gen  = randomGen();
+    float4 lensOffs = rndLens(&gen, nullptr, float2(1,1),
+                              (const unsigned int*)m_tableQMC, i, m_pGlobals->rmQMC); 
+    
+    float  fx, fy;
+    float3 ray_pos, ray_dir;
+    MakeEyeRayFromF4Rnd(lensOffs, m_pGlobals,
+                        &ray_pos, &ray_dir, &fx, &fy);
+  
+    int x = (int)(fx);
+    int y = (int)(fy);
+
+    if (x >= m_width)  x = m_width - 1;
+    if (y >= m_height) y = m_height - 1;
+    if (x < 0)  x = 0;
+    if (y < 0)  y = 0;
+    
+    const float3 color = PathTrace(ray_pos, ray_dir, makeInitialMisData(), 0, 0);
+    const float maxCol = maxcomp(color);
+    
+    m_summColors[y*m_width + x] = m_summColors[y*m_width + x] * (1.0f - alpha) + to_float4(color, maxCol)*alpha;
+  }
+  
+  m_spp++;
+  GetImageToLDR(a_imageLDR);
+  
+  //RandomizeAllGenerators();
+  
+  std::cout << "IntegratorMISPT_QMC: spp = " << m_spp << std::endl;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////

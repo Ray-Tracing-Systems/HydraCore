@@ -249,19 +249,19 @@ static inline float rndQmcSobolN(unsigned int pos, int dim, __constant unsigned 
  * if no mapping presents in the table (id == -1) pseudo random should be used.
  *
  */
-#define QMC_VAR_SCREEN_X 0
-#define QMC_VAR_SCREEN_Y 1
-#define QMC_VAR_DOF_X    2
-#define QMC_VAR_DOF Y    3
+#define QMC_VAR_SCR_X 0
+#define QMC_VAR_SCR_Y 1
+#define QMC_VAR_DOF_X 2
+#define QMC_VAR_DOF_Y 3
 
-#define QMC_VAR_MAT_L    4
-#define QMC_VAR_MAT_0    5
-#define QMC_VAR_MAT_1    6
+#define QMC_VAR_MAT_L 4
+#define QMC_VAR_MAT_0 5
+#define QMC_VAR_MAT_1 6
 
-#define QMC_VAR_LGT_N    7
-#define QMC_VAR_LGT_0    8
-#define QMC_VAR_LGT_1    9
-#define QMC_VAR_LGT_2    10
+#define QMC_VAR_LGT_N 7
+#define QMC_VAR_LGT_0 8
+#define QMC_VAR_LGT_1 9
+#define QMC_VAR_LGT_2 10
 
 
 /**
@@ -274,7 +274,7 @@ static inline float rndQmcSobolN(unsigned int pos, int dim, __constant unsigned 
 \return quasi random float in range [0,1]
 
 */
-static inline float rndQmcTab(__private RandomGen* pGen, __constant unsigned int* a_tab,
+static inline float rndQmcTab(__private RandomGen* pGen, __global const int* a_tab,
                               unsigned int pos, int a_varName, __constant unsigned int *c_Table)
 {
   const int dim = a_tab[a_varName];
@@ -500,7 +500,7 @@ static inline float4 rndLensOld(__global const float* rptr)
 }
 
 static inline float4 rndLens(RandomGen* gen, __global const float* rptr, const float2 screenScale,
-                             __constant unsigned int* a_qmcTable, const unsigned int qmcPos)
+                             __constant unsigned int* a_qmcTable, const unsigned int qmcPos, __global const int* a_tab)
 {
   if (rptr != 0 && (gen->lazy != MUTATE_LAZY_LARGE))
   {
@@ -521,13 +521,14 @@ static inline float4 rndLens(RandomGen* gen, __global const float* rptr, const f
   }
   else
   {
+    
     if (a_qmcTable != 0)
     {
       float4 lensOffs;
-      lensOffs.x = rndQmcSobolN(qmcPos, 0, a_qmcTable);
-      lensOffs.y = rndQmcSobolN(qmcPos, 1, a_qmcTable);
-      lensOffs.z = rndQmcSobolN(qmcPos, 2, a_qmcTable);
-      lensOffs.w = rndQmcSobolN(qmcPos, 3, a_qmcTable);
+      lensOffs.x = rndQmcTab(gen, a_tab, qmcPos, QMC_VAR_SCR_X, a_qmcTable);
+      lensOffs.y = rndQmcTab(gen, a_tab, qmcPos, QMC_VAR_SCR_Y, a_qmcTable);
+      lensOffs.z = rndQmcTab(gen, a_tab, qmcPos, QMC_VAR_DOF_X, a_qmcTable);
+      lensOffs.w = rndQmcTab(gen, a_tab, qmcPos, QMC_VAR_DOF_Y, a_qmcTable);
       return lensOffs;
     }
     else
