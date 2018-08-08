@@ -269,7 +269,8 @@ protected:
 
     int selectedLightIdFwd;
     int mBounceDone;
-
+    int qmcPos;
+    
     std::string grammarCam;
     std::string grammarLit;
     std::vector<float3> vert;

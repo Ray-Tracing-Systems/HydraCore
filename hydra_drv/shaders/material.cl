@@ -959,7 +959,8 @@ __kernel void NextBounce(__global   float4*        restrict a_rpos,
       sc.tc  = hitTexCoord;
       sc.hfi = (materialGetType(pHitMaterial) == PLAIN_MAT_CLASS_GLASS) && (bool)(unpackRayFlags(flags) & RAY_HIT_SURFACE_FROM_OTHER_SIDE);  //hit glass from other side
   
-      const float3 randsm = rndMat(&gen, pssVec, unpackBounceNum(flags));
+      const float3 randsm = rndMat(&gen, pssVec, unpackBounceNum(flags),
+                                   a_globals->rmQMC, 0, nullptr);
   
       MaterialLeafSampleAndEvalBRDF(pHitMaterial, randsm, &sc, shadow, a_globals, in_texStorage1, in_texStorage2, &ptl,
                                     &brdfSample);

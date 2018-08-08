@@ -1271,7 +1271,8 @@ static inline BRDFSelector materialRandomWalkBRDF(__global const PlainMaterial* 
     if (a_mmltMode)
       rndVal = rndMatLayerMMLT(a_pGen, a_pssVec, a_rayBounce, i);
     else
-      rndVal = rndMatLayer(a_pGen, a_pssVec, a_rayBounce, i);
+      rndVal = rndMatLayer(a_pGen, a_pssVec, a_rayBounce, i,
+                           a_globals->rmQMC, 0, 0);          // TODO: add qmc table pointers from outside!!!
 
     //////////////////////////////////////////////////////////////////////////
     const int type = materialGetType(node);
@@ -1293,7 +1294,8 @@ static inline BRDFSelector materialRandomWalkBRDF(__global const PlainMaterial* 
     if (a_mmltMode)
       rndMatLayerMMLT(a_pGen, a_pssVec, a_rayBounce, i);
     else
-      rndMatLayer(a_pGen, a_pssVec, a_rayBounce, i);
+      rndMatLayer(a_pGen, a_pssVec, a_rayBounce, i,
+                  a_globals->rmQMC, 0, 0);
   }
 
   return res;

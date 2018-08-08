@@ -369,16 +369,18 @@ void IntegratorMISPT_QMC::DoPass(std::vector<uint>& a_imageLDR)
   if (m_width*m_height != a_imageLDR.size())
     RUN_TIME_ERROR("DoPass: bad output bufffer size");
   
-  const float alpha = 1.0f / float(m_spp + 1);  // Update HDR image coeff
+  const float alpha   = 1.0f / float(m_spp + 1);  // Update HDR image coeff
+  const auto loopSize = m_summColors.size();
+  const int qmcOffset = int(loopSize)*m_spp;
   
-  const auto size = m_summColors.size();
-
   #pragma omp parallel for
-  for (int i = 0; i < size; ++i)
+  for (int i = 0; i < loopSize; ++i)
   {
+    PerThread().qmcPos = qmcOffset + i;
+    
     RandomGen& gen  = randomGen();
     float4 lensOffs = rndLens(&gen, nullptr, float2(1,1),
-                              (const unsigned int*)m_tableQMC, i, m_pGlobals->rmQMC); 
+                              (const unsigned int*)m_tableQMC, PerThread().qmcPos, m_pGlobals->rmQMC);
     
     float  fx, fy;
     float3 ray_pos, ray_dir;

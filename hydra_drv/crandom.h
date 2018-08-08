@@ -275,7 +275,7 @@ static inline float rndQmcSobolN(unsigned int pos, int dim, __constant unsigned 
 
 */
 static inline float rndQmcTab(__private RandomGen* pGen, __global const int* a_tab,
-                              unsigned int pos, int a_varName, __constant unsigned int *c_Table)
+                              unsigned int pos, int a_varName, __constant unsigned int *c_Table) // pre (a_tab != nullptr && c_Table != nullptr)
 {
   const int dim = a_tab[a_varName];
   
@@ -563,7 +563,8 @@ static inline float4 rndLight(RandomGen* gen, __global const float* rptr, const 
     return rndFloat4_Pseudo(gen);
 }
 
-static inline float3 rndMat(RandomGen* gen, __global const float* rptr, const int bounceId)
+static inline float3 rndMat(RandomGen* gen, __global const float* rptr, const int bounceId,
+                            __global const int* a_tab, const unsigned int qmcPos, __constant unsigned int* a_qmcTable)
 {
   const int MLT_MAX_BOUNCE = rndMaxBounce(gen);
 
@@ -585,15 +586,29 @@ static inline float3 rndMat(RandomGen* gen, __global const float* rptr, const in
     return make_float3(x, y, z);
   }
   else
-    return to_float3(rndFloat4_Pseudo(gen));
+  {
+    if(bounceId == 0 && a_tab != 0 && a_qmcTable != 0)
+    {
+      float3 res;
+      res.x = rndQmcTab(gen, a_tab, qmcPos, QMC_VAR_MAT_0, a_qmcTable);
+      res.y = rndQmcTab(gen, a_tab, qmcPos, QMC_VAR_MAT_1, a_qmcTable);
+      res.z = rndFloat1_Pseudo(gen);
+      return res;
+    }
+    else
+      return to_float3(rndFloat4_Pseudo(gen));
+  }
 }
 
-static inline float rndMatLayer(RandomGen* gen, __global const float* rptr, const int bounceId, const int layerId)
+static inline float rndMatLayer(RandomGen* gen, __global const float* rptr, const int bounceId, const int layerId,
+                                __global const int* a_tab, const unsigned int qmcPos, __constant unsigned int* a_qmcTable)
 {
   const int MLT_MAX_BOUNCE = rndMaxBounce(gen);
 
   if (rptr != 0 && (gen->lazy != MUTATE_LAZY_LARGE) && bounceId < MLT_MAX_BOUNCE)
     return rptr[rndMatLOffset(bounceId) + layerId]; 
+  else if(bounceId == 0 && a_tab !=0 && a_qmcTable != 0)
+    return rndQmcTab(gen, a_tab, qmcPos, QMC_VAR_MAT_L, a_qmcTable);
   else
     return rndFloat1_Pseudo(gen);
 }

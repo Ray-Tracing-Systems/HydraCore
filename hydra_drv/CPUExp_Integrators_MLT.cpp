@@ -139,8 +139,8 @@ void MakeProposalAsInGPUVer(RandomGen* gen, float* yVecOut, const float* xVecIn,
   for (int bounceId = 0; bounceId < MLT_MAX_BOUNCE; bounceId++)
   {
     const int lightOffset = rndLightOffset(bounceId);
-    const int matOffset = rndMatOffset(bounceId);
-    const int matLOffset = rndMatLOffset(bounceId);
+    const int matOffset   = rndMatOffset(bounceId);
+    const int matLOffset  = rndMatLOffset(bounceId);
 
     float4 l_i = make_float4(0, 0, 0, 0);
 
@@ -155,9 +155,11 @@ void MakeProposalAsInGPUVer(RandomGen* gen, float* yVecOut, const float* xVecIn,
     yVecOut[lightOffset + 3] = l_i.w;
 
     for (int i = 0; i < MLT_FLOATS_PER_MLAYER; i++)
-      yVecOut[matLOffset + i] = rndMatLayer(gen, xVecIn, bounceId, i);
+      yVecOut[matLOffset + i] = rndMatLayer(gen, xVecIn, bounceId, i,
+                                            a_globals->rmQMC, 0, 0);
 
-    const float3 m_i = rndMat(gen, xVecIn, bounceId);
+    const float3 m_i = rndMat(gen, xVecIn, bounceId,
+                              a_globals->rmQMC, 0, nullptr);
 
     yVecOut[matOffset + 0] = m_i.x;
     yVecOut[matOffset + 1] = m_i.y;

@@ -557,11 +557,6 @@ RandomGen& IntegratorCommon::randomGen()
 
 std::tuple<MatSample, int, float3> IntegratorCommon::sampleAndEvalBxDF(float3 ray_dir, const SurfaceHit& surfElem, uint flags, float3 shadow, bool a_mmltMode)
 {
-  if(surfElem.matId == 1)
-  {
-    int a = 2;
-  }
-  
   const PlainMaterial* pHitMaterial = materialAt(m_pGlobals, m_matStorage, surfElem.matId);
   auto& gen = randomGen();
 
@@ -610,7 +605,7 @@ std::tuple<MatSample, int, float3> IntegratorCommon::sampleAndEvalBxDF(float3 ra
   sc.tc  = surfElem.texCoord;
   sc.hfi = surfElem.hfi;
 
-  const float3 rands   = a_mmltMode ? rndMatMMLT(&gen, gen.rptr, rayBounceNum) : rndMat(&gen, gen.rptr, rayBounceNum);
+  const float3 rands   = a_mmltMode ? rndMatMMLT(&gen, gen.rptr, rayBounceNum) : rndMat(&gen, gen.rptr, rayBounceNum, m_pGlobals->rmQMC, 0, nullptr);
   MatSample brdfSample;
   MaterialLeafSampleAndEvalBRDF(pHitMaterial, rands, &sc, shadow, m_pGlobals, m_texStorage, m_texStorageAux, &ptlCopy,
                                 &brdfSample);
