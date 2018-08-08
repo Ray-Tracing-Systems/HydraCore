@@ -226,7 +226,7 @@ static inline float MutateKelemen(float valueX, __private RandomGen* pGen, const
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-#define QRNG_DIMENSIONS 4 
+#define QRNG_DIMENSIONS 5
 #define QRNG_RESOLUTION 31
 //#define QRNG_RESOLUTION 63
 #define INT_SCALE (1.0f / (float)0x80000001U)
@@ -607,7 +607,7 @@ static inline float rndMatLayer(RandomGen* gen, __global const float* rptr, cons
 
   if (rptr != 0 && (gen->lazy != MUTATE_LAZY_LARGE) && bounceId < MLT_MAX_BOUNCE)
     return rptr[rndMatLOffset(bounceId) + layerId]; 
-  else if(bounceId == 0 && a_tab !=0 && a_qmcTable != 0)
+  else if(bounceId == 0 && a_tab != 0 && a_qmcTable != 0)
     return rndQmcTab(gen, a_tab, qmcPos, QMC_VAR_MAT_L, a_qmcTable);
   else
     return rndFloat1_Pseudo(gen);

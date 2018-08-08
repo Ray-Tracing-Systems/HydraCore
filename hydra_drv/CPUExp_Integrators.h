@@ -211,6 +211,8 @@ public:
 
   virtual void RandomizeAllGenerators();
 
+  virtual const unsigned int* GetQMCTableIfEnabled() const { return nullptr; }
+  
 protected:
 
   IntegratorCommon(const IntegratorCommon& a_rhs) {}
@@ -386,6 +388,7 @@ public:
   
   void DoPass(std::vector<uint>& a_imageLDR) override;
   
+  const unsigned int* GetQMCTableIfEnabled() const override { return (const unsigned int*)m_tableQMC; }
 };
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////

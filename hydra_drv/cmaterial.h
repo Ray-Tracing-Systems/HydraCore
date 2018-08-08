@@ -1253,7 +1253,8 @@ static inline float  sssGetTransmission(__global const PlainMaterial* a_pMat) { 
 static inline BRDFSelector materialRandomWalkBRDF(__global const PlainMaterial* a_pMat, __private RandomGen* a_pGen, __global const float* a_pssVec, 
                                                   const float3 rayDir, const float3 hitNorm, const float2 hitTexCoord,
                                                   __global const EngineGlobals* a_globals, texture2d_t a_tex, __private const ProcTextureList* a_ptList, 
-                                                  const int a_rayBounce, const bool a_mmltMode, const bool a_reflOnly)
+                                                  const int a_rayBounce, const bool a_mmltMode, const bool a_reflOnly,
+                                                  const unsigned int qmcPos, __constant unsigned int* a_qmcTable)
 {
   BRDFSelector res, sel;
 
@@ -1272,7 +1273,7 @@ static inline BRDFSelector materialRandomWalkBRDF(__global const PlainMaterial* 
       rndVal = rndMatLayerMMLT(a_pGen, a_pssVec, a_rayBounce, i);
     else
       rndVal = rndMatLayer(a_pGen, a_pssVec, a_rayBounce, i,
-                           a_globals->rmQMC, 0, 0);          // TODO: add qmc table pointers from outside!!!
+                           a_globals->rmQMC, qmcPos, a_qmcTable);
 
     //////////////////////////////////////////////////////////////////////////
     const int type = materialGetType(node);
@@ -1295,7 +1296,7 @@ static inline BRDFSelector materialRandomWalkBRDF(__global const PlainMaterial* 
       rndMatLayerMMLT(a_pGen, a_pssVec, a_rayBounce, i);
     else
       rndMatLayer(a_pGen, a_pssVec, a_rayBounce, i,
-                  a_globals->rmQMC, 0, 0);
+                  a_globals->rmQMC, qmcPos, a_qmcTable);
   }
 
   return res;

@@ -569,10 +569,13 @@ std::tuple<MatSample, int, float3> IntegratorCommon::sampleAndEvalBxDF(float3 ra
 
   auto ptlCopy = m_ptlDummy;
   GetProcTexturesIdListFromMaterialHead(pHitMaterial, &ptlCopy);
-
+  
+  const unsigned int* qmcTablePtr = GetQMCTableIfEnabled();
+  
   BRDFSelector mixSelector = materialRandomWalkBRDF(pHitMaterial, &gen, gen.rptr, ray_dir, surfElem.normal, surfElem.texCoord, 
                                                     m_pGlobals, m_texStorage, &ptlCopy,
-                                                    rayBounceNum, a_mmltMode, sampleReflectionOnly); // 
+                                                    rayBounceNum, a_mmltMode, sampleReflectionOnly,
+                                                    PerThread().qmcPos, qmcTablePtr); //
 
   /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////// --- >
 
@@ -604,8 +607,10 @@ std::tuple<MatSample, int, float3> IntegratorCommon::sampleAndEvalBxDF(float3 ra
   sc.bn  = surfElem.biTangent;
   sc.tc  = surfElem.texCoord;
   sc.hfi = surfElem.hfi;
-
-  const float3 rands   = a_mmltMode ? rndMatMMLT(&gen, gen.rptr, rayBounceNum) : rndMat(&gen, gen.rptr, rayBounceNum, m_pGlobals->rmQMC, 0, nullptr);
+  
+  const float3 rands  = a_mmltMode ? rndMatMMLT(&gen, gen.rptr, rayBounceNum) : rndMat(&gen, gen.rptr, rayBounceNum, \
+                                                                                       m_pGlobals->rmQMC, PerThread().qmcPos, qmcTablePtr);
+  
   MatSample brdfSample;
   MaterialLeafSampleAndEvalBRDF(pHitMaterial, rands, &sc, shadow, m_pGlobals, m_texStorage, m_texStorageAux, &ptlCopy,
                                 &brdfSample);
