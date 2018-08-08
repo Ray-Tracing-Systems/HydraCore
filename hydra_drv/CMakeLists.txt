@@ -62,7 +62,9 @@ if (CMAKE_BUILD_TYPE STREQUAL "Debug")
     add_definitions(-DDEBUG -D_DEBUG)
 endif()
 
-set(CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS} "-msse4.1")
+find_package(OpenMP REQUIRED)
+
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -msse4.1 ${OpenMP_CXX_FLAGS}")
 
 ADD_LIBRARY(hydra_drv STATIC ${SOURCE_FILES})
 

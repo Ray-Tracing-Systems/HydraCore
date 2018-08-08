@@ -137,8 +137,8 @@
 </geometry_lib>
 <render_lib>
   <render_settings type="HydraModern" id="0">
-    <width>512</width>
-    <height>512</height>
+    <width>1024</width>
+    <height>1024</height>
     <method_primary>pathtracing</method_primary>
     <method_secondary>pathtracing</method_secondary>
     <method_tertiary>pathtracing</method_tertiary>
