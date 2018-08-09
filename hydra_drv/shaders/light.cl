@@ -210,10 +210,12 @@ __kernel void LightSample(__global const float4*  restrict a_rpos,
   
   const float3 rands3 = to_float3(rndLight(&gen, 0, currDepth,
                                            a_globals->rmQMC, qmcPos, a_qmcTable));
+  
+  float2 rands2 = rndFloat2_Pseudo(&gen);
 
-  //const float3 rands3 = to_float3(rndFloat4_Pseudo(&gen));
+  if(currDepth == 0 && a_globals->rmQMC[QMC_VAR_LGT_N] != -1) // if qmc is enabled for light selector
+    rands2 = make_float2(rands3.z, 0.0f);
 
-  const float2 rands2 = rndFloat2_Pseudo(&gen);
   out_gens[tid]       = gen;
 
   // (1) generate light sample
