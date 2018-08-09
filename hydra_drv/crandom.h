@@ -245,7 +245,7 @@ static inline float rndQmcSobolN(unsigned int pos, int dim, __constant unsigned 
  * These defines are for the QMC remap table to support different mappings in run time.
  * for example you may decide to map (0,1) to screen (x,y) and (2,3) to DOF (x,y) or
  *             you may decide to map (0,1) to screen (x,y) and (2,3,4) to material sampling
- * if no mapping presents in the table (id == -1) pseudo random should be used.
+ * if no mapping presents in the table (id == -1) then pseudo random should be used.
  *
  */
 #define QMC_VAR_SCR_X 0

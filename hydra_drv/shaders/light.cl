@@ -173,6 +173,9 @@ __kernel void LightSample(__global const float4*  restrict a_rpos,
                           __global const float4*  restrict a_texStorage1,  //
                           __global const float4*  restrict a_texStorage2,  //
                           __global const float4*  restrict a_pdfStorage,   //
+  
+                          __constant unsigned int*  restrict a_qmcTable,
+                          int a_passNumberForQmc,
                           
                           int iNumElements,
                           __global const EngineGlobals* restrict a_globals)
@@ -200,7 +203,16 @@ __kernel void LightSample(__global const float4*  restrict a_rpos,
 
   RandomGen gen       = out_gens[tid];
   gen.maxNumbers      = a_globals->varsI[HRT_MLT_MAX_NUMBERS];
-  const float3 rands3 = to_float3(rndFloat4_Pseudo(&gen));
+
+  
+  const int currDepth       = unpackBounceNum(flags);
+  const unsigned int qmcPos = reverseBits(tid, iNumElements) + a_passNumberForQmc * iNumElements;
+  
+  const float3 rands3 = to_float3(rndLight(&gen, 0, currDepth,
+                                           a_globals->rmQMC, qmcPos, a_qmcTable));
+
+  //const float3 rands3 = to_float3(rndFloat4_Pseudo(&gen));
+
   const float2 rands2 = rndFloat2_Pseudo(&gen);
   out_gens[tid]       = gen;
 

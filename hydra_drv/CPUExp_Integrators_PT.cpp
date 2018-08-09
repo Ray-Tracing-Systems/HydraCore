@@ -120,8 +120,8 @@ float3 IntegratorMISPT::PathTrace(float3 ray_pos, float3 ray_dir, MisData misPre
   Lite_Hit hit = rayTrace(ray_pos, ray_dir);
 
   if (HitNone(hit))
-    return float3(0, 0, 0);
-
+    return environmentColor(ray_dir, misPrev, flags, m_pGlobals, m_matStorage, m_pdfStorage, m_texStorage);
+  
   SurfaceHit surfElem = surfaceEval(ray_pos, ray_dir, hit);
   
   float3 emission = emissionEval(ray_pos, ray_dir, surfElem, flags, misPrev, fetchInstId(hit));

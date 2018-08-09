@@ -66,24 +66,6 @@ __kernel void MakeEyeRaysSPP(__global float4* out_pos,
   out_dir [tid] = to_float4(ray_dir, fy);
 }
 
-inline int reverseBits(int a_input, int a_maxSize)
-{
-  int maxBit = 0;
-  while (a_maxSize >>= 1)
-    ++maxBit;
-
-  int result = 0;
-
-  for (int i = 0; i < maxBit; i++)
-  {
-    const int j = maxBit - i - 1;
-    const int inputMask = (0x00000001 << j);
-    result |= ((a_input & inputMask) >> j) << i;
-  }
-
-  return result;
-}
-
 __kernel void MakeEyeRaysSamplesOnly(__global RandomGen*           restrict out_gens,
                                      __global float4*              restrict out_samples,
                                      __global int2*                restrict out_zind,

@@ -1296,7 +1296,7 @@ static inline BRDFSelector materialRandomWalkBRDF(__global const PlainMaterial* 
       rndMatLayerMMLT(a_pGen, a_pssVec, a_rayBounce, i);
     else
       rndMatLayer(a_pGen, a_pssVec, a_rayBounce, i,
-                  a_globals->rmQMC, qmcPos, a_qmcTable);
+                  a_globals->rmQMC, qmcPos, 0);
   }
 
   return res;

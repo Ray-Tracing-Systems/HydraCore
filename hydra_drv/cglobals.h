@@ -2120,6 +2120,25 @@ static inline float gbuffDiffObj(GBufferAll s1, GBufferAll s2, const float a_fov
 }
 
 
+static inline int reverseBits(int a_input, int a_maxSize)
+{
+  int maxBit = 0;
+  while (a_maxSize >>= 1)
+    ++maxBit;
+  
+  int result = 0;
+  
+  for (int i = 0; i < maxBit; i++)
+  {
+    const int j = maxBit - i - 1;
+    const int inputMask = (0x00000001 << j);
+    result |= ((a_input & inputMask) >> j) << i;
+  }
+  
+  return result;
+}
+
+
 enum PLAIN_LIGHT_TYPES {
   PLAIN_LIGHT_TYPE_POINT_OMNI   = 0,
   PLAIN_LIGHT_TYPE_POINT_SPOT   = 1,
@@ -2527,6 +2546,10 @@ static inline bool MaterialHaveAO2(__global const PlainMaterial* a_pMat)
   return as_int(a_pMat->data[PROC_TEX_AO_TYPE]) != AO_TYPE_NONE && as_int(a_pMat->data[PROC_TEX_AO_TYPE2]) != AO_TYPE_NONE;
 }
 
+
+
+
+
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -2721,6 +2744,10 @@ static inline int remapMaterialId(int a_mId, int a_instId,
 
 
 #define AO_RAYS_PACKED 4
+
+
+
+
 
 
 #endif

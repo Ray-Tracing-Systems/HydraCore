@@ -274,7 +274,7 @@ protected:
   struct CL_GLOBALS
   {
     CL_GLOBALS() : ctx(0), cmdQueue(0), cmdQueueDevToHost(0), platform(0), device(0), m_maxWorkGroupSize(0), oclVer(100), use1DTex(false), liteCore(false),
-                   cMortonTable(0), qmcTable(0), devIsCPU(false), cpuTrace(false) {}
+                   cMortonTable(0), qmcTable(0), devIsCPU(false), cpuTrace(false), m_passNumberQMC(0) {}
 
     cl_context       ctx;        // OpenCL context
     cl_command_queue cmdQueue;   // OpenCL command que
@@ -294,7 +294,9 @@ protected:
 
     bool devIsCPU;
     bool cpuTrace;
-
+  
+    int m_passNumberQMC;
+    
   } m_globals;
 
 

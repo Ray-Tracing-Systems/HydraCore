@@ -263,6 +263,11 @@ protected:
 
   struct PerThreadData
   {
+    PerThreadData()
+    {
+      qmcPos = -1;
+    }
+    
     RandomGen          gen;
     RandomGen          gen2;
 

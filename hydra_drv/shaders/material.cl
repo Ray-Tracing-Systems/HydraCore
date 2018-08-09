@@ -834,9 +834,7 @@ __kernel void Shade(__global const float4*    restrict a_rpos,
   // (1) save shaded color 
   //
   out_color [tid] = to_float4(shadeColor, lightPickProb);
-} 
-
-
+}
 
 __kernel void NextBounce(__global   float4*        restrict a_rpos,
                          __global   float4*        restrict a_rdir,
@@ -865,6 +863,10 @@ __kernel void NextBounce(__global   float4*        restrict a_rpos,
                          __global const float4*    restrict in_texStorage2,
                          __global const float4*    restrict in_mtlStorage,
                          __global const float4*    restrict in_pdfStorage,   //
+
+
+                         __constant unsigned int*  restrict a_qmcTable,
+                         int a_passNumberForQmc,
                          
                          int iNumElements,
                          __global const EngineGlobals*  restrict a_globals)
@@ -873,6 +875,8 @@ __kernel void NextBounce(__global   float4*        restrict a_rpos,
   if (tid >= iNumElements)
     return;
 
+  const unsigned int qmcPos = reverseBits(tid, iNumElements) + a_passNumberForQmc * iNumElements;
+  
   uint flags = a_flags[tid];
 
   float3 ray_pos = to_float3(a_rpos[tid]);
@@ -934,8 +938,10 @@ __kernel void NextBounce(__global   float4*        restrict a_rpos,
     InitProcTextureList(&ptl);
     ReadProcTextureList(in_procTexData, tid, iNumElements,
                         &ptl);
-
-    BRDFSelector mixSelector = materialRandomWalkBRDF(pHitMaterial, &gen, pssVec, ray_dir, hitNorm, hitTexCoord, a_globals, in_texStorage1, &ptl, unpackBounceNum(flags), false, false);
+    
+    BRDFSelector mixSelector = materialRandomWalkBRDF(pHitMaterial, &gen, pssVec, ray_dir, hitNorm, hitTexCoord,
+                                                      a_globals, in_texStorage1, &ptl, unpackBounceNum(flags),
+                                                      false, false, qmcPos, a_qmcTable);
   
     const  uint rayBounceNum = unpackBounceNum(flags);
    
@@ -960,7 +966,7 @@ __kernel void NextBounce(__global   float4*        restrict a_rpos,
       sc.hfi = (materialGetType(pHitMaterial) == PLAIN_MAT_CLASS_GLASS) && (bool)(unpackRayFlags(flags) & RAY_HIT_SURFACE_FROM_OTHER_SIDE);  //hit glass from other side
   
       const float3 randsm = rndMat(&gen, pssVec, unpackBounceNum(flags),
-                                   a_globals->rmQMC, 0, nullptr);
+                                   a_globals->rmQMC, qmcPos, a_qmcTable);
   
       MaterialLeafSampleAndEvalBRDF(pHitMaterial, randsm, &sc, shadow, a_globals, in_texStorage1, in_texStorage2, &ptl,
                                     &brdfSample);
@@ -1112,7 +1118,7 @@ __kernel void NextBounce(__global   float4*        restrict a_rpos,
             {
               ShadeContext sc;
               sc.wp = hitPos;
-              sc.l  = (-1.0f)*oldRayDir;      // fliped; if compare to normal PT
+              sc.l  = (-1.0f)*oldRayDir;    // fliped; if compare to normal PT
               sc.v  = brdfSample.direction; // fliped; if compare to normal PT
               sc.n  = hitNorm;
               sc.fn = flatNorm;

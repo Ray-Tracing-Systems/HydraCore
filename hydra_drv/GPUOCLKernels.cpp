@@ -21,7 +21,9 @@ void GPUOCLLayer::runKernel_MakeEyeRays(cl_mem a_rpos, cl_mem a_rdir, cl_mem a_z
   size_t localWorkSize   = CMP_RESULTS_BLOCK_SIZE;
   int iSize              = int(a_size);
   a_size                 = roundBlocks(a_size, int(localWorkSize));
-
+  
+  m_globals.m_passNumberQMC = a_passNumber;
+  
   // (1) generate samples
   //
   cl_kernel makeSamples  = m_progs.screen.kernel("MakeEyeRaysSamplesOnly");
@@ -655,8 +657,12 @@ void GPUOCLLayer::runKernel_NextBounce(cl_mem a_rayFlags, cl_mem a_rpos, cl_mem 
     CHECK_CL(clSetKernelArg(kernX, 21, sizeof(cl_mem), (void*)&m_scene.storageTexAux));
     CHECK_CL(clSetKernelArg(kernX, 22, sizeof(cl_mem), (void*)&m_scene.storageMat));
     CHECK_CL(clSetKernelArg(kernX, 23, sizeof(cl_mem), (void*)&m_scene.storagePdfs));
-    CHECK_CL(clSetKernelArg(kernX, 24, sizeof(cl_int), (void*)&isize));
-    CHECK_CL(clSetKernelArg(kernX, 25, sizeof(cl_mem), (void*)&m_scene.allGlobsData));
+  
+    CHECK_CL(clSetKernelArg(kernX, 24, sizeof(cl_mem), (void*)&m_globals.qmcTable));
+    CHECK_CL(clSetKernelArg(kernX, 25, sizeof(cl_int), (void*)&m_globals.m_passNumberQMC));
+    
+    CHECK_CL(clSetKernelArg(kernX, 26, sizeof(cl_int), (void*)&isize));
+    CHECK_CL(clSetKernelArg(kernX, 27, sizeof(cl_mem), (void*)&m_scene.allGlobsData));
   }
 
   CHECK_CL(clEnqueueNDRangeKernel(m_globals.cmdQueue, kernX, 1, NULL, &a_size, &localWorkSize, 0, NULL, NULL));
@@ -845,9 +851,12 @@ void GPUOCLLayer::ShadePass(cl_mem a_rpos, cl_mem a_rdir, cl_mem a_outColor, siz
     CHECK_CL(clSetKernelArg(kernX, 13, sizeof(cl_mem), (void*)&m_scene.storageTex));
     CHECK_CL(clSetKernelArg(kernX, 14, sizeof(cl_mem), (void*)&m_scene.storageTexAux)); 
     CHECK_CL(clSetKernelArg(kernX, 15, sizeof(cl_mem), (void*)&m_scene.storagePdfs));
+  
+    CHECK_CL(clSetKernelArg(kernX, 16, sizeof(cl_mem), (void*)&m_globals.qmcTable));
+    CHECK_CL(clSetKernelArg(kernX, 17, sizeof(cl_int), (void*)&m_globals.m_passNumberQMC));
     
-    CHECK_CL(clSetKernelArg(kernX, 16, sizeof(cl_int), (void*)&isize));
-    CHECK_CL(clSetKernelArg(kernX, 17, sizeof(cl_mem), (void*)&m_scene.allGlobsData));
+    CHECK_CL(clSetKernelArg(kernX, 18, sizeof(cl_int), (void*)&isize));
+    CHECK_CL(clSetKernelArg(kernX, 19, sizeof(cl_mem), (void*)&m_scene.allGlobsData));
 
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   }
