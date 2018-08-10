@@ -1,15 +1,19 @@
 set(CMAKE_CXX_STANDARD 14)
 
 set(SOURCE_FILES
+        cglobals.h
+        cfetch.h
+        crandom.h
+        clight.h
+        cmaterial.h
+        ctrace.h
+        cbidir.h
         AbstractMaterial.h
         Bitmap.cpp
         bitonic_sort_gpu.cpp
         bitonic_sort_gpu.h
-        cfetch.h
-        clight.h
         cl_scan_gpu.cpp
         cl_scan_gpu.h
-        cmaterial.h
         CPUBilateralFilter2D.cpp
         CPUExp_bxdf.h
         CPUExp_Integrators_Common.cpp
@@ -23,10 +27,7 @@ set(SOURCE_FILES
         CPUExp_Integrators_ThreeWay.cpp
         CPUExp_Integrators_TwoWay.cpp
         CPUExpLayer.cpp
-        crandom.h
-        ctrace.h
         FastList.h
-        cglobals.h
         globals_sys.cpp
         globals_sys.h
         GPUOCLData.cpp

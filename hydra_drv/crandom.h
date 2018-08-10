@@ -69,7 +69,7 @@ static inline float4 rndFloat4_Pseudo(RandomGen* gen)
 
 static inline float2 rndFloat2_Pseudo(RandomGen* gen)
 {
-  unsigned int x = NextState(gen);
+  unsigned int x = NextState(gen); 
 
   const unsigned int x1 = (x * (x * x * 15731 + 74323) + 871483);
   const unsigned int y1 = (x * (x * x * 13734 + 37828) + 234234);
@@ -433,7 +433,7 @@ static inline float3 rndMat(RandomGen* gen, __global const float* rptr, const in
     return to_float3(rands);
   }
   else
-    return to_float3(rndFloat4_Pseudo(gen));
+    return to_float3(rndFloat4_Pseudo(gen));!
 }
 
 static inline float rndMatLayer(RandomGen* gen, __global const float* rptr, const int bounceId, const int layerId)
@@ -497,6 +497,8 @@ static inline float4 rndLensOld(__global const float* rptr)
 {
   return make_float4(rptr[0], rptr[1], rptr[2], rptr[3]);
 }
+
+// lets work under vs code for now ... 
 
 static inline float4 rndLens(RandomGen* gen, __global const float* rptr, const float2 screenScale,
                              __constant unsigned int* a_qmcTable, const unsigned int qmcPos, __global const int* a_tab)
