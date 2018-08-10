@@ -652,7 +652,7 @@ PathVertex IntegratorMMLT::LightPath(PerThreadData* a_perThread, int a_lightTrac
                &lightSelector);
 
   float lightPickProb = 1.0f;
-  const int lightId = SelectRandomLightFwd(make_float2(lightSelector.group2.z, lightSelector.group2.w), m_pGlobals,
+  const int lightId = SelectRandomLightFwd(lightSelector.group2.z, m_pGlobals,
                                            &lightPickProb);
 
   const PlainLight* pLight = lightAt(m_pGlobals, lightId);

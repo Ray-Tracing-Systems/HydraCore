@@ -1794,7 +1794,7 @@ static inline float lightPdfSelectRev(__global const PlainLight* pLight)
 \return selected light offset in global instanced lights array
 
 */
-static inline int SelectRandomLightFwd(float2 a_r, __global const EngineGlobals* a_globals, 
+static inline int SelectRandomLightFwd(float a_r, __global const EngineGlobals* a_globals, 
                                        __private float* pickProb)
 {
   const int tableSize = lightSelPdfTableSizeFwd(a_globals);
@@ -1806,7 +1806,7 @@ static inline int SelectRandomLightFwd(float2 a_r, __global const EngineGlobals*
   else
   {
     __global const float* table = lightSelPdfTableFwd(a_globals);
-    return SelectIndexPropToOpt(a_r.x, table, tableSize, pickProb);
+    return SelectIndexPropToOpt(a_r, table, tableSize, pickProb);
   }
 }
 

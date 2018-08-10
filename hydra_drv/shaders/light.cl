@@ -21,7 +21,7 @@ __kernel void LightSampleForwardCreate(__global float4*              restrict ou
   gen.maxNumbers      = a_globals->varsI[HRT_MLT_MAX_NUMBERS];
   const float4 rands1 = rndFloat4_Pseudo(&gen);             // #TODO: change this for MMLT
   const float2 rands2 = rndFloat2_Pseudo(&gen);             // #TODO: change this for MMLT
-  const float2 rands3 = rndFloat2_Pseudo(&gen);
+  const float  rands3 = rndFloat1_Pseudo(&gen);
   out_gens[tid]       = gen;
 
   float lightPickProb = 1.0f;

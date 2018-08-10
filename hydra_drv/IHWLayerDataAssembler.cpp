@@ -184,7 +184,7 @@ static void SetQMCVarRemapTable(EngineGlobals *a_globals)
   for(int i=0;i<QMC_VARS_NUM;i++)
     a_globals->rmQMC[i] = -1;
   
-  const int tableVariant = 0; // (0,3,7,5)
+  const int tableVariant = 3; // (0,3,7,5)
   
   // variant 0 (default); screen xy and dof only;
   //

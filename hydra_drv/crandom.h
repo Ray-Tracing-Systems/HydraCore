@@ -493,15 +493,30 @@ static inline int rndMaxBounce  (const RandomGen* gen) { return (gen->maxNumbers
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+/**
+\brief obtain old (i.e. not mutated random numbers) to get old contribution sample (x,y)
+\param rptr - in random number storage pointer
+ 
+\return 4 old random numbers for using them in camera\lens sampler
+*/
 static inline float4 rndLensOld(__global const float* rptr)
 {
   return make_float4(rptr[0], rptr[1], rptr[2], rptr[3]);
 }
 
-// lets work under vs code for now ... 
+/**
+\brief obtain 4 random numbers for using them in camera\lens sampler
+\param gen         - in out random generator.
+\param rptr        - in random number storage pointer
+\param screenScale - in scale for screen space muations (used to ajust mutation size according to specific resolution)
+\param a_qmcTable  - in qmc sobol (or else) table for permutations or sms like that;
+\param a_qmcPos    - in qmc poition index (i-th qmc number from generator)
+\param a_tab       - in qmc remap table; 
 
+\return 4 random numbers for using them in camera\lens sampler
+*/
 static inline float4 rndLens(RandomGen* gen, __global const float* rptr, const float2 screenScale,
-                             __constant unsigned int* a_qmcTable, const unsigned int qmcPos, __global const int* a_tab)
+                             __constant unsigned int* a_qmcTable, const unsigned int a_qmcPos, __global const int* a_tab)
 {
   if (rptr != 0 && (gen->lazy != MUTATE_LAZY_LARGE))
   {
@@ -520,23 +535,30 @@ static inline float4 rndLens(RandomGen* gen, __global const float* rptr, const f
 
     return make_float4(x, y, z, w);
   }
-  else
+  else if (a_qmcTable != 0)
   {
-    
-    if (a_qmcTable != 0)
-    {
-      float4 lensOffs;
-      lensOffs.x = rndQmcTab(gen, a_tab, qmcPos, QMC_VAR_SCR_X, a_qmcTable);
-      lensOffs.y = rndQmcTab(gen, a_tab, qmcPos, QMC_VAR_SCR_Y, a_qmcTable);
-      lensOffs.z = rndQmcTab(gen, a_tab, qmcPos, QMC_VAR_DOF_X, a_qmcTable);
-      lensOffs.w = rndQmcTab(gen, a_tab, qmcPos, QMC_VAR_DOF_Y, a_qmcTable);
-      return lensOffs;
-    }
-    else
-      return rndFloat4_Pseudo(gen);
+    float4 lensOffs;
+    lensOffs.y = rndQmcTab(gen, a_tab, a_qmcPos, QMC_VAR_SCR_Y, a_qmcTable);
+    lensOffs.z = rndQmcTab(gen, a_tab, a_qmcPos, QMC_VAR_DOF_X, a_qmcTable);
+    lensOffs.w = rndQmcTab(gen, a_tab, a_qmcPos, QMC_VAR_DOF_Y, a_qmcTable);
+    lensOffs.x = rndQmcTab(gen, a_tab, a_qmcPos, QMC_VAR_SCR_X, a_qmcTable);
+    return lensOffs;
   }
+  else
+    return rndFloat4_Pseudo(gen);
 }
 
+/**
+\brief obtain 4 random numbers for light sampling on the target bounce during to Path Tracing only (reverse light path)
+\param gen         - in out random generator.
+\param rptr        - in random number storage pointer
+\param bounceId    - in target bhounce number (0 is the primary visiable surface)
+\param a_qmcTable  - in qmc sobol (or else) table for permutations or sms like that;
+\param a_qmcPos    - in qmc poition index (i-th qmc number from generator)
+\param a_tab       - in qmc remap table; 
+
+\return 4 random numbers for using them in light sampling
+*/
 static inline float4 rndLight(RandomGen* gen, __global const float* rptr, const int bounceId,
                               __global const int* a_tab, const unsigned int qmcPos, __constant unsigned int* a_qmcTable)
 {
@@ -574,6 +596,17 @@ static inline float4 rndLight(RandomGen* gen, __global const float* rptr, const 
     return rndFloat4_Pseudo(gen);
 }
 
+/**
+\brief obtain 3 random numbers for material sampling on the target bounce (assume reverse order, i.e. 0 is the first bounce from camera)
+\param gen         - in out random generator.
+\param rptr        - in random number storage pointer
+\param bounceId    - in target bhounce number (0 is the primary visiable surface)
+\param a_qmcTable  - in qmc sobol (or else) table for permutations or sms like that;
+\param a_qmcPos    - in qmc poition index (i-th qmc number from generator)
+\param a_tab       - in qmc remap table; 
+
+\return 3 random numbers for using them in material sampling
+*/
 static inline float3 rndMat(RandomGen* gen, __global const float* rptr, const int bounceId,
                             __global const int* a_tab, const unsigned int qmcPos, __constant unsigned int* a_qmcTable)
 {
@@ -608,15 +641,28 @@ static inline float3 rndMat(RandomGen* gen, __global const float* rptr, const in
     return to_float3(rndFloat4_Pseudo(gen));
 }
 
+/**
+\brief obtain 1 random numbers for material layer selection on the target bounce and target three depth (assume reverse order, i.e. 0 is the first bounce from camera)
+\param gen         - in out random generator.
+\param rptr        - in random number storage pointer
+\param bounceId    - in target bhounce number (0 is the primary visiable surface)
+\param layerId     - in material tree depth
+
+\param a_qmcTable  - in qmc sobol (or else) table for permutations or sms like that;
+\param a_qmcPos    - in qmc poition index (i-th qmc number from generator)
+\param a_tab       - in qmc remap table; 
+
+\return 3 random numbers for using them in material sampling
+*/
 static inline float rndMatLayer(RandomGen* gen, __global const float* rptr, const int bounceId, const int layerId,
-                                __global const int* a_tab, const unsigned int qmcPos, __constant unsigned int* a_qmcTable)
+                                __global const int* a_tab, const unsigned int a_qmcPos, __constant unsigned int* a_qmcTable)
 {
   const int MLT_MAX_BOUNCE = rndMaxBounce(gen);
 
-  if (rptr != 0 && (gen->lazy != MUTATE_LAZY_LARGE) && bounceId < MLT_MAX_BOUNCE)
-    return rptr[rndMatLOffset(bounceId) + layerId]; 
-  else if(bounceId == 0 && a_tab != 0 && a_qmcTable != 0)
-    return rndQmcTab(gen, a_tab, qmcPos, QMC_VAR_MAT_L, a_qmcTable);
+  if (rptr != 0 && (gen->lazy != MUTATE_LAZY_LARGE) && bounceId < MLT_MAX_BOUNCE) // MCMC way; #NOTE: Lazy mutations is not needed due to small step
+    return rptr[rndMatLOffset(bounceId) + layerId];                               // must never change material layer
+  else if(bounceId == 0 && a_tab != 0 && a_qmcTable != 0)                         // QMC way;
+    return rndQmcTab(gen, a_tab, a_qmcPos, QMC_VAR_MAT_L, a_qmcTable);            // OMC way;
   else
     return rndFloat1_Pseudo(gen);
 }

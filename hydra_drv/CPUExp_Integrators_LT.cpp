@@ -39,7 +39,7 @@ void IntegratorLT::DoLightPath(int iterId)
   auto& rgen = randomGen();
 
   float lightPickProb = 1.0f;
-  const int lightId   = SelectRandomLightFwd(rndFloat2(&rgen), m_pGlobals,
+  const int lightId   = SelectRandomLightFwd(rndFloat1(&rgen), m_pGlobals,
                                              &lightPickProb);
 
   const PlainLight* pLight = lightAt(m_pGlobals, lightId);
