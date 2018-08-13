@@ -166,7 +166,7 @@ float3 IntegratorMMLT::F(const PSSampleV& a_xVec, const int d, int m_type,
 
   const float screenScaleX = m_pGlobals->varsF[HRT_MLT_SCREEN_SCALE_X];
   const float screenScaleY = m_pGlobals->varsF[HRT_MLT_SCREEN_SCALE_Y];
-  const float4 lensOffs    = rndLens(pGen, pGen->rptr, make_float2(screenScaleX, screenScaleY), 0, 0, m_pGlobals->rmQMC);
+  const float4 lensOffs    = rndLens(pGen, pGen->rptr, make_float2(screenScaleX, screenScaleY), 0, 0, 0);
 
   int x = (int)(lensOffs.x*float(m_width)  + 0.5f); // rndInt(&PerThread().gen, 0, m_width);  // light tracing can overwtite this variables
   int y = (int)(lensOffs.y*float(m_height) + 0.5f); // rndInt(&PerThread().gen, 0, m_height); // light tracing can overwtite this variables

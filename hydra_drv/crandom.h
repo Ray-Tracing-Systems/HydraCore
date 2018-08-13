@@ -411,7 +411,6 @@ static inline float4 rndLight(RandomGen* gen, __global const float* rptr, const 
     return rndFloat4_Pseudo(gen);
 }
 
-
 static inline float3 rndMat(RandomGen* gen, __global const float* rptr, const int bounceId)
 {
   const int MLT_MAX_BOUNCE = rndMaxBounce(gen);
