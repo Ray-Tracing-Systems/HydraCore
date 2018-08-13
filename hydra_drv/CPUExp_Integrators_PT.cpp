@@ -154,7 +154,7 @@ float3 IntegratorMISPT::PathTrace(float3 ray_pos, float3 ray_dir, MisData misPre
   const unsigned int* qmcTablePtr = GetQMCTableIfEnabled();
   
   auto& gen = randomGen();
-  const float4 rndLightData = rndLight(&gen, nullptr, a_currDepth,
+  const float4 rndLightData = rndLight(&gen, a_currDepth,
                                        m_pGlobals->rmQMC, PerThread().qmcPos, qmcTablePtr);
   
   float lightPickProb = 1.0f;

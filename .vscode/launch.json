@@ -9,7 +9,8 @@
             "type"   : "cppdbg",
             "request": "launch",
             "program": "${workspaceFolder}/cmake-build-release/hydra_app/hydra",
-            "args"   : ["-nowindow", "1", "-saveinterval", "60"],
+            "args"   : ["-nowindow", "1", 
+                        "-saveinterval", "60"],
             "stopAtEntry": false,
             "cwd"    : "${workspaceFolder}/hydra_app",
             "environment": [],
@@ -23,13 +24,14 @@
                 }
             ]
         },
-
+        
         {
             "name": "(gdb) Launch",
             "type": "cppdbg",
             "request": "launch",
             "program": "${workspaceFolder}/cmake-build-debug/hydra_app/hydra",
-            "args": ["-nowindow", "0"],
+            "args": ["-nowindow", "0", 
+                     "-logdir", "/home/frol/hydra/"],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}/hydra_app",
             "environment": [],
@@ -43,7 +45,7 @@
                 }
             ]
         }
-
+        
         
 
     ]

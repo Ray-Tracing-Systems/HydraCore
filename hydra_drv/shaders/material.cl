@@ -941,7 +941,7 @@ __kernel void NextBounce(__global   float4*        restrict a_rpos,
     
     BRDFSelector mixSelector = materialRandomWalkBRDF(pHitMaterial, &gen, pssVec, ray_dir, hitNorm, hitTexCoord,
                                                       a_globals, in_texStorage1, &ptl, unpackBounceNum(flags),
-                                                      false, false, qmcPos, a_qmcTable);
+                                                      false, qmcPos, a_qmcTable);
   
     const  uint rayBounceNum = unpackBounceNum(flags);
    

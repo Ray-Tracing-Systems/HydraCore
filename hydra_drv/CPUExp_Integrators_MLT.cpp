@@ -121,6 +121,7 @@ const float MLT_PLARGE = 0.25f;
 
 void MakeProposalAsInGPUVer(RandomGen* gen, float* yVecOut, const float* xVecIn, bool forceLargeStep, const EngineGlobals* a_globals)
 {
+  /*
   const int MLT_MAX_BOUNCE = rndMaxBounce(gen);
 
   float rlarge = 0.0f;
@@ -154,7 +155,7 @@ void MakeProposalAsInGPUVer(RandomGen* gen, float* yVecOut, const float* xVecIn,
     yVecOut[lightOffset + 2] = l_i.z;
     yVecOut[lightOffset + 3] = l_i.w;
 
-    for (int i = 0; i < MLT_FLOATS_PER_MLAYER; i++)
+    for (int i = 0; i < MMLT_FLOATS_PER_MLAYER; i++)
       yVecOut[matLOffset + i] = rndMatLayer(gen, xVecIn, bounceId, i,
                                             0, 0, 0);
 
@@ -167,6 +168,7 @@ void MakeProposalAsInGPUVer(RandomGen* gen, float* yVecOut, const float* xVecIn,
   }
 
   gen->lazy = MUTATE_LAZY_NO;
+  */
 }
 
 IntegratorPSSMLT::PSSampleV IntegratorPSSMLT::mutatePrimarySpace(const PSSampleV& a_vec, bool* pIsLargeStep)

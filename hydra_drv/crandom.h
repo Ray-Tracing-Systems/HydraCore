@@ -262,7 +262,6 @@ static inline float rndQmcSobolN(unsigned int pos, int dim, __constant unsigned 
 #define QMC_VAR_LGT_1 9
 #define QMC_VAR_LGT_2 10
 
-
 /**
 \brief get qmc number for target qmc var (see defines up)
 \param pGen      - inout pseudo random generator
@@ -283,6 +282,43 @@ static inline float rndQmcTab(__private RandomGen* pGen, __global const int* a_t
   else
     return rndQmcSobolN(pos, dim, c_Table);
 }
+
+/**
+ * Note that unlike QMC, MMLT don't use remap table.
+ * These offsets are direct offsets in the ramdom vector table (in floats) 
+ *
+ */
+
+#define MMLT_HEAD_TOTAL_SIZE 12  //
+
+// [0-3] :  LENS;  4 in total
+//
+#define MMLT_DIM_SCR_X 0
+#define MMLT_DIM_SCR_Y 1
+#define MMLT_DIM_DOF_X 2
+#define MMLT_DIM_DOF_Y 3
+
+// [4-10]:  LIGHT; 7 in total
+//
+#define MMLT_DIM_LGT_X 4     
+#define MMLT_DIM_LGT_Y 5    
+#define MMLT_DIM_LGT_Z 6    
+#define MMLT_DIM_LGT_W 7    
+  
+#define MMLT_DIM_LGT_X1 8 
+#define MMLT_DIM_LGT_Y1 9 
+#define MMLT_DIM_LGT_N 10 
+
+// [11] :  SPLIT; 
+//
+#define MMLT_DIM_SPLIT 11
+
+#define MMLT_FLOATS_PER_MLAYER 5
+#define MMLT_FLOATS_PER_SAMPLE 3
+#define MMLT_FLOATS_PER_BOUNCE (MMLT_FLOATS_PER_SAMPLE + MMLT_FLOATS_PER_MLAYER)
+
+static inline int rndMatOffsetMMLT (const int a_bounceId) { return a_bounceId*MMLT_FLOATS_PER_BOUNCE; }                          // relative offset, dont add MMLT_HEAD_TOTAL_SIZE!
+static inline int rndMatLOffsetMMLT(const int a_bounceId) { return a_bounceId*MMLT_FLOATS_PER_BOUNCE + MMLT_FLOATS_PER_SAMPLE; } // relative offset, dont add MMLT_HEAD_TOTAL_SIZE!
 
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -338,152 +374,9 @@ static inline float6_gr unpackBounceGroup(uint4 data)
   return res;
 }
 
-
-#ifdef RAND_MLT_CPU
-  #undef COMPRESS_RAND
-#endif
-
-#ifdef COMPRESS_RAND
-
-#define MLT_INT4_PER_BOUNCE 2
-
-static inline int rndLightOffset(const int a_bounceId) { return a_bounceId*MLT_INT4_PER_BOUNCE + 0; }
-static inline int rndMatOffset  (const int a_bounceId) { return a_bounceId*MLT_INT4_PER_BOUNCE + 1; }
-static inline int rndMaxBounce(const RandomGen* gen)   { return (gen->maxNumbers / (MLT_INT4_PER_BOUNCE*4)); }
-
-static inline float4 rndLensOld(__global const float* rptr)
-{
-  __global const uint4* rptr2 = (__global const uint4*)rptr;
-  return unpackBounceGroup(rptr2[0]).group24;
-}
-
-static inline float4 rndLens(RandomGen* gen, __global const float* rptr, const float2 screenScale)
-{
-  if (rptr != 0 && (gen->lazy != MUTATE_LAZY_LARGE))
-  {
-    __global const uint4* rptr2 = (__global const uint4*)rptr;
-
-    float4 rands = unpackBounceGroup(rptr2[0]).group24;
-
-    if (gen->lazy == MUTATE_LAZY_YES)
-    {
-      rands.x = MutateKelemen(rands.x, gen, MUTATE_COEFF_SCREEN*screenScale.x);
-      rands.y = MutateKelemen(rands.y, gen, MUTATE_COEFF_SCREEN*screenScale.y);
-      rands.z = MutateKelemen(rands.z, gen, MUTATE_COEFF_BSDF);
-      rands.w = MutateKelemen(rands.w, gen, MUTATE_COEFF_BSDF);
-    }
-
-    return rands;
-  }
-  else
-    return rndFloat4_Pseudo(gen);
-}
-
-static inline float4 rndLight(RandomGen* gen, __global const float* rptr, const int bounceId)
-{
-  const int MLT_MAX_BOUNCE = rndMaxBounce(gen);
-
-  if (rptr != 0 && (gen->lazy != MUTATE_LAZY_LARGE) && bounceId < MLT_MAX_BOUNCE)
-  {
-    __global const uint4* rptr2 = (__global const uint4*)rptr;
-
-    const int offset   = rndLightOffset(bounceId);
-    float4 rands = unpackBounceGroup(rptr2[offset]).group24;
-
-    if (gen->lazy == MUTATE_LAZY_YES)
-    {
-      rands.x = MutateKelemen(rands.x, gen, MUTATE_COEFF_BSDF);
-      rands.y = MutateKelemen(rands.y, gen, MUTATE_COEFF_BSDF);
-      rands.z = MutateKelemen(rands.z, gen, MUTATE_COEFF_BSDF);
-      rands.w = rands.w;  // don't mutate light number !!!
-    }
-
-    return rands;
-  }
-  else
-    return rndFloat4_Pseudo(gen);
-}
-
-static inline float3 rndMat(RandomGen* gen, __global const float* rptr, const int bounceId)
-{
-  const int MLT_MAX_BOUNCE = rndMaxBounce(gen);
-
-  if (rptr != 0 && (gen->lazy != MUTATE_LAZY_LARGE) && bounceId < MLT_MAX_BOUNCE)
-  {
-    __global const uint4* rptr2 = (__global const uint4*)rptr;
-
-    const int offset   = rndMatOffset(bounceId);
-    float4 rands = unpackBounceGroup(rptr2[offset]).group24;
-
-    if (gen->lazy == MUTATE_LAZY_YES)
-    {
-      rands.x = MutateKelemen(rands.x, gen, MUTATE_COEFF_BSDF);
-      rands.y = MutateKelemen(rands.y, gen, MUTATE_COEFF_BSDF);
-      rands.z = MutateKelemen(rands.z, gen, MUTATE_COEFF_BSDF);
-    }
-
-    return to_float3(rands);
-  }
-  else
-    return to_float3(rndFloat4_Pseudo(gen));!
-}
-
-static inline float rndMatLayer(RandomGen* gen, __global const float* rptr, const int bounceId, const int layerId)
-{
-  const int MLT_MAX_BOUNCE = rndMaxBounce(gen);
-
-  if (rptr != 0 && (gen->lazy != MUTATE_LAZY_LARGE) && bounceId < MLT_MAX_BOUNCE)
-  {
-    __global const uint4* rptr2 = (__global const uint4*)rptr;
-
-    if(layerId <= 2)
-    {
-      const float6_gr group2 = unpackBounceGroup(rptr2[rndMatOffset(bounceId)]);
-      if(layerId == 0)
-        return group2.group24.w;
-      else if(layerId == 1)
-        return (float)(group2.group16.x)*(1.0f / 65535.0f);
-      else
-        return (float)(group2.group16.y)*(1.0f / 65535.0f);
-    }
-    else if(layerId <= 4)
-    {
-      const ushort2 group1 = unpackBounceGroup(rptr2[rndLightOffset(bounceId)]).group16;
-      if(layerId == 3)
-        return (float)(group1.x)*(1.0f / 65535.0f);
-      else 
-        return (float)(group1.y)*(1.0f / 65535.0f);
-    }
-    else
-      return rndFloat1_Pseudo(gen); //rptr[rndMatLOffset(bounceId) + layerId];
-  }
-  else
-  {
-    return rndFloat1_Pseudo(gen);
-  }
-}
-
-#define MLT_FLOATS_PER_MLAYER 5
-
-#else // not compressed layout
-
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-#define MLT_FLOATS_PER_SAMPLE (4+3)
-#define MLT_FLOATS_PER_MLAYER 5
-
-#define MLT_FLOATS_PER_BOUNCE (MLT_FLOATS_PER_SAMPLE + MLT_FLOATS_PER_MLAYER)
-
-#define MLT_LIGHT_GROUP_LOCAL_OFFS 0
-#define MLT_MAT_GROUP_LOCAL_OFFS   4
-
-static inline int rndLightOffset(const int a_bounceId) { return a_bounceId*MLT_FLOATS_PER_BOUNCE + MLT_LIGHT_GROUP_LOCAL_OFFS; }
-static inline int rndMatOffset  (const int a_bounceId) { return a_bounceId*MLT_FLOATS_PER_BOUNCE + MLT_MAT_GROUP_LOCAL_OFFS; }
-static inline int rndMatLOffset (const int a_bounceId) { return a_bounceId*MLT_FLOATS_PER_BOUNCE + MLT_FLOATS_PER_SAMPLE; }
-static inline int rndMaxBounce  (const RandomGen* gen) { return (gen->maxNumbers / MLT_FLOATS_PER_BOUNCE); }
-
-///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 /**
 \brief obtain old (i.e. not mutated random numbers) to get old contribution sample (x,y)
@@ -493,7 +386,7 @@ static inline int rndMaxBounce  (const RandomGen* gen) { return (gen->maxNumbers
 */
 static inline float4 rndLensOld(__global const float* rptr)
 {
-  return make_float4(rptr[0], rptr[1], rptr[2], rptr[3]);
+  return make_float4(rptr[MMLT_DIM_SCR_X], rptr[MMLT_DIM_SCR_Y], rptr[MMLT_DIM_DOF_X], rptr[MMLT_DIM_DOF_Y]);
 }
 
 /**
@@ -512,10 +405,10 @@ static inline float4 rndLens(RandomGen* gen, __global const float* rptr, const f
 {
   if (rptr != 0 && (gen->lazy != MUTATE_LAZY_LARGE))
   {
-    float x = rptr[0];
-    float y = rptr[1];
-    float z = rptr[2];
-    float w = rptr[3];
+    float x = rptr[MMLT_DIM_SCR_X];
+    float y = rptr[MMLT_DIM_SCR_Y];
+    float z = rptr[MMLT_DIM_DOF_X];
+    float w = rptr[MMLT_DIM_DOF_Y];
 
     if (gen->lazy == MUTATE_LAZY_YES)
     {
@@ -543,7 +436,6 @@ static inline float4 rndLens(RandomGen* gen, __global const float* rptr, const f
 /**
 \brief obtain 4 random numbers for light sampling on the target bounce during to Path Tracing only (reverse light path)
 \param gen         - in out random generator.
-\param rptr        - in random number storage pointer
 \param bounceId    - in target bhounce number (0 is the primary visiable surface)
 \param a_qmcTable  - in qmc sobol (or else) table for permutations or sms like that;
 \param a_qmcPos    - in qmc poition index (i-th qmc number from generator)
@@ -551,31 +443,10 @@ static inline float4 rndLens(RandomGen* gen, __global const float* rptr, const f
 
 \return 4 random numbers for using them in light sampling
 */
-static inline float4 rndLight(RandomGen* gen, __global const float* rptr, const int bounceId,
+static inline float4 rndLight(RandomGen* gen, const int bounceId,
                               __global const int* a_tab, const unsigned int qmcPos, __constant unsigned int* a_qmcTable)
 {
-  const int MLT_MAX_BOUNCE = rndMaxBounce(gen);
-
-  if (rptr != 0 && (gen->lazy != MUTATE_LAZY_LARGE) && bounceId < MLT_MAX_BOUNCE)
-  {
-    const int offset = rndLightOffset(bounceId);
-
-    float x = rptr[offset + 0];
-    float y = rptr[offset + 1];
-    float z = rptr[offset + 2];
-    float w = rptr[offset + 3];
-
-    if (gen->lazy == MUTATE_LAZY_YES)
-    {
-      x = MutateKelemen(x, gen, MUTATE_COEFF_BSDF);
-      y = MutateKelemen(y, gen, MUTATE_COEFF_BSDF);
-      z = MutateKelemen(z, gen, MUTATE_COEFF_BSDF);
-      //w = MutateKelemen(w, gen, MUTATE_COEFF_BSDF);  // don't mutate light number
-    }
-
-    return make_float4(x, y, z, w);
-  }
-  else if(bounceId == 0 && a_tab != 0 && a_qmcTable != 0)
+  if(bounceId == 0 && a_tab != 0 && a_qmcTable != 0)
   {
     float4 res;
     res.x = rndQmcTab(gen, a_tab, qmcPos, QMC_VAR_LGT_0, a_qmcTable);
@@ -602,11 +473,9 @@ static inline float4 rndLight(RandomGen* gen, __global const float* rptr, const 
 static inline float3 rndMat(RandomGen* gen, __global const float* rptr, const int bounceId,
                             __global const int* a_tab, const unsigned int qmcPos, __constant unsigned int* a_qmcTable)
 {
-  const int MLT_MAX_BOUNCE = rndMaxBounce(gen);
-
-  if (rptr != 0 && (gen->lazy != MUTATE_LAZY_LARGE) && bounceId < MLT_MAX_BOUNCE)
+  if (rptr != 0 && (gen->lazy != MUTATE_LAZY_LARGE))
   {
-    const int offset = rndMatOffset(bounceId);
+    const int offset = rndMatOffsetMMLT(bounceId);
 
     float x = rptr[offset + 0];
     float y = rptr[offset + 1];
@@ -649,20 +518,18 @@ static inline float3 rndMat(RandomGen* gen, __global const float* rptr, const in
 static inline float rndMatLayer(RandomGen* gen, __global const float* rptr, const int bounceId, const int layerId,
                                 __global const int* a_tab, const unsigned int a_qmcPos, __constant unsigned int* a_qmcTable)
 {
-  const int MLT_MAX_BOUNCE = rndMaxBounce(gen);
-
-  if (rptr != 0 && (gen->lazy != MUTATE_LAZY_LARGE) && bounceId < MLT_MAX_BOUNCE) // MCMC way; #NOTE: Lazy mutations is not needed due to small step
-    return rptr[rndMatLOffset(bounceId) + layerId];                               // must never change material layer
-  else if(bounceId == 0 && a_tab != 0 && a_qmcTable != 0)                         // QMC way;
-    return rndQmcTab(gen, a_tab, a_qmcPos, QMC_VAR_MAT_L, a_qmcTable);            // OMC way;
-  else
-    return rndFloat1_Pseudo(gen);
+  if (rptr != 0 && (gen->lazy != MUTATE_LAZY_LARGE))                   // MCMC way; #NOTE: Lazy mutations is not needed due to small step
+    return rptr[rndMatLOffsetMMLT(bounceId) + layerId];                // must never change material layer
+  else if(bounceId == 0 && a_tab != 0 && a_qmcTable != 0)              // QMC way;
+    return rndQmcTab(gen, a_tab, a_qmcPos, QMC_VAR_MAT_L, a_qmcTable);
+  else                                                                 // OMC way;
+    return rndFloat1_Pseudo(gen);                                      
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-#endif
+
 
 static inline unsigned int mapRndFloatToUInt(float a_val, unsigned int a, unsigned int b)
 {
@@ -678,51 +545,6 @@ static inline unsigned int mapRndFloatToUInt(float a_val, unsigned int a, unsign
     return res;
 }
 
-// (3+5)*(d-1) for materials
-
-#define MMLT_FLOATS_PER_SAMPLE 3
-#define MMLT_FLOATS_PER_BOUNCE (MMLT_FLOATS_PER_SAMPLE + MLT_FLOATS_PER_MLAYER)
-#define MMLT_HEAD_TOTAL_SIZE 12  //
-
-// [0-3]:   LENS;  4 in total
-// [4-11]:  LIGHT; 5 in totalB
-// [12  ]:  SPLIT; 1 in total
-// [13-15]: TAIL;  3 in total, not used
-
-static inline int rndMatOffsetMMLT (const int a_bounceId) { return a_bounceId*MMLT_FLOATS_PER_BOUNCE; }                          // relative offset, dont add MMLT_HEAD_TOTAL_SIZE!
-static inline int rndMatLOffsetMMLT(const int a_bounceId) { return a_bounceId*MMLT_FLOATS_PER_BOUNCE + MMLT_FLOATS_PER_SAMPLE; } // relative offset, dont add MMLT_HEAD_TOTAL_SIZE!
-
-static inline float3 rndMatMMLT(RandomGen* gen, __global const float* rptr, const int bounceId)
-{
-  if (rptr != 0 && gen->lazy != MUTATE_LAZY_LARGE)
-  {
-    const int offset = rndMatOffsetMMLT(bounceId);
-
-    float x = rptr[offset + 0];
-    float y = rptr[offset + 1];
-    float z = rptr[offset + 2];
-
-    if (gen->lazy == MUTATE_LAZY_YES)
-    {
-      x = MutateKelemen(x, gen, MUTATE_COEFF_BSDF);
-      y = MutateKelemen(y, gen, MUTATE_COEFF_BSDF);
-      z = MutateKelemen(z, gen, MUTATE_COEFF_BSDF);
-    }
-
-    return make_float3(x, y, z);
-  }
-  else
-    return to_float3(rndFloat4_Pseudo(gen));
-}
-
-static inline float rndMatLayerMMLT(RandomGen* gen, __global const float* rptr, const int bounceId, const int layerId)
-{
-  if (rptr != 0 && gen->lazy != MUTATE_LAZY_LARGE)
-    return rptr[rndMatLOffsetMMLT(bounceId) + layerId];
-  else
-    return rndFloat1_Pseudo(gen);
-}
-
 typedef struct LightGroup2T
 {
   float4 group1;
@@ -730,20 +552,19 @@ typedef struct LightGroup2T
 
 } LightGroup2;
 
-
 static inline void RndLightMMLT(RandomGen* gen, __global const float* rptr,
                                 __private LightGroup2* pOut)
 {
   if (rptr != 0 && gen->lazy != MUTATE_LAZY_LARGE)
   {
-    float x  = rptr[4 + 0]; //#TODO: opt read as 2xfloat4
-    float y  = rptr[4 + 1];
-    float z  = rptr[4 + 2];
-    float w  = rptr[4 + 3];
+    float x  = rptr[MMLT_DIM_LGT_X]; //#TODO: opt read as 2xfloat4
+    float y  = rptr[MMLT_DIM_LGT_Y];
+    float z  = rptr[MMLT_DIM_LGT_Z];
+    float w  = rptr[MMLT_DIM_LGT_W];
   
-    float x1 = rptr[4 + 4];
-    float y1 = rptr[4 + 5];
-    float n  = rptr[4 + 6];
+    float x1 = rptr[MMLT_DIM_LGT_X1];
+    float y1 = rptr[MMLT_DIM_LGT_Y1];
+    float n  = rptr[MMLT_DIM_LGT_N];
      
     if (gen->lazy == MUTATE_LAZY_YES)
     {
@@ -766,15 +587,12 @@ static inline void RndLightMMLT(RandomGen* gen, __global const float* rptr,
   }
 }
 
-
 static inline int rndSplitMMLT(RandomGen* gen, __global const float* rptr, const int d)
 {
-  const int offset = 11; 
-  
   float x;
   if (rptr != 0 && gen->lazy != MUTATE_LAZY_LARGE)
   {
-    x = rptr[offset];
+    x = rptr[MMLT_DIM_SPLIT];
     if (gen->lazy == MUTATE_LAZY_YES)
       x = MutateKelemen(x, gen, MUTATE_COEFF_BSDF);
   }
