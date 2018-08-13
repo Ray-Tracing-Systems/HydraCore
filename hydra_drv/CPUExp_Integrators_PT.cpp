@@ -60,7 +60,7 @@ float3  IntegratorShadowPT::PathTrace(float3 ray_pos, float3 ray_dir, MisData mi
 
   auto& gen = randomGen();
   float lightPickProb = 1.0f;
-  int lightOffset = SelectRandomLightRev(rndFloat2_Pseudo(&gen), surfElem.pos, m_pGlobals,
+  int lightOffset = SelectRandomLightRev(rndFloat1_Pseudo(&gen), surfElem.pos, m_pGlobals,
                                          &lightPickProb);
 
   if (lightOffset >= 0)
@@ -158,7 +158,7 @@ float3 IntegratorMISPT::PathTrace(float3 ray_pos, float3 ray_dir, MisData misPre
                                        m_pGlobals->rmQMC, PerThread().qmcPos, qmcTablePtr);
   
   float lightPickProb = 1.0f;
-  int lightOffset     = SelectRandomLightRev(float2(rndLightData.z, rndLightData.w), surfElem.pos, m_pGlobals,
+  int lightOffset     = SelectRandomLightRev(rndLightData.z, surfElem.pos, m_pGlobals,
                                              &lightPickProb);
   
   if (lightOffset >= 0) // if need to sample direct light ?

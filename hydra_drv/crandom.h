@@ -287,34 +287,27 @@ static inline float rndQmcTab(__private RandomGen* pGen, __global const int* a_t
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-
-typedef struct LightSamplingRandsT // sampling from spetial formatted PSS vector
-{
-  float3 pos;
-  float  numberAsFloat;
-
-} LSRands;
-
-
 typedef struct float6GroupT
 {
-  float4  group24;
-  ushort2 group16;
-
+  float4 group24;
+  float2 group16;
 } float6_gr;
 
 
-#define MANTISSA24 8388608.0f // 16777216.0f actually you have to use only 23 bit because sign is not used, randoms from [0..1] are always positive ... 
-#define MANTISSA24_INV (1.0f / MANTISSA24)
+#define MANTISSA23 8388607.0f // 16777215.0f; actually you can use only 23 bit because sign is not used, randoms from [0..1] are always positive ... 
+#define MANTISSA23_INV (1.0f / MANTISSA23)
+
+#define MANTISSA16 65535.0f
+#define MANTISSA16_INV (1.0f/65535.0f)
 
 static inline uint4 packBounceGroup(float6_gr data)
 {
-  const unsigned int ix0 = (unsigned int)(MANTISSA24*data.group24.x);
-  const unsigned int ix1 = (unsigned int)(MANTISSA24*data.group24.y);
-  const unsigned int ix2 = (unsigned int)(MANTISSA24*data.group24.z);
-  const unsigned int ix3 = (unsigned int)(MANTISSA24*data.group24.w);
-  const unsigned int iy0 = (unsigned int)(data.group16.x);
-  const unsigned int iy1 = (unsigned int)(data.group16.y);
+  const unsigned int ix0 = (unsigned int)(MANTISSA23*data.group24.x);
+  const unsigned int ix1 = (unsigned int)(MANTISSA23*data.group24.y);
+  const unsigned int ix2 = (unsigned int)(MANTISSA23*data.group24.z);
+  const unsigned int ix3 = (unsigned int)(MANTISSA23*data.group24.w);
+  const unsigned int iy0 = (unsigned int)(MANTISSA16*data.group16.x);
+  const unsigned int iy1 = (unsigned int)(MANTISSA16*data.group16.y);
 
   uint4 res;
   res.x = (ix0 & 0x00FFFFFF) | ((ix1 & 0x00FF0000) << 8);
@@ -336,12 +329,12 @@ static inline float6_gr unpackBounceGroup(uint4 data)
   const unsigned int x3i = ((data.z & 0xFF000000) >> 8) | (data.w & 0x0000FFFF);
 
   float6_gr res;
-  res.group24.x = (float)(x0i)*MANTISSA24_INV;
-  res.group24.y = (float)(x1i)*MANTISSA24_INV;
-  res.group24.z = (float)(x2i)*MANTISSA24_INV;
-  res.group24.w = (float)(x3i)*MANTISSA24_INV;
-  res.group16.x = (ushort)(y0i);
-  res.group16.y = (ushort)(y1i);
+  res.group24.x = (float)(x0i)*MANTISSA23_INV;
+  res.group24.y = (float)(x1i)*MANTISSA23_INV;
+  res.group24.z = (float)(x2i)*MANTISSA23_INV;
+  res.group24.w = (float)(x3i)*MANTISSA23_INV;
+  res.group16.x = (float)(y0i)*MANTISSA16_INV;
+  res.group16.y = (float)(y1i)*MANTISSA16_INV;
   return res;
 }
 
@@ -689,10 +682,10 @@ static inline unsigned int mapRndFloatToUInt(float a_val, unsigned int a, unsign
 
 #define MMLT_FLOATS_PER_SAMPLE 3
 #define MMLT_FLOATS_PER_BOUNCE (MMLT_FLOATS_PER_SAMPLE + MLT_FLOATS_PER_MLAYER)
-#define MMLT_HEAD_TOTAL_SIZE 16  // (4+8+1) used + 3 unused
+#define MMLT_HEAD_TOTAL_SIZE 12  //
 
 // [0-3]:   LENS;  4 in total
-// [4-11]:  LIGHT; 5 in total
+// [4-11]:  LIGHT; 5 in totalB
 // [12  ]:  SPLIT; 1 in total
 // [13-15]: TAIL;  3 in total, not used
 
@@ -733,7 +726,7 @@ static inline float rndMatLayerMMLT(RandomGen* gen, __global const float* rptr, 
 typedef struct LightGroup2T
 {
   float4 group1;
-  float4 group2;
+  float3 group2;
 
 } LightGroup2;
 
@@ -751,7 +744,6 @@ static inline void RndLightMMLT(RandomGen* gen, __global const float* rptr,
     float x1 = rptr[4 + 4];
     float y1 = rptr[4 + 5];
     float n  = rptr[4 + 6];
-    float n1 = rptr[4 + 7];
      
     if (gen->lazy == MUTATE_LAZY_YES)
     {
@@ -765,19 +757,19 @@ static inline void RndLightMMLT(RandomGen* gen, __global const float* rptr,
     }
 
     pOut->group1 = make_float4(x, y, z, w);
-    pOut->group2 = make_float4(x1,y1,n, n1);
+    pOut->group2 = make_float3(x1, y1, n);
   }
   else
   {
     pOut->group1 = rndFloat4_Pseudo(gen);
-    pOut->group2 = rndFloat4_Pseudo(gen);
+    pOut->group2 = to_float3(rndFloat4_Pseudo(gen));
   }
 }
 
 
 static inline int rndSplitMMLT(RandomGen* gen, __global const float* rptr, const int d)
 {
-  const int offset = 12; 
+  const int offset = 11; 
   
   float x;
   if (rptr != 0 && gen->lazy != MUTATE_LAZY_LARGE)
@@ -850,12 +842,17 @@ static inline float4 rndUniform(RandomGen* gen, float a, float b)
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-
+/**
+\brief get total size (in floats) of the array
+*/
 static inline int randArraySizeOfDepthMMLT(int d)
 {
   return MMLT_HEAD_TOTAL_SIZE + MMLT_FLOATS_PER_BOUNCE * d;
 }
 
+/**
+\brief get offset (in floats) to camera-path part of the array
+*/
 static inline int camOffsetInRandArrayMMLT(int s)
 {
   return  MMLT_HEAD_TOTAL_SIZE + MMLT_FLOATS_PER_BOUNCE * s;
