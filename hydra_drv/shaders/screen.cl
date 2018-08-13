@@ -82,7 +82,7 @@ __kernel void MakeEyeRaysSamplesOnly(__global RandomGen*           restrict out_
   const float2 mutateScale  = make_float2(a_globals->varsF[HRT_MLT_SCREEN_SCALE_X], a_globals->varsF[HRT_MLT_SCREEN_SCALE_Y]);
   const unsigned int qmcPos = reverseBits(tid, a_size) + a_passNumberForQmc * a_size; // we use reverseBits due to neighbour thread number put in to sobol random generator are too far from each other 
   const float4 lensOffs     = rndLens(&gen, 0, mutateScale, 
-                                      a_qmcTable, qmcPos, a_globals->rmQMC);
+                                      a_globals->rmQMC, qmcPos, a_qmcTable);
   out_gens[tid]             = gen;
 
   const float fwidth        = a_globals->varsF[HRT_WIDTH_F];

@@ -234,9 +234,9 @@ void IntegratorMISPT_QMC::DoPass(std::vector<uint>& a_imageLDR)
     PerThread().qmcPos = qmcOffset + i;
     
     RandomGen& gen  = randomGen();
-    float4 lensOffs = rndLens(&gen, nullptr, float2(1,1),
-                              (const unsigned int*)m_tableQMC, PerThread().qmcPos, m_pGlobals->rmQMC);
-    
+    float4 lensOffs = rndLens(&gen, nullptr, float2(1,1), 
+                              m_pGlobals->rmQMC, PerThread().qmcPos, (const unsigned int*)m_tableQMC);
+                              
     float  fx, fy;
     float3 ray_pos, ray_dir;
     MakeEyeRayFromF4Rnd(lensOffs, m_pGlobals,

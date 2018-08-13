@@ -515,7 +515,7 @@ static inline float4 rndLensOld(__global const float* rptr)
 \return 4 random numbers for using them in camera\lens sampler
 */
 static inline float4 rndLens(RandomGen* gen, __global const float* rptr, const float2 screenScale,
-                             __constant unsigned int* a_qmcTable, const unsigned int a_qmcPos, __global const int* a_tab)
+                             __global const int* a_tab, const unsigned int a_qmcPos, __constant unsigned int* a_qmcTable)
 {
   if (rptr != 0 && (gen->lazy != MUTATE_LAZY_LARGE))
   {

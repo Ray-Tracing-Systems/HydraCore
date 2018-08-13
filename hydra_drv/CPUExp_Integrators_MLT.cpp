@@ -98,7 +98,7 @@ float3 IntegratorPSSMLT::F(const PSSampleV& x_ps)
   gen.rptr       = &(x_ps[0]);
   gen.maxNumbers = MLT_QMC_NUMBERS_CPU;
 
-  const float4 lens  = rndLens(&gen, gen.rptr, float2(1, 1), 0, 0, m_pGlobals->rmQMC);
+  const float4 lens  = rndLens(&gen, gen.rptr, float2(1, 1), 0, 0, 0);
   const float xPosPs = lens.x;
   const float yPosPs = lens.y;
   const float x      = m_width*xPosPs;
@@ -145,9 +145,9 @@ void MakeProposalAsInGPUVer(RandomGen* gen, float* yVecOut, const float* xVecIn,
     float4 l_i = make_float4(0, 0, 0, 0);
 
     if (bounceId == 0)
-      l_i = rndLens(gen, xVecIn, lensMutateCoeff, 0, 0, a_globals->rmQMC);
+      l_i = rndLens(gen, xVecIn, lensMutateCoeff, 0, 0, 0);
     else
-      l_i = rndLight(gen, xVecIn, bounceId, a_globals->rmQMC, 0, 0);  // TOFIX:  rndLens and rndLight have different args order
+      l_i = rndLight(gen, xVecIn, bounceId, 0, 0, 0);  // TOFIX:  rndLens and rndLight have different args order ... a_globals->rmQMC
 
     yVecOut[lightOffset + 0] = l_i.x;
     yVecOut[lightOffset + 1] = l_i.y;
@@ -156,10 +156,10 @@ void MakeProposalAsInGPUVer(RandomGen* gen, float* yVecOut, const float* xVecIn,
 
     for (int i = 0; i < MLT_FLOATS_PER_MLAYER; i++)
       yVecOut[matLOffset + i] = rndMatLayer(gen, xVecIn, bounceId, i,
-                                            a_globals->rmQMC, 0, 0);
+                                            0, 0, 0);
 
     const float3 m_i = rndMat(gen, xVecIn, bounceId,
-                              a_globals->rmQMC, 0, nullptr);
+                              0, 0, 0);
 
     yVecOut[matOffset + 0] = m_i.x;
     yVecOut[matOffset + 1] = m_i.y;
