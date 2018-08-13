@@ -76,7 +76,7 @@ public:
   MRaysStat GetRaysStat();
   int32_t GetRayBuffSize() const override { return int32_t(m_rays.MEGABLOCKSIZE); }
 
-  char*  GetDeviceName(int* pOCLVer) const override;
+  const char* GetDeviceName(int* pOCLVer) const override;
 
   const HRRenderDeviceInfoListElem* ListDevices() const override;
 

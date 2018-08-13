@@ -325,7 +325,7 @@ std::string deviceHash(cl_device_id a_devId, cl_platform_id a_platform)
   hashVal = XXH64(deviceName, len, hashVal);
   
   memset(deviceName, 0, 1024);
-  snprintf(deviceName, 1024, "%llu", hashVal);
+  snprintf(deviceName, 1024, "%llu", (long long unsigned int)hashVal);
   return std::string(deviceName);
 }
 
@@ -935,7 +935,7 @@ size_t GPUOCLLayer::GetMemoryTaken()
 }
 
 
-char* GPUOCLLayer::GetDeviceName(int* pOCLVer) const
+const char* GPUOCLLayer::GetDeviceName(int* pOCLVer) const
 {
   memset(m_deviceName, 0, 1024);
   CHECK_CL(clGetDeviceInfo(m_globals.device, CL_DEVICE_NAME, 1024, m_deviceName, NULL));

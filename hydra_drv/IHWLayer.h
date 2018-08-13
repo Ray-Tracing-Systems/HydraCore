@@ -156,7 +156,7 @@ public:
   virtual MRaysStat GetRaysStat() = 0;
   virtual int32_t   GetRayBuffSize() const { return 0; }
 
-  virtual char*     GetDeviceName(int* pOCLVer = nullptr) const { return "CPU (Pure C/C++)"; }
+  virtual const char* GetDeviceName(int* pOCLVer = nullptr) const { return "CPU (Pure C/C++)"; }
 
   virtual const HRRenderDeviceInfoListElem* ListDevices() const { return nullptr; }
 
