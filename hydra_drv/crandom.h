@@ -19,7 +19,6 @@ typedef struct RandomGenT
 
 } RandomGen;
 
-
 static inline unsigned int NextState(RandomGen* gen)
 {
   const unsigned int x = (gen->state).x * 17 + (gen->state).y * 13123;
@@ -27,7 +26,6 @@ static inline unsigned int NextState(RandomGen* gen)
   (gen->state).y ^= (x << 7);
   return x;
 }
-
 
 static inline RandomGen RandomGenInit(const int a_seed)
 {
@@ -87,33 +85,18 @@ static inline float rndFloat1_Pseudo(RandomGen* gen)
   return ((float)(tmp))*scale;
 }
 
-// static inline float rndFloat1_Pseudo16(RandomGen* gen)
-// {
-//   const unsigned int x   = NextState(gen);
-//   const unsigned int tmp = (x * (x * x * 15731 + 74323) + 871483);
-//   const float scale      = (1.0f / 65535.0f);
-//   return ((float)(tmp & 0x0000FFFF))*scale;
-// }
-// 
-// static inline float rndFloat1_Pseudo8(RandomGen* gen)
-// {
-//   const unsigned int x   = NextState(gen);
-//   const unsigned int tmp = (x * (x * x * 15731 + 74323) + 871483);
-//   const float scale      = (1.0f / 255.0f);
-//   return ((float)(tmp & 0x000000FF))*scale;
-// }
-
 #else
 
 typedef struct RandomGenT
 {
   unsigned int x[5];
+  unsigned int maxNumbers;
+  unsigned int lazy; 
+  unsigned int dummy;  // to have uint4 generator data.
 
 #ifdef RAND_MLT_CPU
-
   __global const float* rptr;
   uint rtop;
-
 #endif
 
 } RandomGen;
@@ -170,6 +153,14 @@ static inline unsigned int rndInt_Pseudo(RandomGen* gen)
 static inline float rndFloat1_Pseudo(RandomGen* gen)
 {
   return ((float)NextState(gen)) * (1.0f/(65536.0f*65536.0f));
+}
+
+static inline float2 rndFloat2_Pseudo(RandomGen* gen)
+{
+  float2 res;
+  res.x = rndFloat1_Pseudo(gen);
+  res.y = rndFloat1_Pseudo(gen);
+  return res;
 }
 
 
@@ -293,10 +284,10 @@ static inline float rndQmcTab(__private RandomGen* pGen, __global const int* a_t
 
 // [0-3] :  LENS;  4 in total
 //
-#define MMLT_DIM_SCR_X 0
-#define MMLT_DIM_SCR_Y 1
-#define MMLT_DIM_DOF_X 2
-#define MMLT_DIM_DOF_Y 3
+#define MMLT_DIM_SCR_X 0 
+#define MMLT_DIM_SCR_Y 1 
+#define MMLT_DIM_DOF_X 2 
+#define MMLT_DIM_DOF_Y 3 
 
 // [4-10]:  LIGHT; 7 in total
 //
@@ -305,7 +296,7 @@ static inline float rndQmcTab(__private RandomGen* pGen, __global const int* a_t
 #define MMLT_DIM_LGT_Z 6    
 #define MMLT_DIM_LGT_W 7    
   
-#define MMLT_DIM_LGT_X1 8 
+#define MMLT_DIM_LGT_X1 8  
 #define MMLT_DIM_LGT_Y1 9 
 #define MMLT_DIM_LGT_N 10 
 
@@ -313,7 +304,7 @@ static inline float rndQmcTab(__private RandomGen* pGen, __global const int* a_t
 //
 #define MMLT_DIM_SPLIT 11
 
-#define MMLT_FLOATS_PER_MLAYER 5
+#define MMLT_FLOATS_PER_MLAYER 6
 #define MMLT_FLOATS_PER_SAMPLE 3
 #define MMLT_FLOATS_PER_BOUNCE (MMLT_FLOATS_PER_SAMPLE + MMLT_FLOATS_PER_MLAYER)
 
@@ -475,11 +466,9 @@ static inline float3 rndMat(RandomGen* gen, __global const float* rptr, const in
 {
   if (rptr != 0 && (gen->lazy != MUTATE_LAZY_LARGE))
   {
-    const int offset = rndMatOffsetMMLT(bounceId);
-
-    float x = rptr[offset + 0];
-    float y = rptr[offset + 1];
-    float z = rptr[offset + 2];
+    float x = rptr[0];
+    float y = rptr[1];
+    float z = rptr[2];
 
     if (gen->lazy == MUTATE_LAZY_YES)
     {
@@ -519,7 +508,7 @@ static inline float rndMatLayer(RandomGen* gen, __global const float* rptr, cons
                                 __global const int* a_tab, const unsigned int a_qmcPos, __constant unsigned int* a_qmcTable)
 {
   if (rptr != 0 && (gen->lazy != MUTATE_LAZY_LARGE))                   // MCMC way; #NOTE: Lazy mutations is not needed due to small step
-    return rptr[rndMatLOffsetMMLT(bounceId) + layerId];                // must never change material layer
+    return rptr[layerId];                                              // must never change material layer, no mutations is allowed!
   else if(bounceId == 0 && a_tab != 0 && a_qmcTable != 0)              // QMC way;
     return rndQmcTab(gen, a_tab, a_qmcPos, QMC_VAR_MAT_L, a_qmcTable);
   else                                                                 // OMC way;

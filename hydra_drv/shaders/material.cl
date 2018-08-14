@@ -939,11 +939,14 @@ __kernel void NextBounce(__global   float4*        restrict a_rpos,
     ReadProcTextureList(in_procTexData, tid, iNumElements,
                         &ptl);
     
-    BRDFSelector mixSelector = materialRandomWalkBRDF(pHitMaterial, &gen, pssVec, ray_dir, hitNorm, hitTexCoord,
-                                                      a_globals, in_texStorage1, &ptl, unpackBounceNum(flags),
+    const int rayBounceNum = unpackBounceNum(flags);
+
+    __global const float* matLayerRandsArray = (pssVec == 0) ? 0 : pssVec + rndMatLOffsetMMLT(rayBounceNum);
+
+    BRDFSelector mixSelector = materialRandomWalkBRDF(pHitMaterial, &gen, matLayerRandsArray, 
+                                                      ray_dir, hitNorm, hitTexCoord,
+                                                      a_globals, in_texStorage1, &ptl, rayBounceNum,
                                                       false, qmcPos, a_qmcTable);
-  
-    const  uint rayBounceNum = unpackBounceNum(flags);
    
     matOffset           = matOffset    + mixSelector.localOffs*(sizeof(PlainMaterial)/sizeof(float4));
     pHitMaterial        = pHitMaterial + mixSelector.localOffs;
@@ -965,7 +968,9 @@ __kernel void NextBounce(__global   float4*        restrict a_rpos,
       sc.tc  = hitTexCoord;
       sc.hfi = (materialGetType(pHitMaterial) == PLAIN_MAT_CLASS_GLASS) && (bool)(unpackRayFlags(flags) & RAY_HIT_SURFACE_FROM_OTHER_SIDE);  //hit glass from other side
   
-      const float3 randsm = rndMat(&gen, pssVec, unpackBounceNum(flags),
+      __global const float* matRandsArray = (pssVec == 0) ? 0 : pssVec + rndMatOffsetMMLT(rayBounceNum);
+
+      const float3 randsm = rndMat(&gen, matRandsArray, rayBounceNum,
                                    a_globals->rmQMC, qmcPos, a_qmcTable);
   
       MaterialLeafSampleAndEvalBRDF(pHitMaterial, randsm, &sc, shadow, a_globals, in_texStorage1, in_texStorage2, &ptl,

@@ -572,7 +572,10 @@ std::tuple<MatSample, int, float3> IntegratorCommon::sampleAndEvalBxDF(float3 ra
   
   const unsigned int* qmcTablePtr = GetQMCTableIfEnabled();
   
-  BRDFSelector mixSelector = materialRandomWalkBRDF(pHitMaterial, &gen, gen.rptr, ray_dir, surfElem.normal, surfElem.texCoord, 
+  const float* matLayerRandsArray = (gen.rptr == 0) ? 0 : gen.rptr + rndMatLOffsetMMLT(rayBounceNum);
+
+  BRDFSelector mixSelector = materialRandomWalkBRDF(pHitMaterial, &gen, matLayerRandsArray, 
+                                                    ray_dir, surfElem.normal, surfElem.texCoord, 
                                                     m_pGlobals, m_texStorage, &ptlCopy,
                                                     rayBounceNum, sampleReflectionOnly,
                                                     PerThread().qmcPos, qmcTablePtr); //
@@ -608,7 +611,9 @@ std::tuple<MatSample, int, float3> IntegratorCommon::sampleAndEvalBxDF(float3 ra
   sc.tc  = surfElem.texCoord;
   sc.hfi = surfElem.hfi;
   
-  const float3 rands = rndMat(&gen, gen.rptr, rayBounceNum, 
+  const float* matRandsArray = (gen.rptr == 0) ? 0 : gen.rptr + rndMatOffsetMMLT(rayBounceNum);
+
+  const float3 rands = rndMat(&gen, matRandsArray, rayBounceNum, 
                               m_pGlobals->rmQMC, PerThread().qmcPos, qmcTablePtr);
   
   MatSample brdfSample;
