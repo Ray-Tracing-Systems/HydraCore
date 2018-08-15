@@ -243,15 +243,18 @@ static inline float rndQmcSobolN(unsigned int pos, int dim, __constant unsigned 
 #define QMC_VAR_SCR_Y 1
 #define QMC_VAR_DOF_X 2
 #define QMC_VAR_DOF_Y 3
+#define QMC_VAR_SRC_A 4
 
-#define QMC_VAR_MAT_L 4
-#define QMC_VAR_MAT_0 5
-#define QMC_VAR_MAT_1 6
+#define QMC_VAR_MAT_L 5
+#define QMC_VAR_MAT_0 6
+#define QMC_VAR_MAT_1 7
 
-#define QMC_VAR_LGT_N 7
-#define QMC_VAR_LGT_0 8
-#define QMC_VAR_LGT_1 9
-#define QMC_VAR_LGT_2 10
+#define QMC_VAR_LGT_N 8
+#define QMC_VAR_LGT_0 9
+#define QMC_VAR_LGT_1 10
+#define QMC_VAR_LGT_2 11
+
+
 
 /**
 \brief get qmc number for target qmc var (see defines up)

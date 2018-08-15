@@ -219,51 +219,6 @@ float3 IntegratorMISPT::PathTrace(float3 ray_pos, float3 ray_dir, MisData misPre
   return explicitColor + cosTheta*bxdfVal*PathTrace(nextRay_pos, nextRay_dir, currMis, a_currDepth + 1, flags);  // --*(1.0 / (1.0 - pabsorb));
 }
 
-void IntegratorMISPT_QMC::DoPass(std::vector<uint>& a_imageLDR)
-{
-  if (m_width*m_height != a_imageLDR.size())
-    RUN_TIME_ERROR("DoPass: bad output bufffer size");
-  
-  const float alpha   = 1.0f / float(m_spp + 1);  // Update HDR image coeff
-  const auto loopSize = m_summColors.size();
-  const int qmcOffset = int(loopSize)*m_spp;
-  
-  #pragma omp parallel for
-  for (int i = 0; i < loopSize; ++i)
-  {
-    PerThread().qmcPos = qmcOffset + i;
-    
-    RandomGen& gen  = randomGen();
-    float4 lensOffs = rndLens(&gen, nullptr, float2(1,1), 
-                              m_pGlobals->rmQMC, PerThread().qmcPos, (const unsigned int*)m_tableQMC);
-                              
-    float  fx, fy;
-    float3 ray_pos, ray_dir;
-    MakeEyeRayFromF4Rnd(lensOffs, m_pGlobals,
-                        &ray_pos, &ray_dir, &fx, &fy);
-  
-    int x = (int)(fx);
-    int y = (int)(fy);
-
-    if (x >= m_width)  x = m_width - 1;
-    if (y >= m_height) y = m_height - 1;
-    if (x < 0)  x = 0;
-    if (y < 0)  y = 0;
-    
-    const float3 color = PathTrace(ray_pos, ray_dir, makeInitialMisData(), 0, 0);
-    const float maxCol = maxcomp(color);
-    
-    m_summColors[y*m_width + x] = m_summColors[y*m_width + x] * (1.0f - alpha) + to_float4(color, maxCol)*alpha;
-  }
-  
-  m_spp++;
-  GetImageToLDR(a_imageLDR);
-  
-  //RandomizeAllGenerators();
-  
-  std::cout << "IntegratorMISPT_QMC: spp = " << m_spp << std::endl;
-}
-
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////

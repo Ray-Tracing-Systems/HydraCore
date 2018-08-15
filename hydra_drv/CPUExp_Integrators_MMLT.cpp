@@ -320,7 +320,7 @@ float3 IntegratorMMLT::F(const PSSampleV& a_xVec, const int d, int m_type,
   return sampleColor;
 }
 
-static std::vector<float> PrefixSumm(const std::vector<float>& a_vec)
+std::vector<float> PrefixSumm(const std::vector<float>& a_vec)
 {
   float accum = 0.0f;
   std::vector<float> avgBAccum(a_vec.size() + 1);

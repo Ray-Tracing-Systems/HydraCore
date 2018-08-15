@@ -9,7 +9,7 @@
             "type"   : "cppdbg",
             "request": "launch",
             "program": "${workspaceFolder}/cmake-build-release/hydra_app/hydra",
-            "args"   : ["-nowindow", "1", 
+            "args"   : ["-nowindow", "0", 
                         "-saveinterval", "60"],
             "stopAtEntry": false,
             "cwd"    : "${workspaceFolder}/hydra_app",

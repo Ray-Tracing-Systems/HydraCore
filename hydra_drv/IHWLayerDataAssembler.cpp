@@ -184,7 +184,7 @@ static void SetQMCVarRemapTable(EngineGlobals *a_globals)
   for(int i=0;i<QMC_VARS_NUM;i++)
     a_globals->rmQMC[i] = -1;
   
-  const int tableVariant = 0; // (0,3,7,5)
+  const int tableVariant = 1; // (0,3,7,5)
   
   // variant 0 (default); screen xy and dof only;
   //
@@ -198,12 +198,11 @@ static void SetQMCVarRemapTable(EngineGlobals *a_globals)
     break;
   
     case 1:
-      a_globals->rmQMC[QMC_VAR_SCR_X] = 0; // screen xy and material
+      a_globals->rmQMC[QMC_VAR_SCR_X] = 0; // screen xy, dof and adaptive sampling;
       a_globals->rmQMC[QMC_VAR_SCR_Y] = 1;
-      
-      a_globals->rmQMC[QMC_VAR_MAT_L] = 2;
-      a_globals->rmQMC[QMC_VAR_MAT_0] = 3;
-      a_globals->rmQMC[QMC_VAR_MAT_1] = 4;
+      a_globals->rmQMC[QMC_VAR_DOF_X] = 2;
+      a_globals->rmQMC[QMC_VAR_DOF_Y] = 3;
+      a_globals->rmQMC[QMC_VAR_SRC_A] = 4;
     break;
   
     case 2:
@@ -597,13 +596,14 @@ void CPUSharedData::PrepareEngineGlobals()
     
     //m_pIntegrator = new IntegratorMISPT(m_width, m_height, (EngineGlobals*)&m_cdataPrepared[0], 0);     //#TODO: where m_createFlags gone ???
     //m_pIntegrator = new IntegratorMISPT_QMC(m_width, m_height, (EngineGlobals*)&m_cdataPrepared[0], 0);
+    m_pIntegrator = new IntegratorMISPT_AQMC(m_width, m_height, (EngineGlobals*)&m_cdataPrepared[0], 0);
    
     //m_pIntegrator = new IntegratorLT(m_width, m_height, (EngineGlobals*)&m_cdataPrepared[0]);
     //m_pIntegrator = new IntegratorTwoWay(m_width, m_height, (EngineGlobals*)&m_cdataPrepared[0]);
     //m_pIntegrator = new IntegratorThreeWay(m_width, m_height, (EngineGlobals*)&m_cdataPrepared[0]);
 
     //m_pIntegrator = new IntegratorSBDPT(m_width, m_height, (EngineGlobals*)&m_cdataPrepared[0]);
-    m_pIntegrator = new IntegratorMMLT(m_width, m_height, (EngineGlobals*)&m_cdataPrepared[0]);
+    //m_pIntegrator = new IntegratorMMLT(m_width, m_height, (EngineGlobals*)&m_cdataPrepared[0]);
 
     // if (m_vars.m_flags & HRT_ENABLE_MLT)
     //   m_pIntegrator = new IntegratorPSSMLT(m_width, m_height, (EngineGlobals*)&m_cdataPrepared[0], m_createFlags);
