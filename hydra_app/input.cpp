@@ -13,6 +13,7 @@ Input::Input()
   
   //inLibraryPath = "/home/frol/PROG/HydraAPI/main/tests/test_70";
   //inLibraryPath = "/home/frol/PROG/HydraAPI/main/tests_f/test_004";
+  //inLibraryPath = "/home/frol/PROG/HydraAPI/main/tests_f/test_211";
   //inLibraryPath = "/home/frol/PROG/HydraAPI/main/tests_f/Cornell_box_3_sphere";
   
   //inLibraryPath = "D:/[archive]/2017/HydraAPP/hydra_app/tests/hydra_benchmark_07";

@@ -59,7 +59,7 @@ std::vector<float> PrefixSumm(const std::vector<float>& a_vec);
 IntegratorMISPT_AQMC::IntegratorMISPT_AQMC(int w, int h, EngineGlobals* a_pGlobals, int a_createFlags) : IntegratorMISPT(w, h, a_pGlobals, a_createFlags) 
 {
   m_summSquareColors.resize(w*h);
-  m_errorMap.resize(w/16, h/16);                                 // #TODO: calc correct resolution!
+  m_errorMap.resize(w/4, h/4);                                 // #TODO: calc correct resolution!
   for(int i=0;i<m_errorMap.width()*m_errorMap.height()*4;i++)
     m_errorMap.data()[i] = 1.0f;
   
@@ -88,14 +88,12 @@ void IntegratorMISPT_AQMC::DoPass(std::vector<uint>& a_imageLDR)
   if (m_width*m_height != a_imageLDR.size())
     RUN_TIME_ERROR("DoPass: bad output bufffer size");
   
-  const float alpha    = 1.0f / float(m_spp + 1);  // Update HDR image coeff
   const int loopSize   = int(m_summColors.size());
   const int qmcOffset  = int(loopSize)*m_spp;
 
   const float tileSize = 1.0f/m_errorMap.width(); 
   
-  const int maxTileId     = m_errorMap.width()*m_errorMap.height();
-  const float tilesNumInv = 1.0f/float(maxTileId);
+  const int maxTileId  = m_errorMap.width()*m_errorMap.height();
 
   #pragma omp parallel for
   for (int i = 0; i < loopSize; ++i)
@@ -128,17 +126,36 @@ void IntegratorMISPT_AQMC::DoPass(std::vector<uint>& a_imageLDR)
     if (x < 0)  x = 0;
     if (y < 0)  y = 0;
     
-    const float selectorMult = 1.0f; // tilesNumInv/tilePdfSelector;
+    const float selectorMult = (1.0f/float(maxTileId))/tilePdfSelector;
 
     const float3 color = PathTrace(ray_pos, ray_dir, makeInitialMisData(), 0, 0)*selectorMult;
     const float avgCol = 0.3333333f*(color.x + color.y + color.z);
     
-    m_summColors      [y*m_width + x] = m_summColors      [y*m_width + x] * (1.0f - alpha) + to_float4(color, 0.0f)*alpha;
-    m_summSquareColors[y*m_width + x] = m_summSquareColors[y*m_width + x] * (1.0f - alpha) + avgCol*avgCol*alpha;
+    #pragma omp critical
+    {
+    m_summColors      [y*m_width + x] = m_summColors      [y*m_width + x] + to_float4(color, 0.0f);
+    m_summSquareColors[y*m_width + x] = m_summSquareColors[y*m_width + x] + avgCol*avgCol;
+    }
   }
+
+  constexpr float gammaPow = 1.0f/2.2f;
+  const float scaleInv     = 1.0f / float(m_spp + 1);
+
+  #pragma omp parallel for
+  for (int i = 0; i < int(a_imageLDR.size()); i++)
+  {
+    float4 color = m_hdrData[i];
+
+    color.x = powf(clamp(color.x*scaleInv, 0.0f, 1.0f), gammaPow);
+    color.y = powf(clamp(color.y*scaleInv, 0.0f, 1.0f), gammaPow);
+    color.z = powf(clamp(color.z*scaleInv, 0.0f, 1.0f), gammaPow);
+    color.w = 1.0f;
+
+    a_imageLDR[i] = RealColorToUint32(color);
+  }
+
   
   m_spp++;
-  GetImageToLDR(a_imageLDR);
   
   if(m_spp % 17 == 0)
     RandomizeAllGenerators();
@@ -155,7 +172,7 @@ void IntegratorMISPT_AQMC::DoPass(std::vector<uint>& a_imageLDR)
     for (int i = 0; i < N; i++)
     {
       const float3 color          = to_float3(m_summColors[i]);
-      const float summ            = 0.3333333f*(color.x + color.y + color.z);
+      const float summ            = scaleInv*0.3333333f*(color.x + color.y + color.z);
       const float summOfTheSquare = m_summSquareColors[i];
       const float D               = fmax((summOfTheSquare/fN) - SQR(summ/fN), 0.0f); 
       const float err_abs         = sqrt(D);
@@ -164,9 +181,11 @@ void IntegratorMISPT_AQMC::DoPass(std::vector<uint>& a_imageLDR)
       array[i] = 20.0f*make_float4(err_rel, err_rel, err_rel, 0.0f);
     }
 
+    //testImage.medianFilterInPlace(0.0f, 0.0f);
     testImage.resampleTo(m_errorMap);
-    
-    std::vector<float> errorMap1f(m_errorMap.width()*m_errorMap.height()); 
+    m_errorMap.medianFilterInPlace(0.0f, 0.0f);
+
+    std::vector<float> errorMap1f(m_errorMap.width()*m_errorMap.height());
     for(size_t i=0;i<errorMap1f.size();i++)
       errorMap1f[i] = m_errorMap.data()[i*4+0];
     m_errorTable = PrefixSumm(errorMap1f);
@@ -179,14 +198,13 @@ void IntegratorMISPT_AQMC::DoPass(std::vector<uint>& a_imageLDR)
     HR_SaveHDRImageToFileHDR_WithFreeImage(L"/home/frol/hydra/rendered_images/error2.hdr", m_errorMap.width(), m_errorMap.height(), m_errorMap.data());
     std::cout << "error image saves" << std::endl;
 
-    static bool firstTime = true;
-    if(firstTime)
-    {
-      m_spp = 0;
-      std::cout << "reset spp counter for test!" << std::endl;
-      firstTime = false;
-    }
-
+    //static bool firstTime = true;
+    //if(firstTime)
+    //{
+    //  m_spp = 0;
+    //  std::cout << "reset spp counter for test!" << std::endl;
+    //  firstTime = false;
+    //}
   }
 
   std::cout << "IntegratorMISPT_AQMC: spp = " << m_spp << std::endl;

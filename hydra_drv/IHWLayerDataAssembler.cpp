@@ -206,14 +206,15 @@ static void SetQMCVarRemapTable(EngineGlobals *a_globals)
     break;
   
     case 2:
-      a_globals->rmQMC[QMC_VAR_SCR_X] = 0; // screen xy, material and DOF
+      a_globals->rmQMC[QMC_VAR_SCR_X] = 0; // screen xy, dof and adaptive sampling;
       a_globals->rmQMC[QMC_VAR_SCR_Y] = 1;
       a_globals->rmQMC[QMC_VAR_DOF_X] = 2;
       a_globals->rmQMC[QMC_VAR_DOF_Y] = 3;
-
-      a_globals->rmQMC[QMC_VAR_MAT_L] = 4;
-      a_globals->rmQMC[QMC_VAR_MAT_0] = 5;
-      a_globals->rmQMC[QMC_VAR_MAT_1] = 6;
+      a_globals->rmQMC[QMC_VAR_SRC_A] = 4;
+      a_globals->rmQMC[QMC_VAR_LGT_N] = 5;
+      a_globals->rmQMC[QMC_VAR_LGT_0] = 6;
+      a_globals->rmQMC[QMC_VAR_LGT_1] = 7;
+      a_globals->rmQMC[QMC_VAR_LGT_2] = 8;
     break;
   
     case 3:
@@ -595,8 +596,8 @@ void CPUSharedData::PrepareEngineGlobals()
 		//m_pIntegrator = new IntegratorShadowPTSSS(m_width, m_height, (EngineGlobals*)&m_cdataPrepared[0]);
     
     //m_pIntegrator = new IntegratorMISPT(m_width, m_height, (EngineGlobals*)&m_cdataPrepared[0], 0);     //#TODO: where m_createFlags gone ???
-    //m_pIntegrator = new IntegratorMISPT_QMC(m_width, m_height, (EngineGlobals*)&m_cdataPrepared[0], 0);
-    m_pIntegrator = new IntegratorMISPT_AQMC(m_width, m_height, (EngineGlobals*)&m_cdataPrepared[0], 0);
+    m_pIntegrator = new IntegratorMISPT_QMC(m_width, m_height, (EngineGlobals*)&m_cdataPrepared[0], 0);
+    //m_pIntegrator = new IntegratorMISPT_AQMC(m_width, m_height, (EngineGlobals*)&m_cdataPrepared[0], 0);
    
     //m_pIntegrator = new IntegratorLT(m_width, m_height, (EngineGlobals*)&m_cdataPrepared[0]);
     //m_pIntegrator = new IntegratorTwoWay(m_width, m_height, (EngineGlobals*)&m_cdataPrepared[0]);
