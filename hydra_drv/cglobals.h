@@ -331,7 +331,7 @@ enum FLAG_BITS{HRT_COMPUTE_SHADOWS                 = 1,
                HRT_DIFFUSE_REFLECTION              = 4,
                HRT_UNIFIED_IMAGE_SAMPLING          = 8,
 
-               HRT_DUMMY1                          = 16,  
+               HRT_PRODUCTION_IMAGE_SAMPLING       = 16, // 256 coherent rays per pixel.
                HRT_USE_MIS                         = 32,
                HRT_DUMMY2                          = 64, 
                HRT_STORE_SUBPIXELS                 = 128,
@@ -2001,6 +2001,7 @@ static inline void initGBufferAll(__private GBufferAll* a_pElem)
 }
 
 #define GBUFFER_SAMPLES 16
+#define PMPIX_SAMPLES   256 // Production Mode Pixel Samples
 
 static inline float4 packGBuffer1(GBuffer1 a_input)
 {

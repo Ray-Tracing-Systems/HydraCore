@@ -104,8 +104,20 @@ void GPUOCLLayer::runKernel_MakeEyeRaysSpp(cl_mem a_rpos, cl_mem a_rdir, int32_t
   CHECK_CL(clSetKernelArg(kernX, 3, sizeof(cl_int), (void*)&m_height));
   CHECK_CL(clSetKernelArg(kernX, 4, sizeof(cl_int), (void*)&a_blocksSize));
   CHECK_CL(clSetKernelArg(kernX, 5, sizeof(cl_int), (void*)&yBegin));
-   
-  CHECK_CL(clSetKernelArg(kernX, 6, sizeof(cl_mem), (void*)&m_globals.hammersley2D));
+
+  if(a_blocksSize == GBUFFER_SAMPLES) 
+  {
+    CHECK_CL(clSetKernelArg(kernX, 6, sizeof(cl_mem), (void*)&m_globals.hammersley2DGBuff));
+  }
+  else if(a_blocksSize == PMPIX_SAMPLES)
+  {
+    CHECK_CL(clSetKernelArg(kernX, 6, sizeof(cl_mem), (void*)&m_globals.hammersley2D256));
+  }
+  else
+  {
+    std::cerr << "bad SPP size for runKernel_MakeEyeRaysSpp = " << a_blocksSize << std::endl;
+  }
+
   CHECK_CL(clSetKernelArg(kernX, 7, sizeof(cl_mem), (void*)&m_scene.allGlobsData));
    
   CHECK_CL(clEnqueueNDRangeKernel(m_globals.cmdQueue, kernX, 1, NULL, &a_size, &localWorkSize, 0, NULL, NULL));

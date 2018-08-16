@@ -58,6 +58,7 @@ public:
   void BeginTracingPass() override;
   void EndTracingPass()   override;
   void EvalGBuffer(IHRSharedAccumImage* a_pAccumImage, const std::vector<int32_t>& a_instIdByInstId) override;
+  void RunProductionSamplingMode();
   void TraceSBDPTPass(cl_mem a_rpos, cl_mem a_rdir, cl_mem a_outColor, size_t a_size);
 
   void FinishAll() override;
@@ -274,17 +275,18 @@ protected:
   struct CL_GLOBALS
   {
     CL_GLOBALS() : ctx(0), cmdQueue(0), cmdQueueDevToHost(0), platform(0), device(0), m_maxWorkGroupSize(0), oclVer(100), use1DTex(false), liteCore(false),
-                   cMortonTable(0), qmcTable(0), devIsCPU(false), cpuTrace(false), m_passNumberQMC(0) {}
+                   cMortonTable(0), qmcTable(0), hammersley2DGBuff(0), hammersley2D256(0), devIsCPU(false), cpuTrace(false), m_passNumberQMC(0) {}
 
-    cl_context       ctx;        // OpenCL context
-    cl_command_queue cmdQueue;   // OpenCL command que
-    cl_command_queue cmdQueueDevToHost;  // OpenCL command que for copying data from GPU to CPU
-    cl_platform_id   platform;   // OpenCL platform
-    cl_device_id     device;     // OpenCL device
+    cl_context       ctx;               // OpenCL context
+    cl_command_queue cmdQueue;          // OpenCL command que
+    cl_command_queue cmdQueueDevToHost; // OpenCL command que for copying data from GPU to CPU
+    cl_platform_id   platform;          // OpenCL platform
+    cl_device_id     device;            // OpenCL device
 
     cl_mem cMortonTable;
-    cl_mem qmcTable;              // this is unrelated to previous. Table for Sobo/Niederreiter quasi random sequence.
-    cl_mem hammersley2D;
+    cl_mem qmcTable;                    // this is unrelated to previous. Table for Sobol/Niederreiter quasi random sequence.
+    cl_mem hammersley2DGBuff;
+    cl_mem hammersley2D256;
 
     size_t m_maxWorkGroupSize;
 
