@@ -293,6 +293,18 @@ bool RenderDriverRTE::UpdateSettings(pugi::xml_node a_settingsNode)
   else
     m_boxModeOn = false;
   
+
+  if(a_settingsNode.child(L"offline_pt") != nullptr)
+  {
+    int mode = a_settingsNode.child(L"offline_pt").text().as_int();
+    if(mode == 1)
+      vars.m_flags |= HRT_PRODUCTION_IMAGE_SAMPLING;
+    else
+      vars.m_flags = vars.m_flags & ~HRT_PRODUCTION_IMAGE_SAMPLING;
+  }
+  else
+    vars.m_flags = vars.m_flags & ~HRT_PRODUCTION_IMAGE_SAMPLING;
+
   m_pHWLayer->SetAllFlagsAndVars(vars);
 
   return true;

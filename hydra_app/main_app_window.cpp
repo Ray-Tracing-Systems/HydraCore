@@ -222,7 +222,13 @@ static void Draw(void)
     if(g_input.ibptEnabled)
       settingsNode.child(L"method_primary").text() = L"IBPT";
     else if(g_input.pathTracingEnabled)
+    {
       settingsNode.child(L"method_primary").text() = L"pathtracing";
+      if(g_input.productionPTMode)
+        settingsNode.force_child(L"offline_pt").text() = 1;
+      else
+        settingsNode.force_child(L"offline_pt").text() = 0;
+    }
     else if(g_input.lightTracingEnabled)
       settingsNode.child(L"method_primary").text() = L"lighttracing";
     else
@@ -345,6 +351,14 @@ static void key(GLFWwindow* window, int k, int s, int action, int mods)
 
   case GLFW_KEY_P:
     g_input.pathTracingEnabled  = !g_input.pathTracingEnabled;
+    g_input.productionPTMode    = false;
+    g_input.cameraFreeze        = !g_input.cameraFreeze;
+    g_input.lightTracingEnabled = false;
+    break;
+
+  case GLFW_KEY_O:
+    g_input.pathTracingEnabled  = !g_input.pathTracingEnabled;
+    g_input.productionPTMode    = true;
     g_input.cameraFreeze        = !g_input.cameraFreeze;
     g_input.lightTracingEnabled = false;
     break;
@@ -353,12 +367,14 @@ static void key(GLFWwindow* window, int k, int s, int action, int mods)
     g_input.lightTracingEnabled = !g_input.lightTracingEnabled;
     g_input.cameraFreeze        = !g_input.cameraFreeze;
     g_input.pathTracingEnabled  = false;
+    g_input.productionPTMode    = false;
     break;
 
   case GLFW_KEY_B:
     g_input.ibptEnabled  = !g_input.ibptEnabled;
     g_input.cameraFreeze = !g_input.cameraFreeze;
     g_input.pathTracingEnabled = false;
+    g_input.productionPTMode   = false;
     break;
 
   default:

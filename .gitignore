@@ -4,6 +4,9 @@ vsgl3/vsgl3.layout
 vsgl3/vsgl3.depend
 clew/x64/Release/clew.Build.CppClean.log
 clew/x64/
+cmake-build-debug/
+cmake-build-release/
+.idea/
 hydra_app/.vs/
 hydra_app/main_app.VC.VC.opendb
 hydra_app/x64/

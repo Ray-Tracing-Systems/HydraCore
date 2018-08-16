@@ -1502,6 +1502,10 @@ void GPUOCLLayer::BeginTracingPass()
     AddContributionToScreen(m_rays.pathAccColor);
 
   }
+  else if((m_vars.m_flags & HRT_PRODUCTION_IMAGE_SAMPLING) != 0 && (m_vars.m_flags & HRT_UNIFIED_IMAGE_SAMPLING) != 0)
+  {
+    RunProductionSamplingMode();
+  }
   else if (m_vars.m_flags & HRT_UNIFIED_IMAGE_SAMPLING) // PT or LT pass
   {
     // (1) Generate random rays and generate multiple references via Z-index
@@ -1528,10 +1532,6 @@ void GPUOCLLayer::BeginTracingPass()
     if ((m_vars.m_flags & HRT_FORWARD_TRACING) == 0)
       AddContributionToScreen(m_rays.pathAccColor);
     
-  }
-  else if(m_vars.m_flags & HRT_PRODUCTION_IMAGE_SAMPLING)
-  {
-    RunProductionSamplingMode();
   }
   else if(!m_screen.m_cpuFrameBuffer)
   { 
