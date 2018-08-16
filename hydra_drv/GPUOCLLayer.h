@@ -390,6 +390,8 @@ protected:
   void runKernel_MakeLightRays(cl_mem a_rpos, cl_mem a_rdir, cl_mem a_outColor, size_t a_size);
   void runKernel_MakeEyeRaysSpp(int32_t a_blockSize, int32_t yBegin, size_t a_size, cl_mem in_pixels,
                                 cl_mem rayPos, cl_mem rayDir);
+
+  void runKernel_ClearAllInternalTempBuffers(size_t a_size);
  
   void runKernel_Trace(cl_mem a_rpos, cl_mem a_rdir, cl_mem a_hits, size_t a_size);
   void runKernel_ComputeHit(cl_mem a_rpos, cl_mem a_rdir, size_t a_size, bool a_doNotEvaluateProcTex = false);

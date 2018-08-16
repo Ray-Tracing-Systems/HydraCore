@@ -152,13 +152,6 @@ __kernel void MakeEyeRaysUnifiedSampling(__global float4*              restrict 
 
                                          int w, int h, int a_size,
                                          __global const EngineGlobals* restrict a_globals, 
-                                         __global uint*                restrict a_flags,
-                                         __global float4*              restrict out_color,
-                                         __global float4*              restrict out_thoroughput,
-                                         __global float4*              restrict out_fog,
-                                         __global HitMatRef*           restrict out_hitMat,
-                                         __global PerRayAcc*           restrict out_accPdf,
-
                                          __global const int2*          restrict in_zind,
                                          __global const float4*        restrict in_samples,
                                          __constant ushort*            restrict a_mortonTable256,
@@ -193,14 +186,26 @@ __kernel void MakeEyeRaysUnifiedSampling(__global float4*              restrict 
   out_pos   [tid] = to_float4(ray_pos, fx);
   out_dir   [tid] = to_float4(ray_dir, fy);
   out_packXY[tid] = packXY1616(x, y);
+}
 
-  // clear all other per-ray data
-  //
+__kernel void ClearAllInternalTempBuffers(__global uint*      restrict out_flags,
+                                          __global float4*    restrict out_color,
+                                          __global float4*    restrict out_thoroughput,
+                                          __global float4*    restrict out_fog,
+                                          __global HitMatRef* restrict out_hitMat,
+                                          __global PerRayAcc* restrict out_accPdf,
+                                          int a_size)
+
+{
+  int tid = GLOBAL_ID_X;
+  if (tid >= a_size)
+    return;
+
   HitMatRef data3;
   data3.m_data    = 0; 
   data3.accumDist = 0.0f;
 
-  a_flags        [tid] = 0;
+  out_flags      [tid] = 0;
   out_color      [tid] = make_float4(0.0f, 0.0f, 0.0f, 0.0f);
   out_thoroughput[tid] = make_float4(1.0f, 1.0f, 1.0f, 1.0f);
   out_fog        [tid] = make_float4(0.0f, 0.0f, 0.0f, 0.0f);

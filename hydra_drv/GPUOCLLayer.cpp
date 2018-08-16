@@ -1418,7 +1418,7 @@ void GPUOCLLayer::RunProductionSamplingMode()
   { 
     // (2) take a part of list and put it to the GPU 
     //
-    CHECK_CL(clEnqueueWriteBuffer(m_globals.cmdQueue, pixCoordGPU, CL_FALSE, 0, 
+    CHECK_CL(clEnqueueWriteBuffer(m_globals.cmdQueue, pixCoordGPU, CL_TRUE, 0, // CL_FALSECL_TRUE 
                                   pixelsPerPass*sizeof(int), (void*)(allPixels.data() + currPos), 0, NULL, NULL));
 
     // (3) generate PMPIX_SAMPLES rays per each pixel 
@@ -1427,20 +1427,25 @@ void GPUOCLLayer::RunProductionSamplingMode()
     runKernel_MakeEyeRaysSpp(PMPIX_SAMPLES, 0, finalSize, pixCoordGPU,
                              m_rays.rayPos, m_rays.rayDir);
 
+    runKernel_ClearAllInternalTempBuffers(finalSize);
+
     // (4) trace rays/paths
     //
-    trace1D(m_rays.rayPos, m_rays.rayDir, m_rays.pathAccColor, m_rays.MEGABLOCKSIZE);
+    trace1D(m_rays.rayPos, m_rays.rayDir, m_rays.pathAccColor, finalSize);
     
     // (5) average colors
     //
-    runKernel_ReductionFloat4Average(m_rays.pathAccColor, pixColorGPU, m_rays.MEGABLOCKSIZE, PMPIX_SAMPLES);
+    runKernel_ReductionFloat4Average(m_rays.pathAccColor, pixColorGPU, finalSize, PMPIX_SAMPLES);
 
     // (6) copy resulting colors to the CPU and add them to the image
     //
     CHECK_CL(clEnqueueReadBuffer(m_globals.cmdQueue, pixColorGPU, CL_TRUE, 0, 
                                  pixelsPerPass*sizeof(float4), pixColors.data(), 0, NULL, NULL));
     
-
+  
+    //for(int pixId = 0; pixId < pixColors.size(); pixId++)
+      //pixColors[pixId] = float4(128.0f, 0.0f, 0.0f, 0.0f);
+    
     for(int pixId = 0; pixId < pixColors.size(); pixId++) // contribute to image here
     {
       const int pixelPacked = allPixels[currPos + pixId];
@@ -1463,7 +1468,8 @@ void GPUOCLLayer::RunProductionSamplingMode()
   clReleaseMemObject(pixCoordGPU); pixCoordGPU = nullptr;
   clReleaseMemObject(pixColorGPU); pixColorGPU = nullptr;
 
-  m_spp += 256;
+  m_spp        += 256;
+  m_passNumber += numPasses; // just for GetLDRImage works correctly it have to be not 0, see pipelined copy for common pt ... ;
   std::cout << "RunProductionSamplingMode end" << std::endl;
 }
 
