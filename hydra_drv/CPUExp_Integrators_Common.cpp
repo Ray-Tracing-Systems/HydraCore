@@ -569,10 +569,16 @@ std::tuple<MatSample, int, float3> IntegratorCommon::sampleAndEvalBxDF(float3 ra
 
   auto ptlCopy = m_ptlDummy;
   GetProcTexturesIdListFromMaterialHead(pHitMaterial, &ptlCopy);
+  
+  const unsigned int* qmcTablePtr = GetQMCTableIfEnabled();
+  
+  const float* matLayerRandsArray = (gen.rptr == 0) ? 0 : gen.rptr + rndMatLOffsetMMLT(rayBounceNum);
 
-  BRDFSelector mixSelector = materialRandomWalkBRDF(pHitMaterial, &gen, gen.rptr, ray_dir, surfElem.normal, surfElem.texCoord, 
+  BRDFSelector mixSelector = materialRandomWalkBRDF(pHitMaterial, &gen, matLayerRandsArray, 
+                                                    ray_dir, surfElem.normal, surfElem.texCoord, 
                                                     m_pGlobals, m_texStorage, &ptlCopy,
-                                                    rayBounceNum, a_mmltMode, sampleReflectionOnly); // 
+                                                    rayBounceNum, sampleReflectionOnly,
+                                                    PerThread().qmcPos, qmcTablePtr); //
 
   /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////// --- >
 
@@ -604,13 +610,17 @@ std::tuple<MatSample, int, float3> IntegratorCommon::sampleAndEvalBxDF(float3 ra
   sc.bn  = surfElem.biTangent;
   sc.tc  = surfElem.texCoord;
   sc.hfi = surfElem.hfi;
+  
+  const float* matRandsArray = (gen.rptr == 0) ? 0 : gen.rptr + rndMatOffsetMMLT(rayBounceNum);
 
-  const float3 rands   = a_mmltMode ? rndMatMMLT(&gen, gen.rptr, rayBounceNum) : rndMat(&gen, gen.rptr, rayBounceNum);
+  const float3 rands = rndMat(&gen, matRandsArray, rayBounceNum, 
+                              m_pGlobals->rmQMC, PerThread().qmcPos, qmcTablePtr);
+  
   MatSample brdfSample;
   MaterialLeafSampleAndEvalBRDF(pHitMaterial, rands, &sc, shadow, m_pGlobals, m_texStorage, m_texStorageAux, &ptlCopy,
                                 &brdfSample);
 
-  brdfSample.pdf /= fmax(mixSelector.w, DEPSILON);
+  brdfSample.pdf *= fmax(mixSelector.w, 0.025f);
 
   return std::make_tuple(brdfSample, matOffset, make_float3(1,1,1));
 }

@@ -27,7 +27,7 @@ void UpdateProgress(const wchar_t* a_message, float a_progress)
 }
 
 #ifndef WIN32
-extern "C" IBVHBuilder2* CreateBuilder2(char* cfg);
+extern "C" IBVHBuilder2* CreateBuilder2(const char* cfg);
 #endif
 
 RenderDriverRTE::RenderDriverRTE(const wchar_t* a_options, int w, int h, int a_devId, int a_flags, IHRSharedAccumImage* a_sharedImage) : m_pBVH(nullptr), m_pHWLayer(nullptr), m_pSysMutex(nullptr),

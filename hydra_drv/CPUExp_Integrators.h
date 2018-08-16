@@ -211,6 +211,8 @@ public:
 
   virtual void RandomizeAllGenerators();
 
+  virtual const unsigned int* GetQMCTableIfEnabled() const { return nullptr; }
+  
 protected:
 
   IntegratorCommon(const IntegratorCommon& a_rhs) {}
@@ -261,6 +263,11 @@ protected:
 
   struct PerThreadData
   {
+    PerThreadData()
+    {
+      qmcPos = -1;
+    }
+    
     RandomGen          gen;
     RandomGen          gen2;
 
@@ -269,7 +276,8 @@ protected:
 
     int selectedLightIdFwd;
     int mBounceDone;
-
+    int qmcPos;
+    
     std::string grammarCam;
     std::string grammarLit;
     std::vector<float3> vert;
@@ -366,15 +374,33 @@ public:
   float3 PathTrace(float3 a_rpos, float3 a_rdir, MisData misPrev, int a_currDepth, uint flags);
 };
 
-class IntegratorMISPT_trofimm : public IntegratorCommon
+class IntegratorMISPT_QMC : public IntegratorMISPT
 {
 public:
+  
+  IntegratorMISPT_QMC(int w, int h, EngineGlobals* a_pGlobals, int a_createFlags) : IntegratorMISPT(w, h, a_pGlobals, a_createFlags) {}
+  
+  void DoPass(std::vector<uint>& a_imageLDR) override;
+  
+  const unsigned int* GetQMCTableIfEnabled() const override { return (const unsigned int*)m_tableQMC; }
+};
 
-  IntegratorMISPT_trofimm(int w, int h, EngineGlobals* a_pGlobals, int a_createFlags) : IntegratorCommon(w, h, a_pGlobals, a_createFlags) {}
+class IntegratorMISPT_AQMC : public IntegratorMISPT
+{
+public:
+  
+  IntegratorMISPT_AQMC(int w, int h, EngineGlobals* a_pGlobals, int a_createFlags);
+  
+  void DoPass(std::vector<uint>& a_imageLDR) override;
+  
+  const unsigned int* GetQMCTableIfEnabled() const override { return (const unsigned int*)m_tableQMC; }
 
-  float3 PathTrace(float3 a_rpos, float3 a_rdir, MisData misPrev, int a_currDepth, uint flags);
-  void DoPass(std::vector<uint>& a_imageLDR);
+protected:
 
+  std::vector<float>  m_summSquareColors;
+  std::vector<float>  m_errorTable;
+  std::vector<float2> m_tilesMin;
+  HDRImage4f          m_errorMap;
 };
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////

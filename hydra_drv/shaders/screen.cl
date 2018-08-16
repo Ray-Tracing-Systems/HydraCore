@@ -66,24 +66,6 @@ __kernel void MakeEyeRaysSPP(__global float4* out_pos,
   out_dir [tid] = to_float4(ray_dir, fy);
 }
 
-inline int reverseBits(int a_input, int a_maxSize)
-{
-  int maxBit = 0;
-  while (a_maxSize >>= 1)
-    ++maxBit;
-
-  int result = 0;
-
-  for (int i = 0; i < maxBit; i++)
-  {
-    const int j = maxBit - i - 1;
-    const int inputMask = (0x00000001 << j);
-    result |= ((a_input & inputMask) >> j) << i;
-  }
-
-  return result;
-}
-
 __kernel void MakeEyeRaysSamplesOnly(__global RandomGen*           restrict out_gens,
                                      __global float4*              restrict out_samples,
                                      __global int2*                restrict out_zind,
@@ -99,7 +81,8 @@ __kernel void MakeEyeRaysSamplesOnly(__global RandomGen*           restrict out_
   RandomGen gen             = out_gens[tid];
   const float2 mutateScale  = make_float2(a_globals->varsF[HRT_MLT_SCREEN_SCALE_X], a_globals->varsF[HRT_MLT_SCREEN_SCALE_Y]);
   const unsigned int qmcPos = reverseBits(tid, a_size) + a_passNumberForQmc * a_size; // we use reverseBits due to neighbour thread number put in to sobol random generator are too far from each other 
-  const float4 lensOffs     = rndLens(&gen, 0, mutateScale, a_qmcTable, qmcPos);
+  const float4 lensOffs     = rndLens(&gen, 0, mutateScale, 
+                                      a_globals->rmQMC, qmcPos, a_qmcTable);
   out_gens[tid]             = gen;
 
   const float fwidth        = a_globals->varsF[HRT_WIDTH_F];

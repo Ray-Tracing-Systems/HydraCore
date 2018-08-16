@@ -21,7 +21,7 @@ __kernel void LightSampleForwardCreate(__global float4*              restrict ou
   gen.maxNumbers      = a_globals->varsI[HRT_MLT_MAX_NUMBERS];
   const float4 rands1 = rndFloat4_Pseudo(&gen);             // #TODO: change this for MMLT
   const float2 rands2 = rndFloat2_Pseudo(&gen);             // #TODO: change this for MMLT
-  const float2 rands3 = rndFloat2_Pseudo(&gen);
+  const float  rands3 = rndFloat1_Pseudo(&gen);
   out_gens[tid]       = gen;
 
   float lightPickProb = 1.0f;
@@ -173,6 +173,9 @@ __kernel void LightSample(__global const float4*  restrict a_rpos,
                           __global const float4*  restrict a_texStorage1,  //
                           __global const float4*  restrict a_texStorage2,  //
                           __global const float4*  restrict a_pdfStorage,   //
+  
+                          __constant unsigned int*  restrict a_qmcTable,
+                          int a_passNumberForQmc,
                           
                           int iNumElements,
                           __global const EngineGlobals* restrict a_globals)
@@ -200,9 +203,20 @@ __kernel void LightSample(__global const float4*  restrict a_rpos,
 
   RandomGen gen       = out_gens[tid];
   gen.maxNumbers      = a_globals->varsI[HRT_MLT_MAX_NUMBERS];
-  const float3 rands3 = to_float3(rndFloat4_Pseudo(&gen));
-  const float2 rands2 = rndFloat2_Pseudo(&gen);
-  out_gens[tid]       = gen;
+
+  
+  const int currDepth       = unpackBounceNum(flags);
+  const unsigned int qmcPos = reverseBits(tid, iNumElements) + a_passNumberForQmc * iNumElements;
+  
+  const float3 rands3 = to_float3(rndLight(&gen, currDepth,
+                                           a_globals->rmQMC, qmcPos, a_qmcTable));
+  
+  float rands2 = rndFloat1_Pseudo(&gen);
+
+  if(currDepth == 0 && a_globals->rmQMC[QMC_VAR_LGT_N] != -1) // if qmc is enabled for light selector
+    rands2 = rands3.z;
+
+  out_gens[tid] = gen;
 
   // (1) generate light sample
   //

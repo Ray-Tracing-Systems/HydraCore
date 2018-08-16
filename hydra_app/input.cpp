@@ -2,14 +2,20 @@
 #include <time.h>
 #include <iostream>
 
+//
+
 Input::Input()
 {
-  //noWindow      = false;           ///< run 'console_main', else run 'window_main'
-  inLibraryPath = "tests/test_42"; ///< cornell box with teapot
+  //noWindow      = false;         ///< run 'console_main', else run 'window_main'
+  //inLibraryPath = "tests/test_42"; ///< cornell box with teapot
   //inLibraryPath = "tests/test_01"; ///< cornell box with sphere
   //inLibraryPath = "tests/test_223_small"; ///< cornell box with mirror glossy back wall
   
-  //inLibraryPath = "/home/frol/PROG/HydraAPI/main/tests/test_82";
+  //inLibraryPath = "/home/frol/PROG/HydraAPI/main/tests/test_70";
+  //inLibraryPath = "/home/frol/PROG/HydraAPI/main/tests_f/test_004";
+  //inLibraryPath = "/home/frol/PROG/HydraAPI/main/tests_f/test_211";
+  inLibraryPath = "/home/frol/yandexdisk/samsungdata/temp/hydra_tmp_0";
+  
   //inLibraryPath = "D:/[archive]/2017/HydraAPP/hydra_app/tests/hydra_benchmark_07";
   //inLibraryPath = "D:/[archive]/2017/HydraOldRepo/HydraAPP/hydra_app/tests/hydra_benchmark_07";
 

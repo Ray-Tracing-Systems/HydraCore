@@ -28,12 +28,8 @@ include_directories(${FREEIMAGE_INCLUDE_DIRS})
 find_package(glfw3 REQUIRED)
 find_package(OpenGL REQUIRED)
 find_package(Threads REQUIRED)
-find_package(OpenMP)
-if (OPENMP_FOUND)
-    set (CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${OpenMP_C_FLAGS}")
-    set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
-    set (CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${OpenMP_EXE_LINKER_FLAGS}")
-endif()
+find_package(OpenMP REQUIRED)
+
 
 # include_directories(${ADDITIONAL_INCLUDE_DIRS})
 # target_include_directories(main PUBLIC ${OPENGL_INCLUDE_DIR})
@@ -42,8 +38,7 @@ link_directories(${CMAKE_SOURCE_DIR}/../HydraAPI/bin/ ${CMAKE_SOURCE_DIR}/LIBRAR
 
 add_executable(hydra ${SOURCE_FILES})
 
-
-MESSAGE(WARNING "CMAKE_SOURCE_DIR: " ${CMAKE_SOURCE_DIR} )
+#MESSAGE(WARNING "CMAKE_SOURCE_DIR: " ${CMAKE_SOURCE_DIR} )
 
 SET (CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} -ldl")
 
@@ -52,7 +47,7 @@ if(WIN32)
     #add_definitions(-DNEED_DIR_CHANGE)
     #target_link_libraries(main LINK_PUBLIC ${OPENGL_gl_LIBRARY} hydra_api glfw3dll )
 else()
-    target_compile_options(hydra PRIVATE -fpermissive -Wnarrowing)
+    target_compile_options(hydra PRIVATE -fpermissive -Wnarrowing ${OpenMP_CXX_FLAGS})
     target_link_libraries(hydra LINK_PUBLIC
             hydra_drv
             hydrabvhbuilder embree sys tasking simd lexers
@@ -66,6 +61,7 @@ else()
             ${OPENGL_glu_LIBRARY}
             ${LIBS}
             ${FREEIMAGE_LIBRARIES}
+            ${OpenMP_CXX_FLAGS}
             OpenCL)
 endif()
 

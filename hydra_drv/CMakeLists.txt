@@ -1,15 +1,19 @@
 set(CMAKE_CXX_STANDARD 14)
 
 set(SOURCE_FILES
+        cglobals.h
+        cfetch.h
+        crandom.h
+        clight.h
+        cmaterial.h
+        ctrace.h
+        cbidir.h
         AbstractMaterial.h
         Bitmap.cpp
         bitonic_sort_gpu.cpp
         bitonic_sort_gpu.h
-        cfetch.h
-        clight.h
         cl_scan_gpu.cpp
         cl_scan_gpu.h
-        cmaterial.h
         CPUBilateralFilter2D.cpp
         CPUExp_bxdf.h
         CPUExp_Integrators_Common.cpp
@@ -17,16 +21,14 @@ set(SOURCE_FILES
         CPUExp_Integrators_LT.cpp
         CPUExp_Integrators_MLT.cpp
         CPUExp_Integrators_PT.cpp
+        CPUExp_Integrators_PT_QMC.cpp
         CPUExp_Integrators_SBDPT.cpp
         CPUExp_Integrators_MMLT.cpp
         CPUExp_IntegratorSSS.cpp
         CPUExp_Integrators_ThreeWay.cpp
         CPUExp_Integrators_TwoWay.cpp
         CPUExpLayer.cpp
-        crandom.h
-        ctrace.h
         FastList.h
-        cglobals.h
         globals_sys.cpp
         globals_sys.h
         GPUOCLData.cpp
@@ -62,7 +64,9 @@ if (CMAKE_BUILD_TYPE STREQUAL "Debug")
     add_definitions(-DDEBUG -D_DEBUG)
 endif()
 
-set(CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS} "-msse4.1")
+find_package(OpenMP REQUIRED)
+
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -msse4.1 ${OpenMP_CXX_FLAGS}")
 
 ADD_LIBRARY(hydra_drv STATIC ${SOURCE_FILES})
 

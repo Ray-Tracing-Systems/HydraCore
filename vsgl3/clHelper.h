@@ -2,6 +2,8 @@
 // clHelper.h Author: Vladimir Frolov, 2014, Graphics & Media Lab.
 //////////////////////////////////////////////////////////////////
 #pragma once
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+#pragma GCC diagnostic ignored "-Wignored-attributes"
 
 #include <iostream>
 #include <string>
@@ -24,7 +26,7 @@ static const char* CL_GL_SHARING_EXT = "cl_khr_gl_sharing";
 int IsExtensionSupported(const char* support_str, const char* ext_string, size_t ext_buffer_size);
 const char * getOpenCLErrorString(cl_int err);
 
-void checkCLFun(cl_int cErr, char* file, int line);
+void checkCLFun(cl_int cErr, const char* const file, int line);
 int clglSharingIsSupported(cl_device_id device_id);
 
 #define CHECK_CL(call) checkCLFun((call), __FILE__, __LINE__);

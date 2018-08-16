@@ -94,7 +94,7 @@ void IntegratorThreeWay::DoLightPath()
   auto& rgen = randomGen();
 
   float lightPickProb = 1.0f;
-  const int lightId = SelectRandomLightFwd(rndFloat2(&rgen), m_pGlobals,
+  const int lightId = SelectRandomLightFwd(rndFloat1(&rgen), m_pGlobals,
                                            &lightPickProb);
 
   const PlainLight* pLight = lightAt(m_pGlobals, lightId);
@@ -370,7 +370,7 @@ float3  IntegratorThreeWay::PathTraceAcc(float3 ray_pos, float3 ray_dir, const f
   
   auto& gen = randomGen();
   float lightPickProb = 1.0f;
-  int lightOffset = SelectRandomLightRev(rndFloat2_Pseudo(&gen), surfElem.pos, m_pGlobals,
+  int lightOffset = SelectRandomLightRev(rndFloat1_Pseudo(&gen), surfElem.pos, m_pGlobals,
                                          &lightPickProb);
 
   if ((!m_computeIndirectMLT || a_currDepth > 0) && lightOffset >= 0) // if need to sample direct light ?

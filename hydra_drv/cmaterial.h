@@ -1253,7 +1253,8 @@ static inline float  sssGetTransmission(__global const PlainMaterial* a_pMat) { 
 static inline BRDFSelector materialRandomWalkBRDF(__global const PlainMaterial* a_pMat, __private RandomGen* a_pGen, __global const float* a_pssVec, 
                                                   const float3 rayDir, const float3 hitNorm, const float2 hitTexCoord,
                                                   __global const EngineGlobals* a_globals, texture2d_t a_tex, __private const ProcTextureList* a_ptList, 
-                                                  const int a_rayBounce, const bool a_mmltMode, const bool a_reflOnly)
+                                                  const int a_rayBounce, const bool a_reflOnly,
+                                                  const unsigned int qmcPos, __constant unsigned int* a_qmcTable)
 {
   BRDFSelector res, sel;
 
@@ -1265,13 +1266,10 @@ static inline BRDFSelector materialRandomWalkBRDF(__global const PlainMaterial* 
 
   __global const PlainMaterial* node = a_pMat;
   int i = 0;
-  while (!materialIsLeafBRDF(node) && i < MLT_FLOATS_PER_MLAYER)
+  while (!materialIsLeafBRDF(node) && i < MMLT_FLOATS_PER_MLAYER)
   {
-    float rndVal;
-    if (a_mmltMode)
-      rndVal = rndMatLayerMMLT(a_pGen, a_pssVec, a_rayBounce, i);
-    else
-      rndVal = rndMatLayer(a_pGen, a_pssVec, a_rayBounce, i);
+    float rndVal = rndMatLayer(a_pGen, a_pssVec, a_rayBounce, i,
+                               a_globals->rmQMC, qmcPos, a_qmcTable);
 
     //////////////////////////////////////////////////////////////////////////
     const int type = materialGetType(node);
@@ -1288,12 +1286,10 @@ static inline BRDFSelector materialRandomWalkBRDF(__global const PlainMaterial* 
     i++;
   }
 
-  for (; i < MLT_FLOATS_PER_MLAYER; i++)  // we must generate these numbers to get predefined state of seed for each bounce
+  for (; i < MMLT_FLOATS_PER_MLAYER; i++)  // we must generate these numbers to get predefined state of seed for each bounce
   {
-    if (a_mmltMode)
-      rndMatLayerMMLT(a_pGen, a_pssVec, a_rayBounce, i);
-    else
-      rndMatLayer(a_pGen, a_pssVec, a_rayBounce, i);
+    rndMatLayer(a_pGen, a_pssVec, a_rayBounce, i,
+                a_globals->rmQMC, qmcPos, 0);
   }
 
   return res;
