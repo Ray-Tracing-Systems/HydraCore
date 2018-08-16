@@ -1298,7 +1298,8 @@ void GPUOCLLayer::EvalGBuffer(IHRSharedAccumImage* a_pAccumImage, const std::vec
 
     // (1) generate eye rays
     //
-    runKernel_MakeEyeRaysSpp(m_rays.rayPos, m_rays.rayDir, GBUFFER_SAMPLES, yBegin, finalSize);
+    runKernel_MakeEyeRaysSpp(GBUFFER_SAMPLES, yBegin, finalSize, nullptr,
+                             m_rays.rayPos, m_rays.rayDir);
     
     // (2) trace1D with single bounce
     //
@@ -1415,8 +1416,6 @@ void GPUOCLLayer::RunProductionSamplingMode()
 
   for(int pass = 0; pass < numPasses; pass++)
   { 
-    break; 
-
     // (2) take a part of list and put it to the GPU 
     //
     CHECK_CL(clEnqueueWriteBuffer(m_globals.cmdQueue, pixCoordGPU, CL_FALSE, 0, 
@@ -1424,12 +1423,17 @@ void GPUOCLLayer::RunProductionSamplingMode()
 
     // (3) generate PMPIX_SAMPLES rays per each pixel 
     //
-    
+    const int finalSize = PMPIX_SAMPLES*pixelsPerPass;
+    runKernel_MakeEyeRaysSpp(PMPIX_SAMPLES, 0, finalSize, pixCoordGPU,
+                             m_rays.rayPos, m_rays.rayDir);
+
     // (4) trace rays/paths
     //
-
+    trace1D(m_rays.rayPos, m_rays.rayDir, m_rays.pathAccColor, m_rays.MEGABLOCKSIZE);
+    
     // (5) average colors
     //
+    runKernel_ReductionFloat4Average(m_rays.pathAccColor, pixColorGPU, m_rays.MEGABLOCKSIZE, PMPIX_SAMPLES);
 
     // (6) copy resulting colors to the CPU and add them to the image
     //

@@ -66,6 +66,42 @@ __kernel void MakeEyeRaysSPP(__global float4* out_pos,
   out_dir [tid] = to_float4(ray_dir, fy);
 }
 
+
+
+__kernel void MakeEyeRaysSPPPixels(__global float4* out_pos,
+                                   __global float4* out_dir,
+
+                                   int w, int h, 
+                                   __global const int*    in_pixcoords,
+                                   __global const float2* in_qmc,
+                                   __global const EngineGlobals* a_globals)
+{
+  const int tid       = GLOBAL_ID_X;
+  const int pixPacked = in_pixcoords[tid / PMPIX_SAMPLES];
+
+  const int y = (pixPacked & 0xFFFF0000) >> 16;
+  const int x = (pixPacked & 0x0000FFFF);
+
+  const float2 qmc      = in_qmc[tid % PMPIX_SAMPLES];
+  const float4 lensOffs = make_float4(qmc.x, qmc.y, 0, 0);
+
+  const float sizeInvX  = 1.0f / (float)(w);
+  const float sizeInvY  = 1.0f / (float)(h);
+
+  lensOffs.x = sizeInvX * (lensOffs.x + (float)x);
+  lensOffs.y = sizeInvY * (lensOffs.y + (float)y);
+
+  // (2) generate random camera sample
+  //
+  float  fx = (float)x, fy = (float)y;
+  float3 ray_pos, ray_dir;
+  MakeEyeRayFromF4Rnd(lensOffs, a_globals,
+                      &ray_pos, &ray_dir, &fx, &fy);
+
+  out_pos [tid] = to_float4(ray_pos, fx);
+  out_dir [tid] = to_float4(ray_dir, fy);
+}
+
 __kernel void MakeEyeRaysSamplesOnly(__global RandomGen*           restrict out_gens,
                                      __global float4*              restrict out_samples,
                                      __global int2*                restrict out_zind,
