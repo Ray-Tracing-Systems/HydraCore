@@ -1383,8 +1383,11 @@ void GPUOCLLayer::RunProductionSamplingMode()
   std::cout << "RunProductionSamplingMode begin" << std::endl;
   
   if(m_screen.color0CPU.size() != m_width*m_height)
+  {
     m_screen.color0CPU.resize(m_width*m_height);
-  
+    memset(m_screen.color0CPU.data(), 0, m_screen.color0CPU.size()*sizeof(float4));
+  }
+
   // (1) active (or all) pixels list
   //
   std::vector<int> allPixels(m_width*m_height);
@@ -1446,13 +1449,14 @@ void GPUOCLLayer::RunProductionSamplingMode()
     //for(int pixId = 0; pixId < pixColors.size(); pixId++)
       //pixColors[pixId] = float4(128.0f, 0.0f, 0.0f, 0.0f);
     
+    const float multf = float(PMPIX_SAMPLES);
     for(int pixId = 0; pixId < pixColors.size(); pixId++) // contribute to image here
     {
       const int pixelPacked = allPixels[currPos + pixId];
       const int x = (pixelPacked & 0x0000FFFF);
       const int y = (pixelPacked & 0xFFFF0000) >> 16;
 
-      m_screen.color0CPU[y*m_width + x] += pixColors[pixId]; 
+      m_screen.color0CPU[y*m_width + x] += (pixColors[pixId]*multf); 
     }
 
     currPos += pixelsPerPass;
@@ -1468,8 +1472,8 @@ void GPUOCLLayer::RunProductionSamplingMode()
   clReleaseMemObject(pixCoordGPU); pixCoordGPU = nullptr;
   clReleaseMemObject(pixColorGPU); pixColorGPU = nullptr;
 
-  m_spp        += 256;
-  m_passNumber += numPasses; // just for GetLDRImage works correctly it have to be not 0, see pipelined copy for common pt ... ;
+  m_spp        += PMPIX_SAMPLES;
+  m_passNumber += 2; // just for GetLDRImage works correctly it have to be not 0, see pipelined copy for common pt ... ;
   std::cout << "RunProductionSamplingMode end" << std::endl;
 }
 
