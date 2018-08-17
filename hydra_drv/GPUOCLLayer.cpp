@@ -1385,18 +1385,8 @@ void GPUOCLLayer::EvalGBuffer(IHRSharedAccumImage* a_pAccumImage, const std::vec
   }
 }
 
-void GPUOCLLayer::RunProductionSamplingMode()
+std::vector<int> GPUOCLLayer::MakeAllPixelsList()
 {
-  std::cout << "ProductionSamplingMode begin" << std::endl; std::cout.flush();
-  
-  if(m_screen.color0CPU.size() != m_width*m_height)
-  {
-    m_screen.color0CPU.resize(m_width*m_height);
-    memset(m_screen.color0CPU.data(), 0, m_screen.color0CPU.size()*sizeof(float4));
-  }
-
-  // (1) active (or all) pixels list
-  //
   std::vector<int> allPixels(m_width*m_height);
 
   #pragma omp parallel for
@@ -1408,6 +1398,23 @@ void GPUOCLLayer::RunProductionSamplingMode()
       allPixels[y*m_width+x] = pixelPacked;
     }
   }
+
+  return allPixels;
+}
+
+void GPUOCLLayer::RunProductionSamplingMode()
+{
+  std::cout << "ProductionSamplingMode begin" << std::endl; std::cout.flush();
+  
+  if(m_screen.color0CPU.size() != m_width*m_height)
+  {
+    m_screen.color0CPU.resize(m_width*m_height);
+    memset(m_screen.color0CPU.data(), 0, m_screen.color0CPU.size()*sizeof(float4));
+  }
+
+  // (1) create pixels list
+  //
+  std::vector<int> allPixels = MakeAllPixelsList();
 
   const int numPasses     = int( int64_t(m_width*m_height)*int64_t(PMPIX_SAMPLES) / int64_t(GetRayBuffSize()) );
   const int pixelsPerPass = GetRayBuffSize() / PMPIX_SAMPLES;
@@ -1421,6 +1428,9 @@ void GPUOCLLayer::RunProductionSamplingMode()
     RUN_TIME_ERROR("Error in clCreateBuffer, RunProductionSamplingMode");
 
   std::vector<float4> pixColors(pixelsPerPass);
+
+  CHECK_CL(clEnqueueWriteBuffer(m_globals.cmdQueue, pixCoordGPU, CL_TRUE, 0, // CL_FALSECL_TRUE 
+                                pixelsPerPass*sizeof(int), (void*)(allPixels.data() + 0), 0, NULL, NULL));
 
   int currPos = 0;
   bool earlyExit = false;
@@ -1437,10 +1447,11 @@ void GPUOCLLayer::RunProductionSamplingMode()
         break;
       }
     }
+
     // (2) take a part of list and put it to the GPU 
     //
-    CHECK_CL(clEnqueueWriteBuffer(m_globals.cmdQueue, pixCoordGPU, CL_TRUE, 0, // CL_FALSECL_TRUE 
-                                  pixelsPerPass*sizeof(int), (void*)(allPixels.data() + currPos), 0, NULL, NULL));
+    //CHECK_CL(clEnqueueWriteBuffer(m_globals.cmdQueue, pixCoordGPU, CL_TRUE, 0, 
+      //                            pixelsPerPass*sizeof(int), (void*)(allPixels.data() + currPos), 0, NULL, NULL));
 
     // (3) generate PMPIX_SAMPLES rays per each pixel 
     //
@@ -1462,10 +1473,13 @@ void GPUOCLLayer::RunProductionSamplingMode()
     CHECK_CL(clEnqueueReadBuffer(m_globals.cmdQueue, pixColorGPU, CL_TRUE, 0, 
                                  pixelsPerPass*sizeof(float4), pixColors.data(), 0, NULL, NULL));
     
-  
-    //for(int pixId = 0; pixId < pixColors.size(); pixId++)
-      //pixColors[pixId] = float4(128.0f, 0.0f, 0.0f, 0.0f);
-    
+    if(pass < numPasses-1) // copy next pixels portion asynchronious
+    {
+      CHECK_CL(clEnqueueWriteBuffer(m_globals.cmdQueue, pixCoordGPU, CL_FALSE, 0, 
+                                    pixelsPerPass*sizeof(int), (void*)(allPixels.data() + currPos + pixelsPerPass), 0, NULL, NULL));
+      clFlush(m_globals.cmdQueue);
+    }
+
     const float multf = float(PMPIX_SAMPLES);
     for(int pixId = 0; pixId < pixColors.size(); pixId++) // contribute to image here
     {
@@ -1521,14 +1535,14 @@ void GPUOCLLayer::RunProductionSamplingMode()
     }
   
     m_sppDone += PMPIX_SAMPLES;
-  }
   
-  const int maxSamplesPerPixel = m_vars.m_varsI[HRT_MAX_SAMPLES_PER_PIXEL];
-  
-  if(m_pExternalImage->Header()->spp >= maxSamplesPerPixel) // to quit immediately
-  {
-    m_sppDone    = maxSamplesPerPixel;
-    m_sppContrib = maxSamplesPerPixel;
+    const int maxSamplesPerPixel = m_vars.m_varsI[HRT_MAX_SAMPLES_PER_PIXEL];
+    
+    if(m_pExternalImage->Header()->spp >= maxSamplesPerPixel) // to quit immediately
+    {
+      m_sppDone    = maxSamplesPerPixel;
+      m_sppContrib = maxSamplesPerPixel;
+    }
   }
 
 }

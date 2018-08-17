@@ -58,7 +58,10 @@ public:
   void BeginTracingPass() override;
   void EndTracingPass()   override;
   void EvalGBuffer(IHRSharedAccumImage* a_pAccumImage, const std::vector<int32_t>& a_instIdByInstId) override;
+  
+  std::vector<int> MakeAllPixelsList();
   void RunProductionSamplingMode();
+
   void TraceSBDPTPass(cl_mem a_rpos, cl_mem a_rdir, cl_mem a_outColor, size_t a_size);
 
   void FinishAll() override;
