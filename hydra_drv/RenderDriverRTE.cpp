@@ -272,8 +272,10 @@ bool RenderDriverRTE::UpdateSettings(pugi::xml_node a_settingsNode)
     m_legacy.minRaysPerPixel = a_settingsNode.child(L"minRaysPerPixel").text().as_int();
 
   if (a_settingsNode.child(L"maxRaysPerPixel") != nullptr)
+  {
     m_legacy.maxRaysPerPixel = a_settingsNode.child(L"maxRaysPerPixel").text().as_int();
-
+    vars.m_varsI[HRT_MAX_SAMPLES_PER_PIXEL] = m_legacy.maxRaysPerPixel;
+  }
   if (a_settingsNode.child(L"seed") != nullptr)
     m_legacy.m_lastSeed = a_settingsNode.child(L"seed").text().as_int();
 

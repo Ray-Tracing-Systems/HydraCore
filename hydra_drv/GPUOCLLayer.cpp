@@ -1387,7 +1387,7 @@ void GPUOCLLayer::EvalGBuffer(IHRSharedAccumImage* a_pAccumImage, const std::vec
 
 void GPUOCLLayer::RunProductionSamplingMode()
 {
-  std::cout << "RunProductionSamplingMode begin" << std::endl;
+  std::cout << "ProductionSamplingMode begin" << std::endl; std::cout.flush();
   
   if(m_screen.color0CPU.size() != m_width*m_height)
   {
@@ -1423,9 +1423,20 @@ void GPUOCLLayer::RunProductionSamplingMode()
   std::vector<float4> pixColors(pixelsPerPass);
 
   int currPos = 0;
-
+  bool earlyExit = false;
   for(int pass = 0; pass < numPasses; pass++)
   { 
+    if(m_pExternalImage != nullptr)
+    {
+      const int maxSamplesPerPixel = m_vars.m_varsI[HRT_MAX_SAMPLES_PER_PIXEL];
+      if(m_pExternalImage->Header()->spp >= maxSamplesPerPixel) // to quit immediately
+      {
+        m_sppDone    = maxSamplesPerPixel;
+        m_sppContrib = maxSamplesPerPixel;
+        earlyExit    = true;
+        break;
+      }
+    }
     // (2) take a part of list and put it to the GPU 
     //
     CHECK_CL(clEnqueueWriteBuffer(m_globals.cmdQueue, pixCoordGPU, CL_TRUE, 0, // CL_FALSECL_TRUE 
@@ -1480,7 +1491,46 @@ void GPUOCLLayer::RunProductionSamplingMode()
 
   m_spp        += PMPIX_SAMPLES;
   m_passNumber += 2; // just for GetLDRImage works correctly it have to be not 0, see pipelined copy for common pt ... ;
-  std::cout << "RunProductionSamplingMode end" << std::endl;
+  std::cout << "ProductionSamplingMode end" << std::endl; std::cout.flush();
+
+  if(m_pExternalImage != nullptr && !earlyExit)
+  {
+    float4* resultPtr = (float4*)m_pExternalImage->ImageData(0);
+    const int width   = m_pExternalImage->Header()->width;
+    const int height  = m_pExternalImage->Header()->height;
+
+    const bool lockSuccess = m_pExternalImage->Lock(1000); // can wait 1s for success lock
+    
+    if (lockSuccess)
+    {
+      const int size = m_width*m_height;
+
+      #pragma omp parallel for
+      for(int i=0;i<size;i++)
+      {
+        const float4 color = m_screen.color0CPU[i];
+        resultPtr[i] += color;
+        m_screen.color0CPU[i] = float4(0,0,0,0);
+      }
+
+      m_pExternalImage->Header()->counterRcv++;
+      m_pExternalImage->Header()->spp += PMPIX_SAMPLES;
+      m_sppContrib                    += PMPIX_SAMPLES;
+        
+      m_pExternalImage->Unlock();
+    }
+  
+    m_sppDone += PMPIX_SAMPLES;
+  }
+  
+  const int maxSamplesPerPixel = m_vars.m_varsI[HRT_MAX_SAMPLES_PER_PIXEL];
+  
+  if(m_pExternalImage->Header()->spp >= maxSamplesPerPixel) // to quit immediately
+  {
+    m_sppDone    = maxSamplesPerPixel;
+    m_sppContrib = maxSamplesPerPixel;
+  }
+
 }
 
 void GPUOCLLayer::TraceSBDPTPass(cl_mem a_rpos, cl_mem a_rdir, cl_mem a_outColor, size_t a_size)
@@ -1703,7 +1753,7 @@ void GPUOCLLayer::AddContributionToScreenCPU(cl_mem& in_color, cl_mem in_indices
     
     bool lockSuccess = (m_pExternalImage == nullptr);
     if (m_pExternalImage != nullptr)
-      lockSuccess = m_pExternalImage->Lock(1); // can wait 1 ms for success lock
+      lockSuccess = m_pExternalImage->Lock(250); // can wait 250 ms for success lock
     
     if (lockSuccess)
     {

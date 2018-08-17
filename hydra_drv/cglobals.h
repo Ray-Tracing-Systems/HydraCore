@@ -394,6 +394,7 @@ enum VARIABLE_NAMES { // int vars
                       HRT_MLT_BURN_ITERS           = 33,
                       HRT_MMLT_FIRST_BOUNCE        = 34,
                       HRT_SHADOW_MATTE_BACK        = 35,
+                      HRT_MAX_SAMPLES_PER_PIXEL    = 36,
 };
 
 enum VARIABLE_FLOAT_NAMES{ // float vars
