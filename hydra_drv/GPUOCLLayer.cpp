@@ -1814,12 +1814,11 @@ void GPUOCLLayer::CopyForConnectEye(cl_mem in_flags,  cl_mem in_raydir,  cl_mem 
   waitIfDebug(__FILE__, __LINE__);
 }
 
-bool GPUOCLLayer::AllThreadsAreDead(cl_mem a_rayFlags, size_t a_size)
+int GPUOCLLayer::CountNumActiveThreads(cl_mem a_rayFlags, size_t a_size)
 {
   int zero = 0;
   CHECK_CL(clEnqueueWriteBuffer(m_globals.cmdQueue, m_rays.atomicCounterMem, CL_TRUE, 0, 
                                 sizeof(int), &zero, 0, NULL, NULL));
-
 
   {
     cl_kernel kern = m_progs.screen.kernel("CountNumLiveThreads");
@@ -1840,7 +1839,7 @@ bool GPUOCLLayer::AllThreadsAreDead(cl_mem a_rayFlags, size_t a_size)
   CHECK_CL(clEnqueueReadBuffer(m_globals.cmdQueue, m_rays.atomicCounterMem, CL_TRUE, 0, 
                               sizeof(int), &counter, 0, NULL, NULL));
 
-  return (counter == 0);
+  return counter;
 }
 
 void GPUOCLLayer::trace1D(cl_mem a_rpos, cl_mem a_rdir, cl_mem a_outColor, size_t a_size)
@@ -1899,9 +1898,9 @@ void GPUOCLLayer::trace1D(cl_mem a_rpos, cl_mem a_rdir, cl_mem a_outColor, size_
       break;
     }
 
-    if((m_vars.m_flags & HRT_PRODUCTION_IMAGE_SAMPLING) != 0 && (bounce%2 == 0) && bounce > 0) // opt for empty environment rendering.
+    if((m_vars.m_flags & HRT_PRODUCTION_IMAGE_SAMPLING) != 0 && (bounce%2 == 0)) // opt for empty environment rendering.
     {
-      if(AllThreadsAreDead(m_rays.rayFlags, a_size))
+      if(CountNumActiveThreads(m_rays.rayFlags, a_size) == 0)
         break;
     }
 

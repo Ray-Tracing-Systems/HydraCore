@@ -436,7 +436,7 @@ protected:
   
   void runKernel_ReductionFloat4Average(cl_mem a_src, cl_mem a_dst, size_t a_size, int a_bsize);
   void runKernel_ReductionGBuffer(cl_mem a_src, cl_mem a_dst, size_t a_size, int a_bsize);
-  bool AllThreadsAreDead(cl_mem a_rayFlags, size_t a_size);
+  int  CountNumActiveThreads(cl_mem a_rayFlags, size_t a_size);
   
   float2 runKernel_TestAtomicsPerf(size_t a_size);
 
