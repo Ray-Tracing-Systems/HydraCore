@@ -70,6 +70,7 @@ __kernel void MakeEyeRaysSPP(__global float4* out_pos,
 
 __kernel void MakeEyeRaysSPPPixels(__global float4* out_pos,
                                    __global float4* out_dir,
+                                   __global int*    out_XY,
 
                                    int w, int h, 
                                    __global const int*    in_pixcoords,
@@ -100,6 +101,7 @@ __kernel void MakeEyeRaysSPPPixels(__global float4* out_pos,
 
   out_pos [tid] = to_float4(ray_pos, fx);
   out_dir [tid] = to_float4(ray_dir, fy);
+  out_XY  [tid] = packXY1616(x,y);
 }
 
 __kernel void MakeEyeRaysSamplesOnly(__global RandomGen*           restrict out_gens,

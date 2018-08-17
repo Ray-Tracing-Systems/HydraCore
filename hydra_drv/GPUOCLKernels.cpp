@@ -132,13 +132,14 @@ void GPUOCLLayer::runKernel_MakeEyeRaysSpp(int32_t a_blocksSize, int32_t yBegin,
 
     CHECK_CL(clSetKernelArg(kernX, 0, sizeof(cl_mem), (void*)&a_rpos));
     CHECK_CL(clSetKernelArg(kernX, 1, sizeof(cl_mem), (void*)&a_rdir));
-  
-    CHECK_CL(clSetKernelArg(kernX, 2, sizeof(cl_int), (void*)&m_width));
-    CHECK_CL(clSetKernelArg(kernX, 3, sizeof(cl_int), (void*)&m_height));
-    CHECK_CL(clSetKernelArg(kernX, 4, sizeof(cl_mem), (void*)&in_pixels));
+    CHECK_CL(clSetKernelArg(kernX, 2, sizeof(cl_mem), (void*)&m_rays.packedXY));
+
+    CHECK_CL(clSetKernelArg(kernX, 3, sizeof(cl_int), (void*)&m_width));
+    CHECK_CL(clSetKernelArg(kernX, 4, sizeof(cl_int), (void*)&m_height));
+    CHECK_CL(clSetKernelArg(kernX, 5, sizeof(cl_mem), (void*)&in_pixels));
     
-    CHECK_CL(clSetKernelArg(kernX, 5, sizeof(cl_mem), (void*)&m_globals.hammersley2D256));  
-    CHECK_CL(clSetKernelArg(kernX, 6, sizeof(cl_mem), (void*)&m_scene.allGlobsData));
+    CHECK_CL(clSetKernelArg(kernX, 6, sizeof(cl_mem), (void*)&m_globals.hammersley2D256));  
+    CHECK_CL(clSetKernelArg(kernX, 7, sizeof(cl_mem), (void*)&m_scene.allGlobsData));
   }
   else
   {

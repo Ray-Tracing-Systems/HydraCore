@@ -361,7 +361,7 @@ __kernel void HitEnvOrLightKernel(__global const float4*    restrict in_rpos,
     const float3 ray_pos = to_float3(in_rpos[tid]);
     const float3 ray_dir = to_float3(in_rdir[tid]);
 
-    const int  hitId = hitDirectLight(ray_dir, a_globals);
+    const int  hitId         = hitDirectLight(ray_dir, a_globals);
     float3     nextPathColor = make_float3(0, 0, 0);
 
     if (hitId >= 0) // hit any sun light

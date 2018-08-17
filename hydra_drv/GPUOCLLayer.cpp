@@ -1453,8 +1453,8 @@ void GPUOCLLayer::RunProductionSamplingMode()
     for(int pixId = 0; pixId < pixColors.size(); pixId++) // contribute to image here
     {
       const int pixelPacked = allPixels[currPos + pixId];
-      const int x = (pixelPacked & 0x0000FFFF);
-      const int y = (pixelPacked & 0xFFFF0000) >> 16;
+      const int x           = (pixelPacked & 0x0000FFFF);
+      const int y           = (pixelPacked & 0xFFFF0000) >> 16;
 
       m_screen.color0CPU[y*m_width + x] += (pixColors[pixId]*multf); 
     }
