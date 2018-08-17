@@ -84,7 +84,7 @@ __kernel void MakeEyeRaysSPPPixels(__global float4* out_pos,
   const int x = (pixPacked & 0x0000FFFF);
 
   const float2 qmc      = in_qmc[tid % PMPIX_SAMPLES];
-  const float4 lensOffs = make_float4(qmc.x, qmc.y, 0, 0);
+  const float4 lensOffs = make_float4(qmc.x, qmc.y, 0, 0); //#TODO: add dof sampling via sobol qmc. 
 
   const float sizeInvX  = 1.0f / (float)(w);
   const float sizeInvY  = 1.0f / (float)(h);
@@ -369,6 +369,31 @@ __kernel void SimpleReductionTest(__global int* a_data, int iNumElements)
   if (LOCAL_ID_X == 0)
     a_data[tid] = sArray[0];
 
+}
+
+
+__kernel void CountNumLiveThreads(__global int* a_counter, __global uint* a_flags, int iNumElements)
+{ 
+  int tid = GLOBAL_ID_X;
+  if (tid >= iNumElements)
+    return;
+
+  __local int sArray[256];
+
+  // reduce all thisRayIsDead to shared allBlockRaysAreDead
+  //
+  sArray[LOCAL_ID_X] = (unpackRayFlags(a_flags[tid]) & RAY_IS_DEAD) ? 0 : 1;
+  SYNCTHREADS_LOCAL;
+
+  for (uint c = 256 / 2; c>0; c /= 2)
+  {
+    if (LOCAL_ID_X < c)
+      sArray[LOCAL_ID_X] += sArray[LOCAL_ID_X + c];
+    SYNCTHREADS_LOCAL;
+  }
+
+  if (LOCAL_ID_X == 0)
+    atomic_add(a_counter, sArray[0]);
 }
 
 

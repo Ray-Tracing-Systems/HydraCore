@@ -14,7 +14,7 @@ Input::Input()
   //inLibraryPath = "/home/frol/PROG/HydraAPI/main/tests/test_70";
   //inLibraryPath = "/home/frol/PROG/HydraAPI/main/tests_f/test_004";
   //inLibraryPath = "/home/frol/PROG/HydraAPI/main/tests_f/test_211";
-  inLibraryPath = "/home/frol/yandexdisk/samsungdata/temp/hydra_tmp_1";
+  inLibraryPath = "/home/frol/yandexdisk/samsungdata/temp/hydra_tmp_2";
   
   //inLibraryPath = "D:/[archive]/2017/HydraAPP/hydra_app/tests/hydra_benchmark_07";
   //inLibraryPath = "D:/[archive]/2017/HydraOldRepo/HydraAPP/hydra_app/tests/hydra_benchmark_07";
@@ -31,8 +31,8 @@ Input::Input()
   enableMLT     = false; ///< if use MMLT, you MUST enable it early, when render process just started (here or via command line).
   boxMode       = false; ///< special 'in the box' mode when render don't react to any commands
   
-  winWidth      = 2058;  ///<
-  winHeight     = 512;  ///< 
+  winWidth      = 2048;  ///<
+  winHeight     = 512;   ///< 
 
   enableOpenGL1 = false; ///< if you want to draw scene for some debug needs with OpenGL1.
   exitStatus    = false;

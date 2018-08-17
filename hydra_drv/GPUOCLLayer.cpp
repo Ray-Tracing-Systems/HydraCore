@@ -83,6 +83,8 @@ void GPUOCLLayer::CL_BUFFERS_RAYS::free()
   if (lightOffsetBuff) { clReleaseMemObject(lightOffsetBuff);  lightOffsetBuff = nullptr; }
   if (packedXY)        { clReleaseMemObject(packedXY);   packedXY   = nullptr; }
   if (debugf4)         { clReleaseMemObject(debugf4);    debugf4    = nullptr; }
+
+  if(atomicCounterMem) { clReleaseMemObject(atomicCounterMem); atomicCounterMem = nullptr;}
 }
 
 size_t GPUOCLLayer::CL_BUFFERS_RAYS::resize(cl_context ctx, cl_command_queue cmdQueue, size_t a_size, bool a_cpuShare, bool a_cpuFB)
@@ -185,6 +187,11 @@ size_t GPUOCLLayer::CL_BUFFERS_RAYS::resize(cl_context ctx, cl_command_queue cmd
     RUN_TIME_ERROR("Error in resize rays buffers");
  
   std::cout << "[cl_core]: MEGABLOCK SIZE = " << MEGABLOCKSIZE << std::endl;
+
+  atomicCounterMem = clCreateBuffer(ctx, CL_MEM_READ_WRITE, 1*sizeof(int), NULL, &ciErr1);
+  if (ciErr1 != CL_SUCCESS)
+    RUN_TIME_ERROR("can't alloc atomic counter memory");
+ 
 
   return currSize;
 }
@@ -1430,10 +1437,9 @@ void GPUOCLLayer::RunProductionSamplingMode()
     runKernel_MakeEyeRaysSpp(PMPIX_SAMPLES, 0, finalSize, pixCoordGPU,
                              m_rays.rayPos, m_rays.rayDir);
 
-    runKernel_ClearAllInternalTempBuffers(finalSize);
-
     // (4) trace rays/paths
     //
+    runKernel_ClearAllInternalTempBuffers(finalSize);
     trace1D(m_rays.rayPos, m_rays.rayDir, m_rays.pathAccColor, finalSize);
     
     // (5) average colors
@@ -1808,6 +1814,35 @@ void GPUOCLLayer::CopyForConnectEye(cl_mem in_flags,  cl_mem in_raydir,  cl_mem 
   waitIfDebug(__FILE__, __LINE__);
 }
 
+bool GPUOCLLayer::AllThreadsAreDead(cl_mem a_rayFlags, size_t a_size)
+{
+  int zero = 0;
+  CHECK_CL(clEnqueueWriteBuffer(m_globals.cmdQueue, m_rays.atomicCounterMem, CL_TRUE, 0, 
+                                sizeof(int), &zero, 0, NULL, NULL));
+
+
+  {
+    cl_kernel kern = m_progs.screen.kernel("CountNumLiveThreads");
+  
+    size_t szLocalWorkSize = 256;
+    cl_int iNumElements    = cl_int(a_size);
+    a_size                 = roundBlocks(a_size, int(szLocalWorkSize));
+  
+    CHECK_CL(clSetKernelArg(kern, 0, sizeof(cl_mem),  (void*)&m_rays.atomicCounterMem));
+    CHECK_CL(clSetKernelArg(kern, 1, sizeof(cl_mem),  (void*)&a_rayFlags));
+    CHECK_CL(clSetKernelArg(kern, 2, sizeof(cl_int),  (void*)&iNumElements));
+  
+    CHECK_CL(clEnqueueNDRangeKernel(m_globals.cmdQueue, kern, 1, NULL, &a_size, &szLocalWorkSize, 0, NULL, NULL));
+    waitIfDebug(__FILE__, __LINE__);
+  }
+
+  int counter = 0;
+  CHECK_CL(clEnqueueReadBuffer(m_globals.cmdQueue, m_rays.atomicCounterMem, CL_TRUE, 0, 
+                              sizeof(int), &counter, 0, NULL, NULL));
+
+  return (counter == 0);
+}
+
 void GPUOCLLayer::trace1D(cl_mem a_rpos, cl_mem a_rdir, cl_mem a_outColor, size_t a_size)
 {
   // trace rays
@@ -1862,6 +1897,12 @@ void GPUOCLLayer::trace1D(cl_mem a_rpos, cl_mem a_rdir, cl_mem a_outColor, size_
     {
       CopyShadowTo(a_outColor, m_rays.MEGABLOCKSIZE);
       break;
+    }
+
+    if((m_vars.m_flags & HRT_PRODUCTION_IMAGE_SAMPLING) != 0 && (bounce%2 == 0) && bounce > 0) // opt for empty environment rendering.
+    {
+      if(AllThreadsAreDead(m_rays.rayFlags, a_size))
+        break;
     }
 
     if (m_vars.m_varsI[HRT_ENABLE_MRAYS_COUNTERS] && measureThisBounce)

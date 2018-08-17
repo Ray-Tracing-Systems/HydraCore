@@ -1314,40 +1314,6 @@ void GPUOCLLayer::runKernel_ReductionGBuffer(cl_mem a_src, cl_mem a_dst, size_t 
 }
 
 
-void GPUOCLLayer::runKernel_AppendBadPixels(cl_mem a_counter, cl_mem in_data1, cl_mem in_data2, cl_mem out_data1, cl_mem out_data2, 
-                                           cl_mem in_px, cl_mem out_px, size_t a_size, int a_bsize)
-{
-  if (a_bsize != 64)
-    RUN_TIME_ERROR("AppendBadPixels64 not implemented for bsize != 64");
-
-  //cl_int ciErr1 = 0;
-  //cl_mem tempBuff = clCreateBuffer(m_globals.ctx, CL_MEM_READ_WRITE, a_size*sizeof(float), NULL, &ciErr1);
-
-  cl_kernel kernX = m_progs.screen.kernel("AppendBadPixels64");
-
-  size_t localWorkSize = size_t(a_bsize);
-  int    isize = int(a_size);
-  a_size = roundBlocks(a_size, int(localWorkSize));
-
-  CHECK_CL(clSetKernelArg(kernX, 0, sizeof(cl_mem), (void*)&a_counter));
-  CHECK_CL(clSetKernelArg(kernX, 1, sizeof(cl_mem), (void*)&in_data1));
-  CHECK_CL(clSetKernelArg(kernX, 2, sizeof(cl_mem), (void*)&in_data2));
-  CHECK_CL(clSetKernelArg(kernX, 3, sizeof(cl_mem), (void*)&out_data1));
-  CHECK_CL(clSetKernelArg(kernX, 4, sizeof(cl_mem), (void*)&out_data2));
-  CHECK_CL(clSetKernelArg(kernX, 5, sizeof(cl_mem), (void*)&in_px));
-  CHECK_CL(clSetKernelArg(kernX, 6, sizeof(cl_mem), (void*)&out_px));
-  CHECK_CL(clSetKernelArg(kernX, 7, sizeof(cl_mem), (void*)&m_scene.allGlobsData));
-  CHECK_CL(clSetKernelArg(kernX, 8, sizeof(cl_int), (void*)&isize));
-  //CHECK_CL(clSetKernelArg(kernX, 11, sizeof(cl_mem), (void*)&tempBuff));
-
-  CHECK_CL(clEnqueueNDRangeKernel(m_globals.cmdQueue, kernX, 1, NULL, &a_size, &localWorkSize, 0, NULL, NULL));
-  waitIfDebug(__FILE__, __LINE__);
-
-  //std::vector<float> debugData(a_size);
-  //CHECK_CL(clEnqueueReadBuffer(m_globals.cmdQueue, tempBuff, CL_TRUE, 0, a_size*sizeof(float), &debugData[0], 0, NULL, NULL));
-  //clReleaseMemObject(tempBuff);
-}
-
 
 bool GPUOCLLayer::testSimpleReduction()
 {
