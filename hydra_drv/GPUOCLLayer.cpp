@@ -1389,15 +1389,62 @@ std::vector<int> GPUOCLLayer::MakeAllPixelsList()
 {
   std::vector<int> allPixels(m_width*m_height);
 
-  #pragma omp parallel for
-  for(int y=0;y<m_height;y++)
+  // #pragma omp parallel for
+  // for(int y=0;y<m_height;y++)
+  // {
+  //   for(int x=0;x<m_width;x++)
+  //     allPixels[y*m_width+x] = packXY1616(x,y);
+  // }
+  // return allPixels;
+  
+  const int TILE_SIZE = 32;
+
+  const int maxXRounded = (int(m_width) / int(TILE_SIZE)) * TILE_SIZE;
+  const int maxYRounded = (int(m_height) / int(TILE_SIZE)) * TILE_SIZE;
+
+  int top = 0;
+
+  for(int ty=0; ty<maxYRounded; ty+=TILE_SIZE)
   {
-    for(int x=0;x<m_width;x++)
-    {
-      int pixelPacked = (x & 0x0000FFFF) | ((y << 16) & 0xFFFF0000);
-      allPixels[y*m_width+x] = pixelPacked;
+    for(int tx=0; tx<maxXRounded; tx+=TILE_SIZE)
+    { 
+      for(int y1=0;y1<TILE_SIZE;y1++)
+      {
+        const int y = ty + y1;
+        for(int x1=0;x1<TILE_SIZE;x1++)
+        {
+          const int x = tx + x1;
+          allPixels[top] = packXY1616(x,y);
+          top++;
+        }
+      }
     }
   }
+
+  // push borders
+  //
+  const int remX = m_width  - maxXRounded;
+  const int remY = m_height - maxYRounded;
+
+  for(int y = 0; y < m_height; y++)
+  {
+    for(int x = maxXRounded; x < m_width; x++)
+    {
+      allPixels[top] = packXY1616(x,y);
+      top++;
+    }
+  }
+
+  for(int x=0;x<maxXRounded;x++)
+  {
+    for(int y = maxYRounded; y < m_height; y++)
+    {
+      allPixels[top] = packXY1616(x,y);
+      top++;
+    }
+  }
+
+  assert(top == m_width*m_height);
 
   return allPixels;
 }
@@ -1406,6 +1453,8 @@ void GPUOCLLayer::RunProductionSamplingMode()
 {
   std::cout << "ProductionSamplingMode begin" << std::endl; std::cout.flush();
   
+  Timer timer(true); 
+
   if(m_screen.color0CPU.size() != m_width*m_height)
   {
     m_screen.color0CPU.resize(m_width*m_height);
@@ -1505,7 +1554,11 @@ void GPUOCLLayer::RunProductionSamplingMode()
 
   m_spp        += PMPIX_SAMPLES;
   m_passNumber += 2; // just for GetLDRImage works correctly it have to be not 0, see pipelined copy for common pt ... ;
-  std::cout << "ProductionSamplingMode end" << std::endl; std::cout.flush();
+  
+  
+  const float renderingTime = timer.getElapsed();
+
+  std::cout << "ProductionSamplingMode end, time = " << renderingTime << "s" << std::endl; std::cout.flush();
 
   if(m_pExternalImage != nullptr && !earlyExit)
   {
