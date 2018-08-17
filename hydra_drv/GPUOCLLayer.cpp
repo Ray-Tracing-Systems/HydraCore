@@ -1414,10 +1414,11 @@ std::vector<int> GPUOCLLayer::MakeAllPixelsList()
         for(int x1=0;x1<TILE_SIZE;x1++)
         {
           const int x = tx + x1;
-          allPixels[top] = packXY1616(x,y);
-          top++;
+          allPixels[top + y1*TILE_SIZE + x1] = packXY1616(x,y);  // ZIndexHost(x1,y1)
         }
       }
+
+      top += (TILE_SIZE*TILE_SIZE);
     }
   }
 
