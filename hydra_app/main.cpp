@@ -22,7 +22,7 @@ Input g_input;
 bool g_normalExit = false;
 IHRSharedAccumImage* g_pExternalImage = nullptr;
 extern bool g_hydraapipostprocessloaddll;
-extern bool g_hydraApiDisableSceneLoadInfo;
+//extern bool g_hydraApiDisableSceneLoadInfo;
 
 void InfoCallBack(const wchar_t* message, const wchar_t* callerPlace, HR_SEVERITY_LEVEL a_level)
 {
@@ -285,7 +285,7 @@ int main(int argc, const char** argv)
       g_pDriver = std::shared_ptr<IHRRenderDriver>(CreateDriverRTE(L"", g_width, g_height, g_input.inDeviceId, flags, nullptr));
 
       std::cout << "[main]: detached render driver was created for [window_main]" << std::endl;
-      g_hydraApiDisableSceneLoadInfo = true;
+      //g_hydraApiDisableSceneLoadInfo = true;
       window_main(g_pDriver);
     }
   }
