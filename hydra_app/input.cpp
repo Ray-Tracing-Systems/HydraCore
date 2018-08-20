@@ -7,14 +7,14 @@
 Input::Input()
 {
   //noWindow      = false;         ///< run 'console_main', else run 'window_main'
-  //inLibraryPath = "tests/test_42"; ///< cornell box with teapot
+  inLibraryPath = "tests/test_42"; ///< cornell box with teapot
   //inLibraryPath = "tests/test_01"; ///< cornell box with sphere
   //inLibraryPath = "tests/test_223_small"; ///< cornell box with mirror glossy back wall
   
   //inLibraryPath = "/home/frol/PROG/HydraAPI/main/tests/test_70";
   //inLibraryPath = "/home/frol/PROG/HydraAPI/main/tests_f/test_004";
   //inLibraryPath = "/home/frol/PROG/HydraAPI/main/tests_f/test_211";
-  inLibraryPath = "/home/frol/yandexdisk/samsungdata/temp/hydra_tmp_2";
+  //inLibraryPath = "/home/frol/yandexdisk/samsungdata/temp/hydra_tmp_2";
   
   //inLibraryPath = "D:/[archive]/2017/HydraAPP/hydra_app/tests/hydra_benchmark_07";
   //inLibraryPath = "D:/[archive]/2017/HydraOldRepo/HydraAPP/hydra_app/tests/hydra_benchmark_07";
@@ -25,7 +25,7 @@ Input::Input()
   //inLibraryPath = "C:/[Hydra]/pluginFiles/scenelib";
   //inLibraryPath = "D:/temp/scenelib/"; 
 
-  inDevelopment = true;  ///< recompile shaders each time; note that nvidia have their own shader cache!
+  inDevelopment = false;  ///< recompile shaders each time; note that nvidia have their own shader cache!
   inDeviceId    = 0;     ///< opencl device id
   cpuFB         = true;  ///< store frame buffer on CPU. Automaticly enabled if
   enableMLT     = false; ///< if use MMLT, you MUST enable it early, when render process just started (here or via command line).

@@ -137,7 +137,18 @@ RenderDriverRTE::RenderDriverRTE(const wchar_t* a_options, int w, int h, int a_d
   m_shadowMatteBackTexId = INVALID_TEXTURE;
   m_shadowMatteBackGamma = 2.2f;
   m_boxModeOn            = false;
-  m_pSysMutex = hr_create_system_mutex("hydrabvh");
+  m_pSysMutex            = hr_create_system_mutex("hydrabvh");
+}
+
+void RenderDriverRTE::ExecuteCommand(const wchar_t* a_cmd, wchar_t* a_out)
+{
+  if(std::wstring(a_cmd) == L"exitnow" && m_pHWLayer != nullptr) 
+  {
+    std::cerr << "[RTE], exitnow" << std::endl;
+    //m_pHWLayer->FinishAll();
+    //std::cerr << "[RTE], exitnow, after  FinishAll" << std::endl;
+    exit(0);
+  }
 }
 
 bool RenderDriverRTE::UpdateSettings(pugi::xml_node a_settingsNode)

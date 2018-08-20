@@ -1488,8 +1488,19 @@ void GPUOCLLayer::RunProductionSamplingMode()
   { 
     if(m_pExternalImage != nullptr)
     {
-      const int maxSamplesPerPixel = m_vars.m_varsI[HRT_MAX_SAMPLES_PER_PIXEL];
-      if(m_pExternalImage->Header()->spp >= maxSamplesPerPixel) // to quit immediately
+      bool q1 = false, q2 = false;
+      int maxSamplesPerPixel = 0;
+
+      if(m_pExternalImage != nullptr)
+      {
+        maxSamplesPerPixel = m_vars.m_varsI[HRT_MAX_SAMPLES_PER_PIXEL];
+        auto pHeader = m_pExternalImage->Header();
+        std::string msg(m_pExternalImage->MessageSendData());
+        q1 = (pHeader->spp >= maxSamplesPerPixel);
+        q2 = (msg.find("exitnow") != std::string::npos);
+      }
+
+      if(q1 || q2) // to quit immediately
       {
         m_sppDone    = maxSamplesPerPixel;
         m_sppContrib = maxSamplesPerPixel;
@@ -1497,6 +1508,8 @@ void GPUOCLLayer::RunProductionSamplingMode()
         break;
       }
     }
+
+    //std::cerr << "g_immediateExit = " << g_immediateExit << std::endl; 
 
     // (2) take a part of list and put it to the GPU 
     //
@@ -1546,6 +1559,8 @@ void GPUOCLLayer::RunProductionSamplingMode()
       std::cout << "production rendering: " << 100.0f*float(pass)/float(numPasses) << "% \r";
       std::cout.flush();
     }
+
+
   }
 
   std::cout << std::endl;

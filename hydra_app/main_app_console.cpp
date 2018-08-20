@@ -264,14 +264,14 @@ static void GetGBuffer(std::shared_ptr<IHRRenderDriver> a_pDetachedRenderDriverP
 
 void console_main(std::shared_ptr<IHRRenderDriver> a_pDetachedRenderDriverPointer, IHRSharedAccumImage* a_pSharedImage)
 {
+  static int g_prevMessageId = 0;
+  
   if (a_pSharedImage == nullptr) // selfEmployed, don't wait commands from main process
     g_state = STATE_RENDER;
-
-  static int prevMessageId = 0;
   
   // GetGBuffer(a_pDetachedRenderDriverPointer);
   // g_input.exitStatus = true;
-  
+    
   if(g_input.boxMode && g_state == STATE_WAIT) // don't wait for commands in 'box mode'
     g_state = STATE_RENDER;
     
@@ -281,10 +281,10 @@ void console_main(std::shared_ptr<IHRRenderDriver> a_pDetachedRenderDriverPointe
     if (a_pSharedImage != nullptr && !g_input.boxMode)
     {
       auto pHeader = a_pSharedImage->Header();
-      if (pHeader->counterSnd > prevMessageId)
+      if (pHeader->counterSnd > g_prevMessageId)
       {
         DispatchCommand(a_pSharedImage->MessageSendData());
-        prevMessageId = pHeader->counterSnd;
+        g_prevMessageId = pHeader->counterSnd;
       }
     }
 

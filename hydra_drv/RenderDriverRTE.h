@@ -126,6 +126,8 @@ struct RenderDriverRTE : public IHRRenderDriver
   int   m_shadowMatteBackTexId;
   float m_shadowMatteBackGamma;
 
+  void ExecuteCommand(const wchar_t* a_cmd, wchar_t* a_out) override;
+
 protected:
 
   void CalcCameraMatrices(float4x4* a_pModelViewMatrixInv, float4x4* a_projMatrixInv, float4x4* a_pModelViewMatrix, float4x4* a_projMatrix);
