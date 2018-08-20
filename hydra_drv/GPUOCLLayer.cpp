@@ -1560,9 +1560,9 @@ void GPUOCLLayer::RunProductionSamplingMode()
       std::cout << "production rendering: " << 100.0f*float(pass)/float(numPasses) << "% \r";
       std::cout.flush();
     }
+  } // for
 
-
-  }
+  m_globals.m_passNumberQMC += PMPIX_SAMPLES;
 
   std::cout << std::endl;
 

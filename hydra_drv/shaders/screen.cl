@@ -68,14 +68,19 @@ __kernel void MakeEyeRaysSPP(__global float4* out_pos,
 
 
 
-__kernel void MakeEyeRaysSPPPixels(__global float4* out_pos,
-                                   __global float4* out_dir,
-                                   __global int*    out_XY,
+__kernel void MakeEyeRaysSPPPixels(__global float4*              restrict out_pos,
+                                   __global float4*              restrict out_dir,
+                                   __global int*                 restrict out_XY,
 
                                    int w, int h, 
-                                   __global const int*    in_pixcoords,
-                                   __global const float2* in_qmc,
-                                   __global const EngineGlobals* a_globals)
+                                   __global const int*           restrict in_pixcoords,
+                                   
+                                   __global RandomGen*           restrict out_gens,
+                                    __constant unsigned int*     restrict a_qmcTable, 
+                                    int a_passNumberForQmc,
+                                   __global const float2*        restrict in_qmc,
+                                   __global const EngineGlobals* restrict a_globals, 
+                                   int a_size)
 {
   const int tid       = GLOBAL_ID_X;
   const int pixPacked = in_pixcoords[tid / PMPIX_SAMPLES];
@@ -83,8 +88,15 @@ __kernel void MakeEyeRaysSPPPixels(__global float4* out_pos,
   const int y = (pixPacked & 0xFFFF0000) >> 16;
   const int x = (pixPacked & 0x0000FFFF);
 
-  const float2 qmc      = in_qmc[tid % PMPIX_SAMPLES];
-  const float4 lensOffs = make_float4(qmc.x, qmc.y, 0, 0); //#TODO: add dof sampling via sobol qmc. 
+  //const float2 qmc      = in_qmc[tid % PMPIX_SAMPLES];
+  //const float4 lensOffs = make_float4(qmc.x, qmc.y, 0, 0); //#TODO: add dof sampling via sobol qmc. 
+  
+  RandomGen gen             = out_gens[tid];
+  const float2 mutateScale  = make_float2(a_globals->varsF[HRT_MLT_SCREEN_SCALE_X], a_globals->varsF[HRT_MLT_SCREEN_SCALE_Y]);
+  const unsigned int qmcPos = reverseBits(tid, a_size) + a_passNumberForQmc * a_size; // we use reverseBits due to neighbour thread number put in to sobol random generator are too far from each other 
+  const float4 lensOffs     = rndLens(&gen, 0, mutateScale, 
+                                      a_globals->rmQMC, qmcPos, a_qmcTable);
+  out_gens[tid]             = gen;
 
   const float sizeInvX  = 1.0f / (float)(w);
   const float sizeInvY  = 1.0f / (float)(h);

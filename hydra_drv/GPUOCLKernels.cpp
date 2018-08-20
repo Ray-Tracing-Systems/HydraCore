@@ -138,8 +138,13 @@ void GPUOCLLayer::runKernel_MakeEyeRaysSpp(int32_t a_blocksSize, int32_t yBegin,
     CHECK_CL(clSetKernelArg(kernX, 4, sizeof(cl_int), (void*)&m_height));
     CHECK_CL(clSetKernelArg(kernX, 5, sizeof(cl_mem), (void*)&in_pixels));
     
-    CHECK_CL(clSetKernelArg(kernX, 6, sizeof(cl_mem), (void*)&m_globals.hammersley2D256));  
-    CHECK_CL(clSetKernelArg(kernX, 7, sizeof(cl_mem), (void*)&m_scene.allGlobsData));
+    CHECK_CL(clSetKernelArg(kernX, 6, sizeof(cl_mem), (void*)&m_rays.randGenState));
+    CHECK_CL(clSetKernelArg(kernX, 7, sizeof(cl_mem), (void*)&m_globals.qmcTable));
+    CHECK_CL(clSetKernelArg(kernX, 8, sizeof(cl_int), (void*)&m_globals.m_passNumberQMC));
+
+    CHECK_CL(clSetKernelArg(kernX, 9, sizeof(cl_mem), (void*)&m_globals.hammersley2D256));  
+    CHECK_CL(clSetKernelArg(kernX,10, sizeof(cl_mem), (void*)&m_scene.allGlobsData));
+    CHECK_CL(clSetKernelArg(kernX,11, sizeof(cl_int), (void*)&isize));
   }
   else
   {
