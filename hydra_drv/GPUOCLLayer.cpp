@@ -1574,6 +1574,7 @@ void GPUOCLLayer::RunProductionSamplingMode()
   
   
   const float renderingTime = timer.getElapsed();
+  const int maxSamplesPerPixel = m_vars.m_varsI[HRT_MAX_SAMPLES_PER_PIXEL];
 
   std::cout << "ProductionSamplingMode end, time = " << renderingTime << "s" << std::endl; std::cout.flush();
 
@@ -1602,11 +1603,16 @@ void GPUOCLLayer::RunProductionSamplingMode()
       m_sppContrib                    += PMPIX_SAMPLES;
         
       m_pExternalImage->Unlock();
+      
+      //std::cerr << "m_sppContrib        = " << m_sppContrib << std::endl;
+      //std::cerr << "HRT_CONTRIB_SAMPLES = " << m_vars.m_varsI[HRT_CONTRIB_SAMPLES] << std::endl;
+      //std::cerr << "flags.prod.mode     = " << (m_vars.m_flags & HRT_PRODUCTION_IMAGE_SAMPLING) << std::endl;
+
+      if(m_vars.m_varsI[HRT_BOX_MODE_ON] == 1 && m_sppContrib >= m_vars.m_varsI[HRT_CONTRIB_SAMPLES])  // to quit immediately
+        exit(0);
     }
   
     m_sppDone += PMPIX_SAMPLES;
-  
-    const int maxSamplesPerPixel = m_vars.m_varsI[HRT_MAX_SAMPLES_PER_PIXEL];
     
     if(m_pExternalImage->Header()->spp >= maxSamplesPerPixel) // to quit immediately
     {

@@ -136,7 +136,6 @@ RenderDriverRTE::RenderDriverRTE(const wchar_t* a_options, int w, int h, int a_d
   m_maxRaysPerPixel      = 1000000;
   m_shadowMatteBackTexId = INVALID_TEXTURE;
   m_shadowMatteBackGamma = 2.2f;
-  m_boxModeOn            = false;
   m_pSysMutex            = hr_create_system_mutex("hydrabvh");
 }
 
@@ -301,11 +300,12 @@ bool RenderDriverRTE::UpdateSettings(pugi::xml_node a_settingsNode)
   else
     vars.m_varsI[HRT_STORE_SHADOW_COLOR_W] = 0;
 
+  // production pt settings
+  //
   if(a_settingsNode.child(L"boxmode") != nullptr)
-    m_boxModeOn = (a_settingsNode.child(L"boxmode").text().as_int() == 1);
+    vars.m_varsI[HRT_BOX_MODE_ON] = a_settingsNode.child(L"boxmode").text().as_int();
   else
-    m_boxModeOn = false;
-  
+    vars.m_varsI[HRT_BOX_MODE_ON] = 0;
 
   if(a_settingsNode.child(L"offline_pt") != nullptr)
   {
@@ -314,9 +314,14 @@ bool RenderDriverRTE::UpdateSettings(pugi::xml_node a_settingsNode)
       vars.m_flags |= HRT_PRODUCTION_IMAGE_SAMPLING;
     else
       vars.m_flags = vars.m_flags & ~HRT_PRODUCTION_IMAGE_SAMPLING;
+
+    vars.m_varsI[HRT_CONTRIB_SAMPLES] = a_settingsNode.child(L"contribsamples").text().as_int();
   }
   else
+  {
     vars.m_flags = vars.m_flags & ~HRT_PRODUCTION_IMAGE_SAMPLING;
+    vars.m_varsI[HRT_CONTRIB_SAMPLES] = 1000000;
+  }
 
   m_pHWLayer->SetAllFlagsAndVars(vars);
 
@@ -1870,15 +1875,8 @@ HRRenderUpdateInfo RenderDriverRTE::HaveUpdateNow(int a_maxRaysperPixel)
   res.finalUpdate = false; // (res.progress >= 1.5f);  //#TODO: this is due to the possibility of render to finish earlier than API get upgate from it
   // std::cout << "progress = " << res.progress << std::endl;
   
-  float sppDone    = m_pHWLayer->GetSPPDone();
-  float sppContrib = m_pHWLayer->GetSPPContrib();
-  
-  if(m_boxModeOn) // it does not work whrn GPU frame buffer enabled for some unknown reason ...
-  {
-    res.progress  = sppContrib / a_maxRaysperPixel;
-    if(sppContrib > a_maxRaysperPixel || sppDone > a_maxRaysperPixel)
-      res.finalUpdate = true;
-  }
+  // float sppDone    = m_pHWLayer->GetSPPDone();
+  // float sppContrib = m_pHWLayer->GetSPPContrib();
   
   // std::cout << std::endl;
   // std::cout << "m_boxModeOn             = " << m_boxModeOn << std::endl;

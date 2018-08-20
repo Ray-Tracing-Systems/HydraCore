@@ -295,7 +295,6 @@ protected:
   bool  m_alreadyDeleted;
   bool  m_haveAtLeastOneAOMat;
   bool  m_haveAtLeastOneAOMat2;
-  bool  m_boxModeOn;
   
   friend void ReadBumpAndOpacity(std::shared_ptr<RAYTR::IMaterial> pResult, pugi::xml_node a_node, RenderDriverRTE* a_pRTE);
 

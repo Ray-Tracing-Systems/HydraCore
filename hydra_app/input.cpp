@@ -52,6 +52,8 @@ Input::Input()
 
   getGBufferBeforeRender = false; ///< if external application that ise HydraAPI ask to calc gbuffer;
   productionPTMode       = false;
+
+  maxSamplesContrib      = 1000000;
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
