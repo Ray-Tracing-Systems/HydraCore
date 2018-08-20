@@ -424,6 +424,7 @@ protected:
   void runKernel_UpdateForwardPdfFor3Way(cl_mem a_flags, cl_mem old_rayDir, cl_mem next_rayDir, cl_mem acc_pdf, size_t a_size);
   void runKernel_GetGBufferSamples      (cl_mem a_rdir,  cl_mem a_gbuff1,   cl_mem a_gbuff2, int a_blockSize, size_t a_size);
   void runKernel_PutAlphaToGBuffer      (cl_mem a_inThoroughput, cl_mem a_gbuff1, size_t finalSize);
+  void runKernel_GetShadowToAlpha       (cl_mem a_color, cl_mem a_shadow, size_t a_size);
 
   // MLT
   //

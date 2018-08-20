@@ -31,8 +31,8 @@ Input::Input()
   enableMLT     = false; ///< if use MMLT, you MUST enable it early, when render process just started (here or via command line).
   boxMode       = false; ///< special 'in the box' mode when render don't react to any commands
   
-  winWidth      = 1917;  ///<
-  winHeight     = 519;   ///< 
+  winWidth      = 1024;  ///<
+  winHeight     = 1024;   ///< 
 
   enableOpenGL1 = false; ///< if you want to draw scene for some debug needs with OpenGL1.
   exitStatus    = false;

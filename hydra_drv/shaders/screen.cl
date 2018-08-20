@@ -572,6 +572,17 @@ __kernel void GetAlphaToGBuffer(__global float4* out_data, __global const float4
   out_data[tid]     = packGBuffer1(buffRes);
 }
 
+__kernel void GetShadowToAlpha(__global float4* inout_data, __global const uchar* in_shadow, int iNumElements)
+{
+  int tid = GLOBAL_ID_X;
+  if (tid >= iNumElements)
+    return;
+
+  float4 color = inout_data[tid];
+  float shadow = (float)(in_shadow[tid])/255.0f;
+  color.w = shadow;
+  inout_data[tid] = color;
+}
 
 __kernel void FloatToHalf(__global float* a_inData, __global half* a_outData, int iNumElements, int iOffset)
 {

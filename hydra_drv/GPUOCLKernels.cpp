@@ -592,6 +592,22 @@ void GPUOCLLayer::runKernel_PutAlphaToGBuffer(cl_mem a_inThoroughput, cl_mem a_g
   waitIfDebug(__FILE__, __LINE__);
 }
 
+void GPUOCLLayer::runKernel_GetShadowToAlpha(cl_mem a_color, cl_mem a_shadow, size_t a_size)
+{
+  cl_kernel kernHit    = m_progs.screen.kernel("GetShadowToAlpha");
+   
+  size_t localWorkSize = GBUFFER_SAMPLES;
+  int    isize         = int(a_size);
+  a_size               = roundBlocks(a_size, int(localWorkSize));
+  
+  CHECK_CL(clSetKernelArg(kernHit, 0, sizeof(cl_mem), (void*)&a_color));
+  CHECK_CL(clSetKernelArg(kernHit, 1, sizeof(cl_mem), (void*)&a_shadow));
+  CHECK_CL(clSetKernelArg(kernHit, 2, sizeof(cl_int), (void*)&isize));
+  
+  CHECK_CL(clEnqueueNDRangeKernel(m_globals.cmdQueue, kernHit, 1, NULL, &a_size, &localWorkSize, 0, NULL, NULL));
+  waitIfDebug(__FILE__, __LINE__);
+}
+
 void GPUOCLLayer::runKernel_HitEnvOrLight(cl_mem a_rayFlags, cl_mem a_rpos, cl_mem a_rdir, cl_mem a_outColor, int a_currBounce, size_t a_size)
 {
   cl_kernel kernX = m_progs.material.kernel("HitEnvOrLightKernel");

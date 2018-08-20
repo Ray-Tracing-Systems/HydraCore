@@ -1526,7 +1526,8 @@ void GPUOCLLayer::RunProductionSamplingMode()
     //
     runKernel_ClearAllInternalTempBuffers(finalSize);
     trace1D(m_rays.rayPos, m_rays.rayDir, m_rays.pathAccColor, finalSize);
-    
+    runKernel_GetShadowToAlpha(m_rays.pathAccColor, m_rays.pathShadow8B, finalSize);
+
     // (5) average colors
     //
     runKernel_ReductionFloat4Average(m_rays.pathAccColor, pixColorGPU, finalSize, PMPIX_SAMPLES);
