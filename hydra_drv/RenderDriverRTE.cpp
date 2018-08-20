@@ -141,6 +141,7 @@ RenderDriverRTE::RenderDriverRTE(const wchar_t* a_options, int w, int h, int a_d
 
 void RenderDriverRTE::ExecuteCommand(const wchar_t* a_cmd, wchar_t* a_out)
 {
+#ifndef WIN32
   if(std::wstring(a_cmd) == L"exitnow" && m_pHWLayer != nullptr) 
   {
     std::cerr << "[RTE], exitnow" << std::endl;
@@ -148,6 +149,7 @@ void RenderDriverRTE::ExecuteCommand(const wchar_t* a_cmd, wchar_t* a_out)
     //std::cerr << "[RTE], exitnow, after  FinishAll" << std::endl;
     exit(0);
   }
+#endif
 }
 
 bool RenderDriverRTE::UpdateSettings(pugi::xml_node a_settingsNode)
