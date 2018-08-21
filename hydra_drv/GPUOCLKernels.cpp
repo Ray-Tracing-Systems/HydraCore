@@ -21,7 +21,9 @@ void GPUOCLLayer::runKernel_MakeEyeRays(cl_mem a_rpos, cl_mem a_rdir, cl_mem a_z
   size_t localWorkSize   = CMP_RESULTS_BLOCK_SIZE;
   int iSize              = int(a_size);
   a_size                 = roundBlocks(a_size, int(localWorkSize));
-
+  
+  m_globals.m_passNumberQMC = a_passNumber;
+  
   // (1) generate samples
   //
   cl_kernel makeSamples  = m_progs.screen.kernel("MakeEyeRaysSamplesOnly");
@@ -68,44 +70,89 @@ void GPUOCLLayer::runKernel_MakeEyeRays(cl_mem a_rpos, cl_mem a_rdir, cl_mem a_z
   CHECK_CL(clSetKernelArg(makeRaysKern, 5, sizeof(cl_int), (void*)&iSize));
 
   CHECK_CL(clSetKernelArg(makeRaysKern, 6, sizeof(cl_mem), (void*)&m_scene.allGlobsData));
+  CHECK_CL(clSetKernelArg(makeRaysKern, 7, sizeof(cl_mem), (void*)&a_zindex));
+  CHECK_CL(clSetKernelArg(makeRaysKern, 8, sizeof(cl_mem), (void*)&m_rays.pathShadeColor));  // unpack lens float4 from 'm_rays.pathShadeColor'
+  CHECK_CL(clSetKernelArg(makeRaysKern, 9, sizeof(cl_mem), (void*)&m_globals.cMortonTable));
+  CHECK_CL(clSetKernelArg(makeRaysKern,10, sizeof(cl_mem), (void*)&m_globals.qmcTable));
+  CHECK_CL(clSetKernelArg(makeRaysKern,11, sizeof(cl_int), (void*)&a_passNumber));
+  CHECK_CL(clSetKernelArg(makeRaysKern,12, sizeof(cl_int), (void*)&packIndexForCPU));
 
-  CHECK_CL(clSetKernelArg(makeRaysKern, 7, sizeof(cl_mem), (void*)&m_rays.rayFlags));        // pass this data to clear them only!
-  CHECK_CL(clSetKernelArg(makeRaysKern, 8, sizeof(cl_mem), (void*)&m_rays.pathAccColor));    // pass this data to clear them only!
-  CHECK_CL(clSetKernelArg(makeRaysKern, 9, sizeof(cl_mem), (void*)&m_rays.pathThoroughput)); // pass this data to clear them only!
-  CHECK_CL(clSetKernelArg(makeRaysKern,10, sizeof(cl_mem), (void*)&m_rays.fogAtten));        // pass this data to clear them only!
-  CHECK_CL(clSetKernelArg(makeRaysKern,11, sizeof(cl_mem), (void*)&m_rays.hitMatId));        // pass this data to clear them only!
-  CHECK_CL(clSetKernelArg(makeRaysKern,12, sizeof(cl_mem), (void*)&m_rays.accPdf));
+  CHECK_CL(clEnqueueNDRangeKernel(m_globals.cmdQueue, makeRaysKern, 1, NULL, &a_size, &localWorkSize, 0, NULL, NULL));
+  waitIfDebug(__FILE__, __LINE__);
 
-  CHECK_CL(clSetKernelArg(makeRaysKern,13, sizeof(cl_mem), (void*)&a_zindex));
-  CHECK_CL(clSetKernelArg(makeRaysKern,14, sizeof(cl_mem), (void*)&m_rays.pathShadeColor));  // unpack lens float4 from 'm_rays.pathShadeColor'
-  CHECK_CL(clSetKernelArg(makeRaysKern,15, sizeof(cl_mem), (void*)&m_globals.cMortonTable));
-  CHECK_CL(clSetKernelArg(makeRaysKern,16, sizeof(cl_mem), (void*)&m_globals.qmcTable));
-  CHECK_CL(clSetKernelArg(makeRaysKern,17, sizeof(cl_int), (void*)&a_passNumber));
-  CHECK_CL(clSetKernelArg(makeRaysKern,18, sizeof(cl_int), (void*)&packIndexForCPU));
+  runKernel_ClearAllInternalTempBuffers(a_size);
+}
+
+void GPUOCLLayer::runKernel_ClearAllInternalTempBuffers(size_t a_size)
+{
+  size_t localWorkSize   = CMP_RESULTS_BLOCK_SIZE;
+  int iSize              = int(a_size);
+  a_size                 = roundBlocks(a_size, int(localWorkSize));
+
+  cl_kernel makeRaysKern = m_progs.screen.kernel("ClearAllInternalTempBuffers");
+  
+  CHECK_CL(clSetKernelArg(makeRaysKern, 0, sizeof(cl_mem), (void*)&m_rays.rayFlags));        // pass this data to clear them only!
+  CHECK_CL(clSetKernelArg(makeRaysKern, 1, sizeof(cl_mem), (void*)&m_rays.pathAccColor));    // pass this data to clear them only!
+  CHECK_CL(clSetKernelArg(makeRaysKern, 2, sizeof(cl_mem), (void*)&m_rays.pathThoroughput)); // pass this data to clear them only!
+  CHECK_CL(clSetKernelArg(makeRaysKern, 3, sizeof(cl_mem), (void*)&m_rays.fogAtten));        // pass this data to clear them only!
+  CHECK_CL(clSetKernelArg(makeRaysKern, 4, sizeof(cl_mem), (void*)&m_rays.hitMatId));        // pass this data to clear them only!
+  CHECK_CL(clSetKernelArg(makeRaysKern, 5, sizeof(cl_mem), (void*)&m_rays.accPdf));
+  CHECK_CL(clSetKernelArg(makeRaysKern, 6, sizeof(cl_int), (void*)&iSize));
 
   CHECK_CL(clEnqueueNDRangeKernel(m_globals.cmdQueue, makeRaysKern, 1, NULL, &a_size, &localWorkSize, 0, NULL, NULL));
   waitIfDebug(__FILE__, __LINE__);
 }
 
-void GPUOCLLayer::runKernel_MakeEyeRaysSpp(cl_mem a_rpos, cl_mem a_rdir, int32_t a_blocksSize, int32_t yBegin, size_t a_size)
+void GPUOCLLayer::runKernel_MakeEyeRaysSpp(int32_t a_blocksSize, int32_t yBegin, size_t a_size, cl_mem in_pixels,
+                                           cl_mem a_rpos, cl_mem a_rdir)
 {
-  cl_kernel kernX      = m_progs.screen.kernel("MakeEyeRaysSPP");
-
   int isize            = int(a_size);
   size_t localWorkSize = CMP_RESULTS_BLOCK_SIZE;
   a_size               = roundBlocks(a_size, int(localWorkSize));
 
-  CHECK_CL(clSetKernelArg(kernX, 0, sizeof(cl_mem), (void*)&a_rpos));
-  CHECK_CL(clSetKernelArg(kernX, 1, sizeof(cl_mem), (void*)&a_rdir));
+  cl_kernel kernX = nullptr;
+  if(a_blocksSize == GBUFFER_SAMPLES) 
+  {
+    kernX = m_progs.screen.kernel("MakeEyeRaysSPP");
+  
+    CHECK_CL(clSetKernelArg(kernX, 0, sizeof(cl_mem), (void*)&a_rpos));
+    CHECK_CL(clSetKernelArg(kernX, 1, sizeof(cl_mem), (void*)&a_rdir));
 
-  CHECK_CL(clSetKernelArg(kernX, 2, sizeof(cl_int), (void*)&m_width));
-  CHECK_CL(clSetKernelArg(kernX, 3, sizeof(cl_int), (void*)&m_height));
-  CHECK_CL(clSetKernelArg(kernX, 4, sizeof(cl_int), (void*)&a_blocksSize));
-  CHECK_CL(clSetKernelArg(kernX, 5, sizeof(cl_int), (void*)&yBegin));
-   
-  CHECK_CL(clSetKernelArg(kernX, 6, sizeof(cl_mem), (void*)&m_globals.hammersley2D));
-  CHECK_CL(clSetKernelArg(kernX, 7, sizeof(cl_mem), (void*)&m_scene.allGlobsData));
-   
+    CHECK_CL(clSetKernelArg(kernX, 2, sizeof(cl_int), (void*)&m_width));
+    CHECK_CL(clSetKernelArg(kernX, 3, sizeof(cl_int), (void*)&m_height));
+    CHECK_CL(clSetKernelArg(kernX, 4, sizeof(cl_int), (void*)&a_blocksSize));
+    CHECK_CL(clSetKernelArg(kernX, 5, sizeof(cl_int), (void*)&yBegin));
+
+    CHECK_CL(clSetKernelArg(kernX, 6, sizeof(cl_mem), (void*)&m_globals.hammersley2DGBuff));
+    CHECK_CL(clSetKernelArg(kernX, 7, sizeof(cl_mem), (void*)&m_scene.allGlobsData));
+  }
+  else if(a_blocksSize == PMPIX_SAMPLES && in_pixels!= nullptr) // && input != nullptr
+  {
+    kernX = m_progs.screen.kernel("MakeEyeRaysSPPPixels");
+
+    CHECK_CL(clSetKernelArg(kernX, 0, sizeof(cl_mem), (void*)&a_rpos));
+    CHECK_CL(clSetKernelArg(kernX, 1, sizeof(cl_mem), (void*)&a_rdir));
+    CHECK_CL(clSetKernelArg(kernX, 2, sizeof(cl_mem), (void*)&m_rays.packedXY));
+
+    CHECK_CL(clSetKernelArg(kernX, 3, sizeof(cl_int), (void*)&m_width));
+    CHECK_CL(clSetKernelArg(kernX, 4, sizeof(cl_int), (void*)&m_height));
+    CHECK_CL(clSetKernelArg(kernX, 5, sizeof(cl_mem), (void*)&in_pixels));
+    
+    CHECK_CL(clSetKernelArg(kernX, 6, sizeof(cl_mem), (void*)&m_rays.randGenState));
+    CHECK_CL(clSetKernelArg(kernX, 7, sizeof(cl_mem), (void*)&m_globals.qmcTable));
+    CHECK_CL(clSetKernelArg(kernX, 8, sizeof(cl_int), (void*)&m_globals.m_passNumberQMC));
+
+    CHECK_CL(clSetKernelArg(kernX, 9, sizeof(cl_mem), (void*)&m_globals.hammersley2D256));  
+    CHECK_CL(clSetKernelArg(kernX,10, sizeof(cl_mem), (void*)&m_scene.allGlobsData));
+    CHECK_CL(clSetKernelArg(kernX,11, sizeof(cl_int), (void*)&isize));
+  }
+  else
+  {
+    std::cerr << "bad SPP size for runKernel_MakeEyeRaysSpp = " << a_blocksSize << std::endl;
+    std::cerr << "                 in_pixels                = " << in_pixels << std::endl;
+    return;
+  }
+
   CHECK_CL(clEnqueueNDRangeKernel(m_globals.cmdQueue, kernX, 1, NULL, &a_size, &localWorkSize, 0, NULL, NULL));
   waitIfDebug(__FILE__, __LINE__);
 }
@@ -550,6 +597,22 @@ void GPUOCLLayer::runKernel_PutAlphaToGBuffer(cl_mem a_inThoroughput, cl_mem a_g
   waitIfDebug(__FILE__, __LINE__);
 }
 
+void GPUOCLLayer::runKernel_GetShadowToAlpha(cl_mem a_color, cl_mem a_shadow, size_t a_size)
+{
+  cl_kernel kernHit    = m_progs.screen.kernel("GetShadowToAlpha");
+   
+  size_t localWorkSize = GBUFFER_SAMPLES;
+  int    isize         = int(a_size);
+  a_size               = roundBlocks(a_size, int(localWorkSize));
+  
+  CHECK_CL(clSetKernelArg(kernHit, 0, sizeof(cl_mem), (void*)&a_color));
+  CHECK_CL(clSetKernelArg(kernHit, 1, sizeof(cl_mem), (void*)&a_shadow));
+  CHECK_CL(clSetKernelArg(kernHit, 2, sizeof(cl_int), (void*)&isize));
+  
+  CHECK_CL(clEnqueueNDRangeKernel(m_globals.cmdQueue, kernHit, 1, NULL, &a_size, &localWorkSize, 0, NULL, NULL));
+  waitIfDebug(__FILE__, __LINE__);
+}
+
 void GPUOCLLayer::runKernel_HitEnvOrLight(cl_mem a_rayFlags, cl_mem a_rpos, cl_mem a_rdir, cl_mem a_outColor, int a_currBounce, size_t a_size)
 {
   cl_kernel kernX = m_progs.material.kernel("HitEnvOrLightKernel");
@@ -655,8 +718,12 @@ void GPUOCLLayer::runKernel_NextBounce(cl_mem a_rayFlags, cl_mem a_rpos, cl_mem 
     CHECK_CL(clSetKernelArg(kernX, 21, sizeof(cl_mem), (void*)&m_scene.storageTexAux));
     CHECK_CL(clSetKernelArg(kernX, 22, sizeof(cl_mem), (void*)&m_scene.storageMat));
     CHECK_CL(clSetKernelArg(kernX, 23, sizeof(cl_mem), (void*)&m_scene.storagePdfs));
-    CHECK_CL(clSetKernelArg(kernX, 24, sizeof(cl_int), (void*)&isize));
-    CHECK_CL(clSetKernelArg(kernX, 25, sizeof(cl_mem), (void*)&m_scene.allGlobsData));
+  
+    CHECK_CL(clSetKernelArg(kernX, 24, sizeof(cl_mem), (void*)&m_globals.qmcTable));
+    CHECK_CL(clSetKernelArg(kernX, 25, sizeof(cl_int), (void*)&m_globals.m_passNumberQMC));
+    
+    CHECK_CL(clSetKernelArg(kernX, 26, sizeof(cl_int), (void*)&isize));
+    CHECK_CL(clSetKernelArg(kernX, 27, sizeof(cl_mem), (void*)&m_scene.allGlobsData));
   }
 
   CHECK_CL(clEnqueueNDRangeKernel(m_globals.cmdQueue, kernX, 1, NULL, &a_size, &localWorkSize, 0, NULL, NULL));
@@ -845,9 +912,12 @@ void GPUOCLLayer::ShadePass(cl_mem a_rpos, cl_mem a_rdir, cl_mem a_outColor, siz
     CHECK_CL(clSetKernelArg(kernX, 13, sizeof(cl_mem), (void*)&m_scene.storageTex));
     CHECK_CL(clSetKernelArg(kernX, 14, sizeof(cl_mem), (void*)&m_scene.storageTexAux)); 
     CHECK_CL(clSetKernelArg(kernX, 15, sizeof(cl_mem), (void*)&m_scene.storagePdfs));
+  
+    CHECK_CL(clSetKernelArg(kernX, 16, sizeof(cl_mem), (void*)&m_globals.qmcTable));
+    CHECK_CL(clSetKernelArg(kernX, 17, sizeof(cl_int), (void*)&m_globals.m_passNumberQMC));
     
-    CHECK_CL(clSetKernelArg(kernX, 16, sizeof(cl_int), (void*)&isize));
-    CHECK_CL(clSetKernelArg(kernX, 17, sizeof(cl_mem), (void*)&m_scene.allGlobsData));
+    CHECK_CL(clSetKernelArg(kernX, 18, sizeof(cl_int), (void*)&isize));
+    CHECK_CL(clSetKernelArg(kernX, 19, sizeof(cl_mem), (void*)&m_scene.allGlobsData));
 
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   }
@@ -1229,7 +1299,7 @@ void GPUOCLLayer::runKernel_ReductionFloat4Average(cl_mem a_src, cl_mem a_dst, s
 
   size_t localWorkSize = size_t(a_bsize);
   int    isize         = int(a_size);
-  a_size = roundBlocks(a_size, int(localWorkSize));
+  a_size               = roundBlocks(a_size, int(localWorkSize));
 
   CHECK_CL(clSetKernelArg(kernX, 0, sizeof(cl_mem), (void*)&a_src));
   CHECK_CL(clSetKernelArg(kernX, 1, sizeof(cl_mem), (void*)&a_dst));
@@ -1264,40 +1334,6 @@ void GPUOCLLayer::runKernel_ReductionGBuffer(cl_mem a_src, cl_mem a_dst, size_t 
 
 }
 
-
-void GPUOCLLayer::runKernel_AppendBadPixels(cl_mem a_counter, cl_mem in_data1, cl_mem in_data2, cl_mem out_data1, cl_mem out_data2, 
-                                           cl_mem in_px, cl_mem out_px, size_t a_size, int a_bsize)
-{
-  if (a_bsize != 64)
-    RUN_TIME_ERROR("AppendBadPixels64 not implemented for bsize != 64");
-
-  //cl_int ciErr1 = 0;
-  //cl_mem tempBuff = clCreateBuffer(m_globals.ctx, CL_MEM_READ_WRITE, a_size*sizeof(float), NULL, &ciErr1);
-
-  cl_kernel kernX = m_progs.screen.kernel("AppendBadPixels64");
-
-  size_t localWorkSize = size_t(a_bsize);
-  int    isize = int(a_size);
-  a_size = roundBlocks(a_size, int(localWorkSize));
-
-  CHECK_CL(clSetKernelArg(kernX, 0, sizeof(cl_mem), (void*)&a_counter));
-  CHECK_CL(clSetKernelArg(kernX, 1, sizeof(cl_mem), (void*)&in_data1));
-  CHECK_CL(clSetKernelArg(kernX, 2, sizeof(cl_mem), (void*)&in_data2));
-  CHECK_CL(clSetKernelArg(kernX, 3, sizeof(cl_mem), (void*)&out_data1));
-  CHECK_CL(clSetKernelArg(kernX, 4, sizeof(cl_mem), (void*)&out_data2));
-  CHECK_CL(clSetKernelArg(kernX, 5, sizeof(cl_mem), (void*)&in_px));
-  CHECK_CL(clSetKernelArg(kernX, 6, sizeof(cl_mem), (void*)&out_px));
-  CHECK_CL(clSetKernelArg(kernX, 7, sizeof(cl_mem), (void*)&m_scene.allGlobsData));
-  CHECK_CL(clSetKernelArg(kernX, 8, sizeof(cl_int), (void*)&isize));
-  //CHECK_CL(clSetKernelArg(kernX, 11, sizeof(cl_mem), (void*)&tempBuff));
-
-  CHECK_CL(clEnqueueNDRangeKernel(m_globals.cmdQueue, kernX, 1, NULL, &a_size, &localWorkSize, 0, NULL, NULL));
-  waitIfDebug(__FILE__, __LINE__);
-
-  //std::vector<float> debugData(a_size);
-  //CHECK_CL(clEnqueueReadBuffer(m_globals.cmdQueue, tempBuff, CL_TRUE, 0, a_size*sizeof(float), &debugData[0], 0, NULL, NULL));
-  //clReleaseMemObject(tempBuff);
-}
 
 
 bool GPUOCLLayer::testSimpleReduction()

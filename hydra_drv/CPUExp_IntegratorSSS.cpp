@@ -313,7 +313,7 @@ float3 IntegratorShadowPTSSS::directLightSample(const SurfaceHit surfElem, const
 
   auto& gen = randomGen();
   float lightPickProb = 1.0f;
-  int lightOffset = SelectRandomLightRev(rndFloat2_Pseudo(&gen), surfElem.pos, m_pGlobals,
+  int lightOffset = SelectRandomLightRev(rndFloat1_Pseudo(&gen), surfElem.pos, m_pGlobals,
                                          &lightPickProb);
 
 	if (lightOffset >= 0)
@@ -356,7 +356,7 @@ float3 IntegratorShadowPTSSS::directLightSampleScatter(const SurfaceHit surfElem
 	auto& gen = randomGen();
 
   float lightPickProb = 1.0f;
-  int lightOffset = SelectRandomLightRev(rndFloat2_Pseudo(&gen), surfElem.pos, m_pGlobals,
+  int lightOffset = SelectRandomLightRev(rndFloat1_Pseudo(&gen), surfElem.pos, m_pGlobals,
                                          &lightPickProb);
 
 	int matType = as_int(pHitMaterial->data[PLAIN_MAT_TYPE_OFFSET]);

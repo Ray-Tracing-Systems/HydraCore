@@ -7,7 +7,6 @@
 
 #ifdef SIMPLE_RANDOM_GEN
 
-
 typedef struct RandomGenT
 {
   uint2          state;
@@ -20,7 +19,6 @@ typedef struct RandomGenT
 
 } RandomGen;
 
-
 static inline unsigned int NextState(RandomGen* gen)
 {
   const unsigned int x = (gen->state).x * 17 + (gen->state).y * 13123;
@@ -28,7 +26,6 @@ static inline unsigned int NextState(RandomGen* gen)
   (gen->state).y ^= (x << 7);
   return x;
 }
-
 
 static inline RandomGen RandomGenInit(const int a_seed)
 {
@@ -70,7 +67,7 @@ static inline float4 rndFloat4_Pseudo(RandomGen* gen)
 
 static inline float2 rndFloat2_Pseudo(RandomGen* gen)
 {
-  unsigned int x = NextState(gen);
+  unsigned int x = NextState(gen); 
 
   const unsigned int x1 = (x * (x * x * 15731 + 74323) + 871483);
   const unsigned int y1 = (x * (x * x * 13734 + 37828) + 234234);
@@ -88,34 +85,18 @@ static inline float rndFloat1_Pseudo(RandomGen* gen)
   return ((float)(tmp))*scale;
 }
 
-// static inline float rndFloat1_Pseudo16(RandomGen* gen)
-// {
-//   const unsigned int x   = NextState(gen);
-//   const unsigned int tmp = (x * (x * x * 15731 + 74323) + 871483);
-//   const float scale      = (1.0f / 65535.0f);
-//   return ((float)(tmp & 0x0000FFFF))*scale;
-// }
-// 
-// static inline float rndFloat1_Pseudo8(RandomGen* gen)
-// {
-//   const unsigned int x   = NextState(gen);
-//   const unsigned int tmp = (x * (x * x * 15731 + 74323) + 871483);
-//   const float scale      = (1.0f / 255.0f);
-//   return ((float)(tmp & 0x000000FF))*scale;
-// }
-
 #else
-
 
 typedef struct RandomGenT
 {
   unsigned int x[5];
+  unsigned int maxNumbers;
+  unsigned int lazy; 
+  unsigned int dummy;  // to have uint4 generator data.
 
 #ifdef RAND_MLT_CPU
-
   __global const float* rptr;
   uint rtop;
-
 #endif
 
 } RandomGen;
@@ -174,6 +155,14 @@ static inline float rndFloat1_Pseudo(RandomGen* gen)
   return ((float)NextState(gen)) * (1.0f/(65536.0f*65536.0f));
 }
 
+static inline float2 rndFloat2_Pseudo(RandomGen* gen)
+{
+  float2 res;
+  res.x = rndFloat1_Pseudo(gen);
+  res.y = rndFloat1_Pseudo(gen);
+  return res;
+}
+
 
 static inline float4 rndFloat4_Pseudo(RandomGen* gen)
 {
@@ -184,7 +173,6 @@ static inline float4 rndFloat4_Pseudo(RandomGen* gen)
   res.w = rndFloat1_Pseudo(gen);
   return res;
 }
-
 
 #endif // SIMPLE_RANDOM_GEN or COMPLEX
 
@@ -217,7 +205,6 @@ static inline float MutateKelemen(float valueX, __private RandomGen* pGen, const
   return valueX;
 }
 
-
 //#define MCMC_LAZY
 //#define COMPRESS_RAND
 
@@ -230,7 +217,7 @@ static inline float MutateKelemen(float valueX, __private RandomGen* pGen, const
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-#define QRNG_DIMENSIONS 4 
+#define QRNG_DIMENSIONS 11
 #define QRNG_RESOLUTION 31
 #define INT_SCALE (1.0f / (float)0x80000001U)
 
@@ -245,36 +232,112 @@ static inline float rndQmcSobolN(unsigned int pos, int dim, __constant unsigned 
   return (float)(result + 1) * INT_SCALE;
 }
 
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+/**
+ * These defines are for the QMC remap table to support different mappings in run time.
+ * for example you may decide to map (0,1) to screen (x,y) and (2,3) to DOF (x,y) or
+ *             you may decide to map (0,1) to screen (x,y) and (2,3,4) to material sampling
+ * if no mapping presents in the table (id == -1) then pseudo random should be used.
+ *
+ */
+#define QMC_VAR_SCR_X 0
+#define QMC_VAR_SCR_Y 1
+#define QMC_VAR_DOF_X 2
+#define QMC_VAR_DOF_Y 3
+#define QMC_VAR_SRC_A 4
+
+#define QMC_VAR_MAT_L 5
+#define QMC_VAR_MAT_0 6
+#define QMC_VAR_MAT_1 7
+
+#define QMC_VAR_LGT_N 8
+#define QMC_VAR_LGT_0 9
+#define QMC_VAR_LGT_1 10
+#define QMC_VAR_LGT_2 11
 
 
-typedef struct LightSamplingRandsT // sampling from spetial formatted PSS vector
+
+/**
+\brief get qmc number for target qmc var (see defines up)
+\param pGen      - inout pseudo random generator
+\param a_tab     - remap table that store numbers for target defines; i.e. a_tab[QMC_VAR_SCREEN_X]
+\param pos       - id of qmc number
+\param pickProb  - a_varName - name of qmc number
+\param c_Table   - qmc table for sobol-neideriter
+\return quasi random float in range [0,1]
+
+*/
+static inline float rndQmcTab(__private RandomGen* pGen, __global const int* a_tab,
+                              unsigned int pos, int a_varName, __constant unsigned int *c_Table) // pre (a_tab != nullptr && c_Table != nullptr)
 {
-  float3 pos;
-  float  numberAsFloat;
+  const int dim = a_tab[a_varName];
+  
+  if(dim < 0)
+    return rndFloat1_Pseudo(pGen);
+  else
+    return rndQmcSobolN(pos, dim, c_Table);
+}
 
-} LSRands;
+/**
+ * Note that unlike QMC, MMLT don't use remap table.
+ * These offsets are direct offsets in the ramdom vector table (in floats) 
+ *
+ */
 
+#define MMLT_HEAD_TOTAL_SIZE 12  //
+
+// [0-3] :  LENS;  4 in total
+//
+#define MMLT_DIM_SCR_X 0 
+#define MMLT_DIM_SCR_Y 1 
+#define MMLT_DIM_DOF_X 2 
+#define MMLT_DIM_DOF_Y 3 
+
+// [4-10]:  LIGHT; 7 in total
+//
+#define MMLT_DIM_LGT_X 4     
+#define MMLT_DIM_LGT_Y 5    
+#define MMLT_DIM_LGT_Z 6    
+#define MMLT_DIM_LGT_W 7    
+  
+#define MMLT_DIM_LGT_X1 8  
+#define MMLT_DIM_LGT_Y1 9 
+#define MMLT_DIM_LGT_N 10 
+
+// [11] :  SPLIT; 
+//
+#define MMLT_DIM_SPLIT 11
+
+#define MMLT_FLOATS_PER_MLAYER 6
+#define MMLT_FLOATS_PER_SAMPLE 3
+#define MMLT_FLOATS_PER_BOUNCE (MMLT_FLOATS_PER_SAMPLE + MMLT_FLOATS_PER_MLAYER)
+
+static inline int rndMatOffsetMMLT (const int a_bounceId) { return a_bounceId*MMLT_FLOATS_PER_BOUNCE; }                          // relative offset, dont add MMLT_HEAD_TOTAL_SIZE!
+static inline int rndMatLOffsetMMLT(const int a_bounceId) { return a_bounceId*MMLT_FLOATS_PER_BOUNCE + MMLT_FLOATS_PER_SAMPLE; } // relative offset, dont add MMLT_HEAD_TOTAL_SIZE!
+
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 typedef struct float6GroupT
 {
-  float4  group24;
-  ushort2 group16;
-
+  float4 group24;
+  float2 group16;
 } float6_gr;
 
 
-#define MANTISSA24 8388608.0f // 16777216.0f actually you have to use only 23 bit because sign is not used, randoms from [0..1] are always positive ... 
-#define MANTISSA24_INV (1.0f / MANTISSA24)
+#define MANTISSA23 8388607.0f // 16777215.0f; actually you can use only 23 bit because sign is not used, randoms from [0..1] are always positive ... 
+#define MANTISSA23_INV (1.0f / MANTISSA23)
+
+#define MANTISSA16 65535.0f
+#define MANTISSA16_INV (1.0f/65535.0f)
 
 static inline uint4 packBounceGroup(float6_gr data)
 {
-  const unsigned int ix0 = (unsigned int)(MANTISSA24*data.group24.x);
-  const unsigned int ix1 = (unsigned int)(MANTISSA24*data.group24.y);
-  const unsigned int ix2 = (unsigned int)(MANTISSA24*data.group24.z);
-  const unsigned int ix3 = (unsigned int)(MANTISSA24*data.group24.w);
-  const unsigned int iy0 = (unsigned int)(data.group16.x);
-  const unsigned int iy1 = (unsigned int)(data.group16.y);
+  const unsigned int ix0 = (unsigned int)(MANTISSA23*data.group24.x);
+  const unsigned int ix1 = (unsigned int)(MANTISSA23*data.group24.y);
+  const unsigned int ix2 = (unsigned int)(MANTISSA23*data.group24.z);
+  const unsigned int ix3 = (unsigned int)(MANTISSA23*data.group24.w);
+  const unsigned int iy0 = (unsigned int)(MANTISSA16*data.group16.x);
+  const unsigned int iy1 = (unsigned int)(MANTISSA16*data.group16.y);
 
   uint4 res;
   res.x = (ix0 & 0x00FFFFFF) | ((ix1 & 0x00FF0000) << 8);
@@ -296,176 +359,50 @@ static inline float6_gr unpackBounceGroup(uint4 data)
   const unsigned int x3i = ((data.z & 0xFF000000) >> 8) | (data.w & 0x0000FFFF);
 
   float6_gr res;
-  res.group24.x = (float)(x0i)*MANTISSA24_INV;
-  res.group24.y = (float)(x1i)*MANTISSA24_INV;
-  res.group24.z = (float)(x2i)*MANTISSA24_INV;
-  res.group24.w = (float)(x3i)*MANTISSA24_INV;
-  res.group16.x = (ushort)(y0i);
-  res.group16.y = (ushort)(y1i);
+  res.group24.x = (float)(x0i)*MANTISSA23_INV;
+  res.group24.y = (float)(x1i)*MANTISSA23_INV;
+  res.group24.z = (float)(x2i)*MANTISSA23_INV;
+  res.group24.w = (float)(x3i)*MANTISSA23_INV;
+  res.group16.x = (float)(y0i)*MANTISSA16_INV;
+  res.group16.y = (float)(y1i)*MANTISSA16_INV;
   return res;
 }
 
-
-#ifdef RAND_MLT_CPU
-  #undef COMPRESS_RAND
-#endif
-
-#ifdef COMPRESS_RAND
-
-#define MLT_INT4_PER_BOUNCE 2
-
-static inline int rndLightOffset(const int a_bounceId) { return a_bounceId*MLT_INT4_PER_BOUNCE + 0; }
-static inline int rndMatOffset  (const int a_bounceId) { return a_bounceId*MLT_INT4_PER_BOUNCE + 1; }
-static inline int rndMaxBounce(const RandomGen* gen)   { return (gen->maxNumbers / (MLT_INT4_PER_BOUNCE*4)); }
-
-static inline float4 rndLensOld(__global const float* rptr)
-{
-  __global const uint4* rptr2 = (__global const uint4*)rptr;
-  return unpackBounceGroup(rptr2[0]).group24;
-}
-
-static inline float4 rndLens(RandomGen* gen, __global const float* rptr, const float2 screenScale)
-{
-  if (rptr != 0 && (gen->lazy != MUTATE_LAZY_LARGE))
-  {
-    __global const uint4* rptr2 = (__global const uint4*)rptr;
-
-    float4 rands = unpackBounceGroup(rptr2[0]).group24;
-
-    if (gen->lazy == MUTATE_LAZY_YES)
-    {
-      rands.x = MutateKelemen(rands.x, gen, MUTATE_COEFF_SCREEN*screenScale.x);
-      rands.y = MutateKelemen(rands.y, gen, MUTATE_COEFF_SCREEN*screenScale.y);
-      rands.z = MutateKelemen(rands.z, gen, MUTATE_COEFF_BSDF);
-      rands.w = MutateKelemen(rands.w, gen, MUTATE_COEFF_BSDF);
-    }
-
-    return rands;
-  }
-  else
-    return rndFloat4_Pseudo(gen);
-}
-
-static inline float4 rndLight(RandomGen* gen, __global const float* rptr, const int bounceId)
-{
-  const int MLT_MAX_BOUNCE = rndMaxBounce(gen);
-
-  if (rptr != 0 && (gen->lazy != MUTATE_LAZY_LARGE) && bounceId < MLT_MAX_BOUNCE)
-  {
-    __global const uint4* rptr2 = (__global const uint4*)rptr;
-
-    const int offset   = rndLightOffset(bounceId);
-    float4 rands = unpackBounceGroup(rptr2[offset]).group24;
-
-    if (gen->lazy == MUTATE_LAZY_YES)
-    {
-      rands.x = MutateKelemen(rands.x, gen, MUTATE_COEFF_BSDF);
-      rands.y = MutateKelemen(rands.y, gen, MUTATE_COEFF_BSDF);
-      rands.z = MutateKelemen(rands.z, gen, MUTATE_COEFF_BSDF);
-      rands.w = rands.w;  // don't mutate light number !!!
-    }
-
-    return rands;
-  }
-  else
-    return rndFloat4_Pseudo(gen);
-}
-
-
-static inline float3 rndMat(RandomGen* gen, __global const float* rptr, const int bounceId)
-{
-  const int MLT_MAX_BOUNCE = rndMaxBounce(gen);
-
-  if (rptr != 0 && (gen->lazy != MUTATE_LAZY_LARGE) && bounceId < MLT_MAX_BOUNCE)
-  {
-    __global const uint4* rptr2 = (__global const uint4*)rptr;
-
-    const int offset   = rndMatOffset(bounceId);
-    float4 rands = unpackBounceGroup(rptr2[offset]).group24;
-
-    if (gen->lazy == MUTATE_LAZY_YES)
-    {
-      rands.x = MutateKelemen(rands.x, gen, MUTATE_COEFF_BSDF);
-      rands.y = MutateKelemen(rands.y, gen, MUTATE_COEFF_BSDF);
-      rands.z = MutateKelemen(rands.z, gen, MUTATE_COEFF_BSDF);
-    }
-
-    return to_float3(rands);
-  }
-  else
-    return to_float3(rndFloat4_Pseudo(gen));
-}
-
-static inline float rndMatLayer(RandomGen* gen, __global const float* rptr, const int bounceId, const int layerId)
-{
-  const int MLT_MAX_BOUNCE = rndMaxBounce(gen);
-
-  if (rptr != 0 && (gen->lazy != MUTATE_LAZY_LARGE) && bounceId < MLT_MAX_BOUNCE)
-  {
-    __global const uint4* rptr2 = (__global const uint4*)rptr;
-
-    if(layerId <= 2)
-    {
-      const float6_gr group2 = unpackBounceGroup(rptr2[rndMatOffset(bounceId)]);
-      if(layerId == 0)
-        return group2.group24.w;
-      else if(layerId == 1)
-        return (float)(group2.group16.x)*(1.0f / 65535.0f);
-      else
-        return (float)(group2.group16.y)*(1.0f / 65535.0f);
-    }
-    else if(layerId <= 4)
-    {
-      const ushort2 group1 = unpackBounceGroup(rptr2[rndLightOffset(bounceId)]).group16;
-      if(layerId == 3)
-        return (float)(group1.x)*(1.0f / 65535.0f);
-      else 
-        return (float)(group1.y)*(1.0f / 65535.0f);
-    }
-    else
-      return rndFloat1_Pseudo(gen); //rptr[rndMatLOffset(bounceId) + layerId];
-  }
-  else
-  {
-    return rndFloat1_Pseudo(gen);
-  }
-}
-
-#define MLT_FLOATS_PER_MLAYER 5
-
-#else // not compressed layout
-
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-#define MLT_FLOATS_PER_SAMPLE (4+3)
-#define MLT_FLOATS_PER_MLAYER 5
-
-#define MLT_FLOATS_PER_BOUNCE (MLT_FLOATS_PER_SAMPLE + MLT_FLOATS_PER_MLAYER)
-
-#define MLT_LIGHT_GROUP_LOCAL_OFFS 0
-#define MLT_MAT_GROUP_LOCAL_OFFS   4
-
-static inline int rndLightOffset(const int a_bounceId) { return a_bounceId*MLT_FLOATS_PER_BOUNCE + MLT_LIGHT_GROUP_LOCAL_OFFS; }
-static inline int rndMatOffset  (const int a_bounceId) { return a_bounceId*MLT_FLOATS_PER_BOUNCE + MLT_MAT_GROUP_LOCAL_OFFS; }
-static inline int rndMatLOffset (const int a_bounceId) { return a_bounceId*MLT_FLOATS_PER_BOUNCE + MLT_FLOATS_PER_SAMPLE; }
-static inline int rndMaxBounce  (const RandomGen* gen) { return (gen->maxNumbers / MLT_FLOATS_PER_BOUNCE); }
-
-///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
+/**
+\brief obtain old (i.e. not mutated random numbers) to get old contribution sample (x,y)
+\param rptr - in random number storage pointer
+ 
+\return 4 old random numbers for using them in camera\lens sampler
+*/
 static inline float4 rndLensOld(__global const float* rptr)
 {
-  return make_float4(rptr[0], rptr[1], rptr[2], rptr[3]);
+  return make_float4(rptr[MMLT_DIM_SCR_X], rptr[MMLT_DIM_SCR_Y], rptr[MMLT_DIM_DOF_X], rptr[MMLT_DIM_DOF_Y]);
 }
 
-static inline float4 rndLens(RandomGen* gen, __global const float* rptr, const float2 screenScale, __constant unsigned int* a_qmcTable, const unsigned int qmcPos)
+/**
+\brief obtain 4 random numbers for using them in camera\lens sampler
+\param gen         - in out random generator.
+\param rptr        - in random number storage pointer
+\param screenScale - in scale for screen space muations (used to ajust mutation size according to specific resolution)
+\param a_qmcTable  - in qmc sobol (or else) table for permutations or sms like that;
+\param a_qmcPos    - in qmc poition index (i-th qmc number from generator)
+\param a_tab       - in qmc remap table; 
+
+\return 4 random numbers for using them in camera\lens sampler
+*/
+static inline float4 rndLens(RandomGen* gen, __global const float* rptr, const float2 screenScale,
+                             __global const int* a_tab, const unsigned int a_qmcPos, __constant unsigned int* a_qmcTable)
 {
   if (rptr != 0 && (gen->lazy != MUTATE_LAZY_LARGE))
   {
-    float x = rptr[0];
-    float y = rptr[1];
-    float z = rptr[2];
-    float w = rptr[3];
+    float x = rptr[MMLT_DIM_SCR_X];
+    float y = rptr[MMLT_DIM_SCR_Y];
+    float z = rptr[MMLT_DIM_DOF_X];
+    float w = rptr[MMLT_DIM_DOF_Y];
 
     if (gen->lazy == MUTATE_LAZY_YES)
     {
@@ -477,60 +414,64 @@ static inline float4 rndLens(RandomGen* gen, __global const float* rptr, const f
 
     return make_float4(x, y, z, w);
   }
-  else
+  else if (a_qmcTable != 0)
   {
-    if (a_qmcTable != 0)
-    {
-      float4 lensOffs;
-      lensOffs.x = rndQmcSobolN(qmcPos, 0, a_qmcTable);
-      lensOffs.y = rndQmcSobolN(qmcPos, 1, a_qmcTable);
-      lensOffs.z = rndQmcSobolN(qmcPos, 2, a_qmcTable);
-      lensOffs.w = rndQmcSobolN(qmcPos, 3, a_qmcTable);
-      return lensOffs;
-    }
-    else
-      return rndFloat4_Pseudo(gen);
-  }
-}
-
-static inline float4 rndLight(RandomGen* gen, __global const float* rptr, const int bounceId)
-{
-  const int MLT_MAX_BOUNCE = rndMaxBounce(gen);
-
-  if (rptr != 0 && (gen->lazy != MUTATE_LAZY_LARGE) && bounceId < MLT_MAX_BOUNCE)
-  {
-    const int offset = rndLightOffset(bounceId);
-
-    float x = rptr[offset + 0];
-    float y = rptr[offset + 1];
-    float z = rptr[offset + 2];
-    float w = rptr[offset + 3];
-
-    if (gen->lazy == MUTATE_LAZY_YES)
-    {
-      x = MutateKelemen(x, gen, MUTATE_COEFF_BSDF);
-      y = MutateKelemen(y, gen, MUTATE_COEFF_BSDF);
-      z = MutateKelemen(z, gen, MUTATE_COEFF_BSDF);
-      //w = MutateKelemen(w, gen, MUTATE_COEFF_BSDF);  // don't mutate light number
-    }
-
-    return make_float4(x, y, z, w);
+    float4 lensOffs;
+    lensOffs.y = rndQmcTab(gen, a_tab, a_qmcPos, QMC_VAR_SCR_Y, a_qmcTable);
+    lensOffs.z = rndQmcTab(gen, a_tab, a_qmcPos, QMC_VAR_DOF_X, a_qmcTable);
+    lensOffs.w = rndQmcTab(gen, a_tab, a_qmcPos, QMC_VAR_DOF_Y, a_qmcTable);
+    lensOffs.x = rndQmcTab(gen, a_tab, a_qmcPos, QMC_VAR_SCR_X, a_qmcTable);
+    return lensOffs;
   }
   else
     return rndFloat4_Pseudo(gen);
 }
 
-static inline float3 rndMat(RandomGen* gen, __global const float* rptr, const int bounceId)
+/**
+\brief obtain 4 random numbers for light sampling on the target bounce during to Path Tracing only (reverse light path)
+\param gen         - in out random generator.
+\param bounceId    - in target bhounce number (0 is the primary visiable surface)
+\param a_qmcTable  - in qmc sobol (or else) table for permutations or sms like that;
+\param a_qmcPos    - in qmc poition index (i-th qmc number from generator)
+\param a_tab       - in qmc remap table; 
+
+\return 4 random numbers for using them in light sampling
+*/
+static inline float4 rndLight(RandomGen* gen, const int bounceId,
+                              __global const int* a_tab, const unsigned int qmcPos, __constant unsigned int* a_qmcTable)
 {
-  const int MLT_MAX_BOUNCE = rndMaxBounce(gen);
-
-  if (rptr != 0 && (gen->lazy != MUTATE_LAZY_LARGE) && bounceId < MLT_MAX_BOUNCE)
+  if(bounceId == 0 && a_tab != 0 && a_qmcTable != 0)
   {
-    const int offset = rndMatOffset(bounceId);
+    float4 res;
+    res.x = rndQmcTab(gen, a_tab, qmcPos, QMC_VAR_LGT_0, a_qmcTable);
+    res.y = rndQmcTab(gen, a_tab, qmcPos, QMC_VAR_LGT_1, a_qmcTable);
+    res.z = rndQmcTab(gen, a_tab, qmcPos, QMC_VAR_LGT_2, a_qmcTable);
+    res.w = rndFloat1_Pseudo(gen);
+    return res;
+  }
+  else
+    return rndFloat4_Pseudo(gen);
+}
 
-    float x = rptr[offset + 0];
-    float y = rptr[offset + 1];
-    float z = rptr[offset + 2];
+/**
+\brief obtain 3 random numbers for material sampling on the target bounce (assume reverse order, i.e. 0 is the first bounce from camera)
+\param gen         - in out random generator.
+\param rptr        - in random number storage pointer
+\param bounceId    - in target bhounce number (0 is the primary visiable surface)
+\param a_qmcTable  - in qmc sobol (or else) table for permutations or sms like that;
+\param a_qmcPos    - in qmc poition index (i-th qmc number from generator)
+\param a_tab       - in qmc remap table; 
+
+\return 3 random numbers for using them in material sampling
+*/
+static inline float3 rndMat(RandomGen* gen, __global const float* rptr, const int bounceId,
+                            __global const int* a_tab, const unsigned int qmcPos, __constant unsigned int* a_qmcTable)
+{
+  if (rptr != 0 && (gen->lazy != MUTATE_LAZY_LARGE))
+  {
+    float x = rptr[0];
+    float y = rptr[1];
+    float z = rptr[2];
 
     if (gen->lazy == MUTATE_LAZY_YES)
     {
@@ -541,24 +482,46 @@ static inline float3 rndMat(RandomGen* gen, __global const float* rptr, const in
 
     return make_float3(x, y, z);
   }
+  else if(bounceId == 0 && a_tab != 0 && a_qmcTable != 0)
+  {
+    float3 res;
+    res.x = rndQmcTab(gen, a_tab, qmcPos, QMC_VAR_MAT_0, a_qmcTable);
+    res.y = rndQmcTab(gen, a_tab, qmcPos, QMC_VAR_MAT_1, a_qmcTable);
+    res.z = rndFloat1_Pseudo(gen);
+    return res;
+  }
   else
     return to_float3(rndFloat4_Pseudo(gen));
 }
 
-static inline float rndMatLayer(RandomGen* gen, __global const float* rptr, const int bounceId, const int layerId)
-{
-  const int MLT_MAX_BOUNCE = rndMaxBounce(gen);
+/**
+\brief obtain 1 random numbers for material layer selection on the target bounce and target three depth (assume reverse order, i.e. 0 is the first bounce from camera)
+\param gen         - in out random generator.
+\param rptr        - in random number storage pointer
+\param bounceId    - in target bhounce number (0 is the primary visiable surface)
+\param layerId     - in material tree depth
 
-  if (rptr != 0 && (gen->lazy != MUTATE_LAZY_LARGE) && bounceId < MLT_MAX_BOUNCE)
-    return rptr[rndMatLOffset(bounceId) + layerId]; 
-  else
-    return rndFloat1_Pseudo(gen);
+\param a_qmcTable  - in qmc sobol (or else) table for permutations or sms like that;
+\param a_qmcPos    - in qmc poition index (i-th qmc number from generator)
+\param a_tab       - in qmc remap table; 
+
+\return 3 random numbers for using them in material sampling
+*/
+static inline float rndMatLayer(RandomGen* gen, __global const float* rptr, const int bounceId, const int layerId,
+                                __global const int* a_tab, const unsigned int a_qmcPos, __constant unsigned int* a_qmcTable)
+{
+  if (rptr != 0 && (gen->lazy != MUTATE_LAZY_LARGE))                   // MCMC way; #NOTE: Lazy mutations is not needed due to small step
+    return rptr[layerId];                                              // must never change material layer, no mutations is allowed!
+  else if(bounceId == 0 && a_tab != 0 && a_qmcTable != 0)              // QMC way;
+    return rndQmcTab(gen, a_tab, a_qmcPos, QMC_VAR_MAT_L, a_qmcTable);
+  else                                                                 // OMC way;
+    return rndFloat1_Pseudo(gen);                                      
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-#endif
+
 
 static inline unsigned int mapRndFloatToUInt(float a_val, unsigned int a, unsigned int b)
 {
@@ -574,73 +537,26 @@ static inline unsigned int mapRndFloatToUInt(float a_val, unsigned int a, unsign
     return res;
 }
 
-// (3+5)*(d-1) for materials
-
-#define MMLT_FLOATS_PER_SAMPLE 3
-#define MMLT_FLOATS_PER_BOUNCE (MMLT_FLOATS_PER_SAMPLE + MLT_FLOATS_PER_MLAYER)
-#define MMLT_HEAD_TOTAL_SIZE 16  // (4+8+1) used + 3 unused
-
-// [0-3]:   LENS;  4 in total
-// [4-11]:  LIGHT; 5 in total
-// [12  ]:  SPLIT; 1 in total
-// [13-15]: TAIL;  3 in total, not used
-
-static inline int rndMatOffsetMMLT (const int a_bounceId) { return a_bounceId*MMLT_FLOATS_PER_BOUNCE; }                          // relative offset, dont add MMLT_HEAD_TOTAL_SIZE!
-static inline int rndMatLOffsetMMLT(const int a_bounceId) { return a_bounceId*MMLT_FLOATS_PER_BOUNCE + MMLT_FLOATS_PER_SAMPLE; } // relative offset, dont add MMLT_HEAD_TOTAL_SIZE!
-
-static inline float3 rndMatMMLT(RandomGen* gen, __global const float* rptr, const int bounceId)
-{
-  if (rptr != 0 && gen->lazy != MUTATE_LAZY_LARGE)
-  {
-    const int offset = rndMatOffsetMMLT(bounceId);
-
-    float x = rptr[offset + 0];
-    float y = rptr[offset + 1];
-    float z = rptr[offset + 2];
-
-    if (gen->lazy == MUTATE_LAZY_YES)
-    {
-      x = MutateKelemen(x, gen, MUTATE_COEFF_BSDF);
-      y = MutateKelemen(y, gen, MUTATE_COEFF_BSDF);
-      z = MutateKelemen(z, gen, MUTATE_COEFF_BSDF);
-    }
-
-    return make_float3(x, y, z);
-  }
-  else
-    return to_float3(rndFloat4_Pseudo(gen));
-}
-
-static inline float rndMatLayerMMLT(RandomGen* gen, __global const float* rptr, const int bounceId, const int layerId)
-{
-  if (rptr != 0 && gen->lazy != MUTATE_LAZY_LARGE)
-    return rptr[rndMatLOffsetMMLT(bounceId) + layerId];
-  else
-    return rndFloat1_Pseudo(gen);
-}
-
 typedef struct LightGroup2T
 {
   float4 group1;
-  float4 group2;
+  float3 group2;
 
 } LightGroup2;
-
 
 static inline void RndLightMMLT(RandomGen* gen, __global const float* rptr,
                                 __private LightGroup2* pOut)
 {
   if (rptr != 0 && gen->lazy != MUTATE_LAZY_LARGE)
   {
-    float x  = rptr[4 + 0]; //#TODO: opt read as 2xfloat4
-    float y  = rptr[4 + 1];
-    float z  = rptr[4 + 2];
-    float w  = rptr[4 + 3];
+    float x  = rptr[MMLT_DIM_LGT_X]; //#TODO: opt read as 2xfloat4
+    float y  = rptr[MMLT_DIM_LGT_Y];
+    float z  = rptr[MMLT_DIM_LGT_Z];
+    float w  = rptr[MMLT_DIM_LGT_W];
   
-    float x1 = rptr[4 + 4];
-    float y1 = rptr[4 + 5];
-    float n  = rptr[4 + 6];
-    float n1 = rptr[4 + 7];
+    float x1 = rptr[MMLT_DIM_LGT_X1];
+    float y1 = rptr[MMLT_DIM_LGT_Y1];
+    float n  = rptr[MMLT_DIM_LGT_N];
      
     if (gen->lazy == MUTATE_LAZY_YES)
     {
@@ -654,24 +570,21 @@ static inline void RndLightMMLT(RandomGen* gen, __global const float* rptr,
     }
 
     pOut->group1 = make_float4(x, y, z, w);
-    pOut->group2 = make_float4(x1,y1,n, n1);
+    pOut->group2 = make_float3(x1, y1, n);
   }
   else
   {
     pOut->group1 = rndFloat4_Pseudo(gen);
-    pOut->group2 = rndFloat4_Pseudo(gen);
+    pOut->group2 = to_float3(rndFloat4_Pseudo(gen));
   }
 }
 
-
 static inline int rndSplitMMLT(RandomGen* gen, __global const float* rptr, const int d)
 {
-  const int offset = 12; 
-  
   float x;
   if (rptr != 0 && gen->lazy != MUTATE_LAZY_LARGE)
   {
-    x = rptr[offset];
+    x = rptr[MMLT_DIM_SPLIT];
     if (gen->lazy == MUTATE_LAZY_YES)
       x = MutateKelemen(x, gen, MUTATE_COEFF_BSDF);
   }
@@ -739,12 +652,17 @@ static inline float4 rndUniform(RandomGen* gen, float a, float b)
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-
+/**
+\brief get total size (in floats) of the array
+*/
 static inline int randArraySizeOfDepthMMLT(int d)
 {
   return MMLT_HEAD_TOTAL_SIZE + MMLT_FLOATS_PER_BOUNCE * d;
 }
 
+/**
+\brief get offset (in floats) to camera-path part of the array
+*/
 static inline int camOffsetInRandArrayMMLT(int s)
 {
   return  MMLT_HEAD_TOTAL_SIZE + MMLT_FLOATS_PER_BOUNCE * s;

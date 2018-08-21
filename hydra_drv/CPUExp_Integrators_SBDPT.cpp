@@ -536,7 +536,7 @@ float3 IntegratorSBDPT::ConnectShadow(const PathVertex& a_cv, PerThreadData* a_p
                &lightSelector);
 
   float lightPickProb = 1.0f;
-  int lightOffset = SelectRandomLightRev(make_float2(lightSelector.group2.z, lightSelector.group2.w), surfElem.pos, m_pGlobals,
+  int lightOffset = SelectRandomLightRev(lightSelector.group2.z, surfElem.pos, m_pGlobals,
                                          &lightPickProb);
 
   if (!m_computeIndirectMLT && lightOffset >= 0) // if need to sample direct light ?

@@ -58,6 +58,10 @@ public:
   void BeginTracingPass() override;
   void EndTracingPass()   override;
   void EvalGBuffer(IHRSharedAccumImage* a_pAccumImage, const std::vector<int32_t>& a_instIdByInstId) override;
+  
+  std::vector<int> MakeAllPixelsList();
+  void RunProductionSamplingMode();
+
   void TraceSBDPTPass(cl_mem a_rpos, cl_mem a_rdir, cl_mem a_outColor, size_t a_size);
 
   void FinishAll() override;
@@ -76,7 +80,7 @@ public:
   MRaysStat GetRaysStat();
   int32_t GetRayBuffSize() const override { return int32_t(m_rays.MEGABLOCKSIZE); }
 
-  char*  GetDeviceName(int* pOCLVer) const override;
+  const char* GetDeviceName(int* pOCLVer) const override;
 
   const HRRenderDeviceInfoListElem* ListDevices() const override;
 
@@ -210,7 +214,7 @@ protected:
     CL_BUFFERS_RAYS() : rayPos(0), rayDir(0), hits(0), rayFlags(0), hitPosNorm(0), hitTexCoord(0), hitMatId(0), hitTangent(0), hitFlatNorm(0), hitPrimSize(0), hitNormUncompressed(0), hitProcTexData(0),
                         pathThoroughput(0), pathMisDataPrev(0), pathShadeColor(0), pathAccColor(0), pathAuxColor(0), pathAuxColorCPU(0), pathShadow8B(0), pathShadow8BAux(0), pathShadow8BAuxCPU(0), randGenState(0),
                         lsam1(0), lsam2(0), lsamCos(0), shadowRayPos(0), shadowRayDir(0), accPdf(0), oldFlags(0), oldRayDir(0), oldColor(0), lightNumberLT(0), lsamProb(0),
-                        lshadow(0), fogAtten(0), samZindex(0), aoCompressed(0), aoCompressed2(0), lightOffsetBuff(0), packedXY(0), debugf4(0), MEGABLOCKSIZE(0) {}
+                        lshadow(0), fogAtten(0), samZindex(0), aoCompressed(0), aoCompressed2(0), lightOffsetBuff(0), packedXY(0), debugf4(0), atomicCounterMem(0), MEGABLOCKSIZE(0) {}
 
     void free();
     size_t resize(cl_context ctx, cl_command_queue cmdQueue, size_t a_size, bool a_cpuShare, bool a_cpuFB);
@@ -267,6 +271,8 @@ protected:
     cl_mem packedXY;
     cl_mem debugf4;
 
+    cl_mem atomicCounterMem;
+
     size_t MEGABLOCKSIZE;
 
   } m_rays;
@@ -274,17 +280,18 @@ protected:
   struct CL_GLOBALS
   {
     CL_GLOBALS() : ctx(0), cmdQueue(0), cmdQueueDevToHost(0), platform(0), device(0), m_maxWorkGroupSize(0), oclVer(100), use1DTex(false), liteCore(false),
-                   cMortonTable(0), qmcTable(0), devIsCPU(false), cpuTrace(false) {}
+                   cMortonTable(0), qmcTable(0), hammersley2DGBuff(0), hammersley2D256(0), devIsCPU(false), cpuTrace(false), m_passNumberQMC(0) {}
 
-    cl_context       ctx;        // OpenCL context
-    cl_command_queue cmdQueue;   // OpenCL command que
-    cl_command_queue cmdQueueDevToHost;  // OpenCL command que for copying data from GPU to CPU
-    cl_platform_id   platform;   // OpenCL platform
-    cl_device_id     device;     // OpenCL device
+    cl_context       ctx;               // OpenCL context
+    cl_command_queue cmdQueue;          // OpenCL command que
+    cl_command_queue cmdQueueDevToHost; // OpenCL command que for copying data from GPU to CPU
+    cl_platform_id   platform;          // OpenCL platform
+    cl_device_id     device;            // OpenCL device
 
     cl_mem cMortonTable;
-    cl_mem qmcTable;              // this is unrelated to previous. Table for Sobo/Niederreiter quasi random sequence.
-    cl_mem hammersley2D;
+    cl_mem qmcTable;                    // this is unrelated to previous. Table for Sobol/Niederreiter quasi random sequence.
+    cl_mem hammersley2DGBuff;
+    cl_mem hammersley2D256;
 
     size_t m_maxWorkGroupSize;
 
@@ -294,7 +301,9 @@ protected:
 
     bool devIsCPU;
     bool cpuTrace;
-
+  
+    int m_passNumberQMC;
+    
   } m_globals;
 
 
@@ -384,7 +393,10 @@ protected:
   void runKernel_InitRandomGen(cl_mem a_buffer, size_t a_size, int a_seed);
   void runKernel_MakeEyeRays(cl_mem a_rpos, cl_mem a_rdir, cl_mem a_zindex, size_t a_size, int a_passNumber);
   void runKernel_MakeLightRays(cl_mem a_rpos, cl_mem a_rdir, cl_mem a_outColor, size_t a_size);
-  void runKernel_MakeEyeRaysSpp(cl_mem rayPos, cl_mem rayDir, int32_t a_blockSize, int32_t yBegin, size_t a_size);
+  void runKernel_MakeEyeRaysSpp(int32_t a_blockSize, int32_t yBegin, size_t a_size, cl_mem in_pixels,
+                                cl_mem rayPos, cl_mem rayDir);
+
+  void runKernel_ClearAllInternalTempBuffers(size_t a_size);
  
   void runKernel_Trace(cl_mem a_rpos, cl_mem a_rdir, cl_mem a_hits, size_t a_size);
   void runKernel_ComputeHit(cl_mem a_rpos, cl_mem a_rdir, size_t a_size, bool a_doNotEvaluateProcTex = false);
@@ -412,6 +424,7 @@ protected:
   void runKernel_UpdateForwardPdfFor3Way(cl_mem a_flags, cl_mem old_rayDir, cl_mem next_rayDir, cl_mem acc_pdf, size_t a_size);
   void runKernel_GetGBufferSamples      (cl_mem a_rdir,  cl_mem a_gbuff1,   cl_mem a_gbuff2, int a_blockSize, size_t a_size);
   void runKernel_PutAlphaToGBuffer      (cl_mem a_inThoroughput, cl_mem a_gbuff1, size_t finalSize);
+  void runKernel_GetShadowToAlpha       (cl_mem a_color, cl_mem a_shadow, size_t a_size);
 
   // MLT
   //
@@ -427,9 +440,8 @@ protected:
   
   void runKernel_ReductionFloat4Average(cl_mem a_src, cl_mem a_dst, size_t a_size, int a_bsize);
   void runKernel_ReductionGBuffer(cl_mem a_src, cl_mem a_dst, size_t a_size, int a_bsize);
-
-  void runKernel_AppendBadPixels(cl_mem a_counter, cl_mem in_data1, cl_mem in_data2, cl_mem out_data1, cl_mem out_data2, cl_mem in_px, cl_mem out_px, size_t a_size, int a_spp);
-
+  int  CountNumActiveThreads(cl_mem a_rayFlags, size_t a_size);
+  
   float2 runKernel_TestAtomicsPerf(size_t a_size);
 
   std::vector<ZBlock> m_tempBlocks;

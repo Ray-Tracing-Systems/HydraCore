@@ -178,6 +178,169 @@ void memcpyu32_cpu(int* buff1, uint a_offset1, int* buff2, uint a_offset2, size_
   memcpy(dst, src, a_size*sizeof(int));
 }
 
+
+static void SetQMCVarRemapTable(EngineGlobals *a_globals)
+{
+  for(int i=0;i<QMC_VARS_NUM;i++)
+    a_globals->rmQMC[i] = -1;
+  
+  const int tableVariant = 0; // (0,3,7,5)
+  
+  // variant 0 (default); screen xy and dof only;
+  //
+  switch(tableVariant)
+  {
+    case 0:
+      a_globals->rmQMC[QMC_VAR_SCR_X] = 0; // screen xy and dof only;
+      a_globals->rmQMC[QMC_VAR_SCR_Y] = 1;
+      a_globals->rmQMC[QMC_VAR_DOF_X] = 2;
+      a_globals->rmQMC[QMC_VAR_DOF_Y] = 3;
+    break;
+  
+    case 1:
+      a_globals->rmQMC[QMC_VAR_SCR_X] = 0; // screen xy, dof and adaptive sampling;
+      a_globals->rmQMC[QMC_VAR_SCR_Y] = 1;
+      a_globals->rmQMC[QMC_VAR_DOF_X] = 2;
+      a_globals->rmQMC[QMC_VAR_DOF_Y] = 3;
+      a_globals->rmQMC[QMC_VAR_SRC_A] = 4;
+    break;
+  
+    case 2:
+      a_globals->rmQMC[QMC_VAR_SCR_X] = 0; // screen xy, dof and adaptive sampling;
+      a_globals->rmQMC[QMC_VAR_SCR_Y] = 1;
+      a_globals->rmQMC[QMC_VAR_DOF_X] = 2;
+      a_globals->rmQMC[QMC_VAR_DOF_Y] = 3;
+      a_globals->rmQMC[QMC_VAR_SRC_A] = 4;
+      a_globals->rmQMC[QMC_VAR_LGT_N] = 5;
+      a_globals->rmQMC[QMC_VAR_LGT_0] = 6;
+      a_globals->rmQMC[QMC_VAR_LGT_1] = 7;
+      a_globals->rmQMC[QMC_VAR_LGT_2] = 8;
+    break;
+  
+    case 3:
+      a_globals->rmQMC[QMC_VAR_SCR_X] = 0; // screen xy, material and light
+      a_globals->rmQMC[QMC_VAR_SCR_Y] = 1;
+    
+      a_globals->rmQMC[QMC_VAR_MAT_L] = 2;
+      a_globals->rmQMC[QMC_VAR_MAT_0] = 3;
+      a_globals->rmQMC[QMC_VAR_MAT_1] = 4;
+    
+      a_globals->rmQMC[QMC_VAR_LGT_N] = 5;
+      a_globals->rmQMC[QMC_VAR_LGT_0] = 6;
+      a_globals->rmQMC[QMC_VAR_LGT_1] = 7;
+      a_globals->rmQMC[QMC_VAR_LGT_2] = 8;
+    break;
+    
+    case 4:
+      a_globals->rmQMC[QMC_VAR_SCR_X] = 0; // screen xy and light
+      a_globals->rmQMC[QMC_VAR_SCR_Y] = 1;
+      
+      a_globals->rmQMC[QMC_VAR_LGT_N] = 2;
+      a_globals->rmQMC[QMC_VAR_LGT_0] = 3;
+      a_globals->rmQMC[QMC_VAR_LGT_1] = 4;
+      a_globals->rmQMC[QMC_VAR_LGT_2] = 5;
+    break;
+  
+    case 5:
+      a_globals->rmQMC[QMC_VAR_SCR_X] = 0; // all of them
+      a_globals->rmQMC[QMC_VAR_SCR_Y] = 1;
+      a_globals->rmQMC[QMC_VAR_DOF_X] = 2;
+      a_globals->rmQMC[QMC_VAR_DOF_Y] = 3;
+      
+      a_globals->rmQMC[QMC_VAR_MAT_L] = 4;
+      a_globals->rmQMC[QMC_VAR_MAT_0] = 5;
+      a_globals->rmQMC[QMC_VAR_MAT_1] = 6;
+    
+      a_globals->rmQMC[QMC_VAR_LGT_N] = 7;
+      a_globals->rmQMC[QMC_VAR_LGT_0] = 8;
+      a_globals->rmQMC[QMC_VAR_LGT_1] = 9;
+      a_globals->rmQMC[QMC_VAR_LGT_2] = 10;
+      
+    break;
+  
+    case 6:
+      a_globals->rmQMC[QMC_VAR_SCR_X] = 0; // all of them
+      a_globals->rmQMC[QMC_VAR_SCR_Y] = 1;
+    
+      a_globals->rmQMC[QMC_VAR_MAT_L] = 2;
+      a_globals->rmQMC[QMC_VAR_MAT_0] = 3;
+      a_globals->rmQMC[QMC_VAR_MAT_1] = 4;
+    
+      a_globals->rmQMC[QMC_VAR_LGT_N] = 5;
+      a_globals->rmQMC[QMC_VAR_LGT_0] = 6;
+      a_globals->rmQMC[QMC_VAR_LGT_1] = 7;
+      a_globals->rmQMC[QMC_VAR_LGT_2] = 8;
+    
+      a_globals->rmQMC[QMC_VAR_DOF_X] = 9;
+      a_globals->rmQMC[QMC_VAR_DOF_Y] = 10;
+    break;
+  
+    case 7:
+      a_globals->rmQMC[QMC_VAR_SCR_X] = 0; // exclude material sampling
+      a_globals->rmQMC[QMC_VAR_SCR_Y] = 1;
+      a_globals->rmQMC[QMC_VAR_DOF_X] = 2;
+      a_globals->rmQMC[QMC_VAR_DOF_Y] = 3;
+      a_globals->rmQMC[QMC_VAR_MAT_L] = 4;
+    
+      a_globals->rmQMC[QMC_VAR_LGT_N] = 5;
+      a_globals->rmQMC[QMC_VAR_LGT_0] = 6;
+      a_globals->rmQMC[QMC_VAR_LGT_1] = 7;
+      a_globals->rmQMC[QMC_VAR_LGT_2] = 8;
+    break;
+  
+    case 8:
+      a_globals->rmQMC[QMC_VAR_SCR_X] = 0; // all of them
+      a_globals->rmQMC[QMC_VAR_SCR_Y] = 1;
+      a_globals->rmQMC[QMC_VAR_DOF_X] = 2;
+      a_globals->rmQMC[QMC_VAR_DOF_Y] = 3;
+      a_globals->rmQMC[QMC_VAR_MAT_L] = 4;
+    
+      a_globals->rmQMC[QMC_VAR_LGT_N] = 5;
+      a_globals->rmQMC[QMC_VAR_LGT_0] = 6;
+      a_globals->rmQMC[QMC_VAR_LGT_1] = 7;
+      a_globals->rmQMC[QMC_VAR_LGT_2] = 8;
+    
+      a_globals->rmQMC[QMC_VAR_MAT_0] = 9;
+      a_globals->rmQMC[QMC_VAR_MAT_1] = 10;
+    break;
+  
+    case 9:
+      a_globals->rmQMC[QMC_VAR_SCR_X] = 0; // all of them
+      a_globals->rmQMC[QMC_VAR_SCR_Y] = 1;
+      a_globals->rmQMC[QMC_VAR_MAT_L] = 2;
+    
+      a_globals->rmQMC[QMC_VAR_LGT_N] = 3;
+      a_globals->rmQMC[QMC_VAR_LGT_0] = 4;
+      a_globals->rmQMC[QMC_VAR_LGT_1] = 5;
+      a_globals->rmQMC[QMC_VAR_LGT_2] = 6;
+    
+      a_globals->rmQMC[QMC_VAR_MAT_0] = 7;
+      a_globals->rmQMC[QMC_VAR_MAT_1] = 8;
+    break;
+  
+    case 10:
+      a_globals->rmQMC[QMC_VAR_SCR_X] = 0; // all of them
+      a_globals->rmQMC[QMC_VAR_SCR_Y] = 1;
+      a_globals->rmQMC[QMC_VAR_DOF_X] = 2;
+      a_globals->rmQMC[QMC_VAR_DOF_Y] = 3;
+      a_globals->rmQMC[QMC_VAR_MAT_L] = 5;
+      a_globals->rmQMC[QMC_VAR_LGT_N] = 6;
+      
+    break;
+    
+    default:
+      a_globals->rmQMC[QMC_VAR_SCR_X] = 0; // screen xy and dof only;
+      a_globals->rmQMC[QMC_VAR_SCR_Y] = 1;
+      a_globals->rmQMC[QMC_VAR_DOF_X] = 2;
+      a_globals->rmQMC[QMC_VAR_DOF_Y] = 3;
+    break;
+    
+  };
+  
+  
+}
+
+
 void IHWLayer::PrepareEngineGlobals()
 {
   size_t totalBuffSize = CalcConstGlobDataOffsets(&m_globsBuffHeader);
@@ -186,7 +349,9 @@ void IHWLayer::PrepareEngineGlobals()
 
   if (m_cdataPrepared.size() == 0)
     return;
-
+  
+  SetQMCVarRemapTable(&m_globsBuffHeader);
+  
   int* pbuff = &m_cdataPrepared[0];
   memcpy(pbuff, &m_globsBuffHeader, sizeof(EngineGlobals)); 
 }
@@ -426,12 +591,13 @@ void CPUSharedData::PrepareEngineGlobals()
 
   if (m_pIntegrator == nullptr && this->StoreCPUData())
   {
-    //m_pIntegrator = new IntegratorStupidPT(m_width, m_height, (EngineGlobals*)&m_cdataPrepared[0]);                                                             
+    //m_pIntegrator = new IntegratorStupidPT(m_width, m_height, (EngineGlobals*)&m_cdataPrepared[0]);
     //m_pIntegrator = new IntegratorShadowPT(m_width, m_height, (EngineGlobals*)&m_cdataPrepared[0]);
 		//m_pIntegrator = new IntegratorShadowPTSSS(m_width, m_height, (EngineGlobals*)&m_cdataPrepared[0]);
     
-    m_pIntegrator = new IntegratorMISPT(m_width, m_height, (EngineGlobals*)&m_cdataPrepared[0], 0);     //#TODO: where m_createFlags gone ???
-    //m_pIntegrator = new IntegratorMISPT_trofimm(m_width, m_height, (EngineGlobals*)&m_cdataPrepared[0], 0);     
+    //m_pIntegrator = new IntegratorMISPT(m_width, m_height, (EngineGlobals*)&m_cdataPrepared[0], 0);     //#TODO: where m_createFlags gone ???
+    m_pIntegrator = new IntegratorMISPT_QMC(m_width, m_height, (EngineGlobals*)&m_cdataPrepared[0], 0);
+    //m_pIntegrator = new IntegratorMISPT_AQMC(m_width, m_height, (EngineGlobals*)&m_cdataPrepared[0], 0);
    
     //m_pIntegrator = new IntegratorLT(m_width, m_height, (EngineGlobals*)&m_cdataPrepared[0]);
     //m_pIntegrator = new IntegratorTwoWay(m_width, m_height, (EngineGlobals*)&m_cdataPrepared[0]);

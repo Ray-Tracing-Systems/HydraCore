@@ -178,11 +178,16 @@ static void Draw(std::shared_ptr<IHRRenderDriver> a_pDetachedRenderDriverPointer
     }
   
     hrRenderOpen(renderRef, HR_OPEN_EXISTING);
-    auto paramNode = hrRenderParamNode(renderRef);
-    if(g_input.outLDRImage != "")
-      paramNode.force_child(L"boxmode").text() = 1;
-    else
-      paramNode.force_child(L"boxmode").text() = g_input.boxMode ? 1 : 0;
+    {
+      auto paramNode = hrRenderParamNode(renderRef);
+      if(g_input.outLDRImage != "")
+      {
+        paramNode.force_child(L"boxmode").text()        = 1;
+        paramNode.force_child(L"contribsamples").text() = g_input.maxSamplesContrib;
+      }
+      else
+        paramNode.force_child(L"boxmode").text() = g_input.boxMode ? 1 : 0;
+    }
     hrRenderClose(renderRef);
     std::cout << "[main]: commit scene ... " << std::endl;
 
@@ -222,12 +227,16 @@ static void Draw(std::shared_ptr<IHRRenderDriver> a_pDetachedRenderDriverPointer
     if (saveImages > saveImageLast)
     {
       std::wstringstream fname1, fname2;
+      #ifdef WIN32
       fname1 << L"C:/[Hydra]/rendered_images/a_" << int(time) << L".png";
-      fname2 << L"C:/[Hydra]/rendered_images/b_" << int(time) << L".hdr";
+      #else
+      fname1 << L"/home/frol/hydra/rendered_images/a_" << int(time) << L".png";
+      #endif
+      //fname2 << L"C:/[Hydra]/rendered_images/b_" << int(time) << L".hdr";
       const std::wstring outStr1 = fname1.str();
       const std::wstring outStr2 = fname2.str();
       hrRenderSaveFrameBufferLDR(renderRef, outStr1.c_str());
-      hrRenderSaveFrameBufferHDR(renderRef, outStr2.c_str());
+      //hrRenderSaveFrameBufferHDR(renderRef, outStr2.c_str());
       saveImageLast = saveImages;
       std::wcout << L"image " << outStr1.c_str() << L" saved " << std::endl;
     }
@@ -260,14 +269,14 @@ static void GetGBuffer(std::shared_ptr<IHRRenderDriver> a_pDetachedRenderDriverP
 
 void console_main(std::shared_ptr<IHRRenderDriver> a_pDetachedRenderDriverPointer, IHRSharedAccumImage* a_pSharedImage)
 {
+  static int g_prevMessageId = 0;
+  
   if (a_pSharedImage == nullptr) // selfEmployed, don't wait commands from main process
     g_state = STATE_RENDER;
-
-  static int prevMessageId = 0;
   
   // GetGBuffer(a_pDetachedRenderDriverPointer);
   // g_input.exitStatus = true;
-  
+    
   if(g_input.boxMode && g_state == STATE_WAIT) // don't wait for commands in 'box mode'
     g_state = STATE_RENDER;
     
@@ -277,10 +286,10 @@ void console_main(std::shared_ptr<IHRRenderDriver> a_pDetachedRenderDriverPointe
     if (a_pSharedImage != nullptr && !g_input.boxMode)
     {
       auto pHeader = a_pSharedImage->Header();
-      if (pHeader->counterSnd > prevMessageId)
+      if (pHeader->counterSnd > g_prevMessageId)
       {
         DispatchCommand(a_pSharedImage->MessageSendData());
-        prevMessageId = pHeader->counterSnd;
+        g_prevMessageId = pHeader->counterSnd;
       }
     }
 

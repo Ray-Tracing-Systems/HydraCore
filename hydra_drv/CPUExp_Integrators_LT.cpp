@@ -39,20 +39,13 @@ void IntegratorLT::DoLightPath(int iterId)
   auto& rgen = randomGen();
 
   float lightPickProb = 1.0f;
-  const int lightId   = SelectRandomLightFwd(rndFloat2(&rgen), m_pGlobals,
+  const int lightId   = SelectRandomLightFwd(rndFloat1(&rgen), m_pGlobals,
                                              &lightPickProb);
 
   const PlainLight* pLight = lightAt(m_pGlobals, lightId);
 
   const float4 rands1 = rndFloat4(&rgen);
   const float2 rands2 = rndFloat2(&rgen);
-
-  //const int qmcPos = int(mLightSubPathCount)*m_spp + iterId;
-  //float4 rands1;
-  //rands1.x = rndQmcSobolN(qmcPos, 0, (const unsigned int*)m_tableQMC);
-  //rands1.y = rndQmcSobolN(qmcPos, 1, (const unsigned int*)m_tableQMC);
-  //rands1.z = rndQmcSobolN(qmcPos, 2, (const unsigned int*)m_tableQMC);
-  //rands1.w = rndQmcSobolN(qmcPos, 3, (const unsigned int*)m_tableQMC);
 
   LightSampleFwd sample;
   LightSampleForward(pLight, rands1, rands2, m_pGlobals, m_texStorage, m_pdfStorage,

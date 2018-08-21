@@ -43,7 +43,7 @@ static void RunTimeError(const char* file, int line, std::string msg)
 }
 
 
-void checkCLFun(cl_int cErr, char* file, int line)
+void checkCLFun(cl_int cErr, const char* const file, int line)
 {
   if (cErr != CL_SUCCESS)
   {
@@ -91,7 +91,7 @@ std::string HydraInstallPath();
 size_t ReplaceIncludeWithFile(std::string& a_str, size_t a_pos, const std::string& a_fileName)
 {
   bool inWhiteList = false;
-  constexpr char* whiteList[8] = {"globals.h", "cglobals.h", "cfetch.h", "crandom.h", "ctrace.h", "cmaterial.h", "clight.h", "cbidir.h"};
+  const std::string whiteList[8] = {"globals.h", "cglobals.h", "cfetch.h", "crandom.h", "ctrace.h", "cmaterial.h", "clight.h", "cbidir.h"};
   for(int i=0;i<8;i++)
   {
     if(a_fileName.find(whiteList[i]) != std::string::npos)

@@ -3,12 +3,16 @@
 #include "../../HydraAPI/hydra_api/HydraRenderDriverAPI.h"
 #include "../hydra_drv/RenderDriverRTE.h"
 
+
 #ifdef WIN32
   #include <windows.h> 
 #else
   #include <unistd.h>
   #include <signal.h>
 #endif
+
+//#include <chrono>
+//#include <thread>
 
 using pugi::xml_node;
 using pugi::xml_attribute;
@@ -63,20 +67,21 @@ BOOL WINAPI HandlerExit(_In_ DWORD fdwControl)
   return TRUE;
 }
 #else
-bool destroyedBySig = false;
+bool destroyedBySig  = false;
 void sig_handler(int signo)
 {
   if(destroyedBySig)
     return;
+
   switch(signo)
   {
-    case SIGINT : std::cerr << "\nhydra, SIGINT";      break;
-    case SIGABRT: std::cerr << "\nhydra, SIGABRT";     break;
-    case SIGILL : std::cerr << "\nhydra, SIGINT";      break;
-    case SIGTERM: std::cerr << "\nhydra, SIGILL";      break;
-    case SIGSEGV: std::cerr << "\nhydra, SIGSEGV";     break;
-    case SIGFPE : std::cerr << "\nhydra, SIGFPE";      break;
-    default     : std::cerr << "\nhydra, SIG_UNKNOWN"; break;
+    case SIGINT : std::cerr << "\n[hydra], SIGINT";      break;
+    case SIGABRT: std::cerr << "\n[hydra], SIGABRT";     break;
+    case SIGILL : std::cerr << "\n[hydra], SIGINT";      break;
+    case SIGTERM: std::cerr << "\n[hydra], SIGILL";      break;
+    case SIGSEGV: std::cerr << "\n[hydra], SIGSEGV";     break;
+    case SIGFPE : std::cerr << "\n[hydra], SIGFPE";      break;
+    default     : std::cerr << "\n[hydra], SIG_UNKNOWN"; break;
       break;
   }
   std::cerr << " --> hrDestroy()" << std::endl;
@@ -91,6 +96,7 @@ void sig_handler(int signo)
     g_pDriver = nullptr;
   }
   destroyedBySig = true;
+
 }
 #endif
 

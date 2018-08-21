@@ -166,7 +166,7 @@ float3 IntegratorMMLT::F(const PSSampleV& a_xVec, const int d, int m_type,
 
   const float screenScaleX = m_pGlobals->varsF[HRT_MLT_SCREEN_SCALE_X];
   const float screenScaleY = m_pGlobals->varsF[HRT_MLT_SCREEN_SCALE_Y];
-  const float4 lensOffs    = rndLens(pGen, pGen->rptr, make_float2(screenScaleX, screenScaleY), 0, 0);
+  const float4 lensOffs    = rndLens(pGen, pGen->rptr, make_float2(screenScaleX, screenScaleY), 0, 0, 0);
 
   int x = (int)(lensOffs.x*float(m_width)  + 0.5f); // rndInt(&PerThread().gen, 0, m_width);  // light tracing can overwtite this variables
   int y = (int)(lensOffs.y*float(m_height) + 0.5f); // rndInt(&PerThread().gen, 0, m_height); // light tracing can overwtite this variables
@@ -320,7 +320,7 @@ float3 IntegratorMMLT::F(const PSSampleV& a_xVec, const int d, int m_type,
   return sampleColor;
 }
 
-static std::vector<float> PrefixSumm(const std::vector<float>& a_vec)
+std::vector<float> PrefixSumm(const std::vector<float>& a_vec)
 {
   float accum = 0.0f;
   std::vector<float> avgBAccum(a_vec.size() + 1);
@@ -652,7 +652,7 @@ PathVertex IntegratorMMLT::LightPath(PerThreadData* a_perThread, int a_lightTrac
                &lightSelector);
 
   float lightPickProb = 1.0f;
-  const int lightId = SelectRandomLightFwd(make_float2(lightSelector.group2.z, lightSelector.group2.w), m_pGlobals,
+  const int lightId = SelectRandomLightFwd(lightSelector.group2.z, m_pGlobals,
                                            &lightPickProb);
 
   const PlainLight* pLight = lightAt(m_pGlobals, lightId);
@@ -737,9 +737,9 @@ void IntegratorMMLT::TraceLightPath(float3 ray_pos, float3 ray_dir, int a_currDe
   {
     ShadeContext sc;
     sc.wp = surfElem.pos;
-    sc.l = (-1.0f)*ray_dir;
-    sc.v = (-1.0f)*nextRay_dir;
-    sc.n = surfElem.normal;
+    sc.l  = (-1.0f)*ray_dir;
+    sc.v  = (-1.0f)*nextRay_dir;
+    sc.n  = surfElem.normal;
     sc.fn = surfElem.flatNormal;
     sc.tg = surfElem.tangent;
     sc.bn = surfElem.biTangent;
@@ -969,7 +969,7 @@ float3 IntegratorMMLT::ConnectShadow(const PathVertex& a_cv, PerThreadData* a_pe
                 &lightSelector);
    
    float lightPickProb = 1.0f;
-   int lightOffset = SelectRandomLightRev(make_float2(lightSelector.group2.z, lightSelector.group2.w), surfElem.pos, m_pGlobals,
+   int lightOffset = SelectRandomLightRev(lightSelector.group2.z, surfElem.pos, m_pGlobals,
                                           &lightPickProb);
 
    if (lightOffset >= 0)
@@ -1077,12 +1077,12 @@ float3 IntegratorMMLT::PathTraceDirectLight(float3 ray_pos, float3 ray_dir, MisD
 
   auto& gen = randomGen();
   float lightPickProb = 1.0f;
-  int lightOffset = SelectRandomLightRev(rndFloat2_Pseudo(&gen), surfElem.pos, m_pGlobals,
-    &lightPickProb);
+  int lightOffset = SelectRandomLightRev(rndFloat1_Pseudo(&gen), surfElem.pos, m_pGlobals,
+                                         &lightPickProb);
 
   if ((!m_computeIndirectMLT || a_currDepth > 0) && lightOffset >= 0) // if need to sample direct light ?
   {
-    __global const PlainLight* pLight = lightAt(m_pGlobals, lightOffset);
+    const PlainLight* pLight = lightAt(m_pGlobals, lightOffset);
 
     ShadowSample explicitSam;
     LightSampleRev(pLight, rndFloat3(&gen), surfElem.pos, m_pGlobals, m_pdfStorage, m_texStorage,

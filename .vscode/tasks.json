@@ -1,0 +1,25 @@
+{
+    // See https://go.microsoft.com/fwlink/?LinkId=733558
+    // for the documentation about the tasks.json format
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "BuildRelease",
+            "type": "shell",
+            "command": "cd cmake-build-release && make -j4",
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            }
+        },
+        {
+            "label": "BuildDebug",
+            "type": "shell",
+            "command": "cd cmake-build-debug && make -j4",
+            "group": {
+                "kind": "build",
+                "isDefault": false
+            },
+        }
+    ]
+}

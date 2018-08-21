@@ -83,6 +83,8 @@ void GPUOCLLayer::CL_BUFFERS_RAYS::free()
   if (lightOffsetBuff) { clReleaseMemObject(lightOffsetBuff);  lightOffsetBuff = nullptr; }
   if (packedXY)        { clReleaseMemObject(packedXY);   packedXY   = nullptr; }
   if (debugf4)         { clReleaseMemObject(debugf4);    debugf4    = nullptr; }
+
+  if(atomicCounterMem) { clReleaseMemObject(atomicCounterMem); atomicCounterMem = nullptr;}
 }
 
 size_t GPUOCLLayer::CL_BUFFERS_RAYS::resize(cl_context ctx, cl_command_queue cmdQueue, size_t a_size, bool a_cpuShare, bool a_cpuFB)
@@ -185,6 +187,11 @@ size_t GPUOCLLayer::CL_BUFFERS_RAYS::resize(cl_context ctx, cl_command_queue cmd
     RUN_TIME_ERROR("Error in resize rays buffers");
  
   std::cout << "[cl_core]: MEGABLOCK SIZE = " << MEGABLOCKSIZE << std::endl;
+
+  atomicCounterMem = clCreateBuffer(ctx, CL_MEM_READ_WRITE, 1*sizeof(int), NULL, &ciErr1);
+  if (ciErr1 != CL_SUCCESS)
+    RUN_TIME_ERROR("can't alloc atomic counter memory");
+ 
 
   return currSize;
 }
@@ -325,7 +332,7 @@ std::string deviceHash(cl_device_id a_devId, cl_platform_id a_platform)
   hashVal = XXH64(deviceName, len, hashVal);
   
   memset(deviceName, 0, 1024);
-  snprintf(deviceName, 1024, "%llu", hashVal);
+  snprintf(deviceName, 1024, "%llu", (long long unsigned int)hashVal);
   return std::string(deviceName);
 }
 
@@ -430,8 +437,8 @@ GPUOCLLayer::GPUOCLLayer(int w, int h, int a_flags, int a_deviceId) : Base(w, h,
   m_initFlags = a_flags;
   for (int i = 0; i < MEM_TAKEN_OBJECTS_NUM; i++)
     m_memoryTaken[i] = 0;
-
-  memset(&m_globsBuffHeader, 0, sizeof(EngineGlobals));
+  
+  InitEngineGlobals(&m_globsBuffHeader);
   
   #ifdef WIN32
   int initRes = clewInit(L"opencl.dll");
@@ -714,8 +721,13 @@ GPUOCLLayer::GPUOCLLayer(int w, int h, int a_flags, int a_deviceId) : Base(w, h,
     RUN_TIME_ERROR("Error when create qmcTable");
 
   float2 qmc[GBUFFER_SAMPLES];
+  float2 qmc2[PMPIX_SAMPLES];
+  
   PlaneHammersley(&qmc[0].x, GBUFFER_SAMPLES);
-  m_globals.hammersley2D = clCreateBuffer(m_globals.ctx, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, GBUFFER_SAMPLES * sizeof(float2), qmc, &ciErr1);
+  PlaneHammersley(&qmc2[0].x, PMPIX_SAMPLES);
+
+  m_globals.hammersley2DGBuff = clCreateBuffer(m_globals.ctx, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, sizeof(qmc),  qmc,  &ciErr1);
+  m_globals.hammersley2D256   = clCreateBuffer(m_globals.ctx, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, sizeof(qmc2), qmc2, &ciErr1);
 
   waitIfDebug(__FILE__, __LINE__);
 
@@ -757,9 +769,10 @@ GPUOCLLayer::~GPUOCLLayer()
   m_screen.free();
   m_scene.free();
 
-  if (m_globals.cMortonTable)     { clReleaseMemObject(m_globals.cMortonTable); m_globals.cMortonTable = nullptr; }
-  if (m_globals.qmcTable)         { clReleaseMemObject(m_globals.qmcTable);     m_globals.qmcTable     = nullptr; }
-  if (m_globals.hammersley2D)     { clReleaseMemObject(m_globals.hammersley2D); m_globals.hammersley2D = nullptr; }
+  if (m_globals.cMortonTable)     { clReleaseMemObject(m_globals.cMortonTable);      m_globals.cMortonTable      = nullptr; }
+  if (m_globals.qmcTable)         { clReleaseMemObject(m_globals.qmcTable);          m_globals.qmcTable          = nullptr; }
+  if (m_globals.hammersley2DGBuff){ clReleaseMemObject(m_globals.hammersley2DGBuff); m_globals.hammersley2DGBuff = nullptr; }
+  if (m_globals.hammersley2D256)  { clReleaseMemObject(m_globals.hammersley2D256);   m_globals.hammersley2D256   = nullptr; }
 
   if(m_globals.cmdQueue)          { clReleaseCommandQueue(m_globals.cmdQueue);          m_globals.cmdQueue          = nullptr; }
   if(m_globals.cmdQueueDevToHost) { clReleaseCommandQueue(m_globals.cmdQueueDevToHost); m_globals.cmdQueueDevToHost = nullptr; }
@@ -866,7 +879,7 @@ void GPUOCLLayer::ResizeScreen(int width, int height, int a_flags)
   m_width  = width;
   m_height = height;
 
-  const size_t MEGABLOCK_SIZE = CalcMegaBlockSize(); // calcMegaBlockSize(m_width, m_height, memAmount);
+  const size_t MEGABLOCK_SIZE = CalcMegaBlockSize(); 
 
   if (ciErr1 != CL_SUCCESS)
     RUN_TIME_ERROR("[cl_core]: Failed to create cl half screen zblocks buffer ");
@@ -935,7 +948,7 @@ size_t GPUOCLLayer::GetMemoryTaken()
 }
 
 
-char* GPUOCLLayer::GetDeviceName(int* pOCLVer) const
+const char* GPUOCLLayer::GetDeviceName(int* pOCLVer) const
 {
   memset(m_deviceName, 0, 1024);
   CHECK_CL(clGetDeviceInfo(m_globals.device, CL_DEVICE_NAME, 1024, m_deviceName, NULL));
@@ -1048,10 +1061,10 @@ void GPUOCLLayer::ContribToExternalImageAccumulator(IHRSharedAccumImage* a_pImag
   {
     if(m_screen.color0CPU.size() != m_width * m_height)
       m_screen.color0CPU.resize(m_width*m_height);
-    CHECK_CL(clEnqueueReadBuffer(m_globals.cmdQueue, m_screen.color0, CL_TRUE, 0, m_width*m_height * sizeof(cl_float4), &m_screen.color0CPU[0], 0, NULL, NULL));
+    CHECK_CL(clEnqueueReadBuffer(m_globals.cmdQueue, m_screen.color0, CL_TRUE, 0, m_width*m_height * sizeof(cl_float4), m_screen.color0CPU.data(), 0, NULL, NULL));
   }
 
-  float* input = (float*)&m_screen.color0CPU[0];
+  float* input = (float*)m_screen.color0CPU.data();
   if (input == nullptr)
   {
     std::cerr << "GPUOCLLayer::ContribToExternalImageAccumulator: nullptr internal image" << std::endl;
@@ -1109,7 +1122,7 @@ void GPUOCLLayer::InitPathTracing(int seed)
 void GPUOCLLayer::ClearAccumulatedColor()
 {
   if (m_screen.m_cpuFrameBuffer && m_screen.color0CPU.size() != 0)
-    memset(&m_screen.color0CPU[0], 0, m_width*m_height * sizeof(float4));
+    memset(m_screen.color0CPU.data(), 0, m_width*m_height*sizeof(float4));
   else if(m_screen.color0 != nullptr)
     memsetf4(m_screen.color0, make_float4(0, 0, 0, 0.0f), m_width*m_height); // #TODO: change this for 2D memset to support large resolutions!!!!
 
@@ -1292,7 +1305,8 @@ void GPUOCLLayer::EvalGBuffer(IHRSharedAccumImage* a_pAccumImage, const std::vec
 
     // (1) generate eye rays
     //
-    runKernel_MakeEyeRaysSpp(m_rays.rayPos, m_rays.rayDir, GBUFFER_SAMPLES, yBegin, finalSize);
+    runKernel_MakeEyeRaysSpp(GBUFFER_SAMPLES, yBegin, finalSize, nullptr,
+                             m_rays.rayPos, m_rays.rayDir);
     
     // (2) trace1D with single bounce
     //
@@ -1371,6 +1385,246 @@ void GPUOCLLayer::EvalGBuffer(IHRSharedAccumImage* a_pAccumImage, const std::vec
   }
 }
 
+std::vector<int> GPUOCLLayer::MakeAllPixelsList()
+{
+  std::vector<int> allPixels(m_width*m_height);
+
+  //#pragma omp parallel for
+  //for(int y=0;y<m_height;y++)
+  //{
+  //  for(int x=0;x<m_width;x++)
+  //    allPixels[y*m_width+x] = packXY1616(x,y);
+  //}
+  //return allPixels;
+  
+  const int TILE_SIZE = 32;
+
+  const int maxXRounded = (int(m_width) / int(TILE_SIZE)) * TILE_SIZE;
+  const int maxYRounded = (int(m_height) / int(TILE_SIZE)) * TILE_SIZE;
+
+  int top = 0;
+
+  for(int ty=0; ty<maxYRounded; ty+=TILE_SIZE)
+  {
+    for(int tx=0; tx<maxXRounded; tx+=TILE_SIZE)
+    { 
+      for(int y1=0;y1<TILE_SIZE;y1++)
+      {
+        const int y = ty + y1;
+        for(int x1=0;x1<TILE_SIZE;x1++)
+        {
+          const int x = tx + x1;
+          allPixels[top + y1*TILE_SIZE + x1] = packXY1616(x,y);  // ZIndexHost(x1,y1)
+        }
+      }
+
+      top += (TILE_SIZE*TILE_SIZE);
+    }
+  }
+
+  // push borders
+  //
+  const int remX = m_width  - maxXRounded;
+  const int remY = m_height - maxYRounded;
+
+  for(int y = 0; y < m_height; y++)
+  {
+    for(int x = maxXRounded; x < m_width; x++)
+    {
+      allPixels[top] = packXY1616(x,y);
+      top++;
+    }
+  }
+
+  for(int x=0;x<maxXRounded;x++)
+  {
+    for(int y = maxYRounded; y < m_height; y++)
+    {
+      allPixels[top] = packXY1616(x,y);
+      top++;
+    }
+  }
+
+  assert(top == m_width*m_height);
+
+  return allPixels;
+}
+
+void GPUOCLLayer::RunProductionSamplingMode()
+{
+  std::cout << "ProductionSamplingMode begin" << std::endl; std::cout.flush();
+  
+  Timer timer(true); 
+
+  if(m_screen.color0CPU.size() != m_width*m_height)
+  {
+    m_screen.color0CPU.resize(m_width*m_height);
+    memset(m_screen.color0CPU.data(), 0, m_screen.color0CPU.size()*sizeof(float4));
+  }
+
+  // (1) create pixels list
+  //
+  std::vector<int> allPixels = MakeAllPixelsList();
+
+  const int numPasses     = int( int64_t(m_width*m_height)*int64_t(PMPIX_SAMPLES) / int64_t(GetRayBuffSize()) );
+  const int pixelsPerPass = GetRayBuffSize() / PMPIX_SAMPLES;
+
+  cl_int ciErr1 = CL_SUCCESS;
+
+  cl_mem pixCoordGPU = clCreateBuffer(m_globals.ctx, CL_MEM_READ_ONLY,  pixelsPerPass*sizeof(int),    nullptr, &ciErr1);
+  cl_mem pixColorGPU = clCreateBuffer(m_globals.ctx, CL_MEM_WRITE_ONLY, pixelsPerPass*sizeof(float4), nullptr, &ciErr1);
+
+  if (ciErr1 != CL_SUCCESS)
+    RUN_TIME_ERROR("Error in clCreateBuffer, RunProductionSamplingMode");
+
+  std::vector<float4> pixColors(pixelsPerPass);
+
+  CHECK_CL(clEnqueueWriteBuffer(m_globals.cmdQueue, pixCoordGPU, CL_TRUE, 0, // CL_FALSECL_TRUE 
+                                pixelsPerPass*sizeof(int), (void*)(allPixels.data() + 0), 0, NULL, NULL));
+
+  int currPos = 0;
+  bool earlyExit = false;
+  for(int pass = 0; pass < numPasses; pass++)
+  { 
+    if(m_pExternalImage != nullptr)
+    {
+      bool q1 = false, q2 = false;
+      int maxSamplesPerPixel = 0;
+
+      if(m_pExternalImage != nullptr)
+      {
+        maxSamplesPerPixel = m_vars.m_varsI[HRT_MAX_SAMPLES_PER_PIXEL];
+        auto pHeader = m_pExternalImage->Header();
+        std::string msg(m_pExternalImage->MessageSendData());
+        q1 = (pHeader->spp >= maxSamplesPerPixel);
+        q2 = (msg.find("exitnow") != std::string::npos);
+      }
+
+      if(q1 || q2) // to quit immediately
+      {
+        m_sppDone    = maxSamplesPerPixel;
+        m_sppContrib = maxSamplesPerPixel;
+        earlyExit    = true;
+        break;
+      }
+    }
+
+    //std::cerr << "g_immediateExit = " << g_immediateExit << std::endl; 
+
+    // (2) take a part of list and put it to the GPU 
+    //
+    //CHECK_CL(clEnqueueWriteBuffer(m_globals.cmdQueue, pixCoordGPU, CL_TRUE, 0, 
+      //                            pixelsPerPass*sizeof(int), (void*)(allPixels.data() + currPos), 0, NULL, NULL));
+
+    // (3) generate PMPIX_SAMPLES rays per each pixel 
+    //
+
+	const int pixelsDone       = pass * pixelsPerPass;
+	const int pixelsInThisPass = (pixelsDone + pixelsPerPass <= allPixels.size()) ? pixelsPerPass : int(allPixels.size() - pixelsDone);
+    const int finalSize        = PMPIX_SAMPLES*pixelsInThisPass;
+
+    runKernel_MakeEyeRaysSpp(PMPIX_SAMPLES, 0, finalSize, pixCoordGPU,
+                             m_rays.rayPos, m_rays.rayDir);
+
+    // (4) trace rays/paths
+    //
+    runKernel_ClearAllInternalTempBuffers(finalSize);
+    trace1D(m_rays.rayPos, m_rays.rayDir, m_rays.pathAccColor, finalSize);
+    runKernel_GetShadowToAlpha(m_rays.pathAccColor, m_rays.pathShadow8B, finalSize);
+
+    // (5) average colors
+    //
+    runKernel_ReductionFloat4Average(m_rays.pathAccColor, pixColorGPU, finalSize, PMPIX_SAMPLES);
+
+    // (6) copy resulting colors to the CPU and add them to the image
+    //
+    CHECK_CL(clEnqueueReadBuffer(m_globals.cmdQueue, pixColorGPU, CL_TRUE, 0, 
+                                 pixelsInThisPass*sizeof(float4), pixColors.data(), 0, NULL, NULL));
+    
+    if(pass < numPasses-1) // copy next pixels portion asynchronious
+    {
+      CHECK_CL(clEnqueueWriteBuffer(m_globals.cmdQueue, pixCoordGPU, CL_FALSE, 0, 
+                                    pixelsInThisPass*sizeof(int), (void*)(allPixels.data() + currPos + pixelsPerPass), 0, NULL, NULL));
+      clFlush(m_globals.cmdQueue);
+    }
+
+    const float multf = float(PMPIX_SAMPLES);
+    for(int pixId = 0; pixId < pixelsInThisPass; pixId++) // contribute to image here
+    {
+      const int pixelPacked = allPixels[currPos + pixId];
+      const int x           = (pixelPacked & 0x0000FFFF);
+      const int y           = (pixelPacked & 0xFFFF0000) >> 16;
+      m_screen.color0CPU[y*m_width + x] += (pixColors[pixId]*multf); 
+    }
+
+    currPos += pixelsPerPass;
+    if(pass % 16 == 0)
+    {
+      std::cout << "production rendering: " << 100.0f*float(pass)/float(numPasses) << "% \r";
+      std::cout.flush();
+    }
+  } // for
+
+  m_globals.m_passNumberQMC += PMPIX_SAMPLES;
+
+  std::cout << std::endl;
+
+  clReleaseMemObject(pixCoordGPU); pixCoordGPU = nullptr;
+  clReleaseMemObject(pixColorGPU); pixColorGPU = nullptr;
+
+  m_spp        += PMPIX_SAMPLES;
+  m_passNumber += 2; // just for GetLDRImage works correctly it have to be not 0, see pipelined copy for common pt ... ;
+  
+  const float renderingTime = timer.getElapsed();
+  const int maxSamplesPerPixel = m_vars.m_varsI[HRT_MAX_SAMPLES_PER_PIXEL];
+
+  std::cout << "ProductionSamplingMode end, time = " << renderingTime << "s" << std::endl; std::cout.flush();
+
+  if(m_pExternalImage != nullptr && !earlyExit)
+  {
+    float4* resultPtr = (float4*)m_pExternalImage->ImageData(0);
+    const int width   = m_pExternalImage->Header()->width;
+    const int height  = m_pExternalImage->Header()->height;
+
+    const bool lockSuccess = m_pExternalImage->Lock(1000); // can wait 1s for success lock
+    
+    if (lockSuccess)
+    {
+      const int size = m_width*m_height;
+
+      #pragma omp parallel for
+      for(int i=0;i<size;i++)
+      {
+        const float4 color = m_screen.color0CPU[i];
+        resultPtr[i] += color;
+        m_screen.color0CPU[i] = float4(0,0,0,0);
+      }
+
+      m_pExternalImage->Header()->counterRcv++;
+      m_pExternalImage->Header()->spp += PMPIX_SAMPLES;
+      m_sppContrib                    += PMPIX_SAMPLES;
+        
+      m_pExternalImage->Unlock();
+      
+      //std::cerr << "m_sppContrib        = " << m_sppContrib << std::endl;
+      //std::cerr << "HRT_CONTRIB_SAMPLES = " << m_vars.m_varsI[HRT_CONTRIB_SAMPLES] << std::endl;
+      //std::cerr << "flags.prod.mode     = " << (m_vars.m_flags & HRT_PRODUCTION_IMAGE_SAMPLING) << std::endl;
+
+      if(m_vars.m_varsI[HRT_BOX_MODE_ON] == 1 && m_sppContrib >= m_vars.m_varsI[HRT_CONTRIB_SAMPLES])  // to quit immediately
+        exit(0);
+    }
+  
+    m_sppDone += PMPIX_SAMPLES;
+    
+    if(m_pExternalImage->Header()->spp >= maxSamplesPerPixel) // to quit immediately
+    {
+      m_sppDone    = maxSamplesPerPixel;
+      m_sppContrib = maxSamplesPerPixel;
+    }
+  }
+
+}
+
 void GPUOCLLayer::TraceSBDPTPass(cl_mem a_rpos, cl_mem a_rdir, cl_mem a_outColor, size_t a_size)
 {
   int maxBounce   = 3;
@@ -1409,6 +1663,10 @@ void GPUOCLLayer::BeginTracingPass()
     //
     AddContributionToScreen(m_rays.pathAccColor);
 
+  }
+  else if((m_vars.m_flags & HRT_PRODUCTION_IMAGE_SAMPLING) != 0 && (m_vars.m_flags & HRT_UNIFIED_IMAGE_SAMPLING) != 0)
+  {
+    RunProductionSamplingMode();
   }
   else if (m_vars.m_flags & HRT_UNIFIED_IMAGE_SAMPLING) // PT or LT pass
   {
@@ -1587,7 +1845,7 @@ void GPUOCLLayer::AddContributionToScreenCPU(cl_mem& in_color, cl_mem in_indices
     
     bool lockSuccess = (m_pExternalImage == nullptr);
     if (m_pExternalImage != nullptr)
-      lockSuccess = m_pExternalImage->Lock(1); // can wait 1 ms for success lock
+      lockSuccess = m_pExternalImage->Lock(250); // can wait 250 ms for success lock
     
     if (lockSuccess)
     {
@@ -1698,6 +1956,34 @@ void GPUOCLLayer::CopyForConnectEye(cl_mem in_flags,  cl_mem in_raydir,  cl_mem 
   waitIfDebug(__FILE__, __LINE__);
 }
 
+int GPUOCLLayer::CountNumActiveThreads(cl_mem a_rayFlags, size_t a_size)
+{
+  int zero = 0;
+  CHECK_CL(clEnqueueWriteBuffer(m_globals.cmdQueue, m_rays.atomicCounterMem, CL_TRUE, 0, 
+                                sizeof(int), &zero, 0, NULL, NULL));
+
+  {
+    cl_kernel kern = m_progs.screen.kernel("CountNumLiveThreads");
+  
+    size_t szLocalWorkSize = 256;
+    cl_int iNumElements    = cl_int(a_size);
+    a_size                 = roundBlocks(a_size, int(szLocalWorkSize));
+  
+    CHECK_CL(clSetKernelArg(kern, 0, sizeof(cl_mem),  (void*)&m_rays.atomicCounterMem));
+    CHECK_CL(clSetKernelArg(kern, 1, sizeof(cl_mem),  (void*)&a_rayFlags));
+    CHECK_CL(clSetKernelArg(kern, 2, sizeof(cl_int),  (void*)&iNumElements));
+  
+    CHECK_CL(clEnqueueNDRangeKernel(m_globals.cmdQueue, kern, 1, NULL, &a_size, &szLocalWorkSize, 0, NULL, NULL));
+    waitIfDebug(__FILE__, __LINE__);
+  }
+
+  int counter = 0;
+  CHECK_CL(clEnqueueReadBuffer(m_globals.cmdQueue, m_rays.atomicCounterMem, CL_TRUE, 0, 
+                              sizeof(int), &counter, 0, NULL, NULL));
+
+  return counter;
+}
+
 void GPUOCLLayer::trace1D(cl_mem a_rpos, cl_mem a_rdir, cl_mem a_outColor, size_t a_size)
 {
   // trace rays
@@ -1752,6 +2038,12 @@ void GPUOCLLayer::trace1D(cl_mem a_rpos, cl_mem a_rdir, cl_mem a_outColor, size_
     {
       CopyShadowTo(a_outColor, m_rays.MEGABLOCKSIZE);
       break;
+    }
+
+    if((m_vars.m_flags & HRT_PRODUCTION_IMAGE_SAMPLING) != 0 && (bounce%2 == 0)) // opt for empty environment rendering.
+    {
+      if(CountNumActiveThreads(m_rays.rayFlags, a_size) == 0)
+        break;
     }
 
     if (m_vars.m_varsI[HRT_ENABLE_MRAYS_COUNTERS] && measureThisBounce)

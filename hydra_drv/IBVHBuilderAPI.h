@@ -37,7 +37,7 @@ struct IBVHBuilder2
   IBVHBuilder2() {}
   virtual ~IBVHBuilder2() {}
 
-  virtual void Init(char* cgf) = 0;
+  virtual void Init(const char* cgf) = 0;
   virtual void Destroy()       = 0;
 
   virtual void GetBounds(float a_bMin[3], float a_bMax[3]) = 0;
