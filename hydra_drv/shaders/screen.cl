@@ -93,7 +93,7 @@ __kernel void MakeEyeRaysSPPPixels(__global float4*              restrict out_po
   
   RandomGen gen             = out_gens[tid];
   const float2 mutateScale  = make_float2(a_globals->varsF[HRT_MLT_SCREEN_SCALE_X], a_globals->varsF[HRT_MLT_SCREEN_SCALE_Y]);
-  const unsigned int qmcPos = reverseBits(tid, a_size) + a_passNumberForQmc * a_size; // we use reverseBits due to neighbour thread number put in to sobol random generator are too far from each other 
+  const unsigned int qmcPos = (tid % PMPIX_SAMPLES) + a_passNumberForQmc*PMPIX_SAMPLES; // we use reverseBits due to neighbour thread number put in to sobol random generator are too far from each other 
   const float4 lensOffs     = rndLens(&gen, 0, mutateScale, 
                                       a_globals->rmQMC, qmcPos, a_qmcTable);
   out_gens[tid]             = gen;

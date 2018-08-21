@@ -879,7 +879,7 @@ void GPUOCLLayer::ResizeScreen(int width, int height, int a_flags)
   m_width  = width;
   m_height = height;
 
-  const size_t MEGABLOCK_SIZE = CalcMegaBlockSize(); // calcMegaBlockSize(m_width, m_height, memAmount);
+  const size_t MEGABLOCK_SIZE = CalcMegaBlockSize(); 
 
   if (ciErr1 != CL_SUCCESS)
     RUN_TIME_ERROR("[cl_core]: Failed to create cl half screen zblocks buffer ");
@@ -1389,13 +1389,13 @@ std::vector<int> GPUOCLLayer::MakeAllPixelsList()
 {
   std::vector<int> allPixels(m_width*m_height);
 
-  // #pragma omp parallel for
-  // for(int y=0;y<m_height;y++)
-  // {
-  //   for(int x=0;x<m_width;x++)
-  //     allPixels[y*m_width+x] = packXY1616(x,y);
-  // }
-  // return allPixels;
+  //#pragma omp parallel for
+  //for(int y=0;y<m_height;y++)
+  //{
+  //  for(int x=0;x<m_width;x++)
+  //    allPixels[y*m_width+x] = packXY1616(x,y);
+  //}
+  //return allPixels;
   
   const int TILE_SIZE = 32;
 
@@ -1518,7 +1518,11 @@ void GPUOCLLayer::RunProductionSamplingMode()
 
     // (3) generate PMPIX_SAMPLES rays per each pixel 
     //
-    const int finalSize = PMPIX_SAMPLES*pixelsPerPass;
+
+	const int pixelsDone       = pass * pixelsPerPass;
+	const int pixelsInThisPass = (pixelsDone + pixelsPerPass <= allPixels.size()) ? pixelsPerPass : int(allPixels.size() - pixelsDone);
+    const int finalSize        = PMPIX_SAMPLES*pixelsInThisPass;
+
     runKernel_MakeEyeRaysSpp(PMPIX_SAMPLES, 0, finalSize, pixCoordGPU,
                              m_rays.rayPos, m_rays.rayDir);
 
@@ -1535,22 +1539,21 @@ void GPUOCLLayer::RunProductionSamplingMode()
     // (6) copy resulting colors to the CPU and add them to the image
     //
     CHECK_CL(clEnqueueReadBuffer(m_globals.cmdQueue, pixColorGPU, CL_TRUE, 0, 
-                                 pixelsPerPass*sizeof(float4), pixColors.data(), 0, NULL, NULL));
+                                 pixelsInThisPass*sizeof(float4), pixColors.data(), 0, NULL, NULL));
     
     if(pass < numPasses-1) // copy next pixels portion asynchronious
     {
       CHECK_CL(clEnqueueWriteBuffer(m_globals.cmdQueue, pixCoordGPU, CL_FALSE, 0, 
-                                    pixelsPerPass*sizeof(int), (void*)(allPixels.data() + currPos + pixelsPerPass), 0, NULL, NULL));
+                                    pixelsInThisPass*sizeof(int), (void*)(allPixels.data() + currPos + pixelsPerPass), 0, NULL, NULL));
       clFlush(m_globals.cmdQueue);
     }
 
     const float multf = float(PMPIX_SAMPLES);
-    for(int pixId = 0; pixId < pixColors.size(); pixId++) // contribute to image here
+    for(int pixId = 0; pixId < pixelsInThisPass; pixId++) // contribute to image here
     {
       const int pixelPacked = allPixels[currPos + pixId];
       const int x           = (pixelPacked & 0x0000FFFF);
       const int y           = (pixelPacked & 0xFFFF0000) >> 16;
-
       m_screen.color0CPU[y*m_width + x] += (pixColors[pixId]*multf); 
     }
 
@@ -1571,7 +1574,6 @@ void GPUOCLLayer::RunProductionSamplingMode()
 
   m_spp        += PMPIX_SAMPLES;
   m_passNumber += 2; // just for GetLDRImage works correctly it have to be not 0, see pipelined copy for common pt ... ;
-  
   
   const float renderingTime = timer.getElapsed();
   const int maxSamplesPerPixel = m_vars.m_varsI[HRT_MAX_SAMPLES_PER_PIXEL];
