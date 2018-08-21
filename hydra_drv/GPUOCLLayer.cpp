@@ -1519,8 +1519,8 @@ void GPUOCLLayer::RunProductionSamplingMode()
     // (3) generate PMPIX_SAMPLES rays per each pixel 
     //
 
-	const int pixelsDone       = pass * pixelsPerPass;
-	const int pixelsInThisPass = (pixelsDone + pixelsPerPass <= allPixels.size()) ? pixelsPerPass : int(allPixels.size() - pixelsDone);
+	  const int pixelsDone       = pass * pixelsPerPass;
+	  const int pixelsInThisPass = (pixelsDone + pixelsPerPass <= allPixels.size()) ? pixelsPerPass : int(allPixels.size() - pixelsDone);
     const int finalSize        = PMPIX_SAMPLES*pixelsInThisPass;
 
     runKernel_MakeEyeRaysSpp(PMPIX_SAMPLES, 0, finalSize, pixCoordGPU,
@@ -1643,6 +1643,9 @@ void GPUOCLLayer::TraceSBDPTPass(cl_mem a_rpos, cl_mem a_rdir, cl_mem a_outColor
 
 void GPUOCLLayer::BeginTracingPass()
 {
+  static int firstCall = 0;
+  firstCall++;
+
   m_timer.start();
 
   if (m_vars.m_flags & HRT_ENABLE_MMLT)                 // SBDPT or MMLT pass
@@ -1666,6 +1669,7 @@ void GPUOCLLayer::BeginTracingPass()
   }
   else if((m_vars.m_flags & HRT_PRODUCTION_IMAGE_SAMPLING) != 0 && (m_vars.m_flags & HRT_UNIFIED_IMAGE_SAMPLING) != 0)
   {
+    if(firstCall > 1) // stupid hack to calc gbuffer instead of render when first hrCommit is called.
     RunProductionSamplingMode();
   }
   else if (m_vars.m_flags & HRT_UNIFIED_IMAGE_SAMPLING) // PT or LT pass
