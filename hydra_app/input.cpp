@@ -11,8 +11,8 @@ Input::Input()
   //inLibraryPath = "tests/test_01"; ///< cornell box with sphere
   //inLibraryPath = "tests/test_223_small"; ///< cornell box with mirror glossy back wall
   
-  //inLibraryPath = "/home/frol/PROG/HydraAPI/main/tests/test_84";
-  inLibraryPath = "/home/frol/PROG/HydraAPI/main/tests_f/test_127";
+  inLibraryPath = "/home/frol/PROG/HydraAPI/main/tests/test_90";
+  //inLibraryPath = "/home/frol/PROG/HydraAPI/main/tests_f/test_127";
   //inLibraryPath = "/home/frol/yandexdisk/samsungdata/temp/hydra_tmp_2";
   
   //inLibraryPath = "D:/[archive]/2017/HydraAPP/hydra_app/tests/hydra_benchmark_07";
