@@ -1078,7 +1078,7 @@ pugi::xml_attribute SmoothLvlAttr(const pugi::xml_node a_heightNode)
 
 RAYTR::BumpParameters BumpAmtAndLvl(const pugi::xml_node a_materialNode);
 
-void ReadBumpAndOpacity(std::shared_ptr<IMaterial> pResult, pugi::xml_node a_node, RenderDriverRTE* a_pRTE)
+void RenderDriverRTE::ReadBumpAndOpacity(std::shared_ptr<IMaterial> pResult, pugi::xml_node a_node)
 {
   int32_t materialId       = a_node.attribute(L"id").as_int();
   const std::wstring mtype = a_node.attribute(L"type").as_string();
@@ -1115,7 +1115,7 @@ void ReadBumpAndOpacity(std::shared_ptr<IMaterial> pResult, pugi::xml_node a_nod
       auto params = BumpAmtAndLvl(a_node); 
 
       const PlainMaterial& mat = pResult->m_plain;
-      const int32_t auxTexId   = a_pRTE->GetCachedAuxNormalMatId(materialId, mat, texIdNM, a_node);
+      const int32_t auxTexId   = this->GetCachedAuxNormalMatId(materialId, mat, texIdNM, a_node);
       ((int*)mat.data)[NORMAL_TEX_OFFSET] = auxTexId;
     }
     else if (btype == L"normal_bump")
@@ -1129,12 +1129,20 @@ void ReadBumpAndOpacity(std::shared_ptr<IMaterial> pResult, pugi::xml_node a_nod
         if (texNode.attribute(L"input_gamma") == nullptr)
           samplerNM.gamma = 1.0f;
       }
-
+  
       pResult->SetNormalSampler(texIdNM, samplerNM);
-
-      const PlainMaterial& mat = pResult->m_plain;
-      const int32_t auxTexId   = a_pRTE->GetCachedAuxNormalMatId(materialId, mat, texIdNM, a_node);
-      ((int*)mat.data)[NORMAL_TEX_OFFSET] = auxTexId;
+      const int32_t texId = texNode.attribute(L"id").as_int();
+      PlainMaterial& mat  = pResult->m_plain;
+      
+      if(m_procTextures.find(texId) != m_procTextures.end())
+      {
+        ((int*)mat.data)[NORMAL_TEX_OFFSET] = texId;
+      }
+      else
+      {
+        const int32_t auxTexId = this->GetCachedAuxNormalMatId(materialId, mat, texIdNM, a_node);
+        ((int*)mat.data)[NORMAL_TEX_OFFSET] = auxTexId;
+      }
     }
     else if (btype == L"parallax")
     {
@@ -1405,7 +1413,7 @@ std::shared_ptr<IMaterial> CreateMaterialFromXmlNode(pugi::xml_node a_node, Rend
   //
   if (mtype != L"shadow_catcher")
   {
-    ReadBumpAndOpacity(pResult, a_node, a_pRTE);
+    a_pRTE->ReadBumpAndOpacity(pResult, a_node);
 
     // Read Emission
     // 
@@ -1426,7 +1434,7 @@ std::shared_ptr<IMaterial> CreateMaterialFromXmlNode(pugi::xml_node a_node, Rend
       pResult->AddFlags(PLAIN_MATERIAL_HAVE_BTDF);
   }
   else
-    ReadBumpAndOpacity(pResult, a_node, a_pRTE);
+    a_pRTE->ReadBumpAndOpacity(pResult, a_node);
 
   PopUpTransparencyAndCaustics(pResult.get());
 
