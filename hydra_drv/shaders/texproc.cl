@@ -6,11 +6,12 @@
 
 static inline float4 StoreNormal(float3 res, float a_mode)
 {
+  const float3 res2         = normalize(res);
   const float zeroPointFive = 0.49995f; // this is due to on NV and AMD 0.5 saved to 8 bit textures in different way - 127 on NV and 128 on AMD
 
-  const float resX = clamp(0.5f*res.x + zeroPointFive, 0.0f, 1.0f);
-  const float resY = clamp(0.5f*res.y + zeroPointFive, 0.0f, 1.0f);
-  const float resZ = clamp(1.0f*res.z + 0.0f, 0.0f, 1.0f);
+  const float resX = clamp(0.5f*res2.x + zeroPointFive, 0.0f, 1.0f);
+  const float resY = clamp(0.5f*res2.y + zeroPointFive, 0.0f, 1.0f);
+  const float resZ = clamp(1.0f*res2.z + 0.0f, 0.0f, 1.0f);
 
   return make_float4(resX, resY, resZ, 0.0f);
 }
