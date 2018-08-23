@@ -1,6 +1,20 @@
 #include "cglobals.h"
 #include "cfetch.h"
 
+#define NORMAL_IN_TANGENT_SPACE 16.0f
+#define NORMAL_IN_WORLD_SPACE   32.0f
+
+static inline float4 StoreNormal(float3 res, float a_mode)
+{
+  const float zeroPointFive = 0.49995f; // this is due to on NV and AMD 0.5 saved to 8 bit textures in different way - 127 on NV and 128 on AMD
+
+  const float resX = clamp(0.5f*res.x + zeroPointFive, 0.0f, 1.0f);
+  const float resY = clamp(0.5f*res.y + zeroPointFive, 0.0f, 1.0f);
+  const float resZ = clamp(1.0f*res.z + 0.0f, 0.0f, 1.0f);
+
+  return make_float4(resX, resY, resZ, 0.0f);
+}
+
 static inline float4 InternalFetch(int a_texId, const float2 texCoord, const int a_flags, 
                                    __global const float4* restrict in_texStorage1, __global const EngineGlobals* restrict in_globals)
 {
@@ -22,6 +36,8 @@ typedef struct SurfaceInfoT
   float3 wp;
   float3 lp;
   float3 n;
+  float3 tg;
+  float3 bn;
   float2 tc0;
   float  ao;
   float  ao2;
@@ -33,6 +49,8 @@ typedef struct SurfaceInfoT
 #define readAttr_WorldPos(sHit) (sHit->wp)
 #define readAttr_LocalPos(sHit) (sHit->lp)
 #define readAttr_ShadeNorm(sHit) (sHit->n)
+#define readAttr_Tangent(sHit) (sHit->tg)
+#define readAttr_Bitangent(sHit) (sHit->bn)
 #define readAttr_TexCoord0(sHit) (sHit->tc0)
 #define readAttr_AO(sHit) (sHit->ao)
 #define readAttr_AO1(sHit) (sHit->ao2)
@@ -47,7 +65,6 @@ typedef struct SurfaceInfoT
 //#define TEX_CLAMP_V   0x80000000
 
 //#PUT_YOUR_PROCEDURAL_TEXTURES_HERE:
-
 
 ///////////////////////////////////////////////////////////////
 
@@ -74,7 +91,6 @@ static inline float3 decompressShadow(ushort4 shadowCompressed)
   return invNormCoeff * make_float3((float)shadowCompressed.x, (float)shadowCompressed.y, (float)shadowCompressed.z);
 }
 
-
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -90,6 +106,7 @@ __kernel void ProcTexExec(__global       uint*          restrict a_flags,
                           __global const uchar*         restrict in_shadowAOCompressed1,
                           __global const uchar*         restrict in_shadowAOCompressed2,
                           __global const Lite_Hit*      restrict in_hits,
+                          __global const Hit_Part4*     restrict in_tangents,
                           __global const float4*        restrict in_matrices,
 
                           __global       float4*        restrict out_procTexData,
@@ -127,12 +144,15 @@ __kernel void ProcTexExec(__global       uint*          restrict a_flags,
     const Lite_Hit hit = in_hits[tid];
     const float4x4 instanceMatrixInv = fetchMatrix(hit, in_matrices);
 
-    const float4 dataPos = in_hitPosNorm[tid];
+    const float4 dataPos  = in_hitPosNorm[tid];
+    const Hit_Part4 data4 = in_tangents  [tid];
 
     SurfaceInfo surfHit;
     surfHit.wp  = to_float3(in_hitPosNorm[tid]);
     surfHit.lp  = mul4x3(instanceMatrixInv, surfHit.wp);
     surfHit.n   = normalize(decodeNormal(as_int(dataPos.w)));
+    surfHit.tg  = decodeNormal(data4.tangentCompressed);
+    surfHit.bn  = decodeNormal(data4.bitangentCompressed);
     surfHit.tc0 = in_hitTexCoord[tid];
     surfHit.ao  = shadow1; 
     surfHit.ao2 = shadow2;
