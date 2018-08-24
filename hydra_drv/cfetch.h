@@ -1019,10 +1019,16 @@ static inline __global const float4* meshNorms(__global const PlainMesh* a_pMesh
   return pheader + a_pMesh->vNormOffset;
 }
 
-static inline __global const uint* meshTangentsCompressed(__global const PlainMesh* a_pMesh)
+//static inline __global const uint* meshTangentsCompressed(__global const PlainMesh* a_pMesh)
+//{
+//  __global const float4* pheader = (__global const float4*)a_pMesh;
+//  return (__global const uint*)(pheader + a_pMesh->vTangentOffset);
+//}
+
+static inline __global const float4* meshTangents(__global const PlainMesh* a_pMesh)
 {
   __global const float4* pheader = (__global const float4*)a_pMesh;
-  return (__global const uint*)(pheader + a_pMesh->vTangentOffset);
+  return (__global const float4*)(pheader + a_pMesh->vTangentOffset);
 }
 
 //vTangentOffset

@@ -957,7 +957,7 @@ bool RenderDriverRTE::UpdateMesh(int32_t a_meshId, pugi::xml_node a_meshNode, co
   const size_t vertTexcSize   = 0; // roundBlocks(sizeof(float2)*a_input.vertNum, align);   // #TODO: add aux text coord channel if have such.
     
   const size_t vertTangOffset = vertTexcOffset + vertTexcSize;
-  const size_t vertTangSize   = roundBlocks(sizeof(int)*a_input.vertNum, align); // compressed tangent
+  const size_t vertTangSize   = roundBlocks(sizeof(float4)*a_input.vertNum, align); // compressed tangent
    
   const size_t triIndOffset   = vertTangOffset + vertTangSize;
   const size_t triIndSize     = roundBlocks(a_input.triNum * 3 * sizeof(int), align);
@@ -972,10 +972,7 @@ bool RenderDriverRTE::UpdateMesh(int32_t a_meshId, pugi::xml_node a_meshNode, co
 
   // (1) compress tangents
   //
-  const float4* a_tan = (const float4*)a_input.tan4f;
-  std::vector<int> compressedTangent(a_input.vertNum);
-  for (int i = 0; i < a_input.vertNum; i++)
-    compressedTangent[i] = encodeNormal(to_float3(a_tan[i]));
+  const float4* tan4f  = (const float4*)a_input.tan4f;
 
   // (2) pack first texture coordinates to pos.w and norm.w
   //
@@ -1033,7 +1030,7 @@ bool RenderDriverRTE::UpdateMesh(int32_t a_meshId, pugi::xml_node a_meshNode, co
   m_pGeomStorage->UpdatePartial(a_meshId, &posAndTx[0],          vertPosOffset,  a_input.vertNum * sizeof(float4));
   m_pGeomStorage->UpdatePartial(a_meshId, &normAndTy[0],         vertNormOffset, a_input.vertNum * sizeof(float4));
   //m_pGeomStorage->UpdatePartial(a_meshId, a_input.texcoord2f,    vertTexcOffset, a_input.vertNum * sizeof(float2)); //#TODO: put auxilarry tex coord channel if has such
-  m_pGeomStorage->UpdatePartial(a_meshId, &compressedTangent[0], vertTangOffset, a_input.vertNum * sizeof(int)); // compressed tangent
+  m_pGeomStorage->UpdatePartial(a_meshId, tan4f, vertTangOffset, a_input.vertNum * sizeof(float4)); // compressed tangent
 
   m_pGeomStorage->UpdatePartial(a_meshId, a_input.indices,       triIndOffset,   a_input.triNum  * 3 * sizeof(int));
   m_pGeomStorage->UpdatePartial(a_meshId, a_input.triMatIndices, triMIndOffset,  a_input.triNum  * sizeof(int));
