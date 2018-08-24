@@ -2315,6 +2315,8 @@ static inline bool isProcTexId(int a_texId, const __private ProcTextureList* a_p
 \return texture color; 
 */
 
+//#define BUGGY_AMD_IBPT_PROCTEX_FETCH
+
 static inline float4 readProcTex(int a_texId, const __private ProcTextureList* a_pList)
 {
   if(a_texId == a_pList->id_f4[0])
@@ -2323,7 +2325,7 @@ static inline float4 readProcTex(int a_texId, const __private ProcTextureList* a
     return to_float4(a_pList->fdata4[1], 0.0f);
   else if(a_texId == a_pList->id_f4[2])
     return to_float4(a_pList->fdata4[2], 0.0f);
-#ifndef BUGGY_AMD_IBPT_PROCTEX_GETCH
+#ifndef BUGGY_AMD_IBPT_PROCTEX_FETCH
   else if(a_texId == a_pList->id_f4[3])
     return to_float4(a_pList->fdata4[3], 0.0f);
   else if(a_texId == a_pList->id_f4[4])
