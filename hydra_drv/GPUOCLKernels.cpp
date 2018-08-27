@@ -537,8 +537,6 @@ void GPUOCLLayer::runKernel_ComputeHit(cl_mem a_rpos, cl_mem a_rdir, size_t a_si
     CHECK_CL(clSetKernelArg(kernProcT, 4, sizeof(cl_mem), (void*)&m_rays.hitMatId));
     CHECK_CL(clSetKernelArg(kernProcT, 5, sizeof(cl_mem), (void*)&m_rays.hitTangent));
 
-    //m_rays.hitTangent
-
     CHECK_CL(clSetKernelArg(kernProcT, 6, sizeof(cl_mem), (void*)&m_rays.aoCompressed));
     CHECK_CL(clSetKernelArg(kernProcT, 7, sizeof(cl_mem), (void*)&m_rays.aoCompressed2));
     CHECK_CL(clSetKernelArg(kernProcT, 8, sizeof(cl_mem), (void*)&m_rays.hits));

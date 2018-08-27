@@ -103,11 +103,12 @@ __kernel void ProcTexExec(__global       uint*          restrict a_flags,
                           __global const float4*        restrict in_hitPosNorm,
                           __global const float2*        restrict in_hitTexCoord,
                           __global const HitMatRef*     restrict in_matData,
- 
+                          __global const Hit_Part4*     restrict in_tangents,
+
                           __global const uchar*         restrict in_shadowAOCompressed1,
                           __global const uchar*         restrict in_shadowAOCompressed2,
                           __global const Lite_Hit*      restrict in_hits,
-                          __global const Hit_Part4*     restrict in_tangents,
+                          
                           __global const float4*        restrict in_matrices,
 
                           __global       float4*        restrict out_procTexData,
