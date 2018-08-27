@@ -1105,13 +1105,13 @@ float3 IntegratorMMLT::PathTraceDirectLight(float3 ray_pos, float3 ray_dir, MisD
     sc.bn = surfElem.biTangent;
     sc.tc = surfElem.texCoord;
 
-    const auto evalData = materialEval(pHitMaterial, &sc, false, false, /* global data --> */ m_pGlobals, m_texStorage, m_texStorage, &m_ptlDummy);
+    const auto evalData      = materialEval(pHitMaterial, &sc, false, false, /* global data --> */ m_pGlobals, m_texStorage, m_texStorage, &m_ptlDummy);
 
     const float cosThetaOut1 = fmax(+dot(shadowRayDir, surfElem.normal), 0.0f);
     const float cosThetaOut2 = fmax(-dot(shadowRayDir, surfElem.normal), 0.0f);
-    const float3 bxdfVal = (evalData.brdf*cosThetaOut1 + evalData.btdf*cosThetaOut2);
+    const float3 bxdfVal     = (evalData.brdf*cosThetaOut1 + evalData.btdf*cosThetaOut2);
 
-    const float lgtPdf = explicitSam.pdf*lightPickProb;
+    const float lgtPdf       = explicitSam.pdf*lightPickProb;
 
     float misWeight = misWeightHeuristic(lgtPdf, evalData.pdfFwd); // (lgtPdf*lgtPdf) / (lgtPdf*lgtPdf + bsdfPdf*bsdfPdf);
     if (explicitSam.isPoint)
