@@ -229,6 +229,22 @@ void GPUOCLLayer::trace1DPrimaryOnly(cl_mem a_rpos, cl_mem a_rdir, cl_mem a_outC
 
 }
 
+void GPUOCLLayer::CopyShadowTo(cl_mem a_color, size_t a_size)
+{
+  size_t localWorkSize   = CMP_RESULTS_BLOCK_SIZE;
+  int iSize              = int(a_size);
+  a_size                 = roundBlocks(a_size, int(localWorkSize));
+
+  cl_kernel kern         = m_progs.screen.kernel("CopyShadowTo");
+
+  CHECK_CL(clSetKernelArg(kern, 0, sizeof(cl_mem), (void*)&m_rays.pathShadow8B));
+  CHECK_CL(clSetKernelArg(kern, 1, sizeof(cl_mem), (void*)&a_color)); 
+  CHECK_CL(clSetKernelArg(kern, 2, sizeof(cl_int), (void*)&iSize));
+
+  CHECK_CL(clEnqueueNDRangeKernel(m_globals.cmdQueue, kern, 1, NULL, &a_size, &localWorkSize, 0, NULL, NULL));
+  waitIfDebug(__FILE__, __LINE__);
+}
+
 void GPUOCLLayer::DrawNormals()
 {
   cl_kernel makeRaysKern = m_progs.screen.kernel("MakeEyeRays");

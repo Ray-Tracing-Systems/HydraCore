@@ -11,7 +11,7 @@ Input::Input()
   //inLibraryPath = "tests/test_01"; ///< cornell box with sphere
   //inLibraryPath = "tests/test_223_small"; ///< cornell box with mirror glossy back wall
   
-  //inLibraryPath = "/home/frol/PROG/HydraAPI/main/tests/test_86";
+  //inLibraryPath = "/home/frol/PROG/HydraAPI/main/tests/test_90";
   //inLibraryPath = "/home/frol/PROG/HydraAPI/main/tests_f/test_127";
   //inLibraryPath = "/home/frol/yandexdisk/Hydra/scenelib";
   
