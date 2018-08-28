@@ -628,8 +628,11 @@ static inline float phongGlosiness(__global const PlainMaterial* a_pMat, const f
   if (as_int(a_pMat->data[PHONG_GLOSINESS_TEXID_OFFSET]) != INVALID_TEXTURE)
   {
     const int2   texId      = make_int2(as_int(a_pMat->data[PHONG_GLOSINESS_TEXID_OFFSET]), as_int(a_pMat->data[PHONG_GLOSINESS_TEXMATRIXID_OFFSET]));
+    #ifndef BUGGY_AMD_IBPT_PROCTEX_FETCH
+    const float3 glossColor = sample2DExt(texId.y, a_texCoord, (__global const int4*)a_pMat, a_tex, a_globals, a_ptList);
+    #else
     const float3 glossColor = sample2D(texId.y, a_texCoord, (__global const int4*)a_pMat, a_tex, a_globals);
-    //const float3 glossColor = sample2DExt(texId.y, a_texCoord, (__global const int4*)a_pMat, a_tex, a_globals, a_ptList);
+    #endif
     const float  glossMult  = a_pMat->data[PHONG_GLOSINESS_OFFSET];
     const float  glosiness  = clamp(glossMult*maxcomp(glossColor), 0.0f, 1.0f);
     return glosiness; 
@@ -808,8 +811,12 @@ static inline float blinnGlosiness(__global const PlainMaterial* a_pMat, const f
   if (as_int(a_pMat->data[BLINN_GLOSINESS_TEXID_OFFSET]) != INVALID_TEXTURE)
   {
     const int2   texId      = make_int2(as_int(a_pMat->data[BLINN_GLOSINESS_TEXID_OFFSET]), as_int(a_pMat->data[BLINN_GLOSINESS_TEXMATRIXID_OFFSET]));
+    
+    #ifndef BUGGY_AMD_IBPT_PROCTEX_FETCH
+    const float3 glossColor = sample2DExt(texId.y, a_texCoord, (__global const int4*)a_pMat, a_tex, a_globals, a_ptList);
+    #else
     const float3 glossColor = sample2D(texId.y, a_texCoord, (__global const int4*)a_pMat, a_tex, a_globals);
-    //const float3 glossColor = sample2DExt(texId.y, a_texCoord, (__global const int4*)a_pMat, a_tex, a_globals, a_ptList);
+    #endif
     const float  glossMult  = a_pMat->data[BLINN_GLOSINESS_OFFSET];
     const float  glosiness  = clamp(glossMult*maxcomp(glossColor), 0.0f, 1.0f);
     return glosiness;
@@ -1295,11 +1302,16 @@ static inline BRDFSelector materialRandomWalkBRDF(__global const PlainMaterial* 
   return res;
 }
 
-static inline float3 materialNormalMapFetch(__global const PlainMaterial* pHitMaterial, const float2 a_texCoord, texture2d_t a_tex, __global const EngineGlobals* a_globals)
+static inline float3 materialNormalMapFetch(__global const PlainMaterial* pHitMaterial, const float2 a_texCoord, texture2d_t a_tex, 
+                                            __global const EngineGlobals* a_globals, __private const ProcTextureList* a_ptList)
 {
   const int materialFlags    = materialGetFlags(pHitMaterial);
   const int2 texIds          = materialGetNormalTex(pHitMaterial);
+  #ifndef BUGGY_AMD_IBPT_PROCTEX_FETCH
+  const float3 normalFromTex = sample2DAuxExt(texIds, a_texCoord, (__global const int4*)pHitMaterial, a_tex, a_globals, a_ptList);
+  #else
   const float3 normalFromTex = sample2DAux(texIds, a_texCoord, (__global const int4*)pHitMaterial, a_tex, a_globals);
+  #endif
 
   float3 normalTS = make_float3(2.0f * normalFromTex.x - 1.0f, 2.0f * normalFromTex.y - 1.0f, normalFromTex.z);
   //float3 normalTS = make_float3(0, 0, 1);
@@ -1321,9 +1333,10 @@ static inline float3 materialNormalMapFetch(__global const PlainMaterial* pHitMa
 }
 
 static inline float3 BumpMapping(const float3 tangent, const float3 bitangent, const float3 normal, const float2 a_texCoord,
-                                 __global const PlainMaterial* pHitMaterial, __global const EngineGlobals* a_globals, texture2d_t a_texNormal)
+                                 __global const PlainMaterial* pHitMaterial, __global const EngineGlobals* a_globals, texture2d_t a_texNormal, 
+                                 __private const ProcTextureList* a_ptList)
 {
-  const float3   normalTS         = materialNormalMapFetch(pHitMaterial, a_texCoord, a_texNormal, a_globals);
+  const float3   normalTS         = materialNormalMapFetch(pHitMaterial, a_texCoord, a_texNormal, a_globals, a_ptList);
   const float3x3 tangentTransform = make_float3x3(tangent, bitangent, normal);
 
   return  normalize(mul3x3x3(inverse(tangentTransform), normalTS));
@@ -1343,7 +1356,7 @@ static inline void MaterialLeafSampleAndEvalBRDF(__global const PlainMaterial* p
   {
     const bool isGlass    = (materialGetType(pMat) == PLAIN_MAT_CLASS_GLASS);            // dirty hack for glass; #TODO: fix that more accurate
     const float3 flatNorm = sc->hfi && !isGlass ? (-1.0f)*sc->fn : sc->fn;               // dirty hack for glass; #TODO: fix that more accurate
-    hitNorm = BumpMapping(sc->tg, sc->bn, flatNorm, sc->tc, pMat, a_globals, a_texNormal);
+    hitNorm               = BumpMapping(sc->tg, sc->bn, flatNorm, sc->tc, pMat, a_globals, a_texNormal, a_ptList);
   }
   //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -1475,7 +1488,7 @@ static inline BxDFResult materialLeafEval(__global const PlainMaterial* pMat, __
   float cosMult2 = 1.0f;
   if (materialGetNormalTex(pMat).x != INVALID_TEXTURE)
   {
-    n = BumpMapping(sc->tg, sc->bn, sc->fn, sc->tc, pMat, a_globals, a_texNormal);
+    n = BumpMapping(sc->tg, sc->bn, sc->fn, sc->tc, pMat, a_globals, a_texNormal, a_ptList);
    
     const float3 lDir     = a_fwdDir ? sc->v : sc->l; // magic swap for normal mapping works with LT; don't ask me why this works, i don't know!
     const float  clampVal = a_fwdDir ? 0.15f : 1e-6f; // fuck reversibility

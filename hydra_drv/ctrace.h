@@ -1869,7 +1869,7 @@ static inline SurfaceHit surfaceEvalLS(const float3 a_rpos, const float3 a_rdir,
   __global const float4* vertPos      = meshVerts(mesh);
   __global const float4* vertNorm     = meshNorms(mesh);
   //__global const float2* vertTexCoord = meshTexCoords(mesh);             //#TODO: use this for aux tex channel
-  __global const uint*   vertTangent  = meshTangentsCompressed(mesh);
+  __global const float4* vertTangent  = meshTangents(mesh);
   __global const int*    vertIndices  = meshTriIndices(mesh);
   __global const int*    matIndices   = meshMatIndices(mesh);
   __global const float*  shadowRayOff = meshShadowRayOff(mesh);
@@ -1915,9 +1915,9 @@ static inline SurfaceHit surfaceEvalLS(const float3 a_rpos, const float3 a_rdir,
   surfHit.t           = hit.t;
   surfHit.sRayOff     = shadowRayOff[hit.primId]; // *fmax(fmin(uv.x + uv.y, fmin(1.0f - uv.x, 1.0f - uv.y)), 0.0f); // offset more in the center of poly and edges, offset less at vertices.
   
-  const float3 A_tang = decodeNormal(vertTangent[offs_A]); // GetVertexNorm(offs_A);
-  const float3 B_tang = decodeNormal(vertTangent[offs_B]); // GetVertexNorm(offs_B);
-  const float3 C_tang = decodeNormal(vertTangent[offs_C]); // GetVertexNorm(offs_C);
+  const float4 A_tang = vertTangent[offs_A]; // GetVertexNorm(offs_A);
+  const float4 B_tang = vertTangent[offs_B]; // GetVertexNorm(offs_B);
+  const float4 C_tang = vertTangent[offs_C]; // GetVertexNorm(offs_C);
 
   bool invertFlatNorm = false;
   surfHit.flatNormal  = normalize(cross(A_pos - B_pos, A_pos - C_pos));
@@ -1957,8 +1957,11 @@ static inline SurfaceHit surfaceEvalLS(const float3 a_rpos, const float3 a_rdir,
       surfHit.hfi = false;
   }
 
-  surfHit.tangent     = normalize((1.0f - uv.x - uv.y)*A_tang + uv.y*B_tang + uv.x*C_tang);
-  surfHit.biTangent   = normalize(cross(surfHit.normal, surfHit.tangent));
+  const float handedness = (A_tang.w < 0.0f || B_tang.w < 0.0f || C_tang.w < 0.0f) ? -1.0f : 1.0f;
+
+  surfHit.tangent   = normalize((1.0f - uv.x - uv.y)*to_float3(A_tang) + uv.y*to_float3(B_tang) + uv.x*to_float3(C_tang));
+  surfHit.biTangent = normalize( handedness > 0.0f ? cross(surfHit.normal, surfHit.tangent) : cross(surfHit.tangent, surfHit.normal));
+  
   
   return surfHit;
 }

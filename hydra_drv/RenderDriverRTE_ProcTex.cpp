@@ -525,6 +525,11 @@ void RenderDriverRTE::EndTexturesUpdate()
       int counter = 0;
       for (auto ptex : m_procTextures)
       {
+        if(ptex.second.call == "")
+        {
+          std::cerr << "[HydraCore]: RenderDriverRTE::EndTexturesUpdate, empty texture call code, id =  " << ptex.first << std::endl;
+        }
+
         m_outProcTexFile << "    if(materialHeadHaveTargetProcTex(pHitMaterial," << ptex.first << "))" << std::endl;
         m_outProcTexFile << "    {" << std::endl;
         m_outProcTexFile << spaces.c_str() << "  __global const float* stack = fdata + findArgDataOffsetInTable(" << ptex.first << ", table);" << std::endl;

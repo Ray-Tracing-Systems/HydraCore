@@ -2232,6 +2232,12 @@ static inline void InitProcTextureList(__private ProcTextureList* a_pList)
   a_pList->id_f4[2] = INVALID_TEXTURE;
   a_pList->id_f4[3] = INVALID_TEXTURE;
   a_pList->id_f4[4] = INVALID_TEXTURE;
+
+  a_pList->fdata4[0] = make_float3(1,1,1);
+  a_pList->fdata4[1] = make_float3(1,1,1);
+  a_pList->fdata4[2] = make_float3(1,1,1);
+  a_pList->fdata4[3] = make_float3(1,1,1);
+  a_pList->fdata4[4] = make_float3(1,1,1);
 }
 
 static inline void ReadProcTextureList(__global float4* fdata, int tid, int size,
@@ -2240,6 +2246,9 @@ static inline void ReadProcTextureList(__global float4* fdata, int tid, int size
   if (fdata == 0)
     return;
 
+  const float4 f0 = fdata[tid + size * 0];
+  const float4 f1 = fdata[tid + size * 1];
+  const float4 f2 = fdata[tid + size * 2];
   const float4 f3 = fdata[tid + size * 3];
   const float4 f4 = fdata[tid + size * 4];
 
@@ -2253,21 +2262,18 @@ static inline void ReadProcTextureList(__global float4* fdata, int tid, int size
 
   if (a_pRes->id_f4[0] != INVALID_TEXTURE || a_pRes->id_f4[4] != INVALID_TEXTURE)
   {
-    const float4 f0     = fdata[tid + size * 0];
     a_pRes->fdata4[0]   = to_float3(f0);
     a_pRes->fdata4[4].x = f0.w;
   }
 
   if (a_pRes->id_f4[1] != INVALID_TEXTURE || a_pRes->id_f4[4] != INVALID_TEXTURE)
   {
-    const float4 f1     = fdata[tid + size * 1];
     a_pRes->fdata4[1]   = to_float3(f1);
     a_pRes->fdata4[4].y = f1.w;
   }
   
   if (a_pRes->id_f4[2] != INVALID_TEXTURE || a_pRes->id_f4[4] != INVALID_TEXTURE)
   {
-    const float4 f2     = fdata[tid + size * 2];
     a_pRes->fdata4[2]   = to_float3(f2);
     a_pRes->fdata4[4].z = f2.w;
   }
@@ -2291,9 +2297,7 @@ static inline void WriteProcTextureList(__global float4* fdata, int tid, int siz
   if (a_pRes->id_f4[2] != INVALID_TEXTURE || a_pRes->id_f4[4] != INVALID_TEXTURE)
     fdata[tid + size * 2] = f2;
 
-  if (a_pRes->id_f4[3] != INVALID_TEXTURE || a_pRes->id_f4[4] != INVALID_TEXTURE)
-    fdata[tid + size * 3] = f3;
-
+  fdata[tid + size * 3] = f3;
   fdata[tid + size * 4] = make_float4( as_float(a_pRes->id_f4[0]), as_float(a_pRes->id_f4[1]), as_float(a_pRes->id_f4[2]), as_float(a_pRes->id_f4[3]));
 }
 
@@ -2311,28 +2315,22 @@ static inline bool isProcTexId(int a_texId, const __private ProcTextureList* a_p
 \return texture color; 
 */
 
+//#define BUGGY_AMD_IBPT_PROCTEX_FETCH
+
 static inline float4 readProcTex(int a_texId, const __private ProcTextureList* a_pList)
 {
-  float4 res = make_float4(1, 1, 1, -1.0f);
-
-  res = (a_texId == a_pList->id_f4[0]) ? to_float4(a_pList->fdata4[0], 0.0f) : res;
-  res = (a_texId == a_pList->id_f4[1]) ? to_float4(a_pList->fdata4[1], 0.0f) : res;
-  res = (a_texId == a_pList->id_f4[2]) ? to_float4(a_pList->fdata4[2], 0.0f) : res;
-  res = (a_texId == a_pList->id_f4[3]) ? to_float4(a_pList->fdata4[3], 0.0f) : res;
-  res = (a_texId == a_pList->id_f4[4]) ? to_float4(a_pList->fdata4[4], 0.0f) : res;
-
-  //if (a_texId == a_pList->id_f4[0])
-  //  res = to_float4(a_pList->fdata4[0], 0.0f);
-  //if (a_texId == a_pList->id_f4[1])
-  //  res = to_float4(a_pList->fdata4[1], 0.0f);
-  //if (a_texId == a_pList->id_f4[2])
-  //  res = to_float4(a_pList->fdata4[2], 0.0f);
-  //if (a_texId == a_pList->id_f4[3])
-  //  res = to_float4(a_pList->fdata4[3], 0.0f);
-  //if (a_texId == a_pList->id_f4[4])
-  //  res = to_float4(a_pList->fdata4[4], 0.0f);
-
-  return res;
+  if(a_texId == a_pList->id_f4[0])
+    return to_float4(a_pList->fdata4[0], 0.0f);
+  else if(a_texId == a_pList->id_f4[1])
+    return to_float4(a_pList->fdata4[1], 0.0f);
+  else if(a_texId == a_pList->id_f4[2])
+    return to_float4(a_pList->fdata4[2], 0.0f);
+  else if(a_texId == a_pList->id_f4[3])
+    return to_float4(a_pList->fdata4[3], 0.0f);
+  else if(a_texId == a_pList->id_f4[4])
+    return to_float4(a_pList->fdata4[4], 0.0f);
+  else
+    return make_float4(1, 1, 1, -1.0f);
 }
 
 typedef struct ShadowSampleT

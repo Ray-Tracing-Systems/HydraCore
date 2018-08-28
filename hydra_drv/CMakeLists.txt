@@ -33,8 +33,11 @@ set(SOURCE_FILES
         globals_sys.h
         GPUOCLData.cpp
         GPUOCLKernels.cpp
-        GPUOCLLayer.cpp
         GPUOCLLayer.h
+        GPUOCLLayer.cpp
+        GPUOCLLayerAdvanced.cpp
+        GPUOCLLayerCore.cpp
+        GPUOCLLayerOther.cpp
         GPUOCLLayerMLT.cpp
         GPUOCLTests.cpp
         IBVHBuilderAPI.h

@@ -463,3 +463,6 @@ protected:
 };
 
 void RoundBlocks2D(size_t global_item_size[2], size_t local_item_size[2]);
+
+
+static constexpr bool FORCE_DRAW_SHADOW = false;

@@ -535,6 +535,11 @@ CLProgram::CLProgram(cl_device_id a_devId, cl_context a_ctx,
 
     std::cerr << "cl program compilation failed!\tfile: " << cs_path.c_str() << std::endl;
     std::cerr << buffer << std::endl;
+    std::cerr.flush();
+
+    std::cout << "cl program compilation failed!\tfile: " << cs_path.c_str() << std::endl;
+    std::cout << buffer << std::endl;
+    std::cout.flush();
 
     free(buffer);
     throw std::runtime_error(std::string("cl program compilation failed!\tfile : ") + cs_path + std::string(", cl error type = ") + getOpenCLErrorString(m_lastErr));

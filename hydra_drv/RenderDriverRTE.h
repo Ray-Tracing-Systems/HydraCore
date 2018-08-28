@@ -127,6 +127,7 @@ struct RenderDriverRTE : public IHRRenderDriver
   float m_shadowMatteBackGamma;
 
   void ExecuteCommand(const wchar_t* a_cmd, wchar_t* a_out) override;
+  void ReadBumpAndOpacity(std::shared_ptr<RAYTR::IMaterial> pResult, pugi::xml_node a_node);
 
 protected:
 
@@ -295,8 +296,6 @@ protected:
   bool  m_alreadyDeleted;
   bool  m_haveAtLeastOneAOMat;
   bool  m_haveAtLeastOneAOMat2;
-  
-  friend void ReadBumpAndOpacity(std::shared_ptr<RAYTR::IMaterial> pResult, pugi::xml_node a_node, RenderDriverRTE* a_pRTE);
 
   void FreeCPUMem();
 
