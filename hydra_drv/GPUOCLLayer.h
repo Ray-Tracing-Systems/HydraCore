@@ -428,7 +428,7 @@ protected:
 
   // MLT
   //
-  void runKernel_MLTContribToScreenAtomics(cl_mem xVector, cl_mem xColor, cl_mem yColor, size_t a_size);
+  
 
   // GBuffer and e.t.c
   //

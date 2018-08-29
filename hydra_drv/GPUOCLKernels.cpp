@@ -1143,33 +1143,6 @@ void GPUOCLLayer::runKernel_InitRandomGen(cl_mem a_buffer, size_t a_size, int a_
   waitIfDebug(__FILE__, __LINE__);
 }
 
-void GPUOCLLayer::runKernel_MLTContribToScreenAtomics(cl_mem xVector, cl_mem xColor, cl_mem yColor, size_t a_size)
-{
-  size_t localWorkSize = CMP_RESULTS_BLOCK_SIZE;
-  int iSize            = int(a_size);
-  a_size               = roundBlocks(a_size, int(localWorkSize));
-
-  cl_kernel myKernel = m_progs.mlt.kernel("MLTContribToScreenAtomics");
-
-  const cl_mem qmcPositions = 0;
-
-  CHECK_CL(clSetKernelArg(myKernel, 0, sizeof(cl_mem), (void*)&xColor));
-  CHECK_CL(clSetKernelArg(myKernel, 1, sizeof(cl_mem), (void*)&yColor)); 
-  CHECK_CL(clSetKernelArg(myKernel, 2, sizeof(cl_mem), (void*)&xVector));
-  CHECK_CL(clSetKernelArg(myKernel, 3, sizeof(cl_mem), (void*)&m_mlt.rstateOld));
-  CHECK_CL(clSetKernelArg(myKernel, 4, sizeof(cl_mem), (void*)&m_screen.targetFrameBuffPointer));
-  CHECK_CL(clSetKernelArg(myKernel, 5, sizeof(cl_mem), (void*)&qmcPositions));
-  CHECK_CL(clSetKernelArg(myKernel, 6, sizeof(cl_mem), (void*)&m_globals.qmcTable));
-  CHECK_CL(clSetKernelArg(myKernel, 7, sizeof(cl_mem), (void*)&m_globals.cMortonTable));
-  CHECK_CL(clSetKernelArg(myKernel, 8, sizeof(cl_int), (void*)&m_width));
-  CHECK_CL(clSetKernelArg(myKernel, 9, sizeof(cl_int), (void*)&m_height));
-  CHECK_CL(clSetKernelArg(myKernel,10, sizeof(cl_int), (void*)&iSize));
-  CHECK_CL(clSetKernelArg(myKernel,11, sizeof(cl_mem), (void*)&m_scene.allGlobsData));
-
-  CHECK_CL(clEnqueueNDRangeKernel(m_globals.cmdQueue, myKernel, 1, NULL, &a_size, &localWorkSize, 0, NULL, NULL));
-  waitIfDebug(__FILE__, __LINE__);
-}
-
 
 //// ML Render
 //

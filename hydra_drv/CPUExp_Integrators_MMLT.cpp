@@ -928,8 +928,6 @@ PathVertex IntegratorMMLT::CameraPath(float3 ray_pos, float3 ray_dir, float3 a_p
 }
 
 
-
-
 float3 IntegratorMMLT::ConnectEye(const PathVertex& a_lv, int a_ltDepth,
                                    PerThreadData* a_perThread, int* pX, int* pY)
 {

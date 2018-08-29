@@ -413,10 +413,10 @@ PathVertex IntegratorSBDPT::CameraPath(float3 ray_pos, float3 ray_dir, float3 a_
   else if (a_currDepth == a_targetDepth && !a_haveToHitLightSource) // #NOTE: what if a_targetDepth == 1 ?
   {
     PathVertex resVertex;
-    resVertex.hit          = surfElem;
-    resVertex.ray_dir      = ray_dir;
-    resVertex.valid        = true;
-    resVertex.accColor     = float3(1, 1, 1);
+    resVertex.hit      = surfElem;
+    resVertex.ray_dir  = ray_dir;
+    resVertex.valid    = true;
+    resVertex.accColor = float3(1, 1, 1);
 
     if (a_targetDepth != 1)
     {

@@ -94,9 +94,11 @@ size_t GPUOCLLayer::MLT_Alloc(int a_maxBounce)
   if (ciErr1 != CL_SUCCESS)
     RUN_TIME_ERROR("[cl_core]: Failed to create yColor ");
 
-  m_mlt.cameraVertex   = clCreateBuffer(m_globals.ctx, CL_MEM_READ_WRITE, 4*sizeof(float4)*m_rays.MEGABLOCKSIZE, NULL, &ciErr1);
+  const size_t pathVertexSize = PATH_VERTEX_SIZE_IN_F4*sizeof(float4)*m_rays.MEGABLOCKSIZE;
+
+  m_mlt.cameraVertex   = clCreateBuffer(m_globals.ctx, CL_MEM_READ_WRITE, pathVertexSize, NULL, &ciErr1);
   m_mlt.pdfArray       = clCreateBuffer(m_globals.ctx, CL_MEM_READ_WRITE, 2*sizeof(float)*m_rays.MEGABLOCKSIZE*a_maxBounce, NULL, &ciErr1);
-  m_mlt.memTaken      += 4*sizeof(float4)*m_rays.MEGABLOCKSIZE;
+  m_mlt.memTaken      += pathVertexSize;
   m_mlt.memTaken      += 2*sizeof(float) *m_rays.MEGABLOCKSIZE*a_maxBounce;
   
   if (ciErr1 != CL_SUCCESS)
@@ -115,8 +117,7 @@ void GPUOCLLayer::MLT_Init(int a_seed)
   int a_seed2 = (a_seed | rand());
 
   runKernel_InitRandomGen(m_mlt.rstateForAcceptReject, m_rays.MEGABLOCKSIZE, a_seed);
-  runKernel_InitRandomGen(m_mlt.rstateCurr, m_rays.MEGABLOCKSIZE, a_seed2);
-
+  runKernel_InitRandomGen(m_mlt.rstateCurr,            m_rays.MEGABLOCKSIZE, a_seed2);
 
 }
 
@@ -169,3 +170,34 @@ void GPUOCLLayer::inPlaceScanAnySize1f(cl_mem a_inBuff, size_t a_size)
 }
 
 
+void TestPathVertexReadWrite()
+{
+  PathVertex origin, copy;
+  float4 data[PATH_VERTEX_SIZE_IN_F4];
+
+  origin.hit.pos        = float3(1,2,3);
+  origin.hit.normal     = float3(4,5,6);
+  origin.hit.texCoord   = float2(7,8);
+  origin.hit.flatNormal = float3(0,1,0);
+  origin.hit.tangent    = float3(1,0,0);
+  origin.hit.biTangent  = float3(0,0,1);
+  origin.hit.matId      = 777;
+  origin.hit.hfi        = false;
+  origin.hit.t          = 500.0f;
+  origin.hit.sRayOff    = 0.001f;
+
+  origin.ray_dir        = float3(9,10,11);
+  origin.accColor       = float3(12,13,14);
+  origin.lastGTerm      = 15.0f;
+  origin.valid          = true;
+  origin.wasSpecOnly    = false;
+  
+  WritePathVertex(&origin, 0, 1, 
+                  data);
+
+  ReadPathVertex(data, 0, 1, 
+                 &copy);
+
+  int a = 2;
+
+}

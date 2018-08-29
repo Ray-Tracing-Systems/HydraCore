@@ -6,8 +6,7 @@
 #include "cmaterial.h"
 #include "clight.h"
 
-// light path
-//
+
 typedef struct PathVertexT
 {
   SurfaceHit hit;
@@ -31,6 +30,67 @@ static inline void InitPathVertex(__private PathVertex* a_pVertex)
   a_pVertex->accColor    = make_float3(1, 1, 1);
   a_pVertex->wasSpecOnly = false;
 }
+
+#define PV_PACK_VALID_FIELD 1
+#define PV_PACK_WASSP_FIELD 2
+#define PV_PACK_HITFI_FIELD 4 // Hit From Inside 
+
+#define PATH_VERTEX_SIZE_IN_F4 5
+
+static inline void WritePathVertex(const __private PathVertex* a_pVertex, int a_tid, int a_threadNum, 
+                                   __global float4* a_out)
+{
+  float4 f1 = to_float4(a_pVertex->hit.pos,    a_pVertex->hit.texCoord.x);
+  float4 f2 = to_float4(a_pVertex->hit.normal, a_pVertex->hit.texCoord.y);
+
+  float4 f3 = make_float4(encodeNormal(a_pVertex->hit.flatNormal), 
+                          encodeNormal(a_pVertex->hit.tangent), 
+                          encodeNormal(a_pVertex->hit.biTangent), 
+                          as_float(a_pVertex->hit.matId));
+
+  // ignore (hit.t, hit.sRayOff) because bpt don't need them! 
+
+  const int bit1 = a_pVertex->valid       ? PV_PACK_VALID_FIELD : 0;
+  const int bit2 = a_pVertex->wasSpecOnly ? PV_PACK_WASSP_FIELD : 0;
+  const int bit3 = a_pVertex->hit.hfi     ? PV_PACK_HITFI_FIELD : 0;
+
+  float4 f4 = to_float4(a_pVertex->ray_dir, a_pVertex->lastGTerm);
+  float4 f5 = to_float4(a_pVertex->accColor, as_float(bit1 | bit2 | bit3));
+
+  a_out[a_tid + 0*a_threadNum] = f1;
+  a_out[a_tid + 1*a_threadNum] = f2;
+  a_out[a_tid + 2*a_threadNum] = f3;
+  a_out[a_tid + 3*a_threadNum] = f4;
+  a_out[a_tid + 4*a_threadNum] = f5;
+} 
+
+static inline void ReadPathVertex(const __global float4* a_in, int a_tid, int a_threadNum, 
+                                  __private PathVertex* a_pVertex)
+{
+  const float4 f1 = a_in[a_tid + 0*a_threadNum];
+  const float4 f2 = a_in[a_tid + 1*a_threadNum];
+  const float4 f3 = a_in[a_tid + 2*a_threadNum];
+  const float4 f4 = a_in[a_tid + 3*a_threadNum];
+  const float4 f5 = a_in[a_tid + 4*a_threadNum];
+
+  a_pVertex->hit.pos        = to_float3   (f1); a_pVertex->hit.texCoord.x = f1.w;
+  a_pVertex->hit.normal     = to_float3   (f2); a_pVertex->hit.texCoord.y = f2.w;
+  a_pVertex->hit.flatNormal = decodeNormal(f3.x);
+  a_pVertex->hit.tangent    = decodeNormal(f3.y);
+  a_pVertex->hit.biTangent  = decodeNormal(f3.z);
+  a_pVertex->hit.matId      = as_int      (f3.w);
+
+  a_pVertex->ray_dir  = to_float3(f4); a_pVertex->lastGTerm = f4.w;
+  a_pVertex->accColor = to_float3(f5); 
+
+  const int flags        = as_int(f5.w);
+
+  a_pVertex->valid       = ((flags & PV_PACK_VALID_FIELD) != 0);
+  a_pVertex->wasSpecOnly = ((flags & PV_PACK_WASSP_FIELD) != 0);
+  a_pVertex->hit.hfi     = ((flags & PV_PACK_HITFI_FIELD) != 0);
+} 
+
+
 
 /**
 \brief  Compute pdf conversion factor from image plane area to surface area.

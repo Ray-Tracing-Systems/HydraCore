@@ -430,9 +430,12 @@ const HRRenderDeviceInfoListElem* GPUOCLLayer::ListDevices() const
     return &g_deviceList[0];
 }
 
+//void TestPathVertexReadWrite();
 
 GPUOCLLayer::GPUOCLLayer(int w, int h, int a_flags, int a_deviceId) : Base(w, h, a_flags)
 { 
+  //TestPathVertexReadWrite();
+
   m_initFlags = a_flags;
   for (int i = 0; i < MEM_TAKEN_OBJECTS_NUM; i++)
     m_memoryTaken[i] = 0;
