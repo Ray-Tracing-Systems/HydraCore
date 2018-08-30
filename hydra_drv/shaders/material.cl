@@ -223,19 +223,17 @@ __kernel void ConnectToEyeKernel(__global const uint*          restrict a_flags,
     if ((materialGetFlags(pHitMaterial) & PLAIN_MATERIAL_HAVE_BTDF) != 0 && dot(camDir, surfHit.normal) < -0.01f)
       signOfNormal = -1.0f;
       
-    const Hit_Part4 btanAndN = in_hitTangent[tid];
-    const float2 hitTexCoord = in_hitTexCoord[tid];
-    const float3 flatN       = decodeNormal(in_flatNorm[tid]);
+    const float3 flatN = decodeNormal(in_flatNorm[tid]);
 
     ShadeContext sc;
     sc.wp = surfHit.pos;
     sc.l  = camDir;           
     sc.v  = (-1.0f)*ray_dir;  
     sc.n  = surfHit.normal;
-    sc.fn = surfHit.flatNormal; 
-    sc.tg = decodeNormal(btanAndN.tangentCompressed);
-    sc.bn = decodeNormal(btanAndN.bitangentCompressed);
-    sc.tc = hitTexCoord;
+    sc.fn = flatN;             // surfHit.flatNormal != flatN !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    sc.tg = surfHit.tangent;
+    sc.bn = surfHit.biTangent;
+    sc.tc = surfHit.texCoord;
    
     ProcTextureList ptl;
     InitProcTextureList(&ptl);
