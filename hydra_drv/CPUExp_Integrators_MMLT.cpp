@@ -765,7 +765,7 @@ PathVertex IntegratorMMLT::CameraPath(float3 ray_pos, float3 ray_dir, float3 a_p
                                       PerThreadData* a_perThread, int a_targetDepth, bool a_haveToHitLightSource, int a_fullPathDepth)
 
 {
-  const int prevVertexId = a_fullPathDepth - a_currDepth + 1; //#CHECK_THIS
+  const int prevVertexId = a_fullPathDepth - a_currDepth + 1; 
 
   if (a_currDepth > a_targetDepth)
   {

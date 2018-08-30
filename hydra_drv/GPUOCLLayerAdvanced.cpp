@@ -54,19 +54,36 @@ void GPUOCLLayer::ConnectEyePass(cl_mem in_rayFlags, cl_mem in_hitPos, cl_mem in
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+void GPUOCLLayer::runKernel_MMLTCameraPathBounce(cl_mem a_rpos, cl_mem a_rdir, cl_mem a_outColor, size_t a_size)
+{
+  
+}
+
 void GPUOCLLayer::TraceSBDPTPass(cl_mem a_rpos, cl_mem a_rdir, cl_mem a_outColor, size_t a_size)
 {
-  int maxBounce   = 3;
+  int maxBounce = 3;
 
+  // (1) camera pass
+  //
   for (int bounce = 0; bounce < maxBounce; bounce++)
   {
     runKernel_Trace(a_rpos, a_rdir, m_rays.hits, a_size);
     runKernel_ComputeHit(a_rpos, a_rdir, a_size);
 
-    runKernel_HitEnvOrLight(m_rays.rayFlags, a_rpos, a_rdir, a_outColor, bounce, a_size);
-
+    runKernel_HitEnvOrLight(m_rays.rayFlags, a_rpos, a_rdir, a_outColor, bounce, a_size); // #TODO: replace this with mmlt analogue
     runKernel_NextBounce(m_rays.rayFlags, a_rpos, a_rdir, a_outColor, a_size);
+
+    //runKernel_MMLTCameraPathBounce(a_rpos, a_rdir, a_outColor, a_size);
   }
+
+  // (2) store camera vertex
+  //
+
+  // (3) light pass
+  //
+
+  // (4) ConnectShadow and ConnectEndPoinst
+  //
 
 }
 

@@ -1107,15 +1107,13 @@ void GPUOCLLayer::BeginTracingPass()
     //
     m_raysWasSorted = false;
     runKernel_MakeEyeRays(m_rays.rayPos, m_rays.rayDir, m_rays.samZindex, m_rays.MEGABLOCKSIZE, m_passNumberForQMC);
+    runKernel_ClearAllInternalTempBuffers(m_rays.MEGABLOCKSIZE);
 
     // (2) trace; 
     //
     TraceSBDPTPass(m_rays.rayPos, m_rays.rayDir, m_rays.pathAccColor, m_rays.MEGABLOCKSIZE);
 
-    // (3) Connect
-    //
-
-    // (4) Contrib to screen
+    // (3) Contrib to screen
     //
     AddContributionToScreen(m_rays.pathAccColor);
 

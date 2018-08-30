@@ -6,7 +6,6 @@
 #include "cmaterial.h"
 #include "clight.h"
 
-
 typedef struct PathVertexT
 {
   SurfaceHit hit;
@@ -80,9 +79,8 @@ static inline void ReadPathVertex(const __global float4* a_in, int a_tid, int a_
   a_pVertex->hit.biTangent  = decodeNormal(f3.z);
   a_pVertex->hit.matId      = as_int      (f3.w);
 
-  a_pVertex->ray_dir  = to_float3(f4); a_pVertex->lastGTerm = f4.w;
-  a_pVertex->accColor = to_float3(f5); 
-
+  a_pVertex->ray_dir     = to_float3(f4); a_pVertex->lastGTerm = f4.w;
+  a_pVertex->accColor    = to_float3(f5); 
   const int flags        = as_int(f5.w);
 
   a_pVertex->valid       = ((flags & PV_PACK_VALID_FIELD) != 0);
