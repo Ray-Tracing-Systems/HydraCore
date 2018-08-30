@@ -437,19 +437,17 @@ void GPUOCLLayer::runKernel_ComputeAO2(cl_mem outCompressedAO, size_t a_size, in
   CHECK_CL(clSetKernelArg(kernAO, 1, sizeof(cl_mem), (void*)&m_rays.randGenState));
 
   CHECK_CL(clSetKernelArg(kernAO, 2, sizeof(cl_mem), (void*)&m_rays.hits));
-  CHECK_CL(clSetKernelArg(kernAO, 3, sizeof(cl_mem), (void*)&m_rays.hitPosNorm));
-  CHECK_CL(clSetKernelArg(kernAO, 4, sizeof(cl_mem), (void*)&m_rays.hitTexCoord));
-  CHECK_CL(clSetKernelArg(kernAO, 5, sizeof(cl_mem), (void*)&m_rays.hitMatId));
+  CHECK_CL(clSetKernelArg(kernAO, 3, sizeof(cl_mem), (void*)&m_rays.hitSurfaceAll));
 
-  CHECK_CL(clSetKernelArg(kernAO, 6, sizeof(cl_mem), (void*)&m_rays.shadowRayPos));
-  CHECK_CL(clSetKernelArg(kernAO, 7, sizeof(cl_mem), (void*)&m_rays.shadowRayDir));
-  CHECK_CL(clSetKernelArg(kernAO, 8, sizeof(cl_mem), (void*)&m_rays.lightOffsetBuff)); // put target inst id to 'lightOffsetBuff'
+  CHECK_CL(clSetKernelArg(kernAO, 4, sizeof(cl_mem), (void*)&m_rays.shadowRayPos));
+  CHECK_CL(clSetKernelArg(kernAO, 5, sizeof(cl_mem), (void*)&m_rays.shadowRayDir));
+  CHECK_CL(clSetKernelArg(kernAO, 6, sizeof(cl_mem), (void*)&m_rays.lightOffsetBuff)); // put target inst id to 'lightOffsetBuff'
 
-  CHECK_CL(clSetKernelArg(kernAO, 9,  sizeof(cl_mem), (void*)&m_scene.storageTex));
-  CHECK_CL(clSetKernelArg(kernAO, 10, sizeof(cl_mem), (void*)&m_scene.storageMat));
-  CHECK_CL(clSetKernelArg(kernAO, 11, sizeof(cl_mem), (void*)&m_scene.allGlobsData));
-  CHECK_CL(clSetKernelArg(kernAO, 12, sizeof(cl_int), (void*)&aoId));
-  CHECK_CL(clSetKernelArg(kernAO, 13, sizeof(cl_int), (void*)&isize));
+  CHECK_CL(clSetKernelArg(kernAO, 7,  sizeof(cl_mem), (void*)&m_scene.storageTex));
+  CHECK_CL(clSetKernelArg(kernAO, 8,  sizeof(cl_mem), (void*)&m_scene.storageMat));
+  CHECK_CL(clSetKernelArg(kernAO, 9,  sizeof(cl_mem), (void*)&m_scene.allGlobsData));
+  CHECK_CL(clSetKernelArg(kernAO, 10, sizeof(cl_int), (void*)&aoId));
+  CHECK_CL(clSetKernelArg(kernAO, 11, sizeof(cl_int), (void*)&isize));
 
   CHECK_CL(clEnqueueNDRangeKernel(m_globals.cmdQueue, kernAO, 1, NULL, &a_size, &localWorkSize, 0, NULL, NULL));
   waitIfDebug(__FILE__, __LINE__);

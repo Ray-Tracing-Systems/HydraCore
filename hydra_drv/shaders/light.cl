@@ -329,9 +329,7 @@ __kernel void MakeAORaysPacked4(__global const uint*      restrict in_flags,
                                 __global RandomGen*       restrict a_gens,
                                 
                                 __global const Lite_Hit*  restrict in_hits,
-                                __global const float4*    restrict in_hitPosNorm,
-                                __global const float2*    restrict in_hitTexCoord,
-                                __global const HitMatRef* restrict in_matData,
+                                __global const float4*    restrict in_surfaceHit,
                                 
                                 __global float4*          restrict out_rpos,
                                 __global int4*            restrict out_rdir,
@@ -350,12 +348,11 @@ __kernel void MakeAORaysPacked4(__global const uint*      restrict in_flags,
   if (!rayIsActiveU(flags))
     return;
 
-  const float4 data1    = in_hitPosNorm[tid];
-  const float3 hitPos   = to_float3(data1);
-  const float3 hitNorm  = decodeNormal(as_int(data1.w));
-  const float2 texCoord = in_hitTexCoord[tid];
+  SurfaceHit sHit;
+  ReadSurfaceHit(in_surfaceHit, tid, iNumElements, 
+                 &sHit);
 
-  __global const PlainMaterial* pMaterialHead = materialAt(a_globals, in_mtlStorage, GetMaterialId(in_matData[tid]));
+  __global const PlainMaterial* pMaterialHead = materialAt(a_globals, in_mtlStorage, sHit.matId);
 
   float3 sRayPos  = make_float3(0, 1e30f, 0);
   float3 sRayDir1 = make_float3(0, 1, 0);
@@ -371,7 +368,7 @@ __kernel void MakeAORaysPacked4(__global const uint*      restrict in_flags,
 
   int targetInstId    = -1;
 
-  const float3 lenTexColor = sample2D(texId, texCoord, (__global const int4*)pMaterialHead, in_texStorage1, a_globals);
+  const float3 lenTexColor = sample2D(texId, sHit.texCoord, (__global const int4*)pMaterialHead, in_texStorage1, a_globals);
   sRayLength *= maxcomp(lenTexColor);
 
   if (MaterialHaveAO(pMaterialHead))
@@ -383,13 +380,13 @@ __kernel void MakeAORaysPacked4(__global const uint*      restrict in_flags,
     float3 rands4 = to_float3(rndFloat4_Pseudo(&gen));
     a_gens[tid]   = gen;
 
-    const float3 aoDir = (aoType == AO_TYPE_UP) ? hitNorm : -1.0f*(hitNorm);
+    const float3 aoDir = (aoType == AO_TYPE_UP) ? sHit.normal : -1.0f*(sHit.normal);
 
     sRayDir1 = MapSampleToCosineDistribution(rands1.x, rands1.y, aoDir, aoDir, 1.0f);
     sRayDir2 = MapSampleToCosineDistribution(rands2.x, rands2.y, aoDir, aoDir, 1.0f);
     sRayDir3 = MapSampleToCosineDistribution(rands3.x, rands3.y, aoDir, aoDir, 1.0f);
     sRayDir4 = MapSampleToCosineDistribution(rands4.x, rands4.y, aoDir, aoDir, 1.0f);
-    sRayPos  = OffsRayPos(hitPos, aoDir, aoDir);
+    sRayPos  = OffsRayPos(sHit.pos, aoDir, aoDir);
 
     if (flagLocal)
       targetInstId = in_hits[tid].instId;
