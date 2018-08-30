@@ -38,9 +38,9 @@ static inline void WritePathVertex(const __private PathVertex* a_pVertex, int a_
   float4 f1 = to_float4(a_pVertex->hit.pos,    a_pVertex->hit.texCoord.x);
   float4 f2 = to_float4(a_pVertex->hit.normal, a_pVertex->hit.texCoord.y);
 
-  float4 f3 = make_float4(encodeNormal(a_pVertex->hit.flatNormal), 
-                          encodeNormal(a_pVertex->hit.tangent), 
-                          encodeNormal(a_pVertex->hit.biTangent), 
+  float4 f3 = make_float4(as_float(encodeNormal(a_pVertex->hit.flatNormal)), 
+                          as_float(encodeNormal(a_pVertex->hit.tangent)), 
+                          as_float(encodeNormal(a_pVertex->hit.biTangent)), 
                           as_float(a_pVertex->hit.matId));
 
   // ignore (hit.t, hit.sRayOff) because bpt don't need them! 
@@ -70,10 +70,10 @@ static inline void ReadPathVertex(const __global float4* a_in, int a_tid, int a_
 
   a_pVertex->hit.pos        = to_float3   (f1); a_pVertex->hit.texCoord.x = f1.w;
   a_pVertex->hit.normal     = to_float3   (f2); a_pVertex->hit.texCoord.y = f2.w;
-  a_pVertex->hit.flatNormal = decodeNormal(f3.x);
-  a_pVertex->hit.tangent    = decodeNormal(f3.y);
-  a_pVertex->hit.biTangent  = decodeNormal(f3.z);
-  a_pVertex->hit.matId      = as_int      (f3.w);
+  a_pVertex->hit.flatNormal = decodeNormal(as_int(f3.x));
+  a_pVertex->hit.tangent    = decodeNormal(as_int(f3.y));
+  a_pVertex->hit.biTangent  = decodeNormal(as_int(f3.z));
+  a_pVertex->hit.matId      =              as_int(f3.w);
 
   a_pVertex->ray_dir     = to_float3(f4); a_pVertex->lastGTerm = f4.w;
   a_pVertex->accColor    = to_float3(f5); 

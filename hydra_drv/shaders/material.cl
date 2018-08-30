@@ -157,14 +157,6 @@ __kernel void ConnectToEyeKernel(__global const uint*          restrict a_flags,
                                  __global const float4*        restrict in_oraydir,
                                  __global const float4*        restrict in_sraydir,
                                  __global const ushort4*       restrict in_shadow,
-                                 
-                                 __global const float4*        restrict in_hitPosNorm,
-                                 __global const float2*        restrict in_hitTexCoord,
-                                 __global const uint*          restrict in_flatNorm,
-                                 __global const HitMatRef*     restrict in_matData,
-                                 __global const Hit_Part4*     restrict in_hitTangent,
-                                 __global const float4*        restrict in_normalsFull,
-                                 
                                  __global const float4*        restrict in_surfaceHit,
 
                                  __global const PerRayAcc*     restrict in_pdfAcc,
@@ -222,15 +214,13 @@ __kernel void ConnectToEyeKernel(__global const uint*          restrict a_flags,
     __global const PlainMaterial* pHitMaterial = materialAt(a_globals, in_mtlStorage, surfHit.matId);
     if ((materialGetFlags(pHitMaterial) & PLAIN_MATERIAL_HAVE_BTDF) != 0 && dot(camDir, surfHit.normal) < -0.01f)
       signOfNormal = -1.0f;
-      
-    const float3 flatN = decodeNormal(in_flatNorm[tid]);
 
     ShadeContext sc;
     sc.wp = surfHit.pos;
     sc.l  = camDir;           
     sc.v  = (-1.0f)*ray_dir;  
     sc.n  = surfHit.normal;
-    sc.fn = flatN;             // surfHit.flatNormal != flatN !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    sc.fn = surfHit.flatNormal;
     sc.tg = surfHit.tangent;
     sc.bn = surfHit.biTangent;
     sc.tc = surfHit.texCoord;

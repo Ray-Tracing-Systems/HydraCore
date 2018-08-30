@@ -2395,10 +2395,11 @@ static inline void WriteSurfaceHit(const __private SurfaceHit* a_pHit, int a_tid
 {
   const float4 f1 = to_float4(a_pHit->pos,    a_pHit->texCoord.x);
   const float4 f2 = to_float4(a_pHit->normal, a_pHit->texCoord.y);
-  const float4 f3 = make_float4(encodeNormal(a_pHit->flatNormal), 
-                                encodeNormal(a_pHit->tangent), 
-                                encodeNormal(a_pHit->biTangent), 
-                                as_float    (a_pHit->matId));
+  const float4 f3 = make_float4(as_float( encodeNormal(a_pHit->flatNormal)), 
+                                as_float( encodeNormal(a_pHit->tangent)), 
+                                as_float( encodeNormal(a_pHit->biTangent)), 
+                                as_float( a_pHit->matId) 
+                                );
 
   // ignore (hit.t, hit.sRayOff) because bpt don't need them! 
 
@@ -2421,10 +2422,10 @@ static inline void ReadSurfaceHit(const __global float4* a_in, int a_tid, int a_
 
   a_pHit->pos        = to_float3   (f1); a_pHit->texCoord.x = f1.w;
   a_pHit->normal     = to_float3   (f2); a_pHit->texCoord.y = f2.w;
-  a_pHit->flatNormal = decodeNormal(f3.x);
-  a_pHit->tangent    = decodeNormal(f3.y);
-  a_pHit->biTangent  = decodeNormal(f3.z);
-  a_pHit->matId      = as_int      (f3.w);
+  a_pHit->flatNormal = decodeNormal(as_int(f3.x));
+  a_pHit->tangent    = decodeNormal(as_int(f3.y));
+  a_pHit->biTangent  = decodeNormal(as_int(f3.z));
+  a_pHit->matId      =              as_int(f3.w);
   a_pHit->t          = f4.x;
   a_pHit->sRayOff    = f4.y;
 
