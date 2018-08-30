@@ -124,7 +124,7 @@ __kernel void UpdateForwardPdfFor3Way(__global const uint*          restrict a_f
     sc.tg  = sHit.tangent;
     sc.bn  = sHit.biTangent;
     sc.tc  = sHit.texCoord;
-    sc.hfi = sHit.hfi;
+    sc.hfi = false;
 
     ProcTextureList ptl;        
     InitProcTextureList(&ptl);  
@@ -157,6 +157,13 @@ __kernel void ConnectToEyeKernel(__global const uint*          restrict a_flags,
                                  __global const float4*        restrict in_oraydir,
                                  __global const float4*        restrict in_sraydir,
                                  __global const ushort4*       restrict in_shadow,
+                                 
+                                 __global const float4*        restrict in_hitPosNorm,
+                                 __global const float2*        restrict in_hitTexCoord,
+                                 __global const uint*          restrict in_flatNorm,
+                                 __global const HitMatRef*     restrict in_matData,
+                                 __global const Hit_Part4*     restrict in_hitTangent,
+                                 __global const float4*        restrict in_normalsFull,
                                  
                                  __global const float4*        restrict in_surfaceHit,
 
@@ -198,12 +205,13 @@ __kernel void ConnectToEyeKernel(__global const uint*          restrict a_flags,
   }
 
   const float3 ray_dir = (in_oraydir == 0) ? make_float3(0,0,0) : to_float3(in_oraydir[tid]);
-  SurfaceHit sHit;
+  
+  SurfaceHit surfHit;
   ReadSurfaceHit(in_surfaceHit, tid, iNumElements, 
-                 &sHit);
+                 &surfHit);
   
   float3 camDir; float zDepth;
-  const float imageToSurfaceFactor = CameraImageToSurfaceFactor(sHit.pos, sHit.normal, a_globals,
+  const float imageToSurfaceFactor = CameraImageToSurfaceFactor(surfHit.pos, surfHit.normal, a_globals,
                                                                 &camDir, &zDepth);
 
   float  signOfNormal = 1.0f;
@@ -211,20 +219,23 @@ __kernel void ConnectToEyeKernel(__global const uint*          restrict a_flags,
   float3 colorConnect = make_float3(1,1,1);
   if(a_currBounce > 0) // if 0, this is light surface
   {
-    __global const PlainMaterial* pHitMaterial = materialAt(a_globals, in_mtlStorage, sHit.matId);
-    if ((materialGetFlags(pHitMaterial) & PLAIN_MATERIAL_HAVE_BTDF) != 0 && dot(camDir, sHit.normal) < -0.01f)
+    __global const PlainMaterial* pHitMaterial = materialAt(a_globals, in_mtlStorage, surfHit.matId);
+    if ((materialGetFlags(pHitMaterial) & PLAIN_MATERIAL_HAVE_BTDF) != 0 && dot(camDir, surfHit.normal) < -0.01f)
       signOfNormal = -1.0f;
+      
+    const Hit_Part4 btanAndN = in_hitTangent[tid];
+    const float2 hitTexCoord = in_hitTexCoord[tid];
+    const float3 flatN       = decodeNormal(in_flatNorm[tid]);
 
     ShadeContext sc;
-    sc.wp  = sHit.pos;
-    sc.l   = camDir;           
-    sc.v   = (-1.0f)*ray_dir;  
-    sc.n   = sHit.normal;
-    sc.fn  = sHit.flatNormal; 
-    sc.tg  = sHit.tangent;
-    sc.bn  = sHit.biTangent;
-    sc.tc  = sHit.texCoord;
-    sc.hfi = sHit.hfi;
+    sc.wp = surfHit.pos;
+    sc.l  = camDir;           
+    sc.v  = (-1.0f)*ray_dir;  
+    sc.n  = surfHit.normal;
+    sc.fn = surfHit.flatNormal; 
+    sc.tg = decodeNormal(btanAndN.tangentCompressed);
+    sc.bn = decodeNormal(btanAndN.bitangentCompressed);
+    sc.tc = hitTexCoord;
    
     ProcTextureList ptl;
     InitProcTextureList(&ptl);
@@ -241,7 +252,7 @@ __kernel void ConnectToEyeKernel(__global const uint*          restrict a_flags,
   {
     const PerRayAcc accData = in_pdfAcc[tid];
 
-    const float cosCurr = fabs(dot(ray_dir, sHit.normal));
+    const float cosCurr = fabs(dot(ray_dir, surfHit.normal));
     const float pdfRevWP = pdfRevW / fmax(cosCurr, DEPSILON); // pdfW po pdfWP
 
     float pdfCamA0 = accData.pdfCamA0;
@@ -266,6 +277,7 @@ __kernel void ConnectToEyeKernel(__global const uint*          restrict a_flags,
     if (!isfinite(misWeight))
       misWeight = 0.0f;
   }
+  
 
   // We divide the contribution by surfaceToImageFactor to convert the (already
   // divided) pdf from surface area to image plane area, w.r.t. which the
@@ -282,7 +294,7 @@ __kernel void ConnectToEyeKernel(__global const uint*          restrict a_flags,
   int x = 65535, y = 65535;
   if (dot(sampleColor, sampleColor) > 1e-12f) // add final result to image
   {
-    const float2 posScreenSpace = worldPosToScreenSpace(sHit.pos, a_globals);
+    const float2 posScreenSpace = worldPosToScreenSpace(surfHit.pos, a_globals);
 
     x = (int)(posScreenSpace.x);
     y = (int)(posScreenSpace.y);
