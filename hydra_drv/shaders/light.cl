@@ -150,15 +150,13 @@ __kernel void LightSampleForwardKernel(__global float4*        restrict out_rpos
 
 }
 
+__kernel void LightSample(__global const float4*  restrict in_rpos,
+                          __global const float4*  restrict in_rdir,
 
-
-__kernel void LightSample(__global const float4*  restrict a_rpos,
-                          __global const float4*  restrict a_rdir,
-
-                          __global const uint*    restrict a_flags,
-                          __global RandomGen*     restrict out_gens,
+                          __global const uint*    restrict in_flags,
                           __global const float4*  restrict in_surfaceHit,
 
+                          __global RandomGen*     restrict out_gens,
                           __global float4*        restrict out_data1,
                           __global float4*        restrict out_data2,
                           __global float*         restrict out_lPP,
@@ -183,7 +181,7 @@ __kernel void LightSample(__global const float4*  restrict a_rpos,
   if (tid >= iNumElements)
     return;
 
-  uint flags = a_flags[tid];
+  uint flags = in_flags[tid];
 
   if (!rayIsActiveU(flags))
     return;
@@ -195,8 +193,8 @@ __kernel void LightSample(__global const float4*  restrict a_rpos,
   ReadSurfaceHit(in_surfaceHit, tid, iNumElements, 
                  &sHit);
 
-  const float3 ray_pos = to_float3(a_rpos[tid]);
-  const float3 ray_dir = to_float3(a_rdir[tid]);
+  const float3 ray_pos = to_float3(in_rpos[tid]);
+  const float3 ray_dir = to_float3(in_rdir[tid]);
 
   RandomGen gen        = out_gens[tid];
   gen.maxNumbers       = a_globals->varsI[HRT_MLT_MAX_NUMBERS];
@@ -269,9 +267,7 @@ __kernel void MakeAORays(__global const uint*      restrict in_flags,
                          __global RandomGen*       restrict a_gens,
 
                          __global const Lite_Hit*  restrict in_hits,
-                         __global const float4*    restrict in_hitPosNorm,
-                         __global const float2*    restrict in_hitTexCoord,
-                         __global const HitMatRef* restrict in_matData,
+                         __global const float4*    restrict in_surfaceHit,
 
                          __global float4*          restrict out_rpos,
                          __global float4*          restrict out_rdir,
@@ -289,21 +285,18 @@ __kernel void MakeAORays(__global const uint*      restrict in_flags,
   if (!rayIsActiveU(flags))
     return;
 
-  const float4 data1    = in_hitPosNorm[tid];
-  const float3 hitPos   = to_float3(data1);
-  const float3 hitNorm  = decodeNormal(as_int(data1.w));
-  const float2 texCoord = in_hitTexCoord[tid];
+  SurfaceHit sHit;
+  ReadSurfaceHit(in_surfaceHit, tid, iNumElements, 
+                 &sHit);
 
-  __global const PlainMaterial* pMaterialHead = materialAt(a_globals, in_mtlStorage, GetMaterialId(in_matData[tid]));
+  __global const PlainMaterial* pMaterialHead = materialAt(a_globals, in_mtlStorage, sHit.matId);
 
   float3 sRayPos    = make_float3(0, 1e30f, 0);
   float3 sRayDir    = make_float3(0, 1, 0);
   float  sRayLength = pMaterialHead->data[PROC_TEX_AO_LENGTH];
   int targetInstId  = -1;
 
-  const float3 lenTexColor = sample2D(as_int(pMaterialHead->data[PROC_TEXMATRIX_ID]), texCoord, (__global const int4*)pMaterialHead, in_texStorage1, a_globals);
-  //const int offset   = textureHeaderOffset(a_globals, 4);
-  //float3 lenTexColor = to_float3(read_imagef_sw4(in_texStorage1 + offset, texCoord, 0));
+  const float3 lenTexColor = sample2D(as_int(pMaterialHead->data[PROC_TEXMATRIX_ID]), sHit.texCoord, (__global const int4*)pMaterialHead, in_texStorage1, a_globals);
   sRayLength *= maxcomp(lenTexColor);
 
   if (MaterialHaveAO(pMaterialHead))
@@ -312,10 +305,10 @@ __kernel void MakeAORays(__global const uint*      restrict in_flags,
     float3 rands  = to_float3(rndFloat4_Pseudo(&gen));
     a_gens[tid]   = gen;
 
-    const float3 aoDir = (as_int(pMaterialHead->data[PROC_TEX_AO_TYPE]) == AO_TYPE_UP) ? hitNorm : -1.0f*(hitNorm);
+    const float3 aoDir = (as_int(pMaterialHead->data[PROC_TEX_AO_TYPE]) == AO_TYPE_UP) ? sHit.normal : -1.0f*(sHit.normal);
 
     sRayDir = MapSampleToCosineDistribution(rands.x, rands.y, aoDir, aoDir, 1.0f);
-    sRayPos = OffsRayPos(hitPos, aoDir, aoDir);
+    sRayPos = OffsRayPos(sHit.pos, aoDir, aoDir);
 
     if (materialGetFlags(pMaterialHead) & PLAIN_MATERIAL_LOCAL_AO1)
       targetInstId = in_hits[tid].instId;

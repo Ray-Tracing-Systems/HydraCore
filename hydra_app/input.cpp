@@ -11,11 +11,11 @@ Input::Input()
   g_hydraApiDisableSceneLoadInfo = true;
   
   //noWindow      = false;         ///< run 'console_main', else run 'window_main'
-  inLibraryPath = "tests/test_42"; ///< cornell box with teapot
+  //inLibraryPath = "tests/test_42"; ///< cornell box with teapot
   //inLibraryPath = "tests/test_01"; ///< cornell box with sphere
   //inLibraryPath = "tests/test_223_small"; ///< cornell box with mirror glossy back wall
   
-  //inLibraryPath = "/home/frol/PROG/HydraAPI/main/tests/test_90";
+  inLibraryPath = "/home/frol/PROG/HydraAPI/main/tests/test_86";
   //inLibraryPath = "/home/frol/PROG/HydraAPI/main/tests_f/test_127";
   //inLibraryPath = "/home/frol/yandexdisk/Hydra/scenelib";
   
