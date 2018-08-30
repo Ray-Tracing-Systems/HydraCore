@@ -157,9 +157,7 @@ __kernel void LightSample(__global const float4*  restrict a_rpos,
 
                           __global const uint*    restrict a_flags,
                           __global RandomGen*     restrict out_gens,
-
-                          __global const float4*  restrict in_hitPosNorm,
-                          __global const float4*  restrict in_hitNormAndShadowOffs,
+                          __global const float4*  restrict in_surfaceHit,
 
                           __global float4*        restrict out_data1,
                           __global float4*        restrict out_data2,
@@ -193,24 +191,20 @@ __kernel void LightSample(__global const float4*  restrict a_rpos,
   if (a_globals->lightsNum == 0)
     return;
 
-  const float4 data1   = in_hitPosNorm[tid];
-  const float4 data2   = in_hitNormAndShadowOffs[tid];
-  const float3 hitPos  = to_float3(data1);
-  const float3 hitNorm = to_float3(data2); // normalize(decodeNormal(as_int(data1.w)));
-  const float  sRayOff = data2.w;
+  SurfaceHit sHit;
+  ReadSurfaceHit(in_surfaceHit, tid, iNumElements, 
+                 &sHit);
+
   const float3 ray_pos = to_float3(a_rpos[tid]);
   const float3 ray_dir = to_float3(a_rdir[tid]);
 
-  RandomGen gen       = out_gens[tid];
-  gen.maxNumbers      = a_globals->varsI[HRT_MLT_MAX_NUMBERS];
+  RandomGen gen        = out_gens[tid];
+  gen.maxNumbers       = a_globals->varsI[HRT_MLT_MAX_NUMBERS];
 
-  
   const int currDepth       = unpackBounceNum(flags);
   const unsigned int qmcPos = reverseBits(tid, iNumElements) + a_passNumberForQmc * iNumElements;
-  
-  const float3 rands3 = to_float3(rndLight(&gen, currDepth,
-                                           a_globals->rmQMC, qmcPos, a_qmcTable));
-  
+  const float3 rands3       = to_float3(rndLight(&gen, currDepth,
+                                                 a_globals->rmQMC, qmcPos, a_qmcTable));
   float rands2 = rndFloat1_Pseudo(&gen);
 
   if(currDepth == 0 && a_globals->rmQMC[QMC_VAR_LGT_N] != -1) // if qmc is enabled for light selector
@@ -221,13 +215,13 @@ __kernel void LightSample(__global const float4*  restrict a_rpos,
   // (1) generate light sample
   //
   float lightPickProb   = 1.0f;
-  const int lightOffset = SelectRandomLightRev(rands2, hitPos, a_globals,
+  const int lightOffset = SelectRandomLightRev(rands2, sHit.pos, a_globals,
                                                &lightPickProb);
 
   __global const PlainLight* pLight = lightAt(a_globals, lightOffset); // in_plainData1 + visiableLightsOffsets[lightOffset];
 
   ShadowSample explicitSam;
-  LightSampleRev(pLight, rands3, hitPos, a_globals, a_pdfStorage, a_texStorage1,
+  LightSampleRev(pLight, rands3, sHit.pos, a_globals, a_pdfStorage, a_texStorage1,
                  &explicitSam);
 
   if (explicitSam.isPoint)
@@ -244,8 +238,8 @@ __kernel void LightSample(__global const float4*  restrict a_rpos,
 
   // (2) generate shadow ray
   //
-  const float3 shadowRayDir = normalize(explicitSam.pos - hitPos);
-  const float3 shadowRayPos = OffsShadowRayPos(hitPos, hitNorm, shadowRayDir, sRayOff);    // sRayOff
+  const float3 shadowRayDir = normalize(explicitSam.pos - sHit.pos);
+  const float3 shadowRayPos = OffsShadowRayPos(sHit.pos, sHit.normal, shadowRayDir, sHit.sRayOff);    // sRayOff
   const float  maxDist      = length(shadowRayPos - explicitSam.pos)*lightShadowDistScale; // recompute max dist based on real (shifted with offset) shadowRayPos
 
   out_srpos[tid] = to_float4(shadowRayPos, maxDist);

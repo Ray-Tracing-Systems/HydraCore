@@ -503,11 +503,12 @@ void GPUOCLLayer::runKernel_ComputeHit(cl_mem a_rpos, cl_mem a_rdir, size_t a_si
   CHECK_CL(clSetKernelArg(kernHit, 13, sizeof(cl_mem), (void*)&m_rays.hitMatId));
   CHECK_CL(clSetKernelArg(kernHit, 14, sizeof(cl_mem), (void*)&m_rays.hitTangent));
   CHECK_CL(clSetKernelArg(kernHit, 15, sizeof(cl_mem), (void*)&m_rays.hitNormUncompressed));
+  CHECK_CL(clSetKernelArg(kernHit, 16, sizeof(cl_mem), (void*)&m_rays.hitSurfaceAll));
   
-  CHECK_CL(clSetKernelArg(kernHit, 16, sizeof(cl_mem), (void*)&m_scene.allGlobsData));
-  CHECK_CL(clSetKernelArg(kernHit, 17, sizeof(cl_int), (void*)&m_scene.remapTableSize));
-  CHECK_CL(clSetKernelArg(kernHit, 18, sizeof(cl_int), (void*)&m_scene.totalInstanceNum));
-  CHECK_CL(clSetKernelArg(kernHit, 19, sizeof(cl_int), (void*)&isize));
+  CHECK_CL(clSetKernelArg(kernHit, 17, sizeof(cl_mem), (void*)&m_scene.allGlobsData));
+  CHECK_CL(clSetKernelArg(kernHit, 18, sizeof(cl_int), (void*)&m_scene.remapTableSize));
+  CHECK_CL(clSetKernelArg(kernHit, 19, sizeof(cl_int), (void*)&m_scene.totalInstanceNum));
+  CHECK_CL(clSetKernelArg(kernHit, 20, sizeof(cl_int), (void*)&isize));
 
   CHECK_CL(clEnqueueNDRangeKernel(m_globals.cmdQueue, kernHit, 1, NULL, &a_size, &localWorkSize, 0, NULL, NULL));
   waitIfDebug(__FILE__, __LINE__);
@@ -897,28 +898,26 @@ void GPUOCLLayer::ShadePass(cl_mem a_rpos, cl_mem a_rdir, cl_mem a_outColor, siz
     
     CHECK_CL(clSetKernelArg(kernX, 2, sizeof(cl_mem), (void*)&m_rays.rayFlags));
     CHECK_CL(clSetKernelArg(kernX, 3, sizeof(cl_mem), (void*)&m_rays.randGenState));
-    
-    CHECK_CL(clSetKernelArg(kernX, 4, sizeof(cl_mem), (void*)&m_rays.hitPosNorm));          // hitNormUncompressed
-    CHECK_CL(clSetKernelArg(kernX, 5, sizeof(cl_mem), (void*)&m_rays.hitNormUncompressed)); // 
+    CHECK_CL(clSetKernelArg(kernX, 4, sizeof(cl_mem), (void*)&m_rays.hitSurfaceAll));
 
-    CHECK_CL(clSetKernelArg(kernX, 6, sizeof(cl_mem), (void*)&m_rays.lsam1));     // float4
-    CHECK_CL(clSetKernelArg(kernX, 7, sizeof(cl_mem), (void*)&m_rays.lsam2));     // float4
-    CHECK_CL(clSetKernelArg(kernX, 8, sizeof(cl_mem), (void*)&m_rays.lsamProb));  // float
-    CHECK_CL(clSetKernelArg(kernX, 9, sizeof(cl_mem), (void*)&m_rays.lsamCos));   // float
+    CHECK_CL(clSetKernelArg(kernX, 5, sizeof(cl_mem), (void*)&m_rays.lsam1));     // float4
+    CHECK_CL(clSetKernelArg(kernX, 6, sizeof(cl_mem), (void*)&m_rays.lsam2));     // float4
+    CHECK_CL(clSetKernelArg(kernX, 7, sizeof(cl_mem), (void*)&m_rays.lsamProb));  // float
+    CHECK_CL(clSetKernelArg(kernX, 8, sizeof(cl_mem), (void*)&m_rays.lsamCos));   // float
     
-    CHECK_CL(clSetKernelArg(kernX, 10, sizeof(cl_mem), (void*)&m_rays.shadowRayPos));    // float4
-    CHECK_CL(clSetKernelArg(kernX, 11, sizeof(cl_mem), (void*)&m_rays.shadowRayDir));    // float4
-    CHECK_CL(clSetKernelArg(kernX, 12, sizeof(cl_mem), (void*)&m_rays.lightOffsetBuff)); // int1
+    CHECK_CL(clSetKernelArg(kernX, 9, sizeof(cl_mem), (void*)&m_rays.shadowRayPos));    // float4
+    CHECK_CL(clSetKernelArg(kernX, 10, sizeof(cl_mem), (void*)&m_rays.shadowRayDir));    // float4
+    CHECK_CL(clSetKernelArg(kernX, 11, sizeof(cl_mem), (void*)&m_rays.lightOffsetBuff)); // int1
     
-    CHECK_CL(clSetKernelArg(kernX, 13, sizeof(cl_mem), (void*)&m_scene.storageTex));
-    CHECK_CL(clSetKernelArg(kernX, 14, sizeof(cl_mem), (void*)&m_scene.storageTexAux)); 
-    CHECK_CL(clSetKernelArg(kernX, 15, sizeof(cl_mem), (void*)&m_scene.storagePdfs));
+    CHECK_CL(clSetKernelArg(kernX, 12, sizeof(cl_mem), (void*)&m_scene.storageTex));
+    CHECK_CL(clSetKernelArg(kernX, 13, sizeof(cl_mem), (void*)&m_scene.storageTexAux)); 
+    CHECK_CL(clSetKernelArg(kernX, 14, sizeof(cl_mem), (void*)&m_scene.storagePdfs));
   
-    CHECK_CL(clSetKernelArg(kernX, 16, sizeof(cl_mem), (void*)&m_globals.qmcTable));
-    CHECK_CL(clSetKernelArg(kernX, 17, sizeof(cl_int), (void*)&m_globals.m_passNumberQMC));
+    CHECK_CL(clSetKernelArg(kernX, 15, sizeof(cl_mem), (void*)&m_globals.qmcTable));
+    CHECK_CL(clSetKernelArg(kernX, 16, sizeof(cl_int), (void*)&m_globals.m_passNumberQMC));
     
-    CHECK_CL(clSetKernelArg(kernX, 18, sizeof(cl_int), (void*)&isize));
-    CHECK_CL(clSetKernelArg(kernX, 19, sizeof(cl_mem), (void*)&m_scene.allGlobsData));
+    CHECK_CL(clSetKernelArg(kernX, 17, sizeof(cl_int), (void*)&isize));
+    CHECK_CL(clSetKernelArg(kernX, 18, sizeof(cl_mem), (void*)&m_scene.allGlobsData));
 
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   }

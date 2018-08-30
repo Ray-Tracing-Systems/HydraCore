@@ -30,10 +30,6 @@ static inline void InitPathVertex(__private PathVertex* a_pVertex)
   a_pVertex->wasSpecOnly = false;
 }
 
-#define PV_PACK_VALID_FIELD 1
-#define PV_PACK_WASSP_FIELD 2
-#define PV_PACK_HITFI_FIELD 4 // Hit From Inside 
-
 #define PATH_VERTEX_SIZE_IN_F4 5
 
 static inline void WritePathVertex(const __private PathVertex* a_pVertex, int a_tid, int a_threadNum, 

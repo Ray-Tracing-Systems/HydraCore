@@ -2358,6 +2358,21 @@ typedef struct ALIGN_S(16) PerRayAccT
 
 } PerRayAcc;
 
+static inline PerRayAcc InitialPerParAcc()
+{
+  PerRayAcc res;
+  res.pdfGTerm     = 1.0f;
+  res.pdfLightWP   = 1.0f;
+  res.pdfCameraWP  = 1.0f;
+  res.pdfCamA0     = 1.0f;
+  return res;
+}
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
 typedef struct SurfaceHitT
 {
   float3 pos;
@@ -2372,15 +2387,54 @@ typedef struct SurfaceHitT
   bool   hfi;
 } SurfaceHit;
 
-static inline PerRayAcc InitialPerParAcc()
+#define PV_PACK_VALID_FIELD 1
+#define PV_PACK_WASSP_FIELD 2
+#define PV_PACK_HITFI_FIELD 4 // Hit From Inside 
+
+#define SURFACE_HIT_SIZE_IN_F4 4
+
+static inline void WriteSurfaceHit(const __private SurfaceHit* a_pHit, int a_tid, int a_threadNum, 
+                                   __global float4* a_out)
 {
-  PerRayAcc res;
-  res.pdfGTerm     = 1.0f;
-  res.pdfLightWP   = 1.0f;
-  res.pdfCameraWP  = 1.0f;
-  res.pdfCamA0     = 1.0f;
-  return res;
-}
+  const float4 f1 = to_float4(a_pHit->pos,    a_pHit->texCoord.x);
+  const float4 f2 = to_float4(a_pHit->normal, a_pHit->texCoord.y);
+  const float4 f3 = make_float4(encodeNormal(a_pHit->flatNormal), 
+                                encodeNormal(a_pHit->tangent), 
+                                encodeNormal(a_pHit->biTangent), 
+                                as_float    (a_pHit->matId));
+
+  // ignore (hit.t, hit.sRayOff) because bpt don't need them! 
+
+  const int bit3  = a_pHit->hfi ? PV_PACK_HITFI_FIELD : 0;
+  const float4 f4 = make_float4(a_pHit->t, a_pHit->sRayOff, 0, as_float(bit3));
+
+  a_out[a_tid + 0*a_threadNum] = f1;
+  a_out[a_tid + 1*a_threadNum] = f2;
+  a_out[a_tid + 2*a_threadNum] = f3;
+  a_out[a_tid + 3*a_threadNum] = f4;
+} 
+
+static inline void ReadSurfaceHit(const __global float4* a_in, int a_tid, int a_threadNum, 
+                                  __private SurfaceHit* a_pHit)
+{
+  const float4 f1 = a_in[a_tid + 0*a_threadNum];
+  const float4 f2 = a_in[a_tid + 1*a_threadNum];
+  const float4 f3 = a_in[a_tid + 2*a_threadNum];
+  const float4 f4 = a_in[a_tid + 3*a_threadNum];
+
+  a_pHit->pos        = to_float3   (f1); a_pHit->texCoord.x = f1.w;
+  a_pHit->normal     = to_float3   (f2); a_pHit->texCoord.y = f2.w;
+  a_pHit->flatNormal = decodeNormal(f3.x);
+  a_pHit->tangent    = decodeNormal(f3.y);
+  a_pHit->biTangent  = decodeNormal(f3.z);
+  a_pHit->matId      = as_int      (f3.w);
+  a_pHit->t          = f4.x;
+  a_pHit->sRayOff    = f4.y;
+
+  const int flags = as_int(f4.w);
+  a_pHit->hfi        = ((flags & PV_PACK_HITFI_FIELD) != 0);
+} 
+
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////

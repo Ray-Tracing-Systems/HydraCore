@@ -146,6 +146,7 @@ __kernel void ComputeHit(__global const float4*   restrict rpos,
                          __global HitMatRef*      restrict out_matData,
                          __global Hit_Part4*      restrict out_hitTangent,
                          __global float4*         restrict out_normalsFull,
+                         __global float4*         restrict out_surfaceHit,
 
                          __global const EngineGlobals* restrict a_globals,
                          int a_remapTableSize, int a_totalInstNumber,  int a_size)
@@ -178,8 +179,6 @@ __kernel void ComputeHit(__global const float4*   restrict rpos,
 
   float3 ray_pos = to_float3(rpos[tid]);
   float3 ray_dir = to_float3(rdir[tid]);
-
- 
 
  
   // (1) mul ray with instanceMatrixInv
@@ -234,6 +233,9 @@ __kernel void ComputeHit(__global const float4*   restrict rpos,
   }
   /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+  WriteSurfaceHit(&surfHitWS, tid, a_size, 
+                  out_surfaceHit);
+ 
   out_hitPosNorm [tid] = to_float4(surfHitWS.pos, as_float(encodeNormal(surfHitWS.normal)));
   out_hitTexCoord[tid] = surfHitWS.texCoord;
   out_normalsFull[tid] = to_float4(surfHitWS.normal, surfHitWS.sRayOff);

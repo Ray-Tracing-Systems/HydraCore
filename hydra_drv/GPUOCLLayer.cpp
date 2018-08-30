@@ -43,6 +43,8 @@ void GPUOCLLayer::CL_BUFFERS_RAYS::free()
   if (hitFlatNorm)         { clReleaseMemObject(hitFlatNorm);         hitFlatNorm         = nullptr; }
   if (hitPrimSize)         { clReleaseMemObject(hitPrimSize);         hitPrimSize         = nullptr; }
   if (hitNormUncompressed) { clReleaseMemObject(hitNormUncompressed); hitNormUncompressed = nullptr; }
+  if (hitSurfaceAll)       { clReleaseMemObject(hitSurfaceAll);       hitSurfaceAll       = nullptr; }
+
   if (hitProcTexData)      { clReleaseMemObject(hitProcTexData);      hitProcTexData      = nullptr;}
 
   if (pathThoroughput) { clReleaseMemObject(pathThoroughput); pathThoroughput = nullptr; }
@@ -113,7 +115,10 @@ size_t GPUOCLLayer::CL_BUFFERS_RAYS::resize(cl_context ctx, cl_command_queue cmd
   hitFlatNorm = clCreateBuffer(ctx, CL_MEM_READ_WRITE, sizeof(uint)*MEGABLOCKSIZE, NULL, &ciErr1);                      currSize += buff1Size * 1;
   hitPrimSize = clCreateBuffer(ctx, CL_MEM_READ_WRITE, sizeof(float)*MEGABLOCKSIZE, NULL, &ciErr1);                     currSize += buff1Size * 1;
   hitNormUncompressed = clCreateBuffer(ctx, CL_MEM_READ_WRITE, sizeof(float4)*MEGABLOCKSIZE, NULL, &ciErr1);            currSize += buff1Size * 4;
-  hitProcTexData      = nullptr;
+
+  const size_t sizeOfHit = SURFACE_HIT_SIZE_IN_F4*sizeof(float4)*MEGABLOCKSIZE;
+  hitSurfaceAll          = clCreateBuffer(ctx, CL_MEM_READ_WRITE, sizeOfHit, NULL, &ciErr1);                            currSize += sizeOfHit;
+  hitProcTexData         = nullptr;
 
   if (ciErr1 != CL_SUCCESS)
     RUN_TIME_ERROR("Error in resize rays buffers");
