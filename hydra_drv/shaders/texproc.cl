@@ -192,10 +192,7 @@ __kernel void ProcTexExec(__global       uint*          restrict a_flags,
     WriteProcTextureList(out_procTexData, tid, iNumElements, &ptl);
   }
 
-
-
 } 
-
 
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////

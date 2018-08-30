@@ -24,9 +24,7 @@ static inline float3 decompressShadow(ushort4 shadowCompressed)
 }
 
 __kernel void MakeEyeShadowRays(__global const uint*          restrict a_flags,
-                                __global const float4*        restrict in_hitPosNorm,
-                                __global const uint*          restrict in_flatNormal,
-                                __global const HitMatRef*     restrict in_matData,
+                                __global const float4*        restrict in_surfaceHit,
 
                                 __global const float4*        restrict in_mtlStorage,
                                 __global const EngineGlobals* restrict a_globals,
@@ -43,43 +41,38 @@ __kernel void MakeEyeShadowRays(__global const uint*          restrict a_flags,
   if (!rayIsActiveU(flags))
     return;
 
-  const float3 hitPos  = to_float3(in_hitPosNorm[tid]);
-  const float3 hitNorm = decodeNormal(in_flatNormal[tid]); //to_float3(in_normalsFull[tid]);
+  SurfaceHit sHit;
+  ReadSurfaceHit(in_surfaceHit, tid, iNumElements, 
+                 &sHit);
   
   float3 camDir; float zDepth;
-  const float imageToSurfaceFactor = CameraImageToSurfaceFactor(hitPos, hitNorm, a_globals,
+  const float imageToSurfaceFactor = CameraImageToSurfaceFactor(sHit.pos, sHit.normal, a_globals,
                                                                 &camDir, &zDepth);
 
-  // const int s1 = dot(camDir, hitNorm) < 0.0f ? -1 : 1; // note that both flatNorm and hitNorm are already fliped if they needed; so dot(camDir, hitNorm) < -0.01f is enough
-  // const int s2 = dot(rayDir, hitNorm) < 0.0f ? -1 : 1; // note that both flatNorm and hitNorm are already fliped if they needed; so dot(camDir, hitNorm) < -0.01f is enough
+  // const int s1 = dot(camDir, sHit.normal) < 0.0f ? -1 : 1; // note that both flatNorm and sHit.normal are already fliped if they needed; so dot(camDir, sHit.normal) < -0.01f is enough
+  // const int s2 = dot(rayDir, sHit.normal) < 0.0f ? -1 : 1; // note that both flatNorm and sHit.normal are already fliped if they needed; so dot(camDir, sHit.normal) < -0.01f is enough
 
   float signOfNormal = 1.0f;
 
   if (haveMaterials == 1)
   {
-    const int matId = GetMaterialId(in_matData[tid]);
-    __global const PlainMaterial* pHitMaterial = materialAt(a_globals, in_mtlStorage, matId);
+    __global const PlainMaterial* pHitMaterial = materialAt(a_globals, in_mtlStorage, sHit.matId);
 
-    if ((materialGetFlags(pHitMaterial) & PLAIN_MATERIAL_HAVE_BTDF) != 0 && dot(camDir, hitNorm) < -0.01f)
+    if ((materialGetFlags(pHitMaterial) & PLAIN_MATERIAL_HAVE_BTDF) != 0 && dot(camDir, sHit.normal) < -0.01f)
       signOfNormal *= -1.0f;
   }
 
-  out_sraypos[tid] = to_float4(hitPos + epsilonOfPos(hitPos)*signOfNormal*hitNorm, zDepth); // OffsRayPos(hitPos, hitNorm, camDir);
+  out_sraypos[tid] = to_float4(sHit.pos + epsilonOfPos(sHit.pos)*signOfNormal*sHit.normal, zDepth); // OffsRayPos(sHit.pos, sHit.normal, camDir);
   out_sraydir[tid] = to_float4(camDir, as_float(-1));
 }
 
-
+#define BUGGY_AMD_IBPT_PROCTEX_FETCH
 
 __kernel void UpdateForwardPdfFor3Way(__global const uint*          restrict a_flags,
                                       __global const float4*        restrict in_raydir,
                                       __global const float4*        restrict in_raydirNext,
 
-                                      __global const float4*        restrict in_hitPosNorm,
-                                      __global const float4*        restrict in_normalsFull,
-                                      __global const float2*        restrict in_hitTexCoord,
-                                      __global const uint*          restrict in_flatNorm,
-                                      __global const HitMatRef*     restrict in_matData,
-                                      __global const Hit_Part4*     restrict in_hitTangent,
+                                      __global const float4*        restrict in_surfaceHit,
                                       __global const float4*        restrict in_procTexData,
 
                                       __global const MisData*       restrict in_misDataCurr,
@@ -106,10 +99,13 @@ __kernel void UpdateForwardPdfFor3Way(__global const uint*          restrict a_f
   const bool  isSpecular   = (mSamData.isSpecular != 0);
   const float matSamplePdf = mSamData.matSamplePdf;
   const float cosNext      = mSamData.cosThetaPrev; // because we have already updated mSamData.cosThetaPrev inside 'NextBounce' kernel
+  
+  SurfaceHit sHit;
+  ReadSurfaceHit(in_surfaceHit, tid, iNumElements, 
+                 &sHit);
 
-  const float3 hitNorm     = to_float3(in_normalsFull[tid]);
-  const float3 ray_dir     = to_float3(in_raydir[tid]);
-  const float cosCurr      = fabs(-dot(ray_dir, hitNorm));
+  const float3 ray_dir = to_float3(in_raydir[tid]);
+  const float cosCurr  = fabs(-dot(ray_dir, sHit.normal));
 
   PerRayAcc accData = a_pdfAcc[tid];
 
@@ -117,24 +113,26 @@ __kernel void UpdateForwardPdfFor3Way(__global const uint*          restrict a_f
   //
   if (!isSpecular)
   {
-    __global const PlainMaterial* pHitMaterial = materialAt(a_globals, in_mtlStorage, GetMaterialId(in_matData[tid]));
-    const Hit_Part4 btanAndN = in_hitTangent[tid];
+    __global const PlainMaterial* pHitMaterial = materialAt(a_globals, in_mtlStorage, sHit.matId);
     
     ShadeContext sc;
-    sc.wp = to_float3(in_hitPosNorm[tid]);
-    sc.l  = (-1.0f)*ray_dir;
-    sc.v  = (-1.0f)*to_float3(in_raydirNext[tid]);
-    sc.n  = hitNorm;
-    sc.fn = decodeNormal(in_flatNorm[tid]);
-    sc.tg = decodeNormal(btanAndN.tangentCompressed);
-    sc.bn = decodeNormal(btanAndN.bitangentCompressed);
-    sc.tc = in_hitTexCoord[tid];
-    
+    sc.wp  = sHit.pos;
+    sc.l   = (-1.0f)*ray_dir;
+    sc.v   = (-1.0f)*to_float3(in_raydirNext[tid]);
+    sc.n   = sHit.normal;
+    sc.fn  = sHit.flatNormal;
+    sc.tg  = sHit.tangent;
+    sc.bn  = sHit.biTangent;
+    sc.tc  = sHit.texCoord;
+    sc.hfi = false;
+
     ProcTextureList ptl;        
     InitProcTextureList(&ptl);  
+
+    #ifndef BUGGY_AMD_IBPT_PROCTEX_FETCH
     ReadProcTextureList(in_procTexData, tid, iNumElements, 
                         &ptl);
-
+    #endif
     const float pdfW = materialEval(pHitMaterial, &sc, false, false, /* global data --> */ a_globals, in_texStorage1, in_texStorage2, &ptl).pdfFwd;
     
     accData.pdfCameraWP *= (pdfW / fmax(cosCurr, DEPSILON));
