@@ -1133,9 +1133,7 @@ __kernel void NextTransparentBounce(__global   float4*        restrict a_rpos,
                                     __global   float4*        restrict a_rdir,
                                     __global   uint*          restrict a_flags,
                                                              
-                                    __global float4*          restrict in_hitPosNorm,
-                                    __global float2*          restrict in_hitTexCoord,
-                                    __global HitMatRef*       restrict in_matData,
+                                    __global const float4*    restrict in_surfaceHit,
                                     __global const float4*    restrict in_procTexData,
                                     
                                     __global float4*              a_thoroughput,  
@@ -1158,13 +1156,11 @@ __kernel void NextTransparentBounce(__global   float4*        restrict a_rpos,
   }
   else if (rayIsActiveU(flags))
   {
-    const float4 data = in_hitPosNorm[tid];
-   
-    const float3 hitPos      = to_float3(data);
-    const float3 hitNorm     = normalize(decodeNormal(as_int(data.w)));
-    const float2 hitTexCoord = in_hitTexCoord[tid];
+    SurfaceHit surfHit;
+    ReadSurfaceHit(in_surfaceHit, tid, iNumElements, 
+                   &surfHit);
 
-    __global const PlainMaterial* pHitMaterial = materialAt(in_globals, in_mtlStorage, GetMaterialId(in_matData[tid]));
+    __global const PlainMaterial* pHitMaterial = materialAt(in_globals, in_mtlStorage, surfHit.matId);
 
     ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -1178,17 +1174,18 @@ __kernel void NextTransparentBounce(__global   float4*        restrict a_rpos,
       ReadProcTextureList(in_procTexData, tid, iNumElements,
                           &ptl);
 
-      TransparencyAndFog matFogAndTransp = materialEvalTransparencyAndFog(pHitMaterial, ray_dir, hitNorm, hitTexCoord, in_globals, in_shadingTexture, &ptl);
+      TransparencyAndFog matFogAndTransp = materialEvalTransparencyAndFog(pHitMaterial, ray_dir, surfHit.normal, surfHit.texCoord, 
+                                                                          in_globals, in_shadingTexture, &ptl);
 
       float4 newPathThroughput = a_thoroughput[tid] * to_float4(matFogAndTransp.transparency, 1.0f);
 
-      const float3 nextRay_pos = OffsRayPos(hitPos, hitNorm, ray_dir);
+      const float3 nextRay_pos = OffsRayPos(surfHit.pos, surfHit.normal, ray_dir);
 
       if (maxcomp(to_float3(newPathThroughput)) < 0.00001f)
         flags = packRayFlags(flags, unpackRayFlags(flags) | RAY_IS_DEAD);
 
-      a_rpos [tid] = to_float4(nextRay_pos, 0.0f);
-      a_flags[tid] = flags;
+      a_rpos       [tid] = to_float4(nextRay_pos, 0.0f);
+      a_flags      [tid] = flags;
       a_thoroughput[tid] = newPathThroughput;
     }
 
@@ -1200,13 +1197,13 @@ __kernel void NextTransparentBounce(__global   float4*        restrict a_rpos,
 }
 
 
-__kernel void TransparentShadowKenrel(__global const uint*     in_flags,
-                                      __global const float4*   in_hitPosNorm,
-                                      __global const float4*   a_data1,
-                                      __global const float4*   a_data2,
-                                      __global       ushort4*  a_shadow,
-                                      __global       int*      a_transpL,
-                                      __global const float*    a_hitPolySize,
+__kernel void TransparentShadowKenrel(__global const uint*     restrict in_flags,
+                                      __global const float4*   restrict in_surfaceHit,
+                                      __global const float4*   restrict a_data1,
+                                      __global const float4*   restrict a_data2,
+                                      __global       ushort4*  restrict a_shadow,
+                                      __global       int*      restrict a_transpL,
+                                      __global const float*    restrict a_hitPolySize,
                                       int a_size,
 
                                       
@@ -1223,8 +1220,8 @@ __kernel void TransparentShadowKenrel(__global const uint*     in_flags,
                                        __global const float4* a_vertNorm,
                                         
                                        texture2d_t a_shadingTexture,       //
-                                       __global const EngineGlobals* a_globals
-                                      )
+                                       __global const EngineGlobals* a_globals,
+                                      int iNumElements)
 {
 
   __global const float4* in_mtlStorage = 0; // #TODO: fix
@@ -1266,16 +1263,16 @@ __kernel void TransparentShadowKenrel(__global const uint*     in_flags,
   explicitSam.maxDist = data2.w;
   explicitSam.isPoint = (data1.w <= 0);
 
-  const float4 data    = in_hitPosNorm[tid];
-  const float3 hitPos  = to_float3(data);
-  const float3 hitNorm = normalize(decodeNormal(as_int(data.w)));
+  SurfaceHit surfHit;
+  ReadSurfaceHit(in_surfaceHit, tid, iNumElements, 
+                   &surfHit);
 
-  const float  epsilon = fmax(maxcomp(hitPos), 1.0f)*GEPSILON;
+  const float  epsilon = fmax(maxcomp(surfHit.pos), 1.0f)*GEPSILON;
   const float  polyEps = fmin(fmax(PEPSILON*a_hitPolySize[tid], epsilon), PG_SCALE*epsilon);
 
-  const float3 shadowRayDir = normalize(explicitSam.pos - hitPos); // explicitSam.direction;
-  const float  offsetSign   = (dot(shadowRayDir, hitNorm) >= 0.0f) ? 1.0f : -1.0f;
-  const float3 shadowRayPos = hitPos + epsilon*shadowRayDir + polyEps*hitNorm*offsetSign;
+  const float3 shadowRayDir = normalize(explicitSam.pos - surfHit.pos); // explicitSam.direction;
+  const float  offsetSign   = (dot(shadowRayDir, surfHit.normal) >= 0.0f) ? 1.0f : -1.0f;
+  const float3 shadowRayPos = OffsRayPos(surfHit.pos, surfHit.normal, surfHit.normal*offsetSign); 
 
   //
   //
@@ -1354,9 +1351,7 @@ __kernel void TransparentShadowKenrel(__global const uint*     in_flags,
 
 __kernel void ReadDiffuseColor(__global const float4*    restrict a_rdir, 
                                __global const Lite_Hit*  restrict in_hits,
-                               __global const float4*    restrict in_posNorm,
-                               __global const float2*    restrict in_texCoord,
-                               __global const HitMatRef* restrict in_matData,
+                               __global const float4*    restrict in_surfaceHit,
 
                                __global const float4*    restrict in_procTexData,
                                __global const int4*      restrict in_texStorage1,
@@ -1375,17 +1370,18 @@ __kernel void ReadDiffuseColor(__global const float4*    restrict a_rdir,
 
   if (HitSome(hit))
   {
-    __global const PlainMaterial* pHitMaterial = materialAt(a_globals, in_mtlStorage, GetMaterialId(in_matData[tid]));
+    SurfaceHit surfHit;
+    ReadSurfaceHit(in_surfaceHit, tid, iNumElements, 
+                   &surfHit);
 
-    float2 txcrd = in_texCoord[tid];
-    float3 norm  = normalize(decodeNormal(as_int(in_posNorm[tid].w)));
+    __global const PlainMaterial* pHitMaterial = materialAt(a_globals, in_mtlStorage, surfHit.matId);
 
     ProcTextureList ptl;
     InitProcTextureList(&ptl);
     ReadProcTextureList(in_procTexData, tid, iNumElements,
                         &ptl);
 
-    color = materialEvalDiffuse(pHitMaterial, to_float3(a_rdir[tid]), norm, txcrd, a_globals, in_texStorage1, &ptl);
+    color = materialEvalDiffuse(pHitMaterial, to_float3(a_rdir[tid]), surfHit.normal, surfHit.texCoord, a_globals, in_texStorage1, &ptl);
   }
 
   a_color[tid] = to_float4(color, 0.0f);
@@ -1395,9 +1391,7 @@ __kernel void ReadDiffuseColor(__global const float4*    restrict a_rdir,
 __kernel void GetGBufferSample(__global const float4*    a_rdir,
                                __global const Lite_Hit*  restrict in_hits,
                                __global const uint*      restrict in_flags,
-                               __global const float4*    restrict in_hitPosNorm,
-                               __global const float2*    restrict in_hitTexCoord,
-                               __global const HitMatRef* restrict in_matData,
+                               __global const float4*    restrict in_surfaceHit,
                                __global const float4*    restrict in_procTexData,
 
                                __global float4*          restrict out_gbuff1,
@@ -1406,39 +1400,38 @@ __kernel void GetGBufferSample(__global const float4*    a_rdir,
                                __global const HitMatRef*     restrict in_mtlStorage,
                                texture2d_t                   restrict a_shadingTexture,
                                __global const EngineGlobals* restrict a_globals,
-                               int a_size)
+                               int iNumElements)
 {
   int tid = GLOBAL_ID_X;
-  if (tid >= a_size)
+  if (tid >= iNumElements)
     return;
 
   __local GBufferAll samples[GBUFFER_SAMPLES];
- 
-  const float4 hitPosNorm = in_hitPosNorm[tid];
+
   const Lite_Hit liteHit  = in_hits[tid];
   const uint flags        = in_flags[tid];
 
   if (rayIsActiveU(flags))
   {
-    const int materialId = GetMaterialId(in_matData[tid]);
-    const float2 txcrd   = in_hitTexCoord[tid];
-    const float3 normal  = normalize(decodeNormal(as_int(hitPosNorm.w)));
+    SurfaceHit surfHit;
+    ReadSurfaceHit(in_surfaceHit, tid, iNumElements, 
+                   &surfHit);
 
     ProcTextureList ptl;        
     InitProcTextureList(&ptl);  
-    ReadProcTextureList(in_procTexData, tid, a_size,
+    ReadProcTextureList(in_procTexData, tid, iNumElements,
                         &ptl);
 
-    __global const PlainMaterial* pHitMaterial = materialAt(a_globals, in_mtlStorage, materialId);
-    const float3 diffColor = materialEvalDiffuse(pHitMaterial, to_float3(a_rdir[tid]), normal, txcrd, a_globals, a_shadingTexture, &ptl);
+    __global const PlainMaterial* pHitMaterial = materialAt(a_globals, in_mtlStorage, surfHit.matId);
+    const float3 diffColor = materialEvalDiffuse(pHitMaterial, to_float3(a_rdir[tid]), surfHit.normal, surfHit.texCoord, a_globals, a_shadingTexture, &ptl);
 
     samples[LOCAL_ID_X].data1.depth    = liteHit.t;
-    samples[LOCAL_ID_X].data1.norm     = normal;
+    samples[LOCAL_ID_X].data1.norm     = surfHit.normal;
     samples[LOCAL_ID_X].data1.rgba     = to_float4(diffColor, 0.0f);
-    samples[LOCAL_ID_X].data1.matId    = materialId;
+    samples[LOCAL_ID_X].data1.matId    = surfHit.matId;
     samples[LOCAL_ID_X].data1.coverage = 0.0f;
 
-    samples[LOCAL_ID_X].data2.texCoord = txcrd;
+    samples[LOCAL_ID_X].data2.texCoord = surfHit.texCoord;
     samples[LOCAL_ID_X].data2.objId    = liteHit.geomId;
     samples[LOCAL_ID_X].data2.instId   = liteHit.instId;
   }
@@ -1534,7 +1527,7 @@ __kernel void PutAlphaToGBuffer(__global const float4* restrict in_thoroughput,
 
 
 
-// change 31.01.2018 15:20;
+// change 31.08.2018 13:55;
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
