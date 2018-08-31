@@ -211,7 +211,7 @@ protected:
 
   struct CL_BUFFERS_RAYS
   {
-    CL_BUFFERS_RAYS() : rayPos(0), rayDir(0), hits(0), rayFlags(0), hitPosNorm(0), hitTexCoord(0), hitMatId(0), hitTangent(0), hitFlatNorm(0), hitPrimSize(0), hitNormUncompressed(0), hitSurfaceAll(0), hitProcTexData(0),
+    CL_BUFFERS_RAYS() : rayPos(0), rayDir(0), hits(0), rayFlags(0), hitSurfaceAll(0), hitProcTexData(0),
                         pathThoroughput(0), pathMisDataPrev(0), pathShadeColor(0), pathAccColor(0), pathAuxColor(0), pathAuxColorCPU(0), pathShadow8B(0), pathShadow8BAux(0), pathShadow8BAuxCPU(0), randGenState(0),
                         lsam1(0), lsam2(0), lsamCos(0), shadowRayPos(0), shadowRayDir(0), accPdf(0), oldFlags(0), oldRayDir(0), oldColor(0), lightNumberLT(0), lsamProb(0),
                         lshadow(0), fogAtten(0), samZindex(0), aoCompressed(0), aoCompressed2(0), lightOffsetBuff(0), packedXY(0), debugf4(0), atomicCounterMem(0), MEGABLOCKSIZE(0) {}
@@ -224,13 +224,6 @@ protected:
     cl_mem hits;
     cl_mem rayFlags;
 
-    cl_mem hitPosNorm;
-    cl_mem hitTexCoord;
-    cl_mem hitMatId;
-    cl_mem hitTangent;
-    cl_mem hitFlatNorm;
-    cl_mem hitPrimSize;
-    cl_mem hitNormUncompressed;
     cl_mem hitSurfaceAll;
     cl_mem hitProcTexData;
 
@@ -400,7 +393,10 @@ protected:
   void runKernel_ClearAllInternalTempBuffers(size_t a_size);
  
   void runKernel_Trace(cl_mem a_rpos, cl_mem a_rdir, cl_mem a_hits, size_t a_size);
-  void runKernel_ComputeHit(cl_mem a_rpos, cl_mem a_rdir, size_t a_size, bool a_doNotEvaluateProcTex = false);
+
+  void runKernel_ComputeHit(cl_mem a_rpos, cl_mem a_rdir, size_t a_size,
+                            cl_mem a_outSurfaceHit);
+
   void runKernel_HitEnvOrLight(cl_mem a_rayFlags, cl_mem a_rpos, cl_mem a_rdir, cl_mem a_outColor, int a_currBounce, size_t a_size);
 
   void runKernel_ComputeAO(cl_mem outCompressedAO, size_t a_size);
@@ -410,7 +406,7 @@ protected:
   void runKernel_NextTransparentBounce(cl_mem a_rpos, cl_mem a_rdir, cl_mem a_outColor, size_t a_size);
 
   void ShadePass(cl_mem a_rpos, cl_mem a_rdir, cl_mem a_outColor, size_t a_size, bool a_measureTime);
-  void ConnectEyePass(cl_mem in_rayFlags, cl_mem in_hitPos, cl_mem in_hitNorm, cl_mem in_rayDirOld, cl_mem in_color, int a_bounce, size_t a_size);
+  void ConnectEyePass(cl_mem in_rayFlags, cl_mem in_rayDirOld, cl_mem in_color, int a_bounce, size_t a_size);
   void CopyForConnectEye(cl_mem in_flags, cl_mem in_raydir, cl_mem in_color, 
                                 cl_mem out_flags, cl_mem out_raydir, cl_mem out_color, size_t a_size);
 
@@ -418,9 +414,11 @@ protected:
   void runKernel_ShadowTraceAO(cl_mem a_rayFlags, cl_mem a_rpos, cl_mem a_rdir, cl_mem a_instId,
                                cl_mem a_outShadow, size_t a_size);
 
-  void runKernel_EyeShadowRays(cl_mem a_rayFlags, cl_mem a_hitPos, cl_mem a_hitNorm, cl_mem a_rdir2, 
+  void runKernel_EyeShadowRays(cl_mem a_rayFlags, cl_mem a_rdir2, 
                                cl_mem a_rpos, cl_mem a_rdir, size_t a_size);
-  void runKernel_ProjectSamplesToScreen(cl_mem a_rayFlags, cl_mem a_hitPos, cl_mem a_hitNorm, cl_mem a_rdir, cl_mem a_rdir2, cl_mem a_colorsIn, cl_mem a_colorsOut, cl_mem a_zindex, size_t a_size, int a_currBounce);
+
+  void runKernel_ProjectSamplesToScreen(cl_mem a_rayFlags, cl_mem a_rdir, cl_mem a_rdir2, cl_mem a_colorsIn, 
+                                        cl_mem a_colorsOut, cl_mem a_zindex, size_t a_size, int a_currBounce);
 
   void runKernel_UpdateForwardPdfFor3Way(cl_mem a_flags, cl_mem old_rayDir, cl_mem next_rayDir, cl_mem acc_pdf, size_t a_size);
   void runKernel_GetGBufferSamples      (cl_mem a_rdir,  cl_mem a_gbuff1,   cl_mem a_gbuff2, int a_blockSize, size_t a_size);
@@ -434,13 +432,7 @@ protected:
   // GBuffer and e.t.c
   //
   void runKernel_GenerateSPPRays(cl_mem a_pixels, cl_mem a_sppPos, cl_mem a_rpos, cl_mem a_rdir, size_t a_size, int a_blockSize);
-  void runKernel_GetNormalsAndDepth(cl_mem resultBuff, size_t a_size);
-  void runKernel_GetTexColor(cl_mem resultBuff, size_t a_size);
-  void runKernel_GetGBufferFirstBounce(cl_mem resultBuff, size_t a_size);
-  void runKernel_GetAlphaToGBuffer(cl_mem outBuff, cl_mem inBuff, size_t a_size);
-  
   void runKernel_ReductionFloat4Average(cl_mem a_src, cl_mem a_dst, size_t a_size, int a_bsize);
-  void runKernel_ReductionGBuffer(cl_mem a_src, cl_mem a_dst, size_t a_size, int a_bsize);
   int  CountNumActiveThreads(cl_mem a_rayFlags, size_t a_size);
   
   float2 runKernel_TestAtomicsPerf(size_t a_size);

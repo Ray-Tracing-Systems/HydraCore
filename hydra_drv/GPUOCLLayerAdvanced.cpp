@@ -35,15 +35,15 @@ void GPUOCLLayer::CopyForConnectEye(cl_mem in_flags,  cl_mem in_raydir,  cl_mem 
   waitIfDebug(__FILE__, __LINE__);
 }
 
-void GPUOCLLayer::ConnectEyePass(cl_mem in_rayFlags, cl_mem in_hitPos, cl_mem in_hitNorm, cl_mem in_rayDirOld, cl_mem in_color, int a_bounce, size_t a_size)
+void GPUOCLLayer::ConnectEyePass(cl_mem in_rayFlags, cl_mem in_rayDirOld, cl_mem in_color, int a_bounce, size_t a_size)
 {
-  runKernel_EyeShadowRays(in_rayFlags, in_hitPos, m_rays.hitFlatNorm, in_rayDirOld,
+  runKernel_EyeShadowRays(in_rayFlags, in_rayDirOld,
                           m_rays.shadowRayPos, m_rays.shadowRayDir, a_size);
 
   runKernel_ShadowTrace(in_rayFlags, m_rays.shadowRayPos, m_rays.shadowRayDir,
                         m_rays.lshadow, a_size);
 
-  runKernel_ProjectSamplesToScreen(in_rayFlags, in_hitPos, in_hitNorm, m_rays.shadowRayDir, in_rayDirOld, in_color,
+  runKernel_ProjectSamplesToScreen(in_rayFlags, m_rays.shadowRayDir, in_rayDirOld, in_color,
                                    m_rays.pathShadeColor, m_rays.samZindex, a_size, a_bounce);
 
   AddContributionToScreen(m_rays.pathShadeColor); // because GPU contributio for LT could be very expensieve (imagine point light)
@@ -68,7 +68,8 @@ void GPUOCLLayer::TraceSBDPTPass(cl_mem a_rpos, cl_mem a_rdir, cl_mem a_outColor
   for (int bounce = 0; bounce < maxBounce; bounce++)
   {
     runKernel_Trace(a_rpos, a_rdir, m_rays.hits, a_size);
-    runKernel_ComputeHit(a_rpos, a_rdir, a_size);
+    runKernel_ComputeHit(a_rpos, a_rdir, a_size, 
+                         m_rays.hitSurfaceAll);
 
     runKernel_HitEnvOrLight(m_rays.rayFlags, a_rpos, a_rdir, a_outColor, bounce, a_size); // #TODO: replace this with mmlt analogue
     runKernel_NextBounce(m_rays.rayFlags, a_rpos, a_rdir, a_outColor, a_size);

@@ -36,16 +36,8 @@ void GPUOCLLayer::CL_BUFFERS_RAYS::free()
   if(hits)     { clReleaseMemObject(hits);     hits     = nullptr; }
   if(rayFlags) { clReleaseMemObject(rayFlags); rayFlags = nullptr; }
                                                                                                      
-  if (hitPosNorm)          { clReleaseMemObject(hitPosNorm);          hitPosNorm          = nullptr; }
-  if (hitTexCoord)         { clReleaseMemObject(hitTexCoord);         hitTexCoord         = nullptr; }
-  if (hitMatId)            { clReleaseMemObject(hitMatId);            hitMatId            = nullptr; }
-  if (hitTangent)          { clReleaseMemObject(hitTangent);          hitTangent          = nullptr; }
-  if (hitFlatNorm)         { clReleaseMemObject(hitFlatNorm);         hitFlatNorm         = nullptr; }
-  if (hitPrimSize)         { clReleaseMemObject(hitPrimSize);         hitPrimSize         = nullptr; }
-  if (hitNormUncompressed) { clReleaseMemObject(hitNormUncompressed); hitNormUncompressed = nullptr; }
-  if (hitSurfaceAll)       { clReleaseMemObject(hitSurfaceAll);       hitSurfaceAll       = nullptr; }
-
-  if (hitProcTexData)      { clReleaseMemObject(hitProcTexData);      hitProcTexData      = nullptr;}
+  if (hitSurfaceAll)   { clReleaseMemObject(hitSurfaceAll);  hitSurfaceAll    = nullptr; }
+  if (hitProcTexData)  { clReleaseMemObject(hitProcTexData); hitProcTexData   = nullptr;}
 
   if (pathThoroughput) { clReleaseMemObject(pathThoroughput); pathThoroughput = nullptr; }
   if (pathMisDataPrev) { clReleaseMemObject(pathMisDataPrev); pathMisDataPrev = nullptr; }
@@ -107,14 +99,6 @@ size_t GPUOCLLayer::CL_BUFFERS_RAYS::resize(cl_context ctx, cl_command_queue cmd
 
   if (ciErr1 != CL_SUCCESS)
     RUN_TIME_ERROR("Error in resize rays buffers");
-
-  hitPosNorm  = clCreateBuffer(ctx, CL_MEM_READ_WRITE | shareFlags, 4 * sizeof(cl_float)*MEGABLOCKSIZE, NULL, &ciErr1); currSize += buff1Size * 4;
-  hitTexCoord = clCreateBuffer(ctx, CL_MEM_READ_WRITE, 2 * sizeof(cl_float)*MEGABLOCKSIZE, NULL, &ciErr1);              currSize += buff1Size * 2;
-  hitMatId    = clCreateBuffer(ctx, CL_MEM_READ_WRITE, sizeof(HitMatRef)*MEGABLOCKSIZE, NULL, &ciErr1);                 currSize += buff1Size * 2;
-  hitTangent  = clCreateBuffer(ctx, CL_MEM_READ_WRITE, sizeof(Hit_Part4)*MEGABLOCKSIZE, NULL, &ciErr1);                 currSize += buff1Size * 2;
-  hitFlatNorm = clCreateBuffer(ctx, CL_MEM_READ_WRITE, sizeof(uint)*MEGABLOCKSIZE, NULL, &ciErr1);                      currSize += buff1Size * 1;
-  hitPrimSize = clCreateBuffer(ctx, CL_MEM_READ_WRITE, sizeof(float)*MEGABLOCKSIZE, NULL, &ciErr1);                     currSize += buff1Size * 1;
-  hitNormUncompressed = clCreateBuffer(ctx, CL_MEM_READ_WRITE, sizeof(float4)*MEGABLOCKSIZE, NULL, &ciErr1);            currSize += buff1Size * 4;
 
   const size_t sizeOfHit = SURFACE_HIT_SIZE_IN_F4*sizeof(float4)*MEGABLOCKSIZE;
   hitSurfaceAll          = clCreateBuffer(ctx, CL_MEM_READ_WRITE, sizeOfHit, NULL, &ciErr1);                            currSize += sizeOfHit;

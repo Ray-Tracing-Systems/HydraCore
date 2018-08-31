@@ -401,6 +401,7 @@ void GPUOCLLayer::runTraceCPU(cl_mem a_rpos, cl_mem a_rdir, cl_mem a_hits, size_
 
 void GPUOCLLayer::runTraceShadowCPU(size_t a_size)
 {
+  /*
   cl_int ciErr1 = 0;
 
   float4*  a_data1       = (float4*) clEnqueueMapBuffer(m_globals.cmdQueue, m_rays.lsam1, CL_TRUE, CL_MAP_READ, 0, a_size*sizeof(float4), 0, 0, 0, &ciErr1);
@@ -462,6 +463,8 @@ void GPUOCLLayer::runTraceShadowCPU(size_t a_size)
   CHECK_CL(clEnqueueUnmapMemObject(m_globals.cmdQueue, m_rays.lshadow, a_shadow, 0, 0, 0));
   CHECK_CL(clEnqueueUnmapMemObject(m_globals.cmdQueue, m_rays.hitPosNorm, in_hitPosNorm, 0, 0, 0));
   CHECK_CL(clEnqueueUnmapMemObject(m_globals.cmdQueue, m_rays.rayFlags, flgs, 0, 0, 0));
+  */
+
 }
 
 void GPUOCLLayer::saveBlocksInfoToFile(cl_mem a_blocks, size_t a_size)

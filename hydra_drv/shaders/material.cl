@@ -631,7 +631,6 @@ __kernel void Shade(__global const float4*    restrict a_rpos,
                     __global const ushort4*   restrict in_shadow,
                     __global const float*     restrict in_lightPickProb,
                     __global const float*     restrict in_lcos,
-                    __global const float4*    restrict in_normalsFull,
                     __global const float4*    restrict in_procTexData,
 
                     __global const PerRayAcc* restrict in_pdfAccPrev,

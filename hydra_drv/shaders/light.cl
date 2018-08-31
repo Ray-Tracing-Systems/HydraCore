@@ -63,7 +63,7 @@ __kernel void LightSampleForwardKernel(__global float4*        restrict out_rpos
 
                                        __global float4*        restrict out_data1,
                                        __global float4*        restrict out_data2,
-                                       __global float4*        restrict out_data3,
+                                       //__global float4*        restrict out_data3,
                                        __global PerRayAcc*     restrict out_pdfAcc,
                                        __global MisData*       restrict out_cosAndOther,
                                        __global int*           restrict out_lightId,
@@ -119,7 +119,7 @@ __kernel void LightSampleForwardKernel(__global float4*        restrict out_rpos
 
   out_data1[tid] = to_float4(sample.pos,  as_float(lightType(pLight)));
   out_data2[tid] = to_float4(sample.dir,  sample.pdfA);          
-  out_data3[tid] = to_float4(sample.norm, as_float(lightId));    
+  //out_data3[tid] = to_float4(sample.norm, as_float(lightId));    
 
   out_rpos [tid] = to_float4(sample.pos, 0.0f);                 // #TODO: do we really need so many out buffers ?
   out_rdir [tid] = to_float4(sample.dir, 0.0f);                 // #TODO: do we really need so many out buffers ?
@@ -138,16 +138,10 @@ __kernel void LightSampleForwardKernel(__global float4*        restrict out_rpos
 
   // (3) clear temporary per ray data
   //
-  HitMatRef data3;
-  data3.m_data    = 0;
-  data3.accumDist = 0.0f;
-
   out_flags      [tid] = 0;
   out_color      [tid] = to_float4(sample.color*invPdf, 0.0f);
   out_thoroughput[tid] = make_float4(1.0f, 1.0f, 1.0f, 1.0f);
   out_fog        [tid] = make_float4(0.0f, 0.0f, 0.0f, 0.0f);
-  out_hitMat     [tid] = data3;
-
 }
 
 __kernel void LightSample(__global const float4*  restrict in_rpos,

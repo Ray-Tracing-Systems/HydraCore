@@ -51,7 +51,8 @@ void GPUOCLLayer::trace1D(cl_mem a_rpos, cl_mem a_rdir, cl_mem a_outColor, size_
       timeForTrace    = timeForHitStart - timeStart;
     }
 
-    runKernel_ComputeHit(a_rpos, a_rdir, a_size);
+    runKernel_ComputeHit(a_rpos, a_rdir, a_size,
+                        m_rays.hitSurfaceAll);
 
     if ((m_vars.m_flags & HRT_FORWARD_TRACING) == 0)
       runKernel_HitEnvOrLight(m_rays.rayFlags, a_rpos, a_rdir, a_outColor, bounce, a_size);
@@ -105,7 +106,7 @@ void GPUOCLLayer::trace1D(cl_mem a_rpos, cl_mem a_rdir, cl_mem a_outColor, size_
 
     if (m_vars.m_flags & HRT_FORWARD_TRACING)
     {
-      ConnectEyePass(m_rays.oldFlags, m_rays.hitPosNorm, m_rays.hitNormUncompressed, m_rays.oldRayDir, m_rays.oldColor, bounce, a_size);
+      ConnectEyePass(m_rays.oldFlags, m_rays.oldRayDir, m_rays.oldColor, bounce, a_size);
       if (m_vars.m_flags & HRT_3WAY_MIS_WEIGHTS)
         runKernel_UpdateForwardPdfFor3Way(m_rays.oldFlags, m_rays.oldRayDir, m_rays.rayDir, m_rays.accPdf, a_size);
     }
@@ -192,13 +193,14 @@ void GPUOCLLayer::trace1DPrimaryOnly(cl_mem a_rpos, cl_mem a_rdir, cl_mem a_outC
     m_stat.raysPerSec = float(a_size) / m_timer.getElapsed();
   }
 
-  runKernel_ComputeHit(a_rpos, a_rdir, a_size, true);
+  runKernel_ComputeHit(a_rpos, a_rdir, a_size,
+                       m_rays.hitSurfaceAll);
 
   //
   //
   if (true)
   {
-    CHECK_CL(clSetKernelArg(kernShowN, 0, sizeof(cl_mem), (void*)&m_rays.hitPosNorm));
+    CHECK_CL(clSetKernelArg(kernShowN, 0, sizeof(cl_mem), (void*)&m_rays.hitSurfaceAll));
     CHECK_CL(clSetKernelArg(kernShowN, 1, sizeof(cl_mem), (void*)&a_outColor));
     CHECK_CL(clSetKernelArg(kernShowN, 2, sizeof(cl_int), (void*)&isize));
     CHECK_CL(clSetKernelArg(kernShowN, 3, sizeof(cl_int), (void*)&ioffset));
@@ -208,7 +210,7 @@ void GPUOCLLayer::trace1DPrimaryOnly(cl_mem a_rpos, cl_mem a_rdir, cl_mem a_outC
   }
   else if (false)
   {
-    CHECK_CL(clSetKernelArg(kernShowT, 0, sizeof(cl_mem), (void*)&m_rays.hitTexCoord));
+    CHECK_CL(clSetKernelArg(kernShowT, 0, sizeof(cl_mem), (void*)&m_rays.hitSurfaceAll));
     CHECK_CL(clSetKernelArg(kernShowT, 1, sizeof(cl_mem), (void*)&a_outColor));
     CHECK_CL(clSetKernelArg(kernShowT, 2, sizeof(cl_int), (void*)&isize));
     CHECK_CL(clSetKernelArg(kernShowT, 3, sizeof(cl_int), (void*)&ioffset));
