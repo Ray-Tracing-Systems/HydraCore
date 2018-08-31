@@ -189,6 +189,8 @@ void GPUOCLLayer::runKernel_MakeLightRays(cl_mem a_rpos, cl_mem a_rdir, cl_mem a
 
   bitonic_sort_gpu(m_rays.samZindex, int(a_size), sortArgs);
 
+  runKernel_ClearAllInternalTempBuffers(a_size); // #TODO: opt this!
+
   // (3) generate light sample
   //
   cl_kernel makeRaysKern = m_progs.lightp.kernel("LightSampleForwardKernel");
@@ -218,8 +220,6 @@ void GPUOCLLayer::runKernel_MakeLightRays(cl_mem a_rpos, cl_mem a_rdir, cl_mem a
 
   CHECK_CL(clEnqueueNDRangeKernel(m_globals.cmdQueue, makeRaysKern, 1, NULL, &a_size, &localWorkSize, 0, NULL, NULL));
   waitIfDebug(__FILE__, __LINE__);
-
-  runKernel_ClearAllInternalTempBuffers(a_size);
 }
 
 void RoundBlocks2D(size_t global_item_size[2], size_t local_item_size[2])

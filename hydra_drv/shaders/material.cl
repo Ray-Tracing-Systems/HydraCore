@@ -240,7 +240,7 @@ __kernel void ConnectToEyeKernel(__global const uint*          restrict a_flags,
   {
     const PerRayAcc accData = in_pdfAcc[tid];
 
-    const float cosCurr = fabs(dot(ray_dir, surfHit.normal));
+    const float cosCurr  = fabs(dot(ray_dir, surfHit.normal));
     const float pdfRevWP = pdfRevW / fmax(cosCurr, DEPSILON); // pdfW po pdfWP
 
     float pdfCamA0 = accData.pdfCamA0;
@@ -265,16 +265,16 @@ __kernel void ConnectToEyeKernel(__global const uint*          restrict a_flags,
     if (!isfinite(misWeight))
       misWeight = 0.0f;
   }
-  
+
 
   // We divide the contribution by surfaceToImageFactor to convert the (already
   // divided) pdf from surface area to image plane area, w.r.t. which the
   // pixel integral is actually defined. We also divide by the number of samples
   // this technique makes, which is equal to the number of light sub-paths
   //
-  const float3 a_accColor  = to_float3(a_colorIn[tid]);
-  const float3 shadowColor = decompressShadow(in_shadow[tid]);
-  float3 sampleColor       = misWeight*shadowColor*(a_accColor*colorConnect) * (imageToSurfaceFactor / mLightSubPathCount);
+  float3 a_accColor  = to_float3(a_colorIn[tid]);        // a_accColor = make_float3(10,10,10);
+  float3 shadowColor = decompressShadow(in_shadow[tid]);
+  float3 sampleColor = misWeight*shadowColor*(a_accColor*colorConnect) * (imageToSurfaceFactor / mLightSubPathCount);
   
   if (!isfinite(sampleColor.x) || !isfinite(sampleColor.y) || !isfinite(sampleColor.z) || imageToSurfaceFactor <= 0.0f)
     sampleColor = make_float3(0, 0, 0);
