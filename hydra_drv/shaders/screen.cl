@@ -224,12 +224,9 @@ __kernel void ClearAllInternalTempBuffers(__global uint*      restrict out_flags
   out_thoroughput[tid] = make_float4(1.0f, 1.0f, 1.0f, 1.0f);
   out_fog        [tid] = make_float4(0.0f, 0.0f, 0.0f, 0.0f);
   out_accPdf     [tid] = InitialPerParAcc();
-
-  SurfaceHit surfHit;
-  surfHit.matId = -1;
-
-  WriteSurfaceHit(&surfHit, tid, a_size, 
-                  out_surfaceHit);
+  
+  WriteSurfaceHitMatId(-1, tid, a_size, 
+                       out_surfaceHit);
 }
 
 

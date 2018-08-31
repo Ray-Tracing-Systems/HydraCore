@@ -159,10 +159,8 @@ __kernel void ComputeHit(__global const float4*   restrict rpos,
 
   if (HitNone(hit))
   {
-    SurfaceHit surfHitWS;
-    surfHitWS.matId = -1;                          // #TODO opt this !!!!!!!!!!!!!; write only matId !!!!!
-    WriteSurfaceHit(&surfHitWS, tid, a_size, 
-                    out_surfaceHit);
+    WriteSurfaceHitMatId(-1, tid, a_size, 
+                         out_surfaceHit);
 
     uint rayOtherFlags = unpackRayFlags(flags);
     rayOtherFlags     |= RAY_GRAMMAR_OUT_OF_SCENE;

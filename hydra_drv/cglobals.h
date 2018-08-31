@@ -2412,6 +2412,13 @@ static inline void WriteSurfaceHit(const __private SurfaceHit* a_pHit, int a_tid
   a_out[a_tid + 3*a_threadNum] = f4;
 } 
 
+static inline void WriteSurfaceHitMatId(const int a_matId, int a_tid, int a_threadNum, 
+                                        __global float4* a_out)
+{
+  const float4 f3 = make_float4(0, 0, 0, as_float(a_matId));
+  a_out[a_tid + 2*a_threadNum] = f3;
+}
+
 static inline void ReadSurfaceHit(const __global float4* a_in, int a_tid, int a_threadNum, 
                                   __private SurfaceHit* a_pHit)
 {
@@ -2429,10 +2436,20 @@ static inline void ReadSurfaceHit(const __global float4* a_in, int a_tid, int a_
   a_pHit->t          = f4.x;
   a_pHit->sRayOff    = f4.y;
 
-  const int flags = as_int(f4.w);
+  const int flags    = as_int(f4.w);
   a_pHit->hfi        = ((flags & PV_PACK_HITFI_FIELD) != 0);
 } 
 
+static inline int ReadSurfaceHitMatId(const __global float4* a_in, int a_tid, int a_threadNum)
+{
+  const float4 f3 = a_in[a_tid + 2*a_threadNum];
+  return as_int(f3.w);
+}
+
+static inline float3 ReadSurfaceHitPos(const __global float4* a_in, int a_tid, int a_threadNum)
+{
+  return to_float3(a_in[a_tid + 0*a_threadNum]);
+}
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////

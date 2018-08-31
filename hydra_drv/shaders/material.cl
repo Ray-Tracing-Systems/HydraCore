@@ -581,12 +581,9 @@ __kernel void HitEnvOrLightKernel(__global const float4*    restrict in_rpos,
     } // \\ if light emission is not zero
     else if (reflectProjectedBack) // fucking shadow catcher (camera mapped reflections)
     {
-      SurfaceHit surfHit;
-      ReadSurfaceHit(in_surfaceHit, tid, iNumElements, // #TODO: opt this, read only position(!!!)
-                     &surfHit);
-
-      const float2 posScreenSpace = worldPosToScreenSpace(surfHit.pos, a_globals);
-      const int backTextureId     = a_globals->varsI[HRT_SHADOW_MATTE_BACK];
+      const float3 surfHitPos     = ReadSurfaceHitPos(in_surfaceHit, tid, iNumElements);
+      const float2 posScreenSpace = worldPosToScreenSpace(surfHitPos, a_globals);
+      const int    backTextureId  = a_globals->varsI[HRT_SHADOW_MATTE_BACK];
 
       const float x   = (posScreenSpace.x + 0.5f);
       const float y   = (posScreenSpace.y + 0.5f);
