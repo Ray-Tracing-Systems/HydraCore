@@ -302,11 +302,7 @@ __kernel void HitEnvOrLightKernel(__global const float4*    restrict in_rpos,
                                   __global uint*            restrict a_flags,
                                   __global const int*       restrict in_packXY,
                                   
-                                  __global const float4*    restrict in_hitPosNorm,
-                                  __global const float2*    restrict in_hitTexCoord,
-                                  __global const HitMatRef* restrict in_matData,
-                                  __global const Hit_Part4* restrict in_hitTangent,
-                                  __global const float4*    restrict in_hitNormFull,
+                                  __global const float4*    restrict in_surfaceHit,
                                   __global const float4*    restrict in_procTexData,
                                   
                                   __global float4*          restrict a_color,
@@ -414,14 +410,14 @@ __kernel void HitEnvOrLightKernel(__global const float4*    restrict in_rpos,
     float3 emissColor = make_float3(0, 0, 0);
     bool hitLightSource = false;
 
-    const float3 hitPos = to_float3(in_hitPosNorm[tid]);
-    float3 hitNorm = to_float3(in_hitNormFull[tid]); // or normalize(decodeNormal(as_int(data.w))) where data is in_hitPosNorm[tid];
+    SurfaceHit surfHit;
+    ReadSurfaceHit(in_surfaceHit, tid, iNumElements, 
+                  &surfHit);
 
-    const float2 hitTexCoord = in_hitTexCoord[tid];
-    const float3 ray_pos     = to_float3(in_rpos[tid]);
-    const float3 ray_dir     = to_float3(in_rdir[tid]);
+    const float3 ray_pos = to_float3(in_rpos[tid]);
+    const float3 ray_dir = to_float3(in_rdir[tid]);
 
-    __global const PlainMaterial* pHitMaterial = materialAt(a_globals, in_mtlStorage, GetMaterialId(in_matData[tid]));
+    __global const PlainMaterial* pHitMaterial = materialAt(a_globals, in_mtlStorage, surfHit.matId);
 
     // eval PDFs for 3WAY 
     //
@@ -429,16 +425,16 @@ __kernel void HitEnvOrLightKernel(__global const float4*    restrict in_rpos,
     float GTerm = 1.0f, cosHere = 1.0f, cosPrev = 1.0f;
     if (a_globals->g_flags & HRT_3WAY_MIS_WEIGHTS)
     {
-      const float dist = length(ray_pos - hitPos);
+      const float dist = length(ray_pos - surfHit.pos);
       cosPrev = in_misDataPrev[tid].cosThetaPrev;
-      cosHere = fabs(dot(ray_dir, hitNorm));
-      GTerm = cosHere * cosPrev / fmax(dist*dist, DEPSILON2);
+      cosHere = fabs(dot(ray_dir, surfHit.normal));
+      GTerm   = cosHere * cosPrev / fmax(dist*dist, DEPSILON2);
       accData = a_pdfAcc[tid]; // for 3 bounce we need to store (p0*G0)*(p1*G1) and do not include (p2*G2) to we could replace it with explicit strategy pdf
 
       if (a_currDepth == 0)
       {
         float3 camDirDummy; float zDepthDummy;
-        const float imageToSurfaceFactor = CameraImageToSurfaceFactor(hitPos, hitNorm, a_globals,
+        const float imageToSurfaceFactor = CameraImageToSurfaceFactor(surfHit.pos, surfHit.normal, a_globals,
                                                                       &camDirDummy, &zDepthDummy);
 
         const float cameraPdfA = imageToSurfaceFactor / a_mLightSubPathCount;
@@ -477,16 +473,16 @@ __kernel void HitEnvOrLightKernel(__global const float4*    restrict in_rpos,
 
     bool hitEmissiveMaterialMLT = false;
     const bool skipPieceOfShit  = materialIsInvisLight(pHitMaterial) && isEyeRay(flags);
-    const float3 emissionVal    = (pHitMaterial == 0) ? make_float3(0, 0, 0) : materialEvalEmission(pHitMaterial, ray_dir, hitNorm, hitTexCoord, a_globals, in_texStorage1, in_texStorage2, &ptl);
+    const float3 emissionVal    = (pHitMaterial == 0) ? make_float3(0, 0, 0) : materialEvalEmission(pHitMaterial, ray_dir, surfHit.normal, surfHit.texCoord, a_globals, in_texStorage1, in_texStorage2, &ptl);
 
     if (dot(emissionVal, emissionVal) > 1e-6f && !skipPieceOfShit)
     {
       if (unpackRayFlags(flags) & RAY_HIT_SURFACE_FROM_OTHER_SIDE)
-        hitNorm = hitNorm * (-1.0f);
+        surfHit.normal = surfHit.normal  * (-1.0f);
 
       const Lite_Hit liteHit = in_liteHit[tid];
 
-      if (dot(ray_dir, hitNorm) < 0.0f)
+      if (dot(ray_dir, surfHit.normal ) < 0.0f)
       {
         emissColor = emissionVal;
 
@@ -496,7 +492,7 @@ __kernel void HitEnvOrLightKernel(__global const float4*    restrict in_rpos,
           MisData misPrev = a_misDataPrev[tid];
 
           __global const PlainLight* pLight = lightAt(a_globals, lightOffset);
-          emissColor = lightGetIntensity(pLight, ray_pos, ray_dir, hitNorm, hitTexCoord, flags, misPrev, a_globals, in_texStorage1, in_pdfStorage);
+          emissColor = lightGetIntensity(pLight, ray_pos, ray_dir, surfHit.normal , surfHit.texCoord, flags, misPrev, a_globals, in_texStorage1, in_pdfStorage);
 
           ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////// \\\\\\\\\\\\\\\\\\\\\\
           
@@ -545,7 +541,8 @@ __kernel void HitEnvOrLightKernel(__global const float4*    restrict in_rpos,
           }
           else if (unpackBounceNum(flags) > 0 && !(a_globals->g_flags & HRT_STUPID_PT_MODE) && (misPrev.isSpecular == 0)) // old MIS weights via pdfW
           {
-            const float lgtPdf    = lightPdfSelectRev(pLight)*lightEvalPDF(pLight, ray_pos, ray_dir, hitPos, hitNorm, hitTexCoord, in_pdfStorage, a_globals);
+            const float lgtPdf    = lightPdfSelectRev(pLight)*lightEvalPDF(pLight, ray_pos, ray_dir, 
+                                                                           surfHit.pos, surfHit.normal, surfHit.texCoord, in_pdfStorage, a_globals);
             const float bsdfPdf   = misPrev.matSamplePdf;
             const float misWeight = misWeightHeuristic(bsdfPdf, lgtPdf); // (bsdfPdf*bsdfPdf) / (lgtPdf*lgtPdf + bsdfPdf*bsdfPdf);
             emissColor *= misWeight;
@@ -584,8 +581,11 @@ __kernel void HitEnvOrLightKernel(__global const float4*    restrict in_rpos,
     } // \\ if light emission is not zero
     else if (reflectProjectedBack) // fucking shadow catcher (camera mapped reflections)
     {
-      const float3 hitPos         = to_float3(in_hitPosNorm[tid]);
-      const float2 posScreenSpace = worldPosToScreenSpace(hitPos, a_globals);
+      SurfaceHit surfHit;
+      ReadSurfaceHit(in_surfaceHit, tid, iNumElements, // #TODO: opt this, read only position(!!!)
+                     &surfHit);
+
+      const float2 posScreenSpace = worldPosToScreenSpace(surfHit.pos, a_globals);
       const int backTextureId     = a_globals->varsI[HRT_SHADOW_MATTE_BACK];
 
       const float x   = (posScreenSpace.x + 0.5f);
@@ -620,18 +620,12 @@ __kernel void HitEnvOrLightKernel(__global const float4*    restrict in_rpos,
   
 }
 
-
-
 __kernel void Shade(__global const float4*    restrict a_rpos,
                     __global const float4*    restrict a_rdir,
                     __global       uint*      restrict a_flags,
-                    
-                    __global const float4*    restrict in_hitPosNorm,
-                    __global const float2*    restrict in_hitTexCoord,
-                    __global const uint*      restrict in_flatNorm,
-                    __global const HitMatRef* restrict in_matData,
-                    __global const Hit_Part4* restrict in_hitTangent,
-                    
+              
+                    __global const float4*    restrict in_surfaceHit,
+                  
                     __global const float4*    restrict in_data1,
                     __global const float4*    restrict in_data2,
                     __global const ushort4*   restrict in_shadow,
@@ -675,24 +669,17 @@ __kernel void Shade(__global const float4*    restrict a_rpos,
     return;
   }
 
+  SurfaceHit surfHit;
+  ReadSurfaceHit(in_surfaceHit, tid, iNumElements, 
+                 &surfHit);
 
-  // read surfaceHit
-  //
-  const Hit_Part4 btanAndN = in_hitTangent[tid];
-  const float3 hitPos      = to_float3(in_hitPosNorm[tid]);
-  const float3 hitNorm     = to_float3(in_normalsFull[tid]); // normalize(decodeNormal(as_int(data.w)));
-  const float2 hitTexCoord = in_hitTexCoord[tid];
-  const float3 hitBiTang   = decodeNormal(btanAndN.tangentCompressed);
-  const float3 hitBiNorm   = decodeNormal(btanAndN.bitangentCompressed);
-
-  __global const PlainMaterial* pHitMaterial = materialAt(a_globals, in_mtlStorage, GetMaterialId(in_matData[tid]));
+  __global const PlainMaterial* pHitMaterial = materialAt(a_globals, in_mtlStorage, surfHit.matId);
 
   float3 ray_pos = to_float3(a_rpos[tid]);
   float3 ray_dir = to_float3(a_rdir[tid]);
 
   float4 data1   = in_data1[tid];
   float4 data2   = in_data2[tid];
-  float3 flatN   = decodeNormal(in_flatNorm[tid]);
 
   ShadowSample explicitSam;
 
@@ -703,8 +690,8 @@ __kernel void Shade(__global const float4*    restrict a_rpos,
   explicitSam.isPoint    = (data1.w <= 0);
   explicitSam.cosAtLight = in_lcos[tid];
 
-  //float3 shadowRayPos = hitPos + hitNorm*maxcomp(hitPos)*GEPSILON;
-  float3 shadowRayDir = normalize(explicitSam.pos - hitPos); 
+  //float3 shadowRayPos = surfHit.pos + surfHit.normal*maxcomp(surfHit.pos)*GEPSILON;
+  float3 shadowRayDir = normalize(explicitSam.pos - surfHit.pos); 
 
   const bool currLightCastCaustics = (a_globals->g_flags & HRT_ENABLE_PT_CAUSTICS);
   const bool disableCaustics       = (unpackBounceNumDiff(flags) > 0) && !currLightCastCaustics;
@@ -715,14 +702,15 @@ __kernel void Shade(__global const float4*    restrict a_rpos,
   // bool hitFromBack = (bool)(unpackRayFlags(flags) & RAY_HIT_SURFACE_FROM_OTHER_SIDE);
 
   ShadeContext sc;
-  sc.wp = hitPos;
-  sc.l  = shadowRayDir;
-  sc.v  = (-1.0f)*ray_dir;
-  sc.n  = hitNorm;
-  sc.fn = flatN;
-  sc.tg = hitBiTang;
-  sc.bn = hitBiNorm;
-  sc.tc = hitTexCoord;
+  sc.wp  = surfHit.pos;
+  sc.l   = shadowRayDir;
+  sc.v   = (-1.0f)*ray_dir;
+  sc.n   = surfHit.normal;
+  sc.fn  = surfHit.flatNormal;
+  sc.tg  = surfHit.tangent;
+  sc.bn  = surfHit.biTangent;
+  sc.tc  = surfHit.texCoord;
+  sc.hfi = surfHit.hfi;
 
   ProcTextureList ptl;
   InitProcTextureList(&ptl);
@@ -742,20 +730,20 @@ __kernel void Shade(__global const float4*    restrict a_rpos,
   float misWeight = 1.0f;
   if ((a_globals->g_flags & HRT_3WAY_MIS_WEIGHTS) && (lightType(pLight) != PLAIN_LIGHT_TYPE_SKY_DOME))
   {
-    const float cosHere      = fabs(dot(ray_dir, hitNorm));
+    const float cosHere      = fabs(dot(ray_dir, surfHit.normal));
     const int a_currDepth    = rayBounceNum;
 
-    const float cosThetaOut1 = fmax(+dot(shadowRayDir, hitNorm), 0.0f);
-    const float cosThetaOut2 = fmax(-dot(shadowRayDir, hitNorm), 0.0f);
+    const float cosThetaOut1 = fmax(+dot(shadowRayDir, surfHit.normal), 0.0f);
+    const float cosThetaOut2 = fmax(-dot(shadowRayDir, surfHit.normal), 0.0f);
     const bool  underSurface = (dot(evalData.btdf, evalData.btdf)*cosThetaOut2 > 0.0f && dot(evalData.brdf, evalData.brdf)*cosThetaOut1 <= 0.0f);
     const float cosThetaOut  = underSurface ? cosThetaOut2 : cosThetaOut1;
     const float cosAtLight   = fmax(explicitSam.cosAtLight, 0.0f);
     
-    cosThetaOutAux = dot(shadowRayDir, hitNorm);
+    cosThetaOutAux = dot(shadowRayDir, surfHit.normal);
 
     const float bsdfRevWP    = (evalData.pdfFwd == 0.0f) ? 1.0f : evalData.pdfFwd / fmax(cosThetaOut, DEPSILON);
     const float bsdfFwdWP    = (evalData.pdfRev == 0.0f) ? 1.0f : evalData.pdfRev / fmax(cosHere, DEPSILON);
-    const float shadowDist   = length(hitPos - explicitSam.pos);
+    const float shadowDist   = length(surfHit.pos - explicitSam.pos);
     const float GTermShadow  = cosThetaOut * cosAtLight / fmax(shadowDist*shadowDist, DEPSILON);
     
     const PerRayAcc prevData = in_pdfAccPrev[tid];
@@ -781,7 +769,7 @@ __kernel void Shade(__global const float4*    restrict a_rpos,
   else
   {
     const float lgtPdf = explicitSam.pdf*lightPickProb;
-    cosThetaOutAux     = dot(shadowRayDir, hitNorm);
+    cosThetaOutAux     = dot(shadowRayDir, surfHit.normal);
 
     misWeight = misWeightHeuristic(lgtPdf, evalData.pdfFwd); // (lgtPdf*lgtPdf) / (lgtPdf*lgtPdf + bsdfPdf*bsdfPdf);
     if (explicitSam.isPoint)
@@ -797,8 +785,8 @@ __kernel void Shade(__global const float4*    restrict a_rpos,
     out_shadow[tid] = (uchar)(255.0f - clamp(shadow1, 0.0f, 255.0f));
   }
 
-  const float cosThetaOut1 = fmax(+dot(shadowRayDir, hitNorm), 0.0f);
-  const float cosThetaOut2 = fmax(-dot(shadowRayDir, hitNorm), 0.0f);
+  const float cosThetaOut1 = fmax(+dot(shadowRayDir, surfHit.normal), 0.0f);
+  const float cosThetaOut2 = fmax(-dot(shadowRayDir, surfHit.normal), 0.0f);
 
   const float3 bxdfVal = (evalData.brdf*cosThetaOut1 + evalData.btdf*cosThetaOut2);
 
