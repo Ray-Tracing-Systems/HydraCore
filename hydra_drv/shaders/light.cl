@@ -56,7 +56,6 @@ __kernel void LightSampleForwardCreate(__global float4*              restrict ou
 
 __kernel void LightSampleForwardKernel(__global float4*        restrict out_rpos,
                                        __global float4*        restrict out_rdir,
-                                       //__global RandomGen*     restrict out_gens,
                                        __global const float4*  restrict in_data1,
                                        __global const float4*  restrict in_data2,
                                        __global const int2*    restrict in_index,
@@ -72,7 +71,6 @@ __kernel void LightSampleForwardKernel(__global float4*        restrict out_rpos
                                        __global float4*        restrict out_color,         // just for clearing them
                                        __global float4*        restrict out_thoroughput,   // just for clearing them
                                        __global float4*        restrict out_fog,           // just for clearing them
-                                       __global HitMatRef*     restrict out_hitMat,        // just for clearing them
                                                                                         
                                        __global const float4*  restrict a_texStorage1,     // 
                                        __global const float4*  restrict a_pdfStorage, 
