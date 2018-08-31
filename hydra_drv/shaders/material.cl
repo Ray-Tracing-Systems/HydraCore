@@ -812,12 +812,7 @@ __kernel void NextBounce(__global   float4*        restrict a_rpos,
                          __global   uint*          restrict a_flags,
                          __global RandomGen*       restrict out_gens,
                          
-                         __global const float4*    restrict in_hitPosNorm,
-                         __global const float2*    restrict in_hitTexCoord,
-                         __global const uint*      restrict in_flatNorm,
-                         __global const HitMatRef* restrict in_matData,
-                         __global const Hit_Part4* restrict in_hitTangent,
-                         __global const float4*    restrict in_hitNormFull,
+                         __global const float4*    restrict in_surfaceHit,
                          __global const float4*    restrict in_procTexData,
 
                          __global float4*          restrict a_color,
@@ -858,32 +853,18 @@ __kernel void NextBounce(__global   float4*        restrict a_rpos,
   float3 outPathColor      = make_float3(0,0,0);
   float3 outPathThroughput = make_float3(0,0,0);
 
-  float3 hitPos;
-  float3 hitNorm;
-  float3 flatNorm;
-  float2 hitTexCoord;
-  float3 hitBiTang;
-  float3 hitBiNorm;
-
+  SurfaceHit surfHit;
   bool thisBounceIsDiffuse = false;
-  bool hitLightSource = false;
+  bool hitLightSource      = false;
 
   __global const PlainMaterial* pHitMaterial = 0;
 
   if (rayIsActiveU(flags)) 
   {
-    float4 data  = in_hitPosNorm[tid];
-  
-    hitPos       = to_float3(data);
-    hitNorm      = to_float3(in_hitNormFull[tid]); //normalize(decodeNormal(as_int(data.w)));
-    flatNorm     = normalize(decodeNormal(in_flatNorm[tid]));
-    hitTexCoord  = in_hitTexCoord[tid];
-  
-    Hit_Part4 btanAndN = in_hitTangent[tid];
-    hitBiTang    = decodeNormal(btanAndN.tangentCompressed);
-    hitBiNorm    = decodeNormal(btanAndN.bitangentCompressed);
-  
-    pHitMaterial = materialAt(a_globals, in_mtlStorage, GetMaterialId(in_matData[tid]));
+    ReadSurfaceHit(in_surfaceHit, tid, iNumElements, 
+                   &surfHit);
+
+    pHitMaterial = materialAt(a_globals, in_mtlStorage, surfHit.matId);
   
     float4 emissData = (in_emissionColor == 0) ? make_float4(0, 0, 0, 0) : in_emissionColor[tid];
     outPathColor     = to_float3(emissData);
@@ -903,7 +884,7 @@ __kernel void NextBounce(__global   float4*        restrict a_rpos,
  
   if (rayIsActiveU(flags))
   {
-    matOffset = materialOffset(a_globals, GetMaterialId(in_matData[tid]));
+    matOffset = materialOffset(a_globals, surfHit.matId);
    
     ProcTextureList ptl;
     InitProcTextureList(&ptl);
@@ -915,7 +896,7 @@ __kernel void NextBounce(__global   float4*        restrict a_rpos,
     __global const float* matLayerRandsArray = (pssVec == 0) ? 0 : pssVec + rndMatLOffsetMMLT(rayBounceNum);
 
     BRDFSelector mixSelector = materialRandomWalkBRDF(pHitMaterial, &gen, matLayerRandsArray, 
-                                                      ray_dir, hitNorm, hitTexCoord,
+                                                      ray_dir, surfHit.normal, surfHit.texCoord,
                                                       a_globals, in_texStorage1, &ptl, rayBounceNum,
                                                       false, qmcPos, a_qmcTable);
    
@@ -923,20 +904,20 @@ __kernel void NextBounce(__global   float4*        restrict a_rpos,
     pHitMaterial        = pHitMaterial + mixSelector.localOffs;
     thisBounceIsDiffuse = materialHasDiffuse(pHitMaterial);
 
-    const float3 shadow = decompressShadow(a_shadow[tid]); // fmax(-dot(ray_dir, hitNorm), 0.0f);
+    const float3 shadow = decompressShadow(a_shadow[tid]); // fmax(-dot(ray_dir, surfHit.normal), 0.0f);
   
     /////////////////////////////////////////////////////////////////////////////// begin sample material
     {
       ShadeContext sc;
   
-      sc.wp  = hitPos;
+      sc.wp  = surfHit.pos;
       sc.l   = ray_dir; 
       sc.v   = ray_dir;
-      sc.n   = hitNorm;
-      sc.fn  = flatNorm;
-      sc.tg  = hitBiTang;
-      sc.bn  = hitBiNorm;
-      sc.tc  = hitTexCoord;
+      sc.n   = surfHit.normal;
+      sc.fn  = surfHit.flatNormal;
+      sc.tg  = surfHit.tangent;
+      sc.bn  = surfHit.biTangent;
+      sc.tc  = surfHit.texCoord;
       sc.hfi = (materialGetType(pHitMaterial) == PLAIN_MAT_CLASS_GLASS) && (bool)(unpackRayFlags(flags) & RAY_HIT_SURFACE_FROM_OTHER_SIDE);  //hit glass from other side
   
       __global const float* matRandsArray = (pssVec == 0) ? 0 : pssVec + rndMatOffsetMMLT(rayBounceNum);
@@ -957,7 +938,7 @@ __kernel void NextBounce(__global   float4*        restrict a_rpos,
   
     const float clampMax    = materialIsSkyPortal(pHitMaterial) ? 10.0f : 1.0f;
     const float invPdf      = 1.0f / fmax(brdfSample.pdf, DEPSILON);
-    const float cosTheta    = fabs(dot(brdfSample.direction, hitNorm));
+    const float cosTheta    = fabs(dot(brdfSample.direction, surfHit.normal));
     outPathThroughput       = clamp(cosTheta*brdfSample.color*invPdf, 0.0f, clampMax) / fmax(mixSelector.w, 0.025f); //#TODO: clamp is not correct actually ???
    
     // const int otherFlagsSMSK = unpackRayFlags(flags);
@@ -976,14 +957,13 @@ __kernel void NextBounce(__global   float4*        restrict a_rpos,
     /////////////////////////////////////////////////////////////////////////////// finish with outPathThroughput
   
     const float3 nextRay_dir = brdfSample.direction;
-    const float3 nextRay_pos = OffsRayPos(hitPos, hitNorm, brdfSample.direction);
+    const float3 nextRay_pos = OffsRayPos(surfHit.pos, surfHit.normal, brdfSample.direction);
 
     // values that bidirectional techniques needs
     //
     const float cosPrev = fabs(a_misDataPrev[tid].cosThetaPrev);
-    const float cosCurr = fabs(-dot(ray_dir, hitNorm));
-    //const float cosNext = fabs(+dot(nextRay_dir, hitNorm));
-    const float dist    = length(hitPos - ray_pos);
+    const float cosCurr = fabs(-dot(ray_dir, surfHit.normal));
+    const float dist    = length(surfHit.pos - ray_pos);
     GTerm = (cosPrev*cosCurr / fmax(dist*dist, DEPSILON2));
 
     // calc new ray
@@ -1021,7 +1001,7 @@ __kernel void NextBounce(__global   float4*        restrict a_rpos,
     /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 	  const float dotNewOld  = dot(ray_dir, to_float3(a_rdir[tid]));
 	  const bool  gotOutside = (dotNewOld > 0.0f) && (unpackRayFlags(flags) & RAY_HIT_SURFACE_FROM_OTHER_SIDE);
-	  const float dist       = length(to_float3(in_hitPosNorm[tid]) - to_float3(a_rpos[tid]));
+	  const float dist       = length(surfHit.pos - to_float3(a_rpos[tid]));
 
 	  const float3 fogAtten  = attenuationStep(pHitMaterial, dist, gotOutside, a_fog + tid);
     /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -1041,7 +1021,7 @@ __kernel void NextBounce(__global   float4*        restrict a_rpos,
       misNext.matSamplePdf       = brdfSample.pdf;
       misNext.isSpecular         = (int)isPureSpecular(brdfSample);
       misNext.prevMaterialOffset = matOffset;
-      misNext.cosThetaPrev       = fabs(+dot(ray_dir, hitNorm)); // update it withCosNextActually ...
+      misNext.cosThetaPrev       = fabs(+dot(ray_dir, surfHit.normal)); // update it withCosNextActually ...
       a_misDataPrev[tid]         = misNext;
     }
     ///////////////////////////////////////////////// 
@@ -1085,29 +1065,30 @@ __kernel void NextBounce(__global   float4*        restrict a_rpos,
         {
           if (!isPureSpecular(brdfSample))
           {
-            const float cosHere = fabs(dot(oldRayDir, hitNorm));
-            const float cosNext = fabs(dot(brdfSample.direction, hitNorm));
+            const float cosHere = fabs(dot(oldRayDir, surfHit.normal));
+            const float cosNext = fabs(dot(brdfSample.direction, surfHit.normal));
 
             accPdf.pdfCameraWP *= (brdfSample.pdf / fmax(cosNext, DEPSILON));
 
             if (a_currDepth > 0)
             {
               ShadeContext sc;
-              sc.wp = hitPos;
+              sc.wp = surfHit.pos;
               sc.l  = (-1.0f)*oldRayDir;    // fliped; if compare to normal PT
               sc.v  = brdfSample.direction; // fliped; if compare to normal PT
-              sc.n  = hitNorm;
-              sc.fn = flatNorm;
-              sc.tg = hitBiTang;
-              sc.bn = hitBiNorm;
-              sc.tc = hitTexCoord;
+              sc.n  = surfHit.normal;
+              sc.fn = surfHit.flatNormal;
+              sc.tg = surfHit.tangent;
+              sc.bn = surfHit.biTangent;
+              sc.tc = surfHit.texCoord;
 
               ProcTextureList ptl;       
               InitProcTextureList(&ptl); 
               ReadProcTextureList(in_procTexData, tid, iNumElements,
                                   &ptl);
 
-              const float pdfFwdW = materialEval(pHitMaterial, &sc, false, false, /* global data --> */  a_globals, in_texStorage1, in_texStorage2, &ptl).pdfFwd;
+              const float pdfFwdW = materialEval(pHitMaterial, &sc, false, false, // global data on the second line -->                          
+                                                 a_globals, in_texStorage1, in_texStorage2, &ptl).pdfFwd; 
              
               accPdf.pdfLightWP *= (pdfFwdW / fmax(cosHere, DEPSILON));
             }
