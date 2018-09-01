@@ -183,7 +183,7 @@ protected:
   struct CL_MLT_DATA
   {
     CL_MLT_DATA() : rstateForAcceptReject(0), rstateCurr(0), rstateOld(0), rstateNew(0),
-                    xVector(0), yVector(0), xColor(0), yColor(0), cameraVertex(0), pdfArray(0),
+                    xVector(0), yVector(0), xColor(0), yColor(0), cameraVertexSup(0), cameraVertexHit(0), pdfArray(0),
                     memTaken(0), mppDone(0.0) {}
 
     cl_mem rstateForAcceptReject; // sizeof(RandGen), MEGABLOCKSIZE size
@@ -197,7 +197,8 @@ protected:
     cl_mem xColor;
     cl_mem yColor;
 
-    cl_mem cameraVertex;
+    cl_mem cameraVertexSup;
+    cl_mem cameraVertexHit;
     cl_mem pdfArray;
 
     size_t memTaken;

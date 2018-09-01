@@ -871,14 +871,14 @@ PathVertex IntegratorMMLT::CameraPath(float3 ray_pos, float3 ray_dir, float3 a_p
     
     return resVertex;
   }
-
+  
+  // (3) eval reverse and forward pdfs
+  //
   const PlainMaterial* pHitMaterial = materialAt(m_pGlobals, m_matStorage, surfElem.matId);
   const MatSample matSam = std::get<0>(sampleAndEvalBxDF(ray_dir, surfElem, packBounceNum(0, a_currDepth - 1), float3(0, 0, 0), true));
   const float3 bxdfVal   = matSam.color; // *(1.0f / fmaxf(matSam.pdf, 1e-20f));
   const float cosNext    = fabs(dot(matSam.direction, surfElem.normal));
 
-  // eval reverse and forward pdfs
-  //
   if (a_currDepth == 1)
   {
     if (isPureSpecular(matSam))  //  ow ... but if we met specular reflection when tracing from camera, we must put 0 because this path cannot be sample by light strategy at all.
@@ -911,7 +911,7 @@ PathVertex IntegratorMMLT::CameraPath(float3 ray_pos, float3 ray_dir, float3 a_p
   }
   
  
-  // proceed to next bounce
+  // (4) proceed to next bounce
   //
   const float3 nextRay_dir = matSam.direction;
   const float3 nextRay_pos = OffsRayPos(surfElem.pos, surfElem.normal, matSam.direction);

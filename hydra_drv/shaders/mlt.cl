@@ -48,6 +48,7 @@ __kernel void MMLTCameraPathBounce(__global   float4*        restrict a_rpos,
                                    __global MisData*         restrict a_misDataPrev,
                                    __global float4*          restrict a_fog,
                                    __global PdfVertex*       restrict a_pdfVert,          // (!) MMLT pdfArray 
+                                   __global   float4*        restrict a_vertexSup,        // (!) MMLT out Path Vertex supplemental to surfaceHit data
 
                                    __global const float4*    restrict in_texStorage1,    
                                    __global const float4*    restrict in_texStorage2,
@@ -68,9 +69,9 @@ __kernel void MMLTCameraPathBounce(__global   float4*        restrict a_rpos,
 
   // (0) Read "IntegratorMMLT::CameraPath" arguments and calc ray hit
   //
-  const bool a_haveToHitLightSource = true;     /////////////////////  #TODO: INUT; read this from some place !!! 
-  const int  a_fullPathDepth        = 3;        /////////////////////  #TODO: INUT; read this from some place !!! 
-  const int  a_targetDepth          = 3;        /////////////////////  #TODO: INUT; read this from some place !!! 
+  const bool a_haveToHitLightSource = true;     /////////////////////  #TODO: INPUT; read this from some place !!! 
+  const int  a_fullPathDepth        = 3;        /////////////////////  #TODO: INPUT; read this from some place !!! 
+  const int  a_targetDepth          = 3;        /////////////////////  #TODO: INPUT; read this from some place !!! 
 
   const int  a_currDepth     = unpackBounceNum(flags)        + 1;                                   
   const int  prevVertexId    = a_fullPathDepth - a_currDepth + 1; 
@@ -130,7 +131,6 @@ __kernel void MMLTCameraPathBounce(__global   float4*        restrict a_rpos,
   {    
     if (a_currDepth == a_targetDepth && a_haveToHitLightSource)
     {
-      
       const LightPdfFwd lPdfFwd = lightPdfFwd(pLight, ray_dir, cosHere, a_globals, in_texStorage1, in_pdfStorage);
       const float pdfLightWP    = lPdfFwd.pdfW           / fmax(cosHere, DEPSILON);
       const float pdfMatRevWP   = a_misPrev.matSamplePdf / fmax(cosPrev, DEPSILON);
@@ -146,17 +146,23 @@ __kernel void MMLTCameraPathBounce(__global   float4*        restrict a_rpos,
 
         a_pdfVert[TabIndex(0, tid, iNumElements)] = v0;
         a_pdfVert[TabIndex(1, tid, iNumElements)] = v1;
-      }
-
-      //resVertex.hit      = surfElem;
-      //resVertex.ray_dir  = ray_dir;
-      //resVertex.accColor = emission;
-      //resVertex.valid    = true;
+      } 
+      
+      PathVertex resVertex;
+      resVertex.ray_dir  = ray_dir;
+      resVertex.accColor = emission;
+      resVertex.valid    = true;
+      WritePathVertexSupplement(&resVertex, tid, iNumElements, 
+                                a_vertexSup);
     }
     else // this branch could brobably change in future, for simple emissive materials
     {
-      //resVertex.accColor = float3(0, 0, 0);
-      //resVertex.valid    = false;
+      PathVertex resVertex;
+      resVertex.ray_dir  = ray_dir;
+      resVertex.accColor = emission;
+      resVertex.valid    = true;
+      WritePathVertexSupplement(&resVertex, tid, iNumElements, 
+                                a_vertexSup);
     }
    
     //kill this thread (return resVertex)
