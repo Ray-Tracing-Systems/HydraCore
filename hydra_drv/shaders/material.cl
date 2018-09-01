@@ -296,7 +296,6 @@ __kernel void ConnectToEyeKernel(__global const uint*          restrict a_flags,
 
 }
 
-
 __kernel void HitEnvOrLightKernel(__global const float4*    restrict in_rpos,
                                   __global const float4*    restrict in_rdir,
                                   __global uint*            restrict a_flags,
@@ -407,7 +406,6 @@ __kernel void HitEnvOrLightKernel(__global const float4*    restrict in_rpos,
   }
   else if (rayIsActiveU(flags)) // if thread is active
   {
-    float3 emissColor = make_float3(0, 0, 0);
     bool hitLightSource = false;
 
     SurfaceHit surfHit;
@@ -471,29 +469,26 @@ __kernel void HitEnvOrLightKernel(__global const float4*    restrict in_rpos,
     ReadProcTextureList(in_procTexData, tid, iNumElements, 
                         &ptl);
 
-    bool hitEmissiveMaterialMLT = false;
     const bool skipPieceOfShit  = materialIsInvisLight(pHitMaterial) && isEyeRay(flags);
-    const float3 emissionVal    = (pHitMaterial == 0) ? make_float3(0, 0, 0) : materialEvalEmission(pHitMaterial, ray_dir, surfHit.normal, surfHit.texCoord, a_globals, in_texStorage1, in_texStorage2, &ptl);
+    const Lite_Hit liteHit      = in_liteHit[tid];
+    const MisData misPrev       = a_misDataPrev[tid];
+    const int lightOffset       = (a_globals->lightsNum == 0 || liteHit.instId < 0) ? -1 : in_instLightInstId[liteHit.instId];
+    __global const PlainLight* pLight = lightAt(a_globals, lightOffset);
+
+    const float3 emissionVal = emissionEval(ray_pos, ray_dir, &surfHit, flags, (misPrev.isSpecular == 1), pLight,
+                                            pHitMaterial, in_texStorage1, in_pdfStorage, a_globals, &ptl);
 
     if (dot(emissionVal, emissionVal) > 1e-6f && !skipPieceOfShit)
     {
-      if (unpackRayFlags(flags) & RAY_HIT_SURFACE_FROM_OTHER_SIDE)
-        surfHit.normal = surfHit.normal  * (-1.0f);
+      const float3 lightNorm = surfHit.hfi ? surfHit.normal  * (-1.0f) : surfHit.normal;
+      float3 emissColor      = make_float3(0, 0, 0);
 
-      const Lite_Hit liteHit = in_liteHit[tid];
-
-      if (dot(ray_dir, surfHit.normal ) < 0.0f)
+      if (dot(ray_dir, lightNorm) < 0.0f)
       {
         emissColor = emissionVal;
 
-        const int lightOffset = (a_globals->lightsNum == 0) ? -1 : in_instLightInstId[liteHit.instId];
         if (lightOffset >= 0)
         {
-          MisData misPrev = a_misDataPrev[tid];
-
-          __global const PlainLight* pLight = lightAt(a_globals, lightOffset);
-          emissColor = lightGetIntensity(pLight, ray_pos, ray_dir, surfHit.normal , surfHit.texCoord, flags, misPrev, a_globals, in_texStorage1, in_pdfStorage);
-
           ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////// \\\\\\\\\\\\\\\\\\\\\\
           
           if (a_globals->g_flags & HRT_ENABLE_MMLT)
@@ -569,14 +564,9 @@ __kernel void HitEnvOrLightKernel(__global const float4*    restrict in_rpos,
           
         }
       }
-
-      const uint rayBounceNumDiff = unpackBounceNumDiff(flags);
-
-      if ((materialGetFlags(pHitMaterial) & PLAIN_MATERIAL_FORBID_EMISSIVE_GI) && rayBounceNumDiff > 0)
-        emissColor = make_float3(0, 0, 0);
-
+      
       const int packedIsLight = hitLightSource ? 1 : 0;
-      out_emission[tid] = to_float4(emissColor, as_float(packedIsLight));
+      out_emission[tid]       = to_float4(emissColor, as_float(packedIsLight));
 
     } // \\ if light emission is not zero
     else if (reflectProjectedBack) // fucking shadow catcher (camera mapped reflections)

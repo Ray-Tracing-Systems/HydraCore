@@ -39,6 +39,7 @@ __kernel void MMLTCameraPathBounce(__global   float4*        restrict a_rpos,
                                    __global RandomGen*       restrict out_gens,
                                   
                                    __global const Lite_Hit*  restrict in_hits,
+                                   __global const int*       restrict in_instLightInstId,
                                    __global const float4*    restrict in_surfaceHit,
                                    __global const float4*    restrict in_procTexData,
 
@@ -111,28 +112,33 @@ __kernel void MMLTCameraPathBounce(__global   float4*        restrict a_rpos,
 
   // (2)
   //
-  const Lite_Hit hit      = in_hits[tid];
+  const Lite_Hit liteHit  = in_hits[tid];
   const MisData a_misPrev = a_misDataPrev[tid];
 
-  float3 emission = emissionEval(ray_pos, ray_dir, surfElem, flags, a_misPrev, hit.instId);
+  ProcTextureList ptl;        
+  InitProcTextureList(&ptl);  
+  ReadProcTextureList(in_procTexData, tid, iNumElements, 
+                      &ptl);
+  
+  const int lightOffset   = (a_globals->lightsNum == 0 || liteHit.instId < 0) ? -1 : in_instLightInstId[liteHit.instId]; // #TODO: refactor this into function!
+  __global const PlainLight* pLight = lightAt(a_globals, lightOffset);
+
+  const float3 emission = emissionEval(ray_pos, ray_dir, &surfElem, flags, (a_misPrev.isSpecular == 1), pLight,
+                                       pHitMaterial, in_texStorage1, in_pdfStorage, a_globals, &ptl);
+
   if (dot(emission, emission) > 1e-3f)
-  {
-    //PathVertex resVertex;
-    
+  {    
     if (a_currDepth == a_targetDepth && a_haveToHitLightSource)
     {
-      /*
-      const int instId         = hit.instId;
-      const int lightOffset    = m_geom.instLightInstId[instId];   /////// #FIX_THAT!!!!
-      const PlainLight* pLight = lightAt(a_globals, lightOffset);
       
-      const LightPdfFwd lPdfFwd = lightPdfFwd(pLight, ray_dir, cosHere, a_globals, m_texStorage, m_pdfStorage);
-      const float pdfLightWP    = lPdfFwd.pdfW / fmax(cosHere, DEPSILON);
+      const LightPdfFwd lPdfFwd = lightPdfFwd(pLight, ray_dir, cosHere, a_globals, in_texStorage1, in_pdfStorage);
+      const float pdfLightWP    = lPdfFwd.pdfW           / fmax(cosHere, DEPSILON);
       const float pdfMatRevWP   = a_misPrev.matSamplePdf / fmax(cosPrev, DEPSILON);
       
       {
         PdfVertex v0,v1;
-        v0.pdfFwd = lPdfFwd.pdfA / float(a_globals->lightsNum);
+
+        v0.pdfFwd = lPdfFwd.pdfA / ((float)a_globals->lightsNum);
         v0.pdfRev = 1.0f;
 
         v1.pdfFwd = pdfLightWP*GTerm;
@@ -142,20 +148,19 @@ __kernel void MMLTCameraPathBounce(__global   float4*        restrict a_rpos,
         a_pdfVert[TabIndex(1, tid, iNumElements)] = v1;
       }
 
-      resVertex.hit      = surfElem;
-      resVertex.ray_dir  = ray_dir;
-      resVertex.accColor = emission;
-      resVertex.valid    = true;
+      //resVertex.hit      = surfElem;
+      //resVertex.ray_dir  = ray_dir;
+      //resVertex.accColor = emission;
+      //resVertex.valid    = true;
     }
     else // this branch could brobably change in future, for simple emissive materials
     {
-      resVertex.accColor = float3(0, 0, 0);
-      resVertex.valid    = false;
+      //resVertex.accColor = float3(0, 0, 0);
+      //resVertex.valid    = false;
     }
    
     //kill this thread (return resVertex)
-    */
-
+    
   }
   else if (a_currDepth == a_targetDepth && !a_haveToHitLightSource) // #NOTE: what if a_targetDepth == 1 ?
   {
@@ -183,7 +188,7 @@ __kernel void MMLTCameraPathBounce(__global   float4*        restrict a_rpos,
 
 
   }
-
+  
 
 
 }

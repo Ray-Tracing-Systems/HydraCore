@@ -454,8 +454,21 @@ static float3 ConnectEndPointsP(const PathVertex a_lv, const PathVertex a_cv, co
   return bsdfClamping(lightBRDF*camBRDF*GTerm); // fmin(GTerm,1000.0f);
 }
 
+/**
+\brief  Get environment color considering PT mis (i.e. 2 strategies)
+\param  rayDir           - input direction of ray that is going to hit environment (i.e. it miss all surfaces and got outside the scene)
+\param  misPrev          - previous bounce MIS info
+\param  flags            - ray flags
+\param  a_globals        - engine globals
+\param  a_mltStorage     - material storage (needed to get previous bounce material info)
+\param  a_pdfStorage     - pdf storage
+\param  a_shadingTexture - standart texture storage
 
+\return environment color considering PT mis
 
+ Although this function was designed for PT only, it can be used for 3Way and MMLT due to env lights don't have forward sampler in our renderer
+
+*/
 
 static inline float3 environmentColor(float3 rayDir, MisData misPrev, unsigned int flags, 
                                       __global const EngineGlobals* a_globals, 
@@ -497,5 +510,49 @@ static inline float3 environmentColor(float3 rayDir, MisData misPrev, unsigned i
   return envColor;
 }
 
+/**
+\brief  Get surface emission. Considering both material and light to get correct value. No MIS applied inside.
+\param  ray_pos          - ray origin (needed for 'directLightAttenuation' and e.t.c. deep inside)
+\param  ray_dir          - ray direction
+\param  pSurfElem        - surface element 
+\param  flags            - ray flags
+\param  a_wasSpecular    - set this true if previous bounce was specular
+
+\param  pLight           - pointer to light if surface is a light-surface, nullptr otherwise
+\param  a_pHitMaterial   - surface material
+
+\param  a_texStorage     - standart testure storage
+\param  a_pdfStorage     - pdf storage
+\param  a_globals        - engine globals
+\param  a_ptl            - proc. textures data list.
+
+\return surface emission
+
+ Get surface emission. Considering both material and light to get correct value. No MIS applied inside.
+
+*/
+
+static inline float3 emissionEval(const float3 ray_pos, const float3 ray_dir,  __private const SurfaceHit* pSurfElem, const uint flags, const bool a_wasSpecular, 
+                                  __global const PlainLight* pLight, __global const PlainMaterial* a_pHitMaterial, __global const int4* a_texStorage, 
+                                  __global const float4* a_pdfStorage, __global const EngineGlobals* a_globals, __private ProcTextureList* a_ptl)
+{
+  const float3 normal = pSurfElem->hfi ? (-1.0f)*pSurfElem->normal : pSurfElem->normal;
+
+  if (dot(ray_dir, normal) >= 0.0f)
+    return make_float3(0, 0, 0);
+  
+  float3 outPathColor = materialEvalEmission(a_pHitMaterial, ray_dir, normal, pSurfElem->texCoord, a_globals, a_texStorage, a_ptl); 
+  
+	if ((materialGetFlags(a_pHitMaterial) & PLAIN_MATERIAL_FORBID_EMISSIVE_GI) && unpackBounceNumDiff(flags) > 0)
+		outPathColor = make_float3(0, 0, 0);
+
+  if (a_globals->lightsNum > 0 && pLight != 0)
+  {
+    outPathColor = lightGetIntensity(pLight, ray_pos, ray_dir, normal, pSurfElem->texCoord, flags, a_wasSpecular, 
+                                     a_globals, a_texStorage, a_pdfStorage); 
+  }
+
+  return outPathColor;
+}
 
 #endif

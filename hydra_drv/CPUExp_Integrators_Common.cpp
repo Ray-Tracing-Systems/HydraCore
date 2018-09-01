@@ -514,38 +514,15 @@ const PlainLight* IntegratorCommon::getLightFromInstId(const int a_instId)
 
 float3 IntegratorCommon::emissionEval(const float3 ray_pos, const float3 ray_dir, const SurfaceHit& surfElem, uint flags, const MisData misPrev, const int a_instId)
 {
+  const int lightOffset             = m_geom.instLightInstId[a_instId];
   const PlainMaterial* pHitMaterial = materialAt(m_pGlobals, m_matStorage, surfElem.matId);
+  __global const PlainLight* pLight = lightAt(m_pGlobals, lightOffset);
 
-  float3 normal;
-  if (surfElem.hfi)
-    normal = (-1.0f)*surfElem.normal;
-  else
-    normal = surfElem.normal;
+  ProcTextureList ptl;
+  InitProcTextureList(&ptl);
 
-  if (dot(ray_dir, normal) < 0.0f)
-  {
-    ProcTextureList ptl;
-    InitProcTextureList(&ptl);
-
-    float3 outPathColor = materialEvalEmission(pHitMaterial, ray_dir, normal, surfElem.texCoord, m_pGlobals, m_texStorage, m_texStorage, &ptl); // a_shadingTexture, a_shadingTextureHDR
-   
-		if ((materialGetFlags(pHitMaterial) & PLAIN_MATERIAL_FORBID_EMISSIVE_GI) && unpackBounceNumDiff(flags) > 0)
-			outPathColor = float3(0, 0, 0);
-
-    if (m_pGlobals->lightsNum > 0)
-    {
-      const int lightOffset = m_geom.instLightInstId[a_instId];
-      if (lightOffset >= 0)
-      {
-        __global const PlainLight* pLight = lightAt(m_pGlobals, lightOffset);
-        outPathColor = lightGetIntensity(pLight, ray_pos, ray_dir, normal, surfElem.texCoord, flags, misPrev, m_pGlobals, m_texStorage, m_pdfStorage); // a_shadingTexture, a_shadingTextureHDR
-      }
-    }
-
-    return outPathColor;
-  }
-  else
-    return float3(0, 0, 0);
+  return ::emissionEval(ray_pos, ray_dir, &surfElem, flags, (misPrev.isSpecular == 1), 
+                        pLight, pHitMaterial, m_texStorage, m_pdfStorage, m_pGlobals, &ptl);
 }
 
 
