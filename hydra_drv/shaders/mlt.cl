@@ -150,19 +150,25 @@ __kernel void MMLTCameraPathBounce(__global   float4*        restrict a_rpos,
       
       PathVertex resVertex;
       resVertex.ray_dir  = ray_dir;
-      resVertex.accColor = emission;
+      resVertex.accColor = emission*to_float3(a_color[tid]);   
       resVertex.valid    = true;
       WritePathVertexSupplement(&resVertex, tid, iNumElements, 
                                 a_vertexSup);
+
+      a_flags[tid] = packRayFlags(flags, unpackRayFlags(flags) | RAY_IS_DEAD);
+      return;
     }
-    else // this branch could brobably change in future, for simple emissive materials
+    else // this branch could probably change in future, for simple emissive materials
     {
       PathVertex resVertex;
       resVertex.ray_dir  = ray_dir;
-      resVertex.accColor = emission;
+      resVertex.accColor = emission*to_float3(a_color[tid]);
       resVertex.valid    = true;
       WritePathVertexSupplement(&resVertex, tid, iNumElements, 
                                 a_vertexSup);
+
+      a_flags[tid] = packRayFlags(flags, unpackRayFlags(flags) | RAY_IS_DEAD);
+      return;
     }
    
     //kill this thread (return resVertex)
