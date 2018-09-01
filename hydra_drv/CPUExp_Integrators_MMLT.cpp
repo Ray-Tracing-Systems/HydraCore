@@ -320,7 +320,7 @@ float3 IntegratorMMLT::F(const PSSampleV& a_xVec, const int d, int m_type,
   return sampleColor;
 }
 
-std::vector<float> PrefixSumm(const std::vector<float>& a_vec)
+static std::vector<float> PrefixSumm(const std::vector<float>& a_vec)
 {
   float accum = 0.0f;
   std::vector<float> avgBAccum(a_vec.size() + 1);
@@ -791,10 +791,12 @@ PathVertex IntegratorMMLT::CameraPath(float3 ray_pos, float3 ray_dir, float3 a_p
   m_debugRaysPos[ThreadId()][prevVertexId-1] = to_float4(surfElem.pos, -1.0f);
   /////////////////////////////////////////////////////////////////////
 
+  // (1)
+  //
   const float cosHere = fabs(dot(ray_dir, surfElem.normal));
   const float cosPrev = fabs(dot(ray_dir, a_prevNormal));
   float GTerm = 1.0f;
-  
+
   if (a_currDepth == 1)
   {
     float3 camDirDummy; float zDepthDummy;
@@ -811,6 +813,8 @@ PathVertex IntegratorMMLT::CameraPath(float3 ray_pos, float3 ray_dir, float3 a_p
     GTerm = cosHere*cosPrev / fmax(dist*dist, DEPSILON2);
   }
 
+  // (2)
+  //
   float3 emission = emissionEval(ray_pos, ray_dir, surfElem, flags, a_misPrev, fetchInstId(hit));
   if (dot(emission, emission) > 1e-3f)
   {
@@ -831,6 +835,8 @@ PathVertex IntegratorMMLT::CameraPath(float3 ray_pos, float3 ray_dir, float3 a_p
       a_perThread->pdfArray[1].pdfFwd = pdfLightWP*GTerm;
       a_perThread->pdfArray[1].pdfRev = a_misPrev.isSpecular ? -1.0f*GTerm : pdfMatRevWP*GTerm;
 
+      resVertex.hit      = surfElem;
+      resVertex.ray_dir  = ray_dir;
       resVertex.accColor = emission;
       resVertex.valid    = true;
       return resVertex;
