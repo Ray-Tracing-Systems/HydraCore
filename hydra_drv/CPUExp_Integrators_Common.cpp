@@ -526,41 +526,6 @@ float3 IntegratorCommon::emissionEval(const float3 ray_pos, const float3 ray_dir
 }
 
 
-static inline void MaterialSampleAndEvalBxDF(__global const PlainMaterial* pMat, __private float a_rands[MMLT_FLOATS_PER_BOUNCE], 
-                                             __private const SurfaceHit* pSurfHit, const float3 a_rayDir, const float3 a_shadow, const uint rayFlags,
-                                             __global const EngineGlobals* a_globals, texture2d_t a_tex, texture2d_t a_texNormal, __private const ProcTextureList* a_ptList,
-                                             __private MatSample* a_out)
-{
-  const int rayBounceNum          = unpackBounceNum(rayFlags);
-  const uint otherRayFlags        = unpackRayFlags(rayFlags);
-  
-  const bool canSampleReflOnly    = (materialGetFlags(pMat) & PLAIN_MATERIAL_CAN_SAMPLE_REFL_ONLY) != 0;
-  const bool sampleReflectionOnly = ((otherRayFlags & RAY_GRAMMAR_DIRECT_LIGHT) != 0) && canSampleReflOnly; 
-
-  const BRDFSelector mixSelector  = materialRandomWalkBRDF(pMat, a_rands, a_rayDir, pSurfHit->normal, pSurfHit->texCoord, 
-                                                           a_globals, a_tex, a_ptList, rayBounceNum, sampleReflectionOnly); //
-  
-  __global const PlainMaterial* pMatLeaf = pMat + mixSelector.localOffs;
-  
-  ShadeContext sc;
-
-  sc.wp  = pSurfHit->pos;
-  sc.l   = a_rayDir; 
-  sc.v   = a_rayDir;
-  sc.n   = pSurfHit->normal;
-  sc.fn  = pSurfHit->flatNormal;
-  sc.tg  = pSurfHit->tangent;
-  sc.bn  = pSurfHit->biTangent;
-  sc.tc  = pSurfHit->texCoord;
-  sc.hfi = pSurfHit->hfi;
-  
-  MatSample brdfSample;
-  MaterialLeafSampleAndEvalBRDF(pMatLeaf, make_float3(a_rands[0], a_rands[1], a_rands[2]), &sc, a_shadow, a_globals, a_tex, a_texNormal, a_ptList,
-                                a_out);
-
-  a_out->pdf *= fmax(mixSelector.w, 0.025f);
-}
-
 RandomGen& IntegratorCommon::randomGen()
 {
   return m_perThread[omp_get_thread_num()].gen;
@@ -585,13 +550,13 @@ std::tuple<MatSample, int, float3> IntegratorCommon::sampleAndEvalBxDF(float3 ra
             m_pGlobals->rmQMC, PerThread().qmcPos, qmcTablePtr,
             allRands);
 
-  MatSample brdfSample;
+  MatSample brdfSample; int matOffset;
   MaterialSampleAndEvalBxDF(pHitMaterial, allRands, &surfElem, ray_dir, shadow, flags,
                             m_pGlobals, m_texStorage, m_texStorageAux, &m_ptlDummy, 
-                            &brdfSample);
+                            &brdfSample, &matOffset);
 
 
-  return std::make_tuple(brdfSample, 0, make_float3(1,1,1)); // #TODO: remove this fucking tuple!
+  return std::make_tuple(brdfSample, matOffset, make_float3(1,1,1)); // #TODO: remove third parameter from tuple
 }
 
 

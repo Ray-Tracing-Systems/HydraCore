@@ -232,28 +232,6 @@ static inline float rndQmcSobolN(unsigned int pos, int dim, __constant unsigned 
   return (float)(result + 1) * INT_SCALE;
 }
 
-/**
- * These defines are for the QMC remap table to support different mappings in run time.
- * for example you may decide to map (0,1) to screen (x,y) and (2,3) to DOF (x,y) or
- *             you may decide to map (0,1) to screen (x,y) and (2,3,4) to material sampling
- * if no mapping presents in the table (id == -1) then pseudo random should be used.
- *
- */
-#define QMC_VAR_SCR_X 0
-#define QMC_VAR_SCR_Y 1
-#define QMC_VAR_DOF_X 2
-#define QMC_VAR_DOF_Y 3
-#define QMC_VAR_SRC_A 4
-
-#define QMC_VAR_MAT_L 5
-#define QMC_VAR_MAT_0 6
-#define QMC_VAR_MAT_1 7
-
-#define QMC_VAR_LGT_N 8
-#define QMC_VAR_LGT_0 9
-#define QMC_VAR_LGT_1 10
-#define QMC_VAR_LGT_2 11
-
 
 
 /**
@@ -277,39 +255,6 @@ static inline float rndQmcTab(__private RandomGen* pGen, __global const int* a_t
     return rndQmcSobolN(pos, dim, c_Table);
 }
 
-/**
- * Note that unlike QMC, MMLT don't use remap table.
- * These offsets are direct offsets in the ramdom vector table (in floats) 
- *
- */
-
-#define MMLT_HEAD_TOTAL_SIZE 12  //
-
-// [0-3] :  LENS;  4 in total
-//
-#define MMLT_DIM_SCR_X 0 
-#define MMLT_DIM_SCR_Y 1 
-#define MMLT_DIM_DOF_X 2 
-#define MMLT_DIM_DOF_Y 3 
-
-// [4-10]:  LIGHT; 7 in total
-//
-#define MMLT_DIM_LGT_X 4     
-#define MMLT_DIM_LGT_Y 5    
-#define MMLT_DIM_LGT_Z 6    
-#define MMLT_DIM_LGT_W 7    
-  
-#define MMLT_DIM_LGT_X1 8  
-#define MMLT_DIM_LGT_Y1 9 
-#define MMLT_DIM_LGT_N 10 
-
-// [11] :  SPLIT; 
-//
-#define MMLT_DIM_SPLIT 11
-
-#define MMLT_FLOATS_PER_MLAYER 6
-#define MMLT_FLOATS_PER_SAMPLE 3
-#define MMLT_FLOATS_PER_BOUNCE (MMLT_FLOATS_PER_SAMPLE + MMLT_FLOATS_PER_MLAYER)
 
 static inline int rndMatOffsetMMLT(const int a_bounceId) { return a_bounceId*MMLT_FLOATS_PER_BOUNCE; }                          // relative offset, dont add MMLT_HEAD_TOTAL_SIZE!
 

@@ -208,8 +208,7 @@ __kernel void MMLTCameraPathBounce(__global   float4*        restrict a_rpos,
   //
   
   //const MatSample matSam = std::get<0>(sampleAndEvalBxDF(ray_dir, surfElem, packBounceNum(0, a_currDepth - 1), float3(0, 0, 0), true));
-  
-  //const float3 bxdfVal   = matSam.color;
+  //const float3 bxdfVal   = matSam.color; // *(1.0f / fmaxf(matSam.pdf, 1e-20f));
   //const float cosNext    = fabs(dot(matSam.direction, surfElem.normal));
 
   /*

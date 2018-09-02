@@ -896,25 +896,11 @@ __kernel void NextBounce(__global   float4*        restrict a_rpos,
   
     /////////////////////////////////////////////////////////////////////////////// begin sample material
     {
-      ShadeContext sc;
-  
-      sc.wp  = surfHit.pos;
-      sc.l   = ray_dir; 
-      sc.v   = ray_dir;
-      sc.n   = surfHit.normal;
-      sc.fn  = surfHit.flatNormal;
-      sc.tg  = surfHit.tangent;
-      sc.bn  = surfHit.biTangent;
-      sc.tc  = surfHit.texCoord;
-      sc.hfi = (materialGetType(pHitMaterial) == PLAIN_MAT_CLASS_GLASS) && (bool)(unpackRayFlags(flags) & RAY_HIT_SURFACE_FROM_OTHER_SIDE);  //hit glass from other side
-
       const float3 randsm = make_float3(allRands[0], allRands[1], allRands[2]);
   
-      MaterialLeafSampleAndEvalBRDF(pHitMaterial, randsm, &sc, shadow, a_globals, in_texStorage1, in_texStorage2, &ptl,
+      MaterialLeafSampleAndEvalBRDF(pHitMaterial, &surfHit, ray_dir, randsm, shadow, 
+                                    a_globals, in_texStorage1, in_texStorage2, &ptl,
                                     &brdfSample);
-
-      if (materialIsSkyPortal(pHitMaterial) && isEyeRay(flags))
-        brdfSample.color = make_float3(1, 1, 1);
 
       isThinGlass = isPureSpecular(brdfSample) && (rayBounceNum > 0) && !(a_globals->g_flags & HRT_ENABLE_PT_CAUSTICS) && materialIsThinGlass(pHitMaterial);
     }

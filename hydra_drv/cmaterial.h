@@ -3,10 +3,8 @@
 
 #include "cglobals.h"
 #include "cfetch.h"
-#include "crandom.h"
 
-#define MIX_TREE_MAX_DEEP            16
-
+#define MIX_TREE_MAX_DEEP 16
 
 static inline float3 materialGetEmission(__global const PlainMaterial* a_pMat) { return make_float3(a_pMat->data[EMISSIVE_COLORX_OFFSET], a_pMat->data[EMISSIVE_COLORY_OFFSET], a_pMat->data[EMISSIVE_COLORZ_OFFSET]); }
 static inline  int2  materialGetEmissionTex(__global const PlainMaterial* a_pMat)
@@ -23,7 +21,6 @@ static inline float3 materialLeafEvalEmission(__global const PlainMaterial* a_pM
   const float3 texColor = sample2DExt(materialGetEmissionTex(a_pMat).y, a_texCoord, (__global const int4*)a_pMat, a_tex, a_globals, a_ptList);
   return materialGetEmission(a_pMat)*texColor;
 }
-
 
 static inline int materialIsLight(__global const PlainMaterial* a_pMat) { return length(materialGetEmission(a_pMat)) > 1e-4f ? 1 : 0; }
 
@@ -436,7 +433,7 @@ static inline void ThinglassSampleAndEvalBRDF(__global const PlainMaterial* a_pM
   if (cosThetaOut >= -1e-6f) // refraction/transparency must be under surface!
     a_out->color = make_float3(0, 0, 0);
 
-  a_out->flags = (RAY_EVENT_S | RAY_EVENT_T);
+  a_out->flags = (RAY_EVENT_S | RAY_EVENT_T | RAY_EVENT_TNINGLASS);
 }
 
 
@@ -1314,21 +1311,20 @@ static inline float3 BumpMapping(const float3 tangent, const float3 bitangent, c
   return  normalize(mul3x3x3(inverse(tangentTransform), normalTS));
 }
 
-static inline void MaterialLeafSampleAndEvalBRDF(__global const PlainMaterial* pMat, const float3 rands, __private const ShadeContext* sc, const float3 a_shadow,
+static inline void MaterialLeafSampleAndEvalBRDF(__global const PlainMaterial* pMat, __private const SurfaceHit* pSurfHit, const float3 ray_dir, const float3 rands, const float3 a_shadow, 
                                                  __global const EngineGlobals* a_globals, texture2d_t a_tex, texture2d_t a_texNormal, __private const ProcTextureList* a_ptList,
                                                  __private MatSample* a_out)
 {
-  const float3 ray_dir = sc->v;
-  float3 hitNorm       = sc->n;
+  float3 hitNorm = pSurfHit->normal;
 
   //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   const bool hasNormalMap = (materialGetNormalTex(pMat).x != INVALID_TEXTURE);
 
   if (hasNormalMap)
   {
-    const bool isGlass    = (materialGetType(pMat) == PLAIN_MAT_CLASS_GLASS);            // dirty hack for glass; #TODO: fix that more accurate
-    const float3 flatNorm = sc->hfi && !isGlass ? (-1.0f)*sc->fn : sc->fn;               // dirty hack for glass; #TODO: fix that more accurate
-    hitNorm               = BumpMapping(sc->tg, sc->bn, flatNorm, sc->tc, pMat, a_globals, a_texNormal, a_ptList);
+    const bool isGlass    = (materialGetType(pMat) == PLAIN_MAT_CLASS_GLASS);                                    // dirty hack for glass; #TODO: fix that more accurate
+    const float3 flatNorm = pSurfHit->hfi && !isGlass ? (-1.0f)*pSurfHit->flatNormal : pSurfHit->flatNormal;     // dirty hack for glass; #TODO: fix that more accurate
+    hitNorm               = BumpMapping(pSurfHit->tangent, pSurfHit->biTangent, flatNorm, pSurfHit->texCoord, pMat, a_globals, a_texNormal, a_ptList);
   }
   //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -1340,41 +1336,41 @@ static inline void MaterialLeafSampleAndEvalBRDF(__global const PlainMaterial* p
   switch (materialGetType(pMat))
   {
   case PLAIN_MAT_CLASS_PHONG_SPECULAR: 
-    PhongSampleAndEvalBRDF(pMat, rands.x, rands.y, ray_dir, hitNorm, sc->tc, a_globals, a_tex, a_ptList,
+    PhongSampleAndEvalBRDF(pMat, rands.x, rands.y, ray_dir, hitNorm, pSurfHit->texCoord, a_globals, a_tex, a_ptList,
                            a_out);
     break;
 
   case PLAIN_MAT_CLASS_BLINN_SPECULAR: 
-    BlinnSampleAndEvalBRDF(pMat, rands.x, rands.y, ray_dir, hitNorm, sc->tc, a_globals, a_tex, a_ptList,
+    BlinnSampleAndEvalBRDF(pMat, rands.x, rands.y, ray_dir, hitNorm, pSurfHit->texCoord, a_globals, a_tex, a_ptList,
                            a_out);
     break;
 
   case PLAIN_MAT_CLASS_PERFECT_MIRROR: 
-    MirrorSampleAndEvalBRDF(pMat, rands.x, rands.y, ray_dir, hitNorm, sc->tc, a_globals, a_tex, a_ptList,
+    MirrorSampleAndEvalBRDF(pMat, rands.x, rands.y, ray_dir, hitNorm, pSurfHit->texCoord, a_globals, a_tex, a_ptList,
                             a_out);
     break;
 
   case PLAIN_MAT_CLASS_THIN_GLASS: 
-    ThinglassSampleAndEvalBRDF(pMat, rands.x, rands.y, ray_dir, hitNorm, sc->tc, a_globals, a_tex, a_ptList,
+    ThinglassSampleAndEvalBRDF(pMat, rands.x, rands.y, ray_dir, hitNorm, pSurfHit->texCoord, a_globals, a_tex, a_ptList,
                                a_out);
     break;
   case PLAIN_MAT_CLASS_GLASS: 
-    GlassSampleAndEvalBRDF(pMat, rands, ray_dir, hitNorm, sc->tc, sc->hfi, a_globals, a_tex, a_ptList,
+    GlassSampleAndEvalBRDF(pMat, rands, ray_dir, hitNorm, pSurfHit->texCoord, pSurfHit->hfi, a_globals, a_tex, a_ptList,
                            a_out);
     break;
 
   case PLAIN_MAT_CLASS_TRANSLUCENT   : 
-    TranslucentSampleAndEvalBRDF(pMat, rands.x, rands.y, ray_dir, hitNorm, sc->tc, a_globals, a_tex, a_ptList,
+    TranslucentSampleAndEvalBRDF(pMat, rands.x, rands.y, ray_dir, hitNorm, pSurfHit->texCoord, a_globals, a_tex, a_ptList,
                                  a_out);
     break;
 
   case PLAIN_MAT_CLASS_OREN_NAYAR    : 
-    OrennayarSampleAndEvalBRDF(pMat, rands.x, rands.y, ray_dir, hitNorm, sc->tc, a_globals, a_tex, a_ptList,
+    OrennayarSampleAndEvalBRDF(pMat, rands.x, rands.y, ray_dir, hitNorm, pSurfHit->texCoord, a_globals, a_tex, a_ptList,
                                a_out);
     break;
 
   case PLAIN_MAT_CLASS_LAMBERT       : 
-    LambertSampleAndEvalBRDF(pMat, rands.x, rands.y, hitNorm, sc->tc, a_globals, a_tex, a_ptList,
+    LambertSampleAndEvalBRDF(pMat, rands.x, rands.y, hitNorm, pSurfHit->texCoord, a_globals, a_tex, a_ptList,
                              a_out);
     break;
 
@@ -1391,7 +1387,7 @@ static inline void MaterialLeafSampleAndEvalBRDF(__global const PlainMaterial* p
   //
   if (hasNormalMap)
   {
-    const float cosThetaOut1 = fabs(dot(a_out->direction, sc->n));
+    const float cosThetaOut1 = fabs(dot(a_out->direction, pSurfHit->normal));
     const float cosThetaOut2 = fabs(dot(a_out->direction, hitNorm));
     a_out->color *= (cosThetaOut2 / fmax(cosThetaOut1, DEPSILON2));
   }
@@ -1400,6 +1396,43 @@ static inline void MaterialLeafSampleAndEvalBRDF(__global const PlainMaterial* p
     a_out->color = make_float3(0, 0, 0);  //
 
 }
+
+/**
+\brief Sample and eval layered material (with blends). Store result in a_out.
+\param  
+\param  
+
+Sample and eval layered material (with blends). Store result in a_out.
+
+*/
+static inline void MaterialSampleAndEvalBxDF(__global const PlainMaterial* pMat, __private float a_rands[MMLT_FLOATS_PER_BOUNCE], 
+                                             __private const SurfaceHit* pSurfHit, const float3 a_rayDir, const float3 a_shadow, const uint rayFlags,
+                                             __global const EngineGlobals* a_globals, texture2d_t a_tex, texture2d_t a_texNormal, __private const ProcTextureList* a_ptList,
+                                             __private MatSample* a_out, __private int* pMatOffset)
+{
+  const int rayBounceNum          = unpackBounceNum(rayFlags);
+  const uint otherRayFlags        = unpackRayFlags(rayFlags);
+  
+  const bool canSampleReflOnly    = (materialGetFlags(pMat) & PLAIN_MATERIAL_CAN_SAMPLE_REFL_ONLY) != 0;
+  const bool sampleReflectionOnly = ((otherRayFlags & RAY_GRAMMAR_DIRECT_LIGHT) != 0) && canSampleReflOnly; 
+
+  const BRDFSelector mixSelector  = materialRandomWalkBRDF(pMat, a_rands, a_rayDir, pSurfHit->normal, pSurfHit->texCoord, 
+                                                           a_globals, a_tex, a_ptList, rayBounceNum, sampleReflectionOnly); 
+
+  __global const PlainMaterial* pMatLeaf = pMat + mixSelector.localOffs;
+  (*pMatOffset) = materialOffset(a_globals, pSurfHit->matId) + mixSelector.localOffs*(sizeof(PlainMaterial)/sizeof(float4));
+  
+  MaterialLeafSampleAndEvalBRDF(pMatLeaf, pSurfHit, a_rayDir, make_float3(a_rands[0], a_rands[1], a_rands[2]), a_shadow, 
+                                a_globals, a_tex, a_texNormal, a_ptList,
+                                a_out);
+
+  if (materialIsSkyPortal(pMatLeaf) && isEyeRay(rayFlags))
+    a_out->color = make_float3(1, 1, 1);
+
+  a_out->pdf *= fmax(mixSelector.w, 0.025f);
+}
+
+
 
 typedef struct BxDFResultT
 {
