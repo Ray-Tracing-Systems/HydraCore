@@ -884,25 +884,27 @@ __kernel void NextBounce(__global   float4*        restrict a_rpos,
     float allRands[MMLT_FLOATS_PER_BOUNCE];
     RndMatAll(&gen, 0, rayBounceNum, a_globals->rmQMC, qmcPos, a_qmcTable,
               allRands);
+    
+    //MaterialSampleAndEvalBxDF(pHitMaterial, allRands, &surfHit, ray_dir, decompressShadow(a_shadow[tid]), flags,
+    //                          a_globals, in_texStorage1, in_texStorage2, &ptl, 
+    //                          &brdfSample, &matOffset);
+    //pHitMaterial = materialAtOffset(in_mtlStorage, matOffset);
 
+    /////////////////////////////////////////////////////////////////////////////// begin sample material  
+    
     BRDFSelector mixSelector = materialRandomWalkBRDF(pHitMaterial, allRands, ray_dir, surfHit.normal, surfHit.texCoord,
                                                       a_globals, in_texStorage1, &ptl, rayBounceNum, false);
    
     matOffset           = matOffset    + mixSelector.localOffs*(sizeof(PlainMaterial)/sizeof(float4));
     pHitMaterial        = pHitMaterial + mixSelector.localOffs;
-    thisBounceIsDiffuse = materialHasDiffuse(pHitMaterial);
-
     const float3 shadow = decompressShadow(a_shadow[tid]); // fmax(-dot(ray_dir, surfHit.normal), 0.0f);
   
-    /////////////////////////////////////////////////////////////////////////////// begin sample material
     {
       const float3 randsm = make_float3(allRands[0], allRands[1], allRands[2]);
   
       MaterialLeafSampleAndEvalBRDF(pHitMaterial, &surfHit, ray_dir, randsm, shadow, 
                                     a_globals, in_texStorage1, in_texStorage2, &ptl,
                                     &brdfSample);
-
-      isThinGlass = isPureSpecular(brdfSample) && (rayBounceNum > 0) && !(a_globals->g_flags & HRT_ENABLE_PT_CAUSTICS) && materialIsThinGlass(pHitMaterial);
     }
 
     /////////////////////////////////////////////////////////////////////////////// end   sample material
@@ -911,20 +913,15 @@ __kernel void NextBounce(__global   float4*        restrict a_rpos,
     const float invPdf      = 1.0f / fmax(brdfSample.pdf, DEPSILON);
     const float cosTheta    = fabs(dot(brdfSample.direction, surfHit.normal));
     outPathThroughput       = clamp(cosTheta*brdfSample.color*invPdf, 0.0f, clampMax) / fmax(mixSelector.w, 0.025f); //#TODO: clamp is not correct actually ???
-   
-    // const int otherFlagsSMSK = unpackRayFlags(flags);
-    // if ((materialGetType(pHitMaterial) == PLAIN_MAT_CLASS_SHADOW_MATTE) && (otherFlagsSMSK & RAY_SHADE_FROM_SKY_LIGHT)) // shadow matte hack to sample only top hemisphere
-    // {
-    //   if (otherFlagsSMSK & RAY_SHADE_FROM_OTHER_SIDE)
-    //     outPathThroughput *= 0.0f;
-    //   else
-    //     outPathThroughput *= 2.0f;
-    // }
+    //outPathThroughput       = cosTheta*brdfSample.color*invPdf;
 
     if (!isfinite(outPathThroughput.x)) outPathThroughput.x = 0.0f;
     if (!isfinite(outPathThroughput.y)) outPathThroughput.y = 0.0f;
     if (!isfinite(outPathThroughput.z)) outPathThroughput.z = 0.0f;
 
+    isThinGlass         = ((brdfSample.flags & RAY_EVENT_TNINGLASS) != 0) && (rayBounceNum > 0) && !(a_globals->g_flags & HRT_ENABLE_PT_CAUSTICS);
+    thisBounceIsDiffuse = ((brdfSample.flags & RAY_EVENT_D)         != 0);
+ 
     /////////////////////////////////////////////////////////////////////////////// finish with outPathThroughput
   
     const float3 nextRay_dir = brdfSample.direction;
