@@ -895,18 +895,13 @@ __kernel void NextBounce(__global   float4*        restrict a_rpos,
     BRDFSelector mixSelector = materialRandomWalkBRDF(pHitMaterial, allRands, ray_dir, surfHit.normal, surfHit.texCoord,
                                                       a_globals, in_texStorage1, &ptl, rayBounceNum, false);
    
-    matOffset           = matOffset    + mixSelector.localOffs*(sizeof(PlainMaterial)/sizeof(float4));
-    pHitMaterial        = pHitMaterial + mixSelector.localOffs;
-    const float3 shadow = decompressShadow(a_shadow[tid]); // fmax(-dot(ray_dir, surfHit.normal), 0.0f);
+    matOffset    = matOffset    + mixSelector.localOffs*(sizeof(PlainMaterial)/sizeof(float4));
+    pHitMaterial = pHitMaterial + mixSelector.localOffs;
   
-    {
-      const float3 randsm = make_float3(allRands[0], allRands[1], allRands[2]);
-  
-      MaterialLeafSampleAndEvalBRDF(pHitMaterial, &surfHit, ray_dir, randsm, shadow, 
-                                    a_globals, in_texStorage1, in_texStorage2, &ptl,
-                                    &brdfSample);
-    }
-
+    MaterialLeafSampleAndEvalBRDF(pHitMaterial, &surfHit, ray_dir, make_float3(allRands[0], allRands[1], allRands[2]), decompressShadow(a_shadow[tid]), 
+                                  a_globals, in_texStorage1, in_texStorage2, &ptl,
+                                  &brdfSample);
+    
     /////////////////////////////////////////////////////////////////////////////// end   sample material
   
     const float clampMax    = materialIsSkyPortal(pHitMaterial) ? 10.0f : 1.0f;
