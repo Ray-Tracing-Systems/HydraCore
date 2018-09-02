@@ -879,12 +879,14 @@ __kernel void NextBounce(__global   float4*        restrict a_rpos,
     
     const int rayBounceNum = unpackBounceNum(flags);
 
-    __global const float* matLayerRandsArray = (pssVec == 0) ? 0 : pssVec + rndMatLOffsetMMLT(rayBounceNum);
+    //__global const float* matRandsArray = (pssVec == 0) ? 0 : pssVec + rndMatOffsetMMLT(rayBounceNum);
 
-    BRDFSelector mixSelector = materialRandomWalkBRDF(pHitMaterial, &gen, matLayerRandsArray, 
-                                                      ray_dir, surfHit.normal, surfHit.texCoord,
-                                                      a_globals, in_texStorage1, &ptl, rayBounceNum,
-                                                      false, qmcPos, a_qmcTable);
+    float allRands[MMLT_FLOATS_PER_BOUNCE];
+    RndMatAll(&gen, 0, rayBounceNum, a_globals->rmQMC, qmcPos, a_qmcTable,
+              allRands);
+
+    BRDFSelector mixSelector = materialRandomWalkBRDF(pHitMaterial, allRands, ray_dir, surfHit.normal, surfHit.texCoord,
+                                                      a_globals, in_texStorage1, &ptl, rayBounceNum, false);
    
     matOffset           = matOffset    + mixSelector.localOffs*(sizeof(PlainMaterial)/sizeof(float4));
     pHitMaterial        = pHitMaterial + mixSelector.localOffs;
@@ -905,11 +907,8 @@ __kernel void NextBounce(__global   float4*        restrict a_rpos,
       sc.bn  = surfHit.biTangent;
       sc.tc  = surfHit.texCoord;
       sc.hfi = (materialGetType(pHitMaterial) == PLAIN_MAT_CLASS_GLASS) && (bool)(unpackRayFlags(flags) & RAY_HIT_SURFACE_FROM_OTHER_SIDE);  //hit glass from other side
-  
-      __global const float* matRandsArray = (pssVec == 0) ? 0 : pssVec + rndMatOffsetMMLT(rayBounceNum);
 
-      const float3 randsm = rndMat(&gen, matRandsArray, rayBounceNum,
-                                   a_globals->rmQMC, qmcPos, a_qmcTable);
+      const float3 randsm = make_float3(allRands[0], allRands[1], allRands[2]);
   
       MaterialLeafSampleAndEvalBRDF(pHitMaterial, randsm, &sc, shadow, a_globals, in_texStorage1, in_texStorage2, &ptl,
                                     &brdfSample);

@@ -311,9 +311,7 @@ static inline float rndQmcTab(__private RandomGen* pGen, __global const int* a_t
 #define MMLT_FLOATS_PER_SAMPLE 3
 #define MMLT_FLOATS_PER_BOUNCE (MMLT_FLOATS_PER_SAMPLE + MMLT_FLOATS_PER_MLAYER)
 
-static inline int rndMatOffsetMMLT (const int a_bounceId) { return a_bounceId*MMLT_FLOATS_PER_BOUNCE; }                          // relative offset, dont add MMLT_HEAD_TOTAL_SIZE!
-static inline int rndMatLOffsetMMLT(const int a_bounceId) { return a_bounceId*MMLT_FLOATS_PER_BOUNCE + MMLT_FLOATS_PER_SAMPLE; } // relative offset, dont add MMLT_HEAD_TOTAL_SIZE!
-
+static inline int rndMatOffsetMMLT(const int a_bounceId) { return a_bounceId*MMLT_FLOATS_PER_BOUNCE; }                          // relative offset, dont add MMLT_HEAD_TOTAL_SIZE!
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -516,6 +514,25 @@ static inline float rndMatLayer(RandomGen* gen, __global const float* rptr, cons
     return rndQmcTab(gen, a_tab, a_qmcPos, QMC_VAR_MAT_L, a_qmcTable);
   else                                                                 // OMC way;
     return rndFloat1_Pseudo(gen);                                      
+}
+
+
+static inline void RndMatAll(RandomGen* gen, __global const float* rptr, const int bounceId,
+                             __global const int* a_tab, const unsigned int a_qmcPos, __constant unsigned int* a_qmcTable, 
+                             __private float a_rands[MMLT_FLOATS_PER_BOUNCE])
+{
+
+  const float3 directionRands = rndMat(gen, rptr, bounceId,  a_tab, a_qmcPos, a_qmcTable);
+  
+  a_rands[0] = directionRands.x;
+  a_rands[1] = directionRands.y;
+  a_rands[2] = directionRands.z;
+
+  __global const float* rptrLayer = (rptr == 0) ? 0 : rptr + MMLT_FLOATS_PER_SAMPLE;
+
+  #pragma unroll MMLT_FLOATS_PER_MLAYER
+  for(int layerId=0;layerId<MMLT_FLOATS_PER_MLAYER;layerId++)
+    a_rands[MMLT_FLOATS_PER_SAMPLE + layerId] = rndMatLayer(gen, rptrLayer, bounceId, layerId, a_tab, a_qmcPos, a_qmcTable);
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////

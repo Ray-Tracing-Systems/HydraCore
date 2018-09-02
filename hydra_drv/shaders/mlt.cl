@@ -12,6 +12,8 @@
 #include "cmaterial.h"
 #include "cbidir.h"
 
+#define SPLIT_DL_BY_GRAMMAR false
+
 /**
 \brief Evaluate contib function. Not used.
 \param in_color   - input color
@@ -176,32 +178,73 @@ __kernel void MMLTCameraPathBounce(__global   float4*        restrict a_rpos,
   }
   else if (a_currDepth == a_targetDepth && !a_haveToHitLightSource) // #NOTE: what if a_targetDepth == 1 ?
   {
-    /*
     PathVertex resVertex;
-    resVertex.hit          = surfElem;
     resVertex.ray_dir      = ray_dir;
     resVertex.valid        = true;
-    resVertex.accColor     = float3(1, 1, 1);
-    resVertex.wasSpecOnly  = m_splitDLByGrammar ? flagsHaveOnlySpecular(flags) : false;
+    resVertex.accColor     = make_float3(1, 1, 1)*to_float3(a_color[tid]);
+    resVertex.wasSpecOnly  = SPLIT_DL_BY_GRAMMAR ? flagsHaveOnlySpecular(flags) : false;
 
     if (a_targetDepth != 1)
     {
       const float lastPdfWP = a_misPrev.matSamplePdf / fmax(cosPrev, DEPSILON); // we store them to calculate fwd and rev pdf later when we connect end points
       resVertex.lastGTerm   = GTerm;                                            // because right now we can not do this until we don't know the light vertex
-
-      //a_perThread->pdfArray[prevVertexId].pdfFwd = ... // do this later, inside ConnectShadow or ConnectEndPoints
-      a_perThread->pdfArray[prevVertexId].pdfRev = a_misPrev.isSpecular ? -1.0f*GTerm : GTerm*lastPdfWP;
+     
+      PdfVertex vcurr;
+      vcurr.pdfFwd = 1.0f; // write it later, inside ConnectShadow or ConnectEndPoints
+      vcurr.pdfRev = a_misPrev.isSpecular ? -1.0f*GTerm : GTerm*lastPdfWP;
+      a_pdfVert[TabIndex(prevVertexId, tid, iNumElements)] = vcurr;
     }
     else
       resVertex.lastGTerm = 1.0f;
     
-    return resVertex;
-    */
+    WritePathVertexSupplement(&resVertex, tid, iNumElements, 
+                              a_vertexSup);
 
-
+    a_flags[tid] = packRayFlags(flags, unpackRayFlags(flags) | RAY_IS_DEAD);
+    return;
   }
   
+  // (3) eval reverse and forward pdfs
+  //
+  
+  //const MatSample matSam = std::get<0>(sampleAndEvalBxDF(ray_dir, surfElem, packBounceNum(0, a_currDepth - 1), float3(0, 0, 0), true));
+  
+  //const float3 bxdfVal   = matSam.color;
+  //const float cosNext    = fabs(dot(matSam.direction, surfElem.normal));
 
+  /*
+  if (a_currDepth == 1)
+  {
+    if (isPureSpecular(matSam))  //  ow ... but if we met specular reflection when tracing from camera, we must put 0 because this path cannot be sample by light strategy at all.
+      a_perThread->pdfArray[a_fullPathDepth].pdfFwd = 0.0f;
+  }
+  else
+  {
+    if (!isPureSpecular(matSam))
+    {
+      ShadeContext sc;
+      sc.wp = surfElem.pos;
+      sc.l  = (-1.0f)*ray_dir;  // fliped; if compare to normal PT
+      sc.v  = matSam.direction; // fliped; if compare to normal PT
+      sc.n  = surfElem.normal;
+      sc.fn = surfElem.flatNormal;
+      sc.tg = surfElem.tangent;
+      sc.bn = surfElem.biTangent;
+      sc.tc = surfElem.texCoord;
+
+      const float pdfFwdW  = materialEval(pHitMaterial, &sc, false, false, 
+                                          m_pGlobals, m_texStorage, m_texStorage, &m_ptlDummy).pdfFwd;
+      const float pdfFwdWP = pdfFwdW / fmax(cosHere, DEPSILON);
+
+      a_perThread->pdfArray[prevVertexId].pdfFwd = pdfFwdWP*GTerm;
+    }
+    else
+      a_perThread->pdfArray[prevVertexId].pdfFwd = -1.0f*GTerm;
+
+    const float pdfCamPrevWP = a_misPrev.matSamplePdf / fmax(cosPrev, DEPSILON);
+    a_perThread->pdfArray[prevVertexId].pdfRev = a_misPrev.isSpecular ? -1.0f*GTerm : pdfCamPrevWP*GTerm;
+  }
+  */
 
 }
 

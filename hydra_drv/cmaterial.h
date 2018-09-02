@@ -1248,11 +1248,9 @@ static inline float  sssGetTransmission(__global const PlainMaterial* a_pMat) { 
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-static inline BRDFSelector materialRandomWalkBRDF(__global const PlainMaterial* a_pMat, __private RandomGen* a_pGen, __global const float* a_pssVec, 
-                                                  const float3 rayDir, const float3 hitNorm, const float2 hitTexCoord,
+static inline BRDFSelector materialRandomWalkBRDF(__global const PlainMaterial* a_pMat, __private float* a_rands, const float3 rayDir, const float3 hitNorm, const float2 hitTexCoord,
                                                   __global const EngineGlobals* a_globals, texture2d_t a_tex, __private const ProcTextureList* a_ptList, 
-                                                  const int a_rayBounce, const bool a_reflOnly,
-                                                  const unsigned int qmcPos, __constant unsigned int* a_qmcTable)
+                                                  const int a_rayBounce, const bool a_reflOnly)
 {
   BRDFSelector res, sel;
 
@@ -1266,28 +1264,15 @@ static inline BRDFSelector materialRandomWalkBRDF(__global const PlainMaterial* 
   int i = 0;
   while (!materialIsLeafBRDF(node) && i < MMLT_FLOATS_PER_MLAYER)
   {
-    float rndVal = rndMatLayer(a_pGen, a_pssVec, a_rayBounce, i,
-                               a_globals->rmQMC, qmcPos, a_qmcTable);
+    const float rndVal = a_rands[MMLT_FLOATS_PER_SAMPLE + i];
 
-    //////////////////////////////////////////////////////////////////////////
-    const int type = materialGetType(node);
-
-    if (type == PLAIN_MAT_CLASS_BLEND_MASK)
+    if (materialGetType(node) == PLAIN_MAT_CLASS_BLEND_MASK)
       sel = blendSelectBRDF(node, rndVal, rayDir, hitNorm, hitTexCoord, (a_reflOnly && (i==0)), a_globals, a_tex, a_ptList);
-
-    //////////////////////////////////////////////////////////////////////////
 
     res.w         = res.w*sel.w;
     res.localOffs = res.localOffs + sel.localOffs;
-
-    node = node + sel.localOffs;
+    node          = node          + sel.localOffs;
     i++;
-  }
-
-  for (; i < MMLT_FLOATS_PER_MLAYER; i++)  // we must generate these numbers to get predefined state of seed for each bounce
-  {
-    rndMatLayer(a_pGen, a_pssVec, a_rayBounce, i,
-                a_globals->rmQMC, qmcPos, 0);
   }
 
   return res;
