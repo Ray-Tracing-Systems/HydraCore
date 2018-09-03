@@ -830,91 +830,71 @@ __kernel void NextBounce(__global   float4*        restrict a_rpos,
   const unsigned int qmcPos = reverseBits(tid, iNumElements) + a_passNumberForQmc * iNumElements;
   
   uint flags = a_flags[tid];
+  if (!rayIsActiveU(flags))
+    return;
 
-  float3 ray_pos = to_float3(a_rpos[tid]);
-  float3 ray_dir = to_float3(a_rdir[tid]);
-
-  __global const float* pssVec = 0;
-
-  float3 outPathColor      = make_float3(0,0,0);
-  float3 outPathThroughput = make_float3(0,0,0);
-
-  SurfaceHit surfHit;
-  bool thisBounceIsDiffuse = false;
-  bool hitLightSource      = false;
-
-  __global const PlainMaterial* pHitMaterial = 0;
-
-  MatSample brdfSample;
-  int    matOffset   = 0;
-  bool   isThinGlass = false;
+  float3 ray_pos      = to_float3(a_rpos[tid]);
+  float3 ray_dir      = to_float3(a_rdir[tid]);
+  float3 outPathColor = make_float3(0,0,0);
 
   RandomGen gen  = out_gens[tid];
   gen.maxNumbers = a_globals->varsI[HRT_MLT_MAX_NUMBERS];
 
-  float GTerm = 1.0f;
-  float3 oldRayDir;
- 
-  if (rayIsActiveU(flags))
-  { 
-    ReadSurfaceHit(in_surfaceHit, tid, iNumElements, 
-                   &surfHit);
+  SurfaceHit surfHit;
+  ReadSurfaceHit(in_surfaceHit, tid, iNumElements, 
+                 &surfHit);
 
-    pHitMaterial     = materialAt(a_globals, in_mtlStorage, surfHit.matId);
-    float4 emissData = (in_emissionColor == 0) ? make_float4(0, 0, 0, 0) : in_emissionColor[tid];
-    outPathColor     = to_float3(emissData);
-    hitLightSource   = (emissData.w == 1);
-    matOffset        = materialOffset(a_globals, surfHit.matId);
-   
-    ProcTextureList ptl;
-    InitProcTextureList(&ptl);
-    ReadProcTextureList(in_procTexData, tid, iNumElements,
-                        &ptl);
-    
-    const int rayBounceNum = unpackBounceNum(flags);
+  __global const PlainMaterial* pHitMaterial     = materialAt(a_globals, in_mtlStorage, surfHit.matId);
+  float4 emissData    = (in_emissionColor == 0) ? make_float4(0, 0, 0, 0) : in_emissionColor[tid];
+  outPathColor        = to_float3(emissData);
+  int matOffset       = materialOffset(a_globals, surfHit.matId);
+  bool hitLightSource = (emissData.w == 1);
 
-    float allRands[MMLT_FLOATS_PER_BOUNCE];
-    RndMatAll(&gen, 0, rayBounceNum, a_globals->rmQMC, qmcPos, a_qmcTable,
-              allRands);
-    
-    int localOffset = 0; 
-    MaterialSampleAndEvalBxDF(pHitMaterial, allRands, &surfHit, ray_dir, decompressShadow(a_shadow[tid]), flags,
-                              a_globals, in_texStorage1, in_texStorage2, &ptl, 
-                              &brdfSample, &localOffset);
-                              
-    matOffset    = matOffset    + localOffset*(sizeof(PlainMaterial)/sizeof(float4));
-    pHitMaterial = pHitMaterial + localOffset;
-
-    const float invPdf      = 1.0f / fmax(brdfSample.pdf, DEPSILON2);
-    const float cosTheta    = fabs(dot(brdfSample.direction, surfHit.normal));
-    outPathThroughput       = cosTheta*brdfSample.color*invPdf; 
-
-    if (!isfinite(outPathThroughput.x)) outPathThroughput.x = 0.0f;
-    if (!isfinite(outPathThroughput.y)) outPathThroughput.y = 0.0f;
-    if (!isfinite(outPathThroughput.z)) outPathThroughput.z = 0.0f;
-
-    isThinGlass         = ((brdfSample.flags & RAY_EVENT_TNINGLASS) != 0) && (rayBounceNum > 0) && !(a_globals->g_flags & HRT_ENABLE_PT_CAUSTICS);
-    thisBounceIsDiffuse = ((brdfSample.flags & RAY_EVENT_D)         != 0);
- 
-    /////////////////////////////////////////////////////////////////////////////// finish with outPathThroughput
+  ProcTextureList ptl;
+  InitProcTextureList(&ptl);
+  ReadProcTextureList(in_procTexData, tid, iNumElements,
+                      &ptl);
   
-    const float3 nextRay_dir = brdfSample.direction;
-    const float3 nextRay_pos = OffsRayPos(surfHit.pos, surfHit.normal, brdfSample.direction);
-
-    // values that bidirectional techniques needs
-    //
-    const float cosPrev = fabs(a_misDataPrev[tid].cosThetaPrev);
-    const float cosCurr = fabs(-dot(ray_dir, surfHit.normal));
-    const float dist    = length(surfHit.pos - ray_pos);
-    GTerm = (cosPrev*cosCurr / fmax(dist*dist, DEPSILON2));
-
-    // calc new ray
-    //    
-    oldRayDir = ray_dir;
-    ray_dir   = nextRay_dir;
-    ray_pos   = nextRay_pos;
-  }
+  const int rayBounceNum = unpackBounceNum(flags);
+  float allRands[MMLT_FLOATS_PER_BOUNCE];
+  RndMatAll(&gen, 0, rayBounceNum, a_globals->rmQMC, qmcPos, a_qmcTable,
+            allRands);
   
+  MatSample brdfSample; int localOffset = 0; 
+  MaterialSampleAndEvalBxDF(pHitMaterial, allRands, &surfHit, ray_dir, decompressShadow(a_shadow[tid]), flags,
+                            a_globals, in_texStorage1, in_texStorage2, &ptl, 
+                            &brdfSample, &localOffset);
+                            
+  matOffset    = matOffset    + localOffset*(sizeof(PlainMaterial)/sizeof(float4));
+  pHitMaterial = pHitMaterial + localOffset;
+
+  const float invPdf       = 1.0f / fmax(brdfSample.pdf, DEPSILON2);
+  const float cosTheta     = fabs(dot(brdfSample.direction, surfHit.normal));
+  float3 outPathThroughput = cosTheta*brdfSample.color*invPdf; 
+  if (!isfinite(outPathThroughput.x)) outPathThroughput.x = 0.0f;
+  if (!isfinite(outPathThroughput.y)) outPathThroughput.y = 0.0f;
+  if (!isfinite(outPathThroughput.z)) outPathThroughput.z = 0.0f;
+  
+  const bool isThinGlass         = ((brdfSample.flags & RAY_EVENT_TNINGLASS) != 0) && (rayBounceNum > 0) && !(a_globals->g_flags & HRT_ENABLE_PT_CAUSTICS);
+  const bool thisBounceIsDiffuse = ((brdfSample.flags & RAY_EVENT_D)         != 0);
+
+  /////////////////////////////////////////////////////////////////////////////// finish with outPathThroughput
+
+  const float3 nextRay_dir = brdfSample.direction;
+  const float3 nextRay_pos = OffsRayPos(surfHit.pos, surfHit.normal, brdfSample.direction);
+  // values that bidirectional techniques needs
+  //
+  const float cosPrev = fabs(a_misDataPrev[tid].cosThetaPrev);
+  const float cosCurr = fabs(-dot(ray_dir, surfHit.normal));
+  const float dist    = length(surfHit.pos - ray_pos);
+  const float GTerm = (cosPrev*cosCurr / fmax(dist*dist, DEPSILON2));
+  
+  // calc new ray
+  //
+  float3 oldRayDir = ray_dir;
+  ray_dir          = nextRay_dir;
+  ray_pos          = nextRay_pos;
+
   /////////////////////////////////////////////////////////////////////////////////////////////////////////////// begin russian roulette
   const float pabsorb = probabilityAbsorbRR(flags, a_globals->g_flags);
 
@@ -936,130 +916,112 @@ __kernel void NextBounce(__global   float4*        restrict a_rpos,
   float3 oldPathThroughput = make_float3(1,1,1);
   float3 newPathThroughput = make_float3(1,1,1);
 
-  if (rayIsActiveU(flags))
-  { 
-    // calc attenuation in thick glass
-		//
-    /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-	  const float dotNewOld  = dot(ray_dir, to_float3(a_rdir[tid]));
-	  const bool  gotOutside = (dotNewOld > 0.0f) && (unpackRayFlags(flags) & RAY_HIT_SURFACE_FROM_OTHER_SIDE);
-	  const float dist       = length(surfHit.pos - to_float3(a_rpos[tid]));
+  // calc attenuation in thick glass
+	//
+  /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+	const float dotNewOld  = dot(ray_dir, to_float3(a_rdir[tid]));
+	const bool  gotOutside = (dotNewOld > 0.0f) && (unpackRayFlags(flags) & RAY_HIT_SURFACE_FROM_OTHER_SIDE);
+	const float dist2      = length(surfHit.pos - to_float3(a_rpos[tid]));
+	const float3 fogAtten  = attenuationStep(pHitMaterial, dist2, gotOutside, a_fog + tid);
+  /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-	  const float3 fogAtten  = attenuationStep(pHitMaterial, dist, gotOutside, a_fog + tid);
-    /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-    const uint rayBounceNum  = unpackBounceNum(flags);
-    const uint diffBounceNum = unpackBounceNumDiff(flags);
-
-    const float3 shadeColor  = (a_globals->g_flags & HRT_STUPID_PT_MODE) ? make_float3(0,0,0) : to_float3(in_shadeColor[tid]);
-
-    oldPathThroughput = to_float3(a_thoroughput[tid])*fogAtten;
-    newPathThroughput = oldPathThroughput*outPathThroughput;
-   
-    ///////////////////////////////////////////////// #NOTE: OK, THIS SEEMS TO WORK FINE; JUST CHECK IT WITH WINDOW GLASS WHEN IMPLEMENT TRANSPARENT SHADOWS;
-    if (!isThinGlass)  
-    {
-      MisData misNext;  
-      misNext.matSamplePdf       = brdfSample.pdf;
-      misNext.isSpecular         = (int)isPureSpecular(brdfSample);
-      misNext.prevMaterialOffset = matOffset;
-      misNext.cosThetaPrev       = fabs(+dot(ray_dir, surfHit.normal)); // update it withCosNextActually ...
-      a_misDataPrev[tid]         = misNext;
-    }
-    ///////////////////////////////////////////////// 
-
-    flags = flagsNextBounce(flags, brdfSample, a_globals);
-
-    float4 nextPathColor;
-
-    if (a_globals->g_flags & HRT_ENABLE_MMLT)
-    {
-      nextPathColor   = a_color[tid] + to_float4(oldPathThroughput*outPathColor, 0.0f); //#TODO: this works only for stupid PT and emissive color !!!!
-      nextPathColor.w = 1.0f;
-    }
-    else if (a_globals->g_flags & HRT_FORWARD_TRACING) // don't add color from shade pass, this is simple case
-    { 
-      nextPathColor   = a_color[tid]*to_float4(outPathThroughput*fogAtten, 1.0f);
-      nextPathColor.w = 1.0f;
-
-      if (a_globals->g_flags & HRT_3WAY_MIS_WEIGHTS)
-      {
-        PerRayAcc accPdf = a_pdfAcc[tid];
-        {
-          const int currDepth = rayBounceNum + 1;
-          accPdf.pdfGTerm *= GTerm;
-          if (currDepth == 1)
-            accPdf.pdfCamA0 = GTerm; // spetial case, multiply it by pdf later ... 
-        }
-        a_pdfAcc[tid] = accPdf;
-      }
-    }
-    else                                                                                     // more complex case, need to add color from shade on each bounce
-    { 
-      outPathColor   += shadeColor;
-      nextPathColor   = a_color[tid] + to_float4(oldPathThroughput*outPathColor, 0.0f);
-      nextPathColor.w = 1.0f;
-
-      if (a_globals->g_flags & HRT_3WAY_MIS_WEIGHTS) 
-      {
-        const int a_currDepth = rayBounceNum;
-        PerRayAcc accPdf      = a_pdfAcc[tid];          // #TODO: refactor code inside brackets; try to make procedure call
-        {
-          if (!isPureSpecular(brdfSample))
-          {
-            const float cosHere = fabs(dot(oldRayDir, surfHit.normal));
-            const float cosNext = fabs(dot(brdfSample.direction, surfHit.normal));
-
-            accPdf.pdfCameraWP *= (brdfSample.pdf / fmax(cosNext, DEPSILON));
-
-            if (a_currDepth > 0)
-            {
-              ShadeContext sc;
-              sc.wp = surfHit.pos;
-              sc.l  = (-1.0f)*oldRayDir;    // fliped; if compare to normal PT
-              sc.v  = brdfSample.direction; // fliped; if compare to normal PT
-              sc.n  = surfHit.normal;
-              sc.fn = surfHit.flatNormal;
-              sc.tg = surfHit.tangent;
-              sc.bn = surfHit.biTangent;
-              sc.tc = surfHit.texCoord;
-
-              ProcTextureList ptl;       
-              InitProcTextureList(&ptl); 
-              ReadProcTextureList(in_procTexData, tid, iNumElements,
-                                  &ptl);
-
-              const float pdfFwdW = materialEval(pHitMaterial, &sc, false, false, // global data on the second line -->                          
-                                                 a_globals, in_texStorage1, in_texStorage2, &ptl).pdfFwd; 
-             
-              accPdf.pdfLightWP *= (pdfFwdW / fmax(cosHere, DEPSILON));
-            }
-          }
-          else
-          {
-            accPdf.pdfCameraWP *= 1.0f; // in the case of specular bounce pdfFwd = pdfRev = 1.0f;
-            accPdf.pdfLightWP *= 1.0f;  //
-            if (a_currDepth == 0)
-              accPdf.pdfLightWP = 0.0f;
-          }
-        }
-        a_pdfAcc[tid] = accPdf;
-      }
-    }
-
-    if (maxcomp(newPathThroughput) < 0.00001f || hitLightSource)
-      flags = packRayFlags(flags, unpackRayFlags(flags) | RAY_IS_DEAD);
-
-    if (unpackRayFlags(flags) & RAY_IS_DEAD)
-      newPathThroughput = make_float3(0, 0, 0);
-
-    a_flags      [tid] = flags;
-    a_rpos       [tid] = to_float4(ray_pos, 0.0f);
-    a_rdir       [tid] = to_float4(ray_dir, 0.0f);
-    a_color      [tid] = nextPathColor;
-    a_thoroughput[tid] = to_float4(newPathThroughput, 0.0f);
+  const float3 shadeColor = (a_globals->g_flags & HRT_STUPID_PT_MODE) ? make_float3(0,0,0) : to_float3(in_shadeColor[tid]);
+  oldPathThroughput       = to_float3(a_thoroughput[tid])*fogAtten;
+  newPathThroughput       = oldPathThroughput*outPathThroughput;
+  
+  ///////////////////////////////////////////////// #NOTE: OK, THIS SEEMS TO WORK FINE; JUST CHECK IT WITH WINDOW GLASS WHEN IMPLEMENT TRANSPARENT SHADOWS;
+  if (!isThinGlass)  
+  {
+    MisData misNext;  
+    misNext.matSamplePdf       = brdfSample.pdf;
+    misNext.isSpecular         = (int)isPureSpecular(brdfSample);
+    misNext.prevMaterialOffset = matOffset;
+    misNext.cosThetaPrev       = fabs(+dot(ray_dir, surfHit.normal)); // update it withCosNextActually ...
+    a_misDataPrev[tid]         = misNext;
   }
+  ///////////////////////////////////////////////// 
+  flags = flagsNextBounce(flags, brdfSample, a_globals);
+  float4 nextPathColor;
+  if (a_globals->g_flags & HRT_ENABLE_MMLT)
+  {
+    nextPathColor   = a_color[tid] + to_float4(oldPathThroughput*outPathColor, 0.0f); //#TODO: this works only for stupid PT and emissive color !!!!
+    nextPathColor.w = 1.0f;
+  }
+  else if (a_globals->g_flags & HRT_FORWARD_TRACING) // don't add color from shade pass, this is simple case
+  { 
+    nextPathColor   = a_color[tid]*to_float4(outPathThroughput*fogAtten, 1.0f);
+    nextPathColor.w = 1.0f;
+    if (a_globals->g_flags & HRT_3WAY_MIS_WEIGHTS)
+    {
+      PerRayAcc accPdf = a_pdfAcc[tid];
+      {
+        const int currDepth = rayBounceNum + 1;
+        accPdf.pdfGTerm *= GTerm;
+        if (currDepth == 1)
+          accPdf.pdfCamA0 = GTerm; // spetial case, multiply it by pdf later ... 
+      }
+      a_pdfAcc[tid] = accPdf;
+    }
+  }
+  else                                                                                     // more complex case, need to add color from shade on each bounce
+  { 
+    outPathColor   += shadeColor;
+    nextPathColor   = a_color[tid] + to_float4(oldPathThroughput*outPathColor, 0.0f);
+    nextPathColor.w = 1.0f;
+    if (a_globals->g_flags & HRT_3WAY_MIS_WEIGHTS) 
+    {
+      const int a_currDepth = rayBounceNum;
+      PerRayAcc accPdf      = a_pdfAcc[tid];          // #TODO: refactor code inside brackets; try to make procedure call
+      {
+        if (!isPureSpecular(brdfSample))
+        {
+          const float cosHere = fabs(dot(oldRayDir, surfHit.normal));
+          const float cosNext = fabs(dot(brdfSample.direction, surfHit.normal));
+          accPdf.pdfCameraWP *= (brdfSample.pdf / fmax(cosNext, DEPSILON));
+          if (a_currDepth > 0)
+          {
+            ShadeContext sc;
+            sc.wp = surfHit.pos;
+            sc.l  = (-1.0f)*oldRayDir;    // fliped; if compare to normal PT
+            sc.v  = brdfSample.direction; // fliped; if compare to normal PT
+            sc.n  = surfHit.normal;
+            sc.fn = surfHit.flatNormal;
+            sc.tg = surfHit.tangent;
+            sc.bn = surfHit.biTangent;
+            sc.tc = surfHit.texCoord;
+            ProcTextureList ptl;       
+            InitProcTextureList(&ptl); 
+            ReadProcTextureList(in_procTexData, tid, iNumElements,
+                                &ptl);
+            const float pdfFwdW = materialEval(pHitMaterial, &sc, false, false, // global data on the second line -->                          
+                                               a_globals, in_texStorage1, in_texStorage2, &ptl).pdfFwd; 
+           
+            accPdf.pdfLightWP *= (pdfFwdW / fmax(cosHere, DEPSILON));
+          }
+        }
+        else
+        {
+          accPdf.pdfCameraWP *= 1.0f; // in the case of specular bounce pdfFwd = pdfRev = 1.0f;
+          accPdf.pdfLightWP *= 1.0f;  //
+          if (a_currDepth == 0)
+            accPdf.pdfLightWP = 0.0f;
+        }
+      }
+      a_pdfAcc[tid] = accPdf;
+    }
+  }
+  
+  if (maxcomp(newPathThroughput) < 0.00001f || hitLightSource)
+    flags = packRayFlags(flags, unpackRayFlags(flags) | RAY_IS_DEAD);
+  
+  if (unpackRayFlags(flags) & RAY_IS_DEAD)
+    newPathThroughput = make_float3(0, 0, 0);
 
+  a_flags      [tid] = flags;
+  a_rpos       [tid] = to_float4(ray_pos, 0.0f);
+  a_rdir       [tid] = to_float4(ray_dir, 0.0f);
+  a_color      [tid] = nextPathColor;
+  a_thoroughput[tid] = to_float4(newPathThroughput, 0.0f);
 
 }
 
