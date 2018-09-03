@@ -46,17 +46,18 @@ __kernel void MMLTCameraPathBounce(__global   float4*        restrict a_rpos,
                                    __global const float4*    restrict in_procTexData,
 
                                    __global float4*          restrict a_color,
-                                   __global float4*          restrict a_normalPrev,       // (!) stote prev normal here, instead of 'a_thoroughput'
+                                   __global float4*          restrict a_normalPrev,    // (!) stote prev normal here, instead of 'a_thoroughput'
                                    __global MisData*         restrict a_misDataPrev,
+                                   __global ushort4*         restrict a_shadow,
                                    __global float4*          restrict a_fog,
-                                   __global PdfVertex*       restrict a_pdfVert,          // (!) MMLT pdfArray 
-                                   __global   float4*        restrict a_vertexSup,        // (!) MMLT out Path Vertex supplemental to surfaceHit data
+                                   __global PdfVertex*       restrict a_pdfVert,       // (!) MMLT pdfArray 
+                                   __global   float4*        restrict a_vertexSup,     // (!) MMLT out Path Vertex supplemental to surfaceHit data
 
                                    __global const float4*    restrict in_texStorage1,    
                                    __global const float4*    restrict in_texStorage2,
                                    __global const float4*    restrict in_mtlStorage,
                                    __global const float4*    restrict in_pdfStorage,   //
-    
+
                                    __global const EngineGlobals*  restrict a_globals,
                                    const int   iNumElements, 
                                    const float mLightSubPathCount)
@@ -74,6 +75,7 @@ __kernel void MMLTCameraPathBounce(__global   float4*        restrict a_rpos,
   const bool a_haveToHitLightSource = true;     /////////////////////  #TODO: INPUT; read this from some place !!! 
   const int  a_fullPathDepth        = 3;        /////////////////////  #TODO: INPUT; read this from some place !!! 
   const int  a_targetDepth          = 3;        /////////////////////  #TODO: INPUT; read this from some place !!! 
+  const __global float* a_rptr      = 0;        /////////////////////  #TODO: INPUT; read this from some place !!! Metropolis random numbers
 
   const int  a_currDepth     = unpackBounceNum(flags)        + 1;                                   
   const int  prevVertexId    = a_fullPathDepth - a_currDepth + 1; 
@@ -204,21 +206,40 @@ __kernel void MMLTCameraPathBounce(__global   float4*        restrict a_rpos,
     return;
   }
   
-  // (3) eval reverse and forward pdfs
-  //
-  
-  //const MatSample matSam = std::get<0>(sampleAndEvalBxDF(ray_dir, surfElem, packBounceNum(0, a_currDepth - 1), float3(0, 0, 0), true));
-  //const float3 bxdfVal   = matSam.color; // *(1.0f / fmaxf(matSam.pdf, 1e-20f));
-  //const float cosNext    = fabs(dot(matSam.direction, surfElem.normal));
+  // (3) sample material, eval reverse and forward pdfs
+  //  
+  float allRands[MMLT_FLOATS_PER_BOUNCE];
+  {
+    RandomGen gen  = out_gens[tid];
+    gen.maxNumbers = a_globals->varsI[HRT_MLT_MAX_NUMBERS];
 
-  /*
+    RndMatAll(&gen, a_rptr, a_targetDepth, 0, 0, 0,
+              allRands);
+
+    out_gens[tid] = gen;
+  }         
+  
+  MatSample matSam; int localOffset = 0; 
+  MaterialSampleAndEvalBxDF(pHitMaterial, allRands, &surfElem, ray_dir, decompressShadow(a_shadow[tid]), flags,
+                            a_globals, in_texStorage1, in_texStorage2, &ptl, 
+                            &matSam, &localOffset);
+
+  const float3 bxdfVal = matSam.color; // *(1.0f / fmaxf(matSam.pdf, 1e-20f));
+  const float cosNext  = fabs(dot(matSam.direction, surfElem.normal));
+
   if (a_currDepth == 1)
   {
     if (isPureSpecular(matSam))  //  ow ... but if we met specular reflection when tracing from camera, we must put 0 because this path cannot be sample by light strategy at all.
-      a_perThread->pdfArray[a_fullPathDepth].pdfFwd = 0.0f;
+    {                            //  a_perThread->pdfArray[a_fullPathDepth].pdfFwd = 0.0f;
+      PdfVertex vertLast = a_pdfVert[TabIndex(a_fullPathDepth, tid, iNumElements)];
+      vertLast.pdfFwd    = 0.0f;
+      a_pdfVert[TabIndex(a_fullPathDepth, tid, iNumElements)] = vertLast;
+    }
   }
   else
   {
+    PdfVertex prevVert;
+
     if (!isPureSpecular(matSam))
     {
       ShadeContext sc;
@@ -232,18 +253,20 @@ __kernel void MMLTCameraPathBounce(__global   float4*        restrict a_rpos,
       sc.tc = surfElem.texCoord;
 
       const float pdfFwdW  = materialEval(pHitMaterial, &sc, false, false, 
-                                          m_pGlobals, m_texStorage, m_texStorage, &m_ptlDummy).pdfFwd;
+                                          a_globals, in_texStorage1, in_texStorage2, &ptl).pdfFwd;
       const float pdfFwdWP = pdfFwdW / fmax(cosHere, DEPSILON);
 
-      a_perThread->pdfArray[prevVertexId].pdfFwd = pdfFwdWP*GTerm;
+      prevVert.pdfFwd = pdfFwdWP*GTerm;
     }
     else
-      a_perThread->pdfArray[prevVertexId].pdfFwd = -1.0f*GTerm;
+      prevVert.pdfFwd = -1.0f*GTerm;
 
     const float pdfCamPrevWP = a_misPrev.matSamplePdf / fmax(cosPrev, DEPSILON);
-    a_perThread->pdfArray[prevVertexId].pdfRev = a_misPrev.isSpecular ? -1.0f*GTerm : pdfCamPrevWP*GTerm;
+    prevVert.pdfRev = a_misPrev.isSpecular ? -1.0f*GTerm : pdfCamPrevWP*GTerm;
+    
+    a_pdfVert[TabIndex(prevVertexId, tid, iNumElements)] = prevVert;
   }
-  */
+  
 
 }
 

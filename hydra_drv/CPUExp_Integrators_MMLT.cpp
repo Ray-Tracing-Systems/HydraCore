@@ -898,7 +898,8 @@ PathVertex IntegratorMMLT::CameraPath(float3 ray_pos, float3 ray_dir, float3 a_p
       sc.bn = surfElem.biTangent;
       sc.tc = surfElem.texCoord;
 
-      const float pdfFwdW  = materialEval(pHitMaterial, &sc, false, false, /* global data --> */ m_pGlobals, m_texStorage, m_texStorage, &m_ptlDummy).pdfFwd;
+      const float pdfFwdW  = materialEval(pHitMaterial, &sc, false, false, // global data -->
+                                          m_pGlobals, m_texStorage, m_texStorageAux, &m_ptlDummy).pdfFwd;
       const float pdfFwdWP = pdfFwdW / fmax(cosHere, DEPSILON);
 
       a_perThread->pdfArray[prevVertexId].pdfFwd = pdfFwdWP*GTerm;

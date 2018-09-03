@@ -2875,6 +2875,23 @@ static inline int remapMaterialId(int a_mId, int a_instId,
 
 
 
+static inline ushort4 compressShadow(float3 shadow)
+{
+  ushort4 shadowCompressed;
+
+  shadowCompressed.x = (ushort)(65535.0f * shadow.x);
+  shadowCompressed.y = (ushort)(65535.0f * shadow.y);
+  shadowCompressed.z = (ushort)(65535.0f * shadow.z);
+  shadowCompressed.w = 0;
+
+  return shadowCompressed;
+}
+
+static inline float3 decompressShadow(ushort4 shadowCompressed)
+{
+  const float invNormCoeff = 1.0f / 65535.0f;
+  return invNormCoeff*make_float3((float)shadowCompressed.x, (float)shadowCompressed.y, (float)shadowCompressed.z);
+}
 
 
 

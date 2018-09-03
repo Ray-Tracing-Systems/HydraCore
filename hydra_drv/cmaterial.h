@@ -1391,8 +1391,8 @@ static inline void MaterialLeafSampleAndEvalBRDF(__global const PlainMaterial* p
     a_out->color *= (cosThetaOut2 / fmax(cosThetaOut1, DEPSILON2));
   }
 
-  if (a_out->pdf <= 0.0f)                 // can happen because of shitty geometry and material models
-    a_out->color = make_float3(0, 0, 0);  //
+  if (a_out->pdf <= 0.0f)                // can happen because of shitty geometry and material models
+    a_out->color = make_float3(0, 0, 0); //
 
 }
 
@@ -1409,7 +1409,6 @@ static inline void MaterialSampleAndEvalBxDF(__global const PlainMaterial* pMat,
                                              __global const EngineGlobals* a_globals, texture2d_t a_tex, texture2d_t a_texNormal, __private const ProcTextureList* a_ptList,
                                              __private MatSample* a_out, __private int* pLocalOffset)
 {
-  const int rayBounceNum          = unpackBounceNum(rayFlags);
   const uint otherRayFlags        = unpackRayFlags(rayFlags);
   const bool canSampleReflOnly    = (materialGetFlags(pMat) & PLAIN_MATERIAL_CAN_SAMPLE_REFL_ONLY) != 0;
   const bool sampleReflectionOnly = ((otherRayFlags & RAY_GRAMMAR_DIRECT_LIGHT) != 0) && canSampleReflOnly; 
@@ -1424,7 +1423,7 @@ static inline void MaterialSampleAndEvalBxDF(__global const PlainMaterial* pMat,
                                 a_globals, a_tex, a_texNormal, a_ptList,
                                 a_out);
 
-  a_out->color *= 1.0f/fmax(mixSelector.w, 0.025f);
+  a_out->color *= 1.0f/fmax(mixSelector.w, 0.025f); // it is essential to do thin right here. Don't put this in PDF!
 
   if (materialIsSkyPortal(pMatLeaf) && isEyeRay(rayFlags))
   {

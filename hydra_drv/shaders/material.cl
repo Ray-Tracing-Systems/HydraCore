@@ -5,24 +5,6 @@
 #include "clight.h"
 #include "cbidir.h"
 
-static inline ushort4 compressShadow(float3 shadow)
-{
-  ushort4 shadowCompressed;
-
-  shadowCompressed.x = (ushort)(65535.0f * shadow.x);
-  shadowCompressed.y = (ushort)(65535.0f * shadow.y);
-  shadowCompressed.z = (ushort)(65535.0f * shadow.z);
-  shadowCompressed.w = 0;
-
-  return shadowCompressed;
-}
-
-static inline float3 decompressShadow(ushort4 shadowCompressed)
-{
-  const float invNormCoeff = 1.0f / 65535.0f;
-  return invNormCoeff*make_float3((float)shadowCompressed.x, (float)shadowCompressed.y, (float)shadowCompressed.z);
-}
-
 __kernel void MakeEyeShadowRays(__global const uint*          restrict a_flags,
                                 __global const float4*        restrict in_surfaceHit,
 
@@ -887,7 +869,7 @@ __kernel void NextBounce(__global   float4*        restrict a_rpos,
   const float cosPrev = fabs(a_misDataPrev[tid].cosThetaPrev);
   const float cosCurr = fabs(-dot(ray_dir, surfHit.normal));
   const float dist    = length(surfHit.pos - ray_pos);
-  const float GTerm = (cosPrev*cosCurr / fmax(dist*dist, DEPSILON2));
+  const float GTerm   = (cosPrev*cosCurr / fmax(dist*dist, DEPSILON2));
   
   // calc new ray
   //

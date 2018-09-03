@@ -394,11 +394,6 @@ __kernel void MakeAORaysPacked4(__global const uint*      restrict in_flags,
   out_rpos[tid] = to_float4(sRayPos, sRayLength);
 }
 
-static inline float3 decompressShadow(ushort4 shadowCompressed)
-{
-  const float invNormCoeff = 1.0f / 65535.0f;
-  return invNormCoeff * make_float3((float)shadowCompressed.x, (float)shadowCompressed.y, (float)shadowCompressed.z);
-}
 
 __kernel void PackAO(__global const uint*      restrict in_flags,
                      __global const ushort4*   restrict in_shadowAO,

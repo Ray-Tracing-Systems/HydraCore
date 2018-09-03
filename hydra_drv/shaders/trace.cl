@@ -236,25 +236,6 @@ __kernel void ComputeHit(__global const float4*   restrict rpos,
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-
-static inline ushort4 compressShadow(float3 shadow)
-{
-  ushort4 shadowCompressed;
-
-  shadowCompressed.x = (ushort)(65535.0f * shadow.x);
-  shadowCompressed.y = (ushort)(65535.0f * shadow.y);
-  shadowCompressed.z = (ushort)(65535.0f * shadow.z);
-  shadowCompressed.w = 0;
-
-  return shadowCompressed;
-}
-
-static inline float3 decompressShadow(ushort4 shadowCompressed)
-{
-  const float invNormCoeff = 1.0f / 65535.0f;
-  return invNormCoeff*make_float3((float)shadowCompressed.x, (float)shadowCompressed.y, (float)shadowCompressed.z);
-}
-
 __kernel void NoShadow(__global ushort4* a_shadow, int a_size)
 {
   int tid = GLOBAL_ID_X;
