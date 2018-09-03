@@ -266,7 +266,33 @@ __kernel void MMLTCameraPathBounce(__global   float4*        restrict a_rpos,
     
     a_pdfVert[TabIndex(prevVertexId, tid, iNumElements)] = prevVert;
   }
-  
 
+  // (4) proceed to next bounce
+  //  
+  {
+    MisData thisBounce       = makeInitialMisData();
+    thisBounce.isSpecular    = isPureSpecular(matSam);
+    thisBounce.matSamplePdf  = matSam.pdf;
+    a_misDataPrev[tid]       = thisBounce;
+  }
+    
+  float3 accColor   = (a_currDepth == 1)  ? make_float3(1,1,1)           : to_float3(a_color[tid]);
+  const bool stopDL = SPLIT_DL_BY_GRAMMAR ? flagsHaveOnlySpecular(flags) : false;
+
+  accColor *= (bxdfVal*cosNext / fmax(matSam.pdf, DEPSILON2));
+  if (stopDL && a_haveToHitLightSource && a_currDepth + 1 == a_targetDepth) // exclude direct light
+    accColor = make_float3(0, 0, 0);
+
+  flags = flagsNextBounce(flags, matSam, a_globals);
+  if (maxcomp(accColor) < 0.00001f)
+    flags = packRayFlags(flags, unpackRayFlags(flags) | RAY_IS_DEAD);
+
+  const float3 nextRay_dir = matSam.direction;
+  const float3 nextRay_pos = OffsRayPos(surfElem.pos, surfElem.normal, matSam.direction);
+
+  a_flags[tid] = flags;
+  a_color[tid] = to_float4(accColor,    0.0f);
+  a_rpos [tid] = to_float4(nextRay_pos, 0.0f);
+  a_rdir [tid] = to_float4(nextRay_dir, 0.0f);
 }
 
