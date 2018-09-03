@@ -280,7 +280,8 @@ void GPUOCLLayer::AddContributionToScreenGPU(cl_mem in_color,     cl_mem in_indi
 }
 
 
-void GPUOCLLayer::runKernel_Trace(cl_mem a_rpos, cl_mem a_rdir, cl_mem a_hits, size_t a_size)
+void GPUOCLLayer::runKernel_Trace(cl_mem a_rpos, cl_mem a_rdir, size_t a_size,
+                                  cl_mem a_hits)
 {
   if (m_globals.cpuTrace)
   {

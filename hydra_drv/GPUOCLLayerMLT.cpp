@@ -29,11 +29,11 @@ void GPUOCLLayer::CL_MLT_DATA::free()
 
   if (cameraVertexSup)       { clReleaseMemObject(cameraVertexSup);   cameraVertexSup = 0; }
   if (cameraVertexHit)       { clReleaseMemObject(cameraVertexHit);   cameraVertexHit = 0; }
-  if (pdfArray)              { clReleaseMemObject(pdfArray);          pdfArray     = 0; }
+  if (pdfArray)              { clReleaseMemObject(pdfArray);          pdfArray        = 0; }
+  if (splitData)             { clReleaseMemObject(splitData);         splitData       = 0; }
 
   rstateCurr = 0;
   memTaken   = 0;
-
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -83,7 +83,7 @@ size_t GPUOCLLayer::MLT_Alloc(int a_maxBounce)
   m_mlt.yVector = clCreateBuffer(m_globals.ctx, CL_MEM_READ_WRITE, QMC_NUMBERS*sizeof(float)*m_rays.MEGABLOCKSIZE, NULL, &ciErr1);
   
   if (ciErr1 != CL_SUCCESS)
-    RUN_TIME_ERROR("[cl_core.MLT_Alloc]: Failed to create yVector ");
+    RUN_TIME_ERROR("[cl_core.MLT_Alloc]: Failed to alloc yVector ");
 #endif
 
   m_mlt.memTaken += QMC_NUMBERS*sizeof(float)*m_rays.MEGABLOCKSIZE + 2 * sizeof(RandomGen)*m_rays.MEGABLOCKSIZE;
@@ -93,7 +93,7 @@ size_t GPUOCLLayer::MLT_Alloc(int a_maxBounce)
   m_mlt.memTaken += 2*sizeof(float4)*m_rays.MEGABLOCKSIZE;
 
   if (ciErr1 != CL_SUCCESS)
-    RUN_TIME_ERROR("[cl_core.MLT_Alloc]: Failed to create yColor ");
+    RUN_TIME_ERROR("[cl_core.MLT_Alloc]: Failed to alloc yColor ");
 
   const size_t pathVertexSizeHit = SURFACE_HIT_SIZE_IN_F4*sizeof(float4)*m_rays.MEGABLOCKSIZE;
   const size_t pathVertexSizeSup = PATH_VERTEX_SUPPLEMENT_SIZE_IN_F4*sizeof(float4)*m_rays.MEGABLOCKSIZE;
@@ -107,7 +107,12 @@ size_t GPUOCLLayer::MLT_Alloc(int a_maxBounce)
   m_mlt.memTaken      += 2*sizeof(float) *m_rays.MEGABLOCKSIZE*a_maxBounce;
   
   if (ciErr1 != CL_SUCCESS)
-    RUN_TIME_ERROR("[cl_core.MLT_Alloc]: Failed to create vertex storage and pdf array ");
+    RUN_TIME_ERROR("[cl_core.MLT_Alloc]: Failed to alloc vertex storage and pdf array ");
+
+  m_mlt.splitData = clCreateBuffer(m_globals.ctx, CL_MEM_READ_WRITE, 2*sizeof(int)*m_rays.MEGABLOCKSIZE, NULL, &ciErr1);
+
+  if (ciErr1 != CL_SUCCESS)
+    RUN_TIME_ERROR("[cl_core.MLT_Alloc]: Failed to alloc splitData ");
 
   return m_mlt.memTaken;
 }

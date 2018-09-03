@@ -585,9 +585,10 @@ void GPUOCLLayer::EvalGBuffer(IHRSharedAccumImage* a_pAccumImage, const std::vec
     // (2) trace1D with single bounce
     //
     memsetu32(m_rays.rayFlags, 0, finalSize);                                                                // fill flags with zero
-    //memsetf4 (m_rays.hitMatId, make_float4(0, 0, 0, 0), (finalSize * sizeof(HitMatRef)) / sizeof(float4)); // TODO: fill accumulated rays dist with zero
+    //memsetf4 (m_rays.hitMatId, make_float4(0, 0, 0, 0), (finalSize * sizeof(HitMatRef)) / sizeof(float4)); // #TODO: fill accumulated rays dist with zero
 
-    runKernel_Trace(m_rays.rayPos, m_rays.rayDir, m_rays.hits, finalSize);
+    runKernel_Trace(m_rays.rayPos, m_rays.rayDir, finalSize,
+                    m_rays.hits);
 
     runKernel_ComputeHit(m_rays.rayPos, m_rays.rayDir, finalSize,
                          m_rays.hitSurfaceAll);
@@ -609,7 +610,8 @@ void GPUOCLLayer::EvalGBuffer(IHRSharedAccumImage* a_pAccumImage, const std::vec
       if (bounce == maxBounce - 1)
         break;
 
-      runKernel_Trace(m_rays.rayPos, m_rays.rayDir, m_rays.hits, finalSize);
+      runKernel_Trace(m_rays.rayPos, m_rays.rayDir, finalSize,
+                      m_rays.hits);
 
       runKernel_ComputeHit(m_rays.rayPos, m_rays.rayDir, finalSize, 
                            m_rays.hitSurfaceAll);

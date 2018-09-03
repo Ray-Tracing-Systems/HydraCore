@@ -42,7 +42,8 @@ void GPUOCLLayer::trace1D(cl_mem a_rpos, cl_mem a_rdir, cl_mem a_outColor, size_
       timeStart = m_timer.getElapsed();
     }
 
-    runKernel_Trace(a_rpos, a_rdir, m_rays.hits, a_size);
+    runKernel_Trace(a_rpos, a_rdir, a_size,
+                    m_rays.hits);
 
     if (m_vars.m_varsI[HRT_ENABLE_MRAYS_COUNTERS] && measureThisBounce)
     {
@@ -185,7 +186,8 @@ void GPUOCLLayer::trace1DPrimaryOnly(cl_mem a_rpos, cl_mem a_rdir, cl_mem a_outC
     m_timer.start();
   }
 
-  runKernel_Trace(a_rpos, a_rdir, m_rays.hits, a_size);
+  runKernel_Trace(a_rpos, a_rdir, a_size,
+                  m_rays.hits);
 
   if (m_vars.m_varsI[HRT_ENABLE_MRAYS_COUNTERS])
   {

@@ -35,11 +35,34 @@ inline int TabIndex(const int vertId, const int tid, const int iNumElements)
   return tid + vertId*iNumElements;
 }
 
+__kernel void MMLTInitCameraPath(__global   uint* restrict a_flags,
+                                 __global float4* restrict a_color,
+                                 __global int2*   restrict a_split,
+                                 
+                                 //__global RandomGen* restrict a_gens,
+                                 //__global float*     restrict a_mmltrands,
+
+                                 const int iNumElements)
+{
+  const int tid = GLOBAL_ID_X;
+  if (tid >= iNumElements)
+    return;
+
+  const int d = 3;
+  const int s = 0; 
+
+  a_flags[tid] = packBounceNum(0, 1);
+  a_color[tid] = make_float4(1,1,1,1);
+  a_split[tid] = make_int2(d,s);
+}
+
+
 __kernel void MMLTCameraPathBounce(__global   float4*        restrict a_rpos,
                                    __global   float4*        restrict a_rdir,
                                    __global   uint*          restrict a_flags,
                                    __global RandomGen*       restrict out_gens,
                                   
+                                   __global const int2*      restrict in_splitInfo,
                                    __global const Lite_Hit*  restrict in_hits,
                                    __global const int*       restrict in_instLightInstId,
                                    __global const float4*    restrict in_surfaceHit,
@@ -48,7 +71,6 @@ __kernel void MMLTCameraPathBounce(__global   float4*        restrict a_rpos,
                                    __global float4*          restrict a_color,
                                    __global float4*          restrict a_normalPrev,    // (!) stote prev normal here, instead of 'a_thoroughput'
                                    __global MisData*         restrict a_misDataPrev,
-                                   __global ushort4*         restrict a_shadow,
                                    __global float4*          restrict a_fog,
                                    __global PdfVertex*       restrict a_pdfVert,       // (!) MMLT pdfArray 
                                    __global   float4*        restrict a_vertexSup,     // (!) MMLT out Path Vertex supplemental to surfaceHit data
@@ -70,15 +92,20 @@ __kernel void MMLTCameraPathBounce(__global   float4*        restrict a_rpos,
   if (!rayIsActiveU(flags)) 
     return;
 
+  const __global float* a_rptr = 0;   /////////////////////////////////////////////////// #TODO: INIT THIS POINTER WITH MMLT RANDS !!!
+
   // (0) Read "IntegratorMMLT::CameraPath" arguments and calc ray hit
   //
-  const bool a_haveToHitLightSource = true;     /////////////////////  #TODO: INPUT; read this from some place !!! 
-  const int  a_fullPathDepth        = 3;        /////////////////////  #TODO: INPUT; read this from some place !!! 
-  const int  a_targetDepth          = 3;        /////////////////////  #TODO: INPUT; read this from some place !!! 
-  const __global float* a_rptr      = 0;        /////////////////////  #TODO: INPUT; read this from some place !!! Metropolis random numbers
+  const int2 splitData = in_splitInfo[tid];
+  const int  d = splitData.x;
+  const int  s = splitData.y;
+  const int  t = d - s;               // note that s=2 means 1 light bounce and one connection!!!
 
-  const int  a_currDepth     = unpackBounceNum(flags)        + 1;                                   
-  const int  prevVertexId    = a_fullPathDepth - a_currDepth + 1; 
+  const bool a_haveToHitLightSource = (s == 0); // when s == 0, use only camera strategy, so have to hit light at some depth level   
+  const int  a_fullPathDepth        = d;       
+  const int  a_targetDepth          = t;
+  const int  a_currDepth            = unpackBounceNum(flags); // #NOTE: first bounce must be equal to 1                           
+  const int  prevVertexId           = a_fullPathDepth - a_currDepth + 1; 
 
   //__global const PlainLight* pLight = lightAt(a_globals, lightOffset);
   SurfaceHit surfElem;
@@ -173,10 +200,7 @@ __kernel void MMLTCameraPathBounce(__global   float4*        restrict a_rpos,
 
       a_flags[tid] = packRayFlags(flags, unpackRayFlags(flags) | RAY_IS_DEAD);
       return;
-    }
-   
-    //kill this thread (return resVertex)
-    
+    } 
   }
   else if (a_currDepth == a_targetDepth && !a_haveToHitLightSource) // #NOTE: what if a_targetDepth == 1 ?
   {
@@ -220,7 +244,7 @@ __kernel void MMLTCameraPathBounce(__global   float4*        restrict a_rpos,
   }         
   
   MatSample matSam; int localOffset = 0; 
-  MaterialSampleAndEvalBxDF(pHitMaterial, allRands, &surfElem, ray_dir, decompressShadow(a_shadow[tid]), flags,
+  MaterialSampleAndEvalBxDF(pHitMaterial, allRands, &surfElem, ray_dir, make_float3(1,1,1), flags,
                             a_globals, in_texStorage1, in_texStorage2, &ptl, 
                             &matSam, &localOffset);
 
@@ -276,7 +300,7 @@ __kernel void MMLTCameraPathBounce(__global   float4*        restrict a_rpos,
     a_misDataPrev[tid]       = thisBounce;
   }
     
-  float3 accColor   = (a_currDepth == 1)  ? make_float3(1,1,1)           : to_float3(a_color[tid]);
+  float3 accColor   = to_float3(a_color[tid]);
   const bool stopDL = SPLIT_DL_BY_GRAMMAR ? flagsHaveOnlySpecular(flags) : false;
 
   accColor *= (bxdfVal*cosNext / fmax(matSam.pdf, DEPSILON2));

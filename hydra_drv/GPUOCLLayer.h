@@ -183,7 +183,7 @@ protected:
   struct CL_MLT_DATA
   {
     CL_MLT_DATA() : rstateForAcceptReject(0), rstateCurr(0), rstateOld(0), rstateNew(0),
-                    xVector(0), yVector(0), xColor(0), yColor(0), cameraVertexSup(0), cameraVertexHit(0), pdfArray(0),
+                    xVector(0), yVector(0), xColor(0), yColor(0), cameraVertexSup(0), cameraVertexHit(0), pdfArray(0), splitData(0),
                     memTaken(0), mppDone(0.0) {}
 
     cl_mem rstateForAcceptReject; // sizeof(RandGen), MEGABLOCKSIZE size
@@ -200,6 +200,8 @@ protected:
     cl_mem cameraVertexSup;
     cl_mem cameraVertexHit;
     cl_mem pdfArray;
+
+    cl_mem splitData;
 
     size_t memTaken;
 
@@ -393,7 +395,8 @@ protected:
 
   void runKernel_ClearAllInternalTempBuffers(size_t a_size);
  
-  void runKernel_Trace(cl_mem a_rpos, cl_mem a_rdir, cl_mem a_hits, size_t a_size);
+  void runKernel_Trace(cl_mem a_rpos, cl_mem a_rdir, size_t a_size,
+                       cl_mem a_hits);
 
   void runKernel_ComputeHit(cl_mem a_rpos, cl_mem a_rdir, size_t a_size,
                             cl_mem a_outSurfaceHit);
@@ -428,7 +431,9 @@ protected:
 
   // MLT
   //
-  void runKernel_MMLTCameraPathBounce(cl_mem a_rpos, cl_mem a_rdir, cl_mem a_outColor, size_t a_size);
+  void runKernel_MMLTInitCameraPath(cl_mem a_flags, cl_mem a_color, cl_mem a_split, size_t a_size);
+  void runKernel_MMLTCameraPathBounce(cl_mem rayFlags, cl_mem a_rpos, cl_mem a_rdir, cl_mem a_color, cl_mem a_split,
+                                      cl_mem a_outHitCom, cl_mem a_outHitSup, size_t a_size);
 
   // GBuffer and e.t.c
   //
