@@ -68,7 +68,7 @@ __kernel void MakeEyeShadowRays(__global const uint*          restrict a_flags,
   out_sraydir[tid] = to_float4(camDir, as_float(-1));
 }
 
-
+#define BUGGY_AMD_IBPT_PROCTEX_FETCH
 
 __kernel void UpdateForwardPdfFor3Way(__global const uint*          restrict a_flags,
                                       __global const float4*        restrict in_raydir,
@@ -132,8 +132,10 @@ __kernel void UpdateForwardPdfFor3Way(__global const uint*          restrict a_f
     
     ProcTextureList ptl;        
     InitProcTextureList(&ptl);  
+    #ifndef BUGGY_AMD_IBPT_PROCTEX_FETCH
     ReadProcTextureList(in_procTexData, tid, iNumElements, 
                         &ptl);
+    #endif 
 
     const float pdfW = materialEval(pHitMaterial, &sc, false, false, /* global data --> */ a_globals, in_texStorage1, in_texStorage2, &ptl).pdfFwd;
     
