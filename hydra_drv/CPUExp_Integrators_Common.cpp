@@ -555,7 +555,6 @@ std::tuple<MatSample, int, float3> IntegratorCommon::sampleAndEvalBxDF(float3 ra
                             m_pGlobals, m_texStorage, m_texStorageAux, &m_ptlDummy, 
                             &brdfSample, &matOffset);
 
-
   return std::make_tuple(brdfSample, matOffset, make_float3(1,1,1)); // #TODO: remove third parameter from tuple
 }
 

@@ -1246,8 +1246,7 @@ static inline float  sssGetTransmission(__global const PlainMaterial* a_pMat) { 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 static inline BRDFSelector materialRandomWalkBRDF(__global const PlainMaterial* a_pMat, __private float* a_rands, const float3 rayDir, const float3 hitNorm, const float2 hitTexCoord,
-                                                  __global const EngineGlobals* a_globals, texture2d_t a_tex, __private const ProcTextureList* a_ptList, 
-                                                  const int a_rayBounce, const bool a_reflOnly)
+                                                  __global const EngineGlobals* a_globals, texture2d_t a_tex, __private const ProcTextureList* a_ptList, const bool a_reflOnly)
 {
   BRDFSelector res, sel;
 
@@ -1408,28 +1407,30 @@ Sample and eval layered material (with blends). Store result in a_out.
 static inline void MaterialSampleAndEvalBxDF(__global const PlainMaterial* pMat, __private float a_rands[MMLT_FLOATS_PER_BOUNCE], 
                                              __private const SurfaceHit* pSurfHit, const float3 a_rayDir, const float3 a_shadow, const uint rayFlags,
                                              __global const EngineGlobals* a_globals, texture2d_t a_tex, texture2d_t a_texNormal, __private const ProcTextureList* a_ptList,
-                                             __private MatSample* a_out, __private int* pMatOffset)
+                                             __private MatSample* a_out, __private int* pLocalOffset)
 {
   const int rayBounceNum          = unpackBounceNum(rayFlags);
   const uint otherRayFlags        = unpackRayFlags(rayFlags);
-  
   const bool canSampleReflOnly    = (materialGetFlags(pMat) & PLAIN_MATERIAL_CAN_SAMPLE_REFL_ONLY) != 0;
   const bool sampleReflectionOnly = ((otherRayFlags & RAY_GRAMMAR_DIRECT_LIGHT) != 0) && canSampleReflOnly; 
-
+ 
   const BRDFSelector mixSelector  = materialRandomWalkBRDF(pMat, a_rands, a_rayDir, pSurfHit->normal, pSurfHit->texCoord, 
-                                                           a_globals, a_tex, a_ptList, rayBounceNum, sampleReflectionOnly); 
+                                                           a_globals, a_tex, a_ptList, sampleReflectionOnly); 
 
   __global const PlainMaterial* pMatLeaf = pMat + mixSelector.localOffs;
-  (*pMatOffset) = materialOffset(a_globals, pSurfHit->matId) + mixSelector.localOffs*(sizeof(PlainMaterial)/sizeof(float4));
+  (*pLocalOffset)                        = mixSelector.localOffs;
   
   MaterialLeafSampleAndEvalBRDF(pMatLeaf, pSurfHit, a_rayDir, make_float3(a_rands[0], a_rands[1], a_rands[2]), a_shadow, 
                                 a_globals, a_tex, a_texNormal, a_ptList,
                                 a_out);
 
-  if (materialIsSkyPortal(pMatLeaf) && isEyeRay(rayFlags))
-    a_out->color = make_float3(1, 1, 1);
+  a_out->color *= 1.0f/fmax(mixSelector.w, 0.025f);
 
-  a_out->pdf *= fmax(mixSelector.w, 0.025f);
+  if (materialIsSkyPortal(pMatLeaf) && isEyeRay(rayFlags))
+  {
+    a_out->color = make_float3(1, 1, 1);
+    a_out->pdf   = 1.0f;
+  }
 }
 
 

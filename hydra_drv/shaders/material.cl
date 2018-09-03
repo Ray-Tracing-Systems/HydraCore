@@ -845,19 +845,6 @@ __kernel void NextBounce(__global   float4*        restrict a_rpos,
 
   __global const PlainMaterial* pHitMaterial = 0;
 
-  if (rayIsActiveU(flags)) 
-  {
-    ReadSurfaceHit(in_surfaceHit, tid, iNumElements, 
-                   &surfHit);
-
-    pHitMaterial = materialAt(a_globals, in_mtlStorage, surfHit.matId);
-  
-    float4 emissData = (in_emissionColor == 0) ? make_float4(0, 0, 0, 0) : in_emissionColor[tid];
-    outPathColor     = to_float3(emissData);
-    hitLightSource   = (emissData.w == 1);
-  }
-  
-
   MatSample brdfSample;
   int    matOffset   = 0;
   bool   isThinGlass = false;
@@ -869,8 +856,15 @@ __kernel void NextBounce(__global   float4*        restrict a_rpos,
   float3 oldRayDir;
  
   if (rayIsActiveU(flags))
-  {
-    matOffset = materialOffset(a_globals, surfHit.matId);
+  { 
+    ReadSurfaceHit(in_surfaceHit, tid, iNumElements, 
+                   &surfHit);
+
+    pHitMaterial     = materialAt(a_globals, in_mtlStorage, surfHit.matId);
+    float4 emissData = (in_emissionColor == 0) ? make_float4(0, 0, 0, 0) : in_emissionColor[tid];
+    outPathColor     = to_float3(emissData);
+    hitLightSource   = (emissData.w == 1);
+    matOffset        = materialOffset(a_globals, surfHit.matId);
    
     ProcTextureList ptl;
     InitProcTextureList(&ptl);
@@ -879,36 +873,21 @@ __kernel void NextBounce(__global   float4*        restrict a_rpos,
     
     const int rayBounceNum = unpackBounceNum(flags);
 
-    //__global const float* matRandsArray = (pssVec == 0) ? 0 : pssVec + rndMatOffsetMMLT(rayBounceNum);
-
     float allRands[MMLT_FLOATS_PER_BOUNCE];
     RndMatAll(&gen, 0, rayBounceNum, a_globals->rmQMC, qmcPos, a_qmcTable,
               allRands);
     
-    //MaterialSampleAndEvalBxDF(pHitMaterial, allRands, &surfHit, ray_dir, decompressShadow(a_shadow[tid]), flags,
-    //                          a_globals, in_texStorage1, in_texStorage2, &ptl, 
-    //                          &brdfSample, &matOffset);
-    //pHitMaterial = materialAtOffset(in_mtlStorage, matOffset);
+    int localOffset = 0; 
+    MaterialSampleAndEvalBxDF(pHitMaterial, allRands, &surfHit, ray_dir, decompressShadow(a_shadow[tid]), flags,
+                              a_globals, in_texStorage1, in_texStorage2, &ptl, 
+                              &brdfSample, &localOffset);
+                              
+    matOffset    = matOffset    + localOffset*(sizeof(PlainMaterial)/sizeof(float4));
+    pHitMaterial = pHitMaterial + localOffset;
 
-    /////////////////////////////////////////////////////////////////////////////// begin sample material  
-    
-    BRDFSelector mixSelector = materialRandomWalkBRDF(pHitMaterial, allRands, ray_dir, surfHit.normal, surfHit.texCoord,
-                                                      a_globals, in_texStorage1, &ptl, rayBounceNum, false);
-   
-    matOffset    = matOffset    + mixSelector.localOffs*(sizeof(PlainMaterial)/sizeof(float4));
-    pHitMaterial = pHitMaterial + mixSelector.localOffs;
-  
-    MaterialLeafSampleAndEvalBRDF(pHitMaterial, &surfHit, ray_dir, make_float3(allRands[0], allRands[1], allRands[2]), decompressShadow(a_shadow[tid]), 
-                                  a_globals, in_texStorage1, in_texStorage2, &ptl,
-                                  &brdfSample);
-    
-    /////////////////////////////////////////////////////////////////////////////// end   sample material
-  
-    const float clampMax    = materialIsSkyPortal(pHitMaterial) ? 10.0f : 1.0f;
-    const float invPdf      = 1.0f / fmax(brdfSample.pdf, DEPSILON);
+    const float invPdf      = 1.0f / fmax(brdfSample.pdf, DEPSILON2);
     const float cosTheta    = fabs(dot(brdfSample.direction, surfHit.normal));
-    outPathThroughput       = clamp(cosTheta*brdfSample.color*invPdf, 0.0f, clampMax) / fmax(mixSelector.w, 0.025f); //#TODO: clamp is not correct actually ???
-    //outPathThroughput       = cosTheta*brdfSample.color*invPdf;
+    outPathThroughput       = cosTheta*brdfSample.color*invPdf; 
 
     if (!isfinite(outPathThroughput.x)) outPathThroughput.x = 0.0f;
     if (!isfinite(outPathThroughput.y)) outPathThroughput.y = 0.0f;
