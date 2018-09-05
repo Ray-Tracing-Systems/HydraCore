@@ -120,8 +120,9 @@ __kernel void MMLTCameraPathBounce(__global   float4*        restrict a_rpos,
     resVertex.valid    = false; //(a_currDepth == a_targetDepth);     // #TODO: dunno if this is correct ... 
     WritePathVertexSupplement(&resVertex, tid, iNumElements, 
                               a_vertexSup);
-    a_flags[tid] = packRayFlags(flags, RAY_IS_DEAD);
-    return;
+    
+    flags        = packRayFlags(flags, RAY_IS_DEAD);
+    a_flags[tid] = flags;
   } 
 
   if (!rayIsActiveU(flags)) 
@@ -159,6 +160,17 @@ __kernel void MMLTCameraPathBounce(__global   float4*        restrict a_rpos,
   const float cosHere = fabs(dot(ray_dir, surfElem.normal));
   const float cosPrev = fabs(dot(ray_dir, a_prevNormal));
   
+  //{
+  //  float3 envColor = make_float3(0,1,0);
+  //  
+  //  PathVertex resVertex;
+  //  resVertex.ray_dir  = to_float3(a_rdir[tid]);
+  //  resVertex.accColor = envColor*to_float3(a_color[tid]);   
+  //  resVertex.valid    = true; 
+  //  WritePathVertexSupplement(&resVertex, tid, iNumElements, 
+  //                            a_vertexSup);
+  //}
+ 
   float GTerm = 1.0f;
   if (a_currDepth == 1)
   {
@@ -193,7 +205,8 @@ __kernel void MMLTCameraPathBounce(__global   float4*        restrict a_rpos,
 
   const float3 emission = emissionEval(ray_pos, ray_dir, &surfElem, flags, (a_misPrev.isSpecular == 1), pLight,
                                        pHitMaterial, in_texStorage1, in_pdfStorage, a_globals, &ptl);
-
+  
+  
   if (dot(emission, emission) > 1e-3f)
   {    
     if (a_currDepth == a_targetDepth && a_haveToHitLightSource)
@@ -266,6 +279,7 @@ __kernel void MMLTCameraPathBounce(__global   float4*        restrict a_rpos,
     return;
   }
   
+
   // (3) sample material, eval reverse and forward pdfs
   //  
   float allRands[MMLT_FLOATS_PER_BOUNCE];
@@ -279,14 +293,20 @@ __kernel void MMLTCameraPathBounce(__global   float4*        restrict a_rpos,
     out_gens[tid] = gen;
   }         
   
+  int matOffset = materialOffset(a_globals, surfElem.matId);
+
   MatSample matSam; int localOffset = 0; 
   MaterialSampleAndEvalBxDF(pHitMaterial, allRands, &surfElem, ray_dir, make_float3(1,1,1), flags,
                             a_globals, in_texStorage1, in_texStorage2, &ptl, 
                             &matSam, &localOffset);
+  
+  matOffset    = matOffset    + localOffset*(sizeof(PlainMaterial)/sizeof(float4));
+  pHitMaterial = pHitMaterial + localOffset;
 
   const float3 bxdfVal = matSam.color; // *(1.0f / fmaxf(matSam.pdf, 1e-20f));
   const float cosNext  = fabs(dot(matSam.direction, surfElem.normal));
 
+  
   if (a_currDepth == 1)
   {
     if (isPureSpecular(matSam))  //  ow ... but if we met specular reflection when tracing from camera, we must put 0 because this path cannot be sample by light strategy at all.
@@ -329,12 +349,6 @@ __kernel void MMLTCameraPathBounce(__global   float4*        restrict a_rpos,
 
   // (4) proceed to next bounce
   //  
-  {
-    MisData thisBounce       = makeInitialMisData();
-    thisBounce.isSpecular    = isPureSpecular(matSam);
-    thisBounce.matSamplePdf  = matSam.pdf;
-    a_misDataPrev[tid]       = thisBounce;
-  }
     
   float3 accColor   = to_float3(a_color[tid]);
   const bool stopDL = SPLIT_DL_BY_GRAMMAR ? flagsHaveOnlySpecular(flags) : false;
@@ -354,5 +368,12 @@ __kernel void MMLTCameraPathBounce(__global   float4*        restrict a_rpos,
   a_color[tid] = to_float4(accColor,    0.0f);
   a_rpos [tid] = to_float4(nextRay_pos, 0.0f);
   a_rdir [tid] = to_float4(nextRay_dir, 0.0f);
+
+  MisData misNext            = makeInitialMisData(); 
+  misNext.matSamplePdf       = matSam.pdf;
+  misNext.isSpecular         = (int)isPureSpecular(matSam);
+  misNext.prevMaterialOffset = matOffset;
+  misNext.cosThetaPrev       = fabs(+dot(nextRay_dir, surfElem.normal)); // update it withCosNextActually ...
+  a_misDataPrev[tid]         = misNext;
 }
 

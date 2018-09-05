@@ -819,9 +819,6 @@ __kernel void NextBounce(__global   float4*        restrict a_rpos,
   float3 ray_dir      = to_float3(a_rdir[tid]);
   float3 outPathColor = make_float3(0,0,0);
 
-  RandomGen gen  = out_gens[tid];
-  gen.maxNumbers = a_globals->varsI[HRT_MLT_MAX_NUMBERS];
-
   SurfaceHit surfHit;
   ReadSurfaceHit(in_surfaceHit, tid, iNumElements, 
                  &surfHit);
@@ -838,9 +835,22 @@ __kernel void NextBounce(__global   float4*        restrict a_rpos,
                       &ptl);
   
   const int rayBounceNum = unpackBounceNum(flags);
+
+
   float allRands[MMLT_FLOATS_PER_BOUNCE];
-  RndMatAll(&gen, 0, rayBounceNum, a_globals->rmQMC, qmcPos, a_qmcTable,
-            allRands);
+  float rrChoice = 0.0f, pabsorb  = 0.0f;
+  {
+    RandomGen gen  = out_gens[tid];
+    gen.maxNumbers = a_globals->varsI[HRT_MLT_MAX_NUMBERS];
+   
+    RndMatAll(&gen, 0, rayBounceNum, a_globals->rmQMC, qmcPos, a_qmcTable,
+              allRands);
+
+    pabsorb = probabilityAbsorbRR(flags, a_globals->g_flags);
+    if (pabsorb > 0.0f)
+      rrChoice = rndFloat1_Pseudo(&gen);
+    out_gens[tid] = gen;
+  }
   
   MatSample brdfSample; int localOffset = 0; 
   MaterialSampleAndEvalBxDF(pHitMaterial, allRands, &surfHit, ray_dir, decompressShadow(a_shadow[tid]), flags,
@@ -878,14 +888,6 @@ __kernel void NextBounce(__global   float4*        restrict a_rpos,
   ray_pos          = nextRay_pos;
 
   /////////////////////////////////////////////////////////////////////////////////////////////////////////////// begin russian roulette
-  const float pabsorb = probabilityAbsorbRR(flags, a_globals->g_flags);
-
-  float rrChoice = 0.0f;
-  if (pabsorb > 0.0f)
-    rrChoice = rndFloat1_Pseudo(&gen);
-
-  out_gens[tid] = gen;
-
   if (pabsorb >= 0.1f)
   {
     if (rrChoice < pabsorb)
