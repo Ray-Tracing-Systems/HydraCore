@@ -48,8 +48,8 @@ static inline void WritePathVertexSupplement(const __private PathVertex* a_pVert
 static inline void ReadPathVertexSupplement(const __global float4* a_in, int a_tid, int a_threadNum, 
                                             __private PathVertex* a_pVertex)
 {
-  const float4 f1 = a_in[a_tid + 3*a_threadNum];
-  const float4 f2 = a_in[a_tid + 4*a_threadNum];
+  const float4 f1 = a_in[a_tid + 0*a_threadNum];
+  const float4 f2 = a_in[a_tid + 1*a_threadNum];
 
   a_pVertex->ray_dir     = to_float3(f1); a_pVertex->lastGTerm = f1.w;
   a_pVertex->accColor    = to_float3(f2); 

@@ -135,6 +135,7 @@ void GPUOCLLayer::TraceSBDPTPass(cl_mem a_rpos, cl_mem a_rdir, cl_mem a_outColor
 
   // (1) camera pass
   //
+  //runKernel_ClearAllInternalTempBuffers(m_rays.MEGABLOCKSIZE);
   runKernel_MMLTInitCameraPath(m_rays.rayFlags, a_outColor, m_mlt.splitData, a_size);
 
   for (int bounce = 0; bounce < maxBounce; bounce++)
@@ -149,7 +150,8 @@ void GPUOCLLayer::TraceSBDPTPass(cl_mem a_rpos, cl_mem a_rdir, cl_mem a_outColor
                                    m_mlt.cameraVertexHit, m_mlt.cameraVertexSup, a_size);
   }
 
-  //runKernel_CopyAccColorTo(m_mlt.cameraVertexSup, a_size, a_outColor);
+  runKernel_CopyAccColorTo(m_mlt.cameraVertexSup, a_size, 
+                           a_outColor);
 
   // (2) store camera vertex
   //

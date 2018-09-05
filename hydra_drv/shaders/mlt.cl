@@ -68,7 +68,10 @@ __kernel void CopyAccColorTo(__global const float4* restrict in_vertexSup,
   ReadPathVertexSupplement(in_vertexSup, tid, iNumElements,
                            &resVertex);
 
-  out_color[tid] = to_float4(resVertex.accColor, 0.0f);
+  if(resVertex.valid)
+    out_color[tid] = to_float4(resVertex.accColor, 0.0f);
+  else
+    out_color[tid] = make_float4(0,0,0,0);
 }
 
 
@@ -104,6 +107,23 @@ __kernel void MMLTCameraPathBounce(__global   float4*        restrict a_rpos,
     return;
 
   uint flags = a_flags[tid]; // #NOTE: what if ray miss object just recently .. don't we need to do soem thing in MMLT? See original code.
+
+  // (0) Ray is outside of scene, hit environment
+  //
+  if (unpackRayFlags(flags) & RAY_GRAMMAR_OUT_OF_SCENE) // #TODO: read environment! 
+  {
+    float3 envColor = make_float3(0,0,0);
+    
+    PathVertex resVertex;
+    resVertex.ray_dir  = to_float3(a_rdir[tid]);
+    resVertex.accColor = envColor*to_float3(a_color[tid]);   
+    resVertex.valid    = false; //(a_currDepth == a_targetDepth);     // #TODO: dunno if this is correct ... 
+    WritePathVertexSupplement(&resVertex, tid, iNumElements, 
+                              a_vertexSup);
+    a_flags[tid] = packRayFlags(flags, RAY_IS_DEAD);
+    return;
+  } 
+
   if (!rayIsActiveU(flags)) 
     return;
 
@@ -133,22 +153,6 @@ __kernel void MMLTCameraPathBounce(__global   float4*        restrict a_rpos,
   const float3 ray_pos      = to_float3(a_rpos[tid]);
   const float3 ray_dir      = to_float3(a_rdir[tid]);
   const float3 a_prevNormal = to_float3(a_normalPrev[tid]);
-
-  // (0) Ray is outside of scene, hit environment
-  //
-  if (unpackRayFlags(flags) & RAY_GRAMMAR_OUT_OF_SCENE) // #TODO: read environment! 
-  {
-    float3 envColor = make_float3(0,0,0);
-    
-    PathVertex resVertex;
-    resVertex.ray_dir  = ray_dir;
-    resVertex.accColor = envColor*to_float3(a_color[tid]);   
-    resVertex.valid    = (a_currDepth == a_targetDepth);     // #TODO: dunno if this is correct ... 
-    WritePathVertexSupplement(&resVertex, tid, iNumElements, 
-                              a_vertexSup);
-    a_flags[tid] = packRayFlags(flags, unpackRayFlags(flags) | RAY_IS_DEAD);
-    return;
-  } 
   
   // (1)
   //
