@@ -56,6 +56,21 @@ __kernel void MMLTInitCameraPath(__global   uint* restrict a_flags,
   a_split[tid] = make_int2(d,s);
 }
 
+__kernel void CopyAccColorTo(__global const float4* restrict in_vertexSup, 
+                             __global       float4* restrict out_color,
+                             const int   iNumElements)
+{
+  const int tid = GLOBAL_ID_X;
+  if (tid >= iNumElements)
+    return;
+
+  PathVertex resVertex;
+  ReadPathVertexSupplement(in_vertexSup, tid, iNumElements,
+                           &resVertex);
+
+  out_color[tid] = to_float4(resVertex.accColor, 0.0f);
+}
+
 
 __kernel void MMLTCameraPathBounce(__global   float4*        restrict a_rpos,
                                    __global   float4*        restrict a_rdir,
@@ -112,12 +127,29 @@ __kernel void MMLTCameraPathBounce(__global   float4*        restrict a_rpos,
   ReadSurfaceHit(in_surfaceHit, tid, iNumElements, 
                  &surfElem);
 
+ 
   __global const PlainMaterial* pHitMaterial = materialAt(a_globals, in_mtlStorage, surfElem.matId);
 
   const float3 ray_pos      = to_float3(a_rpos[tid]);
   const float3 ray_dir      = to_float3(a_rdir[tid]);
   const float3 a_prevNormal = to_float3(a_normalPrev[tid]);
 
+  // (0) Ray is outside of scene, hit environment
+  //
+  if (unpackRayFlags(flags) & RAY_GRAMMAR_OUT_OF_SCENE) // #TODO: read environment! 
+  {
+    float3 envColor = make_float3(0,0,0);
+    
+    PathVertex resVertex;
+    resVertex.ray_dir  = ray_dir;
+    resVertex.accColor = envColor*to_float3(a_color[tid]);   
+    resVertex.valid    = (a_currDepth == a_targetDepth);     // #TODO: dunno if this is correct ... 
+    WritePathVertexSupplement(&resVertex, tid, iNumElements, 
+                              a_vertexSup);
+    a_flags[tid] = packRayFlags(flags, unpackRayFlags(flags) | RAY_IS_DEAD);
+    return;
+  } 
+  
   // (1)
   //
   const float cosHere = fabs(dot(ray_dir, surfElem.normal));

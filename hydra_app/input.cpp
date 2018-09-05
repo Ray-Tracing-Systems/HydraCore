@@ -16,7 +16,7 @@ Input::Input()
   //inLibraryPath = "/media/frol/886234F06234E49A/PROG/HydraCore/hydra_app/tests/test_223_small"; ///< cornell box with mirror glossy back wall
   
   //inLibraryPath = "/home/frol/PROG/HydraAPI/main/tests/test_86";
-  //inLibraryPath = "/home/frol/PROG/HydraAPI/main/tests_f/test_127";inLibraryPath = "/home/frol/PROG/HydraAPI/main/tests_f/test_127";
+  //inLibraryPath = "/home/frol/temp/ibpt_bug";
   //inLibraryPath = "/home/frol/PROG/HydraAPI/main/tests_f/test_204";
   //inLibraryPath = "/home/frol/yandexdisk/Hydra/scenelib";
   

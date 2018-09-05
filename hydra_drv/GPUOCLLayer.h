@@ -435,6 +435,9 @@ protected:
   void runKernel_MMLTCameraPathBounce(cl_mem rayFlags, cl_mem a_rpos, cl_mem a_rdir, cl_mem a_color, cl_mem a_split,
                                       cl_mem a_outHitCom, cl_mem a_outHitSup, size_t a_size);
 
+
+  void runKernel_CopyAccColorTo(cl_mem cameraVertexSup, size_t a_size, cl_mem a_outColor);
+
   // GBuffer and e.t.c
   //
   void runKernel_GenerateSPPRays(cl_mem a_pixels, cl_mem a_sppPos, cl_mem a_rpos, cl_mem a_rdir, size_t a_size, int a_blockSize);
