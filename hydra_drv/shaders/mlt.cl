@@ -91,7 +91,7 @@ __kernel void MMLTCameraPathBounce(__global   float4*        restrict a_rpos,
                                    __global MisData*         restrict a_misDataPrev,
                                    __global float4*          restrict a_fog,
                                    __global PdfVertex*       restrict a_pdfVert,       // (!) MMLT pdfArray 
-                                   __global   float4*        restrict a_vertexSup,     // (!) MMLT out Path Vertex supplemental to surfaceHit data
+                                   __global float4*          restrict a_vertexSup,     // (!) MMLT out Path Vertex supplemental to surfaceHit data
 
                                    __global const float4*    restrict in_texStorage1,    
                                    __global const float4*    restrict in_texStorage2,
@@ -229,8 +229,8 @@ __kernel void MMLTCameraPathBounce(__global   float4*        restrict a_rpos,
     {
       PathVertex resVertex;
       resVertex.ray_dir  = ray_dir;
-      resVertex.accColor = emission*to_float3(a_color[tid]);
-      resVertex.valid    = true;
+      resVertex.accColor = make_float3(0,0,0);
+      resVertex.valid    = false;
       WritePathVertexSupplement(&resVertex, tid, iNumElements, 
                                 a_vertexSup);
 

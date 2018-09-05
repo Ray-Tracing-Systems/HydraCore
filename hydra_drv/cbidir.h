@@ -35,11 +35,11 @@ static inline void InitPathVertex(__private PathVertex* a_pVertex)
 static inline void WritePathVertexSupplement(const __private PathVertex* a_pVertex, int a_tid, int a_threadNum, 
                                              __global float4* a_out)
 {
-  const int bit1 = a_pVertex->valid       ? PV_PACK_VALID_FIELD : 0;
-  const int bit2 = a_pVertex->wasSpecOnly ? PV_PACK_WASSP_FIELD : 0;
+  const int bit1  = a_pVertex->valid       ? PV_PACK_VALID_FIELD : 0;
+  const int bit2  = a_pVertex->wasSpecOnly ? PV_PACK_WASSP_FIELD : 0;
 
-  float4 f1 = to_float4(a_pVertex->ray_dir, a_pVertex->lastGTerm);
-  float4 f2 = to_float4(a_pVertex->accColor, as_float(bit1 | bit2));
+  const float4 f1 = to_float4(a_pVertex->ray_dir, a_pVertex->lastGTerm);
+  const float4 f2 = to_float4(a_pVertex->accColor, as_float(bit1 | bit2));
 
   a_out[a_tid + 0*a_threadNum] = f1;
   a_out[a_tid + 1*a_threadNum] = f2;
