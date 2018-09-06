@@ -192,6 +192,19 @@ void GPUOCLLayer::runKernel_MMLTLightPathBounce(cl_mem a_rayFlags, cl_mem a_rpos
   waitIfDebug(__FILE__, __LINE__);
 }
 
+void GPUOCLLayer::runKernel_MMLTConnect(cl_mem  in_cameraVertexHit, cl_mem in_cameraVertexSup, cl_mem  in_lightVertexHit, cl_mem  in_lightVertexSup, size_t a_size, 
+                                        cl_mem a_outColor)
+{
+  cl_kernel kernX      = m_progs.mlt.kernel("MMLTConnect");
+
+  size_t localWorkSize = 256;
+  int            isize = int(a_size);
+  a_size               = roundBlocks(a_size, int(localWorkSize));
+
+
+
+}
+
 void GPUOCLLayer::TraceSBDPTPass(cl_mem a_rpos, cl_mem a_rdir, cl_mem a_outColor, size_t a_size)
 {
   int maxBounce = MMLT_GPU_TEST_DEPTH;
@@ -232,11 +245,14 @@ void GPUOCLLayer::TraceSBDPTPass(cl_mem a_rpos, cl_mem a_rdir, cl_mem a_outColor
     runKernel_MMLTLightPathBounce(m_rays.rayFlags, a_rpos, a_rdir, a_outColor, m_mlt.splitData, a_size,  //#NOTE: m_mlt.rstateCurr used inside
                                  lightVertexHit, lightVertexSup);
   }
-  */
  
   // (3) ConnectEye, ConnectShadow and ConnectEndPoinst
   //
-  
+
+  runKernel_MMLTConnect(m_mlt.cameraVertexHit, m_mlt.cameraVertexSup, lightVertexHit, lightVertexSup, a_size, 
+                        a_outColor);
+
+  */
 
   runKernel_CopyAccColorTo(m_mlt.cameraVertexSup, a_size, 
                            a_outColor);

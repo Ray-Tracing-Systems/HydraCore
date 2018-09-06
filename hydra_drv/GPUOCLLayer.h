@@ -440,6 +440,9 @@ protected:
   void runKernel_MMLTLightPathBounce(cl_mem rayFlags, cl_mem a_rpos, cl_mem a_rdir, cl_mem a_color, cl_mem a_split, size_t a_size,
                                      cl_mem a_outHitCom, cl_mem a_outHitSup);
 
+  void runKernel_MMLTConnect(cl_mem  in_cameraVertexHit, cl_mem in_cameraVertexSup, cl_mem  in_lightVertexHit, cl_mem  in_lightVertexSup, size_t a_size, 
+                             cl_mem a_outColor);
+                             
   void runKernel_CopyAccColorTo(cl_mem cameraVertexSup, size_t a_size, cl_mem a_outColor);
 
   // GBuffer and e.t.c

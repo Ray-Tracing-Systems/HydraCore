@@ -661,3 +661,20 @@ __kernel void MMLTLightPathBounce (__global   float4*        restrict a_rpos,
   a_prevSpec[tid] = isPureSpecular(matSam) ? 1 : 0;
 
 }
+
+__kernel void MMLTConnect(__global const int2  * restrict in_splitInfo,
+                          __global const float4* restrict a_lv_hit,
+                          __global const float4* restrict a_lv_sup,
+                          __global const float4* restrict a_cv_hit,
+                          __global const float4* restrict a_cv_sup,
+                          __global       float4* restrict out_color,
+                          const int iNumElements)
+{
+  const int tid = GLOBAL_ID_X;
+  if (tid >= iNumElements)
+    return;
+
+  
+  
+
+}
