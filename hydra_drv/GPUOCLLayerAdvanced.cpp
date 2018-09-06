@@ -54,7 +54,7 @@ void GPUOCLLayer::ConnectEyePass(cl_mem in_rayFlags, cl_mem in_rayDirOld, cl_mem
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-void GPUOCLLayer::runKernel_MMLTInitCameraPath(cl_mem a_flags, cl_mem a_color, cl_mem a_split, size_t a_size)
+void GPUOCLLayer::runKernel_MMLTInitCameraPath(cl_mem a_flags, cl_mem a_color, cl_mem a_split, cl_mem a_hitSup, size_t a_size)
 {
   cl_kernel kernX      = m_progs.mlt.kernel("MMLTInitCameraPath");
 
@@ -65,7 +65,8 @@ void GPUOCLLayer::runKernel_MMLTInitCameraPath(cl_mem a_flags, cl_mem a_color, c
   CHECK_CL(clSetKernelArg(kernX, 0, sizeof(cl_mem), (void*)&a_flags));
   CHECK_CL(clSetKernelArg(kernX, 1, sizeof(cl_mem), (void*)&a_color));
   CHECK_CL(clSetKernelArg(kernX, 2, sizeof(cl_mem), (void*)&a_split));
-  CHECK_CL(clSetKernelArg(kernX, 3, sizeof(cl_int), (void*)&isize));
+  CHECK_CL(clSetKernelArg(kernX, 3, sizeof(cl_mem), (void*)&a_hitSup));
+  CHECK_CL(clSetKernelArg(kernX, 4, sizeof(cl_int), (void*)&isize));
 
   CHECK_CL(clEnqueueNDRangeKernel(m_globals.cmdQueue, kernX, 1, NULL, &a_size, &localWorkSize, 0, NULL, NULL));
   waitIfDebug(__FILE__, __LINE__);
@@ -131,12 +132,11 @@ void GPUOCLLayer::runKernel_CopyAccColorTo(cl_mem cameraVertexSup, size_t a_size
 
 void GPUOCLLayer::TraceSBDPTPass(cl_mem a_rpos, cl_mem a_rdir, cl_mem a_outColor, size_t a_size)
 {
-  int maxBounce = 3;
+  int maxBounce = MMLT_GPU_TEST_DEPTH;
 
   // (1) camera pass
   //
-  //runKernel_ClearAllInternalTempBuffers(m_rays.MEGABLOCKSIZE);
-  runKernel_MMLTInitCameraPath(m_rays.rayFlags, a_outColor, m_mlt.splitData, a_size);
+  runKernel_MMLTInitCameraPath(m_rays.rayFlags, a_outColor, m_mlt.splitData, m_mlt.cameraVertexSup, a_size);
 
   for (int bounce = 0; bounce < maxBounce; bounce++)
   {
@@ -144,7 +144,7 @@ void GPUOCLLayer::TraceSBDPTPass(cl_mem a_rpos, cl_mem a_rdir, cl_mem a_outColor
                     m_rays.hits);
 
     runKernel_ComputeHit(a_rpos, a_rdir, a_size, 
-                         m_mlt.cameraVertexHit);
+                         m_mlt.cameraVertexHit, m_rays.hitProcTexData);
 
     runKernel_MMLTCameraPathBounce(m_rays.rayFlags, a_rpos, a_rdir, a_outColor, m_mlt.splitData, a_size,  //#NOTE: m_mlt.rstateCurr used inside
                                    m_mlt.cameraVertexHit, m_mlt.cameraVertexSup);

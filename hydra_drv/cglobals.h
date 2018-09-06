@@ -2444,6 +2444,7 @@ typedef struct SurfaceHitT
 #define PV_PACK_VALID_FIELD 1
 #define PV_PACK_WASSP_FIELD 2
 #define PV_PACK_HITFI_FIELD 4 // Hit From Inside 
+#define PV_PACK_RCONN_FIELD 8 // Ready For Connect (pack this if capera path don't hit light but store camera vertex istead). 
 
 #define SURFACE_HIT_SIZE_IN_F4 4
 

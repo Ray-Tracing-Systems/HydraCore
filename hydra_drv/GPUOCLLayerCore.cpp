@@ -53,7 +53,7 @@ void GPUOCLLayer::trace1D(cl_mem a_rpos, cl_mem a_rdir, cl_mem a_outColor, size_
     }
 
     runKernel_ComputeHit(a_rpos, a_rdir, a_size,
-                        m_rays.hitSurfaceAll);
+                        m_rays.hitSurfaceAll, m_rays.hitProcTexData);
 
     if ((m_vars.m_flags & HRT_FORWARD_TRACING) == 0)
       runKernel_HitEnvOrLight(m_rays.rayFlags, a_rpos, a_rdir, a_outColor, bounce, a_size);
@@ -196,7 +196,7 @@ void GPUOCLLayer::trace1DPrimaryOnly(cl_mem a_rpos, cl_mem a_rdir, cl_mem a_outC
   }
 
   runKernel_ComputeHit(a_rpos, a_rdir, a_size,
-                       m_rays.hitSurfaceAll);
+                       m_rays.hitSurfaceAll, m_rays.hitProcTexData);
 
   //
   //

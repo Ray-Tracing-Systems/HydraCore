@@ -472,7 +472,7 @@ void GPUOCLLayer::runKernel_ComputeAO2(cl_mem outCompressedAO, size_t a_size, in
 }
 
 void GPUOCLLayer::runKernel_ComputeHit(cl_mem a_rpos, cl_mem a_rdir, size_t a_size,
-                                       cl_mem out_hitSurface)
+                                       cl_mem out_hitSurface, cl_mem a_outProcTexData)
 {
   // eval common surface parameters
   //
@@ -518,14 +518,14 @@ void GPUOCLLayer::runKernel_ComputeHit(cl_mem a_rpos, cl_mem a_rdir, size_t a_si
 
   // eval procedure textures
   //
-  if (m_rays.hitProcTexData != nullptr)
+  if (a_outProcTexData != nullptr)
   {
     cl_kernel kernProcT = m_progs.texproc.kernel("ProcTexExec");
 
     CHECK_CL(clSetKernelArg(kernProcT, 0, sizeof(cl_mem), (void*)&m_rays.rayFlags));
     CHECK_CL(clSetKernelArg(kernProcT, 1, sizeof(cl_mem), (void*)&m_rays.rayDir));
 
-    CHECK_CL(clSetKernelArg(kernProcT, 2, sizeof(cl_mem), (void*)&m_rays.hitSurfaceAll));
+    CHECK_CL(clSetKernelArg(kernProcT, 2, sizeof(cl_mem), (void*)&out_hitSurface));
 
     CHECK_CL(clSetKernelArg(kernProcT, 3, sizeof(cl_mem), (void*)&m_rays.aoCompressed));
     CHECK_CL(clSetKernelArg(kernProcT, 4, sizeof(cl_mem), (void*)&m_rays.aoCompressed2));
@@ -533,7 +533,7 @@ void GPUOCLLayer::runKernel_ComputeHit(cl_mem a_rpos, cl_mem a_rdir, size_t a_si
 
     CHECK_CL(clSetKernelArg(kernProcT, 6, sizeof(cl_mem), (void*)&m_scene.matrices));
     
-    CHECK_CL(clSetKernelArg(kernProcT, 7, sizeof(cl_mem), (void*)&m_rays.hitProcTexData));
+    CHECK_CL(clSetKernelArg(kernProcT, 7, sizeof(cl_mem), (void*)&a_outProcTexData));
     CHECK_CL(clSetKernelArg(kernProcT, 8, sizeof(cl_mem), (void*)&m_scene.storageTex));
     CHECK_CL(clSetKernelArg(kernProcT, 9, sizeof(cl_mem), (void*)&m_scene.storageMat));
     CHECK_CL(clSetKernelArg(kernProcT,10, sizeof(cl_mem), (void*)&m_scene.allGlobsData));

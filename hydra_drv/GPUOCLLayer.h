@@ -399,7 +399,7 @@ protected:
                        cl_mem a_hits);
 
   void runKernel_ComputeHit(cl_mem a_rpos, cl_mem a_rdir, size_t a_size,
-                            cl_mem a_outSurfaceHit);
+                            cl_mem a_outSurfaceHit, cl_mem a_outProcTexData);
 
   void runKernel_HitEnvOrLight(cl_mem a_rayFlags, cl_mem a_rpos, cl_mem a_rdir, cl_mem a_outColor, int a_currBounce, size_t a_size);
 
@@ -431,7 +431,7 @@ protected:
 
   // MLT
   //
-  void runKernel_MMLTInitCameraPath(cl_mem a_flags, cl_mem a_color, cl_mem a_split, size_t a_size);
+  void runKernel_MMLTInitCameraPath(cl_mem a_flags, cl_mem a_color, cl_mem a_split, cl_mem a_hitSup, size_t a_size);
   void runKernel_MMLTCameraPathBounce(cl_mem rayFlags, cl_mem a_rpos, cl_mem a_rdir, cl_mem a_color, cl_mem a_split, size_t a_size,
                                       cl_mem a_outHitCom, cl_mem a_outHitSup);
 

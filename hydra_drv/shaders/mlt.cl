@@ -38,7 +38,8 @@ inline int TabIndex(const int vertId, const int tid, const int iNumElements)
 __kernel void MMLTInitCameraPath(__global   uint* restrict a_flags,
                                  __global float4* restrict a_color,
                                  __global int2*   restrict a_split,
-                                 
+                                 __global float4* restrict a_vertexSup,
+
                                  //__global RandomGen* restrict a_gens,
                                  //__global float*     restrict a_mmltrands,
 
@@ -48,12 +49,21 @@ __kernel void MMLTInitCameraPath(__global   uint* restrict a_flags,
   if (tid >= iNumElements)
     return;
 
-  const int d = 3;
+  const int d = MMLT_GPU_TEST_DEPTH;
   const int s = 0; 
 
   a_flags[tid] = packBounceNum(0, 1);
   a_color[tid] = make_float4(1,1,1,1);
   a_split[tid] = make_int2(d,s);
+  
+  PathVertex resVertex;
+  resVertex.ray_dir      = make_float3(0,0,0);
+  resVertex.accColor     = make_float3(0,0,0);   
+  resVertex.valid        = false; //(a_currDepth == a_targetDepth);     // #TODO: dunno if this is correct ... 
+  resVertex.readyConnect = false;
+  WritePathVertexSupplement(&resVertex, tid, iNumElements, 
+                            a_vertexSup);
+
 }
 
 __kernel void CopyAccColorTo(__global const float4* restrict in_vertexSup, 
@@ -68,7 +78,7 @@ __kernel void CopyAccColorTo(__global const float4* restrict in_vertexSup,
   ReadPathVertexSupplement(in_vertexSup, tid, iNumElements,
                            &resVertex);
 
-  if(resVertex.valid)
+  if(resVertex.valid && !resVertex.readyConnect)
     out_color[tid] = to_float4(resVertex.accColor, 0.0f);
   else
     out_color[tid] = make_float4(0,0,0,0);
@@ -115,9 +125,10 @@ __kernel void MMLTCameraPathBounce(__global   float4*        restrict a_rpos,
     float3 envColor = make_float3(0,0,0);
     
     PathVertex resVertex;
-    resVertex.ray_dir  = to_float3(a_rdir[tid]);
-    resVertex.accColor = envColor*to_float3(a_color[tid]);   
-    resVertex.valid    = false; //(a_currDepth == a_targetDepth);     // #TODO: dunno if this is correct ... 
+    resVertex.ray_dir      = to_float3(a_rdir[tid]);
+    resVertex.accColor     = envColor*to_float3(a_color[tid]);   
+    resVertex.valid        = false; //(a_currDepth == a_targetDepth);     // #TODO: dunno if this is correct ... 
+    resVertex.readyConnect = false;
     WritePathVertexSupplement(&resVertex, tid, iNumElements, 
                               a_vertexSup);
     
@@ -229,9 +240,10 @@ __kernel void MMLTCameraPathBounce(__global   float4*        restrict a_rpos,
       } 
       
       PathVertex resVertex;
-      resVertex.ray_dir  = ray_dir;
-      resVertex.accColor = emission*to_float3(a_color[tid]);   
-      resVertex.valid    = true;
+      resVertex.ray_dir      = ray_dir;
+      resVertex.accColor     = emission*to_float3(a_color[tid]);   
+      resVertex.valid        = true;
+      resVertex.readyConnect = false; 
       WritePathVertexSupplement(&resVertex, tid, iNumElements, 
                                 a_vertexSup);
 
@@ -241,9 +253,10 @@ __kernel void MMLTCameraPathBounce(__global   float4*        restrict a_rpos,
     else // this branch could probably change in future, for simple emissive materials
     {
       PathVertex resVertex;
-      resVertex.ray_dir  = ray_dir;
-      resVertex.accColor = make_float3(0,0,0);
-      resVertex.valid    = false;
+      resVertex.ray_dir      = ray_dir;
+      resVertex.accColor     = make_float3(0,0,0);
+      resVertex.valid        = false;
+      resVertex.readyConnect = false; 
       WritePathVertexSupplement(&resVertex, tid, iNumElements, 
                                 a_vertexSup);
 
@@ -258,6 +271,7 @@ __kernel void MMLTCameraPathBounce(__global   float4*        restrict a_rpos,
     resVertex.valid        = true;
     resVertex.accColor     = make_float3(1, 1, 1)*to_float3(a_color[tid]);
     resVertex.wasSpecOnly  = SPLIT_DL_BY_GRAMMAR ? flagsHaveOnlySpecular(flags) : false;
+    resVertex.readyConnect = true; 
 
     if (a_targetDepth != 1)
     {

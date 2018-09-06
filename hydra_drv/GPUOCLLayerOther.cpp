@@ -591,7 +591,7 @@ void GPUOCLLayer::EvalGBuffer(IHRSharedAccumImage* a_pAccumImage, const std::vec
                     m_rays.hits);
 
     runKernel_ComputeHit(m_rays.rayPos, m_rays.rayDir, finalSize,
-                         m_rays.hitSurfaceAll);
+                         m_rays.hitSurfaceAll, m_rays.hitProcTexData);
 
     // (3) get compressed samples
     //
@@ -614,7 +614,7 @@ void GPUOCLLayer::EvalGBuffer(IHRSharedAccumImage* a_pAccumImage, const std::vec
                       m_rays.hits);
 
       runKernel_ComputeHit(m_rays.rayPos, m_rays.rayDir, finalSize, 
-                           m_rays.hitSurfaceAll);
+                           m_rays.hitSurfaceAll, m_rays.hitProcTexData);
     }
 
     runKernel_PutAlphaToGBuffer(m_rays.pathThoroughput, m_rays.pathAccColor, finalSize);
