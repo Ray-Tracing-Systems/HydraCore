@@ -365,7 +365,21 @@ __kernel void MMLTCameraPathBounce(__global   float4*        restrict a_rpos,
 
   flags = flagsNextBounce(flags, matSam, a_globals);
   if (maxcomp(accColor) < 0.00001f)
+  {
+    PathVertex resVertex;
+    resVertex.ray_dir     = make_float3(0, 0, 0);
+    resVertex.accColor    = make_float3(0, 0, 0);
+    resVertex.valid       = false;
+    resVertex.hitLight    = false;
+    resVertex.wasSpecOnly = SPLIT_DL_BY_GRAMMAR ? flagsHaveOnlySpecular(flags) : false; 
+    const float lastPdfWP = a_misPrev.matSamplePdf / fmax(cosPrev, DEPSILON); // we store them to calculate fwd and rev pdf later when we connect end points
+    resVertex.lastGTerm   = GTerm;                                            // because right now we can not do this until we don't know the light vertex
+
+    WritePathVertexSupplement(&resVertex, tid, iNumElements, 
+                              a_vertexSup);
+
     flags = packRayFlags(flags, unpackRayFlags(flags) | RAY_IS_DEAD);
+  }
 
   const float3 nextRay_dir = matSam.direction;
   const float3 nextRay_pos = OffsRayPos(surfElem.pos, surfElem.normal, matSam.direction);
@@ -483,14 +497,14 @@ __kernel void MMLTLightPathBounce (__global   float4*        restrict a_rpos,
  
   // (0) Ray is outside of scene, hit environment
   //
-  if (unpackRayFlags(flags) & RAY_GRAMMAR_OUT_OF_SCENE) // #TODO: read environment! 
+  if (unpackRayFlags(flags) & RAY_GRAMMAR_OUT_OF_SCENE)  // #TODO: read environment! 
   {    
     PathVertex resVertex;
     resVertex.ray_dir     = make_float3(0,0,0);
     resVertex.accColor    = make_float3(0,0,0);   
     resVertex.valid       = false; //(a_currDepth == a_targetDepth);     // #TODO: dunno if this is correct ... 
     resVertex.hitLight    = true;
-    resVertex.wasSpecOnly = SPLIT_DL_BY_GRAMMAR ? flagsHaveOnlySpecular(flags) : false;
+    resVertex.wasSpecOnly = false;
     WritePathVertexSupplement(&resVertex, tid, iNumElements, 
                               a_vertexSup);
     
@@ -498,12 +512,16 @@ __kernel void MMLTLightPathBounce (__global   float4*        restrict a_rpos,
     a_flags[tid] = flags;
   } 
 
-  if (!rayIsActiveU(flags)) 
+  const int a_currDepth = unpackBounceNum(flags);
+  const int2 splitData  = in_splitInfo[tid];
+  const int  d = splitData.x;
+  const int  s = splitData.y;
+  const int  a_lightTraceDepth = s - 1;
+
+  if (!rayIsActiveU(flags) || a_currDepth > a_lightTraceDepth) 
     return;
 
   const __global float* a_rptr = 0;   /////////////////////////////////////////////////// #TODO: INIT THIS POINTER WITH MMLT RANDS !!!
-
-  const int a_lightTraceDepth = 0;    ////// #TODO: INIT THIS !!!
 
   SurfaceHit surfElem;
   ReadSurfaceHit(in_surfaceHit, tid, iNumElements, 
@@ -524,15 +542,15 @@ __kernel void MMLTLightPathBounce (__global   float4*        restrict a_rpos,
   const float GTermPrev = (a_prevLightCos*cosCurr / fmax(dist*dist, DEPSILON2));
   const float prevPdfWP = a_prevPdf / fmax(a_prevLightCos, DEPSILON);
   
-  const int  a_currDepth   = unpackBounceNum(flags);
   const bool a_wasSpecular = (a_prevSpec[tid] == 1); 
   
   {
-    PdfVertex vCurr = a_pdfVert[TabIndex(a_currDepth, tid, iNumElements)];
+    PdfVertex vCurr;
     if (!a_wasSpecular)
       vCurr.pdfFwd = prevPdfWP*GTermPrev;
     else
-      vCurr.pdfFwd = -1.0f*GTermPrev;  
+      vCurr.pdfFwd = -1.0f*GTermPrev;
+    vCurr.pdfRev = 1.0f;                                          //#NOTE: override it later!
     a_pdfVert[TabIndex(a_currDepth, tid, iNumElements)] = vCurr;
   }
 
@@ -556,6 +574,11 @@ __kernel void MMLTLightPathBounce (__global   float4*        restrict a_rpos,
 
   // not done, next bounce
   // 
+  ProcTextureList ptl;        
+  InitProcTextureList(&ptl);  
+  ReadProcTextureList(in_procTexData, tid, iNumElements, 
+                        &ptl);
+
   __global const PlainMaterial* pHitMaterial = materialAt(a_globals, in_mtlStorage, surfElem.matId);
   
   float allRands[MMLT_FLOATS_PER_BOUNCE];
@@ -572,20 +595,12 @@ __kernel void MMLTLightPathBounce (__global   float4*        restrict a_rpos,
   int matOffset = materialOffset(a_globals, surfElem.matId);
   
   MatSample matSam; int localOffset = 0; 
-
-  
-  ProcTextureList ptl;        
-  InitProcTextureList(&ptl);  
-  ReadProcTextureList(in_procTexData, tid, iNumElements, 
-                        &ptl);
-
   MaterialSampleAndEvalBxDF(pHitMaterial, allRands, &surfElem, ray_dir, make_float3(1,1,1), flags,
                             a_globals, in_texStorage1, in_texStorage2, &ptl, 
                             &matSam, &localOffset);
 
   matOffset    = matOffset    + localOffset*(sizeof(PlainMaterial)/sizeof(float4));
   pHitMaterial = pHitMaterial + localOffset;
-
   
   const float cosNext  = fabs(+dot(matSam.direction, surfElem.normal));
 
@@ -593,7 +608,6 @@ __kernel void MMLTLightPathBounce (__global   float4*        restrict a_rpos,
   //
   const float3 nextRay_dir = matSam.direction;
   const float3 nextRay_pos = OffsRayPos(surfElem.pos, surfElem.normal, matSam.direction);
-  
   
   // If we sampled specular event, then the reverse probability
   // cannot be evaluated, but we know it is exactly the same as
@@ -622,6 +636,7 @@ __kernel void MMLTLightPathBounce (__global   float4*        restrict a_rpos,
   {
     vCurr.pdfRev = -1.0f*GTermPrev;
   }
+  
   a_pdfVert[TabIndex(a_currDepth, tid, iNumElements)] = vCurr;
   
   const float3 accColor = to_float3(a_color[tid])*matSam.color*cosNext*(1.0f / fmax(matSam.pdf, DEPSILON2));
@@ -632,7 +647,19 @@ __kernel void MMLTLightPathBounce (__global   float4*        restrict a_rpos,
 
   flags = flagsNextBounce(flags, matSam, a_globals);
   if (maxcomp(accColor) < 0.00001f)
+  {
+    PathVertex resVertex;
+    resVertex.ray_dir     = ray_dir;
+    resVertex.accColor    = to_float3(a_color[tid]);
+    resVertex.lastGTerm   = GTermPrev;
+    resVertex.valid       = false;
+    resVertex.hitLight    = false; 
+    resVertex.wasSpecOnly = false;
+    WritePathVertexSupplement(&resVertex, tid, iNumElements, 
+                              a_vertexSup);
+
     flags = packRayFlags(flags, unpackRayFlags(flags) | RAY_IS_DEAD);
+  }
 
   a_flags   [tid] = flags;
   a_prevSpec[tid] = isPureSpecular(matSam) ? 1 : 0;

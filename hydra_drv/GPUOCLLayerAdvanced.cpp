@@ -146,10 +146,12 @@ void GPUOCLLayer::runKernel_MMLTLightSampleForward(cl_mem a_rayFlags, cl_mem a_r
   CHECK_CL(clSetKernelArg(kernX, 4, sizeof(cl_mem), (void*)&a_outColor));
   CHECK_CL(clSetKernelArg(kernX, 5, sizeof(cl_mem), (void*)&m_mlt.pdfArray));
   CHECK_CL(clSetKernelArg(kernX, 6, sizeof(cl_mem), (void*)&lightVertexSup));
-  CHECK_CL(clSetKernelArg(kernX, 7, sizeof(cl_mem), (void*)&m_scene.storageTex));
-  CHECK_CL(clSetKernelArg(kernX, 8, sizeof(cl_mem), (void*)&m_scene.storagePdfs));
-  CHECK_CL(clSetKernelArg(kernX, 9, sizeof(cl_mem), (void*)&m_scene.allGlobsData));
-  CHECK_CL(clSetKernelArg(kernX,10, sizeof(int),    (void*)&isize));
+  CHECK_CL(clSetKernelArg(kernX, 7, sizeof(cl_mem), (void*)&m_rays.pathMisDataPrev));
+  
+  CHECK_CL(clSetKernelArg(kernX, 8, sizeof(cl_mem), (void*)&m_scene.storageTex));
+  CHECK_CL(clSetKernelArg(kernX, 9, sizeof(cl_mem), (void*)&m_scene.storagePdfs));
+  CHECK_CL(clSetKernelArg(kernX,10, sizeof(cl_mem), (void*)&m_scene.allGlobsData));
+  CHECK_CL(clSetKernelArg(kernX,11, sizeof(int),    (void*)&isize));
   
   CHECK_CL(clEnqueueNDRangeKernel(m_globals.cmdQueue, kernX, 1, NULL, &a_size, &localWorkSize, 0, NULL, NULL));
   waitIfDebug(__FILE__, __LINE__);

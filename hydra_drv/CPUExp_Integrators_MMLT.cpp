@@ -677,8 +677,8 @@ PathVertex IntegratorMMLT::LightPath(PerThreadData* a_perThread, int a_lightTrac
 }
 
 void IntegratorMMLT::TraceLightPath(float3 ray_pos, float3 ray_dir, int a_currDepth, float a_prevLightCos, float a_prevPdf,
-                                     float3 a_color, PerThreadData* a_perThread, int a_lightTraceDepth, bool a_wasSpecular,
-                                     PathVertex* a_pOutLightVertex)
+                                    float3 a_color, PerThreadData* a_perThread, int a_lightTraceDepth, bool a_wasSpecular,
+                                    PathVertex* a_pOutLightVertex)
 {
   if (a_currDepth > a_lightTraceDepth)
     return;
