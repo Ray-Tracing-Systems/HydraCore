@@ -355,7 +355,6 @@ __kernel void MMLTCameraPathBounce(__global   float4*        restrict a_rpos,
 
   // (4) proceed to next bounce
   //  
-    
   float3 accColor   = to_float3(a_color[tid]);
   const bool stopDL = SPLIT_DL_BY_GRAMMAR ? flagsHaveOnlySpecular(flags) : false;
 
@@ -381,5 +380,72 @@ __kernel void MMLTCameraPathBounce(__global   float4*        restrict a_rpos,
   misNext.prevMaterialOffset = matOffset;
   misNext.cosThetaPrev       = fabs(+dot(nextRay_dir, surfElem.normal)); // update it withCosNextActually ...
   a_misDataPrev[tid]         = misNext;
+}
+
+
+__kernel void MMLTLightSampleForward(__global   float4*        restrict a_rpos,
+                                     __global   float4*        restrict a_rdir,
+                                     __global   uint*          restrict a_flags,
+                                     __global RandomGen*       restrict out_gens,
+                                    
+                                     __global float4*          restrict a_color,
+                                     __global PdfVertex*       restrict a_pdfVert,       // (!) MMLT pdfArray 
+                                     __global float4*          restrict a_vertexSup,     // (!) MMLT out Path Vertex supplemental to surfaceHit data
+  
+                                     __global const float4*    restrict in_texStorage1,    
+                                     __global const float4*    restrict in_pdfStorage,   //
+  
+                                     __global const EngineGlobals*  restrict a_globals,
+                                     const int   iNumElements)
+{
+  const int tid = GLOBAL_ID_X;
+  if (tid >= iNumElements)
+    return;
+
+  const __global float* a_rptr = 0;   /////////////////////////////////////////////////// #TODO: INIT THIS POINTER WITH MMLT RANDS !!!
+
+  LightGroup2 lightRands;
+  {
+    RandomGen gen  = out_gens[tid];
+    gen.maxNumbers = a_globals->varsI[HRT_MLT_MAX_NUMBERS];
+
+    RndLightMMLT(&gen, a_rptr,
+                 &lightRands);
+
+    out_gens[tid] = gen;
+  }         
+
+  float lightPickProb = 1.0f;
+  const int lightId = SelectRandomLightFwd(lightRands.group2.z, a_globals,
+                                           &lightPickProb);
+  
+  __global const PlainLight* pLight = lightAt(a_globals, lightId);
+  
+  LightSampleFwd sample;
+  LightSampleForward(pLight, lightRands.group1, make_float2(lightRands.group2.x, lightRands.group2.y), 
+                     a_globals, in_texStorage1, in_pdfStorage,
+                     &sample);
+  
+  {
+    PdfVertex v0;
+    v0.pdfFwd = sample.pdfA*lightPickProb;
+    v0.pdfRev = 1.0f;
+    a_pdfVert[TabIndex(0, tid, iNumElements)] = v0;
+  }
+
+  float3 color = (1.0f/lightPickProb)*sample.color/(sample.pdfA*sample.pdfW);
+
+  {  
+    PathVertex lv;
+    InitPathVertex(&lv);
+    WritePathVertexSupplement(&lv, tid, iNumElements, 
+                              a_vertexSup);
+  }
+
+  a_flags[tid] = 0;
+  a_color[tid] = to_float4(color,      0.0f);
+  a_rpos [tid] = to_float4(sample.pos, sample.cosTheta);
+  a_rdir [tid] = to_float4(sample.dir, sample.pdfW);
+
 }
 

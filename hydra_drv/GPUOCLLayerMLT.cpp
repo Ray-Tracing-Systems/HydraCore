@@ -26,7 +26,8 @@ void GPUOCLLayer::CL_MLT_DATA::free()
                              
   if (xColor)                { clReleaseMemObject(xColor); xColor = 0; }
   if (yColor)                { clReleaseMemObject(yColor); yColor = 0; }
-
+ 
+  if (lightVertexSup)        { clReleaseMemObject(lightVertexSup);    lightVertexSup = 0; }
   if (cameraVertexSup)       { clReleaseMemObject(cameraVertexSup);   cameraVertexSup = 0; }
   if (cameraVertexHit)       { clReleaseMemObject(cameraVertexHit);   cameraVertexHit = 0; }
   if (pdfArray)              { clReleaseMemObject(pdfArray);          pdfArray        = 0; }
@@ -68,11 +69,11 @@ size_t GPUOCLLayer::MLT_Alloc(int a_maxBounce)
   if (m_vars.m_varsI[HRT_MLT_MAX_NUMBERS] > 256)
     m_vars.m_varsI[HRT_MLT_MAX_NUMBERS] = 256;
 
-  const int QMC_NUMBERS = m_vars.m_varsI[HRT_MLT_MAX_NUMBERS];
+  const int MLT_RAND_NUMBERS_PER_BOUNCE = m_vars.m_varsI[HRT_MLT_MAX_NUMBERS];
 
-  // init big buffers for path space state // (QMC_NUMBERS / MLT_PROPOSALS)
+  // init big buffers for path space state // (MLT_RAND_NUMBERS_PER_BOUNCE / MLT_PROPOSALS)
   //
-  m_mlt.xVector = clCreateBuffer(m_globals.ctx, CL_MEM_READ_WRITE, QMC_NUMBERS*sizeof(float)*m_rays.MEGABLOCKSIZE, NULL, &ciErr1);
+  m_mlt.xVector = clCreateBuffer(m_globals.ctx, CL_MEM_READ_WRITE, MLT_RAND_NUMBERS_PER_BOUNCE*sizeof(float)*m_rays.MEGABLOCKSIZE, NULL, &ciErr1);
 
   if (ciErr1 != CL_SUCCESS)
     RUN_TIME_ERROR("[cl_core]: Failed to create xVector ");
@@ -80,13 +81,13 @@ size_t GPUOCLLayer::MLT_Alloc(int a_maxBounce)
 #ifdef MCMC_LAZY
   m_mlt.yVector = 0;
 #else
-  m_mlt.yVector = clCreateBuffer(m_globals.ctx, CL_MEM_READ_WRITE, QMC_NUMBERS*sizeof(float)*m_rays.MEGABLOCKSIZE, NULL, &ciErr1);
+  m_mlt.yVector = clCreateBuffer(m_globals.ctx, CL_MEM_READ_WRITE, MLT_RAND_NUMBERS_PER_BOUNCE*sizeof(float)*m_rays.MEGABLOCKSIZE, NULL, &ciErr1);
   
   if (ciErr1 != CL_SUCCESS)
     RUN_TIME_ERROR("[cl_core.MLT_Alloc]: Failed to alloc yVector ");
 #endif
 
-  m_mlt.memTaken += QMC_NUMBERS*sizeof(float)*m_rays.MEGABLOCKSIZE + 2 * sizeof(RandomGen)*m_rays.MEGABLOCKSIZE;
+  m_mlt.memTaken += MLT_RAND_NUMBERS_PER_BOUNCE*sizeof(float)*m_rays.MEGABLOCKSIZE + 2 * sizeof(RandomGen)*m_rays.MEGABLOCKSIZE;
 
   m_mlt.xColor = clCreateBuffer(m_globals.ctx, CL_MEM_READ_WRITE, sizeof(float4)*m_rays.MEGABLOCKSIZE, NULL, &ciErr1);
   m_mlt.yColor = clCreateBuffer(m_globals.ctx, CL_MEM_READ_WRITE, sizeof(float4)*m_rays.MEGABLOCKSIZE, NULL, &ciErr1);
@@ -98,6 +99,7 @@ size_t GPUOCLLayer::MLT_Alloc(int a_maxBounce)
   const size_t pathVertexSizeHit = SURFACE_HIT_SIZE_IN_F4*sizeof(float4)*m_rays.MEGABLOCKSIZE;
   const size_t pathVertexSizeSup = PATH_VERTEX_SUPPLEMENT_SIZE_IN_F4*sizeof(float4)*m_rays.MEGABLOCKSIZE;
 
+  m_mlt.lightVertexSup    = clCreateBuffer(m_globals.ctx, CL_MEM_READ_WRITE, pathVertexSizeSup, NULL, &ciErr1);
   m_mlt.cameraVertexSup   = clCreateBuffer(m_globals.ctx, CL_MEM_READ_WRITE, pathVertexSizeSup, NULL, &ciErr1);
   m_mlt.cameraVertexHit   = clCreateBuffer(m_globals.ctx, CL_MEM_READ_WRITE, pathVertexSizeHit, NULL, &ciErr1);
   m_mlt.pdfArray          = clCreateBuffer(m_globals.ctx, CL_MEM_READ_WRITE, 2*sizeof(float)*m_rays.MEGABLOCKSIZE*a_maxBounce, NULL, &ciErr1);

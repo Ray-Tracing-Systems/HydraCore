@@ -471,7 +471,7 @@ void GPUOCLLayer::runKernel_ComputeAO2(cl_mem outCompressedAO, size_t a_size, in
   waitIfDebug(__FILE__, __LINE__);
 }
 
-void GPUOCLLayer::runKernel_ComputeHit(cl_mem a_rpos, cl_mem a_rdir, size_t a_size,
+void GPUOCLLayer::runKernel_ComputeHit(cl_mem a_rpos, cl_mem a_rdir, cl_mem a_hits, size_t a_size,
                                        cl_mem out_hitSurface, cl_mem a_outProcTexData)
 {
   // eval common surface parameters
@@ -484,7 +484,7 @@ void GPUOCLLayer::runKernel_ComputeHit(cl_mem a_rpos, cl_mem a_rdir, size_t a_si
 
   CHECK_CL(clSetKernelArg(kernHit, 0, sizeof(cl_mem), (void*)&a_rpos));
   CHECK_CL(clSetKernelArg(kernHit, 1, sizeof(cl_mem), (void*)&a_rdir));
-  CHECK_CL(clSetKernelArg(kernHit, 2, sizeof(cl_mem), (void*)&m_rays.hits));
+  CHECK_CL(clSetKernelArg(kernHit, 2, sizeof(cl_mem), (void*)&a_hits));
   
   CHECK_CL(clSetKernelArg(kernHit, 3, sizeof(cl_mem), (void*)&m_scene.matrices));            
   CHECK_CL(clSetKernelArg(kernHit, 4, sizeof(cl_mem), (void*)&m_scene.storageGeom));

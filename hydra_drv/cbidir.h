@@ -25,9 +25,10 @@ typedef struct PdfVertexT
 
 static inline void InitPathVertex(__private PathVertex* a_pVertex) 
 {
-  a_pVertex->valid       = false; 
   a_pVertex->lastGTerm   = 1.0f;
   a_pVertex->accColor    = make_float3(1, 1, 1);
+  a_pVertex->valid       = false;
+  a_pVertex->hitLight    = false; 
   a_pVertex->wasSpecOnly = false;
 }
 
