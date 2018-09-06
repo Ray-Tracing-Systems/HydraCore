@@ -371,13 +371,10 @@ __kernel void MMLTCameraPathBounce(__global   float4*        restrict a_rpos,
     resVertex.accColor    = make_float3(0, 0, 0);
     resVertex.valid       = false;
     resVertex.hitLight    = false;
-    resVertex.wasSpecOnly = SPLIT_DL_BY_GRAMMAR ? flagsHaveOnlySpecular(flags) : false; 
-    const float lastPdfWP = a_misPrev.matSamplePdf / fmax(cosPrev, DEPSILON); // we store them to calculate fwd and rev pdf later when we connect end points
-    resVertex.lastGTerm   = GTerm;                                            // because right now we can not do this until we don't know the light vertex
-
+    resVertex.wasSpecOnly = false; 
+    resVertex.lastGTerm   = 1.0f;                                            
     WritePathVertexSupplement(&resVertex, tid, iNumElements, 
                               a_vertexSup);
-
     flags = packRayFlags(flags, unpackRayFlags(flags) | RAY_IS_DEAD);
   }
 
@@ -486,8 +483,7 @@ __kernel void MMLTLightPathBounce (__global   float4*        restrict a_rpos,
                                    __global const float4*    restrict in_pdfStorage,   //
 
                                    __global const EngineGlobals*  restrict a_globals,
-                                   const int   iNumElements, 
-                                   const float mLightSubPathCount)
+                                   const int   iNumElements)
 {
   const int tid = GLOBAL_ID_X;
   if (tid >= iNumElements)
