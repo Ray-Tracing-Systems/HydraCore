@@ -158,11 +158,11 @@ void GPUOCLLayer::runKernel_MMLTLightSampleForward(cl_mem a_rayFlags, cl_mem a_r
 void GPUOCLLayer::runKernel_MMLTLightPathBounce(cl_mem rayFlags, cl_mem a_rpos, cl_mem a_rdir, cl_mem a_color, cl_mem a_split, size_t a_size,
                                                 cl_mem a_outHitCom, cl_mem a_outHitSup)
 {
-  cl_kernel kernX      = m_progs.mlt.kernel("MMLTLightPathBounce");
+  //cl_kernel kernX      = m_progs.mlt.kernel("MMLTLightPathBounce");
 
-  size_t localWorkSize = 256;
-  int            isize = int(a_size);
-  a_size               = roundBlocks(a_size, int(localWorkSize));
+  //size_t localWorkSize = 256;
+  //int            isize = int(a_size);
+  //a_size               = roundBlocks(a_size, int(localWorkSize));
 
 
 }
@@ -187,7 +187,7 @@ void GPUOCLLayer::TraceSBDPTPass(cl_mem a_rpos, cl_mem a_rdir, cl_mem a_outColor
                                    m_mlt.cameraVertexHit, m_mlt.cameraVertexSup);
   }
   
-  /*
+  /*  
 
   // (2) light pass
   //
@@ -208,10 +208,11 @@ void GPUOCLLayer::TraceSBDPTPass(cl_mem a_rpos, cl_mem a_rdir, cl_mem a_outColor
                                  lightVertexHit, lightVertexSup);
   }
   
+  */
  
   // (3) ConnectEye, ConnectShadow and ConnectEndPoinst
   //
-  */
+  
 
   runKernel_CopyAccColorTo(m_mlt.cameraVertexSup, a_size, 
                            a_outColor);
