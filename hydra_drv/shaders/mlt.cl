@@ -60,7 +60,8 @@ __kernel void MMLTInitCameraPath(__global   uint* restrict a_flags,
   resVertex.ray_dir      = make_float3(0,0,0);
   resVertex.accColor     = make_float3(0,0,0);   
   resVertex.valid        = false; //(a_currDepth == a_targetDepth);     // #TODO: dunno if this is correct ... 
-  resVertex.readyConnect = false;
+  resVertex.hitLight     = false;
+  resVertex.wasSpecOnly  = false;
   WritePathVertexSupplement(&resVertex, tid, iNumElements, 
                             a_vertexSup);
 
@@ -78,7 +79,7 @@ __kernel void CopyAccColorTo(__global const float4* restrict in_vertexSup,
   ReadPathVertexSupplement(in_vertexSup, tid, iNumElements,
                            &resVertex);
 
-  if(resVertex.valid && !resVertex.readyConnect)
+  if(resVertex.valid && resVertex.hitLight)
     out_color[tid] = to_float4(resVertex.accColor, 0.0f);
   else
     out_color[tid] = make_float4(0,0,0,0);
@@ -125,10 +126,11 @@ __kernel void MMLTCameraPathBounce(__global   float4*        restrict a_rpos,
     float3 envColor = make_float3(0,0,0);
     
     PathVertex resVertex;
-    resVertex.ray_dir      = to_float3(a_rdir[tid]);
-    resVertex.accColor     = envColor*to_float3(a_color[tid]);   
-    resVertex.valid        = false; //(a_currDepth == a_targetDepth);     // #TODO: dunno if this is correct ... 
-    resVertex.readyConnect = false;
+    resVertex.ray_dir     = to_float3(a_rdir[tid]);
+    resVertex.accColor    = envColor*to_float3(a_color[tid]);   
+    resVertex.valid       = false; //(a_currDepth == a_targetDepth);     // #TODO: dunno if this is correct ... 
+    resVertex.hitLight    = true;
+    resVertex.wasSpecOnly = SPLIT_DL_BY_GRAMMAR ? flagsHaveOnlySpecular(flags) : false;
     WritePathVertexSupplement(&resVertex, tid, iNumElements, 
                               a_vertexSup);
     
@@ -170,17 +172,6 @@ __kernel void MMLTCameraPathBounce(__global   float4*        restrict a_rpos,
   //
   const float cosHere = fabs(dot(ray_dir, surfElem.normal));
   const float cosPrev = fabs(dot(ray_dir, a_prevNormal));
-  
-  //{
-  //  float3 envColor = make_float3(0,1,0);
-  //  
-  //  PathVertex resVertex;
-  //  resVertex.ray_dir  = to_float3(a_rdir[tid]);
-  //  resVertex.accColor = envColor*to_float3(a_color[tid]);   
-  //  resVertex.valid    = true; 
-  //  WritePathVertexSupplement(&resVertex, tid, iNumElements, 
-  //                            a_vertexSup);
-  //}
  
   float GTerm = 1.0f;
   if (a_currDepth == 1)
@@ -240,10 +231,11 @@ __kernel void MMLTCameraPathBounce(__global   float4*        restrict a_rpos,
       } 
       
       PathVertex resVertex;
-      resVertex.ray_dir      = ray_dir;
-      resVertex.accColor     = emission*to_float3(a_color[tid]);   
-      resVertex.valid        = true;
-      resVertex.readyConnect = false; 
+      resVertex.ray_dir     = ray_dir;
+      resVertex.accColor    = emission*to_float3(a_color[tid]);   
+      resVertex.valid       = true;
+      resVertex.hitLight    = true; 
+      resVertex.wasSpecOnly = SPLIT_DL_BY_GRAMMAR ? flagsHaveOnlySpecular(flags) : false;
       WritePathVertexSupplement(&resVertex, tid, iNumElements, 
                                 a_vertexSup);
 
@@ -253,10 +245,11 @@ __kernel void MMLTCameraPathBounce(__global   float4*        restrict a_rpos,
     else // this branch could probably change in future, for simple emissive materials
     {
       PathVertex resVertex;
-      resVertex.ray_dir      = ray_dir;
-      resVertex.accColor     = make_float3(0,0,0);
-      resVertex.valid        = false;
-      resVertex.readyConnect = false; 
+      resVertex.ray_dir     = ray_dir;
+      resVertex.accColor    = make_float3(0,0,0);
+      resVertex.valid       = false;
+      resVertex.hitLight    = true; 
+      resVertex.wasSpecOnly = SPLIT_DL_BY_GRAMMAR ? flagsHaveOnlySpecular(flags) : false;
       WritePathVertexSupplement(&resVertex, tid, iNumElements, 
                                 a_vertexSup);
 
@@ -267,12 +260,12 @@ __kernel void MMLTCameraPathBounce(__global   float4*        restrict a_rpos,
   else if (a_currDepth == a_targetDepth && !a_haveToHitLightSource) // #NOTE: what if a_targetDepth == 1 ?
   {
     PathVertex resVertex;
-    resVertex.ray_dir      = ray_dir;
-    resVertex.valid        = true;
-    resVertex.accColor     = make_float3(1, 1, 1)*to_float3(a_color[tid]);
-    resVertex.wasSpecOnly  = SPLIT_DL_BY_GRAMMAR ? flagsHaveOnlySpecular(flags) : false;
-    resVertex.readyConnect = true; 
-
+    resVertex.ray_dir     = ray_dir;
+    resVertex.accColor    = make_float3(1, 1, 1)*to_float3(a_color[tid]);
+    resVertex.valid       = true;
+    resVertex.hitLight    = false;
+    resVertex.wasSpecOnly = SPLIT_DL_BY_GRAMMAR ? flagsHaveOnlySpecular(flags) : false; 
+ 
     if (a_targetDepth != 1)
     {
       const float lastPdfWP = a_misPrev.matSamplePdf / fmax(cosPrev, DEPSILON); // we store them to calculate fwd and rev pdf later when we connect end points
@@ -320,7 +313,6 @@ __kernel void MMLTCameraPathBounce(__global   float4*        restrict a_rpos,
   const float3 bxdfVal = matSam.color; // *(1.0f / fmaxf(matSam.pdf, 1e-20f));
   const float cosNext  = fabs(dot(matSam.direction, surfElem.normal));
 
-  
   if (a_currDepth == 1)
   {
     if (isPureSpecular(matSam))  //  ow ... but if we met specular reflection when tracing from camera, we must put 0 because this path cannot be sample by light strategy at all.

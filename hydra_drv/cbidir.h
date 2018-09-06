@@ -14,7 +14,7 @@ typedef struct PathVertexT
   float      lastGTerm;
   bool       valid;
   bool       wasSpecOnly;  ///< Was Specular Only. Exclude Direct Light - ES*(D|G)L or ES*L.
-  bool       readyConnect; ///< used only by GPU debug code; needed to dinting CameraVertex that hit light and CameraVertex that have to be connected
+  bool       hitLight   ;  ///< used only by GPU debug code; needed to disting CameraVertex that hit light and CameraVertex that have to be connected
 } PathVertex;
 
 typedef struct PdfVertexT
@@ -38,7 +38,7 @@ static inline void WritePathVertexSupplement(const __private PathVertex* a_pVert
 {
   const int bit1  = a_pVertex->valid        ? PV_PACK_VALID_FIELD : 0;
   const int bit2  = a_pVertex->wasSpecOnly  ? PV_PACK_WASSP_FIELD : 0;
-  const int bit3  = a_pVertex->readyConnect ? PV_PACK_RCONN_FIELD : 0;
+  const int bit3  = a_pVertex->hitLight     ? PV_PACK_RCONN_FIELD : 0;
 
   const float4 f1 = to_float4(a_pVertex->ray_dir, a_pVertex->lastGTerm);
   const float4 f2 = to_float4(a_pVertex->accColor, as_float(bit1 | bit2 | bit3));
@@ -59,7 +59,7 @@ static inline void ReadPathVertexSupplement(const __global float4* a_in, int a_t
 
   a_pVertex->valid        = ((flags & PV_PACK_VALID_FIELD) != 0);
   a_pVertex->wasSpecOnly  = ((flags & PV_PACK_WASSP_FIELD) != 0);
-  a_pVertex->readyConnect = ((flags & PV_PACK_RCONN_FIELD) != 0);
+  a_pVertex->hitLight     = ((flags & PV_PACK_RCONN_FIELD) != 0);
 } 
 
 /**
