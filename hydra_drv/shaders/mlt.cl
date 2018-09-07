@@ -662,19 +662,173 @@ __kernel void MMLTLightPathBounce (__global   float4*        restrict a_rpos,
 
 }
 
-__kernel void MMLTConnect(__global const int2  * restrict in_splitInfo,
-                          __global const float4* restrict a_lv_hit,
-                          __global const float4* restrict a_lv_sup,
-                          __global const float4* restrict a_cv_hit,
-                          __global const float4* restrict a_cv_sup,
-                          __global       float4* restrict out_color,
+
+__kernel void MMLTMakeShadowRay(__global const int2  *  restrict in_splitInfo,
+                                __global const float4*  restrict in_lv_hit,
+                                __global const float4*  restrict in_lv_sup,
+                                __global const float4*  restrict in_cv_hit,
+                                __global const float4*  restrict in_cv_sup,
+                                __global       float4*  restrict out_ray_pos,
+                                __global       float4*  restrict out_ray_dir,
+
+                                __global const float4*         restrict in_texStorage1,    
+                                __global const float4*         restrict in_texStorage2,
+                                __global const float4*         restrict in_mtlStorage,
+                                __global const float4*         restrict in_pdfStorage,  
+                                __global const EngineGlobals*  restrict a_globals,
+                                const int iNumElements)
+{
+  const int tid = GLOBAL_ID_X;
+  if (tid >= iNumElements)
+    return;
+  
+  const int2 splitData      = in_splitInfo[tid];
+  const int d               = splitData.x;
+  const int s               = splitData.y;
+  const int t               = d - s;  // note that s=2 means 1 light bounce and one connection!!!
+  const int lightTraceDepth = s - 1;  // because the last light path is a connection anyway - to camera or to camera path
+  const int camTraceDepth   = t;      //
+
+  const float topUp = 1e10f;
+
+  PathVertex lv;
+  ReadSurfaceHit(in_lv_hit, tid, iNumElements, 
+                 &lv.hit);
+  ReadPathVertexSupplement(in_lv_sup, tid, iNumElements, 
+                           &lv);
+
+  PathVertex cv;
+  ReadSurfaceHit(in_cv_hit, tid, iNumElements, 
+                 &cv.hit);
+  ReadPathVertexSupplement(in_cv_sup, tid, iNumElements, 
+                           &cv);
+
+  if (lightTraceDepth == -1)        // (3.1) -1 means we have full camera path, no conection is needed
+  {
+    out_ray_pos[tid] = make_float4(0,topUp, 0, 0);
+    out_ray_dir[tid] = make_float4(0,1,0,0);
+  }
+  else
+  {
+    if (camTraceDepth == 0)         // (3.2) connect light vertex to camera (light tracing connection)
+    {
+      if (lv.valid)
+      {
+        float3 camDir; float zDepth;
+        const float imageToSurfaceFactor = CameraImageToSurfaceFactor(lv.hit.pos, lv.hit.normal, a_globals,
+                                                                      &camDir, &zDepth);
+      
+        __global const PlainMaterial* pHitMaterial = materialAt(a_globals, in_mtlStorage, lv.hit.matId);
+        float signOfNormal = 1.0f;
+        if ((materialGetFlags(pHitMaterial) & PLAIN_MATERIAL_HAVE_BTDF) != 0 && dot(camDir, lv.hit.normal) < -0.01f)
+          signOfNormal = -1.0f;
+        
+        out_ray_pos[tid] = to_float4(lv.hit.pos + epsilonOfPos(lv.hit.pos)*signOfNormal*lv.hit.normal, zDepth);
+        out_ray_dir[tid] = to_float4(camDir, 0.0f);
+      }
+    }
+    else if (lightTraceDepth == 0)  // (3.3) connect camera vertex to light (shadow ray)
+    {
+      if (cv.valid && !cv.wasSpecOnly) // cv.wasSpecOnly exclude direct light actually
+      {
+        
+      }
+    }
+    else                            // (3.4) connect light and camera vertices (bidir connection)
+    {
+      if (cv.valid)
+      {
+        
+      }
+    }
+  }
+
+}
+
+__kernel void MMLTConnect(__global const int2  *  restrict in_splitInfo,
+                          __global const float4*  restrict in_lv_hit,
+                          __global const float4*  restrict in_lv_sup,
+                          __global const float4*  restrict in_cv_hit,
+                          __global const float4*  restrict in_cv_sup,
+                          __global const ushort4* restrict in_shadow,
+                          __global       float4*  restrict out_color,
+
+                          __global const float4*         restrict in_texStorage1,    
+                          __global const float4*         restrict in_texStorage2,
+                          __global const float4*         restrict in_mtlStorage,
+                          __global const float4*         restrict in_pdfStorage,  
+                          __global const EngineGlobals*  restrict a_globals,
                           const int iNumElements)
 {
   const int tid = GLOBAL_ID_X;
   if (tid >= iNumElements)
     return;
 
+  const int2 splitData = in_splitInfo[tid];
+  const int d = splitData.x;
+  const int s = splitData.y;
+  const int t = d - s;                // note that s=2 means 1 light bounce and one connection!!!
+  const int lightTraceDepth = s - 1;  // because the last light path is a connection anyway - to camera or to camera path
+  const int camTraceDepth   = t;      //
+  
+  PathVertex lv;
+  ReadSurfaceHit(in_lv_hit, tid, iNumElements, 
+                 &lv.hit);
+  ReadPathVertexSupplement(in_lv_sup, tid, iNumElements, 
+                           &lv);
+
+  PathVertex cv;
+  ReadSurfaceHit(in_cv_hit, tid, iNumElements, 
+                 &cv.hit);
+  ReadPathVertexSupplement(in_cv_sup, tid, iNumElements, 
+                           &cv);
+
+  const float3 shadow = make_float3(1,1,1);
+  float3 sampleColor  = make_float3(0,0,0);
   
   
+  if (lightTraceDepth == -1)        // (3.1) -1 means we have full camera path, no conection is needed
+  {
+    sampleColor = cv.accColor;
+  }
+  else
+  {
+    if (camTraceDepth == 0)         // (3.2) connect light vertex to camera (light tracing connection)
+    {
+      if (lv.valid)
+      {
+        float3 camDir; float zDepth;
+        const float imageToSurfaceFactor = CameraImageToSurfaceFactor(lv.hit.pos, lv.hit.normal, a_globals,
+                                                                      &camDir, &zDepth);
+      
+        __global const PlainMaterial* pHitMaterial = materialAt(a_globals, in_mtlStorage, lv.hit.matId);
+        float signOfNormal = 1.0f;
+        if ((materialGetFlags(pHitMaterial) & PLAIN_MATERIAL_HAVE_BTDF) != 0 && dot(camDir, lv.hit.normal) < -0.01f)
+          signOfNormal = -1.0f;
+      
+        //auto hit = rayTrace(a_lv.hit.pos + epsilonOfPos(a_lv.hit.pos)*signOfNormal*a_lv.hit.normal, camDir);
+        
+        //ConnectEyeP(a_lv, a_ltDepth, mLightSubPathCount, hit, 
+        //            a_globals, in_mtlStorage, m_texStorage, m_texStorageAux, &m_ptlDummy,
+        //            &a_perThread->pdfArray[0], pX, pY, &result);
+      }
+    }
+    else if (lightTraceDepth == 0)  // (3.3) connect camera vertex to light (shadow ray)
+    {
+      if (cv.valid && !cv.wasSpecOnly) // cv.wasSpecOnly exclude direct light actually
+      {
+        //float3 explicitColor = ConnectShadow(cv, &PerThread(), t);
+        //sampleColor = cv.accColor*explicitColor;
+      }
+    }
+    else                            // (3.4) connect light and camera vertices (bidir connection)
+    {
+      if (cv.valid)
+      {
+        //float3 explicitColor = ConnectEndPoints(lv, cv, s, d, &PerThread());
+        //sampleColor = cv.accColor*explicitColor*lv.accColor;
+      }
+    }
+  }
 
 }

@@ -128,7 +128,6 @@ static inline float2 worldPosToScreenSpace(float3 a_wpos, __global const EngineG
 /**
 \brief  Light Tracing "connect vertex to eye" stage. Don't trace ray and don't compute shadow. You must compute shadow outside this procedure.
 \param  a_lv                 - light path vertex
-\param  a_ltDepth            - number of expexted samples per pass
 \param  a_mLightSubPathCount - number of total light samples
 \param  a_shadowHit          - a hit of 'shadow' (i.e. surface to eye) ray from a_lv.hit.pos to camPos
 \param  a_globals            - engine globals
@@ -140,13 +139,14 @@ static inline float2 worldPosToScreenSpace(float3 a_wpos, __global const EngineG
 \param  a_pdfArray           - pdfArea array for fwd and reverse pdf's
 \param  pX                   - resulting screen X position
 \param  pY                   - resulting screen Y position
-\param  a_outColor           - resulting color
+
+\return  a_outColor          - resulting color
 
 */
 
-static void ConnectEyeP(const PathVertex a_lv, int a_ltDepth, float a_mLightSubPathCount, Lite_Hit a_shadowHit,
+static float3 ConnectEyeP(const PathVertex a_lv, float a_mLightSubPathCount, Lite_Hit a_shadowHit,
                         __global const EngineGlobals* a_globals, __global const float4* a_mltStorage, texture2d_t a_texStorage1, texture2d_t a_texStorage2, __private const ProcTextureList* a_ptList,
-                        __global PdfVertex* a_pdfArray, int* pX, int* pY, __private float3* a_outColor)
+                        __private PdfVertex* v0, __private PdfVertex* v1, int* pX, int* pY)
 {
   float3 camDir; float zDepth;
   const float imageToSurfaceFactor = CameraImageToSurfaceFactor(a_lv.hit.pos, a_lv.hit.normal, a_globals,
@@ -156,8 +156,7 @@ static void ConnectEyeP(const PathVertex a_lv, int a_ltDepth, float a_mLightSubP
   {
     (*pX)         = -1;
     (*pY)         = -1;
-    (*a_outColor) = make_float3(0, 0, 0);
-    return;
+    return make_float3(0, 0, 0);
   }
 
   const float surfaceToImageFactor  = 1.f / imageToSurfaceFactor;
@@ -189,10 +188,9 @@ static void ConnectEyeP(const PathVertex a_lv, int a_ltDepth, float a_mLightSubP
   const float pdfRevWP   = pdfRevW / fmax(cosCurr, DEPSILON2); // pdfW po pdfWP
   const float cameraPdfA = imageToSurfaceFactor / a_mLightSubPathCount;
   
-  a_pdfArray[a_ltDepth + 0].pdfRev = (pdfRevW == 0.0f) ? -1.0f*a_lv.lastGTerm : pdfRevWP*a_lv.lastGTerm;
-
-  a_pdfArray[a_ltDepth + 1].pdfFwd = 1.0f;
-  a_pdfArray[a_ltDepth + 1].pdfRev = cameraPdfA;
+  v0->pdfRev = (pdfRevW == 0.0f) ? -1.0f*a_lv.lastGTerm : pdfRevWP*a_lv.lastGTerm;  
+  v1->pdfFwd = 1.0f;
+  v1->pdfRev = cameraPdfA;
 
   ///////////////////////////////////////////////////////////////////////////////
 
@@ -202,7 +200,7 @@ static void ConnectEyeP(const PathVertex a_lv, int a_ltDepth, float a_mLightSubP
   // this technique makes, which is equal to the number of light sub-paths
   //
   const float3 sampleColor = a_lv.accColor*(colorConnect / (a_mLightSubPathCount*surfaceToImageFactor));
-  (*a_outColor)    = make_float3(0, 0, 0);
+  float3 resColor  = make_float3(0, 0, 0);
 
   const int width  = (int)(a_globals->varsF[HRT_WIDTH_F]);
   const int height = (int)(a_globals->varsF[HRT_HEIGHT_F]);
@@ -222,9 +220,10 @@ static void ConnectEyeP(const PathVertex a_lv, int a_ltDepth, float a_mLightSubP
     
     (*pX)         = x;
     (*pY)         = y;
-    (*a_outColor) = sampleColor;
+    resColor      = sampleColor;
   }
 
+  return resColor;
 }
 
 static inline float3 bsdfClamping(float3 a_val)

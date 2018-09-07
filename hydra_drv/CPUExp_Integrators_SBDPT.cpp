@@ -514,13 +514,12 @@ float3 IntegratorSBDPT::ConnectEye(const PathVertex& a_lv, int a_ltDepth,
 
   auto hit = rayTrace(a_lv.hit.pos + epsilonOfPos(a_lv.hit.pos)*signOfNormal*a_lv.hit.normal, camDir);
   
-  float3 result(0, 0, 0);
+  auto* v0 = a_perThread->pdfArray.data() + a_ltDepth + 0;
+  auto* v1 = a_perThread->pdfArray.data() + a_ltDepth + 1;
 
-  ::ConnectEyeP(a_lv, a_ltDepth, mLightSubPathCount, hit, 
-                m_pGlobals, m_matStorage, m_texStorage, m_texStorageAux, &m_ptlDummy,
-                &a_perThread->pdfArray[0], pX, pY, &result);
-
-  return result;
+  return ConnectEyeP(a_lv, mLightSubPathCount, hit, 
+                     m_pGlobals, m_matStorage, m_texStorage, m_texStorageAux, &m_ptlDummy,
+                     v0, v1, pX, pY);
 }
 
 
