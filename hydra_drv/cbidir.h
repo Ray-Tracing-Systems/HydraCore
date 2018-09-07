@@ -144,21 +144,10 @@ static inline float2 worldPosToScreenSpace(float3 a_wpos, __global const EngineG
 
 */
 
-static float3 ConnectEyeP(const PathVertex a_lv, float a_mLightSubPathCount, Lite_Hit a_shadowHit,
+static float3 ConnectEyeP(const PathVertex a_lv, float a_mLightSubPathCount, float3 camDir, const float imageToSurfaceFactor,
                         __global const EngineGlobals* a_globals, __global const float4* a_mltStorage, texture2d_t a_texStorage1, texture2d_t a_texStorage2, __private const ProcTextureList* a_ptList,
                         __private PdfVertex* v0, __private PdfVertex* v1, int* pX, int* pY)
 {
-  float3 camDir; float zDepth;
-  const float imageToSurfaceFactor = CameraImageToSurfaceFactor(a_lv.hit.pos, a_lv.hit.normal, a_globals,
-                                                                &camDir, &zDepth);
-
-  if (imageToSurfaceFactor <= 0.0f || (HitSome(a_shadowHit) && a_shadowHit.t <= zDepth))
-  {
-    (*pX)         = -1;
-    (*pY)         = -1;
-    return make_float3(0, 0, 0);
-  }
-
   const float surfaceToImageFactor  = 1.f / imageToSurfaceFactor;
 
   float  pdfRevW      = 1.0f;

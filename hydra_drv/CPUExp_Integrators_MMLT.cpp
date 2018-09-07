@@ -953,7 +953,14 @@ float3 IntegratorMMLT::ConnectEye(const PathVertex& a_lv, int a_ltDepth,
   auto* v0 = a_perThread->pdfArray.data() + a_ltDepth + 0;
   auto* v1 = a_perThread->pdfArray.data() + a_ltDepth + 1;
 
-  return ConnectEyeP(a_lv, mLightSubPathCount, hit, 
+  if (imageToSurfaceFactor <= 0.0f || (HitSome(hit) && hit.t <= zDepth))
+  {
+    (*pX)         = -1;
+    (*pY)         = -1;
+    return make_float3(0, 0, 0);
+  }
+
+  return ConnectEyeP(a_lv, mLightSubPathCount, camDir, imageToSurfaceFactor,
                      m_pGlobals, m_matStorage, m_texStorage, m_texStorageAux, &m_ptlDummy,
                      v0, v1, pX, pY);
 }
