@@ -568,6 +568,8 @@ __kernel void MMLTLightPathBounce (__global   float4*        restrict a_rpos,
     return;
   }
 
+  /*
+
   // not done, next bounce
   // 
   ProcTextureList ptl;        
@@ -659,7 +661,9 @@ __kernel void MMLTLightPathBounce (__global   float4*        restrict a_rpos,
 
   a_flags   [tid] = flags;
   a_prevSpec[tid] = isPureSpecular(matSam) ? 1 : 0;
-
+  
+  */
+  
 }
 
 
@@ -782,11 +786,11 @@ __kernel void MMLTConnect(__global const int2  *  restrict in_splitInfo,
   ReadPathVertexSupplement(in_lv_sup, tid, iNumElements, 
                            &lv);
 
-  PathVertex cv;
-  ReadSurfaceHit(in_cv_hit, tid, iNumElements, 
-                 &cv.hit);
-  ReadPathVertexSupplement(in_cv_sup, tid, iNumElements, 
-                           &cv);
+  //PathVertex cv;
+  //ReadSurfaceHit(in_cv_hit, tid, iNumElements, 
+  //               &cv.hit);
+  //ReadPathVertexSupplement(in_cv_sup, tid, iNumElements, 
+  //                         &cv);
 
   ProcTextureList ptl;        
   InitProcTextureList(&ptl);  
@@ -795,11 +799,11 @@ __kernel void MMLTConnect(__global const int2  *  restrict in_splitInfo,
 
 
   float3 sampleColor  = make_float3(0,0,0);
-  int x = -1, y = -1;
+  int x = 65535, y = 65535;
   
   if (lightTraceDepth == -1)        // (3.1) -1 means we have full camera path, no conection is needed
   {
-    sampleColor = cv.accColor;
+    //sampleColor = cv.accColor;
   }
   else
   {
@@ -822,6 +826,31 @@ __kernel void MMLTConnect(__global const int2  *  restrict in_splitInfo,
         sampleColor = ConnectEyeP(&lv, mLightSubPathCount, camDir, imageToSurfaceFactor,
                                   a_globals, in_mtlStorage, in_texStorage1, in_texStorage2, &ptl,
                                   &v0, &v1, &x, &y);
+        
+        //float3 colorConnect = make_float3(1,1,1);
+        //{
+        //  ShadeContext sc;
+        //  sc.wp = lv.hit.pos;
+        //  sc.l  = camDir;           
+        //  sc.v  = (-1.0f)*lv.ray_dir;  
+        //  sc.n  = lv.hit.normal;
+        //  sc.fn = lv.hit.flatNormal;
+        //  sc.tg = lv.hit.tangent;
+        //  sc.bn = lv.hit.biTangent;
+        //  sc.tc = lv.hit.texCoord;
+        //  BxDFResult matRes = materialEval(pHitMaterial, &sc, false, true, /* global data --> */ a_globals, in_texStorage1, in_texStorage2, &ptl);
+        //  colorConnect      = matRes.brdf + matRes.btdf; 
+        //}
+        //
+        //sampleColor = lv.accColor*colorConnect*(imageToSurfaceFactor / mLightSubPathCount);
+        //{
+        //  const float2 posScreenSpace = worldPosToScreenSpace(lv.hit.pos, a_globals);
+        //  x = (int)(posScreenSpace.x);
+        //  y = (int)(posScreenSpace.y);
+        //}
+
+        if (!isfinite(sampleColor.x) || !isfinite(sampleColor.y) || !isfinite(sampleColor.z) || imageToSurfaceFactor <= 0.0f)
+          sampleColor = make_float3(0, 0, 0);
 
         a_pdfVert[TabIndex(lightTraceDepth + 0, tid, iNumElements)] = v0;
         a_pdfVert[TabIndex(lightTraceDepth + 1, tid, iNumElements)] = v1;
@@ -829,19 +858,19 @@ __kernel void MMLTConnect(__global const int2  *  restrict in_splitInfo,
     }
     else if (lightTraceDepth == 0)  // (3.3) connect camera vertex to light (shadow ray)
     {
-      if (cv.valid && !cv.wasSpecOnly) // cv.wasSpecOnly exclude direct light actually
-      {
-        //float3 explicitColor = ConnectShadow(cv, &PerThread(), t);
-        //sampleColor = cv.accColor*explicitColor;
-      }
+      //if (cv.valid && !cv.wasSpecOnly) // cv.wasSpecOnly exclude direct light actually
+      //{
+      //  //float3 explicitColor = ConnectShadow(cv, &PerThread(), t);
+      //  //sampleColor = cv.accColor*explicitColor;
+      //}
     }
     else                            // (3.4) connect light and camera vertices (bidir connection)
     {
-      if (cv.valid)
-      {
-        //float3 explicitColor = ConnectEndPoints(lv, cv, s, d, &PerThread());
-        //sampleColor = cv.accColor*explicitColor*lv.accColor;
-      }
+      //if (cv.valid)
+      //{
+      //  //float3 explicitColor = ConnectEndPoints(lv, cv, s, d, &PerThread());
+      //  //sampleColor = cv.accColor*explicitColor*lv.accColor;
+      //}
     }
   }
 

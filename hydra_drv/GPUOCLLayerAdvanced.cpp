@@ -274,31 +274,25 @@ void GPUOCLLayer::TraceSBDPTPass(cl_mem a_rpos, cl_mem a_rdir, size_t a_size,
 
     runKernel_MMLTLightPathBounce(m_rays.rayFlags, a_rpos, a_rdir, a_outColor, m_mlt.splitData, a_size,  //#NOTE: m_mlt.rstateCurr used inside
                                   lightVertexHit, lightVertexSup);
-    
-    //{
-    //  runKernel_EyeShadowRays(m_rays.rayFlags, a_rdir,
-    //                          m_rays.shadowRayPos, m_rays.shadowRayDir, a_size);
-    //
-    //  runKernel_ShadowTrace(m_rays.rayFlags, m_rays.shadowRayPos, m_rays.shadowRayDir,
-    //                        m_rays.lshadow, a_size);
-    //
-    //  runKernel_ProjectSamplesToScreen(m_rays.rayFlags, m_rays.shadowRayDir, a_rdir, a_outColor,
-    //                                   a_outColor, a_outZIndex, a_size, bounce);
-    //}
   }
  
   // (3) ConnectEye, ConnectShadow and ConnectEndPoinst
   //
-  //runKernel_EyeShadowRays(m_rays.rayFlags, a_rdir,
-  //                        m_rays.shadowRayPos, m_rays.shadowRayDir, a_size); // #TODO: replace this with MMLTMakeShadowRay
-  //
-  //runKernel_ShadowTrace(m_rays.rayFlags, m_rays.shadowRayPos, m_rays.shadowRayDir,
-  //                      m_rays.lshadow, a_size);
-
+  
   runKernel_MMLTConnect(m_mlt.splitData, m_mlt.cameraVertexHit, m_mlt.cameraVertexSup, lightVertexHit, lightVertexSup, a_size, 
                         a_outColor, a_outZIndex);
 
-  
+  //{
+  //  runKernel_EyeShadowRays(m_rays.rayFlags, a_rdir,
+  //                          m_rays.shadowRayPos, m_rays.shadowRayDir, a_size);
+  //
+  //  runKernel_ShadowTrace(m_rays.rayFlags, m_rays.shadowRayPos, m_rays.shadowRayDir,
+  //                        m_rays.lshadow, a_size);
+  //
+  //  runKernel_ProjectSamplesToScreen(m_rays.rayFlags, m_rays.shadowRayDir, a_rdir, a_outColor,
+  //                                   a_outColor, a_outZIndex, a_size, 1);
+  //}
+
 }
 
 
