@@ -197,7 +197,7 @@ void GPUOCLLayer::runKernel_MMLTConnect(cl_mem in_splitInfo, cl_mem  in_cameraVe
 {
   const cl_float mLightSubPathCount = cl_float(m_width*m_height);
 
-  cl_kernel kernX      = m_progs.mlt.kernel("MMLTConnect");
+  cl_kernel kernX      = m_progs.mlt.kernel("MMLTConnect2");
 
   size_t localWorkSize = 256;
   int            isize = int(a_size);
@@ -223,6 +223,7 @@ void GPUOCLLayer::runKernel_MMLTConnect(cl_mem in_splitInfo, cl_mem  in_cameraVe
   CHECK_CL(clSetKernelArg(kernX,15, sizeof(cl_mem), (void*)&m_globals.cMortonTable));
   CHECK_CL(clSetKernelArg(kernX,16, sizeof(cl_int), (void*)&isize));
   CHECK_CL(clSetKernelArg(kernX,17, sizeof(cl_float), (void*)&mLightSubPathCount));
+  CHECK_CL(clSetKernelArg(kernX,18, sizeof(cl_mem), (void*)&m_rays.rayDir));
 
   CHECK_CL(clEnqueueNDRangeKernel(m_globals.cmdQueue, kernX, 1, NULL, &a_size, &localWorkSize, 0, NULL, NULL));
   waitIfDebug(__FILE__, __LINE__);

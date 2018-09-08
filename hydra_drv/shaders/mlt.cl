@@ -882,3 +882,109 @@ __kernel void MMLTConnect(__global const int2  *  restrict in_splitInfo,
     out_zind[tid] = make_int2(zid, tid);  
   out_color [tid] = to_float4(sampleColor, as_float(packXY1616(x,y)));
 }
+
+__kernel void MMLTConnect2(__global const int2 *  restrict in_splitInfo,
+                          __global const float4*  restrict in_lv_hit,
+                          __global const float4*  restrict in_lv_sup,
+                          __global const float4*  restrict in_cv_hit,
+                          __global const float4*  restrict in_cv_sup,
+                          __global const float4*  restrict in_procTexData,
+                          __global const ushort4* restrict in_shadow,
+
+                          __global PdfVertex*     restrict a_pdfVert,
+                          __global       float4*  restrict out_color,
+                          __global int2*          restrict out_zind,
+
+                          __global const float4*         restrict in_texStorage1,    
+                          __global const float4*         restrict in_texStorage2,
+                          __global const float4*         restrict in_mtlStorage,
+                          __global const float4*         restrict in_pdfStorage,  
+                          __global const EngineGlobals*  restrict a_globals,
+                          __constant ushort*             restrict a_mortonTable256,
+                          const int iNumElements, const float mLightSubPathCount,
+                          __global const float4*  restrict in_ray_dir)
+{
+  const int tid = GLOBAL_ID_X;
+  if (tid >= iNumElements)
+    return;
+
+  const int2 splitData = in_splitInfo[tid];
+  const int d = splitData.x;
+  const int s = splitData.y;
+  const int t = d - s;                // note that s=2 means 1 light bounce and one connection!!!
+  const int lightTraceDepth = s - 1;  // because the last light path is a connection anyway - to camera or to camera path
+  const int camTraceDepth   = t;      //
+  
+  PathVertex lv;
+  ReadSurfaceHit(in_lv_hit, tid, iNumElements, 
+                 &lv.hit);
+  ReadPathVertexSupplement(in_lv_sup, tid, iNumElements, 
+                           &lv);
+
+  ProcTextureList ptl;        
+  InitProcTextureList(&ptl);  
+  ReadProcTextureList(in_procTexData, tid, iNumElements, 
+                      &ptl);
+
+
+  float3 sampleColor  = make_float3(0,0,0);
+  int x = 65535, y = 65535;
+  
+  //if (lv.valid)
+  //{
+  //  float3 camDir; float zDepth;
+  //  const float imageToSurfaceFactor = CameraImageToSurfaceFactor(lv.hit.pos, lv.hit.normal, a_globals,
+  //                                                                &camDir, &zDepth);
+  //
+  //  __global const PlainMaterial* pHitMaterial = materialAt(a_globals, in_mtlStorage, lv.hit.matId);
+  //  float signOfNormal = 1.0f;
+  //  if ((materialGetFlags(pHitMaterial) & PLAIN_MATERIAL_HAVE_BTDF) != 0 && dot(camDir, lv.hit.normal) < -0.01f)
+  //    signOfNormal = -1.0f;
+  //
+  //  PdfVertex v0, v1;
+  //  sampleColor = ConnectEyeP(&lv, mLightSubPathCount, camDir, imageToSurfaceFactor,
+  //                            a_globals, in_mtlStorage, in_texStorage1, in_texStorage2, &ptl,
+  //                            &v0, &v1, &x, &y);
+  //}
+  
+  if(lv.hit.matId >= 0)
+  {
+    float3 camDir; float zDepth;
+    const float imageToSurfaceFactor = CameraImageToSurfaceFactor(lv.hit.pos, lv.hit.normal, a_globals,
+                                                                  &camDir, &zDepth);
+  
+    __global const PlainMaterial* pHitMaterial = materialAt(a_globals, in_mtlStorage, lv.hit.matId);
+    float signOfNormal = 1.0f;
+    if ((materialGetFlags(pHitMaterial) & PLAIN_MATERIAL_HAVE_BTDF) != 0 && dot(camDir, lv.hit.normal) < -0.01f)
+      signOfNormal = -1.0f;
+
+    float3 colorConnect = make_float3(1,1,1);
+    {
+      ShadeContext sc;
+      sc.wp = lv.hit.pos;
+      sc.l  = camDir;           
+      //sc.v  = (-1.0f)*lv.ray_dir; //*to_float3(in_ray_dir[tid]); 
+      sc.v  = (-1.0f)*to_float3(in_ray_dir[tid]); 
+      sc.n  = lv.hit.normal;
+      sc.fn = lv.hit.flatNormal;
+      sc.tg = lv.hit.tangent;
+      sc.bn = lv.hit.biTangent;
+      sc.tc = lv.hit.texCoord;
+      BxDFResult matRes = materialEval(pHitMaterial, &sc, false, true, /* global data --> */ a_globals, in_texStorage1, in_texStorage2, &ptl);
+      colorConnect      = matRes.brdf + matRes.btdf; 
+    }
+    
+    sampleColor = to_float3(out_color[tid])*colorConnect*(imageToSurfaceFactor / mLightSubPathCount);
+    {
+      const float2 posScreenSpace = worldPosToScreenSpace(lv.hit.pos, a_globals);
+      x = (int)(posScreenSpace.x);
+      y = (int)(posScreenSpace.y);
+    }
+  }
+
+  const int zid = (int)ZIndex(x, y, a_mortonTable256);
+  if(out_zind != 0)
+    out_zind[tid] = make_int2(zid, tid);  
+  out_color [tid] = to_float4(sampleColor, as_float(packXY1616(x,y)));
+}
+
