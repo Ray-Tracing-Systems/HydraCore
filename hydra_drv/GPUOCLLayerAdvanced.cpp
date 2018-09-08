@@ -54,7 +54,8 @@ void GPUOCLLayer::ConnectEyePass(cl_mem in_rayFlags, cl_mem in_rayDirOld, cl_mem
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-void GPUOCLLayer::runKernel_MMLTInitCameraPath(cl_mem a_flags, cl_mem a_color, cl_mem a_split, cl_mem a_hitSup, size_t a_size)
+void GPUOCLLayer::runKernel_MMLTInitSplitAndCamV(cl_mem a_flags, cl_mem a_color, cl_mem a_split, cl_mem a_hitSup,
+                                                 size_t a_size)
 {
   cl_kernel kernX      = m_progs.mlt.kernel("MMLTInitCameraPath");
 
@@ -197,7 +198,7 @@ void GPUOCLLayer::runKernel_MMLTConnect(cl_mem in_splitInfo, cl_mem  in_cameraVe
 {
   const cl_float mLightSubPathCount = cl_float(m_width*m_height);
 
-  cl_kernel kernX      = m_progs.mlt.kernel("MMLTConnect2");
+  cl_kernel kernX      = m_progs.mlt.kernel("MMLTConnect");
 
   size_t localWorkSize = 256;
   int            isize = int(a_size);
@@ -223,7 +224,6 @@ void GPUOCLLayer::runKernel_MMLTConnect(cl_mem in_splitInfo, cl_mem  in_cameraVe
   CHECK_CL(clSetKernelArg(kernX,15, sizeof(cl_mem), (void*)&m_globals.cMortonTable));
   CHECK_CL(clSetKernelArg(kernX,16, sizeof(cl_int), (void*)&isize));
   CHECK_CL(clSetKernelArg(kernX,17, sizeof(cl_float), (void*)&mLightSubPathCount));
-  CHECK_CL(clSetKernelArg(kernX,18, sizeof(cl_mem), (void*)&m_rays.rayDir));
 
   CHECK_CL(clEnqueueNDRangeKernel(m_globals.cmdQueue, kernX, 1, NULL, &a_size, &localWorkSize, 0, NULL, NULL));
   waitIfDebug(__FILE__, __LINE__);
@@ -236,10 +236,10 @@ void GPUOCLLayer::TraceSBDPTPass(cl_mem a_rpos, cl_mem a_rdir, size_t a_size,
 
   // (1) camera pass
   //
+  runKernel_MMLTInitSplitAndCamV(m_rays.rayFlags, a_outColor, m_mlt.splitData, m_mlt.cameraVertexSup, a_size);
 
   /*
   runKernel_MakeEyeRays(m_rays.rayPos, m_rays.rayDir, m_rays.samZindex, m_rays.MEGABLOCKSIZE, m_passNumberForQMC);
-  runKernel_MMLTInitCameraPath(m_rays.rayFlags, a_outColor, m_mlt.splitData, m_mlt.cameraVertexSup, a_size);
 
   for (int bounce = 0; bounce < maxBounce; bounce++)
   {
