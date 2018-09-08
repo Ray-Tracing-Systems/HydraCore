@@ -235,6 +235,8 @@ void GPUOCLLayer::TraceSBDPTPass(cl_mem a_rpos, cl_mem a_rdir, size_t a_size,
 
   // (1) camera pass
   //
+
+  /*
   runKernel_MakeEyeRays(m_rays.rayPos, m_rays.rayDir, m_rays.samZindex, m_rays.MEGABLOCKSIZE, m_passNumberForQMC);
   runKernel_MMLTInitCameraPath(m_rays.rayFlags, a_outColor, m_mlt.splitData, m_mlt.cameraVertexSup, a_size);
 
@@ -252,9 +254,9 @@ void GPUOCLLayer::TraceSBDPTPass(cl_mem a_rpos, cl_mem a_rdir, size_t a_size,
 
   runKernel_CopyAccColorTo(m_mlt.cameraVertexSup, a_size, 
                            a_outColor);
-
+  */
     
-  /*
+  
   // (2) light pass
   //
   cl_mem lightVertexHit = m_rays.hitSurfaceAll;
@@ -270,17 +272,19 @@ void GPUOCLLayer::TraceSBDPTPass(cl_mem a_rpos, cl_mem a_rdir, size_t a_size,
     runKernel_ComputeHit(a_rpos, a_rdir, m_rays.hits, a_size, 
                          lightVertexHit, m_rays.hitProcTexData);
 
-    runKernel_MMLTLightPathBounce(m_rays.rayFlags, a_rpos, a_rdir, a_outColor, m_mlt.splitData, a_size,  //#NOTE: m_mlt.rstateCurr used inside
-                                 lightVertexHit, lightVertexSup);
+    //runKernel_MMLTLightPathBounce(m_rays.rayFlags, a_rpos, a_rdir, a_outColor, m_mlt.splitData, a_size,  //#NOTE: m_mlt.rstateCurr used inside
+      //                            lightVertexHit, lightVertexSup);
+ 
+    //ConnectEyePass(m_rays.rayFlags, a_rdir, a_outColor, bounce, a_size);
   }
  
   // (3) ConnectEye, ConnectShadow and ConnectEndPoinst
   //
 
-  runKernel_MMLTConnect(m_mlt.splitData, m_mlt.cameraVertexHit, m_mlt.cameraVertexSup, lightVertexHit, lightVertexSup, a_size, 
-                        a_outColor, a_outZIndex);
+  //runKernel_MMLTConnect(m_mlt.splitData, m_mlt.cameraVertexHit, m_mlt.cameraVertexSup, lightVertexHit, lightVertexSup, a_size, 
+    //                    a_outColor, a_outZIndex);
 
-  */
+  
 }
 
 
