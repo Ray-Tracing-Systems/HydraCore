@@ -50,7 +50,7 @@ __kernel void MMLTInitCameraPath(__global   uint* restrict a_flags,
     return;
 
   const int d = MMLT_GPU_TEST_DEPTH;
-  const int s = 1; 
+  const int s = 2; 
 
   a_flags[tid] = packBounceNum(0, 1);
   a_color[tid] = make_float4(1,1,1,1);
@@ -794,7 +794,6 @@ __kernel void MMLTConnect(__global const int2  *  restrict in_splitInfo,
                       &ptl);
 
 
-  const float3 shadow = make_float3(1,1,1); // #TODO: read shadow from kernel input
   float3 sampleColor  = make_float3(0,0,0);
   int x = -1, y = -1;
   
@@ -846,7 +845,8 @@ __kernel void MMLTConnect(__global const int2  *  restrict in_splitInfo,
     }
   }
 
-  //sampleColor = make_float3(1,1,1);
+  //const float3 shadow = decompressShadow(in_shadow[tid]);
+  //sampleColor *= shadow;
 
   const int zid = (int)ZIndex(x, y, a_mortonTable256);
   if(out_zind != 0)
