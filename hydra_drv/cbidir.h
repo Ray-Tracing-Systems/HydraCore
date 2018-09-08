@@ -136,15 +136,16 @@ static inline float2 worldPosToScreenSpace(float3 a_wpos, __global const EngineG
 \param  a_texStorage2        - auxilarry texture storage (for normalmaps and other)
 \param  a_ptList             - proc textures list data
 
-\param  a_pdfArray           - pdfArea array for fwd and reverse pdf's
+\param  v0                   - pdfArea array for fwd and reverse pdf's
+\param  v1                   - pdfArea array for fwd and reverse pdf's
 \param  pX                   - resulting screen X position
 \param  pY                   - resulting screen Y position
 
-\return  a_outColor          - resulting color
+\return resulting color
 
 */
 
-static float3 ConnectEyeP(const PathVertex a_lv, float a_mLightSubPathCount, float3 camDir, const float imageToSurfaceFactor,
+static float3 ConnectEyeP(const PathVertex* a_lv, float a_mLightSubPathCount, float3 camDir, const float imageToSurfaceFactor,
                         __global const EngineGlobals* a_globals, __global const float4* a_mltStorage, texture2d_t a_texStorage1, texture2d_t a_texStorage2, __private const ProcTextureList* a_ptList,
                         __private PdfVertex* v0, __private PdfVertex* v1, int* pX, int* pY)
 {
@@ -153,17 +154,17 @@ static float3 ConnectEyeP(const PathVertex a_lv, float a_mLightSubPathCount, flo
   float  pdfRevW      = 1.0f;
   float3 colorConnect = make_float3(1, 1, 1);
   {
-    __global const PlainMaterial* pHitMaterial = materialAt(a_globals, a_mltStorage, a_lv.hit.matId);
+    __global const PlainMaterial* pHitMaterial = materialAt(a_globals, a_mltStorage, a_lv->hit.matId);
 
     ShadeContext sc;
-    sc.wp = a_lv.hit.pos;
+    sc.wp = a_lv->hit.pos;
     sc.l  = camDir;               // seems like that sc.l = camDir, see smallVCM
-    sc.v  = (-1.0f)*a_lv.ray_dir; // seems like that sc.v = (-1.0f)*ray_dir, see smallVCM
-    sc.n  = a_lv.hit.normal;
-    sc.fn = a_lv.hit.flatNormal;
-    sc.tg = a_lv.hit.tangent;
-    sc.bn = a_lv.hit.biTangent;
-    sc.tc = a_lv.hit.texCoord;
+    sc.v  = (-1.0f)*a_lv->ray_dir; // seems like that sc.v = (-1.0f)*ray_dir, see smallVCM
+    sc.n  = a_lv->hit.normal;
+    sc.fn = a_lv->hit.flatNormal;
+    sc.tg = a_lv->hit.tangent;
+    sc.bn = a_lv->hit.biTangent;
+    sc.tc = a_lv->hit.texCoord;
 
     BxDFResult colorAndPdf = materialEval(pHitMaterial, &sc, false, true, a_globals, a_texStorage1, a_texStorage2, a_ptList);
 
@@ -173,11 +174,11 @@ static float3 ConnectEyeP(const PathVertex a_lv, float a_mLightSubPathCount, flo
 
   // we didn't eval reverse pdf yet. Imagine light ray hit surface and we immediately connect.
   //
-  const float cosCurr    = fabs(dot(a_lv.ray_dir, a_lv.hit.normal));
+  const float cosCurr    = fabs(dot(a_lv->ray_dir, a_lv->hit.normal));
   const float pdfRevWP   = pdfRevW / fmax(cosCurr, DEPSILON2); // pdfW po pdfWP
   const float cameraPdfA = imageToSurfaceFactor / a_mLightSubPathCount;
   
-  v0->pdfRev = (pdfRevW == 0.0f) ? -1.0f*a_lv.lastGTerm : pdfRevWP*a_lv.lastGTerm;  
+  v0->pdfRev = (pdfRevW == 0.0f) ? -1.0f*a_lv->lastGTerm : pdfRevWP*a_lv->lastGTerm;  
   v1->pdfFwd = 1.0f;
   v1->pdfRev = cameraPdfA;
 
@@ -188,7 +189,7 @@ static float3 ConnectEyeP(const PathVertex a_lv, float a_mLightSubPathCount, flo
   // pixel integral is actually defined. We also divide by the number of samples
   // this technique makes, which is equal to the number of light sub-paths
   //
-  const float3 sampleColor = a_lv.accColor*(colorConnect / (a_mLightSubPathCount*surfaceToImageFactor));
+  const float3 sampleColor = a_lv->accColor*(colorConnect / (a_mLightSubPathCount*surfaceToImageFactor));
   float3 resColor  = make_float3(0, 0, 0);
 
   const int width  = (int)(a_globals->varsF[HRT_WIDTH_F]);
@@ -196,7 +197,7 @@ static float3 ConnectEyeP(const PathVertex a_lv, float a_mLightSubPathCount, flo
 
   if (dot(sampleColor, sampleColor) > 1e-12f) // add final result to image
   {
-    const float2 posScreenSpace = worldPosToScreenSpace(a_lv.hit.pos, a_globals);
+    const float2 posScreenSpace = worldPosToScreenSpace(a_lv->hit.pos, a_globals);
     
     int x = (int)(posScreenSpace.x + 0.5f);
     int y = (int)(posScreenSpace.y + 0.5f);

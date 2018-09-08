@@ -573,7 +573,7 @@ __kernel void MMLTLightPathBounce (__global   float4*        restrict a_rpos,
   ProcTextureList ptl;        
   InitProcTextureList(&ptl);  
   ReadProcTextureList(in_procTexData, tid, iNumElements, 
-                        &ptl);
+                      &ptl);
 
   __global const PlainMaterial* pHitMaterial = materialAt(a_globals, in_mtlStorage, surfElem.matId);
   
@@ -750,7 +750,10 @@ __kernel void MMLTConnect(__global const int2  *  restrict in_splitInfo,
                           __global const float4*  restrict in_lv_sup,
                           __global const float4*  restrict in_cv_hit,
                           __global const float4*  restrict in_cv_sup,
+                          __global const float4*  restrict in_procTexData,
                           __global const ushort4* restrict in_shadow,
+
+                          __global PdfVertex*     restrict a_pdfVert,
                           __global       float4*  restrict out_color,
 
                           __global const float4*         restrict in_texStorage1,    
@@ -758,7 +761,7 @@ __kernel void MMLTConnect(__global const int2  *  restrict in_splitInfo,
                           __global const float4*         restrict in_mtlStorage,
                           __global const float4*         restrict in_pdfStorage,  
                           __global const EngineGlobals*  restrict a_globals,
-                          const int iNumElements)
+                          const int iNumElements, const float mLightSubPathCount)
 {
   const int tid = GLOBAL_ID_X;
   if (tid >= iNumElements)
@@ -783,9 +786,15 @@ __kernel void MMLTConnect(__global const int2  *  restrict in_splitInfo,
   ReadPathVertexSupplement(in_cv_sup, tid, iNumElements, 
                            &cv);
 
+  ProcTextureList ptl;        
+  InitProcTextureList(&ptl);  
+  ReadProcTextureList(in_procTexData, tid, iNumElements, 
+                      &ptl);
+
+
   const float3 shadow = make_float3(1,1,1);
   float3 sampleColor  = make_float3(0,0,0);
-  
+  int x = -1, y = -1;
   
   if (lightTraceDepth == -1)        // (3.1) -1 means we have full camera path, no conection is needed
   {
@@ -805,12 +814,16 @@ __kernel void MMLTConnect(__global const int2  *  restrict in_splitInfo,
         float signOfNormal = 1.0f;
         if ((materialGetFlags(pHitMaterial) & PLAIN_MATERIAL_HAVE_BTDF) != 0 && dot(camDir, lv.hit.normal) < -0.01f)
           signOfNormal = -1.0f;
-      
-        //auto hit = rayTrace(a_lv.hit.pos + epsilonOfPos(a_lv.hit.pos)*signOfNormal*a_lv.hit.normal, camDir);
-        
-        //ConnectEyeP(a_lv, a_ltDepth, mLightSubPathCount, hit, 
-        //            a_globals, in_mtlStorage, m_texStorage, m_texStorageAux, &m_ptlDummy,
-        //            &a_perThread->pdfArray[0], pX, pY, &result);
+    
+        PdfVertex v0, v1;
+        v0 = a_pdfVert[TabIndex(lightTraceDepth + 0, tid, iNumElements)];
+
+        sampleColor = ConnectEyeP(&lv, mLightSubPathCount, camDir, imageToSurfaceFactor,
+                                  a_globals, in_mtlStorage, in_texStorage1, in_texStorage2, &ptl,
+                                  &v0, &v1, &x, &y);
+
+        a_pdfVert[TabIndex(lightTraceDepth + 0, tid, iNumElements)] = v0;
+        a_pdfVert[TabIndex(lightTraceDepth + 1, tid, iNumElements)] = v1;
       }
     }
     else if (lightTraceDepth == 0)  // (3.3) connect camera vertex to light (shadow ray)
