@@ -846,6 +846,8 @@ __kernel void MMLTConnect(__global const int2  *  restrict in_splitInfo,
     }
   }
 
+  //sampleColor = make_float3(1,1,1);
+
   const int zid = (int)ZIndex(x, y, a_mortonTable256);
   if(out_zind != 0)
     out_zind[tid] = make_int2(zid, tid);  
