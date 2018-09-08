@@ -755,12 +755,14 @@ __kernel void MMLTConnect(__global const int2  *  restrict in_splitInfo,
 
                           __global PdfVertex*     restrict a_pdfVert,
                           __global       float4*  restrict out_color,
+                          __global int2*          restrict out_zind,
 
                           __global const float4*         restrict in_texStorage1,    
                           __global const float4*         restrict in_texStorage2,
                           __global const float4*         restrict in_mtlStorage,
                           __global const float4*         restrict in_pdfStorage,  
                           __global const EngineGlobals*  restrict a_globals,
+                          __constant ushort*             restrict a_mortonTable256,
                           const int iNumElements, const float mLightSubPathCount)
 {
   const int tid = GLOBAL_ID_X;
@@ -792,7 +794,7 @@ __kernel void MMLTConnect(__global const int2  *  restrict in_splitInfo,
                       &ptl);
 
 
-  const float3 shadow = make_float3(1,1,1);
+  const float3 shadow = make_float3(1,1,1); // #TODO: read shadow from kernel input
   float3 sampleColor  = make_float3(0,0,0);
   int x = -1, y = -1;
   
@@ -844,4 +846,8 @@ __kernel void MMLTConnect(__global const int2  *  restrict in_splitInfo,
     }
   }
 
+  const int zid = (int)ZIndex(x, y, a_mortonTable256);
+  if(out_zind != 0)
+    out_zind[tid] = make_int2(zid, tid);  
+  out_color [tid] = to_float4(sampleColor, as_float(packXY1616(x,y)));
 }

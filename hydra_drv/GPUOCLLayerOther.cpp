@@ -8,7 +8,7 @@
 
 #include "../../HydraAPI/hydra_api/ssemath.h"
 
-void GPUOCLLayer::AddContributionToScreen(cl_mem& in_color)
+void GPUOCLLayer::AddContributionToScreen(cl_mem& in_color, cl_mem in_indices)
 {
   if (m_screen.m_cpuFrameBuffer)
   {
@@ -25,11 +25,11 @@ void GPUOCLLayer::AddContributionToScreen(cl_mem& in_color)
     else
       resultPtr = &m_screen.color0CPU[0];
 
-    AddContributionToScreenCPU(in_color, m_rays.samZindex, int(m_rays.MEGABLOCKSIZE), width, height,
+    AddContributionToScreenCPU(in_color, int(m_rays.MEGABLOCKSIZE), width, height,
                                resultPtr);
   }
   else
-    AddContributionToScreenGPU(in_color, m_rays.samZindex, int(m_rays.MEGABLOCKSIZE), m_width, m_height, m_passNumber,
+    AddContributionToScreenGPU(in_color, in_indices, int(m_rays.MEGABLOCKSIZE), m_width, m_height, m_passNumber,
                                m_screen.color0, m_screen.pbo);
 
   m_passNumber++;
@@ -97,7 +97,7 @@ void AddSamplesContributionS(float4* out_color, const float4* colors, const unsi
   }
 }
 
-void GPUOCLLayer::AddContributionToScreenCPU(cl_mem& in_color, cl_mem in_indices, int a_size, int a_width, int a_height, float4* out_color)
+void GPUOCLLayer::AddContributionToScreenCPU(cl_mem& in_color, int a_size, int a_width, int a_height, float4* out_color)
 {
   // (1) compute compressed index in color.w; use runKernel_MakeEyeRaysAndClearUnified for that task if CPU FB is enabled!!!
   //

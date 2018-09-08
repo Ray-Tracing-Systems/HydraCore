@@ -62,7 +62,8 @@ public:
   std::vector<int> MakeAllPixelsList();
   void RunProductionSamplingMode();
 
-  void TraceSBDPTPass(cl_mem a_rpos, cl_mem a_rdir, cl_mem a_outColor, size_t a_size);
+  void TraceSBDPTPass(cl_mem a_rpos, cl_mem a_rdir, size_t a_size, 
+                      cl_mem a_outColor, cl_mem a_outZIndex);
 
   void FinishAll() override;
 
@@ -129,8 +130,8 @@ protected:
   void AddContributionToScreenGPU(cl_mem in_color, cl_mem in_indices, int a_size, int a_width, int a_height, int a_spp,
                                   cl_mem out_colorHDR, cl_mem out_colorLDR);
 
-  void AddContributionToScreenCPU(cl_mem& in_color, cl_mem in_indices, int a_size, int a_width, int a_height, float4* out_color);
-  void AddContributionToScreen   (cl_mem& in_color);
+  void AddContributionToScreenCPU(cl_mem& in_color, int a_size, int a_width, int a_height, float4* out_color);
+  void AddContributionToScreen   (cl_mem& in_color, cl_mem in_indices);
 
   std::vector<uchar4> NormalMapFromDisplacement(int w, int h, const uchar4* a_data, float bumpAmt, bool invHeight, float smoothLvl);
   void Denoise(cl_mem textureIn, cl_mem textureOut, int w, int h, float smoothLvl);
@@ -440,8 +441,8 @@ protected:
   void runKernel_MMLTLightPathBounce(cl_mem rayFlags, cl_mem a_rpos, cl_mem a_rdir, cl_mem a_color, cl_mem a_split, size_t a_size,
                                      cl_mem a_outHitCom, cl_mem a_outHitSup);
 
-  void runKernel_MMLTConnect(cl_mem  in_cameraVertexHit, cl_mem in_cameraVertexSup, cl_mem  in_lightVertexHit, cl_mem  in_lightVertexSup, size_t a_size, 
-                             cl_mem a_outColor);
+  void runKernel_MMLTConnect(cl_mem in_splitInfo, cl_mem  in_cameraVertexHit, cl_mem in_cameraVertexSup, cl_mem  in_lightVertexHit, cl_mem  in_lightVertexSup, size_t a_size, 
+                             cl_mem a_outColor, cl_mem a_outZIndex);
                              
   void runKernel_CopyAccColorTo(cl_mem cameraVertexSup, size_t a_size, cl_mem a_outColor);
 

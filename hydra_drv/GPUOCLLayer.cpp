@@ -1100,11 +1100,12 @@ void GPUOCLLayer::BeginTracingPass()
 
     // (2) trace; 
     //
-    TraceSBDPTPass(m_rays.rayPos, m_rays.rayDir, m_rays.pathAccColor, m_rays.MEGABLOCKSIZE);
+    TraceSBDPTPass(m_rays.rayPos, m_rays.rayDir, m_rays.MEGABLOCKSIZE,
+                   m_rays.pathAccColor, m_rays.samZindex);
 
     // (3) Contrib to screen
     //
-    AddContributionToScreen(m_rays.pathAccColor);
+    AddContributionToScreen(m_rays.pathAccColor, m_rays.samZindex);
 
   }
   else if((m_vars.m_flags & HRT_PRODUCTION_IMAGE_SAMPLING) != 0 && (m_vars.m_flags & HRT_UNIFIED_IMAGE_SAMPLING) != 0)
@@ -1136,7 +1137,7 @@ void GPUOCLLayer::BeginTracingPass()
     // (3) accumulate colors
     //
     if ((m_vars.m_flags & HRT_FORWARD_TRACING) == 0)
-      AddContributionToScreen(m_rays.pathAccColor);
+      AddContributionToScreen(m_rays.pathAccColor, m_rays.samZindex);
     
   }
   else if(!m_screen.m_cpuFrameBuffer)
