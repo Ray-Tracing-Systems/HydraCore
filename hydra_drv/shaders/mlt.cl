@@ -797,15 +797,14 @@ __kernel void MMLTConnect(__global const int2  *  restrict in_splitInfo,
                       &ptl);
 
 
-  float3 sampleColor  = make_float3(0,0,0);
-  int x = 65535, y = 65535;
-  
+  float3 sampleColor = make_float3(0,0,0);  
+  const int zid2 = out_zind[tid].x;
+  int x = ExtractXFromZIndex (zid2); // #TODO: in don;t like this but may be its ok ... 
+  int y = ExtractYFromZIndex (zid2); // #TODO: in don;t like this but may be its ok ... 
+
   if (lightTraceDepth == -1)        // (3.1) -1 means we have full camera path, no conection is needed
   {
     sampleColor = cv.accColor;
-    int zid     = out_zind[tid].x;
-    x           = ExtractXFromZIndex (zid); // #TODO: in don;t like this but may be its ok ... 
-    y           = ExtractYFromZIndex (zid); // #TODO: in don;t like this but may be its ok ... 
   }
   else
   {

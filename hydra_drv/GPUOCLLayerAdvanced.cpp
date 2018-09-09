@@ -266,8 +266,6 @@ void GPUOCLLayer::TraceSBDPTPass(cl_mem a_rpos, cl_mem a_rdir, size_t a_size,
   // (1) init and camera pass 
   //
   runKernel_MakeEyeRays(m_rays.rayPos, m_rays.rayDir, m_rays.samZindex, m_rays.MEGABLOCKSIZE, m_passNumberForQMC, false);
-  runKernel_ClearAllInternalTempBuffers(a_size);
-
   runKernel_MMLTInitSplitAndCamV(m_rays.rayFlags, a_outColor, m_mlt.splitData, m_mlt.cameraVertexSup, a_size);
 
   for (int bounce = 0; bounce < maxBounce; bounce++)
