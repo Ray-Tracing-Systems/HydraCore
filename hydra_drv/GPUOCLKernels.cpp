@@ -82,8 +82,6 @@ void GPUOCLLayer::runKernel_MakeEyeRays(cl_mem a_rpos, cl_mem a_rdir, cl_mem a_z
   CHECK_CL(clEnqueueNDRangeKernel(m_globals.cmdQueue, makeRaysKern, 1, NULL, &a_size, &localWorkSize, 0, NULL, NULL));
   waitIfDebug(__FILE__, __LINE__);
 
-  runKernel_ClearAllInternalTempBuffers(a_size);
-
 }
 
 void GPUOCLLayer::runKernel_ClearAllInternalTempBuffers(size_t a_size)

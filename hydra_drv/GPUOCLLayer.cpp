@@ -1123,6 +1123,7 @@ void GPUOCLLayer::BeginTracingPass()
     {
       m_raysWasSorted = false;
       runKernel_MakeEyeRays(m_rays.rayPos, m_rays.rayDir, m_rays.samZindex, m_rays.MEGABLOCKSIZE, m_passNumberForQMC);
+      runKernel_ClearAllInternalTempBuffers(m_rays.MEGABLOCKSIZE);
     }
 
     // (2) Compute sample colors
