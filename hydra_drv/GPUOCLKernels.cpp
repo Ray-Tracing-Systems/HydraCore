@@ -46,17 +46,20 @@ void GPUOCLLayer::runKernel_MakeEyeRays(cl_mem a_rpos, cl_mem a_rdir, cl_mem a_z
 
   // (2) sort rays by their pixels
   //
-  BitonicCLArgs sortArgs;
-  sortArgs.bitonicPassK = m_progs.sort.kernel("bitonic_pass_kernel");
-  sortArgs.bitonic512   = m_progs.sort.kernel("bitonic_512");
-  sortArgs.bitonic1024  = m_progs.sort.kernel("bitonic_1024");
-  sortArgs.bitonic2048  = m_progs.sort.kernel("bitonic_2048");
-  sortArgs.cmdQueue     = m_globals.cmdQueue;
-  sortArgs.dev          = m_globals.device;
-
-  bitonic_sort_gpu(a_zindex, int(a_size), sortArgs);
-  m_raysWasSorted = a_setSortedFlag;                 // don't sort again when contribute to screen if 'a_setSortedFlag' is set.
-
+  if(a_setSortedFlag)
+  {
+    BitonicCLArgs sortArgs;
+    sortArgs.bitonicPassK = m_progs.sort.kernel("bitonic_pass_kernel");
+    sortArgs.bitonic512   = m_progs.sort.kernel("bitonic_512");
+    sortArgs.bitonic1024  = m_progs.sort.kernel("bitonic_1024");
+    sortArgs.bitonic2048  = m_progs.sort.kernel("bitonic_2048");
+    sortArgs.cmdQueue     = m_globals.cmdQueue;
+    sortArgs.dev          = m_globals.device;
+    
+    bitonic_sort_gpu(a_zindex, int(a_size), sortArgs);
+    m_raysWasSorted = a_setSortedFlag;                 // don't sort again when contribute to screen if 'a_setSortedFlag' is set.
+  }
+  
   // (3) generate rays
   //
   cl_kernel makeRaysKern = m_progs.screen.kernel("MakeEyeRaysUnifiedSampling");

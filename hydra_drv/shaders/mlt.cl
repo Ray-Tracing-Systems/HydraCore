@@ -50,7 +50,7 @@ __kernel void MMLTInitCameraPath(__global   uint* restrict a_flags,
     return;
 
   const int d = MMLT_GPU_TEST_DEPTH;
-  const int s = 3; 
+  const int s = 0; 
 
   a_flags[tid] = packBounceNum(0, 1);
   a_color[tid] = make_float4(1,1,1,1);
@@ -803,6 +803,9 @@ __kernel void MMLTConnect(__global const int2  *  restrict in_splitInfo,
   if (lightTraceDepth == -1)        // (3.1) -1 means we have full camera path, no conection is needed
   {
     sampleColor = cv.accColor;
+    int zid     = out_zind[tid].x;
+    x           = ExtractXFromZIndex (zid); // #TODO: in don;t like this but may be its ok ... 
+    y           = ExtractYFromZIndex (zid); // #TODO: in don;t like this but may be its ok ... 
   }
   else
   {
