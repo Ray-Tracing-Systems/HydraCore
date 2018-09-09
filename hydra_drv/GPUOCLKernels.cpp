@@ -405,7 +405,8 @@ void GPUOCLLayer::runKernel_ComputeAO(cl_mem outCompressedAO, size_t a_size)
 
     // (3) calc shadows
     //
-    runKernel_ShadowTrace(m_rays.rayFlags, m_rays.shadowRayPos, m_rays.shadowRayDir, m_rays.lshadow, a_size);
+    runKernel_ShadowTrace(m_rays.rayFlags, m_rays.shadowRayPos, m_rays.shadowRayDir, a_size,
+                          m_rays.lshadow);
 
     // (4) pack them in outCompressedAO
     //
@@ -737,7 +738,8 @@ void GPUOCLLayer::runKernel_NextTransparentBounce(cl_mem a_rpos, cl_mem a_rdir, 
   waitIfDebug(__FILE__, __LINE__);
 }
 
-void GPUOCLLayer::runKernel_ShadowTrace(cl_mem a_rayFlags, cl_mem a_rpos, cl_mem a_rdir, cl_mem a_outShadow, size_t a_size)
+void GPUOCLLayer::runKernel_ShadowTrace(cl_mem a_rayFlags, cl_mem a_rpos, cl_mem a_rdir, size_t a_size,
+                                        cl_mem a_outShadow)
 {
   size_t localWorkSize = 256;
   int    isize         = int(a_size);
@@ -928,7 +930,8 @@ void GPUOCLLayer::ShadePass(cl_mem a_rpos, cl_mem a_rdir, cl_mem a_outColor, siz
 
     if (traceShadows)
     {
-      runKernel_ShadowTrace(m_rays.rayFlags, m_rays.shadowRayPos, m_rays.shadowRayDir, m_rays.lshadow, a_size);
+      runKernel_ShadowTrace(m_rays.rayFlags, m_rays.shadowRayPos, m_rays.shadowRayDir, a_size,
+                            m_rays.lshadow);
     }
     else
     {

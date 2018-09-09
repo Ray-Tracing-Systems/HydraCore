@@ -671,11 +671,9 @@ __kernel void MMLTMakeShadowRay(__global const int2  *  restrict in_splitInfo,
                                 __global const float4*  restrict in_cv_sup,
                                 __global       float4*  restrict out_ray_pos,
                                 __global       float4*  restrict out_ray_dir,
+                                __global       int   *  restrict out_rflags,
 
-                                __global const float4*         restrict in_texStorage1,    
-                                __global const float4*         restrict in_texStorage2,
                                 __global const float4*         restrict in_mtlStorage,
-                                __global const float4*         restrict in_pdfStorage,  
                                 __global const EngineGlobals*  restrict a_globals,
                                 const int iNumElements)
 {
@@ -692,22 +690,45 @@ __kernel void MMLTMakeShadowRay(__global const int2  *  restrict in_splitInfo,
 
   const float topUp = 1e10f;
 
+  out_ray_pos[tid] = make_float4(0,topUp, 0, 0);
+  out_ray_dir[tid] = make_float4(0,1,0,0);
+  out_rflags [tid] = 0;
+  
   PathVertex lv;
   ReadSurfaceHit(in_lv_hit, tid, iNumElements, 
                  &lv.hit);
   ReadPathVertexSupplement(in_lv_sup, tid, iNumElements, 
                            &lv);
-
+  
   PathVertex cv;
   ReadSurfaceHit(in_cv_hit, tid, iNumElements, 
                  &cv.hit);
   ReadPathVertexSupplement(in_cv_sup, tid, iNumElements, 
                            &cv);
 
+  /*
+  if (lv.hit.matId >= 0)
+  {
+    float3 camDir; float zDepth;
+    const float imageToSurfaceFactor = CameraImageToSurfaceFactor(lv.hit.pos, lv.hit.normal, a_globals,
+                                                                  &camDir, &zDepth);
+  
+    float signOfNormal = 1.0f;
+    if (lv.hit.matId >= 0)
+    {
+      __global const PlainMaterial* pHitMaterial = materialAt(a_globals, in_mtlStorage, lv.hit.matId);
+      if ((materialGetFlags(pHitMaterial) & PLAIN_MATERIAL_HAVE_BTDF) != 0 && dot(camDir, lv.hit.normal) < -0.01f)
+        signOfNormal *= -1.0f;
+    }
+  
+    out_ray_pos[tid] = to_float4(lv.hit.pos + epsilonOfPos(lv.hit.pos)*signOfNormal*lv.hit.normal, zDepth); // OffsRayPos(lv.hit.pos, lv.hit.normal, camDir);
+    out_ray_dir[tid] = to_float4(camDir, as_float(-1));
+  }
+  */
+
   if (lightTraceDepth == -1)        // (3.1) -1 means we have full camera path, no conection is needed
   {
-    out_ray_pos[tid] = make_float4(0,topUp, 0, 0);
-    out_ray_dir[tid] = make_float4(0,1,0,0);
+
   }
   else
   {
@@ -715,17 +736,19 @@ __kernel void MMLTMakeShadowRay(__global const int2  *  restrict in_splitInfo,
     {
       if (lv.valid)
       {
-        float3 camDir; float zDepth;
-        const float imageToSurfaceFactor = CameraImageToSurfaceFactor(lv.hit.pos, lv.hit.normal, a_globals,
-                                                                      &camDir, &zDepth);
-      
-        __global const PlainMaterial* pHitMaterial = materialAt(a_globals, in_mtlStorage, lv.hit.matId);
-        float signOfNormal = 1.0f;
-        if ((materialGetFlags(pHitMaterial) & PLAIN_MATERIAL_HAVE_BTDF) != 0 && dot(camDir, lv.hit.normal) < -0.01f)
-          signOfNormal = -1.0f;
-        
-        out_ray_pos[tid] = to_float4(lv.hit.pos + epsilonOfPos(lv.hit.pos)*signOfNormal*lv.hit.normal, zDepth);
-        out_ray_dir[tid] = to_float4(camDir, 0.0f);
+         float3 camDir; float zDepth;
+         const float imageToSurfaceFactor = CameraImageToSurfaceFactor(lv.hit.pos, lv.hit.normal, a_globals,
+                                                                       &camDir, &zDepth);
+         float signOfNormal = 1.0f;
+         if (lv.hit.matId >= 0)
+         {
+           __global const PlainMaterial* pHitMaterial = materialAt(a_globals, in_mtlStorage, lv.hit.matId);
+           if ((materialGetFlags(pHitMaterial) & PLAIN_MATERIAL_HAVE_BTDF) != 0 && dot(camDir, lv.hit.normal) < -0.01f)
+             signOfNormal *= -1.0f;
+         }
+
+         out_ray_pos[tid] = to_float4(lv.hit.pos + epsilonOfPos(lv.hit.pos)*signOfNormal*lv.hit.normal, zDepth); // OffsRayPos(lv.hit.pos, lv.hit.normal, camDir);
+         out_ray_dir[tid] = to_float4(camDir, as_float(-1));
       }
     }
     else if (lightTraceDepth == 0)  // (3.3) connect camera vertex to light (shadow ray)
@@ -743,6 +766,7 @@ __kernel void MMLTMakeShadowRay(__global const int2  *  restrict in_splitInfo,
       }
     }
   }
+  
 
 }
 
@@ -783,11 +807,11 @@ __kernel void MMLTConnect(__global const int2  *  restrict in_splitInfo,
   ReadPathVertexSupplement(in_lv_sup, tid, iNumElements, 
                            &lv);
 
-  //PathVertex cv;
-  //ReadSurfaceHit(in_cv_hit, tid, iNumElements, 
-  //               &cv.hit);
-  //ReadPathVertexSupplement(in_cv_sup, tid, iNumElements, 
-  //                         &cv);
+  PathVertex cv;
+  ReadSurfaceHit(in_cv_hit, tid, iNumElements, 
+                 &cv.hit);
+  ReadPathVertexSupplement(in_cv_sup, tid, iNumElements, 
+                           &cv);
 
   ProcTextureList ptl;        
   InitProcTextureList(&ptl);  
@@ -800,7 +824,7 @@ __kernel void MMLTConnect(__global const int2  *  restrict in_splitInfo,
   
   if (lightTraceDepth == -1)        // (3.1) -1 means we have full camera path, no conection is needed
   {
-    //sampleColor = cv.accColor;
+    sampleColor = cv.accColor;
   }
   else
   {
@@ -849,11 +873,13 @@ __kernel void MMLTConnect(__global const int2  *  restrict in_splitInfo,
     }
   }
 
-  //const float3 shadow = decompressShadow(in_shadow[tid]);
-  //sampleColor *= shadow;
+  sampleColor *= decompressShadow(in_shadow[tid]);
 
   if (!isfinite(sampleColor.x) || !isfinite(sampleColor.y) || !isfinite(sampleColor.z))
     sampleColor = make_float3(0, 0, 0);
+
+  // #TODO: implement MIS weights here ... 
+  //
 
   const int zid = (int)ZIndex(x, y, a_mortonTable256);
   if(out_zind != 0)

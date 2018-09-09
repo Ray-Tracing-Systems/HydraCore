@@ -40,8 +40,8 @@ void GPUOCLLayer::ConnectEyePass(cl_mem in_rayFlags, cl_mem in_rayDirOld, cl_mem
   runKernel_EyeShadowRays(in_rayFlags, in_rayDirOld,
                           m_rays.shadowRayPos, m_rays.shadowRayDir, a_size);
 
-  runKernel_ShadowTrace(in_rayFlags, m_rays.shadowRayPos, m_rays.shadowRayDir,
-                        m_rays.lshadow, a_size);
+  runKernel_ShadowTrace(in_rayFlags, m_rays.shadowRayPos, m_rays.shadowRayDir, a_size,
+                        m_rays.lshadow);
 
   runKernel_ProjectSamplesToScreen(in_rayFlags, m_rays.shadowRayDir, in_rayDirOld, in_color,
                                    m_rays.pathShadeColor, m_rays.samZindex, a_size, a_bounce);
@@ -193,7 +193,36 @@ void GPUOCLLayer::runKernel_MMLTLightPathBounce(cl_mem a_rayFlags, cl_mem a_rpos
   waitIfDebug(__FILE__, __LINE__);
 }
 
-void GPUOCLLayer::runKernel_MMLTConnect(cl_mem in_splitInfo, cl_mem  in_cameraVertexHit, cl_mem in_cameraVertexSup, cl_mem  in_lightVertexHit, cl_mem  in_lightVertexSup, size_t a_size, 
+
+void GPUOCLLayer::runkernel_MMLTMakeShadowRay(cl_mem in_splitInfo, cl_mem  in_cameraVertexHit, cl_mem in_cameraVertexSup, cl_mem  in_lightVertexHit, cl_mem  in_lightVertexSup, size_t a_size,
+                                              cl_mem sray_pos, cl_mem sray_dir, cl_mem sray_flags)
+                                              
+{
+  cl_kernel kernX      = m_progs.mlt.kernel("MMLTMakeShadowRay");
+
+  size_t localWorkSize = 256;
+  int            isize = int(a_size);
+  a_size               = roundBlocks(a_size, int(localWorkSize));
+
+  CHECK_CL(clSetKernelArg(kernX, 0, sizeof(cl_mem), (void*)&in_splitInfo));
+  CHECK_CL(clSetKernelArg(kernX, 1, sizeof(cl_mem), (void*)&in_lightVertexHit));
+  CHECK_CL(clSetKernelArg(kernX, 2, sizeof(cl_mem), (void*)&in_lightVertexSup));
+  CHECK_CL(clSetKernelArg(kernX, 3, sizeof(cl_mem), (void*)&in_cameraVertexHit));
+  CHECK_CL(clSetKernelArg(kernX, 4, sizeof(cl_mem), (void*)&in_cameraVertexSup));
+
+  CHECK_CL(clSetKernelArg(kernX, 5, sizeof(cl_mem), (void*)&sray_pos));
+  CHECK_CL(clSetKernelArg(kernX, 6, sizeof(cl_mem), (void*)&sray_dir));
+  CHECK_CL(clSetKernelArg(kernX, 7, sizeof(cl_mem), (void*)&sray_flags));
+
+  CHECK_CL(clSetKernelArg(kernX, 8, sizeof(cl_mem), (void*)&m_scene.storageMat));
+  CHECK_CL(clSetKernelArg(kernX, 9, sizeof(cl_mem), (void*)&m_scene.allGlobsData));
+  CHECK_CL(clSetKernelArg(kernX,10, sizeof(cl_int), (void*)&isize));
+
+  CHECK_CL(clEnqueueNDRangeKernel(m_globals.cmdQueue, kernX, 1, NULL, &a_size, &localWorkSize, 0, NULL, NULL));
+  waitIfDebug(__FILE__, __LINE__);
+}
+
+void GPUOCLLayer::runKernel_MMLTConnect(cl_mem in_splitInfo, cl_mem  in_cameraVertexHit, cl_mem in_cameraVertexSup, cl_mem  in_lightVertexHit, cl_mem  in_lightVertexSup, cl_mem in_shadow, size_t a_size, 
                                         cl_mem a_outColor, cl_mem a_outZIndex)
 {
   const cl_float mLightSubPathCount = cl_float(m_width*m_height);
@@ -210,7 +239,7 @@ void GPUOCLLayer::runKernel_MMLTConnect(cl_mem in_splitInfo, cl_mem  in_cameraVe
   CHECK_CL(clSetKernelArg(kernX, 3, sizeof(cl_mem), (void*)&in_cameraVertexHit));
   CHECK_CL(clSetKernelArg(kernX, 4, sizeof(cl_mem), (void*)&in_cameraVertexSup));
   CHECK_CL(clSetKernelArg(kernX, 5, sizeof(cl_mem), (void*)&m_rays.hitProcTexData));
-  CHECK_CL(clSetKernelArg(kernX, 6, sizeof(cl_mem), (void*)&m_rays.lshadow));
+  CHECK_CL(clSetKernelArg(kernX, 6, sizeof(cl_mem), (void*)&in_shadow));
   
   CHECK_CL(clSetKernelArg(kernX, 7, sizeof(cl_mem), (void*)&m_mlt.pdfArray));
   CHECK_CL(clSetKernelArg(kernX, 8, sizeof(cl_mem), (void*)&a_outColor));
@@ -279,20 +308,23 @@ void GPUOCLLayer::TraceSBDPTPass(cl_mem a_rpos, cl_mem a_rdir, size_t a_size,
  
   // (3) ConnectEye, ConnectShadow and ConnectEndPoinst
   //
+  runkernel_MMLTMakeShadowRay(m_mlt.splitData, m_mlt.cameraVertexHit, m_mlt.cameraVertexSup, lightVertexHit, lightVertexSup, a_size, 
+                              m_rays.shadowRayPos, m_rays.shadowRayDir, m_rays.rayFlags);
+
+  runKernel_ShadowTrace(m_rays.rayFlags, m_rays.shadowRayPos, m_rays.shadowRayDir, a_size,
+                        m_rays.lshadow);
   
-  runKernel_MMLTConnect(m_mlt.splitData, m_mlt.cameraVertexHit, m_mlt.cameraVertexSup, lightVertexHit, lightVertexSup, a_size, 
+  runKernel_MMLTConnect(m_mlt.splitData, m_mlt.cameraVertexHit, m_mlt.cameraVertexSup, lightVertexHit, lightVertexSup, m_rays.lshadow, a_size, 
                         a_outColor, a_outZIndex);
 
-  //{
-  //  runKernel_EyeShadowRays(m_rays.rayFlags, a_rdir,
-  //                          m_rays.shadowRayPos, m_rays.shadowRayDir, a_size);
-  //
-  //  runKernel_ShadowTrace(m_rays.rayFlags, m_rays.shadowRayPos, m_rays.shadowRayDir,
-  //                        m_rays.lshadow, a_size);
-  //
-  //  runKernel_ProjectSamplesToScreen(m_rays.rayFlags, m_rays.shadowRayDir, a_rdir, a_outColor,
-  //                                   a_outColor, a_outZIndex, a_size, 1);
-  //}
+
+  //runKernel_EyeShadowRays(m_rays.rayFlags, a_rdir,
+  //                        m_rays.shadowRayPos, m_rays.shadowRayDir, a_size);
+  //runKernel_ShadowTrace(m_rays.rayFlags, m_rays.shadowRayPos, m_rays.shadowRayDir,
+  //                      m_rays.lshadow, a_size);
+  //runKernel_ProjectSamplesToScreen(m_rays.rayFlags, m_rays.shadowRayDir, a_rdir, a_outColor,
+  //                                 a_outColor, a_outZIndex, a_size, 1);
+
 
 }
 
