@@ -390,7 +390,7 @@ protected:
   mutable char m_deviceName[1024];
 
   void runKernel_InitRandomGen(cl_mem a_buffer, size_t a_size, int a_seed);
-  void runKernel_MakeEyeRays(cl_mem a_rpos, cl_mem a_rdir, cl_mem a_zindex, size_t a_size, int a_passNumber);
+  void runKernel_MakeEyeRays(cl_mem a_rpos, cl_mem a_rdir, cl_mem a_zindex, size_t a_size, int a_passNumber, bool a_setSortedFlag = true);
   void runKernel_MakeLightRays(cl_mem a_rpos, cl_mem a_rdir, cl_mem a_outColor, size_t a_size);
   void runKernel_MakeEyeRaysSpp(int32_t a_blockSize, int32_t yBegin, size_t a_size, cl_mem in_pixels,
                                 cl_mem rayPos, cl_mem rayDir);

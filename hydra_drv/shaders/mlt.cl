@@ -50,7 +50,7 @@ __kernel void MMLTInitCameraPath(__global   uint* restrict a_flags,
     return;
 
   const int d = MMLT_GPU_TEST_DEPTH;
-  const int s = 2; 
+  const int s = 3; 
 
   a_flags[tid] = packBounceNum(0, 1);
   a_color[tid] = make_float4(1,1,1,1);
@@ -395,7 +395,6 @@ __kernel void MMLTCameraPathBounce(__global   float4*        restrict a_rpos,
 }
 
 
-
 __kernel void MMLTLightSampleForward(__global   float4*        restrict a_rpos,
                                      __global   float4*        restrict a_rdir,
                                      __global   uint*          restrict a_flags,
@@ -663,7 +662,6 @@ __kernel void MMLTLightPathBounce (__global   float4*        restrict a_rpos,
   
 }
 
-
 __kernel void MMLTMakeShadowRay(__global const int2  *  restrict in_splitInfo,
                                 __global const float4*  restrict in_lv_hit,
                                 __global const float4*  restrict in_lv_sup,
@@ -705,26 +703,6 @@ __kernel void MMLTMakeShadowRay(__global const int2  *  restrict in_splitInfo,
                  &cv.hit);
   ReadPathVertexSupplement(in_cv_sup, tid, iNumElements, 
                            &cv);
-
-  /*
-  if (lv.hit.matId >= 0)
-  {
-    float3 camDir; float zDepth;
-    const float imageToSurfaceFactor = CameraImageToSurfaceFactor(lv.hit.pos, lv.hit.normal, a_globals,
-                                                                  &camDir, &zDepth);
-  
-    float signOfNormal = 1.0f;
-    if (lv.hit.matId >= 0)
-    {
-      __global const PlainMaterial* pHitMaterial = materialAt(a_globals, in_mtlStorage, lv.hit.matId);
-      if ((materialGetFlags(pHitMaterial) & PLAIN_MATERIAL_HAVE_BTDF) != 0 && dot(camDir, lv.hit.normal) < -0.01f)
-        signOfNormal *= -1.0f;
-    }
-  
-    out_ray_pos[tid] = to_float4(lv.hit.pos + epsilonOfPos(lv.hit.pos)*signOfNormal*lv.hit.normal, zDepth); // OffsRayPos(lv.hit.pos, lv.hit.normal, camDir);
-    out_ray_dir[tid] = to_float4(camDir, as_float(-1));
-  }
-  */
 
   if (lightTraceDepth == -1)        // (3.1) -1 means we have full camera path, no conection is needed
   {

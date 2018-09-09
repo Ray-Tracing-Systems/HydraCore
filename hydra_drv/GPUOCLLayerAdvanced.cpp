@@ -263,30 +263,29 @@ void GPUOCLLayer::TraceSBDPTPass(cl_mem a_rpos, cl_mem a_rdir, size_t a_size,
 {
   int maxBounce = MMLT_GPU_TEST_DEPTH;
 
-  // (1) camera pass
+  // (0) select split, init camera path
   //
   runKernel_MMLTInitSplitAndCamV(m_rays.rayFlags, a_outColor, m_mlt.splitData, m_mlt.cameraVertexSup, a_size);
 
-  /*
-  runKernel_MakeEyeRays(m_rays.rayPos, m_rays.rayDir, m_rays.samZindex, m_rays.MEGABLOCKSIZE, m_passNumberForQMC);
-
+  // (1) camera pass
+  //
+  runKernel_MakeEyeRays(m_rays.rayPos, m_rays.rayDir, m_rays.samZindex, m_rays.MEGABLOCKSIZE, m_passNumberForQMC, false);
   for (int bounce = 0; bounce < maxBounce; bounce++)
   {
     runKernel_Trace(a_rpos, a_rdir, a_size,
                     m_rays.hits);
-
+  
     runKernel_ComputeHit(a_rpos, a_rdir, m_rays.hits, a_size, 
                          m_mlt.cameraVertexHit, m_rays.hitProcTexData);
-
+  
     runKernel_MMLTCameraPathBounce(m_rays.rayFlags, a_rpos, a_rdir, a_outColor, m_mlt.splitData, a_size,  //#NOTE: m_mlt.rstateCurr used inside
                                    m_mlt.cameraVertexHit, m_mlt.cameraVertexSup);
   }
 
-  runKernel_CopyAccColorTo(m_mlt.cameraVertexSup, a_size, 
-                           a_outColor);
-  */
-    
-  
+  // runKernel_CopyAccColorTo(m_mlt.cameraVertexSup, a_size, 
+  //                          a_outColor);
+  // return;
+
   // (2) light pass
   //
   cl_mem lightVertexHit = m_rays.hitSurfaceAll;
