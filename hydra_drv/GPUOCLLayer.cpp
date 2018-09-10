@@ -56,6 +56,7 @@ void GPUOCLLayer::CL_BUFFERS_RAYS::free()
   if (lsam1)           { clReleaseMemObject(lsam1); lsam1 = nullptr; }
   if (lsam2)           { clReleaseMemObject(lsam2); lsam2 = nullptr; }
   if (lsamCos)         { clReleaseMemObject(lsamCos); lsamCos = nullptr; }
+  if (lsamRev)         { clReleaseMemObject(lsamRev); lsamRev = nullptr; }
 
   if (shadowRayPos)    { clReleaseMemObject(shadowRayPos); shadowRayPos = nullptr; }
   if (shadowRayDir)    { clReleaseMemObject(shadowRayDir); shadowRayDir = nullptr; }
@@ -120,10 +121,11 @@ size_t GPUOCLLayer::CL_BUFFERS_RAYS::resize(cl_context ctx, cl_command_queue cmd
   if (ciErr1 != CL_SUCCESS)
     RUN_TIME_ERROR("Error in resize rays buffers");
 
-  lsam1        = clCreateBuffer(ctx, CL_MEM_READ_WRITE | shareFlags, 4 * sizeof(cl_float)*MEGABLOCKSIZE, NULL, &ciErr1);     currSize += buff1Size * 4;
-  lsam2        = clCreateBuffer(ctx, CL_MEM_READ_WRITE | shareFlags, 4 * sizeof(cl_float)*MEGABLOCKSIZE, NULL, &ciErr1);     currSize += buff1Size * 4;
-  lsamCos      = clCreateBuffer(ctx, CL_MEM_READ_WRITE | shareFlags, 4 * sizeof(cl_float)*MEGABLOCKSIZE, NULL, &ciErr1);     currSize += buff1Size * 4;
-                                                                                                                          
+  lsam1        = clCreateBuffer(ctx, CL_MEM_READ_WRITE, 4 * sizeof(cl_float)*MEGABLOCKSIZE, NULL, &ciErr1);     currSize += buff1Size * 4;
+  lsam2        = clCreateBuffer(ctx, CL_MEM_READ_WRITE, 4 * sizeof(cl_float)*MEGABLOCKSIZE, NULL, &ciErr1);     currSize += buff1Size * 4;
+  lsamCos      = clCreateBuffer(ctx, CL_MEM_READ_WRITE, 4 * sizeof(cl_float)*MEGABLOCKSIZE, NULL, &ciErr1);     currSize += buff1Size * 4;
+  lsamRev      = clCreateBuffer(ctx, CL_MEM_READ_WRITE, 10 * sizeof(cl_float)*MEGABLOCKSIZE, NULL, &ciErr1);    currSize += buff1Size * 10;
+
   shadowRayPos = clCreateBuffer(ctx, CL_MEM_READ_WRITE | shareFlags, 4 * sizeof(cl_float)*MEGABLOCKSIZE, NULL, &ciErr1);   currSize += buff1Size * 4;
   shadowRayDir = clCreateBuffer(ctx, CL_MEM_READ_WRITE | shareFlags, 4 * sizeof(cl_float)*MEGABLOCKSIZE, NULL, &ciErr1);   currSize += buff1Size * 4;
   accPdf       = clCreateBuffer(ctx, CL_MEM_READ_WRITE | shareFlags, 1 * sizeof(PerRayAcc)*MEGABLOCKSIZE, NULL, &ciErr1);  currSize += buff1Size * 1;

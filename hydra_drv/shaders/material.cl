@@ -46,7 +46,15 @@ __kernel void MakeEyeShadowRays(__global const uint*          restrict a_flags,
 
   out_sraypos[tid] = to_float4(sHit.pos + epsilonOfPos(sHit.pos)*signOfNormal*sHit.normal, zDepth); // OffsRayPos(sHit.pos, sHit.normal, camDir);
   out_sraydir[tid] = to_float4(camDir, as_float(-1));
+
+  //#TODO: accelarate shadow trace by reverse shadow dir !!!
+
+  //const float3 camPos = sHit.pos + epsilonOfPos(sHit.pos)*signOfNormal*sHit.normal*zDepth;
+  //
+  //out_sraypos[tid] = to_float4(camPos, zDepth); 
+  //out_sraydir[tid] = to_float4(camDir*(-1.0f), as_float(-1));
 }
+
 
 #define BUGGY_AMD_IBPT_PROCTEX_FETCH
 
@@ -595,11 +603,10 @@ __kernel void Shade(__global const float4*    restrict a_rpos,
               
                     __global const float4*    restrict in_surfaceHit,
                   
-                    __global const float4*    restrict in_data1,
-                    __global const float4*    restrict in_data2,
+                
                     __global const ushort4*   restrict in_shadow,
-                    __global const float*     restrict in_lightPickProb,
-                    __global const float*     restrict in_lcos,
+
+                    __global const float*     restrict in_lrev,
                     __global const float4*    restrict in_procTexData,
 
                     __global const PerRayAcc* restrict in_pdfAccPrev,
@@ -646,17 +653,11 @@ __kernel void Shade(__global const float4*    restrict a_rpos,
   float3 ray_pos = to_float3(a_rpos[tid]);
   float3 ray_dir = to_float3(a_rdir[tid]);
 
-  float4 data1   = in_data1[tid];
-  float4 data2   = in_data2[tid];
 
-  ShadowSample explicitSam;
+  ShadowSample explicitSam; float lightPickProb;
 
-  explicitSam.pos        = to_float3(data1);
-  explicitSam.color      = to_float3(data2);
-  explicitSam.pdf        = fabs(data1.w);
-  explicitSam.maxDist    = data2.w;
-  explicitSam.isPoint    = (data1.w <= 0);
-  explicitSam.cosAtLight = in_lcos[tid];
+  ReadShadowSample(in_lrev, tid, iNumElements,
+                   &explicitSam, &lightPickProb);
 
   //float3 shadowRayPos = surfHit.pos + surfHit.normal*maxcomp(surfHit.pos)*GEPSILON;
   float3 shadowRayDir = normalize(explicitSam.pos - surfHit.pos); 
@@ -687,8 +688,6 @@ __kernel void Shade(__global const float4*    restrict a_rpos,
 
   const BxDFResult evalData = materialEval(pHitMaterial, &sc, disableCaustics, false, /* global data --> */ a_globals, in_texStorage1, in_texStorage2, &ptl);
   const float3 shadow       = decompressShadow(in_shadow[tid]);
-  const float lightPickProb = in_lightPickProb[tid];
-
   const int lightOffset     = in_loffs[tid];
 
   __global const PlainLight* pLight = lightAt(a_globals, lightOffset);

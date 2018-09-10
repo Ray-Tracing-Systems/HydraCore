@@ -881,25 +881,21 @@ void GPUOCLLayer::ShadePass(cl_mem a_rpos, cl_mem a_rdir, cl_mem a_outColor, siz
     CHECK_CL(clSetKernelArg(kernX, 2, sizeof(cl_mem), (void*)&m_rays.rayFlags));
     CHECK_CL(clSetKernelArg(kernX, 3, sizeof(cl_mem), (void*)&m_rays.hitSurfaceAll));
     CHECK_CL(clSetKernelArg(kernX, 4, sizeof(cl_mem), (void*)&m_rays.randGenState));
-
-    CHECK_CL(clSetKernelArg(kernX, 5, sizeof(cl_mem), (void*)&m_rays.lsam1));     // float4
-    CHECK_CL(clSetKernelArg(kernX, 6, sizeof(cl_mem), (void*)&m_rays.lsam2));     // float4
-    CHECK_CL(clSetKernelArg(kernX, 7, sizeof(cl_mem), (void*)&m_rays.lsamProb));  // float
-    CHECK_CL(clSetKernelArg(kernX, 8, sizeof(cl_mem), (void*)&m_rays.lsamCos));   // float
+    CHECK_CL(clSetKernelArg(kernX, 5, sizeof(cl_mem), (void*)&m_rays.lsamRev));
     
-    CHECK_CL(clSetKernelArg(kernX, 9, sizeof(cl_mem), (void*)&m_rays.shadowRayPos));    // float4
-    CHECK_CL(clSetKernelArg(kernX, 10, sizeof(cl_mem), (void*)&m_rays.shadowRayDir));    // float4
-    CHECK_CL(clSetKernelArg(kernX, 11, sizeof(cl_mem), (void*)&m_rays.lightOffsetBuff)); // int1
+    CHECK_CL(clSetKernelArg(kernX, 6, sizeof(cl_mem), (void*)&m_rays.shadowRayPos));    // float4
+    CHECK_CL(clSetKernelArg(kernX, 7, sizeof(cl_mem), (void*)&m_rays.shadowRayDir));    // float4
+    CHECK_CL(clSetKernelArg(kernX, 8, sizeof(cl_mem), (void*)&m_rays.lightOffsetBuff)); // int1
     
-    CHECK_CL(clSetKernelArg(kernX, 12, sizeof(cl_mem), (void*)&m_scene.storageTex));
-    CHECK_CL(clSetKernelArg(kernX, 13, sizeof(cl_mem), (void*)&m_scene.storageTexAux)); 
-    CHECK_CL(clSetKernelArg(kernX, 14, sizeof(cl_mem), (void*)&m_scene.storagePdfs));
+    CHECK_CL(clSetKernelArg(kernX, 9, sizeof(cl_mem), (void*)&m_scene.storageTex));
+    CHECK_CL(clSetKernelArg(kernX, 10, sizeof(cl_mem), (void*)&m_scene.storageTexAux)); 
+    CHECK_CL(clSetKernelArg(kernX, 11, sizeof(cl_mem), (void*)&m_scene.storagePdfs));
   
-    CHECK_CL(clSetKernelArg(kernX, 15, sizeof(cl_mem), (void*)&m_globals.qmcTable));
-    CHECK_CL(clSetKernelArg(kernX, 16, sizeof(cl_int), (void*)&m_globals.m_passNumberQMC));
+    CHECK_CL(clSetKernelArg(kernX, 12, sizeof(cl_mem), (void*)&m_globals.qmcTable));
+    CHECK_CL(clSetKernelArg(kernX, 13, sizeof(cl_int), (void*)&m_globals.m_passNumberQMC));
     
-    CHECK_CL(clSetKernelArg(kernX, 17, sizeof(cl_int), (void*)&isize));
-    CHECK_CL(clSetKernelArg(kernX, 18, sizeof(cl_mem), (void*)&m_scene.allGlobsData));
+    CHECK_CL(clSetKernelArg(kernX, 14, sizeof(cl_int), (void*)&isize));
+    CHECK_CL(clSetKernelArg(kernX, 15, sizeof(cl_mem), (void*)&m_scene.allGlobsData));
 
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   }
@@ -956,26 +952,23 @@ void GPUOCLLayer::ShadePass(cl_mem a_rpos, cl_mem a_rdir, cl_mem a_outColor, siz
     CHECK_CL(clSetKernelArg(kernZ, 2, sizeof(cl_mem), (void*)&m_rays.rayFlags));
     CHECK_CL(clSetKernelArg(kernZ, 3, sizeof(cl_mem), (void*)&m_rays.hitSurfaceAll));
    
-    CHECK_CL(clSetKernelArg(kernZ, 4, sizeof(cl_mem),  (void*)&m_rays.lsam1));
-    CHECK_CL(clSetKernelArg(kernZ, 5, sizeof(cl_mem),  (void*)&m_rays.lsam2));
-    CHECK_CL(clSetKernelArg(kernZ, 6, sizeof(cl_mem), (void*)&m_rays.lshadow));
-    CHECK_CL(clSetKernelArg(kernZ, 7, sizeof(cl_mem), (void*)&m_rays.lsamProb));
-    CHECK_CL(clSetKernelArg(kernZ, 8, sizeof(cl_mem), (void*)&m_rays.lsamCos));
-    CHECK_CL(clSetKernelArg(kernZ, 9, sizeof(cl_mem), (void*)&m_rays.hitProcTexData));
+    CHECK_CL(clSetKernelArg(kernZ, 4, sizeof(cl_mem),  (void*)&m_rays.lshadow));
+    CHECK_CL(clSetKernelArg(kernZ, 5, sizeof(cl_mem),  (void*)&m_rays.lsamRev));
+    CHECK_CL(clSetKernelArg(kernZ, 6, sizeof(cl_mem), (void*)&m_rays.hitProcTexData));
 
-    CHECK_CL(clSetKernelArg(kernZ, 10, sizeof(cl_mem), (void*)&m_rays.oldColor));        // pdfAccCopy
-    CHECK_CL(clSetKernelArg(kernZ, 11, sizeof(cl_mem), (void*)&m_rays.lightOffsetBuff)); // and selected LightId
-    CHECK_CL(clSetKernelArg(kernZ, 12, sizeof(cl_mem), (void*)&m_rays.oldFlags));        // camPdfA
+    CHECK_CL(clSetKernelArg(kernZ, 7, sizeof(cl_mem), (void*)&m_rays.oldColor));        // pdfAccCopy
+    CHECK_CL(clSetKernelArg(kernZ, 8, sizeof(cl_mem), (void*)&m_rays.lightOffsetBuff)); // and selected LightId
+    CHECK_CL(clSetKernelArg(kernZ, 9, sizeof(cl_mem), (void*)&m_rays.oldFlags));        // camPdfA
 
-    CHECK_CL(clSetKernelArg(kernZ, 13, sizeof(cl_mem), (void*)&a_outColor));
-    CHECK_CL(clSetKernelArg(kernZ, 14, sizeof(cl_mem), (void*)&m_rays.pathShadow8B));
+    CHECK_CL(clSetKernelArg(kernZ, 10, sizeof(cl_mem), (void*)&a_outColor));
+    CHECK_CL(clSetKernelArg(kernZ, 11, sizeof(cl_mem), (void*)&m_rays.pathShadow8B));
 
-    CHECK_CL(clSetKernelArg(kernZ, 15, sizeof(cl_mem), (void*)&m_scene.storageTex));
-    CHECK_CL(clSetKernelArg(kernZ, 16, sizeof(cl_mem), (void*)&m_scene.storageTexAux));
-    CHECK_CL(clSetKernelArg(kernZ, 17, sizeof(cl_mem), (void*)&m_scene.storageMat));
-    CHECK_CL(clSetKernelArg(kernZ, 18, sizeof(cl_mem), (void*)&m_scene.storagePdfs));
-    CHECK_CL(clSetKernelArg(kernZ, 19, sizeof(cl_mem), (void*)&m_scene.allGlobsData));
-    CHECK_CL(clSetKernelArg(kernZ, 20, sizeof(cl_int), (void*)&isize));
+    CHECK_CL(clSetKernelArg(kernZ, 12, sizeof(cl_mem), (void*)&m_scene.storageTex));
+    CHECK_CL(clSetKernelArg(kernZ, 13, sizeof(cl_mem), (void*)&m_scene.storageTexAux));
+    CHECK_CL(clSetKernelArg(kernZ, 14, sizeof(cl_mem), (void*)&m_scene.storageMat));
+    CHECK_CL(clSetKernelArg(kernZ, 15, sizeof(cl_mem), (void*)&m_scene.storagePdfs));
+    CHECK_CL(clSetKernelArg(kernZ, 16, sizeof(cl_mem), (void*)&m_scene.allGlobsData));
+    CHECK_CL(clSetKernelArg(kernZ, 17, sizeof(cl_int), (void*)&isize));
 
     CHECK_CL(clEnqueueNDRangeKernel(m_globals.cmdQueue, kernZ, 1, NULL, &a_size, &localWorkSize, 0, NULL, NULL));  
     waitIfDebug(__FILE__, __LINE__);

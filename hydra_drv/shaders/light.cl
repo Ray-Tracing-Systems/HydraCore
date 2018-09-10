@@ -149,10 +149,7 @@ __kernel void LightSample(__global const float4*  restrict in_rpos,
                           __global const float4*  restrict in_surfaceHit,
 
                           __global RandomGen*     restrict out_gens,
-                          __global float4*        restrict out_data1,
-                          __global float4*        restrict out_data2,
-                          __global float*         restrict out_lPP,
-                          __global float*         restrict out_lcos,
+                          __global float2*        restrict out_lrev,
 
                           __global float4*        restrict out_srpos,
                           __global float4*        restrict out_srdir,
@@ -214,13 +211,8 @@ __kernel void LightSample(__global const float4*  restrict in_rpos,
   LightSampleRev(pLight, rands3, sHit.pos, a_globals, a_pdfStorage, a_texStorage1,
                  &explicitSam);
 
-  if (explicitSam.isPoint)
-    explicitSam.pdf *= -1.0f; // just to pack 'isPont' flag in pdf
-
-  out_data1[tid] = make_float4(explicitSam.pos.x, explicitSam.pos.y, explicitSam.pos.z, explicitSam.pdf);
-  out_data2[tid] = make_float4(explicitSam.color.x, explicitSam.color.y, explicitSam.color.z, explicitSam.maxDist);
-  out_lPP  [tid] = lightPickProb;
-  out_lcos [tid] = explicitSam.cosAtLight;
+  WriteShadowSample(&explicitSam, lightPickProb, tid, iNumElements,
+                    out_lrev);
 
   float lightShadowDistScale = (as_int(pLight->data[PLIGHT_TYPE]) == PLAIN_LIGHT_TYPE_SKY_DOME) ? 2.0f : 0.995f;
   if (as_int(pLight->data[PLIGHT_FLAGS]) & AREA_LIGHT_SKY_PORTAL)

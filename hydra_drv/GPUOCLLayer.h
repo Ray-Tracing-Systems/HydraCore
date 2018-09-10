@@ -218,7 +218,7 @@ protected:
   {
     CL_BUFFERS_RAYS() : rayPos(0), rayDir(0), hits(0), rayFlags(0), hitSurfaceAll(0), hitProcTexData(0),
                         pathThoroughput(0), pathMisDataPrev(0), pathShadeColor(0), pathAccColor(0), pathAuxColor(0), pathAuxColorCPU(0), pathShadow8B(0), pathShadow8BAux(0), pathShadow8BAuxCPU(0), randGenState(0),
-                        lsam1(0), lsam2(0), lsamCos(0), shadowRayPos(0), shadowRayDir(0), accPdf(0), oldFlags(0), oldRayDir(0), oldColor(0), lightNumberLT(0), lsamProb(0),
+                        lsam1(0), lsam2(0), lsamCos(0), lsamRev(0), shadowRayPos(0), shadowRayDir(0), accPdf(0), oldFlags(0), oldRayDir(0), oldColor(0), lightNumberLT(0), lsamProb(0),
                         lshadow(0), fogAtten(0), samZindex(0), aoCompressed(0), aoCompressed2(0), lightOffsetBuff(0), packedXY(0), debugf4(0), atomicCounterMem(0), MEGABLOCKSIZE(0) {}
 
     void free();
@@ -247,6 +247,8 @@ protected:
     cl_mem lsam2;         // when LT is enabled: CONSTANT FOR ALL BOUNCES; .xyz store sample.dir; .w store lightPdfA;
                           // when PT is enabled: TEMP PER BOUNCE;          .xyz store lsam.color; .w store lsam.maxDist
     cl_mem lsamCos;       // store single float lsam.cosAtLight when use PT
+    cl_mem lsamRev;
+
     cl_mem shadowRayPos;
     cl_mem shadowRayDir;
     cl_mem accPdf;        ///< accumulated pdf weights for 3-way Bogolepov light transport
