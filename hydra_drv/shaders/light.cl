@@ -144,7 +144,7 @@ __kernel void LightSample(__global const float4*  restrict in_rpos,
                           __global const float4*  restrict in_surfaceHit,
 
                           __global RandomGen*     restrict out_gens,
-                          __global float2*        restrict out_lrev,
+                          __global float4*        restrict out_lrev,
 
                           __global float4*        restrict out_srpos,
                           __global float4*        restrict out_srdir,

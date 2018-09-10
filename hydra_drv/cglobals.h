@@ -2398,36 +2398,30 @@ typedef struct ShadowSampleT
 } ShadowSample;
 
 static inline void WriteShadowSample(const __private ShadowSample* a_pSam, float a_lightProbSel, int a_lightOffset, int a_tid, int a_threadNum,
-                                     __global float2* a_out)
+                                     __global float4* a_out)
 {
   const float pdfAndIsPoint = a_pSam->isPoint ? (-1.0f)*a_pSam->pdf : a_pSam->pdf;
 
-  a_out[a_tid + a_threadNum*0] = make_float2(a_pSam->pos.x,      a_pSam->pos.y);
-  a_out[a_tid + a_threadNum*1] = make_float2(a_pSam->pos.z,      pdfAndIsPoint);
-  a_out[a_tid + a_threadNum*2] = make_float2(a_pSam->color.x,    a_pSam->color.y);
-  a_out[a_tid + a_threadNum*3] = make_float2(a_pSam->color.z,    a_pSam->maxDist);
-  a_out[a_tid + a_threadNum*4] = make_float2(a_pSam->cosAtLight, a_lightProbSel);
-  a_out[a_tid + a_threadNum*5] = make_float2(as_float(a_lightOffset), 0);
+  a_out[a_tid + a_threadNum*0] = make_float4(a_pSam->pos.x,   a_pSam->pos.y,   a_pSam->pos.z,   pdfAndIsPoint);
+  a_out[a_tid + a_threadNum*1] = make_float4(a_pSam->color.x, a_pSam->color.y, a_pSam->color.z, a_pSam->maxDist);
+  a_out[a_tid + a_threadNum*2] = make_float4(a_pSam->cosAtLight, a_lightProbSel, as_float(a_lightOffset), 0);
 }
 
-static inline void ReadShadowSample(const __global float2* a_in, int a_tid, int a_threadNum,
+static inline void ReadShadowSample(const __global float4* a_in, int a_tid, int a_threadNum,
                                     __private ShadowSample* a_pSam, __private float* a_pLightProbSel, __private int* a_pLightOffset)
 {
-  const float2 f0 = a_in[a_tid + a_threadNum*0];
-  const float2 f1 = a_in[a_tid + a_threadNum*1];
-  const float2 f2 = a_in[a_tid + a_threadNum*2];
-  const float2 f3 = a_in[a_tid + a_threadNum*3];
-  const float2 f4 = a_in[a_tid + a_threadNum*4];
-  const float2 f5 = a_in[a_tid + a_threadNum*5];
-
+  const float4 f0 = a_in[a_tid + a_threadNum*0];
+  const float4 f1 = a_in[a_tid + a_threadNum*1];
+  const float4 f2 = a_in[a_tid + a_threadNum*2];
+ 
   a_pSam->pos.x = f0.x; a_pSam->pos.y = f0.y;
-  a_pSam->pos.z = f1.x; a_pSam->pdf   = fabs(f1.y); a_pSam->isPoint = (f1.y <= 0); // this is ok, if pdf is 0, it can be only point light
+  a_pSam->pos.z = f0.z; a_pSam->pdf   = fabs(f0.w); a_pSam->isPoint = (f0.w <= 0); // this is ok, if pdf is 0, it can be only point light
   
-  a_pSam->color.x = f2.x; a_pSam->color.y = f2.y;
-  a_pSam->color.z = f3.x; a_pSam->maxDist = f3.y;
+  a_pSam->color.x = f1.x; a_pSam->color.y = f1.y;
+  a_pSam->color.z = f1.z; a_pSam->maxDist = f1.w;
 
-  a_pSam->cosAtLight = f4.x; (*a_pLightProbSel) = f4.y; 
-  (*a_pLightOffset)  = as_int(f5.x);
+  a_pSam->cosAtLight = f2.x; (*a_pLightProbSel) = f2.y; 
+  (*a_pLightOffset)  = as_int(f2.z);
 }
 
 
