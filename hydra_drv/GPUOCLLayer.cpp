@@ -53,10 +53,8 @@ void GPUOCLLayer::CL_BUFFERS_RAYS::free()
 
   if (pathAuxColorCPU) { clReleaseMemObject(pathAuxColorCPU); pathAuxColorCPU = nullptr; }
 
-  if (lsam1)           { clReleaseMemObject(lsam1); lsam1 = nullptr; }
-  if (lsam2)           { clReleaseMemObject(lsam2); lsam2 = nullptr; }
-  if (lsamCos)         { clReleaseMemObject(lsamCos); lsamCos = nullptr; }
-  if (lsamRev)         { clReleaseMemObject(lsamRev); lsamRev = nullptr; }
+  if (lsamRev)         { clReleaseMemObject(lsamRev);  lsamRev  = nullptr; }
+  if (lshadow)         { clReleaseMemObject(lshadow);  lshadow  = nullptr; }
 
   if (shadowRayPos)    { clReleaseMemObject(shadowRayPos); shadowRayPos = nullptr; }
   if (shadowRayDir)    { clReleaseMemObject(shadowRayDir); shadowRayDir = nullptr; }
@@ -66,9 +64,6 @@ void GPUOCLLayer::CL_BUFFERS_RAYS::free()
   if(oldRayDir)        { clReleaseMemObject(oldRayDir); oldRayDir = nullptr; }
   if(oldColor)         { clReleaseMemObject(oldColor);  oldColor  = nullptr; }
   if(lightNumberLT)    { clReleaseMemObject(lightNumberLT); lightNumberLT = nullptr; }
-
-  if (lsamProb)        { clReleaseMemObject(lsamProb); lsamProb = nullptr; }
-  if (lshadow)         { clReleaseMemObject(lshadow);  lshadow  = nullptr; }
                        
   if (fogAtten)        { clReleaseMemObject(fogAtten);   fogAtten   = nullptr; }
   if (samZindex)       { clReleaseMemObject(samZindex);  samZindex  = nullptr; }
@@ -121,11 +116,8 @@ size_t GPUOCLLayer::CL_BUFFERS_RAYS::resize(cl_context ctx, cl_command_queue cmd
   if (ciErr1 != CL_SUCCESS)
     RUN_TIME_ERROR("Error in resize rays buffers");
 
-  lsam1        = clCreateBuffer(ctx, CL_MEM_READ_WRITE, 4 * sizeof(cl_float)*MEGABLOCKSIZE, NULL, &ciErr1);     currSize += buff1Size * 4;
-  lsam2        = clCreateBuffer(ctx, CL_MEM_READ_WRITE, 4 * sizeof(cl_float)*MEGABLOCKSIZE, NULL, &ciErr1);     currSize += buff1Size * 4;
-  lsamCos      = clCreateBuffer(ctx, CL_MEM_READ_WRITE, 4 * sizeof(cl_float)*MEGABLOCKSIZE, NULL, &ciErr1);     currSize += buff1Size * 4;
-  lsamRev      = clCreateBuffer(ctx, CL_MEM_READ_WRITE, 10 * sizeof(cl_float)*MEGABLOCKSIZE, NULL, &ciErr1);    currSize += buff1Size * 10;
-
+  lsamRev      = clCreateBuffer(ctx, CL_MEM_READ_WRITE, 10 * sizeof(cl_float)*MEGABLOCKSIZE, NULL, &ciErr1);  currSize += buff1Size * 10;
+  
   shadowRayPos = clCreateBuffer(ctx, CL_MEM_READ_WRITE | shareFlags, 4 * sizeof(cl_float)*MEGABLOCKSIZE, NULL, &ciErr1);   currSize += buff1Size * 4;
   shadowRayDir = clCreateBuffer(ctx, CL_MEM_READ_WRITE | shareFlags, 4 * sizeof(cl_float)*MEGABLOCKSIZE, NULL, &ciErr1);   currSize += buff1Size * 4;
   accPdf       = clCreateBuffer(ctx, CL_MEM_READ_WRITE | shareFlags, 1 * sizeof(PerRayAcc)*MEGABLOCKSIZE, NULL, &ciErr1);  currSize += buff1Size * 1;
@@ -141,7 +133,6 @@ size_t GPUOCLLayer::CL_BUFFERS_RAYS::resize(cl_context ctx, cl_command_queue cmd
   if (ciErr1 != CL_SUCCESS)
     RUN_TIME_ERROR("Error in resize rays buffers");
 
-  lsamProb = clCreateBuffer(ctx, CL_MEM_READ_WRITE,              1 * sizeof(cl_float)*MEGABLOCKSIZE, NULL, &ciErr1);        currSize += buff1Size * 1;
   lshadow  = clCreateBuffer(ctx, CL_MEM_READ_WRITE | shareFlags, 4 * sizeof(cl_ushort)*MEGABLOCKSIZE, NULL, &ciErr1);       currSize += buff1Size * 4;
   fogAtten = clCreateBuffer(ctx, CL_MEM_READ_WRITE,              4 * sizeof(cl_float)*MEGABLOCKSIZE, NULL, &ciErr1);        currSize += buff1Size * 4;
 

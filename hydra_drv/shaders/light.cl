@@ -60,12 +60,10 @@ __kernel void LightSampleForwardKernel(__global float4*        restrict out_rpos
                                        __global const float4*  restrict in_data2,
                                        __global const int2*    restrict in_index,
 
-                                       __global float4*        restrict out_data1,
-                                       __global float4*        restrict out_data2,
-                                       //__global float4*        restrict out_data3,
                                        __global PerRayAcc*     restrict out_pdfAcc,
                                        __global MisData*       restrict out_cosAndOther,
                                        __global int*           restrict out_lightId,
+                                       __global float*         restrict out_lsam2,
 
                                        __global int*           restrict out_flags,         // just for clearing them
                                        __global float4*        restrict out_color,         // just for clearing them
@@ -114,13 +112,10 @@ __kernel void LightSampleForwardKernel(__global float4*        restrict out_rpos
   // (2) put light sample to global memory
   //
   const float isPoint = sample.isPoint ? 1.0f : -1.0f;
-
-  out_data1[tid] = to_float4(sample.pos,  as_float(lightType(pLight)));
-  out_data2[tid] = to_float4(sample.dir,  sample.pdfA);          
-  //out_data3[tid] = to_float4(sample.norm, as_float(lightId));    
-
-  out_rpos [tid] = to_float4(sample.pos, 0.0f);                 // #TODO: do we really need so many out buffers ?
-  out_rdir [tid] = to_float4(sample.dir, 0.0f);                 // #TODO: do we really need so many out buffers ?
+  
+  out_lsam2[tid] = sample.pdfA;
+  out_rpos [tid] = to_float4(sample.pos, 0.0f);
+  out_rdir [tid] = to_float4(sample.dir, 0.0f);
 
   out_lightId[tid] = lightId;
 

@@ -142,7 +142,6 @@ __kernel void UpdateForwardPdfFor3Way(__global const uint*          restrict a_f
   a_pdfAcc[tid] = accData;
 }
 
-
 __kernel void ConnectToEyeKernel(__global const uint*          restrict a_flags,
                                  __global const float4*        restrict in_oraydir,
                                  __global const float4*        restrict in_sraydir,
@@ -151,7 +150,7 @@ __kernel void ConnectToEyeKernel(__global const uint*          restrict a_flags,
 
                                  __global const PerRayAcc*     restrict in_pdfAcc,
                                  __global const int*           restrict in_lightId,
-                                 __global const float4*        restrict in_lsam2,
+                                 __global const float*         restrict in_lsam2,
                                  __global const float4*        restrict in_procTexData,
                                  
                                  __global const float4*        restrict in_mtlStorage,
@@ -244,7 +243,7 @@ __kernel void ConnectToEyeKernel(__global const uint*          restrict a_flags,
     const float lightPickProbRev = lightPdfSelectRev(pLight);
 
     const float cameraPdfA = imageToSurfaceFactor / mLightSubPathCount;
-    const float lightPdfA  = in_lsam2[tid].w; //PerThread().pdfLightA0; // remember that we packed it in lsam2 inside 'LightSampleForwardKernel'
+    const float lightPdfA  = in_lsam2[tid]; //PerThread().pdfLightA0; // remember that we packed it in lsam2 inside 'LightSampleForwardKernel'
 
     const float pdfAccFwdA = 1.0f*accData.pdfLightWP*accData.pdfGTerm*(lightPdfA*lightPickProbFwd);
     const float pdfAccRevA = cameraPdfA * (pdfRevWP*accData.pdfCameraWP)*accData.pdfGTerm; // see pdfRevWP? this is just because on the first bounce a_pAccData->pdfCameraWP == 1.
