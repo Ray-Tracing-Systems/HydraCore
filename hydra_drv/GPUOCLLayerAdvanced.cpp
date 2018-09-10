@@ -214,9 +214,13 @@ void GPUOCLLayer::runkernel_MMLTMakeShadowRay(cl_mem in_splitInfo, cl_mem  in_ca
   CHECK_CL(clSetKernelArg(kernX, 6, sizeof(cl_mem), (void*)&sray_dir));
   CHECK_CL(clSetKernelArg(kernX, 7, sizeof(cl_mem), (void*)&sray_flags));
 
-  CHECK_CL(clSetKernelArg(kernX, 8, sizeof(cl_mem), (void*)&m_scene.storageMat));
-  CHECK_CL(clSetKernelArg(kernX, 9, sizeof(cl_mem), (void*)&m_scene.allGlobsData));
-  CHECK_CL(clSetKernelArg(kernX,10, sizeof(cl_int), (void*)&isize));
+  CHECK_CL(clSetKernelArg(kernX, 8, sizeof(cl_mem), (void*)&m_mlt.rstateCurr));
+
+  CHECK_CL(clSetKernelArg(kernX, 9, sizeof(cl_mem), (void*)&m_scene.storageMat));
+  CHECK_CL(clSetKernelArg(kernX,10, sizeof(cl_mem), (void*)&m_scene.storagePdfs));
+  CHECK_CL(clSetKernelArg(kernX,11, sizeof(cl_mem), (void*)&m_scene.storageTex));
+  CHECK_CL(clSetKernelArg(kernX,12, sizeof(cl_mem), (void*)&m_scene.allGlobsData));
+  CHECK_CL(clSetKernelArg(kernX,13, sizeof(cl_int), (void*)&isize));
 
   CHECK_CL(clEnqueueNDRangeKernel(m_globals.cmdQueue, kernX, 1, NULL, &a_size, &localWorkSize, 0, NULL, NULL));
   waitIfDebug(__FILE__, __LINE__);

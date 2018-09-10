@@ -50,7 +50,7 @@ __kernel void MMLTInitCameraPath(__global   uint* restrict a_flags,
     return;
 
   const int d = MMLT_GPU_TEST_DEPTH;
-  const int s = 0; 
+  const int s = 2; 
 
   a_flags[tid] = packBounceNum(0, 1);
   a_color[tid] = make_float4(1,1,1,1);
@@ -416,7 +416,7 @@ __kernel void MMLTLightSampleForward(__global   float4*        restrict a_rpos,
 
   const __global float* a_rptr = 0;   /////////////////////////////////////////////////// #TODO: INIT THIS POINTER WITH MMLT RANDS !!!
 
-  LightGroup2 lightRands;
+  LightGroup2 lightRands;             /////////////////////////////////////////////////// #TODO: sample if (lightTraceDepth != 0)
   {
     RandomGen gen  = out_gens[tid];
     gen.maxNumbers = a_globals->varsI[HRT_MLT_MAX_NUMBERS];
@@ -670,8 +670,12 @@ __kernel void MMLTMakeShadowRay(__global const int2  *  restrict in_splitInfo,
                                 __global       float4*  restrict out_ray_pos,
                                 __global       float4*  restrict out_ray_dir,
                                 __global       int   *  restrict out_rflags,
+                                
+                                __global RandomGen*     restrict a_gens,
 
                                 __global const float4*         restrict in_mtlStorage,
+                                __global const float4*         restrict in_pdfStorage,
+                                __global const float4*         restrict in_texStorage1,
                                 __global const EngineGlobals*  restrict a_globals,
                                 const int iNumElements)
 {
@@ -679,6 +683,8 @@ __kernel void MMLTMakeShadowRay(__global const int2  *  restrict in_splitInfo,
   if (tid >= iNumElements)
     return;
   
+  const __global float* a_rptr = 0;   /////////////////////////////////////////////////// #TODO: INIT THIS POINTER WITH MMLT RANDS !!!
+
   const int2 splitData      = in_splitInfo[tid];
   const int d               = splitData.x;
   const int s               = splitData.y;
@@ -731,10 +737,40 @@ __kernel void MMLTMakeShadowRay(__global const int2  *  restrict in_splitInfo,
     }
     else if (lightTraceDepth == 0)  // (3.3) connect camera vertex to light (shadow ray)
     {
+      LightGroup2 lightSelector;
+      {
+        RandomGen gen = a_gens[tid];
+        RndLightMMLT(&gen, a_rptr, 
+                     &lightSelector);
+        a_gens[tid]   = gen;
+      }
+
       if (cv.valid && !cv.wasSpecOnly) // cv.wasSpecOnly exclude direct light actually
       {
+        float lightPickProb = 1.0f;
+        int lightOffset = SelectRandomLightRev(lightSelector.group2.z, cv.hit.pos, a_globals,
+                                               &lightPickProb);
+       
+        if (lightOffset >= 0)
+        {
+          __global const PlainLight* pLight = lightAt(a_globals, lightOffset);
         
-      }
+          ShadowSample explicitSam;
+          LightSampleRev(pLight, to_float3(lightSelector.group1), cv.hit.pos, a_globals, in_pdfStorage, in_texStorage1,
+                         &explicitSam);
+        
+          const float3 shadowRayDir = normalize(explicitSam.pos - cv.hit.pos); // explicitSam.direction;
+          const float3 shadowRayPos = OffsRayPos(cv.hit.pos, cv.hit.normal, shadowRayDir); 
+        
+          out_ray_pos[tid] = to_float4(shadowRayPos, explicitSam.maxDist*0.9995f);
+          out_ray_dir[tid] = to_float4(shadowRayDir, 0.0f);
+
+          //////////// #TODO: write explicitSam .... 
+        }
+
+        
+
+      } /// 
     }
     else                            // (3.4) connect light and camera vertices (bidir connection)
     {

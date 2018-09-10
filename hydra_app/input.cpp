@@ -12,7 +12,7 @@ Input::Input()
   
   //noWindow      = false;         ///< run 'console_main', else run 'window_main'
   inLibraryPath = "tests/test_42"; ///< cornell box with teapot
-  //inLibraryPath = "tests/test_01"; ///< cornell box with sphere
+  //inLibraryPath = "tests/test_223_small"; ///< cornell box with sphere
   //inLibraryPath = "/media/frol/886234F06234E49A/PROG/HydraCore/hydra_app/tests/test_223_small"; ///< cornell box with mirror glossy back wall
   
   //inLibraryPath = "/home/frol/PROG/HydraAPI/main/tests/test_86";
@@ -33,7 +33,7 @@ Input::Input()
   boxMode       = false; ///< special 'in the box' mode when render don't react to any commands
   
   winWidth      = 1024;  ///<
-  winHeight     = 1024;  ///< 
+  winHeight     = 1024;  ///<
 
   enableOpenGL1 = false; ///< if you want to draw scene for some debug needs with OpenGL1.
   exitStatus    = false;
