@@ -609,7 +609,6 @@ __kernel void Shade(__global const float4*    restrict a_rpos,
                     __global const float4*    restrict in_procTexData,
 
                     __global const PerRayAcc* restrict in_pdfAccPrev,
-                    __global const int*       restrict in_loffs,
                     __global const float*     restrict in_pdfCamA,
 
                     __global float4*          restrict out_color,
@@ -653,10 +652,9 @@ __kernel void Shade(__global const float4*    restrict a_rpos,
   float3 ray_dir = to_float3(a_rdir[tid]);
 
 
-  ShadowSample explicitSam; float lightPickProb;
-
+  ShadowSample explicitSam; float lightPickProb; int lightOffset;
   ReadShadowSample(in_lrev, tid, iNumElements,
-                   &explicitSam, &lightPickProb);
+                   &explicitSam, &lightPickProb, &lightOffset);
 
   //float3 shadowRayPos = surfHit.pos + surfHit.normal*maxcomp(surfHit.pos)*GEPSILON;
   float3 shadowRayDir = normalize(explicitSam.pos - surfHit.pos); 
@@ -687,7 +685,7 @@ __kernel void Shade(__global const float4*    restrict a_rpos,
 
   const BxDFResult evalData = materialEval(pHitMaterial, &sc, disableCaustics, false, /* global data --> */ a_globals, in_texStorage1, in_texStorage2, &ptl);
   const float3 shadow       = decompressShadow(in_shadow[tid]);
-  const int lightOffset     = in_loffs[tid];
+  //const int lightOffset     = in_loffs[tid];
 
   __global const PlainLight* pLight = lightAt(a_globals, lightOffset);
 

@@ -148,7 +148,6 @@ __kernel void LightSample(__global const float4*  restrict in_rpos,
 
                           __global float4*        restrict out_srpos,
                           __global float4*        restrict out_srdir,
-                          __global int*           restrict out_loffs,
 
                           __global const float4*  restrict a_texStorage1,  //
                           __global const float4*  restrict a_texStorage2,  //
@@ -206,7 +205,7 @@ __kernel void LightSample(__global const float4*  restrict in_rpos,
   LightSampleRev(pLight, rands3, sHit.pos, a_globals, a_pdfStorage, a_texStorage1,
                  &explicitSam);
 
-  WriteShadowSample(&explicitSam, lightPickProb, tid, iNumElements,
+  WriteShadowSample(&explicitSam, lightPickProb, lightOffset, tid, iNumElements,
                     out_lrev);
 
   float lightShadowDistScale = (as_int(pLight->data[PLIGHT_TYPE]) == PLAIN_LIGHT_TYPE_SKY_DOME) ? 2.0f : 0.995f;
@@ -221,7 +220,6 @@ __kernel void LightSample(__global const float4*  restrict in_rpos,
 
   out_srpos[tid] = to_float4(shadowRayPos, maxDist);
   out_srdir[tid] = to_float4(shadowRayDir, as_float(-1)); 
-  out_loffs[tid] = lightOffset;
 }
 
 __kernel void CopyAndPackForConnectEye(__global const uint*    restrict in_flags,

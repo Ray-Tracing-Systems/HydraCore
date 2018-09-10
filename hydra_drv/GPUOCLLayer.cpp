@@ -116,8 +116,8 @@ size_t GPUOCLLayer::CL_BUFFERS_RAYS::resize(cl_context ctx, cl_command_queue cmd
   if (ciErr1 != CL_SUCCESS)
     RUN_TIME_ERROR("Error in resize rays buffers");
 
-  lsamRev      = clCreateBuffer(ctx, CL_MEM_READ_WRITE, 10 * sizeof(cl_float)*MEGABLOCKSIZE, NULL, &ciErr1);  currSize += buff1Size * 10;
-  
+  lsamRev      = clCreateBuffer(ctx, CL_MEM_READ_WRITE, 12 * sizeof(cl_float)*MEGABLOCKSIZE, NULL, &ciErr1);  currSize += buff1Size * 12;
+
   shadowRayPos = clCreateBuffer(ctx, CL_MEM_READ_WRITE | shareFlags, 4 * sizeof(cl_float)*MEGABLOCKSIZE, NULL, &ciErr1);   currSize += buff1Size * 4;
   shadowRayDir = clCreateBuffer(ctx, CL_MEM_READ_WRITE | shareFlags, 4 * sizeof(cl_float)*MEGABLOCKSIZE, NULL, &ciErr1);   currSize += buff1Size * 4;
   accPdf       = clCreateBuffer(ctx, CL_MEM_READ_WRITE | shareFlags, 1 * sizeof(PerRayAcc)*MEGABLOCKSIZE, NULL, &ciErr1);  currSize += buff1Size * 1;
