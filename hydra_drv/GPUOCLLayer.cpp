@@ -63,7 +63,6 @@ void GPUOCLLayer::CL_BUFFERS_RAYS::free()
   if(oldFlags)         { clReleaseMemObject(oldFlags);  oldFlags  = nullptr; }
   if(oldRayDir)        { clReleaseMemObject(oldRayDir); oldRayDir = nullptr; }
   if(oldColor)         { clReleaseMemObject(oldColor);  oldColor  = nullptr; }
-  if(lightNumberLT)    { clReleaseMemObject(lightNumberLT); lightNumberLT = nullptr; }
                        
   if (fogAtten)        { clReleaseMemObject(fogAtten);   fogAtten   = nullptr; }
   if (samZindex)       { clReleaseMemObject(samZindex);  samZindex  = nullptr; }
@@ -128,7 +127,6 @@ size_t GPUOCLLayer::CL_BUFFERS_RAYS::resize(cl_context ctx, cl_command_queue cmd
   oldFlags      = clCreateBuffer(ctx, CL_MEM_READ_WRITE | shareFlags, 1 * sizeof(uint)*MEGABLOCKSIZE,     NULL, &ciErr1);   currSize += buff1Size * 1;
   oldRayDir     = clCreateBuffer(ctx, CL_MEM_READ_WRITE | shareFlags, 4 * sizeof(cl_float)*MEGABLOCKSIZE, NULL, &ciErr1);   currSize += buff1Size * 4;
   oldColor      = clCreateBuffer(ctx, CL_MEM_READ_WRITE | shareFlags, 4 * sizeof(cl_float)*MEGABLOCKSIZE, NULL, &ciErr1);   currSize += buff1Size * 4;
-  lightNumberLT = clCreateBuffer(ctx, CL_MEM_READ_WRITE | shareFlags, 1 * sizeof(int)*MEGABLOCKSIZE,      NULL, &ciErr1);   currSize += buff1Size * 1;
 
   if (ciErr1 != CL_SUCCESS)
     RUN_TIME_ERROR("Error in resize rays buffers");

@@ -207,7 +207,7 @@ void GPUOCLLayer::runKernel_MakeLightRays(cl_mem a_rpos, cl_mem a_rdir, cl_mem a
 
   CHECK_CL(clSetKernelArg(makeRaysKern, 5, sizeof(cl_mem), (void*)&m_rays.accPdf)); 
   CHECK_CL(clSetKernelArg(makeRaysKern, 6, sizeof(cl_mem), (void*)&m_rays.pathMisDataPrev));
-  CHECK_CL(clSetKernelArg(makeRaysKern, 7, sizeof(cl_mem), (void*)&m_rays.lightNumberLT));
+  CHECK_CL(clSetKernelArg(makeRaysKern, 7, sizeof(cl_mem), (void*)&m_rays.lightOffsetBuff));
   CHECK_CL(clSetKernelArg(makeRaysKern, 8, sizeof(cl_mem), (void*)&m_rays.lsamRev));
 
   CHECK_CL(clSetKernelArg(makeRaysKern, 9, sizeof(cl_mem), (void*)&m_rays.rayFlags));
@@ -1023,7 +1023,7 @@ void GPUOCLLayer::runKernel_ProjectSamplesToScreen(cl_mem a_rayFlags, cl_mem a_r
   CHECK_CL(clSetKernelArg(kern, 4, sizeof(cl_mem), (void*)&m_rays.hitSurfaceAll));
 
   CHECK_CL(clSetKernelArg(kern, 5, sizeof(cl_mem), (void*)&m_rays.accPdf));
-  CHECK_CL(clSetKernelArg(kern, 6, sizeof(cl_mem), (void*)&m_rays.lightNumberLT));
+  CHECK_CL(clSetKernelArg(kern, 6, sizeof(cl_mem), (void*)&m_rays.lightOffsetBuff));
   CHECK_CL(clSetKernelArg(kern, 7, sizeof(cl_mem), (void*)&m_rays.lsamRev));
   CHECK_CL(clSetKernelArg(kern, 8, sizeof(cl_mem), (void*)&m_rays.hitProcTexData));
 
