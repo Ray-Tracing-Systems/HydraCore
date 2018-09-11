@@ -320,7 +320,7 @@ void GPUOCLLayer::TraceSBDPTPass(cl_mem a_rpos, cl_mem a_rdir, size_t a_size,
   runKernel_MMLTConnect(m_mlt.splitData, m_mlt.cameraVertexHit, m_mlt.cameraVertexSup, lightVertexHit, lightVertexSup, m_rays.lshadow, a_size, 
                         a_outColor, a_outZIndex);
 
-
+  
   //runKernel_EyeShadowRays(m_rays.rayFlags, a_rdir,
   //                        m_rays.shadowRayPos, m_rays.shadowRayDir, a_size);
   //runKernel_ShadowTrace(m_rays.rayFlags, m_rays.shadowRayPos, m_rays.shadowRayDir,

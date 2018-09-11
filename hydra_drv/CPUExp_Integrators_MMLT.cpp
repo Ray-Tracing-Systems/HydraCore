@@ -1001,9 +1001,13 @@ float3 IntegratorMMLT::ConnectShadow(const PathVertex& a_cv, PerThreadData* a_pe
    
      if (dot(shadow, shadow) > 1e-12f)
      {
-       explicitColor = shadow*ConnectShadowP(a_cv, a_camDepth, pLight, explicitSam, lightPickProb,
+       auto* v0 = &a_perThread->pdfArray[0];
+       auto* v1 = &a_perThread->pdfArray[1];
+       auto* v2 = &a_perThread->pdfArray[2];
+
+       explicitColor = shadow*ConnectShadowP(&a_cv, a_camDepth, pLight, explicitSam, lightPickProb,
                                              m_pGlobals, m_matStorage, m_texStorage, m_texStorageAux, m_pdfStorage, &m_ptlDummy,
-                                             &a_perThread->pdfArray[0]);
+                                             v0, v1, v2);
      }
    }
   

@@ -237,58 +237,60 @@ static inline float3 bsdfClamping(float3 a_val)
 \param  a_ptList      - proc texture list data
 
 \param  a_tableStorage - pdf table storage
-\param  a_pdfArray     - out pdfArea array 
+\param  v0             - out pdfArea for v0 (starting from light)
+\param  v1             - out pdfArea for v1 (starting from light)
+\param  v2             - out pdfArea for v2 (starting from light)
 \return connection throughput color without shadow
 
 #TODO: add spetial check for glossy material when connect?
 
 */
 
-static float3 ConnectShadowP(PathVertex a_cv, const int a_camDepth, __global const PlainLight* a_pLight, const ShadowSample a_explicitSam, const float a_lightPickProb,
+static float3 ConnectShadowP(__private const PathVertex* a_cv, const int a_camDepth, __global const PlainLight* a_pLight, const ShadowSample a_explicitSam, const float a_lightPickProb,
                              __global const EngineGlobals* a_globals, __global const float4* a_mltStorage, texture2d_t a_texStorage1, texture2d_t a_texStorage2, __global const float4* a_tableStorage, __private const ProcTextureList* a_ptList,
-                             __global PdfVertex* a_pdfArray)
+                             __global PdfVertex* v0, __global PdfVertex* v1, __global PdfVertex* v2)
 {
-  const float3 shadowRayDir = normalize(a_explicitSam.pos - a_cv.hit.pos); // explicitSam.direction;
+  const float3 shadowRayDir = normalize(a_explicitSam.pos - a_cv->hit.pos); // explicitSam.direction;
   
-  __global const PlainMaterial* pHitMaterial = materialAt(a_globals, a_mltStorage, a_cv.hit.matId);
+  __global const PlainMaterial* pHitMaterial = materialAt(a_globals, a_mltStorage, a_cv->hit.matId);
   
   ShadeContext sc;
-  sc.wp = a_cv.hit.pos;
+  sc.wp = a_cv->hit.pos;
   sc.l  = shadowRayDir;
-  sc.v  = (-1.0f)*a_cv.ray_dir;
-  sc.n  = a_cv.hit.normal;
-  sc.fn = a_cv.hit.flatNormal;
-  sc.tg = a_cv.hit.tangent;
-  sc.bn = a_cv.hit.biTangent;
-  sc.tc = a_cv.hit.texCoord;
+  sc.v  = (-1.0f)*a_cv->ray_dir;
+  sc.n  = a_cv->hit.normal;
+  sc.fn = a_cv->hit.flatNormal;
+  sc.tg = a_cv->hit.tangent;
+  sc.bn = a_cv->hit.biTangent;
+  sc.tc = a_cv->hit.texCoord;
   
   const BxDFResult evalData = materialEval(pHitMaterial, &sc, false, false, a_globals, a_texStorage1, a_texStorage2, a_ptList);
   const float pdfFwdAt1W    = evalData.pdfRev;
   
-  const float cosThetaOut1  = fmax(+dot(shadowRayDir, a_cv.hit.normal), DEPSILON);
-  const float cosThetaOut2  = fmax(-dot(shadowRayDir, a_cv.hit.normal), DEPSILON);
-  const bool  inverseCos    = ((materialGetFlags(pHitMaterial) & PLAIN_MATERIAL_HAVE_BTDF) != 0 && dot(shadowRayDir, a_cv.hit.normal) < -0.01f);
+  const float cosThetaOut1  = fmax(+dot(shadowRayDir, a_cv->hit.normal), DEPSILON);
+  const float cosThetaOut2  = fmax(-dot(shadowRayDir, a_cv->hit.normal), DEPSILON);
+  const bool  inverseCos    = ((materialGetFlags(pHitMaterial) & PLAIN_MATERIAL_HAVE_BTDF) != 0 && dot(shadowRayDir, a_cv->hit.normal) < -0.01f);
 
   const float cosThetaOut   = inverseCos ? cosThetaOut2 : cosThetaOut1;  
   const float cosAtLight    = fmax(a_explicitSam.cosAtLight, DEPSILON);
-  const float cosThetaPrev  = fmax(-dot(a_cv.ray_dir, a_cv.hit.normal), DEPSILON);
+  const float cosThetaPrev  = fmax(-dot(a_cv->ray_dir, a_cv->hit.normal), DEPSILON);
   
   const float3 brdfVal      = evalData.brdf*cosThetaOut1 + evalData.btdf*cosThetaOut2;
   const float  pdfRevWP     = evalData.pdfFwd / fmax(cosThetaOut, DEPSILON);
   
-  const float shadowDist    = length(a_cv.hit.pos - a_explicitSam.pos);
+  const float shadowDist    = length(a_cv->hit.pos - a_explicitSam.pos);
   const float GTerm         = cosThetaOut*cosAtLight / fmax(shadowDist*shadowDist, DEPSILON2);
   
   const LightPdfFwd lPdfFwd = lightPdfFwd(a_pLight, shadowRayDir, cosAtLight, a_globals, a_texStorage1, a_tableStorage);
 
-  a_pdfArray[0].pdfFwd = lPdfFwd.pdfA*a_lightPickProb;
-  a_pdfArray[0].pdfRev = 1.0f; // a_explicitSam.isPoint ? 0.0f : 1.0f;
+  v0->pdfFwd = lPdfFwd.pdfA*a_lightPickProb;
+  v0->pdfRev = 1.0f; // a_explicitSam.isPoint ? 0.0f : 1.0f;
   
-  a_pdfArray[1].pdfFwd = (lPdfFwd.pdfW / cosAtLight)*GTerm;
-  a_pdfArray[1].pdfRev = (evalData.pdfFwd == 0) ? -1.0f*GTerm : pdfRevWP*GTerm;
+  v1->pdfFwd = (lPdfFwd.pdfW / cosAtLight)*GTerm;
+  v1->pdfRev = (evalData.pdfFwd == 0) ? -1.0f*GTerm : pdfRevWP*GTerm;
   
   if(a_camDepth > 1)
-    a_pdfArray[2].pdfFwd = (pdfFwdAt1W == 0.0f) ? -1.0f*a_cv.lastGTerm : (pdfFwdAt1W / cosThetaPrev)*a_cv.lastGTerm;
+    v2->pdfFwd = (pdfFwdAt1W == 0.0f) ? -1.0f*a_cv->lastGTerm : (pdfFwdAt1W / cosThetaPrev)*a_cv->lastGTerm;
   
   const float explicitPdfW = fmax(a_explicitSam.pdf, DEPSILON2);
   return bsdfClamping((1.0f/a_lightPickProb)*a_explicitSam.color*brdfVal / explicitPdfW);
