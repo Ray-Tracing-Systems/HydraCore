@@ -1038,12 +1038,16 @@ float3 IntegratorMMLT::ConnectEndPoints(const PathVertex& a_lv, const PathVertex
   const float3 shadowRayPos = OffsRayPos(a_lv.hit.pos, a_lv.hit.normal, shadowRayDir);
   const float3 shadow       = shadowTrace(shadowRayPos, shadowRayDir, dist*0.9995f);
 
+  auto* vSplitBefore = &a_perThread->pdfArray[a_spit-1];
+  auto* vSplit       = &a_perThread->pdfArray[a_spit+0];
+  auto* vSplitAfter  = &a_perThread->pdfArray[a_spit+1];
+
   if (dot(shadow, shadow) < 1e-12f)
     return float3(0, 0, 0);
   else
-    return shadow*ConnectEndPointsP(a_lv, a_cv, a_spit, a_depth,
+    return shadow*ConnectEndPointsP(&a_lv, &a_cv, a_depth,
                                     m_pGlobals, m_matStorage, m_texStorage, m_texStorageAux, &m_ptlDummy,
-                                    &a_perThread->pdfArray[0]);
+                                    vSplitBefore, vSplit, vSplitAfter);
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////// PT for direct light

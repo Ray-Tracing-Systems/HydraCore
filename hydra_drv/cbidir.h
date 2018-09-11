@@ -300,7 +300,6 @@ static float3 ConnectShadowP(__private const PathVertex* a_cv, const int a_camDe
 \brief  Connect end points in SBDPT (Stochastic connection BDPT). Don't trace ray and don't compute shadow. You must compute shadow outside of this procedure.
 \param  a_lv          - light  vertex we want to connect
 \param  a_cv          - camera vertex we want to connect
-\param  a_spit        - light trace depth equal to s;
 \param  a_depth       - total trace depth equal to s+t;
 
 \param  a_globals     - engine globals
@@ -309,19 +308,21 @@ static float3 ConnectShadowP(__private const PathVertex* a_cv, const int a_camDe
 \param  a_texStorage2 - aux texture storage
 \param  a_ptList      - proc tex list data
 
-\param  a_pdfArray    - out pdfArea array 
+\param  vSplitBefore  - out pdfArea array[split-1] 
+\param  vSplit        - out pdfArea array[split+0] 
+\param  vSplitAfter   - out pdfArea array[split+1] 
 \return connection throughput color without shadow
 
 */
 
-static float3 ConnectEndPointsP(const PathVertex a_lv, const PathVertex a_cv, const int a_spit, const int a_depth,
+static float3 ConnectEndPointsP(__private const PathVertex* a_lv, __private const PathVertex* a_cv, const int a_depth,
                                 __global const EngineGlobals* a_globals, __global const float4* a_mltStorage, texture2d_t a_texStorage1, texture2d_t a_texStorage2, __private const ProcTextureList* a_ptList,
-                                __global PdfVertex* a_pdfArray)
+                                __private PdfVertex* vSplitBefore, __private PdfVertex* vSplit, __private PdfVertex* vSplitAfter)
 {
-  if (!a_lv.valid || !a_cv.valid)
+  if (!a_lv->valid || !a_cv->valid)
     return make_float3(0, 0, 0);
 
-  const float3 diff = a_cv.hit.pos - a_lv.hit.pos;
+  const float3 diff = a_cv->hit.pos - a_lv->hit.pos;
   const float dist2 = fmax(dot(diff, diff), DEPSILON2);
   const float  dist = sqrt(dist2);
   const float3 lToC = diff / dist; // normalize(a_cv.hit.pos - a_lv.hit.pos)
@@ -332,22 +333,22 @@ static float3 ConnectEndPointsP(const PathVertex a_lv, const PathVertex a_cv, co
   float  signOfNormalL = 1.0f;
   {
     ShadeContext sc;
-    sc.wp = a_lv.hit.pos;
+    sc.wp = a_lv->hit.pos;
     sc.l  = lToC;                 // try to swap them ?
-    sc.v  = (-1.0f)*a_lv.ray_dir; // try to swap them ?
-    sc.n  = a_lv.hit.normal;
-    sc.fn = a_lv.hit.flatNormal;
-    sc.tg = a_lv.hit.tangent;
-    sc.bn = a_lv.hit.biTangent;
-    sc.tc = a_lv.hit.texCoord;
+    sc.v  = (-1.0f)*a_lv->ray_dir; // try to swap them ?
+    sc.n  = a_lv->hit.normal;
+    sc.fn = a_lv->hit.flatNormal;
+    sc.tg = a_lv->hit.tangent;
+    sc.bn = a_lv->hit.biTangent;
+    sc.tc = a_lv->hit.texCoord;
 
-    __global const PlainMaterial* pHitMaterial = materialAt(a_globals, a_mltStorage, a_lv.hit.matId);
+    __global const PlainMaterial* pHitMaterial = materialAt(a_globals, a_mltStorage, a_lv->hit.matId);
     BxDFResult evalData = materialEval(pHitMaterial, &sc, false, true, /* global data --> */ a_globals, a_texStorage1, a_texStorage2, a_ptList);
     lightBRDF     = evalData.brdf + evalData.btdf;
     lightVPdfFwdW = evalData.pdfFwd;
     lightVPdfRevW = evalData.pdfRev;
 
-    const bool underSurfaceL = (dot(lToC, a_lv.hit.normal) < -0.01f);
+    const bool underSurfaceL = (dot(lToC, a_lv->hit.normal) < -0.01f);
     if ((materialGetFlags(pHitMaterial) & PLAIN_MATERIAL_HAVE_BTDF) != 0 && underSurfaceL)
       signOfNormalL = -1.0f;
   }
@@ -358,50 +359,49 @@ static float3 ConnectEndPointsP(const PathVertex a_lv, const PathVertex a_cv, co
   float  signOfNormalC = 1.0f;
   {
     ShadeContext sc;
-    sc.wp = a_cv.hit.pos;
+    sc.wp = a_cv->hit.pos;
     sc.l  = (-1.0f)*lToC;
-    sc.v  = (-1.0f)*a_cv.ray_dir;
-    sc.n  = a_cv.hit.normal;
-    sc.fn = a_cv.hit.flatNormal;
-    sc.tg = a_cv.hit.tangent;
-    sc.bn = a_cv.hit.biTangent;
-    sc.tc = a_cv.hit.texCoord;
+    sc.v  = (-1.0f)*a_cv->ray_dir;
+    sc.n  = a_cv->hit.normal;
+    sc.fn = a_cv->hit.flatNormal;
+    sc.tg = a_cv->hit.tangent;
+    sc.bn = a_cv->hit.biTangent;
+    sc.tc = a_cv->hit.texCoord;
 
-    __global const PlainMaterial* pHitMaterial = materialAt(a_globals, a_mltStorage, a_cv.hit.matId);
+    __global const PlainMaterial* pHitMaterial = materialAt(a_globals, a_mltStorage, a_cv->hit.matId);
     BxDFResult evalData = materialEval(pHitMaterial, &sc, false, false, /* global data --> */ a_globals, a_texStorage1, a_texStorage2, a_ptList);
     camBRDF       = evalData.brdf + evalData.btdf;
     camVPdfRevW   = evalData.pdfFwd;
     camVPdfFwdW   = evalData.pdfRev;
 
-    const bool underSurfaceC = (dot((-1.0f)*lToC, a_cv.hit.normal) < -0.01f);
+    const bool underSurfaceC = (dot((-1.0f)*lToC, a_cv->hit.normal) < -0.01f);
     if ((materialGetFlags(pHitMaterial) & PLAIN_MATERIAL_HAVE_BTDF) != 0 && underSurfaceC)
       signOfNormalC = -1.0f;
   }
 
-  const float cosAtLightVertex      = +signOfNormalL*dot(a_lv.hit.normal, lToC);  // signOfNormalL*
-  const float cosAtCameraVertex     = -signOfNormalC*dot(a_cv.hit.normal, lToC);  // signOfNormalC*
+  const float cosAtLightVertex      = +signOfNormalL*dot(a_lv->hit.normal, lToC);  // signOfNormalL*
+  const float cosAtCameraVertex     = -signOfNormalC*dot(a_cv->hit.normal, lToC);  // signOfNormalC*
 
-  const float cosAtLightVertexPrev  = -dot(a_lv.hit.normal, a_lv.ray_dir);
-  const float cosAtCameraVertexPrev = -dot(a_cv.hit.normal, a_cv.ray_dir);
+  const float cosAtLightVertexPrev  = -dot(a_lv->hit.normal, a_lv->ray_dir);
+  const float cosAtCameraVertexPrev = -dot(a_cv->hit.normal, a_cv->ray_dir);
 
   const float GTerm = cosAtLightVertex*cosAtCameraVertex / dist2;
 
   if (GTerm < 0.0f) // underSurfaceL || underSurfaceC
     return make_float3(0, 0, 0);
 
-
   // calc remaining PDFs
   //
   const float lightPdfFwdWP  = lightVPdfFwdW / fmax(cosAtLightVertex,  DEPSILON);
   const float cameraPdfRevWP = camVPdfRevW   / fmax(cosAtCameraVertex, DEPSILON);
 
-  a_pdfArray[a_spit].pdfFwd = (lightPdfFwdWP  == 0.0f) ? -1.0f*GTerm : lightPdfFwdWP*GTerm;   // let s=2,t=1 => (a_spit == s == 2)
-  a_pdfArray[a_spit].pdfRev = (cameraPdfRevWP == 0.0f) ? -1.0f*GTerm : cameraPdfRevWP*GTerm;  // let s=2,t=1 => (a_spit == s == 2)
+  vSplit->pdfFwd = (lightPdfFwdWP  == 0.0f) ? -1.0f*GTerm : lightPdfFwdWP*GTerm;   // let s=2,t=1 => (a_spit == s == 2)
+  vSplit->pdfRev = (cameraPdfRevWP == 0.0f) ? -1.0f*GTerm : cameraPdfRevWP*GTerm;  // let s=2,t=1 => (a_spit == s == 2)
 
-  a_pdfArray[a_spit - 1].pdfRev = (lightVPdfRevW == 0.0f) ? -1.0f*a_lv.lastGTerm : a_lv.lastGTerm*(lightVPdfRevW / fmax(cosAtLightVertexPrev, DEPSILON));
+  vSplitBefore->pdfRev = (lightVPdfRevW == 0.0f) ? -1.0f*a_lv->lastGTerm : a_lv->lastGTerm*(lightVPdfRevW / fmax(cosAtLightVertexPrev, DEPSILON));
 
   if (a_depth > 3)
-    a_pdfArray[a_spit + 1].pdfFwd = (camVPdfFwdW == 0.0f) ? -1.0f*a_cv.lastGTerm : a_cv.lastGTerm*(camVPdfFwdW / fmax(cosAtCameraVertexPrev, DEPSILON));
+    vSplitAfter->pdfFwd = (camVPdfFwdW == 0.0f) ? -1.0f*a_cv->lastGTerm : a_cv->lastGTerm*(camVPdfFwdW / fmax(cosAtCameraVertexPrev, DEPSILON));
 
   const bool fwdCanNotBeEvaluated = (lightPdfFwdWP < DEPSILON2)  || (a_depth > 3 && camVPdfFwdW < DEPSILON2);
   const bool revCanNotBeEvaluated = (cameraPdfRevWP < DEPSILON2) || (lightVPdfRevW < DEPSILON2);
