@@ -50,7 +50,7 @@ __kernel void MMLTInitCameraPath(__global   uint* restrict a_flags,
     return;
 
   const int d = MMLT_GPU_TEST_DEPTH;
-  const int s = 3; 
+  const int s = 1; 
 
   a_flags[tid] = packBounceNum(0, 1);
   a_color[tid] = make_float4(1,1,1,1);
@@ -127,14 +127,14 @@ __kernel void MMLTCameraPathBounce(__global   float4*        restrict a_rpos,
     
     PathVertex resVertex;
     resVertex.ray_dir     = to_float3(a_rdir[tid]);
-    resVertex.accColor    = envColor*to_float3(a_color[tid]);   
+    resVertex.accColor    = make_float3(0,0,0); // envColor*to_float3(a_color[tid]);   
     resVertex.valid       = false; //(a_currDepth == a_targetDepth);     // #TODO: dunno if this is correct ... 
     resVertex.hitLight    = true;
     resVertex.wasSpecOnly = SPLIT_DL_BY_GRAMMAR ? flagsHaveOnlySpecular(flags) : false;
     WritePathVertexSupplement(&resVertex, tid, iNumElements, 
                               a_vertexSup);
     
-    flags        = packRayFlags(flags, RAY_IS_DEAD);
+    flags        = packRayFlags(0, RAY_IS_DEAD);
     a_flags[tid] = flags;
   } 
 
@@ -887,9 +887,9 @@ __kernel void MMLTConnect(__global const int2  *  restrict in_splitInfo,
           
         PdfVertex v0, v1;
         PdfVertex v2 = a_pdfVert[TabIndex(2, tid, iNumElements)];
-        sampleColor = ConnectShadowP(&cv, t, pLight, explicitSam, lightPickProb,
-                                     a_globals, in_mtlStorage, in_texStorage1, in_texStorage2, in_pdfStorage, &ptl,
-                                     &v0, &v1, &v2);
+        sampleColor  = cv.accColor*ConnectShadowP(&cv, t, pLight, explicitSam, lightPickProb,
+                                                  a_globals, in_mtlStorage, in_texStorage1, in_texStorage2, in_pdfStorage, &ptl,
+                                                  &v0, &v1, &v2);
 
         a_pdfVert[TabIndex(0, tid, iNumElements)] = v0;
         a_pdfVert[TabIndex(1, tid, iNumElements)] = v1;
