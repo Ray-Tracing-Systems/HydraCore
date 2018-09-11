@@ -50,7 +50,7 @@ __kernel void MMLTInitCameraPath(__global   uint* restrict a_flags,
     return;
 
   const int d = MMLT_GPU_TEST_DEPTH;
-  const int s = 2; 
+  const int s = 0; 
 
   a_flags[tid] = packBounceNum(0, 1);
   a_color[tid] = make_float4(1,1,1,1);
@@ -670,6 +670,7 @@ __kernel void MMLTMakeShadowRay(__global const int2  *  restrict in_splitInfo,
                                 __global       float4*  restrict out_ray_pos,
                                 __global       float4*  restrict out_ray_dir,
                                 __global       int   *  restrict out_rflags,
+                                __global       float4*  restrict out_lssam,
                                 
                                 __global RandomGen*     restrict a_gens,
 
@@ -765,7 +766,8 @@ __kernel void MMLTMakeShadowRay(__global const int2  *  restrict in_splitInfo,
           out_ray_pos[tid] = to_float4(shadowRayPos, explicitSam.maxDist*0.9995f);
           out_ray_dir[tid] = to_float4(shadowRayDir, 0.0f);
 
-          //////////// #TODO: write explicitSam .... 
+          WriteShadowSample(&explicitSam, lightPickProb, lightOffset, tid, iNumElements,
+                            out_lssam);
         }
 
         
@@ -791,6 +793,7 @@ __kernel void MMLTConnect(__global const int2  *  restrict in_splitInfo,
                           __global const float4*  restrict in_cv_sup,
                           __global const float4*  restrict in_procTexData,
                           __global const ushort4* restrict in_shadow,
+                          __global const float4*  restrict in_lssam,
 
                           __global PdfVertex*     restrict a_pdfVert,
                           __global       float4*  restrict out_color,
@@ -873,11 +876,15 @@ __kernel void MMLTConnect(__global const int2  *  restrict in_splitInfo,
     }
     else if (lightTraceDepth == 0)  // (3.3) connect camera vertex to light (shadow ray)
     {
-      //if (cv.valid && !cv.wasSpecOnly) // cv.wasSpecOnly exclude direct light actually
-      //{
-      //  //float3 explicitColor = ConnectShadow(cv, &PerThread(), t);
-      //  //sampleColor = cv.accColor*explicitColor;
-      //}
+      if (cv.valid && !cv.wasSpecOnly) // cv.wasSpecOnly exclude direct light actually
+      {
+         ShadowSample explicitSam; float lightPickProb; int lightOffset;
+         ReadShadowSample(in_lssam, tid, iNumElements,
+                          &explicitSam, &lightPickProb, &lightOffset);
+
+        //float3 explicitColor = ConnectShadow(cv, &PerThread(), t);
+        //sampleColor = cv.accColor*explicitColor;
+      }
     }
     else                            // (3.4) connect light and camera vertices (bidir connection)
     {
