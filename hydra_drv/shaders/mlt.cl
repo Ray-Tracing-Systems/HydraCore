@@ -50,7 +50,7 @@ __kernel void MMLTInitCameraPath(__global   uint* restrict a_flags,
     return;
 
   const int d = MMLT_GPU_TEST_DEPTH;
-  const int s = 3; 
+  const int s = 2; 
 
   a_flags[tid] = packBounceNum(0, 1);
   a_color[tid] = make_float4(1,1,1,1);
@@ -770,16 +770,25 @@ __kernel void MMLTMakeShadowRay(__global const int2  *  restrict in_splitInfo,
           WriteShadowSample(&explicitSam, lightPickProb, lightOffset, tid, iNumElements,
                             out_lssam);
         }
-
         
 
       } /// 
     }
     else                            // (3.4) connect light and camera vertices (bidir connection)
     {
-      if (cv.valid)
+      if (cv.valid && lv.valid)
       {
+        const float3 diff = cv.hit.pos - lv.hit.pos;
+        const float dist2 = fmax(dot(diff, diff), DEPSILON2);
+        const float  dist = sqrt(dist2);
+        const float3 lToC = diff / dist; // normalize(a_cv.hit.pos - a_lv.hit.pos)
         
+        const float3 shadowRayDir = lToC; // explicitSam.direction;
+        const float3 shadowRayPos = OffsRayPos(lv.hit.pos, lv.hit.normal, shadowRayDir);
+        const float maxDist       = dist*0.995f;
+        
+        out_ray_pos[tid] = to_float4(shadowRayPos, maxDist);
+        out_ray_dir[tid] = to_float4(shadowRayDir, as_float(-1));        
       }
     }
   }
@@ -898,11 +907,35 @@ __kernel void MMLTConnect(__global const int2  *  restrict in_splitInfo,
     }
     else                            // (3.4) connect light and camera vertices (bidir connection)
     {
-      //if (cv.valid)
-      //{
-      //  //float3 explicitColor = ConnectEndPoints(lv, cv, s, d, &PerThread());
-      //  //sampleColor = cv.accColor*explicitColor*lv.accColor;
-      //}
+      if (cv.valid && lv.valid)
+      {
+        const float3 diff = cv.hit.pos - lv.hit.pos;
+        const float dist2 = fmax(dot(diff, diff), DEPSILON2);
+        const float  dist = sqrt(dist2);
+        const float3 lToC = diff / dist; // normalize(a_cv.hit.pos - a_lv.hit.pos)
+        
+        const float cosAtLightVertex  = +dot(lv.hit.normal, lToC);
+        const float cosAtCameraVertex = -dot(cv.hit.normal, lToC);
+        
+        const float GTerm = cosAtLightVertex*cosAtCameraVertex / dist2;
+        
+        if (GTerm < 0.0f)
+          sampleColor = make_float3(0, 0, 0);
+        else
+        {
+          PdfVertex vSplitBefore = a_pdfVert[TabIndex(s-1, tid, iNumElements)];
+          PdfVertex vSplitAfter  = a_pdfVert[TabIndex(s+1, tid, iNumElements)];
+          PdfVertex vSplit;
+      
+          sampleColor = cv.accColor*lv.accColor*ConnectEndPointsP(&lv, &cv, d,
+                                                                  a_globals, in_mtlStorage, in_texStorage1, in_texStorage2, &ptl,
+                                                                  &vSplitBefore, &vSplit, &vSplitAfter);
+
+          a_pdfVert[TabIndex(s-1, tid, iNumElements)] = vSplitBefore;
+          a_pdfVert[TabIndex(s+0, tid, iNumElements)] = vSplit;
+          a_pdfVert[TabIndex(s+1, tid, iNumElements)] = vSplitAfter;
+        }
+      }
     }
   }
 
