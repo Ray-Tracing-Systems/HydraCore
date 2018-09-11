@@ -50,7 +50,7 @@ __kernel void MMLTInitCameraPath(__global   uint* restrict a_flags,
     return;
 
   const int d = MMLT_GPU_TEST_DEPTH;
-  const int s = 1; 
+  const int s = 3; 
 
   a_flags[tid] = packBounceNum(0, 1);
   a_color[tid] = make_float4(1,1,1,1);
@@ -762,9 +762,10 @@ __kernel void MMLTMakeShadowRay(__global const int2  *  restrict in_splitInfo,
         
           const float3 shadowRayDir = normalize(explicitSam.pos - cv.hit.pos); // explicitSam.direction;
           const float3 shadowRayPos = OffsRayPos(cv.hit.pos, cv.hit.normal, shadowRayDir); 
-        
-          out_ray_pos[tid] = to_float4(shadowRayPos, explicitSam.maxDist*0.9995f);
-          out_ray_dir[tid] = to_float4(shadowRayDir, 0.0f);
+          const float  maxDist      = length(shadowRayPos - explicitSam.pos)*lightShadowRayMaxDistScale(pLight);
+
+          out_ray_pos[tid] = to_float4(shadowRayPos, maxDist);
+          out_ray_dir[tid] = to_float4(shadowRayDir, as_float(-1));
 
           WriteShadowSample(&explicitSam, lightPickProb, lightOffset, tid, iNumElements,
                             out_lssam);
@@ -889,7 +890,7 @@ __kernel void MMLTConnect(__global const int2  *  restrict in_splitInfo,
         sampleColor = ConnectShadowP(&cv, t, pLight, explicitSam, lightPickProb,
                                      a_globals, in_mtlStorage, in_texStorage1, in_texStorage2, in_pdfStorage, &ptl,
                                      &v0, &v1, &v2);
-                                       
+
         a_pdfVert[TabIndex(0, tid, iNumElements)] = v0;
         a_pdfVert[TabIndex(1, tid, iNumElements)] = v1;
         a_pdfVert[TabIndex(2, tid, iNumElements)] = v2;

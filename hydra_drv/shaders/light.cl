@@ -208,15 +208,11 @@ __kernel void LightSample(__global const float4*  restrict in_rpos,
   WriteShadowSample(&explicitSam, lightPickProb, lightOffset, tid, iNumElements,
                     out_lrev);
 
-  float lightShadowDistScale = (as_int(pLight->data[PLIGHT_TYPE]) == PLAIN_LIGHT_TYPE_SKY_DOME) ? 2.0f : 0.995f;
-  if (as_int(pLight->data[PLIGHT_FLAGS]) & AREA_LIGHT_SKY_PORTAL)
-    lightShadowDistScale = 1.1f;
-
   // (2) generate shadow ray
   //
   const float3 shadowRayDir = normalize(explicitSam.pos - sHit.pos);
-  const float3 shadowRayPos = OffsShadowRayPos(sHit.pos, sHit.normal, shadowRayDir, sHit.sRayOff);    // sRayOff
-  const float  maxDist      = length(shadowRayPos - explicitSam.pos)*lightShadowDistScale; // recompute max dist based on real (shifted with offset) shadowRayPos
+  const float3 shadowRayPos = OffsShadowRayPos(sHit.pos, sHit.normal, shadowRayDir, sHit.sRayOff);       // sRayOff
+  const float  maxDist      = length(shadowRayPos - explicitSam.pos)*lightShadowRayMaxDistScale(pLight); // recompute max dist based on real (shifted with offset) shadowRayPos
 
   out_srpos[tid] = to_float4(shadowRayPos, maxDist);
   out_srdir[tid] = to_float4(shadowRayDir, as_float(-1)); 

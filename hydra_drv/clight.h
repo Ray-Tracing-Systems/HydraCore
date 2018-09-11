@@ -82,6 +82,13 @@ static inline __global const float* lightIESPdfTable(__global const PlainLight* 
   return pTexHeader + 4;
 }
 
+static inline float lightShadowRayMaxDistScale(__global const PlainLight* pLight)
+{
+  float lightShadowDistScale = (as_int(pLight->data[PLIGHT_TYPE]) == PLAIN_LIGHT_TYPE_SKY_DOME) ? 2.0f : 0.995f;
+  if (as_int(pLight->data[PLIGHT_FLAGS]) & AREA_LIGHT_SKY_PORTAL)
+    lightShadowDistScale = 1.1f;
+  return lightShadowDistScale;
+}
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 

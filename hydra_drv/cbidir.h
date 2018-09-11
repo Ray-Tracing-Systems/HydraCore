@@ -199,8 +199,8 @@ static float3 ConnectEyeP(const PathVertex* a_lv, float a_mLightSubPathCount, fl
   {
     const float2 posScreenSpace = worldPosToScreenSpace(a_lv->hit.pos, a_globals);
     
-    int x = (int)(posScreenSpace.x + 0.5f);
-    int y = (int)(posScreenSpace.y + 0.5f);
+    int x = (int)(posScreenSpace.x);
+    int y = (int)(posScreenSpace.y);
     
     if (x < 0) x = 0;
     if (y < 0) y = 0;
@@ -523,6 +523,6 @@ static inline float3 emissionEval(const float3 ray_pos, const float3 ray_dir,  _
   return outPathColor;
 }
 
-#define MMLT_GPU_TEST_DEPTH 2
+#define MMLT_GPU_TEST_DEPTH 3
 
 #endif
