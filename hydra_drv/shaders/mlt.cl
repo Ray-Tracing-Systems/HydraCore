@@ -50,7 +50,7 @@ __kernel void MMLTInitCameraPath(__global   uint* restrict a_flags,
     return;
 
   const int d = MMLT_GPU_TEST_DEPTH;
-  const int s = 0; 
+  const int s = 1; 
 
   a_flags[tid] = packBounceNum(0, 1);
   a_color[tid] = make_float4(1,1,1,1);
@@ -867,7 +867,7 @@ __kernel void MMLTConnect(__global const int2  *  restrict in_splitInfo,
                                   a_globals, in_mtlStorage, in_texStorage1, in_texStorage2, &ptl,
                                   &v0, &v1, &x, &y);
 
-        if (!isfinite(sampleColor.x) || !isfinite(sampleColor.y) || !isfinite(sampleColor.z) || imageToSurfaceFactor <= 0.0f)
+        if (imageToSurfaceFactor <= 0.0f)
           sampleColor = make_float3(0, 0, 0);
 
         a_pdfVert[TabIndex(lightTraceDepth + 0, tid, iNumElements)] = v0;
@@ -878,12 +878,21 @@ __kernel void MMLTConnect(__global const int2  *  restrict in_splitInfo,
     {
       if (cv.valid && !cv.wasSpecOnly) // cv.wasSpecOnly exclude direct light actually
       {
-         ShadowSample explicitSam; float lightPickProb; int lightOffset;
-         ReadShadowSample(in_lssam, tid, iNumElements,
-                          &explicitSam, &lightPickProb, &lightOffset);
-
-        //float3 explicitColor = ConnectShadow(cv, &PerThread(), t);
-        //sampleColor = cv.accColor*explicitColor;
+        ShadowSample explicitSam; float lightPickProb; int lightOffset;
+        ReadShadowSample(in_lssam, tid, iNumElements,
+                         &explicitSam, &lightPickProb, &lightOffset);
+        
+        __global const PlainLight* pLight = lightAt(a_globals, lightOffset);
+          
+        PdfVertex v0, v1;
+        PdfVertex v2 = a_pdfVert[TabIndex(2, tid, iNumElements)];
+        sampleColor = ConnectShadowP(&cv, t, pLight, explicitSam, lightPickProb,
+                                     a_globals, in_mtlStorage, in_texStorage1, in_texStorage2, in_pdfStorage, &ptl,
+                                     &v0, &v1, &v2);
+                                       
+        a_pdfVert[TabIndex(0, tid, iNumElements)] = v0;
+        a_pdfVert[TabIndex(1, tid, iNumElements)] = v1;
+        a_pdfVert[TabIndex(2, tid, iNumElements)] = v2;
       }
     }
     else                            // (3.4) connect light and camera vertices (bidir connection)

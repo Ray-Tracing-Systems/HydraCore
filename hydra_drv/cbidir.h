@@ -248,7 +248,7 @@ static inline float3 bsdfClamping(float3 a_val)
 
 static float3 ConnectShadowP(__private const PathVertex* a_cv, const int a_camDepth, __global const PlainLight* a_pLight, const ShadowSample a_explicitSam, const float a_lightPickProb,
                              __global const EngineGlobals* a_globals, __global const float4* a_mltStorage, texture2d_t a_texStorage1, texture2d_t a_texStorage2, __global const float4* a_tableStorage, __private const ProcTextureList* a_ptList,
-                             __global PdfVertex* v0, __global PdfVertex* v1, __global PdfVertex* v2)
+                             __private PdfVertex* v0, __private PdfVertex* v1, __private PdfVertex* v2)
 {
   const float3 shadowRayDir = normalize(a_explicitSam.pos - a_cv->hit.pos); // explicitSam.direction;
   
