@@ -509,59 +509,6 @@ static inline PTSamle DecompressSampleInfo(const PTSampleCompressed& a_sampleInf
 }
 
 
-class IntegratorPSSMLT : public IntegratorMISPT // unidirectional PSSMLT
-{
-public:
-
-  typedef IntegratorMISPT Base;
-
-  IntegratorPSSMLT(int w, int h, EngineGlobals* a_pGlobals, int a_createFlags) : Base(w, h, a_pGlobals, a_createFlags)
-  {
-    initRands();
-
-    m_hystColored.resize(w,h);
-    m_directLight.resize(w,h);
-
-    memset(m_hystColored.data(), 0, sizeof(float4)*w*h);
-    memset(m_directLight.data(), 0, sizeof(float4)*w*h);
-
-    m_firstPass         = true;
-    m_averageBrightness = 0.0f;
-    m_ordinarySpp       = 0;
-  }
-
-  bool IsFullCore() const { return false; } // don't used tiled rendering
-  void DoPass(std::vector<uint>& a_imageLDR);
-
-protected:
-
-  /////////////////////////////////////////////////////////////////////////////////////////////////
-
-  inline RandomGen& randomGen2() { return m_perThread[omp_get_thread_num()].gen2; }
-
-  /////////////////////////////////////////////////////////////////////////////////////////////////
-
-  void DoPassDL(HDRImage4f& a_summHDR);
-  void DoPassIndirectMLT(int mutationsNum);
-  void DoPassIndirectOrdinaryMC(int a_spp, HDRImage4f& a_color);
-
-  typedef std::vector<float> PSSampleV;
-
-  HDRImage4f m_hystColored;
-  HDRImage4f m_directLight;
-  
-  float m_averageBrightness;
-  int   m_ordinarySpp;
-  bool  m_firstPass;
-
-  void initRands();
-
-  PSSampleV initialSample_PS(int a_mutationsNum);
-  PSSampleV mutatePrimarySpace(const PSSampleV& a_vec, bool* pIsLargeStep = nullptr);
-
-  float3 F(const PSSampleV& x_ps);
-};
-
 class IntegratorLT : public IntegratorCommon
 {
 public:
