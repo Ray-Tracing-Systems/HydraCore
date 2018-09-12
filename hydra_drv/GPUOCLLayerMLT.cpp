@@ -102,7 +102,7 @@ size_t GPUOCLLayer::MLT_Alloc(int a_maxBounce)
   m_mlt.lightVertexSup    = clCreateBuffer(m_globals.ctx, CL_MEM_READ_WRITE, pathVertexSizeSup, NULL, &ciErr1);
   m_mlt.cameraVertexSup   = clCreateBuffer(m_globals.ctx, CL_MEM_READ_WRITE, pathVertexSizeSup, NULL, &ciErr1);
   m_mlt.cameraVertexHit   = clCreateBuffer(m_globals.ctx, CL_MEM_READ_WRITE, pathVertexSizeHit, NULL, &ciErr1);
-  m_mlt.pdfArray          = clCreateBuffer(m_globals.ctx, CL_MEM_READ_WRITE, 2*sizeof(float)*m_rays.MEGABLOCKSIZE*a_maxBounce, NULL, &ciErr1);
+  m_mlt.pdfArray          = clCreateBuffer(m_globals.ctx, CL_MEM_READ_WRITE, 2*sizeof(float)*m_rays.MEGABLOCKSIZE*(a_maxBounce+1), NULL, &ciErr1);
 
   m_mlt.memTaken      += pathVertexSizeHit;
   m_mlt.memTaken      += pathVertexSizeSup;

@@ -35,10 +35,11 @@ inline int TabIndex(const int vertId, const int tid, const int iNumElements)
   return tid + vertId*iNumElements;
 }
 
-__kernel void MMLTInitCameraPath(__global   uint* restrict a_flags,
-                                 __global float4* restrict a_color,
-                                 __global int2*   restrict a_split,
-                                 __global float4* restrict a_vertexSup,
+__kernel void MMLTInitCameraPath(__global   uint*    restrict a_flags,
+                                 __global float4*    restrict a_color,
+                                 __global int2*      restrict a_split,
+                                 __global float4*    restrict a_vertexSup,
+                                 __global PdfVertex* restrict a_pdfVert,
 
                                  //__global RandomGen* restrict a_gens,
                                  //__global float*     restrict a_mmltrands,
@@ -50,7 +51,7 @@ __kernel void MMLTInitCameraPath(__global   uint* restrict a_flags,
     return;
 
   const int d = MMLT_GPU_TEST_DEPTH;
-  const int s = 2; 
+  const int s = 3; 
 
   a_flags[tid] = packBounceNum(0, 1);
   a_color[tid] = make_float4(1,1,1,1);
@@ -65,6 +66,11 @@ __kernel void MMLTInitCameraPath(__global   uint* restrict a_flags,
   WritePathVertexSupplement(&resVertex, tid, iNumElements, 
                             a_vertexSup);
 
+  PdfVertex vInitial;
+  vInitial.pdfFwd = 1.0f;
+  vInitial.pdfRev = 1.0f;
+  for(int i=0;i<=d;i++)
+    a_pdfVert[TabIndex(i, tid, iNumElements)] = vInitial;
 }
 
 __kernel void CopyAccColorTo(__global const float4* restrict in_vertexSup, 
@@ -944,8 +950,50 @@ __kernel void MMLTConnect(__global const int2  *  restrict in_splitInfo,
   if (!isfinite(sampleColor.x) || !isfinite(sampleColor.y) || !isfinite(sampleColor.z))
     sampleColor = make_float3(0, 0, 0);
 
-  // #TODO: implement MIS weights here ... 
+  // calc MIS weight
   //
+  float misWeight = 1.0f;
+  if (dot(sampleColor, sampleColor) > 1e-12f)
+  {
+    float pdfThisWay = 1.0f;
+    float pdfSumm    = 0.0f;
+
+    const PdfVertex vD = a_pdfVert[TabIndex(d, tid, iNumElements)];
+
+    for (int split = 0; split <= d; split++)
+    {
+      const int s1 = split;
+      const int t1 = d - split;
+      
+      const PdfVertex vS = a_pdfVert[TabIndex(split, tid, iNumElements)];
+
+      const bool specularMet = (split > 0) && (split < d) && (vS.pdfRev < 0.0f || vS.pdfFwd < 0.0f);
+      float pdfOtherWay = specularMet ? 0.0f : 1.0f;
+      if (split == d)
+        pdfOtherWay = misHeuristicPower1(vD.pdfFwd);
+
+      for (int i = 0; i < s1; i++)
+      {
+        const PdfVertex vI = a_pdfVert[TabIndex(i, tid, iNumElements)];
+        pdfOtherWay *= misHeuristicPower1(vI.pdfFwd);
+      }
+
+      for (int i = s1 + 1; i <= d; i++)
+      {
+        const PdfVertex vI = a_pdfVert[TabIndex(i, tid, iNumElements)];
+        pdfOtherWay *= misHeuristicPower1(vI.pdfRev);
+      }
+
+      if (s1 == s && t1 == t)
+        pdfThisWay = pdfOtherWay;
+
+      pdfSumm += pdfOtherWay;
+    }
+
+    misWeight = pdfThisWay / fmax(pdfSumm, DEPSILON2);
+  }
+
+  sampleColor *= misWeight;
 
   const int zid = (int)ZIndex(x, y, a_mortonTable256);
   if(out_zind != 0)
