@@ -58,7 +58,7 @@ __kernel void MMLTInitCameraPath(__global   uint*    restrict a_flags,
   a_split[tid] = make_int2(d,s);
   
   PathVertex resVertex;
-  resVertex.ray_dir      = make_float3(0,0,0);
+  resVertex.ray_dir      = make_float3(0,0,0); 
   resVertex.accColor     = make_float3(0,0,0);   
   resVertex.valid        = false; //(a_currDepth == a_targetDepth);     // #TODO: dunno if this is correct ... 
   resVertex.hitLight     = false;
@@ -104,7 +104,6 @@ __kernel void MMLTCameraPathBounce(__global   float4*        restrict a_rpos,
                                    __global const float4*    restrict in_procTexData,
 
                                    __global float4*          restrict a_color,
-                                   __global float4*          restrict a_normalPrev,    // (!) stote prev normal here, instead of 'a_thoroughput'
                                    __global MisData*         restrict a_misDataPrev,
                                    __global float4*          restrict a_fog,
                                    __global PdfVertex*       restrict a_pdfVert,       // (!) MMLT pdfArray 
@@ -170,14 +169,14 @@ __kernel void MMLTCameraPathBounce(__global   float4*        restrict a_rpos,
  
   __global const PlainMaterial* pHitMaterial = materialAt(a_globals, in_mtlStorage, surfElem.matId);
 
-  const float3 ray_pos      = to_float3(a_rpos[tid]);
-  const float3 ray_dir      = to_float3(a_rdir[tid]);
-  const float3 a_prevNormal = to_float3(a_normalPrev[tid]);
+  const float3 ray_pos    = to_float3(a_rpos[tid]);
+  const float3 ray_dir    = to_float3(a_rdir[tid]);
+  const MisData a_misPrev = a_misDataPrev[tid];
   
   // (1)
   //
   const float cosHere = fabs(dot(ray_dir, surfElem.normal));
-  const float cosPrev = fabs(dot(ray_dir, a_prevNormal));
+  const float cosPrev = fabs(a_misPrev.cosThetaPrev); // fabs(dot(ray_dir, a_prevNormal));
  
   float GTerm = 1.0f;
   if (a_currDepth == 1)
@@ -201,7 +200,6 @@ __kernel void MMLTCameraPathBounce(__global   float4*        restrict a_rpos,
   // (2)
   //
   const Lite_Hit liteHit  = in_hits[tid];
-  const MisData a_misPrev = a_misDataPrev[tid];
 
   ProcTextureList ptl;        
   InitProcTextureList(&ptl);  
@@ -396,7 +394,7 @@ __kernel void MMLTCameraPathBounce(__global   float4*        restrict a_rpos,
   misNext.matSamplePdf       = matSam.pdf;
   misNext.isSpecular         = (int)isPureSpecular(matSam);
   misNext.prevMaterialOffset = matOffset;
-  misNext.cosThetaPrev       = fabs(+dot(nextRay_dir, surfElem.normal)); // update it withCosNextActually ...
+  misNext.cosThetaPrev       = fabs(+dot(nextRay_dir, surfElem.normal)); 
   a_misDataPrev[tid]         = misNext;
 }
 

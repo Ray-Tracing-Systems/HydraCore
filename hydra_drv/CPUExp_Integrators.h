@@ -698,7 +698,7 @@ protected:
 
   PathVertex LightPath(PerThreadData* a_perThread, int a_lightTraceDepth);
 
-  PathVertex CameraPath(float3 ray_pos, float3 ray_dir, float3 a_prevNormal, MisData a_misPrev, int a_currDepth, uint flags,
+  PathVertex CameraPath(float3 ray_pos, float3 ray_dir, MisData a_misPrev, int a_currDepth, uint flags,
                         PerThreadData* a_perThread, int a_targetDepth, bool a_haveToHitLightSource, int a_fullPathDepth);
 
   float3 ConnectEye(const PathVertex& a_lv, int a_lightTraceDepth,

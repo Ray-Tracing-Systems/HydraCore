@@ -205,7 +205,7 @@ float3 IntegratorMMLT::F(const PSSampleV& a_xVec, const int d, int m_type,
 
     const bool haveToHitLight = (lightTraceDepth == -1);  // when lightTraceDepth == -1, use only camera strategy, so have to hit light at some depth level   
 
-    cv = CameraPath(ray_pos, ray_dir, float3(0, 0, 1), makeInitialMisData(), 1, 0,
+    cv = CameraPath(ray_pos, ray_dir, makeInitialMisData(), 1, 0,
                     &PerThread(), camTraceDepth, haveToHitLight, d);
   }
 
@@ -761,7 +761,7 @@ void IntegratorMMLT::TraceLightPath(float3 ray_pos, float3 ray_dir, int a_currDe
                  a_pOutLightVertex);
 }
 
-PathVertex IntegratorMMLT::CameraPath(float3 ray_pos, float3 ray_dir, float3 a_prevNormal, MisData a_misPrev, int a_currDepth, uint flags,
+PathVertex IntegratorMMLT::CameraPath(float3 ray_pos, float3 ray_dir, MisData a_misPrev, int a_currDepth, uint flags,
                                       PerThreadData* a_perThread, int a_targetDepth, bool a_haveToHitLightSource, int a_fullPathDepth)
 
 {
@@ -794,7 +794,7 @@ PathVertex IntegratorMMLT::CameraPath(float3 ray_pos, float3 ray_dir, float3 a_p
   // (1)
   //
   const float cosHere = fabs(dot(ray_dir, surfElem.normal));
-  const float cosPrev = fabs(dot(ray_dir, a_prevNormal));
+  const float cosPrev = fabs(a_misPrev.cosThetaPrev); // fabs(dot(ray_dir, a_prevNormal));
   float GTerm = 1.0f;
 
   if (a_currDepth == 1)
@@ -920,10 +920,11 @@ PathVertex IntegratorMMLT::CameraPath(float3 ray_pos, float3 ray_dir, float3 a_p
   MisData thisBounce       = makeInitialMisData();
   thisBounce.isSpecular    = isPureSpecular(matSam);
   thisBounce.matSamplePdf  = matSam.pdf;
+  thisBounce.cosThetaPrev  = dot(nextRay_dir, surfElem.normal);
 
   const bool stopDL        = m_splitDLByGrammar ? flagsHaveOnlySpecular(flags) : false;
 
-  PathVertex nextVertex  = CameraPath(nextRay_pos, nextRay_dir, surfElem.normal, thisBounce, a_currDepth + 1, flagsNextBounceLite(flags, matSam, m_pGlobals),
+  PathVertex nextVertex  = CameraPath(nextRay_pos, nextRay_dir, thisBounce, a_currDepth + 1, flagsNextBounceLite(flags, matSam, m_pGlobals),
                                       a_perThread, a_targetDepth, a_haveToHitLightSource, a_fullPathDepth);
 
   nextVertex.accColor *= (bxdfVal*cosNext / fmax(matSam.pdf, DEPSILON2));

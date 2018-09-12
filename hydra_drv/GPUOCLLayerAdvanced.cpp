@@ -97,20 +97,19 @@ void GPUOCLLayer::runKernel_MMLTCameraPathBounce(cl_mem rayFlags, cl_mem a_rpos,
   CHECK_CL(clSetKernelArg(kernX, 8, sizeof(cl_mem), (void*)&m_rays.hitProcTexData));
  
   CHECK_CL(clSetKernelArg(kernX, 9, sizeof(cl_mem), (void*)&a_color));
-  CHECK_CL(clSetKernelArg(kernX,10, sizeof(cl_mem), (void*)&m_rays.shadowRayPos )); // #NOTE: use shadowRayPos for 'a_normalPrev', need some float4 buffer.
-  CHECK_CL(clSetKernelArg(kernX,11, sizeof(cl_mem), (void*)&m_rays.pathMisDataPrev));
-  CHECK_CL(clSetKernelArg(kernX,12, sizeof(cl_mem), (void*)&m_rays.fogAtten));
-  CHECK_CL(clSetKernelArg(kernX,13, sizeof(cl_mem), (void*)&m_mlt.pdfArray));
-  CHECK_CL(clSetKernelArg(kernX,14, sizeof(cl_mem), (void*)&a_outHitSup));
+  CHECK_CL(clSetKernelArg(kernX,10, sizeof(cl_mem), (void*)&m_rays.pathMisDataPrev));
+  CHECK_CL(clSetKernelArg(kernX,11, sizeof(cl_mem), (void*)&m_rays.fogAtten));
+  CHECK_CL(clSetKernelArg(kernX,12, sizeof(cl_mem), (void*)&m_mlt.pdfArray));
+  CHECK_CL(clSetKernelArg(kernX,13, sizeof(cl_mem), (void*)&a_outHitSup));
 
-  CHECK_CL(clSetKernelArg(kernX,15, sizeof(cl_mem), (void*)&m_scene.storageTex));
-  CHECK_CL(clSetKernelArg(kernX,16, sizeof(cl_mem), (void*)&m_scene.storageTexAux));
-  CHECK_CL(clSetKernelArg(kernX,17, sizeof(cl_mem), (void*)&m_scene.storageMat));
-  CHECK_CL(clSetKernelArg(kernX,18, sizeof(cl_mem), (void*)&m_scene.storagePdfs));
+  CHECK_CL(clSetKernelArg(kernX,14, sizeof(cl_mem), (void*)&m_scene.storageTex));
+  CHECK_CL(clSetKernelArg(kernX,15, sizeof(cl_mem), (void*)&m_scene.storageTexAux));
+  CHECK_CL(clSetKernelArg(kernX,16, sizeof(cl_mem), (void*)&m_scene.storageMat));
+  CHECK_CL(clSetKernelArg(kernX,17, sizeof(cl_mem), (void*)&m_scene.storagePdfs));
  
-  CHECK_CL(clSetKernelArg(kernX,19, sizeof(cl_mem), (void*)&m_scene.allGlobsData));
-  CHECK_CL(clSetKernelArg(kernX,20, sizeof(cl_int), (void*)&isize));
-  CHECK_CL(clSetKernelArg(kernX,21, sizeof(cl_float), (void*)&mLightSubPathCount));
+  CHECK_CL(clSetKernelArg(kernX,18, sizeof(cl_mem), (void*)&m_scene.allGlobsData));
+  CHECK_CL(clSetKernelArg(kernX,19, sizeof(cl_int), (void*)&isize));
+  CHECK_CL(clSetKernelArg(kernX,20, sizeof(cl_float), (void*)&mLightSubPathCount));
 
   CHECK_CL(clEnqueueNDRangeKernel(m_globals.cmdQueue, kernX, 1, NULL, &a_size, &localWorkSize, 0, NULL, NULL));
   waitIfDebug(__FILE__, __LINE__);
