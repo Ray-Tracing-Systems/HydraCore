@@ -1526,7 +1526,7 @@ IDH_CALL float3 MapSampleToModifiedCosineDistribution(float r1, float r2, float3
   float3 deviation;
   deviation.x = sin_theta*cos_phi;
   deviation.y = sin_theta*sin_phi;
-  deviation.z = pow(r2, 1.0f / (power + 1.0f));
+  deviation.z = sqrt(1.0f - deviation.x*deviation.x - deviation.y*deviation.y); //pow(r2, 1.0f / (power + 1.0f));
 
   float3 ny = direction, nx, nz;
   CoordinateSystem(ny, &nx, &nz);

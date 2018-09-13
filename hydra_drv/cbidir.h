@@ -523,6 +523,6 @@ static inline float3 emissionEval(const float3 ray_pos, const float3 ray_dir,  _
   return outPathColor;
 }
 
-#define MMLT_GPU_TEST_DEPTH 3
+#define MMLT_GPU_TEST_DEPTH 4
 
 #endif
