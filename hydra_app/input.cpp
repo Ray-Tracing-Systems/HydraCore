@@ -11,14 +11,15 @@ Input::Input()
   g_hydraApiDisableSceneLoadInfo = true;
   
   //noWindow      = false;         ///< run 'console_main', else run 'window_main'
-  //inLibraryPath = "tests/test_42"; ///< cornell box with teapot
+  inLibraryPath = "tests/test_42"; ///< cornell box with teapot
   //inLibraryPath = "tests/test_223_small"; ///< cornell box with sphere
-  inLibraryPath = "/media/frol/886234F06234E49A/scenes/phong_test/phong1"; ///< cornell box with mirror glossy back wall
+  //inLibraryPath = "/media/frol/886234F06234E49A/scenes/phong_test/phong1"; ///< cornell box with mirror glossy back wall
+  //inLibraryPath = "/media/frol/886234F06234E49A/scenes/phong_test/torspar1";
   
   //inLibraryPath = "/home/frol/PROG/HydraAPI/main/tests/test_86";
   //inLibraryPath = "/home/frol/temp/ibpt_bug";
   //inLibraryPath = "/home/frol/PROG/HydraAPI/main/tests_f/test_105";
-  //inLibraryPath = "/home/frol/yandexdisk/Hydra/scenelib";
+  //inLibraryPath = "/home/frol/yandexdisk/Hydra/scenelib"; 
   
   //inLibraryPath = "D:/[archive]/2017/HydraAPP/hydra_app/tests/hydra_benchmark_07";
   //inLibraryPath = "D:/[archive]/2017/HydraOldRepo/HydraAPP/hydra_app/tests/hydra_benchmark_07";

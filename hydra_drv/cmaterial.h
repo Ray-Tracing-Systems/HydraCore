@@ -55,22 +55,11 @@ static inline float sigmoid(float x)
   return 1.0f / (1.0f + exp(-1.0f*x));
 }
 
-static inline float sigmoidShifted(float x)
-{
-  return sigmoid(20.0f*(x - 0.5f));
-}
-
 static inline float PreDivCosThetaFixMult(const float gloss, const float cosThetaOut)
 {
-  if(gloss <= 0.5f)
-    return 1.0f;
-  else
-  {
-    //const float gloss2 = 2.0f*(gloss - 0.5f);
-    const float t = sigmoidShifted(gloss);
-    const float lerpVal = 1.0f + t*(1.0f / fmax(cosThetaOut, 1e-5f) - 1.0f); // mylerp { return u + t * (v - u); }
-    return lerpVal;
-  }
+  const float t       = sigmoid(20.0f*(gloss - 0.5f));
+  const float lerpVal = 1.0f + t*(1.0f / fmax(cosThetaOut, 1e-5f) - 1.0f); // mylerp { return u + t * (v - u); }
+  return lerpVal;
 }
 
 //////////////////////////////////////////////////////////////// all other components may overlay their offsets
