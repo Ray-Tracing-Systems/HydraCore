@@ -47,6 +47,25 @@ static inline int2 materialGetOpacitytex(__global const PlainMaterial* a_pMat)
   return res;
 }
 
+// this is needed for high gloss value when it is near mirrors
+//
+
+static inline float sigmoid(float x)
+{
+  return 1.0f / (1.0f + exp(-1.0f*x));
+}
+
+static inline float PreDivCosThetaFixMult(const float gloss, const float cosThetaOut)
+{
+  if(gloss <= 0.8f)
+    return 1.0f;
+  else
+  {
+    const float gloss2 = (gloss-0.8f)*5.0f;
+    const float t = sigmoid( 20.0f*(gloss2 - 0.5f) ); 
+    return 1.0f + t*(1.0f / fmax(cosThetaOut, 1e-5f) - 1.0f); // mylerp { return u + t * (v - u); }
+  }
+}
 
 //////////////////////////////////////////////////////////////// all other components may overlay their offsets
 
@@ -637,6 +656,8 @@ static inline float3 phongEvalBxDF(__global const PlainMaterial* a_pMat, const f
 
   const float3 r        = reflect((-1.0)*v, n);
   const float  cosAlpha = clamp(dot(l, r), 0.0f, M_PI*0.499995f);
+
+  //const float cosThetaFix = a_fwdDir ? PreDivCosThetaFixMultLT(gloss, fabs(dot(v, n))) : 1.0f;
   
   return color*(cosPower + 2.0f)*0.5f*INV_PI*pow(cosAlpha, cosPower-1.0f); // 
 }
@@ -656,10 +677,12 @@ static inline void PhongSampleAndEvalBRDF(__global const PlainMaterial* a_pMat, 
 
   const float cosAlpha    = clamp(dot(newDir, r), 0.0, M_PI*0.499995f);
   const float cosThetaOut = dot(newDir, a_normal);
+ 
+  const float cosLerp     = PreDivCosThetaFixMult(gloss, cosThetaOut);
 
   a_out->direction    = newDir;
   a_out->pdf          = pow(cosAlpha, cosPower) * (cosPower + 1.0f) * (0.5f * INV_PI);
-  a_out->color        = color*((cosPower + 2.0f) * INV_TWOPI * pow(cosAlpha, cosPower));
+  a_out->color        = color*((cosPower + 2.0f) * INV_TWOPI * pow(cosAlpha, cosPower))*cosLerp;
   if (cosThetaOut <= 1e-6f)  // reflection under surface must be zerowed!
     a_out->color = make_float3(0, 0, 0);
 
@@ -878,10 +901,11 @@ static inline void BlinnSampleAndEvalBRDF(__global const PlainMaterial* a_pMat, 
 
   const float3 newDir      = wi.x*nx + wi.y*ny + wi.z*nz;
   const float  cosThetaOut = dot(newDir, a_normal);
+  const float cosLerp      = PreDivCosThetaFixMult(gloss, cosThetaOut);
 
   a_out->direction = newDir; // back to normal coordinate system
   a_out->pdf       = blinn_pdf;
-  a_out->color     = color * D * TorranceSparrowGF1(wo, wi);
+  a_out->color     = color * D * TorranceSparrowGF1(wo, wi) * cosLerp;
 
   if (cosThetaOut <= 1e-6f || dot(wo, wh) <= 0.0f) // reflection under surface occured
     a_out->color = make_float3(0, 0, 0);
