@@ -18,7 +18,7 @@
       <color>0.207843 0.188235 0</color>
     </diffuse>
     <reflectivity brdf_type="phong">
-      <color>0.367059 0.345882 0</color>
+      <color>0.767059 0.745882 0</color>
       <glossiness>0.5</glossiness>
     </reflectivity>
   </material>
