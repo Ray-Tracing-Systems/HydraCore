@@ -62,9 +62,15 @@ static inline float sigmoidShifted(float x)
 
 static inline float PreDivCosThetaFixMult(const float gloss, const float cosThetaOut)
 {
-  const float t = sigmoidShifted(gloss);
-  const float lerpVal = 1.0f + t*(1.0f / fmax(cosThetaOut, 1e-5f) - 1.0f); // mylerp { return u + t * (v - u); }
-  return lerpVal;
+  if(gloss <= 0.5f)
+    return 1.0f;
+  else
+  {
+    //const float gloss2 = 2.0f*(gloss - 0.5f);
+    const float t = sigmoidShifted(gloss);
+    const float lerpVal = 1.0f + t*(1.0f / fmax(cosThetaOut, 1e-5f) - 1.0f); // mylerp { return u + t * (v - u); }
+    return lerpVal;
+  }
 }
 
 //////////////////////////////////////////////////////////////// all other components may overlay their offsets
@@ -901,7 +907,7 @@ static inline void BlinnSampleAndEvalBRDF(__global const PlainMaterial* a_pMat, 
 
   const float3 newDir      = wi.x*nx + wi.y*ny + wi.z*nz;
   const float  cosThetaOut = dot(newDir, a_normal);
-  const float cosLerp      = PreDivCosThetaFixMult(gloss, cosThetaOut);
+  const float cosLerp      = 1.0f; //PreDivCosThetaFixMult(gloss, cosThetaOut);
 
   a_out->direction = newDir; // back to normal coordinate system
   a_out->pdf       = blinn_pdf;
