@@ -755,7 +755,36 @@ protected:
 };
 
 
+class IntegratorMMLT_CompressedRand : public IntegratorMMLT
+{
+public:
+
+  IntegratorMMLT_CompressedRand(int w, int h, EngineGlobals* a_pGlobals)                         : IntegratorMMLT(w, h, a_pGlobals, 0) {}
+  IntegratorMMLT_CompressedRand(int w, int h, EngineGlobals* a_pGlobals, float4* pIndirectImage) : IntegratorMMLT(w, h, a_pGlobals, pIndirectImage) {}
+
+protected:
+
+  enum {MMLT_MAX_BOUNCE_COMPRESSED = 20};
+  
+  struct PSSampleVC
+  {
+    float head  [MMLT_HEAD_TOTAL_SIZE];
+    uint4 group1[MMLT_MAX_BOUNCE_COMPRESSED];
+    uint2 group2[MMLT_MAX_BOUNCE_COMPRESSED];
+    int bounceNum;
+  };
+  
+  PSSampleVC Compress(const PSSampleV& a_vec);
+  PSSampleV  Decompress(const PSSampleVC& a_vec);
+  
+  PSSampleVC InitialSamplePS2(const int d, const int a_burnIters = 0); 
+  void DoPassIndirectMLT(int d, float a_bkScale, float4* a_outImage);
+};
+
+
+
 float3 EstimateAverageBrightnessRGB(const HDRImage4f& a_color);
 float  EstimateAverageBrightness   (const HDRImage4f& a_color);
 float3 EstimateAverageBrightnessRGB(const std::vector<float4>& a_color);
 float  EstimateAverageBrightness   (const std::vector<float4>& a_color);
+

@@ -267,18 +267,18 @@ typedef struct float6GroupT
 } float6_gr;
 
 
-#define MANTISSA23 8388607.0f // 16777215.0f; actually you can use only 23 bit because sign is not used, randoms from [0..1] are always positive ... 
-#define MANTISSA23_INV (1.0f / MANTISSA23)
+#define MANTISSA24 16777215.0f // 16777215.0f 
+#define MANTISSA24_INV (1.0f / MANTISSA24)
 
 #define MANTISSA16 65535.0f
 #define MANTISSA16_INV (1.0f/65535.0f)
 
 static inline uint4 packBounceGroup(float6_gr data)
 {
-  const unsigned int ix0 = (unsigned int)(MANTISSA23*data.group24.x);
-  const unsigned int ix1 = (unsigned int)(MANTISSA23*data.group24.y);
-  const unsigned int ix2 = (unsigned int)(MANTISSA23*data.group24.z);
-  const unsigned int ix3 = (unsigned int)(MANTISSA23*data.group24.w);
+  const unsigned int ix0 = (unsigned int)(MANTISSA24*data.group24.x);
+  const unsigned int ix1 = (unsigned int)(MANTISSA24*data.group24.y);
+  const unsigned int ix2 = (unsigned int)(MANTISSA24*data.group24.z);
+  const unsigned int ix3 = (unsigned int)(MANTISSA24*data.group24.w);
   const unsigned int iy0 = (unsigned int)(MANTISSA16*data.group16.x);
   const unsigned int iy1 = (unsigned int)(MANTISSA16*data.group16.y);
 
@@ -302,12 +302,40 @@ static inline float6_gr unpackBounceGroup(uint4 data)
   const unsigned int x3i = ((data.z & 0xFF000000) >> 8) | (data.w & 0x0000FFFF);
 
   float6_gr res;
-  res.group24.x = (float)(x0i)*MANTISSA23_INV;
-  res.group24.y = (float)(x1i)*MANTISSA23_INV;
-  res.group24.z = (float)(x2i)*MANTISSA23_INV;
-  res.group24.w = (float)(x3i)*MANTISSA23_INV;
+  res.group24.x = (float)(x0i)*MANTISSA24_INV;
+  res.group24.y = (float)(x1i)*MANTISSA24_INV;
+  res.group24.z = (float)(x2i)*MANTISSA24_INV;
+  res.group24.w = (float)(x3i)*MANTISSA24_INV;
   res.group16.x = (float)(y0i)*MANTISSA16_INV;
   res.group16.y = (float)(y1i)*MANTISSA16_INV;
+  return res;
+}
+
+static inline uint2 packBounceGroup2(float4 data)
+{
+  const unsigned int iy0 = (unsigned int)(MANTISSA16*data.x);
+  const unsigned int iy1 = (unsigned int)(MANTISSA16*data.y);
+  const unsigned int iy2 = (unsigned int)(MANTISSA16*data.z);
+  const unsigned int iy3 = (unsigned int)(MANTISSA16*data.w);
+
+  uint2 res;
+  res.x = iy0 | (iy1 << 16);
+  res.y = iy2 | (iy3 << 16);
+  return res;
+}
+
+static inline float4 unpackBounceGroup2(uint2 data)
+{
+  const unsigned int y0i = (data.x & 0x0000FFFF);
+  const unsigned int y1i = (data.x & 0xFFFF0000) >> 16;
+  const unsigned int y2i = (data.y & 0x0000FFFF);
+  const unsigned int y3i = (data.y & 0xFFFF0000) >> 16;
+
+  float4 res;
+  res.x = (float)(y0i)*MANTISSA16_INV;
+  res.y = (float)(y1i)*MANTISSA16_INV;
+  res.z = (float)(y2i)*MANTISSA16_INV;
+  res.w = (float)(y3i)*MANTISSA16_INV;
   return res;
 }
 
