@@ -694,7 +694,7 @@ public:
 
 protected:
 
-  void DoPassIndirectMLT(int d, float a_bkScale, float4* a_outImage);
+  virtual void DoPassIndirectMLT(int d, float a_bkScale, float4* a_outImage);
 
   PathVertex LightPath(PerThreadData* a_perThread, int a_lightTraceDepth);
 
@@ -778,7 +778,7 @@ protected:
   PSSampleV  Decompress(const PSSampleVC& a_vec);
   
   PSSampleVC InitialSamplePS2(const int d, const int a_burnIters = 0); 
-  void DoPassIndirectMLT(int d, float a_bkScale, float4* a_outImage);
+  void DoPassIndirectMLT(int d, float a_bkScale, float4* a_outImage) override;
 };
 
 

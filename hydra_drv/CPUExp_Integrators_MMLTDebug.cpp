@@ -125,7 +125,6 @@ void IntegratorMMLT::DebugLoadPaths()
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-
 IntegratorMMLT_CompressedRand::PSSampleVC IntegratorMMLT_CompressedRand::Compress(const PSSampleV& a_vec)
 {
   PSSampleVC res;
@@ -192,10 +191,9 @@ IntegratorMMLT_CompressedRand::PSSampleV  IntegratorMMLT_CompressedRand::Decompr
   return res;
 }
 
-IntegratorMMLT_CompressedRand::PSSampleVC IntegratorMMLT_CompressedRand::InitialSamplePS2(const int d, const int a_burnIters = 0)
+IntegratorMMLT_CompressedRand::PSSampleVC IntegratorMMLT_CompressedRand::InitialSamplePS2(const int d, const int a_burnIters)
 {
-  auto uncompressed = IntegratorMMLT::InitialSamplePS(d);
-  return Compress(uncompressed);
+  return Compress(IntegratorMMLT::InitialSamplePS(d));
 }
 
 
@@ -302,4 +300,3 @@ void IntegratorMMLT_CompressedRand::DoPassIndirectMLT(int d, float a_bkScale, fl
     std::cout.precision(oldPrecition);
   }
 }
-

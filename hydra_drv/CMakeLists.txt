@@ -23,6 +23,7 @@ set(SOURCE_FILES
         CPUExp_Integrators_PT_QMC.cpp
         CPUExp_Integrators_SBDPT.cpp
         CPUExp_Integrators_MMLT.cpp
+        CPUExp_Integrators_MMLTDebug.cpp
         CPUExp_IntegratorSSS.cpp
         CPUExp_Integrators_ThreeWay.cpp
         CPUExp_Integrators_TwoWay.cpp
