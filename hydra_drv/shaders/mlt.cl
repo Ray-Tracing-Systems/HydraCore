@@ -91,6 +91,42 @@ __kernel void CopyAccColorTo(__global const float4* restrict in_vertexSup,
     out_color[tid] = make_float4(0,0,0,0);
 }
 
+__kernel void MMLTMakeEyeRays(__global const float*         restrict in_numbers,
+                              __global float4*              restrict out_pos, 
+                              __global float4*              restrict out_dir, 
+                              __global const EngineGlobals* restrict a_globals,  
+                              int iNumElements)
+{
+  int tid = GLOBAL_ID_X;
+  if (tid >= iNumElements)
+    return;
+
+  // (1) generate 4 random floats
+  //
+  //const int2 sortedIndex = in_zind[tid];
+  //const float4 lensOffs  = in_samples[sortedIndex.y]; 
+  
+  float4 lensOffs;
+  lensOffs.x = in_numbers[ TabIndex(MMLT_DIM_SCR_X, tid, iNumElements) ];
+  lensOffs.y = in_numbers[ TabIndex(MMLT_DIM_SCR_Y, tid, iNumElements) ];
+  lensOffs.z = in_numbers[ TabIndex(MMLT_DIM_DOF_X, tid, iNumElements) ];
+  lensOffs.w = in_numbers[ TabIndex(MMLT_DIM_DOF_Y, tid, iNumElements) ];
+
+  //if(MCMC_LAZY == 1) // #TODO: implement mutate here
+  //{
+  //
+  //}
+
+  // (2) generate random camera sample
+  //
+  float  fx, fy;
+  float3 ray_pos, ray_dir;
+  MakeEyeRayFromF4Rnd(lensOffs, a_globals,
+                      &ray_pos, &ray_dir, &fx, &fy);
+
+  out_pos[tid] = to_float4(ray_pos, fx);
+  out_dir[tid] = to_float4(ray_dir, fy);
+}
 
 __kernel void MMLTCameraPathBounce(__global   float4*        restrict a_rpos,
                                    __global   float4*        restrict a_rdir,

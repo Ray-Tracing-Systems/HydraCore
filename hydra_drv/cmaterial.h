@@ -4,8 +4,6 @@
 #include "cglobals.h"
 #include "cfetch.h"
 
-#define MIX_TREE_MAX_DEEP 7
-
 static inline float3 materialGetEmission(__global const PlainMaterial* a_pMat) { return make_float3(a_pMat->data[EMISSIVE_COLORX_OFFSET], a_pMat->data[EMISSIVE_COLORY_OFFSET], a_pMat->data[EMISSIVE_COLORZ_OFFSET]); }
 static inline  int2  materialGetEmissionTex(__global const PlainMaterial* a_pMat)
 {
@@ -1417,7 +1415,7 @@ static inline void MaterialSampleAndEvalBxDF(__global const PlainMaterial* pMat,
                                 a_globals, a_tex, a_texNormal, a_ptList,
                                 a_out);
 
-  a_out->color *= 1.0f/fmax(mixSelector.w, 0.025f); // it is essential to do thin right here. Don't put this in PDF!
+  a_out->color *= 1.0f/fmax(mixSelector.w, 0.015625); // it is essential to do this right here. Don't put this in PDF!
 
   if (materialIsSkyPortal(pMatLeaf) && isEyeRay(rayFlags))
   {

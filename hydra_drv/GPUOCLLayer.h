@@ -62,8 +62,8 @@ public:
   std::vector<int> MakeAllPixelsList();
   void RunProductionSamplingMode();
 
-  void TraceSBDPTPass(cl_mem a_rpos, cl_mem a_rdir, size_t a_size, 
-                      cl_mem a_outColor, cl_mem a_outZIndex);
+  void EvalSBDPT(cl_mem in_xVector, size_t a_size,
+                 cl_mem a_outColor, cl_mem a_outZIndex);
 
   void FinishAll() override;
 
@@ -184,7 +184,7 @@ protected:
   struct CL_MLT_DATA
   {
     CL_MLT_DATA() : rstateForAcceptReject(0), rstateCurr(0), rstateOld(0), rstateNew(0),
-                    xVector(0), yVector(0), xColor(0), yColor(0), lightVertexSup(0), cameraVertexSup(0), cameraVertexHit(0), 
+                    xVector(0), yVector(0), currVec(0), xColor(0), yColor(0), lightVertexSup(0), cameraVertexSup(0), cameraVertexHit(0), 
                     pdfArray(0), splitData(0),memTaken(0), mppDone(0.0) {}
 
     cl_mem rstateForAcceptReject; // sizeof(RandGen), MEGABLOCKSIZE size
@@ -194,6 +194,7 @@ protected:
 
     cl_mem xVector;               ///< current vector that store unit hipercube floats
     cl_mem yVector;               ///< next vector that store unit hipercube floats; it should be 0 when MCMC_LAZY is defined; 
+    cl_mem currVec;               ///< points to some real vec (xVector|yVector); does not consume memory
 
     cl_mem xColor;
     cl_mem yColor;
@@ -431,6 +432,9 @@ protected:
   // MLT
   //
   void runKernel_MMLTInitSplitAndCamV(cl_mem a_flags, cl_mem a_color, cl_mem a_split, cl_mem a_hitSup, size_t a_size);
+  
+  void runKernal_MMLTMakeEyeRays(size_t a_size,
+                                 cl_mem a_rpos, cl_mem a_rdir);
   void runKernel_MMLTCameraPathBounce(cl_mem rayFlags, cl_mem a_rpos, cl_mem a_rdir, cl_mem a_color, cl_mem a_split, size_t a_size,
                                       cl_mem a_outHitCom, cl_mem a_outHitSup);
   

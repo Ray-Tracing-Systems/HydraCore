@@ -74,6 +74,25 @@ void GPUOCLLayer::runKernel_MMLTInitSplitAndCamV(cl_mem a_flags, cl_mem a_color,
   waitIfDebug(__FILE__, __LINE__);
 }
 
+void GPUOCLLayer::runKernal_MMLTMakeEyeRays(size_t a_size,
+                                            cl_mem a_rpos, cl_mem a_rdir)
+{
+  cl_kernel kernX      = m_progs.mlt.kernel("MMLTMakeEyeRays");
+
+  size_t localWorkSize = 256;
+  int            isize = int(a_size);
+  a_size               = roundBlocks(a_size, int(localWorkSize));
+
+  CHECK_CL(clSetKernelArg(kernX, 0, sizeof(cl_mem), (void*)&m_mlt.currVec));
+  CHECK_CL(clSetKernelArg(kernX, 1, sizeof(cl_mem), (void*)&a_rpos));
+  CHECK_CL(clSetKernelArg(kernX, 2, sizeof(cl_mem), (void*)&a_rdir));
+  CHECK_CL(clSetKernelArg(kernX, 3, sizeof(cl_mem), (void*)&m_scene.allGlobsData));
+  CHECK_CL(clSetKernelArg(kernX, 4, sizeof(cl_int), (void*)&isize));
+
+  CHECK_CL(clEnqueueNDRangeKernel(m_globals.cmdQueue, kernX, 1, NULL, &a_size, &localWorkSize, 0, NULL, NULL));
+  waitIfDebug(__FILE__, __LINE__);
+}
+
 void GPUOCLLayer::runKernel_MMLTCameraPathBounce(cl_mem rayFlags, cl_mem a_rpos, cl_mem a_rdir, cl_mem a_color, cl_mem a_split, size_t a_size,
                                                  cl_mem a_outHitCom, cl_mem a_outHitSup)
 {
@@ -264,9 +283,14 @@ void GPUOCLLayer::runKernel_MMLTConnect(cl_mem in_splitInfo, cl_mem  in_cameraVe
   waitIfDebug(__FILE__, __LINE__);
 }
 
-void GPUOCLLayer::TraceSBDPTPass(cl_mem a_rpos, cl_mem a_rdir, size_t a_size,
-                                 cl_mem a_outColor, cl_mem a_outZIndex)
+void GPUOCLLayer::EvalSBDPT(cl_mem in_xVector, size_t a_size,
+                            cl_mem a_outColor, cl_mem a_outZIndex)
 {
+  m_mlt.currVec = in_xVector;
+  cl_mem a_rpos = m_rays.rayPos;
+  cl_mem a_rdir = m_rays.rayDir;
+  
+  
   int maxBounce = MMLT_GPU_TEST_DEPTH;
 
   // (1) init and camera pass 
@@ -320,15 +344,8 @@ void GPUOCLLayer::TraceSBDPTPass(cl_mem a_rpos, cl_mem a_rdir, size_t a_size,
   runKernel_MMLTConnect(m_mlt.splitData, m_mlt.cameraVertexHit, m_mlt.cameraVertexSup, lightVertexHit, lightVertexSup, m_rays.lshadow, a_size, 
                         a_outColor, a_outZIndex);
 
-  
-  //runKernel_EyeShadowRays(m_rays.rayFlags, a_rdir,
-  //                        m_rays.shadowRayPos, m_rays.shadowRayDir, a_size);
-  //runKernel_ShadowTrace(m_rays.rayFlags, m_rays.shadowRayPos, m_rays.shadowRayDir,
-  //                      m_rays.lshadow, a_size);
-  //runKernel_ProjectSamplesToScreen(m_rays.rayFlags, m_rays.shadowRayDir, a_rdir, a_outColor,
-  //                                 a_outColor, a_outZIndex, a_size, 1);
 
-
+  m_mlt.currVec = nullptr;
 }
 
 

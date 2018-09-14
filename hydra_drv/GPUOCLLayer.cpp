@@ -1083,13 +1083,22 @@ void GPUOCLLayer::BeginTracingPass()
 
   if (m_vars.m_flags & HRT_ENABLE_MMLT)                 // SBDPT or MMLT pass
   {
-    // (1) trace; 
+    // (1) make poposal / gen rands
+    //
+    
+    // m_mlt.rstateCurr => m_mlt.xVector, ?(m_mlt.rstateCurr) ; // store new state if out parameter is not null
+
+    // (2) trace; 
     //
     m_raysWasSorted = false;
-    TraceSBDPTPass(m_rays.rayPos, m_rays.rayDir, m_rays.MEGABLOCKSIZE,
-                   m_rays.pathAccColor, m_rays.samZindex);
+    EvalSBDPT(m_mlt.xVector, m_rays.MEGABLOCKSIZE,
+              m_rays.pathAccColor, m_rays.samZindex);
 
-    // (3) Contrib to screen
+
+    // (3) Accept/Reject => (xColor, yColor) + (XZindex, YZindex)
+    //
+
+    // (4) Contrib to screen
     //
     AddContributionToScreen(m_rays.pathAccColor, m_rays.samZindex);
 
