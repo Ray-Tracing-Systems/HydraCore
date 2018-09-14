@@ -759,7 +759,7 @@ class IntegratorMMLT_CompressedRand : public IntegratorMMLT
 {
 public:
 
-  IntegratorMMLT_CompressedRand(int w, int h, EngineGlobals* a_pGlobals)                         : IntegratorMMLT(w, h, a_pGlobals, 0) {}
+  IntegratorMMLT_CompressedRand(int w, int h, EngineGlobals* a_pGlobals)                         : IntegratorMMLT(w, h, a_pGlobals) {}
   IntegratorMMLT_CompressedRand(int w, int h, EngineGlobals* a_pGlobals, float4* pIndirectImage) : IntegratorMMLT(w, h, a_pGlobals, pIndirectImage) {}
 
 protected:
