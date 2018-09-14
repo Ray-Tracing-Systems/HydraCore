@@ -4,7 +4,7 @@
 #include "cglobals.h"
 #include "cfetch.h"
 
-#define MIX_TREE_MAX_DEEP 16
+#define MIX_TREE_MAX_DEEP 7
 
 static inline float3 materialGetEmission(__global const PlainMaterial* a_pMat) { return make_float3(a_pMat->data[EMISSIVE_COLORX_OFFSET], a_pMat->data[EMISSIVE_COLORY_OFFSET], a_pMat->data[EMISSIVE_COLORZ_OFFSET]); }
 static inline  int2  materialGetEmissionTex(__global const PlainMaterial* a_pMat)

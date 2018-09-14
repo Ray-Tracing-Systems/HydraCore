@@ -2590,7 +2590,7 @@ enum PLAIN_MAT_FLAGS{
 
 #define PLAIN_MATERIAL_DATA_SIZE        192
 #define PLAIN_MATERIAL_CUSTOM_DATA_SIZE 80
-#define MIX_TREE_MAX_DEEP               16
+#define MIX_TREE_MAX_DEEP               7
 
 struct PlainMaterialT
 {
