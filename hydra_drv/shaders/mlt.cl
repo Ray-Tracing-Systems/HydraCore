@@ -91,6 +91,39 @@ __kernel void CopyAccColorTo(__global const float4* restrict in_vertexSup,
     out_color[tid] = make_float4(0,0,0,0);
 }
 
+
+__kernel void MMLTMakeProposal(__global const RandomGen* restrict in_gens,
+                               __global       RandomGen* restrict out_gens,     // save new random gen state here if it is not null
+                               __global       float*     restrict out_numbers,  // save random numbers here if it is not null
+                               int a_forceLargeStep,
+                               __global const EngineGlobals* restrict a_globals,
+                               int iNumElements)
+{
+  int tid = GLOBAL_ID_X;
+  if (tid >= iNumElements)
+    return;
+
+  RandomGen gen = in_gens[tid];
+
+  // gen head first
+  //
+  const float screenScaleX = a_globals->varsF[HRT_MLT_SCREEN_SCALE_X];
+  const float screenScaleY = a_globals->varsF[HRT_MLT_SCREEN_SCALE_Y];
+  const float4 lensOffs    = rndLens(&gen, 0, make_float2(screenScaleX, screenScaleY), 0, 0, 0); // what if we must mutate instead ?
+  
+  if(out_numbers != 0)
+  {
+
+  }
+
+  // gen tail (bounces) next
+  //
+
+  if(out_gens != 0)
+    out_gens[tid] = gen;
+}
+
+
 __kernel void MMLTMakeEyeRays(__global const float*         restrict in_numbers,
                               __global float4*              restrict out_pos, 
                               __global float4*              restrict out_dir, 
