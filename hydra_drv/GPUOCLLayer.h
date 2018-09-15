@@ -433,6 +433,9 @@ protected:
   //
   void runKernel_MMLTInitSplitAndCamV(cl_mem a_flags, cl_mem a_color, cl_mem a_split, cl_mem a_hitSup, size_t a_size);
   
+  void runKernel_MMLTMakeProposal(cl_mem in_rgen, cl_mem in_vec, cl_int a_largeStep, cl_int a_maxBounce, size_t a_size,
+                                  cl_mem out_rgen, cl_mem out_vec);
+
   void runKernal_MMLTMakeEyeRays(size_t a_size,
                                  cl_mem a_rpos, cl_mem a_rdir);
   void runKernel_MMLTCameraPathBounce(cl_mem rayFlags, cl_mem a_rpos, cl_mem a_rdir, cl_mem a_color, cl_mem a_split, size_t a_size,

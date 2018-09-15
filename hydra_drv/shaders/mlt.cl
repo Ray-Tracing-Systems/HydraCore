@@ -94,8 +94,9 @@ __kernel void CopyAccColorTo(__global const float4* restrict in_vertexSup,
 
 __kernel void MMLTMakeProposal(__global const RandomGen* restrict in_gens,
                                __global       RandomGen* restrict out_gens,     // save new random gen state here if it is not null
+                               __global const float*     restrict in_numbers,
                                __global       float*     restrict out_numbers,  // save random numbers here if it is not null
-                               int a_forceLargeStep,
+                               int a_forceLargeStep, int a_maxBounce,
                                __global const EngineGlobals* restrict a_globals,
                                int iNumElements)
 {
@@ -105,19 +106,140 @@ __kernel void MMLTMakeProposal(__global const RandomGen* restrict in_gens,
 
   RandomGen gen = in_gens[tid];
 
+  const bool largeStep = (a_forceLargeStep == 1); // #TODO: select this via random
+
   // gen head first
   //
-  const float screenScaleX = a_globals->varsF[HRT_MLT_SCREEN_SCALE_X];
-  const float screenScaleY = a_globals->varsF[HRT_MLT_SCREEN_SCALE_Y];
-  const float4 lensOffs    = rndLens(&gen, 0, make_float2(screenScaleX, screenScaleY), 0, 0, 0); // what if we must mutate instead ?
   
-  if(out_numbers != 0)
+  // lens
   {
+    float4 lensOffs; 
+    
+    if(largeStep)
+    {
+      lensOffs = rndFloat4_Pseudo(&gen);
+    }
+    else if(in_numbers != 0)
+    {
+      const float screenScaleX = a_globals->varsF[HRT_MLT_SCREEN_SCALE_X]; // #NOTE: be sure these variables are not zero !!! 
+      const float screenScaleY = a_globals->varsF[HRT_MLT_SCREEN_SCALE_Y]; // #NOTE: be sure these variables are not zero !!! 
+
+      lensOffs.x = in_numbers[ TabIndex(MMLT_DIM_SCR_X, tid, iNumElements) ];
+      lensOffs.y = in_numbers[ TabIndex(MMLT_DIM_SCR_Y, tid, iNumElements) ];
+      lensOffs.z = in_numbers[ TabIndex(MMLT_DIM_DOF_X, tid, iNumElements) ];
+      lensOffs.w = in_numbers[ TabIndex(MMLT_DIM_DOF_Y, tid, iNumElements) ];
+
+      lensOffs.x = MutateKelemen(lensOffs.x, &gen, MUTATE_COEFF_SCREEN*screenScaleX);
+      lensOffs.y = MutateKelemen(lensOffs.y, &gen, MUTATE_COEFF_SCREEN*screenScaleY);
+      lensOffs.z = MutateKelemen(lensOffs.z, &gen, MUTATE_COEFF_BSDF);
+      lensOffs.w = MutateKelemen(lensOffs.w, &gen, MUTATE_COEFF_BSDF);
+    }
+    
+    if(out_numbers != 0)
+    {
+      out_numbers[ TabIndex(MMLT_DIM_SCR_X, tid, iNumElements) ] = lensOffs.x;
+      out_numbers[ TabIndex(MMLT_DIM_SCR_Y, tid, iNumElements) ] = lensOffs.y;
+      out_numbers[ TabIndex(MMLT_DIM_DOF_X, tid, iNumElements) ] = lensOffs.z;
+      out_numbers[ TabIndex(MMLT_DIM_DOF_Y, tid, iNumElements) ] = lensOffs.w;
+    }
+  }
+
+  // light, split
+  //
+  {
+    float4 lsam1; float2 lsam2; float lsamN; float split;
+    if(largeStep)
+    {
+      lsam1 = rndFloat4_Pseudo(&gen);
+      lsam2 = rndFloat2_Pseudo(&gen);
+      lsamN = rndFloat1_Pseudo(&gen);
+      split = rndFloat1_Pseudo(&gen);
+    }
+    else if(in_numbers != 0)
+    {
+      lsam1.x = in_numbers[ TabIndex(MMLT_DIM_LGT_X, tid, iNumElements) ];
+      lsam1.y = in_numbers[ TabIndex(MMLT_DIM_LGT_Y, tid, iNumElements) ];
+      lsam1.z = in_numbers[ TabIndex(MMLT_DIM_LGT_Z, tid, iNumElements) ];
+      lsam1.w = in_numbers[ TabIndex(MMLT_DIM_LGT_W, tid, iNumElements) ];
+
+      lsam2.x = in_numbers[ TabIndex(MMLT_DIM_LGT_X1, tid, iNumElements) ];
+      lsam2.y = in_numbers[ TabIndex(MMLT_DIM_LGT_Y1, tid, iNumElements) ];
+      lsamN   = in_numbers[ TabIndex(MMLT_DIM_LGT_N,  tid, iNumElements) ];
+      split   = in_numbers[ TabIndex(MMLT_DIM_SPLIT,  tid, iNumElements) ];
+
+      lsam1.x = MutateKelemen(lsam1.x, &gen, MUTATE_COEFF_BSDF);
+      lsam1.y = MutateKelemen(lsam1.y, &gen, MUTATE_COEFF_BSDF);
+      lsam1.z = MutateKelemen(lsam1.z, &gen, MUTATE_COEFF_BSDF);
+      lsam1.w = MutateKelemen(lsam1.w, &gen, MUTATE_COEFF_BSDF);
+      lsam2.x = MutateKelemen(lsam2.x, &gen, MUTATE_COEFF_BSDF);
+      lsam2.y = MutateKelemen(lsam2.y, &gen, MUTATE_COEFF_BSDF); 
+
+      //#NOTE: do not mutate lsamN !!!
+      //#NOTE: do not mutate split !!!
+    }
+
+    if(out_numbers != 0)
+    {
+      out_numbers[TabIndex(MMLT_DIM_LGT_X, tid, iNumElements)]  = lsam1.x;
+      out_numbers[TabIndex(MMLT_DIM_LGT_Y, tid, iNumElements)]  = lsam1.y;
+      out_numbers[TabIndex(MMLT_DIM_LGT_Z, tid, iNumElements)]  = lsam1.z;
+      out_numbers[TabIndex(MMLT_DIM_LGT_W, tid, iNumElements)]  = lsam1.w;
+
+      out_numbers[TabIndex(MMLT_DIM_LGT_X1, tid, iNumElements)] = lsam2.x;
+      out_numbers[TabIndex(MMLT_DIM_LGT_Y1, tid, iNumElements)] = lsam2.y;
+      out_numbers[TabIndex(MMLT_DIM_LGT_N,  tid, iNumElements)] = lsamN;
+      out_numbers[TabIndex(MMLT_DIM_SPLIT,  tid, iNumElements)] = split;
+    }
 
   }
 
   // gen tail (bounces) next
   //
+  for(int bounce = 0; bounce < a_maxBounce; bounce++)
+  {
+    const int bounceOffset = TabIndex(MMLT_HEAD_TOTAL_SIZE + 6*bounce, tid, iNumElements);
+    __global const uint* in_compressed = (__global const uint*)(in_numbers  + bounceOffset);
+    __global      uint* out_compressed = (__global       uint*)(out_numbers + bounceOffset);  
+
+    float6_gr gr1f;
+    float4    gr2f;
+
+    if(largeStep)
+    {
+      gr1f.group24 = rndFloat4_Pseudo(&gen);
+      gr1f.group16 = rndFloat2_Pseudo(&gen);
+      gr2f         = rndFloat4_Pseudo(&gen);
+    }
+    else if(in_numbers != 0)
+    {
+      uint4 gr1; uint2 gr2;
+      gr1.x = in_compressed[TabIndex(0, tid, iNumElements)];
+      gr1.y = in_compressed[TabIndex(1, tid, iNumElements)];
+      gr1.z = in_compressed[TabIndex(2, tid, iNumElements)];
+      gr1.w = in_compressed[TabIndex(3, tid, iNumElements)];
+      gr2.x = in_compressed[TabIndex(4, tid, iNumElements)];
+      gr2.y = in_compressed[TabIndex(5, tid, iNumElements)];
+
+      gr1f = unpackBounceGroup (gr1);
+      gr2f = unpackBounceGroup2(gr2);
+
+      gr1f.group24.x = MutateKelemen(gr1f.group24.x, &gen, MUTATE_COEFF_BSDF);
+      gr1f.group24.y = MutateKelemen(gr1f.group24.y, &gen, MUTATE_COEFF_BSDF);
+      gr1f.group24.z = MutateKelemen(gr1f.group24.z, &gen, MUTATE_COEFF_BSDF);
+    }
+ 
+    if(out_numbers != 0)
+    {
+      uint4 gr1 = packBounceGroup(gr1f);
+      uint2 gr2 = packBounceGroup2(gr2f);
+      out_compressed[TabIndex(0, tid, iNumElements)] = gr1.x;
+      out_compressed[TabIndex(1, tid, iNumElements)] = gr1.y;
+      out_compressed[TabIndex(2, tid, iNumElements)] = gr1.z;
+      out_compressed[TabIndex(3, tid, iNumElements)] = gr1.w;
+      out_compressed[TabIndex(4, tid, iNumElements)] = gr2.x;
+      out_compressed[TabIndex(5, tid, iNumElements)] = gr2.y;
+    }
+  }  
 
   if(out_gens != 0)
     out_gens[tid] = gen;
