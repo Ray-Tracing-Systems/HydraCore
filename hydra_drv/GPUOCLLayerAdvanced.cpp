@@ -311,6 +311,49 @@ void GPUOCLLayer::runKernel_MMLTConnect(cl_mem in_splitInfo, cl_mem  in_cameraVe
   waitIfDebug(__FILE__, __LINE__);
 }
 
+
+size_t GPUOCLLayer::MMLTInitSplitDataUniform(cl_mem a_splitData, int a_maxDepth, size_t a_size)
+{
+  std::vector<int2> splitDataCPU(a_size);
+  size_t blocksNum = splitDataCPU.size() / 256;
+
+  const int bounceBeg = 3;
+  const int bounceEnd = a_maxDepth;
+
+  assert(bounceEnd >= bounceBeg);
+
+  const int bouncesIntoAccount       = bounceEnd - bounceBeg + 1;
+  const size_t blocksPerTargetDepth  = blocksNum / bouncesIntoAccount;
+  const size_t finalThreadsNum       = (blocksPerTargetDepth*bouncesIntoAccount)*256;
+  
+
+  std::vector<size_t>  activeThreads(a_maxDepth+1);
+  activeThreads[0] = 0;
+  activeThreads[1] = 0;
+  activeThreads[2] = 0;
+
+  size_t currPos = 0;
+  for(int bounce = a_maxDepth; bounce >= bounceBeg; bounce--)
+  {
+    for(int b=0;b<blocksPerTargetDepth;b++)
+    {
+      for(int i=0;i<256;i++)
+        splitDataCPU[(currPos + b)*256 + i] = make_int2(bounce, bounce);
+    }
+    currPos += blocksPerTargetDepth;
+    activeThreads[bounce] = currPos*256;
+  }
+
+  std::vector<float>   scale(a_maxDepth);
+  for(auto& coeff : scale)
+    coeff = float(bouncesIntoAccount);
+
+  // #TODO: (1) load splitDataCPU to a_splitData
+  // #TODO: (2) make scale table per depth and load 'scale' vec to it
+ 
+  return finalThreadsNum;
+}
+
 void GPUOCLLayer::EvalSBDPT(cl_mem in_xVector, size_t a_size,
                             cl_mem a_outColor, cl_mem a_outZIndex)
 {
@@ -318,10 +361,8 @@ void GPUOCLLayer::EvalSBDPT(cl_mem in_xVector, size_t a_size,
   cl_mem a_rpos = m_rays.rayPos;
   cl_mem a_rdir = m_rays.rayDir;
   
+  //int maxBounce = m_vars.m_varsI[HRT_TRACE_DEPTH];
   int maxBounce = MMLT_GPU_TEST_DEPTH;
-
-  runKernel_MMLTMakeProposal(m_mlt.rstateCurr, m_mlt.xVector, 1, maxBounce, a_size,
-                             m_mlt.rstateCurr, m_mlt.xVector);
 
   // (1) init and camera pass 
   //

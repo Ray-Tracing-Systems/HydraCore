@@ -1137,7 +1137,7 @@ __kernel void MMLTConnect(__global const int2  *  restrict in_splitInfo,
     }
     else                            // (3.4) connect light and camera vertices (bidir connection)
     {
-      if (cv.valid && lv.valid)
+      if (cv.valid && !cv.wasSpecOnly && lv.valid)
       {
         const float3 diff = cv.hit.pos - lv.hit.pos;
         const float dist2 = fmax(dot(diff, diff), DEPSILON2);

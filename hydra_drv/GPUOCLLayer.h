@@ -431,6 +431,9 @@ protected:
 
   // MLT
   //
+
+  size_t MMLTInitSplitDataUniform(cl_mem a_splitData, int a_maxDepth, size_t a_size);
+
   void runKernel_MMLTInitSplitAndCamV(cl_mem a_flags, cl_mem a_color, cl_mem a_split, cl_mem a_hitSup, size_t a_size);
   
   void runKernel_MMLTMakeProposal(cl_mem in_rgen, cl_mem in_vec, cl_int a_largeStep, cl_int a_maxBounce, size_t a_size,

@@ -1083,10 +1083,20 @@ void GPUOCLLayer::BeginTracingPass()
 
   if (m_vars.m_flags & HRT_ENABLE_MMLT)                 // SBDPT or MMLT pass
   {
+    if(m_spp < 1e-5f) // run init stage
+    {
+      std::cout << "MMLT, Init stage ... " << std::endl;
+      MMLTInitSplitDataUniform(m_mlt.splitData, m_vars.m_varsI[HRT_TRACE_DEPTH], m_rays.MEGABLOCKSIZE);
+    }
+
     // (1) make poposal / gen rands
     //
-    
-    // m_mlt.rstateCurr => m_mlt.xVector, ?(m_mlt.rstateCurr) ; // store new state if out parameter is not null
+  
+    //int maxBounce = m_vars.m_varsI[HRT_TRACE_DEPTH];
+    int maxBounce = MMLT_GPU_TEST_DEPTH;
+
+    runKernel_MMLTMakeProposal(m_mlt.rstateCurr, m_mlt.xVector, 1, maxBounce, m_rays.MEGABLOCKSIZE,
+                               m_mlt.rstateCurr, m_mlt.xVector);
 
     // (2) trace; 
     //
