@@ -97,7 +97,7 @@ void GPUOCLLayer::runKernel_MMLTMakeProposal(cl_mem in_rgen, cl_mem in_vec, cl_i
 }
 
 void GPUOCLLayer::runKernal_MMLTMakeEyeRays(size_t a_size,
-                                            cl_mem a_rpos, cl_mem a_rdir)
+                                            cl_mem a_rpos, cl_mem a_rdir, cl_mem a_zindex)
 {
   cl_kernel kernX      = m_progs.mlt.kernel("MMLTMakeEyeRays");
 
@@ -108,8 +108,10 @@ void GPUOCLLayer::runKernal_MMLTMakeEyeRays(size_t a_size,
   CHECK_CL(clSetKernelArg(kernX, 0, sizeof(cl_mem), (void*)&m_mlt.currVec));
   CHECK_CL(clSetKernelArg(kernX, 1, sizeof(cl_mem), (void*)&a_rpos));
   CHECK_CL(clSetKernelArg(kernX, 2, sizeof(cl_mem), (void*)&a_rdir));
-  CHECK_CL(clSetKernelArg(kernX, 3, sizeof(cl_mem), (void*)&m_scene.allGlobsData));
-  CHECK_CL(clSetKernelArg(kernX, 4, sizeof(cl_int), (void*)&isize));
+  CHECK_CL(clSetKernelArg(kernX, 3, sizeof(cl_mem), (void*)&a_zindex));
+  CHECK_CL(clSetKernelArg(kernX, 4, sizeof(cl_mem), (void*)&m_globals.cMortonTable));
+  CHECK_CL(clSetKernelArg(kernX, 5, sizeof(cl_mem), (void*)&m_scene.allGlobsData));
+  CHECK_CL(clSetKernelArg(kernX, 6, sizeof(cl_int), (void*)&isize));
 
   CHECK_CL(clEnqueueNDRangeKernel(m_globals.cmdQueue, kernX, 1, NULL, &a_size, &localWorkSize, 0, NULL, NULL));
   waitIfDebug(__FILE__, __LINE__);
@@ -312,12 +314,17 @@ void GPUOCLLayer::EvalSBDPT(cl_mem in_xVector, size_t a_size,
   cl_mem a_rpos = m_rays.rayPos;
   cl_mem a_rdir = m_rays.rayDir;
   
-  
   int maxBounce = MMLT_GPU_TEST_DEPTH;
+
+  runKernel_MMLTMakeProposal(m_mlt.rstateCurr, m_mlt.xVector, 1, maxBounce, a_size,
+                             m_mlt.rstateCurr, m_mlt.xVector);
 
   // (1) init and camera pass 
   //
-  runKernel_MakeEyeRays(m_rays.rayPos, m_rays.rayDir, m_rays.samZindex, m_rays.MEGABLOCKSIZE, m_passNumberForQMC, false);
+  //runKernel_MakeEyeRays(m_rays.rayPos, m_rays.rayDir, m_rays.samZindex, m_rays.MEGABLOCKSIZE, m_passNumberForQMC, false);
+  runKernal_MMLTMakeEyeRays(a_size,
+                            m_rays.rayPos, m_rays.rayDir, m_rays.samZindex);
+  
   runKernel_MMLTInitSplitAndCamV(m_rays.rayFlags, a_outColor, m_mlt.splitData, m_mlt.cameraVertexSup, a_size);
 
   for (int bounce = 0; bounce < maxBounce; bounce++)

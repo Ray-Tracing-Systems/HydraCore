@@ -51,7 +51,7 @@ __kernel void MMLTInitCameraPath(__global   uint*    restrict a_flags,
     return;
 
   const int d = MMLT_GPU_TEST_DEPTH;
-  const int s = 4; 
+  const int s = 1; 
 
   a_flags[tid] = packBounceNum(0, 1);
   a_color[tid] = make_float4(1,1,1,1);
@@ -248,7 +248,9 @@ __kernel void MMLTMakeProposal(__global const RandomGen* restrict in_gens,
 
 __kernel void MMLTMakeEyeRays(__global const float*         restrict in_numbers,
                               __global float4*              restrict out_pos, 
-                              __global float4*              restrict out_dir, 
+                              __global float4*              restrict out_dir,
+                              __global int2*                restrict out_ind, 
+                              __constant ushort*            restrict a_mortonTable256,
                               __global const EngineGlobals* restrict a_globals,  
                               int iNumElements)
 {
@@ -279,8 +281,27 @@ __kernel void MMLTMakeEyeRays(__global const float*         restrict in_numbers,
   MakeEyeRayFromF4Rnd(lensOffs, a_globals,
                       &ray_pos, &ray_dir, &fx, &fy);
 
-  out_pos[tid] = to_float4(ray_pos, fx);
-  out_dir[tid] = to_float4(ray_dir, fy);
+  const int w = (int)a_globals->varsF[HRT_WIDTH_F];
+  const int h = (int)a_globals->varsF[HRT_HEIGHT_F];
+
+  unsigned short x = (unsigned short)(fx);
+  unsigned short y = (unsigned short)(fy);
+
+  if (x >= w) x = w - 1;
+  if (y >= h) y = h - 1;
+
+  if (x < 0)  x = 0;
+  if (y < 0)  y = 0;
+
+  ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////// related to MakeEyeRayFromF4Rnd
+
+  int2 indexToSort;
+  indexToSort.x = ZIndex(x, y, a_mortonTable256);
+  indexToSort.y = tid;
+
+  out_pos[tid] = to_float4(ray_pos, 0.0f);
+  out_dir[tid] = to_float4(ray_dir, 0.0f);
+  out_ind[tid] = indexToSort;
 }
 
 __kernel void MMLTCameraPathBounce(__global   float4*        restrict a_rpos,

@@ -437,7 +437,7 @@ protected:
                                   cl_mem out_rgen, cl_mem out_vec);
 
   void runKernal_MMLTMakeEyeRays(size_t a_size,
-                                 cl_mem a_rpos, cl_mem a_rdir);
+                                 cl_mem a_rpos, cl_mem a_rdir, cl_mem a_zindex);
   void runKernel_MMLTCameraPathBounce(cl_mem rayFlags, cl_mem a_rpos, cl_mem a_rdir, cl_mem a_color, cl_mem a_split, size_t a_size,
                                       cl_mem a_outHitCom, cl_mem a_outHitSup);
   
