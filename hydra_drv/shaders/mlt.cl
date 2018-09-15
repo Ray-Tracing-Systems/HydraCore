@@ -51,7 +51,7 @@ __kernel void MMLTInitCameraPath(__global   uint*    restrict a_flags,
     return;
 
   const int d = MMLT_GPU_TEST_DEPTH;
-  const int s = 1; 
+  const int s = 3; 
 
   a_flags[tid] = packBounceNum(0, 1);
   a_color[tid] = make_float4(1,1,1,1);
@@ -92,10 +92,10 @@ __kernel void CopyAccColorTo(__global const float4* restrict in_vertexSup,
 }
 
 
-__kernel void MMLTMakeProposal(__global const RandomGen* restrict in_gens,
-                               __global       RandomGen* restrict out_gens,     // save new random gen state here if it is not null
-                               __global const float*     restrict in_numbers,
-                               __global       float*     restrict out_numbers,  // save random numbers here if it is not null
+__kernel void MMLTMakeProposal(__global const RandomGen* in_gens,
+                               __global       RandomGen* out_gens,     // save new random gen state here if it is not null
+                               __global const float*     in_numbers,
+                               __global       float*     out_numbers,  // save random numbers here if it is not null
                                int a_forceLargeStep, int a_maxBounce,
                                __global const EngineGlobals* restrict a_globals,
                                int iNumElements)
@@ -197,7 +197,7 @@ __kernel void MMLTMakeProposal(__global const RandomGen* restrict in_gens,
   //
   for(int bounce = 0; bounce < a_maxBounce; bounce++)
   {
-    const int bounceOffset = TabIndex(MMLT_HEAD_TOTAL_SIZE + 6*bounce, tid, iNumElements);
+    const int bounceOffset = TabIndex(MMLT_HEAD_TOTAL_SIZE + MMLT_COMPRESSED_F_PERB*bounce, tid, iNumElements);
     __global const uint* in_compressed = (__global const uint*)(in_numbers  + bounceOffset);
     __global      uint* out_compressed = (__global       uint*)(out_numbers + bounceOffset);  
 
@@ -245,6 +245,34 @@ __kernel void MMLTMakeProposal(__global const RandomGen* restrict in_gens,
     out_gens[tid] = gen;
 }
 
+static inline MMLTReadMaterialBounceRands(__global const float* restrict in_numbers, int bounce, int tid, int iNumElements,
+                                          __private float a_out[MMLT_FLOATS_PER_BOUNCE])
+{
+  const int bounceOffset = TabIndex(MMLT_HEAD_TOTAL_SIZE + MMLT_COMPRESSED_F_PERB*bounce, tid, iNumElements);
+  __global const uint* in_compressed = (__global const uint*)(in_numbers  + bounceOffset);
+
+  uint4 gr1; uint2 gr2;
+  gr1.x = in_compressed[TabIndex(0, tid, iNumElements)];
+  gr1.y = in_compressed[TabIndex(1, tid, iNumElements)];
+  gr1.z = in_compressed[TabIndex(2, tid, iNumElements)];
+  gr1.w = in_compressed[TabIndex(3, tid, iNumElements)];
+  gr2.x = in_compressed[TabIndex(4, tid, iNumElements)];
+  gr2.y = in_compressed[TabIndex(5, tid, iNumElements)];
+
+  const float6_gr gr1f = unpackBounceGroup(gr1);
+  const float4    gr2f = unpackBounceGroup2(gr2);
+
+  a_out[0] = gr1f.group24.x;
+  a_out[1] = gr1f.group24.y;
+  a_out[2] = gr1f.group24.z;
+  a_out[3] = gr1f.group24.w;
+  a_out[4] = gr1f.group16.x;
+  a_out[5] = gr1f.group16.y;
+  a_out[6] = gr2f.x;
+  a_out[7] = gr2f.y;
+  a_out[8] = gr2f.z;
+  a_out[9] = gr2f.w;
+}
 
 __kernel void MMLTMakeEyeRays(__global const float*         restrict in_numbers,
                               __global float4*              restrict out_pos, 
@@ -309,6 +337,7 @@ __kernel void MMLTCameraPathBounce(__global   float4*        restrict a_rpos,
                                    __global   uint*          restrict a_flags,
                                    __global RandomGen*       restrict out_gens,
                                   
+                                   __global const float*     restrict in_numbers,
                                    __global const int2*      restrict in_splitInfo,
                                    __global const Lite_Hit*  restrict in_hits,
                                    __global const int*       restrict in_instLightInstId,
@@ -507,16 +536,9 @@ __kernel void MMLTCameraPathBounce(__global   float4*        restrict a_rpos,
   // (3) sample material, eval reverse and forward pdfs
   //  
   float allRands[MMLT_FLOATS_PER_BOUNCE];
-  {
-    RandomGen gen  = out_gens[tid];
-    gen.maxNumbers = a_globals->varsI[HRT_MLT_MAX_NUMBERS];
-
-    RndMatAll(&gen, a_rptr, a_currDepth-1, 0, 0, 0, ////////////////////////////// #TODO: fix a_currDepth-1 !!!!!!!!!!!!!
-              allRands);
-
-    out_gens[tid] = gen;
-  }         
-  
+  MMLTReadMaterialBounceRands(in_numbers, s + a_currDepth - 1, tid, iNumElements,
+                              allRands);
+      
   int matOffset = materialOffset(a_globals, surfElem.matId);
 
   MatSample matSam; int localOffset = 0; 
@@ -682,6 +704,7 @@ __kernel void MMLTLightPathBounce (__global   float4*        restrict a_rpos,
                                    __global   uint*          restrict a_flags,
                                    __global RandomGen*       restrict out_gens,
                                   
+                                   __global const float*     restrict in_numbers,
                                    __global const int2*      restrict in_splitInfo,
                                    __global const float4*    restrict in_surfaceHit,
                                    __global const float4*    restrict in_procTexData,
@@ -793,15 +816,17 @@ __kernel void MMLTLightPathBounce (__global   float4*        restrict a_rpos,
   __global const PlainMaterial* pHitMaterial = materialAt(a_globals, in_mtlStorage, surfElem.matId);
   
   float allRands[MMLT_FLOATS_PER_BOUNCE];
-  {
-    RandomGen gen  = out_gens[tid];
-    gen.maxNumbers = a_globals->varsI[HRT_MLT_MAX_NUMBERS];
-
-    RndMatAll(&gen, a_rptr, a_currDepth-1, 0, 0, 0,     
-              allRands);
-
-    out_gens[tid] = gen;
-  }         
+  MMLTReadMaterialBounceRands(in_numbers, a_currDepth - 1, tid, iNumElements,
+                              allRands);
+  //{
+  //  RandomGen gen  = out_gens[tid];
+  //  gen.maxNumbers = a_globals->varsI[HRT_MLT_MAX_NUMBERS];
+  //
+  //  RndMatAll(&gen, a_rptr, a_currDepth-1, 0, 0, 0,     
+  //            allRands);
+  //
+  //  out_gens[tid] = gen;
+  //}         
   
   int matOffset = materialOffset(a_globals, surfElem.matId);
   

@@ -63,7 +63,7 @@ size_t GPUOCLLayer::MLT_Alloc(int a_maxBounce)
   if (ciErr1 != CL_SUCCESS)
     RUN_TIME_ERROR("[cl_core]: Failed to create rstateForAcceptReject ");
 
-  const int MLT_RAND_NUMBERS_PER_BOUNCE = MMLT_HEAD_TOTAL_SIZE + 6*a_maxBounce; //randArraySizeOfDepthMMLT(a_maxBounce);
+  const int MLT_RAND_NUMBERS_PER_BOUNCE = MMLT_HEAD_TOTAL_SIZE + MMLT_COMPRESSED_F_PERB*a_maxBounce; //randArraySizeOfDepthMMLT(a_maxBounce);
   m_vars.m_varsI[HRT_MLT_MAX_NUMBERS]   = MLT_RAND_NUMBERS_PER_BOUNCE;
 
   // init big buffers for path space state // (MLT_RAND_NUMBERS_PER_BOUNCE / MLT_PROPOSALS)
