@@ -51,7 +51,7 @@ __kernel void MMLTInitCameraPath(__global   uint*    restrict a_flags,
     return;
 
   const int d = MMLT_GPU_TEST_DEPTH;
-  const int s = 3; 
+  const int s = 1; 
 
   a_flags[tid] = packBounceNum(0, 1);
   a_color[tid] = make_float4(1,1,1,1);
@@ -387,8 +387,6 @@ __kernel void MMLTCameraPathBounce(__global   float4*        restrict a_rpos,
   if (!rayIsActiveU(flags)) 
     return;
 
-  const __global float* a_rptr = 0;   /////////////////////////////////////////////////// #TODO: INIT THIS POINTER WITH MMLT RANDS !!!
-
   // (0) Read "IntegratorMMLT::CameraPath" arguments and calc ray hit
   //
   const int2 splitData = in_splitInfo[tid];
@@ -637,12 +635,13 @@ __kernel void MMLTLightSampleForward(__global   float4*        restrict a_rpos,
                                      __global   float4*        restrict a_rdir,
                                      __global   uint*          restrict a_flags,
                                      __global RandomGen*       restrict out_gens,
-                                    
+                                     __global const float*     restrict in_numbers,
+
                                      __global float4*          restrict a_color,
                                      __global PdfVertex*       restrict a_pdfVert,       // (!) MMLT pdfArray 
                                      __global float4*          restrict a_vertexSup,     // (!) MMLT out Path Vertex supplemental to surfaceHit data
                                      __global int*             restrict a_spec,          // (!) MMLTLightPathBounce only !!! prev bounce is specular.
-  
+                                    
                                      __global const float4*        restrict in_texStorage1,    
                                      __global const float4*        restrict in_pdfStorage,   //
                                      __global const EngineGlobals* restrict a_globals,
@@ -652,19 +651,18 @@ __kernel void MMLTLightSampleForward(__global   float4*        restrict a_rpos,
   if (tid >= iNumElements)
     return;
 
-  const __global float* a_rptr = 0;   /////////////////////////////////////////////////// #TODO: INIT THIS POINTER WITH MMLT RANDS !!!
-
-  LightGroup2 lightRands;             /////////////////////////////////////////////////// #TODO: sample if (lightTraceDepth != 0)
-  {
-    RandomGen gen  = out_gens[tid];
-    gen.maxNumbers = a_globals->varsI[HRT_MLT_MAX_NUMBERS];
-
-    RndLightMMLT(&gen, a_rptr,
-                 &lightRands);
-
-    out_gens[tid] = gen;
-  }         
-
+  /////////////////////////////////////////////////// #TODO: sample if (lightTraceDepth != 0); else return immediately
+  //
+  
+  LightGroup2 lightRands;  
+  lightRands.group1.x = in_numbers[ TabIndex(MMLT_DIM_LGT_X, tid, iNumElements) ];
+  lightRands.group1.y = in_numbers[ TabIndex(MMLT_DIM_LGT_Y, tid, iNumElements) ];
+  lightRands.group1.z = in_numbers[ TabIndex(MMLT_DIM_LGT_Z, tid, iNumElements) ];
+  lightRands.group1.w = in_numbers[ TabIndex(MMLT_DIM_LGT_W, tid, iNumElements) ];
+  lightRands.group2.x = in_numbers[ TabIndex(MMLT_DIM_LGT_X1,tid, iNumElements) ];
+  lightRands.group2.y = in_numbers[ TabIndex(MMLT_DIM_LGT_Y1,tid, iNumElements) ];
+  lightRands.group2.z = in_numbers[ TabIndex(MMLT_DIM_LGT_N, tid, iNumElements) ]; 
+  
   float lightPickProb = 1.0f;
   const int lightId = SelectRandomLightFwd(lightRands.group2.z, a_globals,
                                            &lightPickProb);
@@ -755,8 +753,6 @@ __kernel void MMLTLightPathBounce (__global   float4*        restrict a_rpos,
   if (!rayIsActiveU(flags) || a_currDepth > a_lightTraceDepth) 
     return;
 
-  const __global float* a_rptr = 0;   /////////////////////////////////////////////////// #TODO: INIT THIS POINTER WITH MMLT RANDS !!!
-
   SurfaceHit surfElem;
   ReadSurfaceHit(in_surfaceHit, tid, iNumElements, 
                  &surfElem);
@@ -818,15 +814,6 @@ __kernel void MMLTLightPathBounce (__global   float4*        restrict a_rpos,
   float allRands[MMLT_FLOATS_PER_BOUNCE];
   MMLTReadMaterialBounceRands(in_numbers, a_currDepth - 1, tid, iNumElements,
                               allRands);
-  //{
-  //  RandomGen gen  = out_gens[tid];
-  //  gen.maxNumbers = a_globals->varsI[HRT_MLT_MAX_NUMBERS];
-  //
-  //  RndMatAll(&gen, a_rptr, a_currDepth-1, 0, 0, 0,     
-  //            allRands);
-  //
-  //  out_gens[tid] = gen;
-  //}         
   
   int matOffset = materialOffset(a_globals, surfElem.matId);
   
@@ -914,6 +901,7 @@ __kernel void MMLTMakeShadowRay(__global const int2  *  restrict in_splitInfo,
                                 __global       float4*  restrict out_lssam,
                                 
                                 __global RandomGen*     restrict a_gens,
+                                __global const float*   restrict in_numbers,
 
                                 __global const float4*         restrict in_mtlStorage,
                                 __global const float4*         restrict in_pdfStorage,
@@ -980,12 +968,13 @@ __kernel void MMLTMakeShadowRay(__global const int2  *  restrict in_splitInfo,
     else if (lightTraceDepth == 0)  // (3.3) connect camera vertex to light (shadow ray)
     {
       LightGroup2 lightSelector;
-      {
-        RandomGen gen = a_gens[tid];
-        RndLightMMLT(&gen, a_rptr, 
-                     &lightSelector);
-        a_gens[tid]   = gen;
-      }
+      lightSelector.group1.x = in_numbers[ TabIndex(MMLT_DIM_LGT_X, tid, iNumElements) ];
+      lightSelector.group1.y = in_numbers[ TabIndex(MMLT_DIM_LGT_Y, tid, iNumElements) ];
+      lightSelector.group1.z = in_numbers[ TabIndex(MMLT_DIM_LGT_Z, tid, iNumElements) ];
+      lightSelector.group1.w = in_numbers[ TabIndex(MMLT_DIM_LGT_W, tid, iNumElements) ];
+      lightSelector.group2.x = in_numbers[ TabIndex(MMLT_DIM_LGT_X1,tid, iNumElements) ];
+      lightSelector.group2.y = in_numbers[ TabIndex(MMLT_DIM_LGT_Y1,tid, iNumElements) ];
+      lightSelector.group2.z = in_numbers[ TabIndex(MMLT_DIM_LGT_N, tid, iNumElements) ]; 
 
       if (cv.valid && !cv.wasSpecOnly) // cv.wasSpecOnly exclude direct light actually
       {
