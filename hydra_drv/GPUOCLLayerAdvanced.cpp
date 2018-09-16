@@ -83,9 +83,13 @@ size_t GPUOCLLayer::MMLTInitSplitDataUniform(int bounceBeg, int a_maxDepth, size
   }
 
   std::vector<float> scale(a_maxDepth+1);
-  for(auto& coeff : scale)
-    coeff = float(bouncesIntoAccount);
-  
+  for(size_t i=bounceBeg;i<scale.size();i++)
+  {
+    float& selectorInvPdf = scale[i];
+    const int d    = i;
+    selectorInvPdf = float((d+1)*bouncesIntoAccount);
+  }
+
   CHECK_CL(clEnqueueWriteBuffer(m_globals.cmdQueue, a_splitData,  CL_TRUE, 0, splitDataCPU.size()*sizeof(int2), (void*)splitDataCPU.data(), 0, NULL, NULL));
   CHECK_CL(clEnqueueWriteBuffer(m_globals.cmdQueue, a_scaleTable, CL_TRUE, 0, scale.size()*sizeof(float),       (void*)scale.data(), 0, NULL, NULL));
 
