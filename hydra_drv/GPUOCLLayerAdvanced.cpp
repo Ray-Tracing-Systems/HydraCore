@@ -121,15 +121,15 @@ void GPUOCLLayer::EvalSBDPT(cl_mem in_xVector, int minBounce, int maxBounce, siz
   runKernel_MMLTInitSplitAndCamV(m_rays.rayFlags, a_outColor, m_mlt.splitData, m_mlt.cameraVertexSup, a_size);
 
   m_mlt.currBounceThreadsNum = a_size;
-  for (int bounce = 0; bounce < maxBounce; bounce++)
+  for (int bounce = 1; bounce <= maxBounce; bounce++)
   {
-    //if(bounce >= minBounce)
-    //  m_mlt.currBounceThreadsNum = m_mlt.perBounceActiveThreads[bounce-1]; 
+    if(bounce >= minBounce)
+      m_mlt.currBounceThreadsNum = m_mlt.perBounceActiveThreads[bounce]; 
 
-    runKernel_Trace(a_rpos, a_rdir, a_size,
+    runKernel_Trace(a_rpos, a_rdir, m_mlt.currBounceThreadsNum,
                     m_rays.hits);
   
-    runKernel_ComputeHit(a_rpos, a_rdir, m_rays.hits, a_size, 
+    runKernel_ComputeHit(a_rpos, a_rdir, m_rays.hits, a_size, m_mlt.currBounceThreadsNum, 
                          m_mlt.cameraVertexHit, m_rays.hitProcTexData);
   
     runKernel_MMLTCameraPathBounce(m_rays.rayFlags, a_rpos, a_rdir, a_outColor, m_mlt.splitData, a_size,  //#NOTE: m_mlt.rstateCurr used inside
@@ -144,15 +144,15 @@ void GPUOCLLayer::EvalSBDPT(cl_mem in_xVector, int minBounce, int maxBounce, siz
   runKernel_MMLTLightSampleForward(m_rays.rayFlags, a_rpos, a_rdir, a_outColor, lightVertexSup, a_size);
   
   m_mlt.currBounceThreadsNum = a_size;
-  for (int bounce = 0; bounce < (maxBounce-1); bounce++) // last bounce is always a connect stage
+  for (int bounce = 1; bounce <= (maxBounce-1); bounce++) // last bounce is always a connect stage
   {
-    //if(bounce >= minBounce)
-    //  m_mlt.currBounceThreadsNum = m_mlt.perBounceActiveThreads[bounce-1]; 
+    if(bounce >= minBounce)
+      m_mlt.currBounceThreadsNum = m_mlt.perBounceActiveThreads[bounce]; 
 
-    runKernel_Trace(a_rpos, a_rdir, a_size,
+    runKernel_Trace(a_rpos, a_rdir, m_mlt.currBounceThreadsNum,
                     m_rays.hits);
 
-    runKernel_ComputeHit(a_rpos, a_rdir, m_rays.hits, a_size, 
+    runKernel_ComputeHit(a_rpos, a_rdir, m_rays.hits, a_size, m_mlt.currBounceThreadsNum,
                          lightVertexHit, m_rays.hitProcTexData);
 
     runKernel_MMLTLightPathBounce(m_rays.rayFlags, a_rpos, a_rdir, a_outColor, m_mlt.splitData, a_size,  //#NOTE: m_mlt.rstateCurr used inside

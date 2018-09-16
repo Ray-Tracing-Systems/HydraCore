@@ -474,7 +474,7 @@ void GPUOCLLayer::runKernel_ComputeAO2(cl_mem outCompressedAO, size_t a_size, in
   waitIfDebug(__FILE__, __LINE__);
 }
 
-void GPUOCLLayer::runKernel_ComputeHit(cl_mem a_rpos, cl_mem a_rdir, cl_mem a_hits, size_t a_size,
+void GPUOCLLayer::runKernel_ComputeHit(cl_mem a_rpos, cl_mem a_rdir, cl_mem a_hits, size_t a_size, size_t a_sizeRun,
                                        cl_mem out_hitSurface, cl_mem a_outProcTexData)
 {
   // eval common surface parameters
@@ -505,7 +505,7 @@ void GPUOCLLayer::runKernel_ComputeHit(cl_mem a_rpos, cl_mem a_rdir, cl_mem a_hi
   CHECK_CL(clSetKernelArg(kernHit, 13, sizeof(cl_int), (void*)&m_scene.totalInstanceNum));
   CHECK_CL(clSetKernelArg(kernHit, 14, sizeof(cl_int), (void*)&isize));
 
-  CHECK_CL(clEnqueueNDRangeKernel(m_globals.cmdQueue, kernHit, 1, NULL, &a_size, &localWorkSize, 0, NULL, NULL));
+  CHECK_CL(clEnqueueNDRangeKernel(m_globals.cmdQueue, kernHit, 1, NULL, &a_sizeRun, &localWorkSize, 0, NULL, NULL));
   waitIfDebug(__FILE__, __LINE__);
 
   //if (a_doNotEvaluateProcTex)
@@ -514,10 +514,10 @@ void GPUOCLLayer::runKernel_ComputeHit(cl_mem a_rpos, cl_mem a_rdir, cl_mem a_hi
   // eval AO
   //
   if (m_rays.aoCompressed != nullptr)
-    runKernel_ComputeAO2(m_rays.aoCompressed , a_size, 0);
+    runKernel_ComputeAO2(m_rays.aoCompressed , a_sizeRun, 0);
 
   if(m_rays.aoCompressed2 != nullptr)
-    runKernel_ComputeAO2(m_rays.aoCompressed2, a_size, 1);
+    runKernel_ComputeAO2(m_rays.aoCompressed2, a_sizeRun, 1);
 
   // eval procedure textures
   //
@@ -542,7 +542,7 @@ void GPUOCLLayer::runKernel_ComputeHit(cl_mem a_rpos, cl_mem a_rdir, cl_mem a_hi
     CHECK_CL(clSetKernelArg(kernProcT,10, sizeof(cl_mem), (void*)&m_scene.allGlobsData));
     CHECK_CL(clSetKernelArg(kernProcT,11, sizeof(cl_int), (void*)&isize));
 
-    CHECK_CL(clEnqueueNDRangeKernel(m_globals.cmdQueue, kernProcT, 1, NULL, &a_size, &localWorkSize, 0, NULL, NULL));
+    CHECK_CL(clEnqueueNDRangeKernel(m_globals.cmdQueue, kernProcT, 1, NULL, &a_sizeRun, &localWorkSize, 0, NULL, NULL));
     waitIfDebug(__FILE__, __LINE__);
   }
 }

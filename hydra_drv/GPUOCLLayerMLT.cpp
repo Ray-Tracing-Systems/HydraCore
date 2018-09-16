@@ -294,8 +294,8 @@ void GPUOCLLayer::runKernel_MMLTCameraPathBounce(cl_mem rayFlags, cl_mem a_rpos,
   CHECK_CL(clSetKernelArg(kernX,20, sizeof(cl_int), (void*)&isize));
   CHECK_CL(clSetKernelArg(kernX,21, sizeof(cl_float), (void*)&mLightSubPathCount));
 
-  //const size_t size2 = m_mlt.currBounceThreadsNum;
-  CHECK_CL(clEnqueueNDRangeKernel(m_globals.cmdQueue, kernX, 1, NULL, &a_size, &localWorkSize, 0, NULL, NULL));
+  const size_t size2 = m_mlt.currBounceThreadsNum;
+  CHECK_CL(clEnqueueNDRangeKernel(m_globals.cmdQueue, kernX, 1, NULL, &size2, &localWorkSize, 0, NULL, NULL));
   waitIfDebug(__FILE__, __LINE__);
 }
 
@@ -375,8 +375,8 @@ void GPUOCLLayer::runKernel_MMLTLightPathBounce(cl_mem a_rayFlags, cl_mem a_rpos
   CHECK_CL(clSetKernelArg(kernX,17, sizeof(cl_mem), (void*)&m_scene.allGlobsData));
   CHECK_CL(clSetKernelArg(kernX,18, sizeof(cl_int), (void*)&isize));
 
-  //const size_t size2 = m_mlt.currBounceThreadsNum;
-  CHECK_CL(clEnqueueNDRangeKernel(m_globals.cmdQueue, kernX, 1, NULL, &a_size, &localWorkSize, 0, NULL, NULL));
+  const size_t size2 = m_mlt.currBounceThreadsNum;
+  CHECK_CL(clEnqueueNDRangeKernel(m_globals.cmdQueue, kernX, 1, NULL, &size2, &localWorkSize, 0, NULL, NULL));
   waitIfDebug(__FILE__, __LINE__);
 }
 
