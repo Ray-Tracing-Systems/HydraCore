@@ -62,7 +62,7 @@ public:
   std::vector<int> MakeAllPixelsList();
   void RunProductionSamplingMode();
 
-  void EvalSBDPT(cl_mem in_xVector, int maxBounce, size_t a_size,
+  void EvalSBDPT(cl_mem in_xVector, int minBounce, int maxBounce, size_t a_size,
                  cl_mem a_outColor, cl_mem a_outZIndex);
 
   void FinishAll() override;
@@ -185,7 +185,7 @@ protected:
   {
     CL_MLT_DATA() : rstateForAcceptReject(0), rstateCurr(0), rstateOld(0), rstateNew(0),
                     xVector(0), yVector(0), currVec(0), xColor(0), yColor(0), lightVertexSup(0), cameraVertexSup(0), cameraVertexHit(0), 
-                    pdfArray(0), splitData(0), scaleTable(0), memTaken(0), mppDone(0.0) {}
+                    pdfArray(0), splitData(0), scaleTable(0), memTaken(0), mppDone(0.0), currBounceThreadsNum(0) {}
 
     cl_mem rstateForAcceptReject; // sizeof(RandGen), MEGABLOCKSIZE size
     cl_mem rstateCurr;            // sizeof(RandGen), MEGABLOCKSIZE size; not allocated, assign m_rays.randGenState
@@ -215,6 +215,7 @@ protected:
     void free();
 
     std::vector<int> perBounceActiveThreads;
+    size_t currBounceThreadsNum;
 
   } m_mlt;
 

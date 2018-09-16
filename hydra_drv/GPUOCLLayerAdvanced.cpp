@@ -68,7 +68,7 @@ size_t GPUOCLLayer::MMLTInitSplitDataUniform(int bounceBeg, int a_maxDepth, size
 
   activeThreads.resize(a_maxDepth+1);
   for(int i=0;i<bounceBeg;i++)
-    activeThreads[i] = 0;
+    activeThreads[i] = int(finalThreadsNum);
 
   size_t currPos = 0;
   for(int bounce = a_maxDepth; bounce >= bounceBeg; bounce--)
@@ -79,7 +79,7 @@ size_t GPUOCLLayer::MMLTInitSplitDataUniform(int bounceBeg, int a_maxDepth, size
         splitDataCPU[(currPos + b)*256 + i] = make_int2(bounce, bounce);
     }
     currPos += blocksPerTargetDepth;
-    activeThreads[activeThreads.size() - bounce + 1] = int(currPos*256);
+    activeThreads[activeThreads.size() - bounce + 1] = int(finalThreadsNum - currPos*256);
   }
 
   std::vector<float> scale(a_maxDepth+1);
@@ -94,7 +94,7 @@ size_t GPUOCLLayer::MMLTInitSplitDataUniform(int bounceBeg, int a_maxDepth, size
   CHECK_CL(clEnqueueWriteBuffer(m_globals.cmdQueue, a_scaleTable, CL_TRUE, 0, scale.size()*sizeof(float),       (void*)scale.data(), 0, NULL, NULL));
 
   std::cout << std::endl << "[MMLT]: dd info (initial): " << std::endl;
-  for(int i=a_maxDepth;i>=bounceBeg;i--)
+  for(int i=0;i<=a_maxDepth;i++)
     std::cout << "[d = " << i << ",\tN = " << activeThreads[i] << ", coeff = " << scale[i] << "]" << std::endl;
   std::cout << "finalThreadsNum = " << finalThreadsNum << std::endl;
   std::cout << std::endl;
@@ -102,12 +102,13 @@ size_t GPUOCLLayer::MMLTInitSplitDataUniform(int bounceBeg, int a_maxDepth, size
   return finalThreadsNum;
 }
 
-void GPUOCLLayer::EvalSBDPT(cl_mem in_xVector, int maxBounce, size_t a_size,
+void GPUOCLLayer::EvalSBDPT(cl_mem in_xVector, int minBounce, int maxBounce, size_t a_size,
                             cl_mem a_outColor, cl_mem a_outZIndex)
 {
   m_mlt.currVec = in_xVector;
   cl_mem a_rpos = m_rays.rayPos;
   cl_mem a_rdir = m_rays.rayDir;
+  
 
   // (1) init and camera pass 
   //
@@ -116,8 +117,12 @@ void GPUOCLLayer::EvalSBDPT(cl_mem in_xVector, int maxBounce, size_t a_size,
   
   runKernel_MMLTInitSplitAndCamV(m_rays.rayFlags, a_outColor, m_mlt.splitData, m_mlt.cameraVertexSup, a_size);
 
+  m_mlt.currBounceThreadsNum = a_size;
   for (int bounce = 0; bounce < maxBounce; bounce++)
   {
+    if(bounce >= minBounce)
+      m_mlt.currBounceThreadsNum = m_mlt.perBounceActiveThreads[bounce]; 
+
     runKernel_Trace(a_rpos, a_rdir, a_size,
                     m_rays.hits);
   
@@ -128,10 +133,6 @@ void GPUOCLLayer::EvalSBDPT(cl_mem in_xVector, int maxBounce, size_t a_size,
                                    m_mlt.cameraVertexHit, m_mlt.cameraVertexSup);
   }
 
-  //runKernel_CopyAccColorTo(m_mlt.cameraVertexSup, a_size, 
-  //                         a_outColor);
-  //return;
-
   // (2) light pass
   //
   cl_mem lightVertexHit = m_rays.hitSurfaceAll;
@@ -139,8 +140,12 @@ void GPUOCLLayer::EvalSBDPT(cl_mem in_xVector, int maxBounce, size_t a_size,
 
   runKernel_MMLTLightSampleForward(m_rays.rayFlags, a_rpos, a_rdir, a_outColor, lightVertexSup, a_size);
   
+  m_mlt.currBounceThreadsNum = a_size;
   for (int bounce = 0; bounce < (maxBounce-1); bounce++) // last bounce is always a connect stage
   {
+    if(bounce >= minBounce)
+      m_mlt.currBounceThreadsNum = m_mlt.perBounceActiveThreads[bounce]; 
+
     runKernel_Trace(a_rpos, a_rdir, a_size,
                     m_rays.hits);
 

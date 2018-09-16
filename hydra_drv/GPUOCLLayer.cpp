@@ -1083,8 +1083,8 @@ void GPUOCLLayer::BeginTracingPass()
 
   if (m_vars.m_flags & HRT_ENABLE_MMLT)                 // SBDPT or MMLT pass
   {
-    int minBounce = 2;
-    int maxBounce = 3;
+    int minBounce = 4;
+    int maxBounce = 5;
 
     if(m_spp < 1e-5f) // run init stage
     {
@@ -1102,7 +1102,7 @@ void GPUOCLLayer::BeginTracingPass()
     // (2) trace; 
     //
     m_raysWasSorted = false;
-    EvalSBDPT(m_mlt.xVector, maxBounce, m_rays.MEGABLOCKSIZE,
+    EvalSBDPT(m_mlt.xVector, minBounce, maxBounce, m_rays.MEGABLOCKSIZE,
               m_rays.pathAccColor, m_rays.samZindex);
 
 
