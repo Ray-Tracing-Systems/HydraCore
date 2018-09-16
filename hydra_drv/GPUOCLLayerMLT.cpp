@@ -206,7 +206,8 @@ void GPUOCLLayer::runKernel_MMLTInitSplitAndCamV(cl_mem a_flags, cl_mem a_color,
   CHECK_CL(clSetKernelArg(kernX, 2, sizeof(cl_mem), (void*)&a_split));
   CHECK_CL(clSetKernelArg(kernX, 3, sizeof(cl_mem), (void*)&a_hitSup));
   CHECK_CL(clSetKernelArg(kernX, 4, sizeof(cl_mem), (void*)&m_mlt.pdfArray));
-  CHECK_CL(clSetKernelArg(kernX, 5, sizeof(cl_int), (void*)&isize));
+  CHECK_CL(clSetKernelArg(kernX, 5, sizeof(cl_mem), (void*)&m_mlt.currVec));
+  CHECK_CL(clSetKernelArg(kernX, 6, sizeof(cl_int), (void*)&isize));
 
   CHECK_CL(clEnqueueNDRangeKernel(m_globals.cmdQueue, kernX, 1, NULL, &a_size, &localWorkSize, 0, NULL, NULL));
   waitIfDebug(__FILE__, __LINE__);

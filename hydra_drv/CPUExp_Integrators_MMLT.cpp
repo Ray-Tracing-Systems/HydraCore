@@ -126,7 +126,7 @@ IntegratorMMLT::PSSampleV IntegratorMMLT::MutatePrimarySpace(const PSSampleV& a_
   }
   else                                              // small step
   {
-    const int currSplit = rndSplitMMLT(&gen, &v2[0], d); // mapRndFloatToUInt(v2[9], 0, d + 1);
+    const int currSplit = rndSplitMMLT(&gen, &v2[0], d); // mapRndFloatToInt(v2[9], 0, d);
   
     if (plarge < selector && selector <= plarge + plight)      // small step for light path
     {

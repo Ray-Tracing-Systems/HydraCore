@@ -511,18 +511,28 @@ static inline void RndMatAll(RandomGen* gen, __global const float* rptr, const i
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+/**
+\brief map float random to int, including boundaries.
+\param a_val - in random float in range [0,1].
+\param a     - in min value
+\param b     - in max value
 
+\return integer random in ragne [a,b]
 
-static inline unsigned int mapRndFloatToUInt(float a_val, unsigned int a, unsigned int b)
+for example mapRndFloatToInt(r,3,5) will give these numbers: (3,4,5)
+for example mapRndFloatToInt(r,1,6) will give these numbers: (1,2,3,4,5,6)
+
+*/
+static inline int mapRndFloatToInt(float a_val, int a, int b)
 {
-  const float fa = (float)a;
-  const float fb = (float)b;
+  const float fa = (float)(a+0);
+  const float fb = (float)(b+1);
   const float fR = fa + a_val * (fb - fa);
 
-  const unsigned int res = (unsigned int)(fR);
+  const int res =  (int)(fR);
 
-  if (res > b - 1)
-    return b - 1;
+  if (res > b)
+    return b;
   else
     return res;
 }
@@ -581,7 +591,7 @@ static inline int rndSplitMMLT(RandomGen* gen, __global const float* rptr, const
   else
     x = rndFloat1_Pseudo(gen);
 
-  return mapRndFloatToUInt(x, 0, d+1);
+  return mapRndFloatToInt(x, 0, d);
 }
 
 

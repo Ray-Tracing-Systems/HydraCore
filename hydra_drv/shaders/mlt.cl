@@ -35,23 +35,22 @@ inline int TabIndex(const int vertId, const int tid, const int iNumElements)
   return tid + vertId*iNumElements;
 }
 
-__kernel void MMLTInitCameraPath(__global   uint*    restrict a_flags,
-                                 __global float4*    restrict a_color,
-                                 __global int2*      restrict a_split,
-                                 __global float4*    restrict a_vertexSup,
-                                 __global PdfVertex* restrict a_pdfVert,
-
-                                 //__global RandomGen* restrict a_gens,
-                                 //__global float*     restrict a_mmltrands,
-
+__kernel void MMLTInitCameraPath(__global   uint*      restrict a_flags,
+                                 __global float4*      restrict a_color,
+                                 __global int2*        restrict a_split,
+                                 __global float4*      restrict a_vertexSup,
+                                 __global PdfVertex*   restrict a_pdfVert,
+                                 __global const float* restrict in_numbers,
                                  const int iNumElements)
 {
   const int tid = GLOBAL_ID_X;
   if (tid >= iNumElements)
     return;
 
+  const float r0 = in_numbers[ TabIndex(MMLT_DIM_SPLIT, tid, iNumElements) ];
+
   const int d = MMLT_GPU_TEST_DEPTH;
-  const int s = 1; 
+  const int s = mapRndFloatToInt(r0, 0, d); 
 
   a_flags[tid] = packBounceNum(0, 1);
   a_color[tid] = make_float4(1,1,1,1);
@@ -1219,7 +1218,7 @@ __kernel void MMLTConnect(__global const int2  *  restrict in_splitInfo,
   }
 
   sampleColor *= misWeight;
-  
+
   sampleColor *= a_scaleTable[d];
 
   const int zid = (int)ZIndex(x, y, a_mortonTable256);
