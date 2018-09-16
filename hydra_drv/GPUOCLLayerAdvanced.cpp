@@ -67,7 +67,7 @@ size_t GPUOCLLayer::MMLTInitSplitDataUniform(int bounceBeg, int a_maxDepth, size
   const size_t finalThreadsNum       = (blocksPerTargetDepth*bouncesIntoAccount)*256;
 
   activeThreads.resize(a_maxDepth+1);
-  for(int i=0;i<bounceBeg;i++)
+  for(int i=0;i<=bounceBeg;i++)
     activeThreads[i] = int(finalThreadsNum);
 
   size_t currPos = 0;
@@ -79,7 +79,10 @@ size_t GPUOCLLayer::MMLTInitSplitDataUniform(int bounceBeg, int a_maxDepth, size
         splitDataCPU[(currPos + b)*256 + i] = make_int2(bounce, bounce);
     }
     currPos += blocksPerTargetDepth;
-    activeThreads[activeThreads.size() - bounce + 1] = int(finalThreadsNum - currPos*256);
+
+    const int index = activeThreads.size() - bounce + 2;
+    if(index >=0 && index < activeThreads.size())
+      activeThreads[index] = int(finalThreadsNum - currPos*256);
   }
 
   std::vector<float> scale(a_maxDepth+1);
@@ -120,8 +123,8 @@ void GPUOCLLayer::EvalSBDPT(cl_mem in_xVector, int minBounce, int maxBounce, siz
   m_mlt.currBounceThreadsNum = a_size;
   for (int bounce = 0; bounce < maxBounce; bounce++)
   {
-    if(bounce >= minBounce)
-      m_mlt.currBounceThreadsNum = m_mlt.perBounceActiveThreads[bounce]; 
+    //if(bounce >= minBounce)
+    //  m_mlt.currBounceThreadsNum = m_mlt.perBounceActiveThreads[bounce-1]; 
 
     runKernel_Trace(a_rpos, a_rdir, a_size,
                     m_rays.hits);
@@ -143,8 +146,8 @@ void GPUOCLLayer::EvalSBDPT(cl_mem in_xVector, int minBounce, int maxBounce, siz
   m_mlt.currBounceThreadsNum = a_size;
   for (int bounce = 0; bounce < (maxBounce-1); bounce++) // last bounce is always a connect stage
   {
-    if(bounce >= minBounce)
-      m_mlt.currBounceThreadsNum = m_mlt.perBounceActiveThreads[bounce]; 
+    //if(bounce >= minBounce)
+    //  m_mlt.currBounceThreadsNum = m_mlt.perBounceActiveThreads[bounce-1]; 
 
     runKernel_Trace(a_rpos, a_rdir, a_size,
                     m_rays.hits);
