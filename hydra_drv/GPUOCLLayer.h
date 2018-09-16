@@ -185,7 +185,7 @@ protected:
   {
     CL_MLT_DATA() : rstateForAcceptReject(0), rstateCurr(0), rstateOld(0), rstateNew(0),
                     xVector(0), yVector(0), currVec(0), xColor(0), yColor(0), lightVertexSup(0), cameraVertexSup(0), cameraVertexHit(0), 
-                    pdfArray(0), splitData(0),memTaken(0), mppDone(0.0) {}
+                    pdfArray(0), splitData(0), scaleTable(0), memTaken(0), mppDone(0.0) {}
 
     cl_mem rstateForAcceptReject; // sizeof(RandGen), MEGABLOCKSIZE size
     cl_mem rstateCurr;            // sizeof(RandGen), MEGABLOCKSIZE size; not allocated, assign m_rays.randGenState
@@ -205,6 +205,7 @@ protected:
     cl_mem pdfArray;
 
     cl_mem splitData;
+    cl_mem scaleTable;
 
     size_t memTaken;
 
@@ -212,6 +213,8 @@ protected:
     double mppDone;
 
     void free();
+
+    std::vector<int> perBounceActiveThreads;
 
   } m_mlt;
 
@@ -432,7 +435,8 @@ protected:
   // MLT
   //
 
-  size_t MMLTInitSplitDataUniform(cl_mem a_splitData, int a_maxDepth, size_t a_size);
+  size_t MMLTInitSplitDataUniform(int bounceBeg, int a_maxDepth, size_t a_size,
+                                  cl_mem a_splitData, cl_mem a_scaleTable, std::vector<int>& activeThreads);
 
   void runKernel_MMLTInitSplitAndCamV(cl_mem a_flags, cl_mem a_color, cl_mem a_split, cl_mem a_hitSup, size_t a_size);
   

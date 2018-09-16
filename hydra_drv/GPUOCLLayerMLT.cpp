@@ -27,11 +27,12 @@ void GPUOCLLayer::CL_MLT_DATA::free()
   if (xColor)                { clReleaseMemObject(xColor); xColor = 0; }
   if (yColor)                { clReleaseMemObject(yColor); yColor = 0; }
  
-  if (lightVertexSup)        { clReleaseMemObject(lightVertexSup);    lightVertexSup = 0; }
+  if (lightVertexSup)        { clReleaseMemObject(lightVertexSup);    lightVertexSup  = 0; }
   if (cameraVertexSup)       { clReleaseMemObject(cameraVertexSup);   cameraVertexSup = 0; }
   if (cameraVertexHit)       { clReleaseMemObject(cameraVertexHit);   cameraVertexHit = 0; }
   if (pdfArray)              { clReleaseMemObject(pdfArray);          pdfArray        = 0; }
   if (splitData)             { clReleaseMemObject(splitData);         splitData       = 0; }
+  if (scaleTable)            { clReleaseMemObject(scaleTable);        scaleTable      = 0; }
 
   rstateCurr = 0;
   memTaken   = 0;
@@ -107,9 +108,19 @@ size_t GPUOCLLayer::MLT_Alloc(int a_maxBounce)
     RUN_TIME_ERROR("[cl_core.MLT_Alloc]: Failed to alloc vertex storage and pdf array ");
 
   m_mlt.splitData = clCreateBuffer(m_globals.ctx, CL_MEM_READ_WRITE, 2*sizeof(int)*m_rays.MEGABLOCKSIZE, NULL, &ciErr1);
-
+  m_mlt.memTaken += 2*sizeof(int)*m_rays.MEGABLOCKSIZE; 
   if (ciErr1 != CL_SUCCESS)
     RUN_TIME_ERROR("[cl_core.MLT_Alloc]: Failed to alloc splitData ");
+  
+  // init coeffs table
+  //
+  std::vector<float> scale(256);
+  for(auto& coeff : scale)
+    coeff = 1.0f;
+
+  m_mlt.scaleTable = clCreateBuffer(m_globals.ctx, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, 256*sizeof(float), (void*)scale.data(), &ciErr1);   
+  if (ciErr1 != CL_SUCCESS) 
+    RUN_TIME_ERROR("Error in clCreateBuffer");
 
   return m_mlt.memTaken;
 }
@@ -174,4 +185,267 @@ void GPUOCLLayer::inPlaceScanAnySize1f(cl_mem a_inBuff, size_t a_size)
   args.propagateK = m_progs.sort.kernel("scan_propagate1f");
 
   scan1f_gpu(a_inBuff, a_size, args);
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+void GPUOCLLayer::runKernel_MMLTInitSplitAndCamV(cl_mem a_flags, cl_mem a_color, cl_mem a_split, cl_mem a_hitSup,
+                                                 size_t a_size)
+{
+  cl_kernel kernX      = m_progs.mlt.kernel("MMLTInitCameraPath");
+
+  size_t localWorkSize = 256;
+  int            isize = int(a_size);
+  a_size               = roundBlocks(a_size, int(localWorkSize));
+
+  CHECK_CL(clSetKernelArg(kernX, 0, sizeof(cl_mem), (void*)&a_flags));
+  CHECK_CL(clSetKernelArg(kernX, 1, sizeof(cl_mem), (void*)&a_color));
+  CHECK_CL(clSetKernelArg(kernX, 2, sizeof(cl_mem), (void*)&a_split));
+  CHECK_CL(clSetKernelArg(kernX, 3, sizeof(cl_mem), (void*)&a_hitSup));
+  CHECK_CL(clSetKernelArg(kernX, 4, sizeof(cl_mem), (void*)&m_mlt.pdfArray));
+  CHECK_CL(clSetKernelArg(kernX, 5, sizeof(cl_int), (void*)&isize));
+
+  CHECK_CL(clEnqueueNDRangeKernel(m_globals.cmdQueue, kernX, 1, NULL, &a_size, &localWorkSize, 0, NULL, NULL));
+  waitIfDebug(__FILE__, __LINE__);
+}
+
+void GPUOCLLayer::runKernel_MMLTMakeProposal(cl_mem in_rgen, cl_mem in_vec, cl_int a_largeStep, cl_int a_maxBounce, size_t a_size,
+                                             cl_mem out_rgen, cl_mem out_vec)
+{
+  cl_kernel kernX      = m_progs.mlt.kernel("MMLTMakeProposal");
+
+  size_t localWorkSize = 256;
+  int            isize = int(a_size);
+  a_size               = roundBlocks(a_size, int(localWorkSize));
+
+  CHECK_CL(clSetKernelArg(kernX, 0, sizeof(cl_mem), (void*)&in_rgen));
+  CHECK_CL(clSetKernelArg(kernX, 1, sizeof(cl_mem), (void*)&out_rgen));
+  CHECK_CL(clSetKernelArg(kernX, 2, sizeof(cl_mem), (void*)&in_vec));
+  CHECK_CL(clSetKernelArg(kernX, 3, sizeof(cl_mem), (void*)&out_vec));
+  CHECK_CL(clSetKernelArg(kernX, 4, sizeof(cl_int), (void*)&a_largeStep));
+  CHECK_CL(clSetKernelArg(kernX, 5, sizeof(cl_int), (void*)&a_maxBounce));
+  CHECK_CL(clSetKernelArg(kernX, 6, sizeof(cl_mem), (void*)&m_scene.allGlobsData));
+  CHECK_CL(clSetKernelArg(kernX, 7, sizeof(cl_int), (void*)&isize));
+
+  CHECK_CL(clEnqueueNDRangeKernel(m_globals.cmdQueue, kernX, 1, NULL, &a_size, &localWorkSize, 0, NULL, NULL));
+  waitIfDebug(__FILE__, __LINE__);
+}
+
+void GPUOCLLayer::runKernal_MMLTMakeEyeRays(size_t a_size,
+                                            cl_mem a_rpos, cl_mem a_rdir, cl_mem a_zindex)
+{
+  cl_kernel kernX      = m_progs.mlt.kernel("MMLTMakeEyeRays");
+
+  size_t localWorkSize = 256;
+  int            isize = int(a_size);
+  a_size               = roundBlocks(a_size, int(localWorkSize));
+
+  CHECK_CL(clSetKernelArg(kernX, 0, sizeof(cl_mem), (void*)&m_mlt.currVec));
+  CHECK_CL(clSetKernelArg(kernX, 1, sizeof(cl_mem), (void*)&a_rpos));
+  CHECK_CL(clSetKernelArg(kernX, 2, sizeof(cl_mem), (void*)&a_rdir));
+  CHECK_CL(clSetKernelArg(kernX, 3, sizeof(cl_mem), (void*)&a_zindex));
+  CHECK_CL(clSetKernelArg(kernX, 4, sizeof(cl_mem), (void*)&m_globals.cMortonTable));
+  CHECK_CL(clSetKernelArg(kernX, 5, sizeof(cl_mem), (void*)&m_scene.allGlobsData));
+  CHECK_CL(clSetKernelArg(kernX, 6, sizeof(cl_int), (void*)&isize));
+
+  CHECK_CL(clEnqueueNDRangeKernel(m_globals.cmdQueue, kernX, 1, NULL, &a_size, &localWorkSize, 0, NULL, NULL));
+  waitIfDebug(__FILE__, __LINE__);
+}
+
+void GPUOCLLayer::runKernel_MMLTCameraPathBounce(cl_mem rayFlags, cl_mem a_rpos, cl_mem a_rdir, cl_mem a_color, cl_mem a_split, size_t a_size,
+                                                 cl_mem a_outHitCom, cl_mem a_outHitSup)
+{
+  const cl_float mLightSubPathCount = cl_float(m_width*m_height);
+
+  cl_kernel kernX      = m_progs.mlt.kernel("MMLTCameraPathBounce");
+
+  size_t localWorkSize = 256;
+  int            isize = int(a_size);
+  a_size               = roundBlocks(a_size, int(localWorkSize));
+
+  CHECK_CL(clSetKernelArg(kernX, 0, sizeof(cl_mem), (void*)&a_rpos));
+  CHECK_CL(clSetKernelArg(kernX, 1, sizeof(cl_mem), (void*)&a_rdir));
+  CHECK_CL(clSetKernelArg(kernX, 2, sizeof(cl_mem), (void*)&rayFlags));
+  CHECK_CL(clSetKernelArg(kernX, 3, sizeof(cl_mem), (void*)&m_mlt.rstateCurr)); 
+
+  CHECK_CL(clSetKernelArg(kernX, 4, sizeof(cl_mem), (void*)&m_mlt.currVec)); 
+  CHECK_CL(clSetKernelArg(kernX, 5, sizeof(cl_mem), (void*)&a_split));
+  CHECK_CL(clSetKernelArg(kernX, 6, sizeof(cl_mem), (void*)&m_rays.hits));
+  CHECK_CL(clSetKernelArg(kernX, 7, sizeof(cl_mem), (void*)&m_scene.instLightInst));
+  CHECK_CL(clSetKernelArg(kernX, 8, sizeof(cl_mem), (void*)&a_outHitCom));
+  CHECK_CL(clSetKernelArg(kernX, 9, sizeof(cl_mem), (void*)&m_rays.hitProcTexData));
+ 
+  CHECK_CL(clSetKernelArg(kernX,10, sizeof(cl_mem), (void*)&a_color));
+  CHECK_CL(clSetKernelArg(kernX,11, sizeof(cl_mem), (void*)&m_rays.pathMisDataPrev));
+  CHECK_CL(clSetKernelArg(kernX,12, sizeof(cl_mem), (void*)&m_rays.fogAtten));
+  CHECK_CL(clSetKernelArg(kernX,13, sizeof(cl_mem), (void*)&m_mlt.pdfArray));
+  CHECK_CL(clSetKernelArg(kernX,14, sizeof(cl_mem), (void*)&a_outHitSup));
+
+  CHECK_CL(clSetKernelArg(kernX,15, sizeof(cl_mem), (void*)&m_scene.storageTex));
+  CHECK_CL(clSetKernelArg(kernX,16, sizeof(cl_mem), (void*)&m_scene.storageTexAux));
+  CHECK_CL(clSetKernelArg(kernX,17, sizeof(cl_mem), (void*)&m_scene.storageMat));
+  CHECK_CL(clSetKernelArg(kernX,18, sizeof(cl_mem), (void*)&m_scene.storagePdfs));
+ 
+  CHECK_CL(clSetKernelArg(kernX,19, sizeof(cl_mem), (void*)&m_scene.allGlobsData));
+  CHECK_CL(clSetKernelArg(kernX,20, sizeof(cl_int), (void*)&isize));
+  CHECK_CL(clSetKernelArg(kernX,21, sizeof(cl_float), (void*)&mLightSubPathCount));
+
+  CHECK_CL(clEnqueueNDRangeKernel(m_globals.cmdQueue, kernX, 1, NULL, &a_size, &localWorkSize, 0, NULL, NULL));
+  waitIfDebug(__FILE__, __LINE__);
+}
+
+void GPUOCLLayer::runKernel_CopyAccColorTo(cl_mem cameraVertexSup, size_t a_size, cl_mem a_outColor)
+{
+  cl_kernel kernX      = m_progs.mlt.kernel("CopyAccColorTo");
+
+  size_t localWorkSize = 256;
+  int            isize = int(a_size);
+  a_size               = roundBlocks(a_size, int(localWorkSize));
+
+  CHECK_CL(clSetKernelArg(kernX, 0, sizeof(cl_mem), (void*)&cameraVertexSup));
+  CHECK_CL(clSetKernelArg(kernX, 1, sizeof(cl_mem), (void*)&a_outColor));
+  CHECK_CL(clSetKernelArg(kernX, 2, sizeof(cl_int), (void*)&isize));
+
+  CHECK_CL(clEnqueueNDRangeKernel(m_globals.cmdQueue, kernX, 1, NULL, &a_size, &localWorkSize, 0, NULL, NULL));
+  waitIfDebug(__FILE__, __LINE__);
+}
+
+void GPUOCLLayer::runKernel_MMLTLightSampleForward(cl_mem a_rayFlags, cl_mem a_rpos, cl_mem a_rdir, cl_mem a_outColor, cl_mem lightVertexSup, size_t a_size)
+{
+  cl_kernel kernX      = m_progs.mlt.kernel("MMLTLightSampleForward");
+
+  size_t localWorkSize = 256;
+  int            isize = int(a_size);
+  a_size               = roundBlocks(a_size, int(localWorkSize));
+
+  CHECK_CL(clSetKernelArg(kernX, 0, sizeof(cl_mem), (void*)&a_rpos));
+  CHECK_CL(clSetKernelArg(kernX, 1, sizeof(cl_mem), (void*)&a_rdir));
+  CHECK_CL(clSetKernelArg(kernX, 2, sizeof(cl_mem), (void*)&a_rayFlags));
+  CHECK_CL(clSetKernelArg(kernX, 3, sizeof(cl_mem), (void*)&m_mlt.rstateCurr));
+  CHECK_CL(clSetKernelArg(kernX, 4, sizeof(cl_mem), (void*)&m_mlt.currVec));
+
+  CHECK_CL(clSetKernelArg(kernX, 5, sizeof(cl_mem), (void*)&a_outColor));
+  CHECK_CL(clSetKernelArg(kernX, 6, sizeof(cl_mem), (void*)&m_mlt.pdfArray));
+  CHECK_CL(clSetKernelArg(kernX, 7, sizeof(cl_mem), (void*)&lightVertexSup));
+  CHECK_CL(clSetKernelArg(kernX, 8, sizeof(cl_mem), (void*)&m_rays.pathMisDataPrev));
+  
+  CHECK_CL(clSetKernelArg(kernX, 9, sizeof(cl_mem), (void*)&m_scene.storageTex));
+  CHECK_CL(clSetKernelArg(kernX,10, sizeof(cl_mem), (void*)&m_scene.storagePdfs));
+  CHECK_CL(clSetKernelArg(kernX,11, sizeof(cl_mem), (void*)&m_scene.allGlobsData));
+  CHECK_CL(clSetKernelArg(kernX,12, sizeof(int),    (void*)&isize));
+  
+  CHECK_CL(clEnqueueNDRangeKernel(m_globals.cmdQueue, kernX, 1, NULL, &a_size, &localWorkSize, 0, NULL, NULL));
+  waitIfDebug(__FILE__, __LINE__);
+}
+
+void GPUOCLLayer::runKernel_MMLTLightPathBounce(cl_mem a_rayFlags, cl_mem a_rpos, cl_mem a_rdir, cl_mem a_color, cl_mem a_split, size_t a_size,
+                                                cl_mem a_outHitCom, cl_mem a_outHitSup)
+{
+  cl_kernel kernX      = m_progs.mlt.kernel("MMLTLightPathBounce");
+
+  size_t localWorkSize = 256;
+  int            isize = int(a_size);
+  a_size               = roundBlocks(a_size, int(localWorkSize));
+
+  CHECK_CL(clSetKernelArg(kernX, 0, sizeof(cl_mem), (void*)&a_rpos));
+  CHECK_CL(clSetKernelArg(kernX, 1, sizeof(cl_mem), (void*)&a_rdir));
+  CHECK_CL(clSetKernelArg(kernX, 2, sizeof(cl_mem), (void*)&a_rayFlags));
+  CHECK_CL(clSetKernelArg(kernX, 3, sizeof(cl_mem), (void*)&m_mlt.rstateCurr));
+
+  CHECK_CL(clSetKernelArg(kernX, 4, sizeof(cl_mem), (void*)&m_mlt.currVec));
+  CHECK_CL(clSetKernelArg(kernX, 5, sizeof(cl_mem), (void*)&a_split));
+  CHECK_CL(clSetKernelArg(kernX, 6, sizeof(cl_mem), (void*)&a_outHitCom));
+  CHECK_CL(clSetKernelArg(kernX, 7, sizeof(cl_mem), (void*)&m_rays.hitProcTexData));
+
+  CHECK_CL(clSetKernelArg(kernX, 8, sizeof(cl_mem), (void*)&a_color));
+  CHECK_CL(clSetKernelArg(kernX, 9, sizeof(cl_mem), (void*)&m_rays.pathMisDataPrev));
+  CHECK_CL(clSetKernelArg(kernX,10, sizeof(cl_mem), (void*)&m_rays.fogAtten));
+  CHECK_CL(clSetKernelArg(kernX,11, sizeof(cl_mem), (void*)&m_mlt.pdfArray));
+  CHECK_CL(clSetKernelArg(kernX,12, sizeof(cl_mem), (void*)&a_outHitSup));
+
+  CHECK_CL(clSetKernelArg(kernX,13, sizeof(cl_mem), (void*)&m_scene.storageTex));
+  CHECK_CL(clSetKernelArg(kernX,14, sizeof(cl_mem), (void*)&m_scene.storageTexAux));
+  CHECK_CL(clSetKernelArg(kernX,15, sizeof(cl_mem), (void*)&m_scene.storageMat));
+  CHECK_CL(clSetKernelArg(kernX,16, sizeof(cl_mem), (void*)&m_scene.storagePdfs));
+  CHECK_CL(clSetKernelArg(kernX,17, sizeof(cl_mem), (void*)&m_scene.allGlobsData));
+  CHECK_CL(clSetKernelArg(kernX,18, sizeof(cl_int), (void*)&isize));
+
+  CHECK_CL(clEnqueueNDRangeKernel(m_globals.cmdQueue, kernX, 1, NULL, &a_size, &localWorkSize, 0, NULL, NULL));
+  waitIfDebug(__FILE__, __LINE__);
+}
+
+
+void GPUOCLLayer::runkernel_MMLTMakeShadowRay(cl_mem in_splitInfo, cl_mem  in_cameraVertexHit, cl_mem in_cameraVertexSup, cl_mem  in_lightVertexHit, cl_mem  in_lightVertexSup, size_t a_size,
+                                              cl_mem sray_pos, cl_mem sray_dir, cl_mem sray_flags)
+                                              
+{
+  cl_kernel kernX      = m_progs.mlt.kernel("MMLTMakeShadowRay");
+
+  size_t localWorkSize = 256;
+  int            isize = int(a_size);
+  a_size               = roundBlocks(a_size, int(localWorkSize));
+
+  CHECK_CL(clSetKernelArg(kernX, 0, sizeof(cl_mem), (void*)&in_splitInfo));
+  CHECK_CL(clSetKernelArg(kernX, 1, sizeof(cl_mem), (void*)&in_lightVertexHit));
+  CHECK_CL(clSetKernelArg(kernX, 2, sizeof(cl_mem), (void*)&in_lightVertexSup));
+  CHECK_CL(clSetKernelArg(kernX, 3, sizeof(cl_mem), (void*)&in_cameraVertexHit));
+  CHECK_CL(clSetKernelArg(kernX, 4, sizeof(cl_mem), (void*)&in_cameraVertexSup));
+
+  CHECK_CL(clSetKernelArg(kernX, 5, sizeof(cl_mem), (void*)&sray_pos));
+  CHECK_CL(clSetKernelArg(kernX, 6, sizeof(cl_mem), (void*)&sray_dir));
+  CHECK_CL(clSetKernelArg(kernX, 7, sizeof(cl_mem), (void*)&sray_flags));
+  CHECK_CL(clSetKernelArg(kernX, 8, sizeof(cl_mem), (void*)&m_rays.lsamRev));
+
+  CHECK_CL(clSetKernelArg(kernX, 9, sizeof(cl_mem), (void*)&m_mlt.rstateCurr));
+  CHECK_CL(clSetKernelArg(kernX,10, sizeof(cl_mem), (void*)&m_mlt.currVec));
+
+  CHECK_CL(clSetKernelArg(kernX,11, sizeof(cl_mem), (void*)&m_scene.storageMat));
+  CHECK_CL(clSetKernelArg(kernX,12, sizeof(cl_mem), (void*)&m_scene.storagePdfs));
+  CHECK_CL(clSetKernelArg(kernX,13, sizeof(cl_mem), (void*)&m_scene.storageTex));
+  CHECK_CL(clSetKernelArg(kernX,14, sizeof(cl_mem), (void*)&m_scene.allGlobsData));
+  CHECK_CL(clSetKernelArg(kernX,15, sizeof(cl_int), (void*)&isize));
+
+  CHECK_CL(clEnqueueNDRangeKernel(m_globals.cmdQueue, kernX, 1, NULL, &a_size, &localWorkSize, 0, NULL, NULL));
+  waitIfDebug(__FILE__, __LINE__);
+}
+
+void GPUOCLLayer::runKernel_MMLTConnect(cl_mem in_splitInfo, cl_mem  in_cameraVertexHit, cl_mem in_cameraVertexSup, cl_mem  in_lightVertexHit, cl_mem  in_lightVertexSup, cl_mem in_shadow, size_t a_size, 
+                                        cl_mem a_outColor, cl_mem a_outZIndex)
+{
+  const cl_float mLightSubPathCount = cl_float(m_width*m_height);
+
+  cl_kernel kernX      = m_progs.mlt.kernel("MMLTConnect");
+
+  size_t localWorkSize = 256;
+  int            isize = int(a_size);
+  a_size               = roundBlocks(a_size, int(localWorkSize));
+
+  CHECK_CL(clSetKernelArg(kernX, 0, sizeof(cl_mem), (void*)&in_splitInfo));
+  CHECK_CL(clSetKernelArg(kernX, 1, sizeof(cl_mem), (void*)&in_lightVertexHit));
+  CHECK_CL(clSetKernelArg(kernX, 2, sizeof(cl_mem), (void*)&in_lightVertexSup));
+  CHECK_CL(clSetKernelArg(kernX, 3, sizeof(cl_mem), (void*)&in_cameraVertexHit));
+  CHECK_CL(clSetKernelArg(kernX, 4, sizeof(cl_mem), (void*)&in_cameraVertexSup));
+  CHECK_CL(clSetKernelArg(kernX, 5, sizeof(cl_mem), (void*)&m_rays.hitProcTexData));
+  CHECK_CL(clSetKernelArg(kernX, 6, sizeof(cl_mem), (void*)&in_shadow));
+  CHECK_CL(clSetKernelArg(kernX, 7, sizeof(cl_mem), (void*)&m_rays.lsamRev));
+  
+  CHECK_CL(clSetKernelArg(kernX, 8, sizeof(cl_mem), (void*)&m_mlt.pdfArray));
+  CHECK_CL(clSetKernelArg(kernX, 9, sizeof(cl_mem), (void*)&a_outColor));
+  CHECK_CL(clSetKernelArg(kernX,10, sizeof(cl_mem), (void*)&a_outZIndex));
+
+  CHECK_CL(clSetKernelArg(kernX,11, sizeof(cl_mem), (void*)&m_scene.storageTex));
+  CHECK_CL(clSetKernelArg(kernX,12, sizeof(cl_mem), (void*)&m_scene.storageTexAux));
+  CHECK_CL(clSetKernelArg(kernX,13, sizeof(cl_mem), (void*)&m_scene.storageMat));
+  CHECK_CL(clSetKernelArg(kernX,14, sizeof(cl_mem), (void*)&m_scene.storagePdfs));
+  CHECK_CL(clSetKernelArg(kernX,15, sizeof(cl_mem), (void*)&m_scene.allGlobsData));
+  CHECK_CL(clSetKernelArg(kernX,16, sizeof(cl_mem), (void*)&m_mlt.scaleTable));
+  CHECK_CL(clSetKernelArg(kernX,17, sizeof(cl_mem), (void*)&m_globals.cMortonTable));
+  CHECK_CL(clSetKernelArg(kernX,18, sizeof(cl_int), (void*)&isize));
+  CHECK_CL(clSetKernelArg(kernX,19, sizeof(cl_float), (void*)&mLightSubPathCount));
+
+  CHECK_CL(clEnqueueNDRangeKernel(m_globals.cmdQueue, kernX, 1, NULL, &a_size, &localWorkSize, 0, NULL, NULL));
+  waitIfDebug(__FILE__, __LINE__);
 }

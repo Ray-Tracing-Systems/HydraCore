@@ -1086,7 +1086,8 @@ void GPUOCLLayer::BeginTracingPass()
     if(m_spp < 1e-5f) // run init stage
     {
       std::cout << "MMLT, Init stage ... " << std::endl;
-      MMLTInitSplitDataUniform(m_mlt.splitData, m_vars.m_varsI[HRT_TRACE_DEPTH], m_rays.MEGABLOCKSIZE);
+      //MMLTInitSplitDataUniform(3, m_vars.m_varsI[HRT_TRACE_DEPTH], m_rays.MEGABLOCKSIZE,
+      //                         m_mlt.splitData, m_mlt.scaleTable, m_mlt.perBounceActiveThreads);
     }
 
     // (1) make poposal / gen rands
