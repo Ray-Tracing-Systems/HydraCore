@@ -1083,7 +1083,7 @@ void GPUOCLLayer::BeginTracingPass()
 
   if (m_vars.m_flags & HRT_ENABLE_MMLT)                 // SBDPT or MMLT pass
   {
-    int minBounce = 4;
+    int minBounce = 2;
     int maxBounce = 5;
 
     if(m_spp < 1e-5f) // run init stage

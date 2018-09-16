@@ -401,6 +401,9 @@ __kernel void MMLTCameraPathBounce(__global   float4*        restrict a_rpos,
   const int  a_currDepth            = unpackBounceNum(flags); // #NOTE: first bounce must be equal to 1                           
   const int  prevVertexId           = a_fullPathDepth - a_currDepth + 1; 
 
+  if(a_currDepth > t)
+    return;
+
   //__global const PlainLight* pLight = lightAt(a_globals, lightOffset);
   SurfaceHit surfElem;
   ReadSurfaceHit(in_surfaceHit, tid, iNumElements, 
@@ -498,7 +501,7 @@ __kernel void MMLTCameraPathBounce(__global   float4*        restrict a_rpos,
       WritePathVertexSupplement(&resVertex, tid, iNumElements, 
                                 a_vertexSup);
 
-      a_flags[tid] = packRayFlags(flags, unpackRayFlags(flags) | RAY_IS_DEAD);
+      a_flags[tid] = packRayFlags(flags, RAY_IS_DEAD);
       return;
     } 
   }
@@ -1085,7 +1088,9 @@ __kernel void MMLTConnect(__global const int2  *  restrict in_splitInfo,
 
   if (lightTraceDepth == -1)        // (3.1) -1 means we have full camera path, no conection is needed
   {
-    sampleColor = cv.accColor;
+    if(cv.valid)
+      sampleColor = cv.accColor;
+    //sampleColor = make_float3(0,0,0);
   }
   else
   {
@@ -1108,10 +1113,10 @@ __kernel void MMLTConnect(__global const int2  *  restrict in_splitInfo,
         sampleColor = ConnectEyeP(&lv, mLightSubPathCount, camDir, imageToSurfaceFactor,
                                   a_globals, in_mtlStorage, in_texStorage1, in_texStorage2, &ptl,
                                   &v0, &v1, &x, &y);
-
+       
         if (imageToSurfaceFactor <= 0.0f)
           sampleColor = make_float3(0, 0, 0);
-
+     
         a_pdfVert[TabIndex(lightTraceDepth + 0, tid, iNumElements)] = v0;
         a_pdfVert[TabIndex(lightTraceDepth + 1, tid, iNumElements)] = v1;
       }
@@ -1131,7 +1136,7 @@ __kernel void MMLTConnect(__global const int2  *  restrict in_splitInfo,
         sampleColor  = cv.accColor*ConnectShadowP(&cv, t, pLight, explicitSam, lightPickProb,
                                                   a_globals, in_mtlStorage, in_texStorage1, in_texStorage2, in_pdfStorage, &ptl,
                                                   &v0, &v1, &v2);
-
+        //sampleColor = make_float3(0,0,0);
         a_pdfVert[TabIndex(0, tid, iNumElements)] = v0;
         a_pdfVert[TabIndex(1, tid, iNumElements)] = v1;
         a_pdfVert[TabIndex(2, tid, iNumElements)] = v2;
