@@ -1083,18 +1083,18 @@ void GPUOCLLayer::BeginTracingPass()
 
   if (m_vars.m_flags & HRT_ENABLE_MMLT)                 // SBDPT or MMLT pass
   {
+    //int maxBounce = m_vars.m_varsI[HRT_TRACE_DEPTH];
+    int maxBounce = 3;
+
     if(m_spp < 1e-5f) // run init stage
     {
       std::cout << "MMLT, Init stage ... " << std::endl;
-      //MMLTInitSplitDataUniform(3, m_vars.m_varsI[HRT_TRACE_DEPTH], m_rays.MEGABLOCKSIZE,
-      //                         m_mlt.splitData, m_mlt.scaleTable, m_mlt.perBounceActiveThreads);
+      MMLTInitSplitDataUniform(2, maxBounce, m_rays.MEGABLOCKSIZE,
+                               m_mlt.splitData, m_mlt.scaleTable, m_mlt.perBounceActiveThreads);
     }
 
     // (1) make poposal / gen rands
     //
-  
-    //int maxBounce = m_vars.m_varsI[HRT_TRACE_DEPTH];
-    int maxBounce = MMLT_GPU_TEST_DEPTH;
 
     runKernel_MMLTMakeProposal(m_mlt.rstateCurr, m_mlt.xVector, 1, maxBounce, m_rays.MEGABLOCKSIZE,
                                m_mlt.rstateCurr, m_mlt.xVector);
@@ -1102,7 +1102,7 @@ void GPUOCLLayer::BeginTracingPass()
     // (2) trace; 
     //
     m_raysWasSorted = false;
-    EvalSBDPT(m_mlt.xVector, m_rays.MEGABLOCKSIZE,
+    EvalSBDPT(m_mlt.xVector, maxBounce, m_rays.MEGABLOCKSIZE,
               m_rays.pathAccColor, m_rays.samZindex);
 
 

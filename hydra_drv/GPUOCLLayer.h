@@ -62,7 +62,7 @@ public:
   std::vector<int> MakeAllPixelsList();
   void RunProductionSamplingMode();
 
-  void EvalSBDPT(cl_mem in_xVector, size_t a_size,
+  void EvalSBDPT(cl_mem in_xVector, int maxBounce, size_t a_size,
                  cl_mem a_outColor, cl_mem a_outZIndex);
 
   void FinishAll() override;

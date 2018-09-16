@@ -49,8 +49,10 @@ __kernel void MMLTInitCameraPath(__global   uint*      restrict a_flags,
 
   const float r0 = in_numbers[ TabIndex(MMLT_DIM_SPLIT, tid, iNumElements) ];
 
-  const int d = MMLT_GPU_TEST_DEPTH;
-  const int s = mapRndFloatToInt(r0, 0, d); 
+  const int2 oldSplit = a_split[tid];
+
+  const int d  = oldSplit.x; // MMLT_GPU_TEST_DEPTH;
+  const int s  = mapRndFloatToInt(r0, 0, d); 
 
   a_flags[tid] = packBounceNum(0, 1);
   a_color[tid] = make_float4(1,1,1,1);
