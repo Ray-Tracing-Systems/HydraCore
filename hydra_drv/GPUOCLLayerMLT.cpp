@@ -68,6 +68,13 @@ size_t GPUOCLLayer::MLT_Alloc(int a_maxBounce)
   if (ciErr1 != CL_SUCCESS)
     RUN_TIME_ERROR("[cl_core]: Failed to create rstateForAcceptReject ");
 
+  srand(GetTickCount()); // #TODO: use some more precise system timer!!!
+
+  runKernel_InitRandomGen(m_mlt.rstateForAcceptReject, m_rays.MEGABLOCKSIZE, rand());
+  runKernel_InitRandomGen(m_mlt.rstateCurr,            m_rays.MEGABLOCKSIZE, rand());
+  runKernel_InitRandomGen(m_mlt.rstateOld,             m_rays.MEGABLOCKSIZE, rand());
+  runKernel_InitRandomGen(m_mlt.rstateNew,             m_rays.MEGABLOCKSIZE, rand());
+
   const int MLT_RAND_NUMBERS_PER_BOUNCE = MMLT_HEAD_TOTAL_SIZE + MMLT_COMPRESSED_F_PERB*a_maxBounce; //randArraySizeOfDepthMMLT(a_maxBounce);
   m_vars.m_varsI[HRT_MLT_MAX_NUMBERS]   = MLT_RAND_NUMBERS_PER_BOUNCE;
 
@@ -212,6 +219,32 @@ void GPUOCLLayer::runKernel_MLTEvalContribFunc(cl_mem in_buff, size_t a_size,
   waitIfDebug(__FILE__, __LINE__);
 }
 
+
+void GPUOCLLayer::runKernel_MLTSelectSampleProportionalToContrib(cl_mem in_rndState, cl_mem in_split, cl_mem in_array, int a_arraySize, cl_mem gen_select, size_t a_size,
+                                                                 cl_int offset, cl_mem out_rndState, cl_mem out_split)
+
+{
+  cl_kernel kernX      = m_progs.mlt.kernel("MMLTSelectSampleProportionalToContrib");
+
+  size_t localWorkSize = 256;
+  int            isize = int(a_size);
+  a_size               = roundBlocks(a_size, int(localWorkSize));
+
+  CHECK_CL(clSetKernelArg(kernX, 0, sizeof(cl_mem), (void*)&out_rndState));
+  CHECK_CL(clSetKernelArg(kernX, 1, sizeof(cl_mem), (void*)&out_split));
+  CHECK_CL(clSetKernelArg(kernX, 2, sizeof(cl_int), (void*)&offset));
+
+  CHECK_CL(clSetKernelArg(kernX, 3, sizeof(cl_mem), (void*)&in_rndState));
+  CHECK_CL(clSetKernelArg(kernX, 4, sizeof(cl_mem), (void*)&in_split));
+  CHECK_CL(clSetKernelArg(kernX, 5, sizeof(cl_mem), (void*)&gen_select));
+  CHECK_CL(clSetKernelArg(kernX, 6, sizeof(cl_mem), (void*)&in_array));
+
+  CHECK_CL(clSetKernelArg(kernX, 7, sizeof(cl_int), (void*)&a_arraySize));
+  CHECK_CL(clSetKernelArg(kernX, 8, sizeof(cl_int), (void*)&isize));
+
+  CHECK_CL(clEnqueueNDRangeKernel(m_globals.cmdQueue, kernX, 1, NULL, &a_size, &localWorkSize, 0, NULL, NULL));
+  waitIfDebug(__FILE__, __LINE__);
+}
 
 void GPUOCLLayer::runKernel_MMLTInitSplitAndCamV(cl_mem a_flags, cl_mem a_color, cl_mem a_split, cl_mem a_hitSup,
                                                  size_t a_size)

@@ -20,13 +20,53 @@
 \param out_colors - output contrib value
 
 */
-__kernel void MLTEvalContribFunc(__global const float4* in_color, __global float* out_colors, int iNumElements)
+__kernel void MLTEvalContribFunc(__global const float4* restrict in_color, __global float* restrict out_colors, int iNumElements)
 {
   int tid = GLOBAL_ID_X;
   if (tid >= iNumElements)
     return;
 
   out_colors[tid] = contribFunc(to_float3(in_color[tid]));
+}
+
+/**
+\brief Select Markov Chains proportional to their contribution; Used for Burning-In process;
+
+\param out_gens  - output random gen state
+\param out_depth - output contrib value
+\param offset    - input offset inside (out_gens, out_depth) buffers
+
+\param in_gens   - input random generator state
+\param in_split  - input split (d,s) pair; only d is used -- i.e. split.x
+
+\param a_gens_select - random generator used to select contribution (must be different than in_gens!!!)
+
+*/
+__kernel void MMLTSelectSampleProportionalToContrib(__global RandomGen*       restrict out_gens,
+                                                    __global int*             restrict out_depth, 
+                                                    int offset, 
+                                                    __global const RandomGen* restrict in_gens,
+                                                    __global const int2*      restrict in_split,
+                                                    
+                                                    __global       RandomGen* restrict a_gens_select,  
+                                                    __global const float*     restrict in_samplesLum, 
+                                                    int arraySize,
+                                                    int iNumElements)
+
+{
+  const int tid = GLOBAL_ID_X;
+  if (tid >= iNumElements)
+    return;
+
+  RandomGen gen      = a_gens_select[tid];
+  const float r0     = rndFloat1_Pseudo(&gen);
+  a_gens_select[tid] = gen;
+
+  float pdf = 1.0f;
+  const int foundIndex = SelectIndexPropToOpt(r0, in_samplesLum, arraySize-1, &pdf);
+
+  out_gens [offset + tid] = in_gens [foundIndex];
+  out_depth[offset + tid] = in_split[foundIndex].x;
 }
 
 

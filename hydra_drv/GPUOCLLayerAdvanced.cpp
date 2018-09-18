@@ -139,7 +139,7 @@ void GPUOCLLayer::MMLT_BurningIn(int minBounce, int maxBounce, size_t a_size,
                                // #NOTE: you can just set last element to size-2, not size-1. So it will work in this way.
 
   std::cout << std::endl;
-  for(int i=0;i<BURN_ITERS;i++)
+  for(int iter=0; iter<BURN_ITERS;iter++)
   {
     runKernel_MMLTMakeProposal(m_mlt.rstateCurr, m_mlt.xVector, 1, maxBounce, m_rays.MEGABLOCKSIZE,
                                m_mlt.rstateCurr, m_mlt.xVector);
@@ -150,24 +150,18 @@ void GPUOCLLayer::MMLT_BurningIn(int minBounce, int maxBounce, size_t a_size,
     runKernel_MLTEvalContribFunc(m_rays.pathAccColor, m_rays.MEGABLOCKSIZE,
                                  temp_f1);
 
-    //// dump temp_f1 to cpu
-    //std::vector<float> f1cpu(m_rays.MEGABLOCKSIZE);
-    //CHECK_CL(clEnqueueReadBuffer(m_globals.cmdQueue, temp_f1, CL_TRUE, 0, m_rays.MEGABLOCKSIZE * sizeof(float), f1cpu.data(), 0, NULL, NULL));
-
     inPlaceScanAnySize1f(temp_f1, m_rays.MEGABLOCKSIZE);
 
-    //// dump temp_f1 to cpu and check for prefix summ to work ...
-    //std::vector<float> f2cpu(m_rays.MEGABLOCKSIZE);
-    //CHECK_CL(clEnqueueReadBuffer(m_globals.cmdQueue, temp_f1, CL_TRUE, 0, m_rays.MEGABLOCKSIZE * sizeof(float), f2cpu.data(), 0, NULL, NULL));
-    //auto f3cpu = PrefixSumm(f1cpu);
-
     // select BURN_PORTION (state,d) from (m_mlt.rstateCurr, m_mlt.splitData) => (m_mlt.rstateOld, dOld)
-    
+    // 
+    runKernel_MLTSelectSampleProportionalToContrib(m_mlt.rstateCurr, m_mlt.splitData, temp_f1, m_rays.MEGABLOCKSIZE, m_mlt.rstateForAcceptReject, BURN_PORTION,
+                                                   BURN_PORTION*iter, m_mlt.rstateOld, m_mlt.dOld);
+
     clFinish(m_globals.cmdQueue);
     
-    if(i%4 == 0)
+    if(iter%4 == 0)
     {
-      std::cout << "MMLT Burning in, progress = " << 100.0f*float(i)/float(BURN_ITERS) << "% \r";
+      std::cout << "MMLT Burning in, progress = " << 100.0f*float(iter)/float(BURN_ITERS) << "% \r";
       std::cout.flush();
     }
   }
