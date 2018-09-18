@@ -837,7 +837,6 @@ __kernel void NextBounce(__global   float4*        restrict a_rpos,
   float rrChoice = 0.0f, pabsorb  = 0.0f;
   {
     RandomGen gen  = out_gens[tid];
-    gen.maxNumbers = a_globals->varsI[HRT_MLT_MAX_NUMBERS];
    
     RndMatAll(&gen, 0, rayBounceNum, a_globals->rmQMC, qmcPos, a_qmcTable,
               allRands);

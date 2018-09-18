@@ -18,7 +18,7 @@ __kernel void LightSampleForwardCreate(__global float4*              restrict ou
   // (1) generate light sample
   //
   RandomGen gen       = out_gens[tid];
-  gen.maxNumbers      = a_globals->varsI[HRT_MLT_MAX_NUMBERS];
+
   const float4 rands1 = rndFloat4_Pseudo(&gen);             // #TODO: change this for MMLT
   const float2 rands2 = rndFloat2_Pseudo(&gen);             // #TODO: change this for MMLT
   const float  rands3 = rndFloat1_Pseudo(&gen);
@@ -83,7 +83,7 @@ __kernel void LightSampleForwardKernel(__global float4*        restrict out_rpos
   // (1) generate light sample
   //
   // RandomGen gen       = out_gens[tid];
-  // gen.maxNumbers      = a_globals->varsI[HRT_MLT_MAX_NUMBERS];
+
   // const float4 rands1 = rndFloat4_Pseudo(&gen);             // #TODO: change this for MMLT
   // const float2 rands2 = rndFloat2_Pseudo(&gen);             // #TODO: change this for MMLT
   // const float2 rands3 = rndFloat2_Pseudo(&gen);
@@ -180,7 +180,7 @@ __kernel void LightSample(__global const float4*  restrict in_rpos,
   const float3 ray_dir = to_float3(in_rdir[tid]);
 
   RandomGen gen        = out_gens[tid];
-  gen.maxNumbers       = a_globals->varsI[HRT_MLT_MAX_NUMBERS];
+
 
   const int currDepth       = unpackBounceNum(flags);
   const unsigned int qmcPos = reverseBits(tid, iNumElements) + a_passNumberForQmc * iNumElements;

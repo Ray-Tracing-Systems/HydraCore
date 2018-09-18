@@ -9,9 +9,7 @@
 
 typedef struct RandomGenT
 {
-  uint2          state;
-  unsigned int   maxNumbers;
-  unsigned int   lazy; // or dummy to have uint4 generator data.
+  uint2 state;
 
 #ifdef RAND_MLT_CPU
   __global const float* rptr;
@@ -33,7 +31,6 @@ static inline RandomGen RandomGenInit(const int a_seed)
 
   gen.state.x  = (a_seed * (a_seed * a_seed * 15731 + 74323) + 871483);
   gen.state.y  = (a_seed * (a_seed * a_seed * 13734 + 37828) + 234234);
-  gen.lazy     = 0;
 
   for(int i=0;i<(a_seed%7);i++)
     NextState(&gen);
@@ -90,8 +87,6 @@ static inline float rndFloat1_Pseudo(RandomGen* gen)
 typedef struct RandomGenT
 {
   unsigned int x[5];
-  unsigned int maxNumbers;
-  unsigned int lazy; 
   unsigned int dummy;  // to have uint4 generator data.
 
 #ifdef RAND_MLT_CPU
@@ -205,7 +200,7 @@ static inline float MutateKelemen(float valueX, __private RandomGen* pGen, const
   return valueX;
 }
 
-//#define MCMC_LAZY
+
 //#define COMPRESS_RAND
 
 #define MUTATE_LAZY_YES   1
@@ -368,20 +363,12 @@ static inline float4 rndLensOld(__global const float* rptr)
 static inline float4 rndLens(RandomGen* gen, __global const float* rptr, const float2 screenScale,
                              __global const int* a_tab, const unsigned int a_qmcPos, __constant unsigned int* a_qmcTable)
 {
-  if (rptr != 0 && (gen->lazy != MUTATE_LAZY_LARGE))
+  if (rptr != 0)
   {
     float x = rptr[MMLT_DIM_SCR_X];
     float y = rptr[MMLT_DIM_SCR_Y];
     float z = rptr[MMLT_DIM_DOF_X];
     float w = rptr[MMLT_DIM_DOF_Y];
-
-    if (gen->lazy == MUTATE_LAZY_YES)
-    {
-      x = MutateKelemen(x, gen, MUTATE_COEFF_SCREEN*screenScale.x);
-      y = MutateKelemen(y, gen, MUTATE_COEFF_SCREEN*screenScale.y);
-      z = MutateKelemen(z, gen, MUTATE_COEFF_BSDF);
-      w = MutateKelemen(w, gen, MUTATE_COEFF_BSDF);
-    }
 
     return make_float4(x, y, z, w);
   }
@@ -438,19 +425,11 @@ static inline float4 rndLight(RandomGen* gen, const int bounceId,
 static inline float3 rndMat(RandomGen* gen, __global const float* rptr, const int bounceId,
                             __global const int* a_tab, const unsigned int qmcPos, __constant unsigned int* a_qmcTable)
 {
-  if (rptr != 0 && (gen->lazy != MUTATE_LAZY_LARGE))
+  if (rptr != 0)
   {
     float x = rptr[0];
     float y = rptr[1];
     float z = rptr[2];
-
-    if (gen->lazy == MUTATE_LAZY_YES)
-    {
-      x = MutateKelemen(x, gen, MUTATE_COEFF_BSDF);
-      y = MutateKelemen(y, gen, MUTATE_COEFF_BSDF);
-      z = MutateKelemen(z, gen, MUTATE_COEFF_BSDF);
-    }
-
     return make_float3(x, y, z);
   }
   else if(bounceId == 0 && a_tab != 0 && a_qmcTable != 0)
@@ -481,7 +460,7 @@ static inline float3 rndMat(RandomGen* gen, __global const float* rptr, const in
 static inline float rndMatLayer(RandomGen* gen, __global const float* rptr, const int bounceId, const int layerId,
                                 __global const int* a_tab, const unsigned int a_qmcPos, __constant unsigned int* a_qmcTable)
 {
-  if (rptr != 0 && (gen->lazy != MUTATE_LAZY_LARGE))                   // MCMC way; #NOTE: Lazy mutations is not needed due to small step
+  if (rptr != 0)                                                       // MCMC way; #NOTE: Lazy mutations is not needed due to small step
     return rptr[layerId];                                              // must never change material layer, no mutations is allowed!
   else if(bounceId == 0 && a_tab != 0 && a_qmcTable != 0)              // QMC way;
     return rndQmcTab(gen, a_tab, a_qmcPos, QMC_VAR_MAT_L, a_qmcTable);
@@ -547,7 +526,7 @@ typedef struct LightGroup2T
 static inline void RndLightMMLT(RandomGen* gen, __global const float* rptr,
                                 __private LightGroup2* pOut)
 {
-  if (rptr != 0 && gen->lazy != MUTATE_LAZY_LARGE)
+  if (rptr != 0)
   {
     float x  = rptr[MMLT_DIM_LGT_X]; //#TODO: opt read as 2xfloat4
     float y  = rptr[MMLT_DIM_LGT_Y];
@@ -557,17 +536,6 @@ static inline void RndLightMMLT(RandomGen* gen, __global const float* rptr,
     float x1 = rptr[MMLT_DIM_LGT_X1];
     float y1 = rptr[MMLT_DIM_LGT_Y1];
     float n  = rptr[MMLT_DIM_LGT_N];
-     
-    if (gen->lazy == MUTATE_LAZY_YES)
-    {
-      x  = MutateKelemen(x,  gen, MUTATE_COEFF_BSDF);
-      y  = MutateKelemen(y,  gen, MUTATE_COEFF_BSDF);
-      z  = MutateKelemen(z,  gen, MUTATE_COEFF_BSDF);
-      w  = MutateKelemen(w,  gen, MUTATE_COEFF_BSDF); 
-      x1 = MutateKelemen(x1, gen, MUTATE_COEFF_BSDF);
-      y1 = MutateKelemen(y1, gen, MUTATE_COEFF_BSDF);
-      //n = n, n1=n1; // don't mutate light numbers
-    }
 
     pOut->group1 = make_float4(x, y, z, w);
     pOut->group2 = make_float3(x1, y1, n);
@@ -582,11 +550,9 @@ static inline void RndLightMMLT(RandomGen* gen, __global const float* rptr,
 static inline int rndSplitMMLT(RandomGen* gen, __global const float* rptr, const int d)
 {
   float x;
-  if (rptr != 0 && gen->lazy != MUTATE_LAZY_LARGE)
+  if (rptr != 0)
   {
     x = rptr[MMLT_DIM_SPLIT];
-    if (gen->lazy == MUTATE_LAZY_YES)
-      x = MutateKelemen(x, gen, MUTATE_COEFF_BSDF);
   }
   else
     x = rndFloat1_Pseudo(gen);

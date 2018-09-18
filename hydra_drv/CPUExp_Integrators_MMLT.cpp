@@ -45,11 +45,6 @@ void IntegratorMMLT::SetMaxDepth(int a_depth)
 
     m_perThread[i].gen.rptr  = nullptr;
     m_perThread[i].gen2.rptr = nullptr;
-    m_perThread[i].gen.lazy  = MUTATE_LAZY_NO;
-    m_perThread[i].gen2.lazy = MUTATE_LAZY_NO;
-
-    m_perThread[i].gen.maxNumbers  = int(m_pss[i].size());
-    m_perThread[i].gen2.maxNumbers = int(m_pss[i].size());
   }
 
 }
