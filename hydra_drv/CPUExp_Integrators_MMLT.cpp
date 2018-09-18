@@ -32,7 +32,6 @@ static float EstimateAverageBrightness2(const float4* a_color, int a_size)
     return val;
 }
 
-
 void IntegratorMMLT::SetMaxDepth(int a_depth)
 {
   m_maxDepth = a_depth;

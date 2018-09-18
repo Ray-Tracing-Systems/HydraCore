@@ -1048,7 +1048,7 @@ __kernel void MMLTConnect(__global const int2  *  restrict in_splitInfo,
                           __global const float4*         restrict in_mtlStorage,
                           __global const float4*         restrict in_pdfStorage,  
                           __global const EngineGlobals*  restrict a_globals,
-                          __constant float*              restrict a_scaleTable,
+                          __global const float*          restrict a_scaleTable,
                           __constant ushort*             restrict a_mortonTable256,
                           const int iNumElements, const float mLightSubPathCount, const int iNumElements2)
 {

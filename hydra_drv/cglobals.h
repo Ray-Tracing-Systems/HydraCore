@@ -154,11 +154,11 @@ enum MEGATEX_USAGE{ MEGATEX_SHADING      = 1,
    #define SYNCTHREADS_LOCAL  barrier(CLK_LOCAL_MEM_FENCE)
    #define SYNCTHREADS_GLOBAL barrier(CLK_GLOBAL_MEM_FENCE)
 
-   IDH_CALL float maxcomp(float3 v) { return fmax(v.x, fmax(v.y, v.z)); }
+   static inline float maxcomp(float3 v) { return fmax(v.x, fmax(v.y, v.z)); }
 
    #define NULL 0
 
-   IDH_CALL ushort4 make_ushort4(ushort a, ushort b, ushort c, ushort d)
+   static inline ushort4 make_ushort4(ushort a, ushort b, ushort c, ushort d)
    {
      ushort4 res;
      res.x = a;
@@ -168,7 +168,7 @@ enum MEGATEX_USAGE{ MEGATEX_SHADING      = 1,
      return res;
    }
 
-   ID_CALL void atomic_addf(volatile __global float *source, const float operand)
+   static inline void atomic_addf(volatile __global float *source, const float operand)
    {
      union {
        unsigned int intVal;

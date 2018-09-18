@@ -20,7 +20,9 @@ void GPUOCLLayer::CL_MLT_DATA::free()
   if (rstateForAcceptReject) { clReleaseMemObject(rstateForAcceptReject); rstateForAcceptReject = 0; }
   if (rstateOld)             { clReleaseMemObject(rstateOld);             rstateOld             = 0; }
   if (rstateNew)             { clReleaseMemObject(rstateNew);             rstateNew             = 0; }
-                                                                         
+  if (dNew)                  { clReleaseMemObject(dNew);                  dNew                  = 0; }
+  if (dOld)                  { clReleaseMemObject(dOld);                  dOld                  = 0; }
+
   if (xVector)               { clReleaseMemObject(xVector); xVector = 0; }
   if (yVector)               { clReleaseMemObject(yVector); yVector = 0; }
                              
@@ -58,8 +60,10 @@ size_t GPUOCLLayer::MLT_Alloc(int a_maxBounce)
   m_mlt.rstateCurr            = m_rays.randGenState; // clCreateBuffer(m_globals.ctx, CL_MEM_READ_WRITE, 1 * sizeof(RandomGen)*m_rays.MEGABLOCKSIZE, NULL, &ciErr1); // m_rays.randGenState;
   m_mlt.rstateOld             = clCreateBuffer(m_globals.ctx, CL_MEM_READ_WRITE, 1 * sizeof(RandomGen)*m_rays.MEGABLOCKSIZE, NULL, &ciErr1);
   m_mlt.rstateNew             = clCreateBuffer(m_globals.ctx, CL_MEM_READ_WRITE, 1 * sizeof(RandomGen)*m_rays.MEGABLOCKSIZE, NULL, &ciErr1);
+  m_mlt.dOld                  = clCreateBuffer(m_globals.ctx, CL_MEM_READ_WRITE, 1 * sizeof(int)*m_rays.MEGABLOCKSIZE, NULL, &ciErr1);
+  m_mlt.dNew                  = clCreateBuffer(m_globals.ctx, CL_MEM_READ_WRITE, 1 * sizeof(int)*m_rays.MEGABLOCKSIZE, NULL, &ciErr1);
 
-  m_mlt.memTaken = 3 * sizeof(RandomGen)*m_rays.MEGABLOCKSIZE; // rstateForAcceptReject, rstateOld, rstateNew 
+  m_mlt.memTaken = (3 * sizeof(RandomGen) + sizeof(int)*2)*m_rays.MEGABLOCKSIZE; // rstateForAcceptReject, rstateOld, rstateNew 
 
   if (ciErr1 != CL_SUCCESS)
     RUN_TIME_ERROR("[cl_core]: Failed to create rstateForAcceptReject ");
@@ -118,7 +122,7 @@ size_t GPUOCLLayer::MLT_Alloc(int a_maxBounce)
   for(auto& coeff : scale)
     coeff = 1.0f;
 
-  m_mlt.scaleTable = clCreateBuffer(m_globals.ctx, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, 256*sizeof(float), (void*)scale.data(), &ciErr1);   
+  m_mlt.scaleTable = clCreateBuffer(m_globals.ctx, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, 256*sizeof(float), (void*)scale.data(), &ciErr1);   
   if (ciErr1 != CL_SUCCESS) 
     RUN_TIME_ERROR("Error in clCreateBuffer");
 
@@ -187,10 +191,23 @@ void GPUOCLLayer::inPlaceScanAnySize1f(cl_mem a_inBuff, size_t a_size)
   scan1f_gpu(a_inBuff, a_size, args);
 }
 
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+void GPUOCLLayer::runKernel_MLTEvalContribFunc(cl_mem in_buff, size_t a_size,
+                                               cl_mem out_buff)
+{
+  cl_kernel kernX      = m_progs.mlt.kernel("MLTEvalContribFunc");
+
+  size_t localWorkSize = 256;
+  int            isize = int(a_size);
+  a_size               = roundBlocks(a_size, int(localWorkSize));
+
+  CHECK_CL(clSetKernelArg(kernX, 0, sizeof(cl_mem), (void*)&in_buff));
+  CHECK_CL(clSetKernelArg(kernX, 1, sizeof(cl_mem), (void*)&out_buff));
+  CHECK_CL(clSetKernelArg(kernX, 2, sizeof(cl_int), (void*)&isize));
+
+  CHECK_CL(clEnqueueNDRangeKernel(m_globals.cmdQueue, kernX, 1, NULL, &a_size, &localWorkSize, 0, NULL, NULL));
+  waitIfDebug(__FILE__, __LINE__);
+}
+
 
 void GPUOCLLayer::runKernel_MMLTInitSplitAndCamV(cl_mem a_flags, cl_mem a_color, cl_mem a_split, cl_mem a_hitSup,
                                                  size_t a_size)
@@ -235,7 +252,7 @@ void GPUOCLLayer::runKernel_MMLTMakeProposal(cl_mem in_rgen, cl_mem in_vec, cl_i
   waitIfDebug(__FILE__, __LINE__);
 }
 
-void GPUOCLLayer::runKernal_MMLTMakeEyeRays(size_t a_size,
+void GPUOCLLayer::runKernel_MMLTMakeEyeRays(size_t a_size,
                                             cl_mem a_rpos, cl_mem a_rdir, cl_mem a_zindex)
 {
   cl_kernel kernX      = m_progs.mlt.kernel("MMLTMakeEyeRays");

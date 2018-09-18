@@ -105,6 +105,62 @@ size_t GPUOCLLayer::MMLTInitSplitDataUniform(int bounceBeg, int a_maxDepth, size
   return finalThreadsNum;
 }
 
+void GPUOCLLayer::MMLT_BurningIn(int minBounce, int maxBounce, size_t a_size,
+                                 cl_mem out_rstate, cl_mem out_dsplit, cl_mem out_normC, std::vector<int>& out_activeThreads)
+{
+
+  if(m_mlt.rstateOld == out_rstate || out_dsplit == m_mlt.dOld)
+  {
+    std::cerr << "MMLT_BurningIn, wrong input buffers! Select (m_mlt.rstateNew, dNew) instead!" << std::endl;
+    std::cout << "MMLT_BurningIn, wrong input buffers! Select (m_mlt.rstateNew, dNew) instead!" << std::endl;
+    exit(0); 
+  }
+
+  // zero out_normC table because we are going to increment it via simulated floating points atomics ... 
+  {
+    std::vector<float> scale(maxBounce+1);
+    for(auto& coeff : scale)
+      coeff = 0.0f;
+    CHECK_CL(clEnqueueWriteBuffer(m_globals.cmdQueue, out_normC, CL_TRUE, 0, scale.size()*sizeof(float), (void*)scale.data(), 0, NULL, NULL));
+  }
+
+  const int BURN_ITERS   = 16;
+  const int BURN_PORTION = a_size/BURN_ITERS;
+
+  MMLTInitSplitDataUniform(minBounce, maxBounce, m_rays.MEGABLOCKSIZE,
+                           m_mlt.splitData, m_mlt.scaleTable, m_mlt.perBounceActiveThreads);
+
+  cl_mem temp_f1 = out_dsplit; // well, that's not ok in general, but due to sizeof(int) == sizeof(float) we can use this buffer temporary
+                               // #NOTE: do you allocate enough memory for this buffer? --> seems yes (see inPlaceScanAnySize1f impl).
+                               // #NOTE: current search will not work !!! It need size+1 array !!!  
+
+  for(int i=0;i<BURN_ITERS;i++)
+  {
+    runKernel_MMLTMakeProposal(m_mlt.rstateCurr, m_mlt.xVector, 1, maxBounce, m_rays.MEGABLOCKSIZE,
+                               m_mlt.rstateCurr, m_mlt.xVector);
+
+    EvalSBDPT(m_mlt.xVector, minBounce, maxBounce, m_rays.MEGABLOCKSIZE,
+              m_rays.pathAccColor, m_rays.samZindex);
+
+    runKernel_MLTEvalContribFunc(m_rays.pathAccColor, m_rays.MEGABLOCKSIZE,
+                                 temp_f1);
+
+    // dump temp_f1 to cpu
+
+    inPlaceScanAnySize1f(temp_f1, m_rays.MEGABLOCKSIZE);
+
+    // dump temp_f1 to cpu and check for prefix summ to work ...
+
+    // select BURN_PORTION (state,d) from (m_mlt.rstateCurr, m_mlt.splitData) => (m_mlt.rstateOld, dOld)
+  }
+ 
+
+  // sort all selected pairs of (m_mlt.rstateOld, dOld) by d and screen (x,y) => (out_rstate, out_dsplit)
+
+  
+  // write some CPU code for testing selected pairs 
+}
+
 void GPUOCLLayer::EvalSBDPT(cl_mem in_xVector, int minBounce, int maxBounce, size_t a_size,
                             cl_mem a_outColor, cl_mem a_outZIndex)
 {
@@ -114,7 +170,7 @@ void GPUOCLLayer::EvalSBDPT(cl_mem in_xVector, int minBounce, int maxBounce, siz
   
   // (1) init and camera pass 
   //
-  runKernal_MMLTMakeEyeRays(a_size,
+  runKernel_MMLTMakeEyeRays(a_size,
                             m_rays.rayPos, m_rays.rayDir, m_rays.samZindex);
   
   runKernel_MMLTInitSplitAndCamV(m_rays.rayFlags, a_outColor, m_mlt.splitData, m_mlt.cameraVertexSup, a_size);

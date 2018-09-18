@@ -183,7 +183,7 @@ protected:
 
   struct CL_MLT_DATA
   {
-    CL_MLT_DATA() : rstateForAcceptReject(0), rstateCurr(0), rstateOld(0), rstateNew(0),
+    CL_MLT_DATA() : rstateForAcceptReject(0), rstateCurr(0), rstateOld(0), rstateNew(0), dNew(0), dOld(0),
                     xVector(0), yVector(0), currVec(0), xColor(0), yColor(0), lightVertexSup(0), cameraVertexSup(0), cameraVertexHit(0), 
                     pdfArray(0), splitData(0), scaleTable(0), memTaken(0), mppDone(0.0), currBounceThreadsNum(0) {}
 
@@ -191,6 +191,10 @@ protected:
     cl_mem rstateCurr;            // sizeof(RandGen), MEGABLOCKSIZE size; not allocated, assign m_rays.randGenState
     cl_mem rstateOld;
     cl_mem rstateNew;
+    
+    cl_mem dNew;
+    cl_mem dOld;
+
 
     cl_mem xVector;               ///< current vector that store unit hipercube floats
     cl_mem yVector;               ///< next vector that store unit hipercube floats; it should be 0 when MCMC_LAZY is defined; 
@@ -436,6 +440,12 @@ protected:
   // MLT
   //
 
+  void runKernel_MLTEvalContribFunc(cl_mem in_buff, size_t a_size,
+                                    cl_mem out_buff);
+
+  void MMLT_BurningIn(int minBounce, int maxBounce, size_t a_size,
+                      cl_mem out_rstate, cl_mem out_dsplit, cl_mem out_normC, std::vector<int>& out_activeThreads);
+
   size_t MMLTInitSplitDataUniform(int bounceBeg, int a_maxDepth, size_t a_size,
                                   cl_mem a_splitData, cl_mem a_scaleTable, std::vector<int>& activeThreads);
 
@@ -444,7 +454,7 @@ protected:
   void runKernel_MMLTMakeProposal(cl_mem in_rgen, cl_mem in_vec, cl_int a_largeStep, cl_int a_maxBounce, size_t a_size,
                                   cl_mem out_rgen, cl_mem out_vec);
 
-  void runKernal_MMLTMakeEyeRays(size_t a_size,
+  void runKernel_MMLTMakeEyeRays(size_t a_size,
                                  cl_mem a_rpos, cl_mem a_rdir, cl_mem a_zindex);
   void runKernel_MMLTCameraPathBounce(cl_mem rayFlags, cl_mem a_rpos, cl_mem a_rdir, cl_mem a_color, cl_mem a_split, size_t a_size,
                                       cl_mem a_outHitCom, cl_mem a_outHitSup);
