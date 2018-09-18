@@ -110,9 +110,8 @@ std::vector<float> PrefixSumm(const std::vector<float>& a_vec);
 void GPUOCLLayer::MMLT_BurningIn(int minBounce, int maxBounce, size_t a_size,
                                  cl_mem out_rstate, cl_mem out_dsplit, cl_mem out_normC, std::vector<int>& out_activeThreads)
 {
-  testScanFloatsAnySize();
+  //testScanFloatsAnySize();
  
-
   if(m_mlt.rstateOld == out_rstate || out_dsplit == m_mlt.dOld)
   {
     std::cerr << "MMLT_BurningIn, wrong input buffers! Select (m_mlt.rstateNew, dNew) instead!" << std::endl;

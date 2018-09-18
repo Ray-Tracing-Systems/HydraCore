@@ -126,11 +126,15 @@ size_t GPUOCLLayer::MLT_Alloc(int a_maxBounce)
   if (ciErr1 != CL_SUCCESS) 
     RUN_TIME_ERROR("Error in clCreateBuffer");
 
+  if(!scan_alloc_internal(m_rays.MEGABLOCKSIZE, m_globals.ctx))
+    RUN_TIME_ERROR("Error in scan_alloc_internal");
+
   return m_mlt.memTaken;
 }
 
 void GPUOCLLayer::MLT_Free()
 {
+  scan_free_internal();
   m_mlt.free();
 }
 

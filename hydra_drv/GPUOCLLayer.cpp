@@ -26,7 +26,6 @@ void GPUOCLLayer::CL_SCREEN_BUFFERS::free()
 
   color0 = 0;
   pbo    = 0;
-  //scan_free_internal();
 }
 
 void GPUOCLLayer::CL_BUFFERS_RAYS::free()
@@ -865,8 +864,6 @@ void GPUOCLLayer::ResizeScreen(int width, int height, int a_flags)
 
   if (ciErr1 != CL_SUCCESS)
     RUN_TIME_ERROR("[cl_core]: Failed to create cl half screen zblocks buffer ");
-
-  //scan_alloc_internal(m_width*m_height, m_globals.ctx);
 
   if(m_screen.color0 != nullptr)
     memsetf4(m_screen.color0, float4(0, 0, 0, 0), m_width*m_height);
