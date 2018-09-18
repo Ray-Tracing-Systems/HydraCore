@@ -199,17 +199,8 @@ static float3 ConnectEyeP(const PathVertex* a_lv, float a_mLightSubPathCount, fl
   {
     const float2 posScreenSpace = worldPosToScreenSpace(a_lv->hit.pos, a_globals);
     
-    int x = (int)(posScreenSpace.x);
-    int y = (int)(posScreenSpace.y);
-    
-    if (x < 0) x = 0;
-    if (y < 0) y = 0;
-    
-    if (x >= width)  x = width  - 1;
-    if (y >= height) y = height - 1;
-    
-    (*pX)         = x;
-    (*pY)         = y;
+    (*pX)         = (int)(posScreenSpace.x);
+    (*pY)         = (int)(posScreenSpace.y);
     resColor      = sampleColor;
   }
 

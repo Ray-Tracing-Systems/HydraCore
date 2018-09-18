@@ -1050,10 +1050,10 @@ __kernel void MMLTConnect(__global const int2  *  restrict in_splitInfo,
                           __global const EngineGlobals*  restrict a_globals,
                           __constant float*              restrict a_scaleTable,
                           __constant ushort*             restrict a_mortonTable256,
-                          const int iNumElements, const float mLightSubPathCount)
+                          const int iNumElements, const float mLightSubPathCount, const int iNumElements2)
 {
   const int tid = GLOBAL_ID_X;
-  if (tid >= iNumElements)
+  if (tid >= iNumElements2)
     return;
 
   const int2 splitData = in_splitInfo[tid];
@@ -1227,6 +1227,12 @@ __kernel void MMLTConnect(__global const int2  *  restrict in_splitInfo,
   sampleColor *= misWeight;
 
   sampleColor *= a_scaleTable[d];
+
+  if (tid >= iNumElements) // if threads num was less than MEGABLOCKSIZE
+  {
+    x = 65535; y = 65535;
+    sampleColor = make_float3(0,0,0);
+  }
 
   const int zid = (int)ZIndex(x, y, a_mortonTable256);
   if(out_zind != 0)

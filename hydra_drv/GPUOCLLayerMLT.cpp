@@ -415,7 +415,7 @@ void GPUOCLLayer::runkernel_MMLTMakeShadowRay(cl_mem in_splitInfo, cl_mem  in_ca
   waitIfDebug(__FILE__, __LINE__);
 }
 
-void GPUOCLLayer::runKernel_MMLTConnect(cl_mem in_splitInfo, cl_mem  in_cameraVertexHit, cl_mem in_cameraVertexSup, cl_mem  in_lightVertexHit, cl_mem  in_lightVertexSup, cl_mem in_shadow, size_t a_size, 
+void GPUOCLLayer::runKernel_MMLTConnect(cl_mem in_splitInfo, cl_mem  in_cameraVertexHit, cl_mem in_cameraVertexSup, cl_mem  in_lightVertexHit, cl_mem  in_lightVertexSup, cl_mem in_shadow, size_t a_size, size_t a_sizeWholeBuff, 
                                         cl_mem a_outColor, cl_mem a_outZIndex)
 {
   const cl_float mLightSubPathCount = cl_float(m_width*m_height);
@@ -425,6 +425,8 @@ void GPUOCLLayer::runKernel_MMLTConnect(cl_mem in_splitInfo, cl_mem  in_cameraVe
   size_t localWorkSize = 256;
   int            isize = int(a_size);
   a_size               = roundBlocks(a_size, int(localWorkSize));
+
+  int isize2 = int(a_sizeWholeBuff);
 
   CHECK_CL(clSetKernelArg(kernX, 0, sizeof(cl_mem), (void*)&in_splitInfo));
   CHECK_CL(clSetKernelArg(kernX, 1, sizeof(cl_mem), (void*)&in_lightVertexHit));
@@ -448,6 +450,7 @@ void GPUOCLLayer::runKernel_MMLTConnect(cl_mem in_splitInfo, cl_mem  in_cameraVe
   CHECK_CL(clSetKernelArg(kernX,17, sizeof(cl_mem), (void*)&m_globals.cMortonTable));
   CHECK_CL(clSetKernelArg(kernX,18, sizeof(cl_int), (void*)&isize));
   CHECK_CL(clSetKernelArg(kernX,19, sizeof(cl_float), (void*)&mLightSubPathCount));
+  CHECK_CL(clSetKernelArg(kernX,20, sizeof(cl_int), (void*)&isize2));
 
   CHECK_CL(clEnqueueNDRangeKernel(m_globals.cmdQueue, kernX, 1, NULL, &a_size, &localWorkSize, 0, NULL, NULL));
   waitIfDebug(__FILE__, __LINE__);

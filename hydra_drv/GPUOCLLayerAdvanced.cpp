@@ -112,7 +112,6 @@ void GPUOCLLayer::EvalSBDPT(cl_mem in_xVector, int minBounce, int maxBounce, siz
   cl_mem a_rpos = m_rays.rayPos;
   cl_mem a_rdir = m_rays.rayDir;
   
-
   // (1) init and camera pass 
   //
   runKernal_MMLTMakeEyeRays(a_size,
@@ -167,7 +166,7 @@ void GPUOCLLayer::EvalSBDPT(cl_mem in_xVector, int minBounce, int maxBounce, siz
   runKernel_ShadowTrace(m_rays.rayFlags, m_rays.shadowRayPos, m_rays.shadowRayDir, a_size,
                         m_rays.lshadow);
   
-  runKernel_MMLTConnect(m_mlt.splitData, m_mlt.cameraVertexHit, m_mlt.cameraVertexSup, lightVertexHit, lightVertexSup, m_rays.lshadow, a_size, 
+  runKernel_MMLTConnect(m_mlt.splitData, m_mlt.cameraVertexHit, m_mlt.cameraVertexSup, lightVertexHit, lightVertexSup, m_rays.lshadow, a_size, m_rays.MEGABLOCKSIZE, 
                         a_outColor, a_outZIndex);
 
 
