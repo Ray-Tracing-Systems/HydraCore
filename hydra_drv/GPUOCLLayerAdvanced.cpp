@@ -124,16 +124,18 @@ void GPUOCLLayer::MMLT_BurningIn(int minBounce, int maxBounce, size_t a_size,
     CHECK_CL(clEnqueueWriteBuffer(m_globals.cmdQueue, out_normC, CL_TRUE, 0, scale.size()*sizeof(float), (void*)scale.data(), 0, NULL, NULL));
   }
 
-  const int BURN_ITERS   = 16;
+  const int BURN_ITERS   = 64;
   const int BURN_PORTION = a_size/BURN_ITERS;
 
   MMLTInitSplitDataUniform(minBounce, maxBounce, m_rays.MEGABLOCKSIZE,
                            m_mlt.splitData, m_mlt.scaleTable, m_mlt.perBounceActiveThreads);
 
-  cl_mem temp_f1 = out_dsplit; // well, that's not ok in general, but due to sizeof(int) == sizeof(float) we can use this buffer temporary
+  cl_mem temp_f1 = out_dsplit; // #NOTE: well, that's not ok in general, but due to sizeof(int) == sizeof(float) we can use this buffer temporary
                                // #NOTE: do you allocate enough memory for this buffer? --> seems yes (see inPlaceScanAnySize1f impl).
                                // #NOTE: current search will not work !!! It need size+1 array !!!  
+                               // #NOTE: you can just set last element to size-2, not size-1. So it will work in this way.
 
+  std::cout << std::endl;
   for(int i=0;i<BURN_ITERS;i++)
   {
     runKernel_MMLTMakeProposal(m_mlt.rstateCurr, m_mlt.xVector, 1, maxBounce, m_rays.MEGABLOCKSIZE,
@@ -152,8 +154,16 @@ void GPUOCLLayer::MMLT_BurningIn(int minBounce, int maxBounce, size_t a_size,
     // dump temp_f1 to cpu and check for prefix summ to work ...
 
     // select BURN_PORTION (state,d) from (m_mlt.rstateCurr, m_mlt.splitData) => (m_mlt.rstateOld, dOld)
+    
+    clFinish(m_globals.cmdQueue);
+    
+    if(i%4 == 0)
+    {
+      std::cout << "MMLT Burning in, progress = " << 100.0f*float(i)/float(BURN_ITERS) << "% \r";
+      std::cout.flush();
+    }
   }
- 
+  std::cout << std::endl;
 
   // sort all selected pairs of (m_mlt.rstateOld, dOld) by d and screen (x,y) => (out_rstate, out_dsplit)
 

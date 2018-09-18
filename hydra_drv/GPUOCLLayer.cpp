@@ -1088,6 +1088,11 @@ void GPUOCLLayer::BeginTracingPass()
 
     if(m_spp < 1e-5f) // run init stage
     {
+      MMLT_BurningIn(minBounce, maxBounce, m_rays.MEGABLOCKSIZE,
+                     m_mlt.rstateNew, m_mlt.dNew, m_mlt.scaleTable, m_mlt.perBounceActiveThreads);
+
+      // #TODO: swap (m_mlt.rstateNew, m_mlt.dNew) and (m_mlt.rstateOld, m_mlt.dOld)
+
       std::cout << "MMLT, Init stage ... " << std::endl;
       MMLTInitSplitDataUniform(minBounce, maxBounce, m_rays.MEGABLOCKSIZE,
                                m_mlt.splitData, m_mlt.scaleTable, m_mlt.perBounceActiveThreads);
