@@ -105,9 +105,13 @@ size_t GPUOCLLayer::MMLTInitSplitDataUniform(int bounceBeg, int a_maxDepth, size
   return finalThreadsNum;
 }
 
+std::vector<float> PrefixSumm(const std::vector<float>& a_vec);
+
 void GPUOCLLayer::MMLT_BurningIn(int minBounce, int maxBounce, size_t a_size,
                                  cl_mem out_rstate, cl_mem out_dsplit, cl_mem out_normC, std::vector<int>& out_activeThreads)
 {
+  testScanFloatsAnySize();
+ 
 
   if(m_mlt.rstateOld == out_rstate || out_dsplit == m_mlt.dOld)
   {
@@ -147,11 +151,16 @@ void GPUOCLLayer::MMLT_BurningIn(int minBounce, int maxBounce, size_t a_size,
     runKernel_MLTEvalContribFunc(m_rays.pathAccColor, m_rays.MEGABLOCKSIZE,
                                  temp_f1);
 
-    // dump temp_f1 to cpu
+    //// dump temp_f1 to cpu
+    //std::vector<float> f1cpu(m_rays.MEGABLOCKSIZE);
+    //CHECK_CL(clEnqueueReadBuffer(m_globals.cmdQueue, temp_f1, CL_TRUE, 0, m_rays.MEGABLOCKSIZE * sizeof(float), f1cpu.data(), 0, NULL, NULL));
 
     inPlaceScanAnySize1f(temp_f1, m_rays.MEGABLOCKSIZE);
 
-    // dump temp_f1 to cpu and check for prefix summ to work ...
+    //// dump temp_f1 to cpu and check for prefix summ to work ...
+    //std::vector<float> f2cpu(m_rays.MEGABLOCKSIZE);
+    //CHECK_CL(clEnqueueReadBuffer(m_globals.cmdQueue, temp_f1, CL_TRUE, 0, m_rays.MEGABLOCKSIZE * sizeof(float), f2cpu.data(), 0, NULL, NULL));
+    //auto f3cpu = PrefixSumm(f1cpu);
 
     // select BURN_PORTION (state,d) from (m_mlt.rstateCurr, m_mlt.splitData) => (m_mlt.rstateOld, dOld)
     
