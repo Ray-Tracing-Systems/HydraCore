@@ -62,9 +62,9 @@ size_t GPUOCLLayer::MMLTInitSplitDataUniform(int bounceBeg, int a_maxDepth, size
   const int bounceEnd = a_maxDepth;
   assert(bounceEnd >= bounceBeg);
 
-  const int bouncesIntoAccount       = bounceEnd - bounceBeg + 1;
-  const size_t blocksPerTargetDepth  = blocksNum / bouncesIntoAccount;
-  const size_t finalThreadsNum       = (blocksPerTargetDepth*bouncesIntoAccount)*256;
+  const int bouncesIntoAccount      = bounceEnd - bounceBeg + 1;
+  const size_t blocksPerTargetDepth = blocksNum / bouncesIntoAccount;
+  const size_t finalThreadsNum      = (blocksPerTargetDepth*bouncesIntoAccount)*256;
 
   activeThreads.resize(a_maxDepth+1);
   for(int i=0;i<=bounceBeg;i++)
@@ -131,7 +131,7 @@ void GPUOCLLayer::MMLT_BurningIn(int minBounce, int maxBounce,
   const int BURN_PORTION = m_rays.MEGABLOCKSIZE/BURN_ITERS;
 
   MMLTInitSplitDataUniform(minBounce, maxBounce, m_rays.MEGABLOCKSIZE,
-                           m_mlt.splitData, m_mlt.scaleTable, m_mlt.perBounceActiveThreads);
+                           m_mlt.splitData, m_mlt.scaleTable, out_activeThreads);
 
   cl_mem temp_f1 = out_dsplit; // #NOTE: well, that's not ok in general, but due to sizeof(int) == sizeof(float) we can use this buffer temporary
                                // #NOTE: do you allocate enough memory for this buffer? --> seems yes (see inPlaceScanAnySize1f impl).
@@ -190,35 +190,50 @@ void GPUOCLLayer::MMLT_BurningIn(int minBounce, int maxBounce,
                                     out_rstate, out_dsplit, out_split2);
   }
 
-  // write some CPU code for testing selected pairs 
+  // build threads table 
   //
   std::vector<int> depthCPU(m_rays.MEGABLOCKSIZE);
   CHECK_CL(clEnqueueReadBuffer(m_globals.cmdQueue, out_dsplit, CL_TRUE, 0, m_rays.MEGABLOCKSIZE * sizeof(int), depthCPU.data(), 0, NULL, NULL));
 
-  for(auto& N : m_mlt.perBounceActiveThreads)
+  std::vector<int> threadsNumCopy = out_activeThreads;
+  for(auto& N : threadsNumCopy)
     N = 0;
   
   std::cout << std::endl;
   int old_d = -1;
   for(size_t i=0;i<depthCPU.size();i++)
   {
-    const int d = depthCPU[i];
-    m_mlt.perBounceActiveThreads[d]++;
+    const int d = abs(depthCPU[i]);
+    threadsNumCopy[d]++;
     if(d!=old_d)
     {
-      std::cout << "[chnge]: d = " << d << ", at i = " << i  << std::endl;
+      //std::cout << "[chnge]: d = " << i << ", N = " << d << std::endl;
       old_d = d;
     }
   }
 
   std::cout << std::endl;
-  for(int i=0;i<m_mlt.perBounceActiveThreads.size();i++)
+  std::cout << "[BurningIn] dd per_depth:" << std::endl;
+  for(int i=0;i<threadsNumCopy.size();i++)
+     std::cout << "[d = " << i << ", N = " << threadsNumCopy[i] << ", coeff = 0]" << std::endl;
+
+  for(int i=0;i<=minBounce;i++)
+    out_activeThreads[i] = int(m_rays.MEGABLOCKSIZE);
+
+  // now get get active bounce threads number from 'threads per depth'
+  //
+  size_t summ = 0;
+  for(int i=threadsNumCopy.size()-1;i>minBounce;i--)
   {
-     std::cout << "[final] : d = " << m_mlt.perBounceActiveThreads[i] << ", at i = " << i  << std::endl;
+    summ += threadsNumCopy[i];
+    out_activeThreads[i] = summ;
   }
 
-  // build threads table
-  //
+  std::cout << std::endl;
+  std::cout << "[BurningIn] dd final:" << std::endl;
+  for(int i=0;i<out_activeThreads.size();i++)
+     std::cout << "[d = " << i << ", N = " << out_activeThreads[i] << ", coeff = 0]" << std::endl;
+
 }
 
 

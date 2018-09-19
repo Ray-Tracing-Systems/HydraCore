@@ -97,7 +97,7 @@ __kernel void MMLTMakeStatesIndexToSort(__global const RandomGen* restrict in_ge
   const RandomGen gen = in_gens[tid];
   
   //#TODO: add lense (x,y) to the index
-  out_index[tid] = make_int2(d, tid);
+  out_index[tid] = make_int2(-d, tid);
 }
 
 __kernel void MMLTMoveStatesByIndex(__global const int2*      restrict in_index,
