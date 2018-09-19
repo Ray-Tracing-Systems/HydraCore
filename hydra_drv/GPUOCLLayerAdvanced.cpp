@@ -241,7 +241,7 @@ void GPUOCLLayer::MMLT_BurningIn(int minBounce, int maxBounce,
     std::vector<float> avgB(maxBounce+1);
     CHECK_CL(clEnqueueReadBuffer(m_globals.cmdQueue, avgBTableGPU, CL_TRUE, 0, avgB.size()*sizeof(float), (void*)avgB.data(), 0, NULL, NULL));
   
-    const float scaleInv = 1.0f/float(BURN_ITERS); //*m_rays.MEGABLOCKSIZE);
+    const float scaleInv = 1.0f/float(BURN_ITERS*m_rays.MEGABLOCKSIZE);
 
     for(int i=0;i<avgB.size();i++)
     {

@@ -36,7 +36,7 @@ __kernel void MMLTEvalContribFunc(__global const float4* restrict in_color,
   if(out_avgb != 0)
   {
     const int d = in_split[tid].x;
-    atomic_addf(out_colors+d, val);
+    atomic_addf(out_avgb + d, val);
   }
 
 }
