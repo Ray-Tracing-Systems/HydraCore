@@ -1080,8 +1080,8 @@ void GPUOCLLayer::BeginTracingPass()
 
   if (m_vars.m_flags & HRT_ENABLE_MMLT)                 // SBDPT or MMLT pass
   {
-    int minBounce = 2;
-    int maxBounce = 5;
+    int minBounce = 3;
+    int maxBounce = 6;
 
     //MMLT_BurningIn(minBounce, maxBounce,
     //               m_mlt.rstateNew, m_mlt.dNew, m_mlt.splitData, m_mlt.scaleTable, m_mlt.perBounceActiveThreads);

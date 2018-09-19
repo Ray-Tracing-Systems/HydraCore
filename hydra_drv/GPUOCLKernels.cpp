@@ -483,7 +483,8 @@ void GPUOCLLayer::runKernel_ComputeHit(cl_mem a_rpos, cl_mem a_rdir, cl_mem a_hi
 
   size_t localWorkSize = 256;
   int    isize         = int(a_size);
-  a_size               = roundBlocks(a_size, int(localWorkSize));
+  a_size               = roundBlocks(a_size,    int(localWorkSize));
+  a_sizeRun            = roundBlocks(a_sizeRun, int(localWorkSize));
 
   CHECK_CL(clSetKernelArg(kernHit, 0, sizeof(cl_mem), (void*)&a_rpos));
   CHECK_CL(clSetKernelArg(kernHit, 1, sizeof(cl_mem), (void*)&a_rdir));
