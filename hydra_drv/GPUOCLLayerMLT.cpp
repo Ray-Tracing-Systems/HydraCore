@@ -220,6 +220,23 @@ void GPUOCLLayer::runKernel_MLTEvalContribFunc(cl_mem in_buff, size_t a_size,
 }
 
 
+void GPUOCLLayer::runKernel_MMLTCopySelectedDepthToSplit(cl_mem in_buff, size_t a_size,
+                                                         cl_mem out_buff)
+{
+  cl_kernel kernX      = m_progs.mlt.kernel("MMLTCopySelectedDepthToSplit");
+
+  size_t localWorkSize = 256;
+  int            isize = int(a_size);
+  a_size               = roundBlocks(a_size, int(localWorkSize));
+
+  CHECK_CL(clSetKernelArg(kernX, 0, sizeof(cl_mem), (void*)&in_buff));
+  CHECK_CL(clSetKernelArg(kernX, 1, sizeof(cl_mem), (void*)&out_buff));
+  CHECK_CL(clSetKernelArg(kernX, 2, sizeof(cl_int), (void*)&isize));
+
+  CHECK_CL(clEnqueueNDRangeKernel(m_globals.cmdQueue, kernX, 1, NULL, &a_size, &localWorkSize, 0, NULL, NULL));
+  waitIfDebug(__FILE__, __LINE__);
+}
+
 void GPUOCLLayer::runKernel_MLTSelectSampleProportionalToContrib(cl_mem in_rndState, cl_mem in_split, cl_mem in_array, int a_arraySize, cl_mem gen_select, size_t a_size,
                                                                  cl_int offset, cl_mem out_rndState, cl_mem out_split)
 

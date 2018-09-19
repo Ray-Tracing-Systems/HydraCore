@@ -1083,6 +1083,11 @@ void GPUOCLLayer::BeginTracingPass()
     int minBounce = 2;
     int maxBounce = 5;
 
+    // MMLT_BurningIn(minBounce, maxBounce, m_rays.MEGABLOCKSIZE,
+    //                m_mlt.rstateNew, m_mlt.dNew, m_mlt.scaleTable, m_mlt.perBounceActiveThreads);
+    // MMLTDebugDrawSelectedSamples(minBounce, maxBounce, m_mlt.rstateOld, m_mlt.dOld, m_rays.MEGABLOCKSIZE);
+    // return;
+
     if(m_spp < 1e-5f) // run init stage
     {
       MMLT_BurningIn(minBounce, maxBounce, m_rays.MEGABLOCKSIZE,

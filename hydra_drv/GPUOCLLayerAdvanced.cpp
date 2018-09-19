@@ -173,6 +173,22 @@ void GPUOCLLayer::MMLT_BurningIn(int minBounce, int maxBounce, size_t a_size,
   // write some CPU code for testing selected pairs 
 }
 
+
+void GPUOCLLayer::MMLTDebugDrawSelectedSamples(int minBounce, int maxBounce, cl_mem in_rstate, cl_mem in_dsplit, size_t a_size)
+{
+  runKernel_MMLTCopySelectedDepthToSplit(in_dsplit, a_size,
+                                         m_mlt.splitData);
+ 
+  runKernel_MMLTMakeProposal(in_rstate, m_mlt.xVector, 1, maxBounce, m_rays.MEGABLOCKSIZE,
+                             in_rstate, m_mlt.xVector);
+  
+  m_raysWasSorted = false;
+  EvalSBDPT(m_mlt.xVector, minBounce, maxBounce, m_rays.MEGABLOCKSIZE,
+            m_rays.pathAccColor, m_rays.samZindex);
+
+  AddContributionToScreen(m_rays.pathAccColor, m_rays.samZindex);
+}
+
 void GPUOCLLayer::EvalSBDPT(cl_mem in_xVector, int minBounce, int maxBounce, size_t a_size,
                             cl_mem a_outColor, cl_mem a_outZIndex)
 {

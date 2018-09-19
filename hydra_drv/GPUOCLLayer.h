@@ -449,6 +449,10 @@ protected:
   void MMLT_BurningIn(int minBounce, int maxBounce, size_t a_size,
                       cl_mem out_rstate, cl_mem out_dsplit, cl_mem out_normC, std::vector<int>& out_activeThreads);
 
+  void MMLTDebugDrawSelectedSamples(int minBounce, int maxBounce, cl_mem in_rstate, cl_mem in_dsplit, size_t a_size);
+  void runKernel_MMLTCopySelectedDepthToSplit(cl_mem in_buff, size_t a_size,
+                                              cl_mem out_buff);
+
   size_t MMLTInitSplitDataUniform(int bounceBeg, int a_maxDepth, size_t a_size,
                                   cl_mem a_splitData, cl_mem a_scaleTable, std::vector<int>& activeThreads);
 

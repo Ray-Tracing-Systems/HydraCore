@@ -30,6 +30,20 @@ __kernel void MLTEvalContribFunc(__global const float4* restrict in_color, __glo
 }
 
 /**
+\brief Init split buffer with selected depth
+
+*/
+__kernel void MMLTCopySelectedDepthToSplit(__global const int* restrict in_split, __global int2* restrict out_split, int iNumElements)
+{
+  int tid = GLOBAL_ID_X;
+  if (tid >= iNumElements)
+    return;
+
+  const int val  = in_split[tid];
+  out_split[tid] = make_int2(val,val);
+}
+
+/**
 \brief Select Markov Chains proportional to their contribution; Used for Burning-In process;
 
 \param out_gens  - output random gen state
