@@ -15,18 +15,30 @@
 #define SPLIT_DL_BY_GRAMMAR false
 
 /**
-\brief Evaluate contib function. Not used.
+\brief Evaluate contib function and average brightess per bounce.
 \param in_color   - input color
 \param out_colors - output contrib value
 
 */
-__kernel void MLTEvalContribFunc(__global const float4* restrict in_color, __global float* restrict out_colors, int iNumElements)
+__kernel void MMLTEvalContribFunc(__global const float4* restrict in_color,
+                                  __global const int2*   restrict in_split,
+                                  __global float*        restrict out_colors,
+                                  __global float*        restrict out_avgb, 
+                                  int iNumElements)
 {
   int tid = GLOBAL_ID_X;
   if (tid >= iNumElements)
     return;
 
-  out_colors[tid] = contribFunc(to_float3(in_color[tid]));
+  const float val = contribFunc(to_float3(in_color[tid]));
+  out_colors[tid] = val;
+
+  if(out_avgb != 0)
+  {
+    const int d = in_split[tid].x;
+    atomic_addf(out_colors+d, val);
+  }
+
 }
 
 /**

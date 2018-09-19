@@ -511,10 +511,10 @@ float IntegratorMMLT::DoPassEstimateAvgBrightness()
   {
     m_avgBPerBounce[i] *= (1.0f / float(numPass*samplesPerPass));
     m_avgBrightness += m_avgBPerBounce[i];
-    //std::cout << "B[" << i << "] = " << m_avgBPerBounce[i] << std::endl;
+    std::cout << "[d = " << i << ", avgB = " << m_avgBPerBounce[i] << ", coeff = " << float(i + 1) << "]" << std::endl;
   }
 
-  //std::cout << "avgB = " << m_avgBrightness << std::endl;
+  std::cout << "[d = a, avgB = " << m_avgBrightness << "]" << std::endl;
   std::cout << "MMLT: finish estimating avg brightness." << std::endl;
   return m_avgBrightness;
 }

@@ -127,11 +127,11 @@ void GPUOCLLayer::MMLT_BurningIn(int minBounce, int maxBounce,
     CHECK_CL(clEnqueueWriteBuffer(m_globals.cmdQueue, out_normC, CL_TRUE, 0, scale.size()*sizeof(float), (void*)scale.data(), 0, NULL, NULL));
   }
 
-  const int BURN_ITERS   = 64;
-  const int BURN_PORTION = m_rays.MEGABLOCKSIZE/BURN_ITERS;
-
   MMLTInitSplitDataUniform(minBounce, maxBounce, m_rays.MEGABLOCKSIZE,
                            m_mlt.splitData, m_mlt.scaleTable, out_activeThreads);
+
+  const int BURN_ITERS   = 64;
+  const int BURN_PORTION = m_rays.MEGABLOCKSIZE/BURN_ITERS;
 
   cl_mem temp_f1 = out_dsplit; // #NOTE: well, that's not ok in general, but due to sizeof(int) == sizeof(float) we can use this buffer temporary
                                // #NOTE: do you allocate enough memory for this buffer? --> seems yes (see inPlaceScanAnySize1f impl).
@@ -147,8 +147,8 @@ void GPUOCLLayer::MMLT_BurningIn(int minBounce, int maxBounce,
     EvalSBDPT(m_mlt.xVector, minBounce, maxBounce, m_rays.MEGABLOCKSIZE,
               m_rays.pathAccColor, m_rays.samZindex);
 
-    runKernel_MLTEvalContribFunc(m_rays.pathAccColor, m_rays.MEGABLOCKSIZE,
-                                 temp_f1);
+    runKernel_MLTEvalContribFunc(m_rays.pathAccColor, m_mlt.splitData, m_rays.MEGABLOCKSIZE,
+                                 temp_f1, out_normC);
 
     inPlaceScanAnySize1f(temp_f1, m_rays.MEGABLOCKSIZE);
 
@@ -234,6 +234,25 @@ void GPUOCLLayer::MMLT_BurningIn(int minBounce, int maxBounce,
   for(int i=0;i<out_activeThreads.size();i++)
      std::cout << "[d = " << i << ", N = " << out_activeThreads[i] << ", coeff = 0]" << std::endl;
 
+  // get average brightness
+  //
+  float avgBrightness = 0.0f;
+  {
+    std::vector<float> avgB(maxBounce+1);
+    CHECK_CL(clEnqueueReadBuffer(m_globals.cmdQueue, out_normC, CL_TRUE, 0, avgB.size()*sizeof(float), (void*)avgB.data(), 0, NULL, NULL));
+  
+    const float scaleInv = 1.0f/float(BURN_ITERS*m_rays.MEGABLOCKSIZE);
+
+    for(int i=0;i<avgB.size();i++)
+    {
+      const float avgBPerBounce = avgB[i]*scaleInv;
+      std::cout << "[d = " << i << ", avgB = " << avgBPerBounce << ", coeff = " << float(i + 1) << "]" << std::endl;
+      avgBrightness += avgBPerBounce;
+    }
+    std::cout << "[d = a, avgB = " << avgBrightness << "]" << std::endl;
+  }
+
+  // return avgBrightness;
 }
 
 

@@ -443,8 +443,8 @@ protected:
   void runKernel_MLTSelectSampleProportionalToContrib(cl_mem in_rndState, cl_mem in_split, cl_mem in_array, int a_arraySize, cl_mem gen_select, size_t a_size,
                                                       cl_int offset, cl_mem out_rndState, cl_mem out_split);
 
-  void runKernel_MLTEvalContribFunc(cl_mem in_buff, size_t a_size,
-                                    cl_mem out_buff);
+  void runKernel_MLTEvalContribFunc(cl_mem in_buff, cl_mem in_split, size_t a_size,
+                                    cl_mem out_buff, cl_mem out_table);
 
   void MMLT_BurningIn(int minBounce, int maxBounce,
                       cl_mem out_rstate, cl_mem out_dsplit, cl_mem out_split2, cl_mem out_normC, std::vector<int>& out_activeThreads);
