@@ -122,11 +122,12 @@ void GPUOCLLayer::MMLT_BurningIn(int minBounce, int maxBounce,
   // zero out_normC table because we are going to increment it via simulated floating points atomics ... 
   cl_int ciErr1 = CL_SUCCESS;
 
-  std::vector<float> scale(maxBounce+1);
-  for(auto& coeff : scale)
-    coeff = 0.0f;
-  cl_mem avgBTableGPU = clCreateBuffer(m_globals.ctx, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, 256*sizeof(float), (void*)scale.data(), &ciErr1);
-
+  //std::vector<float> scale(maxBounce+1);
+  //for(auto& coeff : scale)
+  //  coeff = 0.0f;
+  //cl_mem avgBTableGPU = clCreateBuffer(m_globals.ctx, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, 256*sizeof(float), (void*)scale.data(), &ciErr1);
+  //
+  
   MMLTInitSplitDataUniform(minBounce, maxBounce, m_rays.MEGABLOCKSIZE,
                            m_mlt.splitData, m_mlt.scaleTable, out_activeThreads);
 
@@ -137,6 +138,7 @@ void GPUOCLLayer::MMLT_BurningIn(int minBounce, int maxBounce,
                                // #NOTE: do you allocate enough memory for this buffer? --> seems yes (see inPlaceScanAnySize1f impl).
                                // #NOTE: current search will not work !!! It need size+1 array !!!  
                                // #NOTE: you can just set last element to size-2, not size-1. So it will work in this way.
+  float avgBrightness = 0.0f;
 
   std::cout << std::endl;
   for(int iter=0; iter<BURN_ITERS;iter++)
@@ -148,7 +150,18 @@ void GPUOCLLayer::MMLT_BurningIn(int minBounce, int maxBounce,
               m_rays.pathAccColor, m_rays.samZindex);
 
     runKernel_MLTEvalContribFunc(m_rays.pathAccColor, m_mlt.splitData, m_rays.MEGABLOCKSIZE,
-                                 temp_f1, avgBTableGPU);
+                                 temp_f1, nullptr);
+    
+    {
+      ReduceCLArgs args;
+      args.cmdQueue   = m_globals.cmdQueue;
+      args.reductionK = m_progs.screen.kernel("ReductionFloat4Avg256");
+      
+      float4 avg(0,0,0,0);
+      reduce_average4f_gpu(temp_f1, m_rays.MEGABLOCKSIZE/4, &avg.x, args);
+
+      avgBrightness += (0.25f/float(BURN_ITERS))*(avg.x + avg.y + avg.z + avg.w);
+    }
 
     inPlaceScanAnySize1f(temp_f1, m_rays.MEGABLOCKSIZE);
 
@@ -236,23 +249,24 @@ void GPUOCLLayer::MMLT_BurningIn(int minBounce, int maxBounce,
 
   // get average brightness
   //
-  float avgBrightness = 0.0f;
-  {
-    std::vector<float> avgB(maxBounce+1);
-    CHECK_CL(clEnqueueReadBuffer(m_globals.cmdQueue, avgBTableGPU, CL_TRUE, 0, avgB.size()*sizeof(float), (void*)avgB.data(), 0, NULL, NULL));
-  
-    const float scaleInv = 1.0f/float(BURN_ITERS*m_rays.MEGABLOCKSIZE);
+  //float avgBrightness = 0.0f;
+  //{
+  //  std::vector<float> avgB(maxBounce+1);
+  //  CHECK_CL(clEnqueueReadBuffer(m_globals.cmdQueue, avgBTableGPU, CL_TRUE, 0, avgB.size()*sizeof(float), (void*)avgB.data(), 0, NULL, NULL));
+  //
+  //  const float scaleInv = 1.0f/float(BURN_ITERS*m_rays.MEGABLOCKSIZE);
+  //
+  //  for(int i=0;i<avgB.size();i++)
+  //  {
+  //    const float avgBPerBounce = avgB[i]*scaleInv;
+  //    std::cout << "[d = " << i << ", avgB = " << avgBPerBounce << ", coeff = " << float(i + 1) << "]" << std::endl;
+  //    avgBrightness += avgBPerBounce;
+  //  }
+  //  std::cout << "[d = a, avgB = " << avgBrightness << "]" << std::endl;
+  //}
 
-    for(int i=0;i<avgB.size();i++)
-    {
-      const float avgBPerBounce = avgB[i]*scaleInv;
-      std::cout << "[d = " << i << ", avgB = " << avgBPerBounce << ", coeff = " << float(i + 1) << "]" << std::endl;
-      avgBrightness += avgBPerBounce;
-    }
-    std::cout << "[d = a, avgB = " << avgBrightness << "]" << std::endl;
-  }
-
-  clReleaseMemObject(avgBTableGPU); avgBTableGPU = nullptr;
+  std::cout << "[d = a, avgB = " << avgBrightness << "]" << std::endl;
+  //clReleaseMemObject(avgBTableGPU); avgBTableGPU = nullptr;
 
   // return avgBrightness;
 }
