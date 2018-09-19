@@ -80,7 +80,7 @@ size_t GPUOCLLayer::MMLTInitSplitDataUniform(int bounceBeg, int a_maxDepth, size
     }
     currPos += blocksPerTargetDepth;
 
-    const int index = activeThreads.size() - bounce + 2;
+    const int index = activeThreads.size() - bounce + bounceBeg;
     if(index >=0 && index < activeThreads.size())
       activeThreads[index] = int(finalThreadsNum - currPos*256);
   }
