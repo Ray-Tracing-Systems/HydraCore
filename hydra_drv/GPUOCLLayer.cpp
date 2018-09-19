@@ -157,9 +157,9 @@ size_t GPUOCLLayer::CL_BUFFERS_RAYS::resize(cl_context ctx, cl_command_queue cmd
   if (ciErr1 != CL_SUCCESS)
     RUN_TIME_ERROR("Error in resize rays buffers");
 
-  samZindex       = clCreateBuffer(ctx, CL_MEM_READ_WRITE, 1*2*sizeof(int)*MEGABLOCKSIZE, NULL, &ciErr1); currSize += buff1Size * 2;
-  packedXY        = clCreateBuffer(ctx, CL_MEM_READ_WRITE, sizeof(int)*MEGABLOCKSIZE, NULL, &ciErr1);     currSize += buff1Size*1;
-  lightOffsetBuff = clCreateBuffer(ctx, CL_MEM_READ_WRITE, sizeof(int)*MEGABLOCKSIZE, NULL, &ciErr1);     currSize += buff1Size * 1;
+  samZindex       = clCreateBuffer(ctx, CL_MEM_READ_WRITE, 2*sizeof(int)*MEGABLOCKSIZE, NULL, &ciErr1); currSize += buff1Size * 2;
+  packedXY        = clCreateBuffer(ctx, CL_MEM_READ_WRITE, 1*sizeof(int)*MEGABLOCKSIZE, NULL, &ciErr1); currSize += buff1Size * 1;
+  lightOffsetBuff = clCreateBuffer(ctx, CL_MEM_READ_WRITE, 1*sizeof(int)*MEGABLOCKSIZE, NULL, &ciErr1); currSize += buff1Size * 1;
 
   if (ciErr1 != CL_SUCCESS)
     RUN_TIME_ERROR("Error in resize rays buffers");
@@ -1083,15 +1083,15 @@ void GPUOCLLayer::BeginTracingPass()
     int minBounce = 2;
     int maxBounce = 5;
 
-    // MMLT_BurningIn(minBounce, maxBounce, m_rays.MEGABLOCKSIZE,
-    //                m_mlt.rstateNew, m_mlt.dNew, m_mlt.scaleTable, m_mlt.perBounceActiveThreads);
-    // MMLTDebugDrawSelectedSamples(minBounce, maxBounce, m_mlt.rstateOld, m_mlt.dOld, m_rays.MEGABLOCKSIZE);
-    // return;
+    //MMLT_BurningIn(minBounce, maxBounce,
+    //               m_mlt.rstateNew, m_mlt.dNew, m_mlt.splitData, m_mlt.scaleTable, m_mlt.perBounceActiveThreads);
+    //MMLTDebugDrawSelectedSamples(minBounce, maxBounce, m_mlt.rstateNew, m_mlt.dNew, m_rays.MEGABLOCKSIZE);
+    //return;
 
     if(m_spp < 1e-5f) // run init stage
     {
-      MMLT_BurningIn(minBounce, maxBounce, m_rays.MEGABLOCKSIZE,
-                     m_mlt.rstateNew, m_mlt.dNew, m_mlt.scaleTable, m_mlt.perBounceActiveThreads);
+      MMLT_BurningIn(minBounce, maxBounce,
+                     m_mlt.rstateNew, m_mlt.dNew, m_mlt.splitData, m_mlt.scaleTable, m_mlt.perBounceActiveThreads);
 
       // #TODO: swap (m_mlt.rstateNew, m_mlt.dNew) and (m_mlt.rstateOld, m_mlt.dOld)
 

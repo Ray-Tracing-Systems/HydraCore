@@ -84,6 +84,44 @@ __kernel void MMLTSelectSampleProportionalToContrib(__global RandomGen*       re
 }
 
 
+__kernel void MMLTMakeStatesIndexToSort(__global const RandomGen* restrict in_gens,
+                                        __global const int*       restrict in_depth,
+                                        __global       int2*      restrict out_index,
+                                        const int iNumElements)
+{
+  const int tid = GLOBAL_ID_X;
+  if (tid >= iNumElements)
+    return;
+
+  const int d = in_depth[tid];
+  const RandomGen gen = in_gens[tid];
+  
+  //#TODO: add lense (x,y) to the index
+  out_index[tid] = make_int2(d, tid);
+}
+
+__kernel void MMLTMoveStatesByIndex(__global const int2*      restrict in_index,
+                                    __global const RandomGen* restrict in_gens,
+                                    __global const int*       restrict in_depth,
+
+                                    __global       RandomGen* restrict out_gens,
+                                    __global       int*       restrict out_depth,
+                                    __global       int2*      restrict out_split,
+                                    const int iNumElements)
+{
+  const int tid = GLOBAL_ID_X;
+  if (tid >= iNumElements)
+    return;
+
+  const int2 index = in_index[tid];
+
+  const int d    = in_depth[index.y];
+  out_gens [tid] = in_gens [index.y];
+  out_depth[tid] = d;
+  if(out_split != 0)
+    out_split[tid] = make_int2(d,d);
+}
+
 inline int TabIndex(const int vertId, const int tid, const int iNumElements)
 {
   return tid + vertId*iNumElements;

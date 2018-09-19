@@ -446,12 +446,18 @@ protected:
   void runKernel_MLTEvalContribFunc(cl_mem in_buff, size_t a_size,
                                     cl_mem out_buff);
 
-  void MMLT_BurningIn(int minBounce, int maxBounce, size_t a_size,
-                      cl_mem out_rstate, cl_mem out_dsplit, cl_mem out_normC, std::vector<int>& out_activeThreads);
+  void MMLT_BurningIn(int minBounce, int maxBounce,
+                      cl_mem out_rstate, cl_mem out_dsplit, cl_mem out_split2, cl_mem out_normC, std::vector<int>& out_activeThreads);
+
+  void runKernel_MMLTMakeStatesIndexToSort(cl_mem in_gens, cl_mem in_depth, size_t a_size,
+                                          cl_mem out_index);
+  void runKernel_MMLTMoveStatesByIndex(cl_mem in_index, cl_mem in_gens, cl_mem in_depth, size_t a_size,
+                                       cl_mem out_gen, cl_mem out_depth, cl_mem out_split);
 
   void MMLTDebugDrawSelectedSamples(int minBounce, int maxBounce, cl_mem in_rstate, cl_mem in_dsplit, size_t a_size);
   void runKernel_MMLTCopySelectedDepthToSplit(cl_mem in_buff, size_t a_size,
                                               cl_mem out_buff);
+  
 
   size_t MMLTInitSplitDataUniform(int bounceBeg, int a_maxDepth, size_t a_size,
                                   cl_mem a_splitData, cl_mem a_scaleTable, std::vector<int>& activeThreads);

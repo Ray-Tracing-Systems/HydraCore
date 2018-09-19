@@ -107,8 +107,8 @@ size_t GPUOCLLayer::MMLTInitSplitDataUniform(int bounceBeg, int a_maxDepth, size
 
 std::vector<float> PrefixSumm(const std::vector<float>& a_vec);
 
-void GPUOCLLayer::MMLT_BurningIn(int minBounce, int maxBounce, size_t a_size,
-                                 cl_mem out_rstate, cl_mem out_dsplit, cl_mem out_normC, std::vector<int>& out_activeThreads)
+void GPUOCLLayer::MMLT_BurningIn(int minBounce, int maxBounce,
+                                 cl_mem out_rstate, cl_mem out_dsplit, cl_mem out_split2, cl_mem out_normC, std::vector<int>& out_activeThreads)
 {
   //testScanFloatsAnySize();
  
@@ -128,7 +128,7 @@ void GPUOCLLayer::MMLT_BurningIn(int minBounce, int maxBounce, size_t a_size,
   }
 
   const int BURN_ITERS   = 64;
-  const int BURN_PORTION = a_size/BURN_ITERS;
+  const int BURN_PORTION = m_rays.MEGABLOCKSIZE/BURN_ITERS;
 
   MMLTInitSplitDataUniform(minBounce, maxBounce, m_rays.MEGABLOCKSIZE,
                            m_mlt.splitData, m_mlt.scaleTable, m_mlt.perBounceActiveThreads);
@@ -157,6 +157,9 @@ void GPUOCLLayer::MMLT_BurningIn(int minBounce, int maxBounce, size_t a_size,
     runKernel_MLTSelectSampleProportionalToContrib(m_mlt.rstateCurr, m_mlt.splitData, temp_f1, m_rays.MEGABLOCKSIZE, m_mlt.rstateForAcceptReject, BURN_PORTION,
                                                    BURN_PORTION*iter, m_mlt.rstateOld, m_mlt.dOld);
 
+    // accum normalisation constant per bounce (#TBD!!!)
+    //
+
     clFinish(m_globals.cmdQueue);
     
     if(iter%4 == 0)
@@ -168,9 +171,54 @@ void GPUOCLLayer::MMLT_BurningIn(int minBounce, int maxBounce, size_t a_size,
   std::cout << std::endl;
 
   // sort all selected pairs of (m_mlt.rstateOld, dOld) by d and screen (x,y) => (out_rstate, out_dsplit)
+  //
+  {
+    runKernel_MMLTMakeStatesIndexToSort(m_mlt.rstateOld, m_mlt.dOld, m_rays.MEGABLOCKSIZE,
+                                        m_rays.samZindex);
 
-  
+    BitonicCLArgs sortArgs;
+    sortArgs.bitonicPassK = m_progs.sort.kernel("bitonic_pass_kernel");
+    sortArgs.bitonic512   = m_progs.sort.kernel("bitonic_512");
+    sortArgs.bitonic1024  = m_progs.sort.kernel("bitonic_1024");
+    sortArgs.bitonic2048  = m_progs.sort.kernel("bitonic_2048");
+    sortArgs.cmdQueue     = m_globals.cmdQueue;
+    sortArgs.dev          = m_globals.device;
+    
+    bitonic_sort_gpu(m_rays.samZindex, int(m_rays.MEGABLOCKSIZE), sortArgs);
+
+    runKernel_MMLTMoveStatesByIndex(m_rays.samZindex, m_mlt.rstateOld, m_mlt.dOld, m_rays.MEGABLOCKSIZE,
+                                    out_rstate, out_dsplit, out_split2);
+  }
+
   // write some CPU code for testing selected pairs 
+  //
+  std::vector<int> depthCPU(m_rays.MEGABLOCKSIZE);
+  CHECK_CL(clEnqueueReadBuffer(m_globals.cmdQueue, out_dsplit, CL_TRUE, 0, m_rays.MEGABLOCKSIZE * sizeof(int), depthCPU.data(), 0, NULL, NULL));
+
+  for(auto& N : m_mlt.perBounceActiveThreads)
+    N = 0;
+  
+  std::cout << std::endl;
+  int old_d = -1;
+  for(size_t i=0;i<depthCPU.size();i++)
+  {
+    const int d = depthCPU[i];
+    m_mlt.perBounceActiveThreads[d]++;
+    if(d!=old_d)
+    {
+      std::cout << "[chnge]: d = " << d << ", at i = " << i  << std::endl;
+      old_d = d;
+    }
+  }
+
+  std::cout << std::endl;
+  for(int i=0;i<m_mlt.perBounceActiveThreads.size();i++)
+  {
+     std::cout << "[final] : d = " << m_mlt.perBounceActiveThreads[i] << ", at i = " << i  << std::endl;
+  }
+
+  // build threads table
+  //
 }
 
 
