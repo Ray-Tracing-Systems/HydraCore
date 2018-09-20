@@ -228,7 +228,7 @@ void RoundBlocks2D(size_t global_item_size[2], size_t local_item_size[2])
 }
 
 
-void GPUOCLLayer::AddContributionToScreenGPU(cl_mem in_color,     cl_mem in_indices, int a_size, int a_width, int a_height, int a_spp,
+void GPUOCLLayer::AddContributionToScreenGPU(cl_mem in_color,     cl_mem in_indices, int a_size, int a_width, int a_height, int a_spp, bool a_copyToLDRNow,
                                              cl_mem out_colorHDR, cl_mem out_colorLDR)
 {
   // (3) sort references
@@ -279,7 +279,7 @@ void GPUOCLLayer::AddContributionToScreenGPU(cl_mem in_color,     cl_mem in_indi
   
   // recalculate LDR image rely on normalisation constants
   // 
-  if((m_vars.m_flags & HRT_ENABLE_MMLT) != 0 && ENABLE_SBDPT_FOR_DEBUG == false)
+  if((m_vars.m_flags & HRT_ENABLE_MMLT) != 0 && ENABLE_SBDPT_FOR_DEBUG == false && a_copyToLDRNow)
   {
     ReduceCLArgs args;
     args.cmdQueue   = m_globals.cmdQueue;

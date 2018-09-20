@@ -1071,6 +1071,7 @@ void GPUOCLLayer::ResetPerfCounters()
   memset(&m_stat, 0, sizeof(MRaysStat));
 }
 
+constexpr static int NUM_MMLT_PASS = 8;
 
 void GPUOCLLayer::BeginTracingPass()
 {
@@ -1110,26 +1111,26 @@ void GPUOCLLayer::BeginTracingPass()
       }
     }
 
-    // (1) make poposal / gen rands
-    //
-
-    runKernel_MMLTMakeProposal(m_mlt.rstateOld, m_mlt.xVector, 1, maxBounce, m_rays.MEGABLOCKSIZE,
-                               m_mlt.rstateOld, m_mlt.xVector);
-
-    // (2) trace; 
-    //
-    m_raysWasSorted = false;
-    EvalSBDPT(m_mlt.xVector, minBounce, maxBounce, m_rays.MEGABLOCKSIZE,
-              m_rays.pathAccColor, m_rays.samZindex);
-
-
-    // (3) Accept/Reject => (xColor, yColor) + (XZindex, YZindex)
-    //
-
-    // (4) Contrib to screen
-    //
-    AddContributionToScreen(m_rays.pathAccColor, m_rays.samZindex);
-
+    for(int pass = 0; pass < NUM_MMLT_PASS; pass ++)
+    {
+      // (1) make poposal / gen rands
+      //
+      runKernel_MMLTMakeProposal(m_mlt.rstateOld, m_mlt.xVector, 1, maxBounce, m_rays.MEGABLOCKSIZE,
+                                 m_mlt.rstateOld, m_mlt.xVector);
+      
+      // (2) trace; 
+      //
+      m_raysWasSorted = false;
+      EvalSBDPT(m_mlt.xVector, minBounce, maxBounce, m_rays.MEGABLOCKSIZE,
+                m_rays.pathAccColor, m_rays.samZindex);
+      
+      // (3) Accept/Reject => (xColor, yColor) + (XZindex, YZindex)
+      //
+      
+      // (4) Contrib to screen
+      //
+      AddContributionToScreen(m_rays.pathAccColor, m_rays.samZindex, (pass == NUM_MMLT_PASS-1));
+    }
   }
   else if((m_vars.m_flags & HRT_PRODUCTION_IMAGE_SAMPLING) != 0 && (m_vars.m_flags & HRT_UNIFIED_IMAGE_SAMPLING) != 0)
   {
@@ -1180,7 +1181,9 @@ void GPUOCLLayer::EndTracingPass()
 
   if (m_vars.m_flags & HRT_UNIFIED_IMAGE_SAMPLING)
   {
-    m_spp += float(double(m_rays.MEGABLOCKSIZE) / double(m_width*m_height));
+    const float passScale = (m_vars.m_flags & HRT_ENABLE_MMLT) ? float(NUM_MMLT_PASS) : 1.0f;
+
+    m_spp += passScale*float(double(m_rays.MEGABLOCKSIZE) / double(m_width*m_height));
     m_passNumberForQMC++;
 
     const float time = m_timer.getElapsed();
@@ -1189,7 +1192,7 @@ void GPUOCLLayer::EndTracingPass()
       const float halfIfIBPT = (m_vars.m_flags & HRT_3WAY_MIS_WEIGHTS) ? 0.5f : 1.0f;
 
       auto precOld = std::cout.precision(2);
-      std::cout << "spp =\t" << int(m_spp) << "\tspeed = " << halfIfIBPT * float(m_rays.MEGABLOCKSIZE) / (1e6f*time) << " M(samples)/s         \r";
+      std::cout << "spp =\t" << int(m_spp) << "\tspeed = " << passScale*halfIfIBPT * float(m_rays.MEGABLOCKSIZE) / (1e6f*time) << " M(samples)/s         \r";
       std::cout.precision(precOld);
       std::cout.flush();
     }

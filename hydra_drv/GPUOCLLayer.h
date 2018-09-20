@@ -127,11 +127,11 @@ protected:
 
   void DrawNormals();
   void CopyShadowTo(cl_mem a_color, size_t a_size);
-  void AddContributionToScreenGPU(cl_mem in_color, cl_mem in_indices, int a_size, int a_width, int a_height, int a_spp,
+  void AddContributionToScreenGPU(cl_mem in_color, cl_mem in_indices, int a_size, int a_width, int a_height, int a_spp, bool a_copyToLDRNow,
                                   cl_mem out_colorHDR, cl_mem out_colorLDR);
 
   void AddContributionToScreenCPU(cl_mem& in_color, int a_size, int a_width, int a_height, float4* out_color);
-  void AddContributionToScreen   (cl_mem& in_color, cl_mem in_indices);
+  void AddContributionToScreen   (cl_mem& in_color, cl_mem in_indices, bool a_copyToLDRNow = true);
 
   std::vector<uchar4> NormalMapFromDisplacement(int w, int h, const uchar4* a_data, float bumpAmt, bool invHeight, float smoothLvl);
   void Denoise(cl_mem textureIn, cl_mem textureOut, int w, int h, float smoothLvl);
