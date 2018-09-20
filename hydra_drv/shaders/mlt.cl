@@ -177,21 +177,21 @@ __kernel void MMLTAcceptReject(__global       float*         restrict a_xVector,
   if (p <= a) // accept 
   {
     a_xColor[tid] = yNewColor;
-
+    
     for(int i=0;i<MMLT_HEAD_TOTAL_SIZE;i++)
       a_xVector[TabIndex(i, tid, iNumElements)] = a_yVector[TabIndex(i, tid, iNumElements)];
-
-     for(int bounce = 0; bounce < a_maxBounce; bounce++)
-     {
-       const int bounceOffset = TabIndex(MMLT_HEAD_TOTAL_SIZE + MMLT_COMPRESSED_F_PERB*bounce, tid, iNumElements);
+    
+    for(int bounce = 0; bounce < a_maxBounce; bounce++)
+    {
+      const int bounceOffset = MMLT_HEAD_TOTAL_SIZE + MMLT_COMPRESSED_F_PERB*bounce;
       
-       a_xVector[TabIndex(bounceOffset + 0, tid, iNumElements)] = a_yVector[TabIndex(bounceOffset + 0, tid, iNumElements)];
-       a_xVector[TabIndex(bounceOffset + 1, tid, iNumElements)] = a_yVector[TabIndex(bounceOffset + 1, tid, iNumElements)];
-       a_xVector[TabIndex(bounceOffset + 2, tid, iNumElements)] = a_yVector[TabIndex(bounceOffset + 2, tid, iNumElements)];
-       a_xVector[TabIndex(bounceOffset + 3, tid, iNumElements)] = a_yVector[TabIndex(bounceOffset + 3, tid, iNumElements)];
-       a_xVector[TabIndex(bounceOffset + 4, tid, iNumElements)] = a_yVector[TabIndex(bounceOffset + 4, tid, iNumElements)];
-       a_xVector[TabIndex(bounceOffset + 5, tid, iNumElements)] = a_yVector[TabIndex(bounceOffset + 5, tid, iNumElements)];
-     }
+      a_xVector[TabIndex(bounceOffset + 0, tid, iNumElements)] = a_yVector[TabIndex(bounceOffset + 0, tid, iNumElements)];
+      a_xVector[TabIndex(bounceOffset + 1, tid, iNumElements)] = a_yVector[TabIndex(bounceOffset + 1, tid, iNumElements)];
+      a_xVector[TabIndex(bounceOffset + 2, tid, iNumElements)] = a_yVector[TabIndex(bounceOffset + 2, tid, iNumElements)];
+      a_xVector[TabIndex(bounceOffset + 3, tid, iNumElements)] = a_yVector[TabIndex(bounceOffset + 3, tid, iNumElements)];
+      a_xVector[TabIndex(bounceOffset + 4, tid, iNumElements)] = a_yVector[TabIndex(bounceOffset + 4, tid, iNumElements)];
+      a_xVector[TabIndex(bounceOffset + 5, tid, iNumElements)] = a_yVector[TabIndex(bounceOffset + 5, tid, iNumElements)];
+    }
   }
   
 }

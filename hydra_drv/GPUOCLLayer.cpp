@@ -1071,7 +1071,7 @@ void GPUOCLLayer::ResetPerfCounters()
   memset(&m_stat, 0, sizeof(MRaysStat));
 }
 
-constexpr static int NUM_MMLT_PASS = 8;
+constexpr static int NUM_MMLT_PASS = 1;
 
 void GPUOCLLayer::BeginTracingPass()
 {
@@ -1087,7 +1087,7 @@ void GPUOCLLayer::BeginTracingPass()
 
     if(!MLT_IsAllocated())
     {
-       size_t mltMem = MLT_Alloc(m_width, m_height, maxBounce);
+       size_t mltMem = MLT_Alloc(m_width, m_height, maxBounce + 1);
        std::cout << "[AllocAll]: MEM(MLT)    = " << mltMem / size_t(1024*1024) << "\tMB" << std::endl; 
     }
 
@@ -1137,18 +1137,18 @@ void GPUOCLLayer::BeginTracingPass()
       cl_mem yMultAlpha         = m_rays.pathAccColor;   // use this buffers 
       cl_mem xMultOneMinusAlpha = m_rays.pathShadeColor; // use this buffers 
       
-      //runKernel_AcceptReject(m_mlt.xVector, m_mlt.yVector, m_mlt.xColor, m_mlt.yColor,
-      //                       m_mlt.rstateForAcceptReject, maxBounce, m_rays.MEGABLOCKSIZE,
-      //                       xMultOneMinusAlpha, yMultAlpha);
-      //
-      //AddContributionToScreen(xMultOneMinusAlpha, m_rays.samZindex, false);                  m_raysWasSorted = false;    
-      //AddContributionToScreen(yMultAlpha        , m_mlt.yZindex, (pass == NUM_MMLT_PASS-1)); m_raysWasSorted = false;
-      //runKernel_UpdateZIndexFromColorW(m_mlt.xColor, m_rays.MEGABLOCKSIZE, 
-      //                                 m_rays.samZindex);
+      runKernel_AcceptReject(m_mlt.xVector, m_mlt.yVector, m_mlt.xColor, m_mlt.yColor,
+                             m_mlt.rstateForAcceptReject, maxBounce, m_rays.MEGABLOCKSIZE,
+                             xMultOneMinusAlpha, yMultAlpha);
+      
+      AddContributionToScreen(xMultOneMinusAlpha, m_rays.samZindex, false);                  m_raysWasSorted = false;    
+      AddContributionToScreen(yMultAlpha        , m_mlt.yZindex, (pass == NUM_MMLT_PASS-1)); m_raysWasSorted = false;
+      runKernel_UpdateZIndexFromColorW(m_mlt.xColor, m_rays.MEGABLOCKSIZE, 
+                                       m_rays.samZindex);
 
       // (4) Contrib to screen
       //
-      AddContributionToScreen(m_mlt.yColor, m_mlt.yZindex, (pass == NUM_MMLT_PASS-1));
+      //AddContributionToScreen(m_mlt.yColor, m_mlt.yZindex, (pass == NUM_MMLT_PASS-1));
     }
   }
   else if((m_vars.m_flags & HRT_PRODUCTION_IMAGE_SAMPLING) != 0 && (m_vars.m_flags & HRT_UNIFIED_IMAGE_SAMPLING) != 0)
