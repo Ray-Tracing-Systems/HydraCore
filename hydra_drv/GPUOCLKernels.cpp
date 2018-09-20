@@ -1,20 +1,17 @@
 #include "GPUOCLLayer.h"
+#include "cl_scan_gpu.h"
 
 void GPUOCLLayer::waitIfDebug(const char* file, int line) const
 {
 #ifdef _DEBUG
-
   cl_int cErr = clFinish(m_globals.cmdQueue);
-
   if (cErr != CL_SUCCESS)
   {
     const char* err = getOpenCLErrorString(cErr);
     RUN_TIME_ERROR_AT(err, file, line);
   }
-
 #endif
 }
-
 
 void GPUOCLLayer::runKernel_MakeEyeRays(cl_mem a_rpos, cl_mem a_rdir, cl_mem a_zindex, size_t a_size, int a_passNumber, bool a_setSortedFlag)
 { 
@@ -279,6 +276,45 @@ void GPUOCLLayer::AddContributionToScreenGPU(cl_mem in_color,     cl_mem in_indi
   waitIfDebug(__FILE__, __LINE__);
 
   m_raysWasSorted = false;
+  
+  // recalculate LDR image rely on normalisation constants
+  // 
+  if((m_vars.m_flags & HRT_ENABLE_MMLT) != 0 && ENABLE_SBDPT_FOR_DEBUG == false)
+  {
+    ReduceCLArgs args;
+    args.cmdQueue   = m_globals.cmdQueue;
+    args.reductionK = m_progs.screen.kernel("ReductionFloat4Avg256");
+    
+    float4 avg(0,0,0,0);
+    reduce_average4f_gpu(out_colorHDR, m_width*m_height, &avg.x, args);  
+    const float avgBrightness = contribFunc(to_float3(avg));
+    const float kScale        = m_avgBrightness / fmax(avgBrightness, DEPSILON2);
+
+    runKernel_HDRToLDRWithScale(out_colorHDR, kScale, m_width, m_height, 
+                                out_colorLDR);
+  }
+}
+
+void GPUOCLLayer::runKernel_HDRToLDRWithScale(cl_mem in_colorHDR, float a_kScale, int a_width, int a_height, 
+                                              cl_mem out_colorLDR)
+{
+  cl_kernel contribKern      = m_progs.screen.kernel("HDRToLDRWithScale");
+  size_t global_item_size[2] = { size_t(m_width), size_t(m_height) };
+  size_t local_item_size[2]  = { 16, 16 };
+  RoundBlocks2D(global_item_size, local_item_size);
+
+  const float invGamma = 1.0f/m_globsBuffHeader.varsF[HRT_IMAGE_GAMMA];
+
+  CHECK_CL(clSetKernelArg(contribKern, 0, sizeof(cl_mem), (void*)&in_colorHDR));
+  CHECK_CL(clSetKernelArg(contribKern, 1, sizeof(cl_mem), (void*)&out_colorLDR));
+  
+  CHECK_CL(clSetKernelArg(contribKern, 2, sizeof(cl_float), (void*)&invGamma));
+  CHECK_CL(clSetKernelArg(contribKern, 3, sizeof(cl_float), (void*)&a_kScale));
+  CHECK_CL(clSetKernelArg(contribKern, 4, sizeof(cl_int),   (void*)&a_width));
+  CHECK_CL(clSetKernelArg(contribKern, 5, sizeof(cl_int),   (void*)&a_height));
+
+  CHECK_CL(clEnqueueNDRangeKernel(m_globals.cmdQueue, contribKern, 2, NULL, global_item_size, local_item_size, 0, NULL, NULL));
+  waitIfDebug(__FILE__, __LINE__);
 }
 
 

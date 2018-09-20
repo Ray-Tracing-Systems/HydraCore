@@ -482,8 +482,12 @@ protected:
                                    cl_mem sray_pos, cl_mem sray_dir, cl_mem sray_flags);
   void runKernel_MMLTConnect(cl_mem in_splitInfo, cl_mem  in_cameraVertexHit, cl_mem in_cameraVertexSup, cl_mem  in_lightVertexHit, cl_mem  in_lightVertexSup, cl_mem in_shadow, size_t a_size, size_t a_sizeWholeBuff, 
                              cl_mem a_outColor, cl_mem a_outZIndex);
-                             
+
+  // Aux and debug screen kernels
+  //                           
   void runKernel_CopyAccColorTo(cl_mem cameraVertexSup, size_t a_size, cl_mem a_outColor);
+  void runKernel_HDRToLDRWithScale(cl_mem in_colorHDR, float a_kScale, int a_width, int a_height, 
+                                   cl_mem out_colorLDR);
 
   // GBuffer and e.t.c
   //
@@ -514,4 +518,5 @@ protected:
 void RoundBlocks2D(size_t global_item_size[2], size_t local_item_size[2]);
 
 
-static constexpr bool FORCE_DRAW_SHADOW = false;
+static constexpr bool FORCE_DRAW_SHADOW      = false;
+static constexpr bool ENABLE_SBDPT_FOR_DEBUG = false;

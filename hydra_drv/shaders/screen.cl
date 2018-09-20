@@ -286,6 +286,25 @@ __kernel void ContribSampleToScreen(const __global float4* in_color, const __glo
   }
 }
 
+__kernel void HDRToLDRWithScale(const __global float4* in_color, __global uint* out_colorLDR,
+                                const float a_gammaInv, const float a_scale, const int w, const int h)
+{
+  const int x = GLOBAL_ID_X;
+  const int y = GLOBAL_ID_Y;
+
+  if (x >= w || y >= h)
+    return;
+
+  const float4 newColor = in_color[Index2D(x, y, w)];
+
+  float4 color2;
+  color2.x = pow(a_scale*newColor.x, a_gammaInv);
+  color2.y = pow(a_scale*newColor.y, a_gammaInv);
+  color2.z = pow(a_scale*newColor.z, a_gammaInv);
+  color2.w = pow(a_scale*newColor.w, a_gammaInv);
+  out_colorLDR[Index2D(x, y, w)] = RealColorToUint32(ToneMapping4(color2));
+}
+
 __kernel void PackIndexToColorW(const __global int* a_packedId, __global float4* out_color, const int iNumElements)
 {
   int tid = GLOBAL_ID_X;
