@@ -1071,7 +1071,7 @@ void GPUOCLLayer::ResetPerfCounters()
   memset(&m_stat, 0, sizeof(MRaysStat));
 }
 
-constexpr static int NUM_MMLT_PASS = 1;
+constexpr static int NUM_MMLT_PASS = 8;
 
 void GPUOCLLayer::BeginTracingPass()
 {
@@ -1087,7 +1087,7 @@ void GPUOCLLayer::BeginTracingPass()
 
     if(!MLT_IsAllocated())
     {
-       size_t mltMem = MLT_Alloc(m_width, m_height, maxBounce + 1);
+       size_t mltMem = MLT_Alloc(m_width, m_height, maxBounce + 1); // #TODO: maxBounce works too !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
        std::cout << "[AllocAll]: MEM(MLT)    = " << mltMem / size_t(1024*1024) << "\tMB" << std::endl; 
     }
 
@@ -1111,8 +1111,12 @@ void GPUOCLLayer::BeginTracingPass()
       }
       else
       {
-        runKernel_MMLTMakeProposal(m_mlt.rstateOld, m_mlt.xVector, 1, maxBounce, m_rays.MEGABLOCKSIZE, //#NOTE: force large step = 1 to generate numbers from current state
-                                   m_mlt.rstateOld, m_mlt.xVector);
+        runKernel_MMLTMakeProposal(m_mlt.rstateOld, nullptr, 1, maxBounce, m_rays.MEGABLOCKSIZE, //#NOTE: force large step = 1 to generate numbers from current state
+                                   nullptr, m_mlt.yVector);
+
+        runKernel_MMLTMakeProposal(m_mlt.rstateOld, nullptr, 1, maxBounce, m_rays.MEGABLOCKSIZE, //#NOTE: force large step = 1 to generate numbers from current state
+                                   nullptr, m_mlt.xVector);
+
         EvalSBDPT(m_mlt.xVector, minBounce, maxBounce, m_rays.MEGABLOCKSIZE,
                   m_mlt.xColor, m_rays.samZindex);
       }
@@ -1124,7 +1128,8 @@ void GPUOCLLayer::BeginTracingPass()
 
       // (1) make poposal / gen rands
       //
-      runKernel_MMLTMakeProposal(m_mlt.rstateOld, m_mlt.yVector, 1, maxBounce, m_rays.MEGABLOCKSIZE,
+      const bool largeStep = false; // ((pass+1)%4 == 0);
+      runKernel_MMLTMakeProposal(m_mlt.rstateOld, m_mlt.xVector, largeStep, maxBounce, m_rays.MEGABLOCKSIZE,
                                  m_mlt.rstateOld, m_mlt.yVector);
       
       // (2) trace; 
