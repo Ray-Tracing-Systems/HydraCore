@@ -222,6 +222,23 @@ void GPUOCLLayer::runKernel_MLTEvalContribFunc(cl_mem in_buff, cl_mem in_split, 
   waitIfDebug(__FILE__, __LINE__);
 }
 
+void GPUOCLLayer::runKernel_UpdateZIndexFromColorW(cl_mem in_color, size_t a_size,
+                                                   cl_mem out_zind)
+{
+  cl_kernel kernX      = m_progs.mlt.kernel("UpdateZIndexFromColorW");
+
+  size_t localWorkSize = 256;
+  int            isize = int(a_size);
+  a_size               = roundBlocks(a_size, int(localWorkSize));
+
+  CHECK_CL(clSetKernelArg(kernX, 0, sizeof(cl_mem), (void*)&in_color));
+  CHECK_CL(clSetKernelArg(kernX, 1, sizeof(cl_mem), (void*)&out_zind));
+  CHECK_CL(clSetKernelArg(kernX, 2, sizeof(cl_mem), (void*)&m_globals.cMortonTable));
+  CHECK_CL(clSetKernelArg(kernX, 3, sizeof(cl_int), (void*)&isize));
+
+  CHECK_CL(clEnqueueNDRangeKernel(m_globals.cmdQueue, kernX, 1, NULL, &a_size, &localWorkSize, 0, NULL, NULL));
+  waitIfDebug(__FILE__, __LINE__);
+}
 
 void GPUOCLLayer::runKernel_MMLTCopySelectedDepthToSplit(cl_mem in_buff, size_t a_size,
                                                          cl_mem out_buff)
@@ -308,7 +325,7 @@ void GPUOCLLayer::runKernel_MLTSelectSampleProportionalToContrib(cl_mem in_rndSt
 
 void GPUOCLLayer::runKernel_AcceptReject(cl_mem a_xVector, cl_mem a_yVector, 
                                          cl_mem a_xColor,  cl_mem a_yColor, 
-                                         cl_mem a_xZindex, cl_mem a_yZindex, cl_mem a_rstateForAcceptReject, int a_maxBounce, size_t a_size,
+                                         cl_mem a_rstateForAcceptReject, int a_maxBounce, size_t a_size,
                                          cl_mem xMultOneMinusAlpha, cl_mem yMultAlpha)
 {
   cl_kernel kernX      = m_progs.mlt.kernel("MMLTAcceptReject");
@@ -321,14 +338,12 @@ void GPUOCLLayer::runKernel_AcceptReject(cl_mem a_xVector, cl_mem a_yVector,
   CHECK_CL(clSetKernelArg(kernX, 1, sizeof(cl_mem), (void*)&a_yVector));
   CHECK_CL(clSetKernelArg(kernX, 2, sizeof(cl_mem), (void*)&a_xColor));
   CHECK_CL(clSetKernelArg(kernX, 3, sizeof(cl_mem), (void*)&a_yColor));
-  CHECK_CL(clSetKernelArg(kernX, 4, sizeof(cl_mem), (void*)&a_xZindex));
-  CHECK_CL(clSetKernelArg(kernX, 5, sizeof(cl_mem), (void*)&a_yZindex));
 
-  CHECK_CL(clSetKernelArg(kernX, 6, sizeof(cl_mem), (void*)&a_rstateForAcceptReject));
-  CHECK_CL(clSetKernelArg(kernX, 7, sizeof(cl_mem), (void*)&xMultOneMinusAlpha));
-  CHECK_CL(clSetKernelArg(kernX, 8, sizeof(cl_mem), (void*)&yMultAlpha));
-  CHECK_CL(clSetKernelArg(kernX, 9, sizeof(cl_int), (void*)&a_maxBounce));
-  CHECK_CL(clSetKernelArg(kernX,10, sizeof(cl_int), (void*)&isize));
+  CHECK_CL(clSetKernelArg(kernX, 4, sizeof(cl_mem), (void*)&a_rstateForAcceptReject));
+  CHECK_CL(clSetKernelArg(kernX, 5, sizeof(cl_mem), (void*)&xMultOneMinusAlpha));
+  CHECK_CL(clSetKernelArg(kernX, 6, sizeof(cl_mem), (void*)&yMultAlpha));
+  CHECK_CL(clSetKernelArg(kernX, 7, sizeof(cl_int), (void*)&a_maxBounce));
+  CHECK_CL(clSetKernelArg(kernX, 8, sizeof(cl_int), (void*)&isize));
   
   CHECK_CL(clEnqueueNDRangeKernel(m_globals.cmdQueue, kernX, 1, NULL, &a_size, &localWorkSize, 0, NULL, NULL));
   waitIfDebug(__FILE__, __LINE__);

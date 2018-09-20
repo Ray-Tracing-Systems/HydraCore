@@ -144,8 +144,6 @@ __kernel void MMLTAcceptReject(__global       float*         restrict a_xVector,
                                __global const float*         restrict a_yVector,
                                __global       float4*        restrict a_xColor,
                                __global const float4*        restrict a_yColor, 
-                               __global       int2*          restrict a_xZindex,
-                               __global const int2*          restrict a_yZindex,
                                
                                __global   RandomGen*         restrict a_gensAR,
                                __global       float4*        restrict out_xAlpha,
@@ -178,8 +176,7 @@ __kernel void MMLTAcceptReject(__global       float*         restrict a_xVector,
 
   if (p <= a) // accept 
   {
-    a_xColor [tid] = yNewColor;
-    a_xZindex[tid] = a_yZindex[tid];
+    a_xColor[tid] = yNewColor;
 
     for(int i=0;i<MMLT_HEAD_TOTAL_SIZE;i++)
       a_xVector[TabIndex(i, tid, iNumElements)] = a_yVector[TabIndex(i, tid, iNumElements)];
@@ -1405,3 +1402,18 @@ __kernel void MMLTConnect(__global const int2  *  restrict in_splitInfo,
   out_color [tid] = to_float4(sampleColor, as_float(packXY1616(x,y)));
 }
 
+__kernel void UpdateZIndexFromColorW(__global const float4*  restrict in_color,
+                                     __global       int2*    restrict out_zind,
+                                     __constant ushort*      restrict a_mortonTable256,
+                                     const int iNumElements)
+{
+  const int tid = GLOBAL_ID_X;
+  if (tid >= iNumElements)
+    return;
+
+  const int packedXY = as_int(in_color[tid].w);
+  const int screenX  = (packedXY & 0x0000FFFF);
+  const int screenY  = (packedXY & 0xFFFF0000) >> 16;
+  const int zid      = (int)ZIndex(screenX, screenY, a_mortonTable256);
+  out_zind[tid]      = make_int2(zid, tid);
+}
