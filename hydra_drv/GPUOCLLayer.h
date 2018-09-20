@@ -451,6 +451,11 @@ protected:
   float MMLT_BurningIn(int minBounce, int maxBounce,
                        cl_mem out_rstate, cl_mem out_dsplit, cl_mem out_split2, cl_mem out_normC, std::vector<int>& out_activeThreads);
 
+  void runKernel_AcceptReject(cl_mem a_xVector, cl_mem a_yVector, 
+                              cl_mem a_xColor,  cl_mem a_yColor, 
+                              cl_mem a_xZindex, cl_mem a_yZindex, cl_mem a_rstateForAcceptReject, int a_maxBounce, size_t a_size,
+                              cl_mem xMultOneMinusAlpha, cl_mem yMultAlpha);
+
   void runKernel_MMLTMakeStatesIndexToSort(cl_mem in_gens, cl_mem in_depth, size_t a_size,
                                           cl_mem out_index);
   void runKernel_MMLTMoveStatesByIndex(cl_mem in_index, cl_mem in_gens, cl_mem in_depth, size_t a_size,

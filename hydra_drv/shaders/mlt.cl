@@ -134,10 +134,71 @@ __kernel void MMLTMoveStatesByIndex(__global const int2*      restrict in_index,
     out_split[tid] = make_int2(d,d);
 }
 
+
 inline int TabIndex(const int vertId, const int tid, const int iNumElements)
 {
   return tid + vertId*iNumElements;
 }
+
+__kernel void MMLTAcceptReject(__global       float*         restrict a_xVector,
+                               __global const float*         restrict a_yVector,
+                               __global       float4*        restrict a_xColor,
+                               __global const float4*        restrict a_yColor, 
+                               __global       int2*          restrict a_xZindex,
+                               __global const int2*          restrict a_yZindex,
+                               
+                               __global   RandomGen*         restrict a_gensAR,
+                               __global       float4*        restrict out_xAlpha,
+                               __global       float4*        restrict out_yAlpha,
+                               const int a_maxBounce,
+                               const int iNumElements)
+{
+  const int tid = GLOBAL_ID_X;
+  if (tid >= iNumElements)
+    return;
+
+  RandomGen gen = a_gensAR[tid];
+  const float p = rndFloat1_Pseudo(&gen);
+  a_gensAR[tid] = gen;
+  
+  const float4 yOldColor = a_xColor[tid];
+  const float4 yNewColor = a_yColor[tid];
+
+  const float yOld = contribFunc( to_float3(yOldColor) );
+  const float yNew = contribFunc( to_float3(yNewColor) );
+
+  const float a = (yOld == 0.0f) ? 1.0f : fmin(1.0f, yNew / yOld);
+
+  float4 contribAtX, contribAtY;
+  contribAtX.xyz = yOldColor.xyz*(1.0f / fmax(yOld, 1e-6f))*(1.0f - a);  contribAtX.w = yOldColor.w;
+  contribAtY.xyz = yNewColor.xyz*(1.0f / fmax(yNew, 1e-6f))*a;           contribAtY.w = yNewColor.w;
+
+  out_xAlpha[tid] = contribAtX;
+  out_yAlpha[tid] = contribAtY;
+
+  if (p <= a) // accept 
+  {
+    a_xColor [tid] = yNewColor;
+    a_xZindex[tid] = a_yZindex[tid];
+
+    for(int i=0;i<MMLT_HEAD_TOTAL_SIZE;i++)
+      a_xVector[TabIndex(i, tid, iNumElements)] = a_yVector[TabIndex(i, tid, iNumElements)];
+
+     for(int bounce = 0; bounce < a_maxBounce; bounce++)
+     {
+       const int bounceOffset = TabIndex(MMLT_HEAD_TOTAL_SIZE + MMLT_COMPRESSED_F_PERB*bounce, tid, iNumElements);
+      
+       a_xVector[TabIndex(bounceOffset + 0, tid, iNumElements)] = a_yVector[TabIndex(bounceOffset + 0, tid, iNumElements)];
+       a_xVector[TabIndex(bounceOffset + 1, tid, iNumElements)] = a_yVector[TabIndex(bounceOffset + 1, tid, iNumElements)];
+       a_xVector[TabIndex(bounceOffset + 2, tid, iNumElements)] = a_yVector[TabIndex(bounceOffset + 2, tid, iNumElements)];
+       a_xVector[TabIndex(bounceOffset + 3, tid, iNumElements)] = a_yVector[TabIndex(bounceOffset + 3, tid, iNumElements)];
+       a_xVector[TabIndex(bounceOffset + 4, tid, iNumElements)] = a_yVector[TabIndex(bounceOffset + 4, tid, iNumElements)];
+       a_xVector[TabIndex(bounceOffset + 5, tid, iNumElements)] = a_yVector[TabIndex(bounceOffset + 5, tid, iNumElements)];
+     }
+  }
+  
+}
+
 
 __kernel void MMLTInitCameraPath(__global   uint*      restrict a_flags,
                                  __global float4*      restrict a_color,
