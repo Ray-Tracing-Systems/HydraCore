@@ -572,7 +572,7 @@ void IntegratorMMLT::DoPass(std::vector<uint>& a_imageLDR)
 
   // (1) compute direct light
   //
-  DoPassDirectLight(direct);
+  //DoPassDirectLight(direct);
 
   // (2) Run MMLT. 
   //

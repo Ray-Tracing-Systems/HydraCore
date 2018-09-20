@@ -270,7 +270,10 @@ float GPUOCLLayer::MMLT_BurningIn(int minBounce, int maxBounce,
 
   std::vector<float> scale(maxBounce+1);
   for(int i=0;i<scale.size();i++)
-    scale[i] = float(i+1);
+  {
+    //scale[i] = 1.0f;
+    scale[i] = float(i+1)*float(m_rays.MEGABLOCKSIZE) / fmax(float(threadsNumCopy[i]), 2.0f);
+  }
   CHECK_CL(clEnqueueWriteBuffer(m_globals.cmdQueue, out_normC, CL_TRUE, 0, scale.size()*sizeof(float), (void*)scale.data(), 0, NULL, NULL));
 
   return avgBrightness;
