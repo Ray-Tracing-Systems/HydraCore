@@ -184,7 +184,7 @@ protected:
 
   struct CL_MLT_DATA
   {
-    CL_MLT_DATA() : rstateForAcceptReject(0), rstateCurr(0), rstateOld(0), rstateNew(0), dNew(0), dOld(0),
+    CL_MLT_DATA() : rstateForAcceptReject(0), rstateCurr(0), rstateOld(0), rstateNew(0), dNew(0), dOld(0), yZindex(0),
                     xVector(0), yVector(0), currVec(0), xColor(0), yColor(0), lightVertexSup(0), cameraVertexSup(0), cameraVertexHit(0), 
                     pdfArray(0), splitData(0), scaleTable(0), memTaken(0), mppDone(0.0), currBounceThreadsNum(0) {}
 
@@ -195,6 +195,7 @@ protected:
     
     cl_mem dNew;
     cl_mem dOld;
+    cl_mem yZindex;
 
 
     cl_mem xVector;               ///< current vector that store unit hipercube floats

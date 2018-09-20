@@ -1109,6 +1109,13 @@ void GPUOCLLayer::BeginTracingPass()
         MMLTInitSplitDataUniform(minBounce, maxBounce, m_rays.MEGABLOCKSIZE,
                                  m_mlt.splitData, m_mlt.scaleTable, m_mlt.perBounceActiveThreads);
       }
+      else
+      {
+        runKernel_MMLTMakeProposal(m_mlt.rstateOld, m_mlt.xVector, 1, maxBounce, m_rays.MEGABLOCKSIZE, //#NOTE: force large step = 1 to generate numbers from current state
+                                   m_mlt.rstateOld, m_mlt.xVector);
+        EvalSBDPT(m_mlt.xVector, minBounce, maxBounce, m_rays.MEGABLOCKSIZE,
+                  m_mlt.xColor, m_rays.samZindex);
+      }
     }
 
     for(int pass = 0; pass < NUM_MMLT_PASS; pass ++)
@@ -1122,14 +1129,14 @@ void GPUOCLLayer::BeginTracingPass()
       //
       m_raysWasSorted = false;
       EvalSBDPT(m_mlt.xVector, minBounce, maxBounce, m_rays.MEGABLOCKSIZE,
-                m_rays.pathAccColor, m_rays.samZindex);
+                m_mlt.yColor, m_mlt.yZindex);
       
       // (3) Accept/Reject => (xColor, yColor) + (XZindex, YZindex)
       //
       
       // (4) Contrib to screen
       //
-      AddContributionToScreen(m_rays.pathAccColor, m_rays.samZindex, (pass == NUM_MMLT_PASS-1));
+      AddContributionToScreen(m_mlt.yColor, m_mlt.yZindex, (pass == NUM_MMLT_PASS-1));
     }
   }
   else if((m_vars.m_flags & HRT_PRODUCTION_IMAGE_SAMPLING) != 0 && (m_vars.m_flags & HRT_UNIFIED_IMAGE_SAMPLING) != 0)

@@ -305,7 +305,7 @@ void GPUOCLLayer::EvalSBDPT(cl_mem in_xVector, int minBounce, int maxBounce, siz
   // (1) init and camera pass 
   //
   runKernel_MMLTMakeEyeRays(a_size,
-                            m_rays.rayPos, m_rays.rayDir, m_rays.samZindex);
+                            m_rays.rayPos, m_rays.rayDir, a_outZIndex);
   
   runKernel_MMLTInitSplitAndCamV(m_rays.rayFlags, a_outColor, m_mlt.splitData, m_mlt.cameraVertexSup, a_size);
 

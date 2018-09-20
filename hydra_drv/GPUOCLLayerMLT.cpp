@@ -22,6 +22,7 @@ void GPUOCLLayer::CL_MLT_DATA::free()
   if (rstateNew)             { clReleaseMemObject(rstateNew);             rstateNew             = 0; }
   if (dNew)                  { clReleaseMemObject(dNew);                  dNew                  = 0; }
   if (dOld)                  { clReleaseMemObject(dOld);                  dOld                  = 0; }
+  if (yZindex)               { clReleaseMemObject(yZindex);               yZindex               = 0;} 
 
   if (xVector)               { clReleaseMemObject(xVector); xVector = 0; }
   if (yVector)               { clReleaseMemObject(yVector); yVector = 0; }
@@ -62,8 +63,8 @@ size_t GPUOCLLayer::MLT_Alloc(int a_width, int a_height, int a_maxBounce)
   m_mlt.rstateNew             = clCreateBuffer(m_globals.ctx, CL_MEM_READ_WRITE, 1 * sizeof(RandomGen)*m_rays.MEGABLOCKSIZE, NULL, &ciErr1);
   m_mlt.dOld                  = clCreateBuffer(m_globals.ctx, CL_MEM_READ_WRITE, 1 * sizeof(int)*m_rays.MEGABLOCKSIZE, NULL, &ciErr1);
   m_mlt.dNew                  = clCreateBuffer(m_globals.ctx, CL_MEM_READ_WRITE, 1 * sizeof(int)*m_rays.MEGABLOCKSIZE, NULL, &ciErr1);
-
-  m_mlt.memTaken = (3 * sizeof(RandomGen) + sizeof(int)*2)*m_rays.MEGABLOCKSIZE; // rstateForAcceptReject, rstateOld, rstateNew 
+  m_mlt.yZindex               = clCreateBuffer(m_globals.ctx, CL_MEM_READ_WRITE, 2 * sizeof(int)*m_rays.MEGABLOCKSIZE, NULL, &ciErr1);
+  m_mlt.memTaken = (3 * sizeof(RandomGen) + sizeof(int)*4)*m_rays.MEGABLOCKSIZE; // rstateForAcceptReject, rstateOld, rstateNew 
 
   if (ciErr1 != CL_SUCCESS)
     RUN_TIME_ERROR("[cl_core]: Failed to create rstateForAcceptReject ");
