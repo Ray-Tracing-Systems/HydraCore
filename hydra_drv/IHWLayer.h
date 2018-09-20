@@ -188,7 +188,7 @@ public:
   // color accumulators, MLT
   //             
   virtual bool   MLT_IsAllocated() const { return true; }
-  virtual size_t MLT_Alloc(int a_maxBounce) { return 0; }
+  virtual size_t MLT_Alloc(int a_width, int a_height, int a_maxBounce) { return 0; }
   virtual void   MLT_Free() {}
 
   virtual void   MLT_Init(int a_seed)  { }

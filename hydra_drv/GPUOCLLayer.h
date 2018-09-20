@@ -95,9 +95,9 @@ public:
 
   bool StoreCPUData() const { return m_globals.cpuTrace; }
 
-  bool   MLT_IsAllocated() const;                ///< return true if internal MLT data is allocated
-  size_t MLT_Alloc(int a_maxBounce);             ///< alloc internal MLT data
-  void   MLT_Free();                             ///< free internal MLT DATA
+  bool   MLT_IsAllocated() const;                           ///< return true if internal MLT data is allocated
+  size_t MLT_Alloc(int width, int height, int a_maxBounce); ///< alloc internal MLT data
+  void   MLT_Free();                                        ///< free internal MLT DATA
 
   void   MLT_Init(int a_seed);
   float4 MLT_Burn(int a_iters);

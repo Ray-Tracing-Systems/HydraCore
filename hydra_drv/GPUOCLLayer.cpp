@@ -12,7 +12,8 @@ extern "C" void initQuasirandomGenerator(unsigned int table[QRNG_DIMENSIONS][QRN
 #undef min
 #undef max
 
-constexpr bool SAVE_BUILD_LOG    = false;
+constexpr bool SAVE_BUILD_LOG = false;
+constexpr bool ENABLE_SBDPT_FOR_DEBUG = false;
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -1084,6 +1085,12 @@ void GPUOCLLayer::BeginTracingPass()
     int minBounce = 3;
     int maxBounce = 6;
 
+    if(!MLT_IsAllocated())
+    {
+       size_t mltMem = MLT_Alloc(m_width, m_height, maxBounce);
+       std::cout << "[AllocAll]: MEM(MLT)    = " << mltMem / size_t(1024*1024) << "\tMB" << std::endl; 
+    }
+
     if(m_spp < 1e-5f) // run init stage
     {
       m_avgBrightness = MMLT_BurningIn(minBounce, maxBounce,
@@ -1096,16 +1103,19 @@ void GPUOCLLayer::BeginTracingPass()
         m_mlt.rstateOld = sTmp;             m_mlt.dOld = dTmp;
       }
 
-      std::cout << "MMLT, Init stage ... " << std::endl;
-      MMLTInitSplitDataUniform(minBounce, maxBounce, m_rays.MEGABLOCKSIZE,
-                               m_mlt.splitData, m_mlt.scaleTable, m_mlt.perBounceActiveThreads);
+      if(ENABLE_SBDPT_FOR_DEBUG)
+      {
+        std::cout << "MMLT, Init stage ... " << std::endl;
+        MMLTInitSplitDataUniform(minBounce, maxBounce, m_rays.MEGABLOCKSIZE,
+                                 m_mlt.splitData, m_mlt.scaleTable, m_mlt.perBounceActiveThreads);
+      }
     }
 
     // (1) make poposal / gen rands
     //
 
-    runKernel_MMLTMakeProposal(m_mlt.rstateCurr, m_mlt.xVector, 1, maxBounce, m_rays.MEGABLOCKSIZE,
-                               m_mlt.rstateCurr, m_mlt.xVector);
+    runKernel_MMLTMakeProposal(m_mlt.rstateOld, m_mlt.xVector, 1, maxBounce, m_rays.MEGABLOCKSIZE,
+                               m_mlt.rstateOld, m_mlt.xVector);
 
     // (2) trace; 
     //

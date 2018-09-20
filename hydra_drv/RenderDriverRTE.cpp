@@ -656,10 +656,6 @@ HRDriverAllocInfo RenderDriverRTE::AllocAll(HRDriverAllocInfo a_info)
   const int32_t maxMaterialIndex   = a_info.matNum-1;
   const int32_t whiteDiffuseOffset = m_pMaterialStorage->Update(maxMaterialIndex, &plainData[0], plainData.size()*sizeof(PlainMaterial));
 
-  size_t mltMem = 0;
-  bool m_needAllocForMLT = (m_initFlags & GPU_MLT_ENABLED_AT_START);
-  if (m_needAllocForMLT)
-    mltMem = m_pHWLayer->MLT_Alloc(10);
 
   auto vars = m_pHWLayer->GetAllFlagsAndVars();
   vars.m_varsI[HRT_WHITE_DIFFUSE_OFFSET] = whiteDiffuseOffset;
@@ -671,7 +667,6 @@ HRDriverAllocInfo RenderDriverRTE::AllocAll(HRDriverAllocInfo a_info)
   std::cout << "[AllocAll]: MEM(GEOM)   = " << newMemForGeo / MB << "\tMB" << std::endl;  m_memAllocated += newMemForGeo;
   std::cout << "[AllocAll]: MEM(PDFTAB) = " << (newMemForMat + newMemForTab) / MB << "\tMB" << std::endl; m_memAllocated += (newMemForMat + newMemForTab);
   std::cout << "[AllocAll]: MEM(RAYBUF) = " << memUsedByR / MB << "\tMB" << std::endl;    m_memAllocated += memUsedByR;
-  std::cout << "[AllocAll]: MEM(MLT)    = " << mltMem / MB << "\tMB" << std::endl;        m_memAllocated += mltMem;
 
   if (newTotalMem >= freeMem)
   {
