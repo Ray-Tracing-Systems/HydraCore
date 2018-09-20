@@ -107,8 +107,8 @@ size_t GPUOCLLayer::MMLTInitSplitDataUniform(int bounceBeg, int a_maxDepth, size
 
 std::vector<float> PrefixSumm(const std::vector<float>& a_vec);
 
-void GPUOCLLayer::MMLT_BurningIn(int minBounce, int maxBounce,
-                                 cl_mem out_rstate, cl_mem out_dsplit, cl_mem out_split2, cl_mem out_normC, std::vector<int>& out_activeThreads)
+float GPUOCLLayer::MMLT_BurningIn(int minBounce, int maxBounce,
+                                  cl_mem out_rstate, cl_mem out_dsplit, cl_mem out_split2, cl_mem out_normC, std::vector<int>& out_activeThreads)
 {
   //testScanFloatsAnySize();
  
@@ -116,7 +116,7 @@ void GPUOCLLayer::MMLT_BurningIn(int minBounce, int maxBounce,
   {
     std::cerr << "MMLT_BurningIn, wrong input buffers! Select (m_mlt.rstateNew, dNew) instead!" << std::endl;
     std::cout << "MMLT_BurningIn, wrong input buffers! Select (m_mlt.rstateNew, dNew) instead!" << std::endl;
-    exit(0); 
+    return 1.0f;
   }
 
   // zero out_normC table because we are going to increment it via simulated floating points atomics ... 
@@ -268,7 +268,12 @@ void GPUOCLLayer::MMLT_BurningIn(int minBounce, int maxBounce,
   std::cout << "[d = a, avgB = " << avgBrightness << "]" << std::endl;
   //clReleaseMemObject(avgBTableGPU); avgBTableGPU = nullptr;
 
-  // return avgBrightness;
+  std::vector<float> scale(maxBounce+1);
+  for(int i=0;i<scale.size();i++)
+    scale[i] = float(i+1);
+  CHECK_CL(clEnqueueWriteBuffer(m_globals.cmdQueue, out_normC, CL_TRUE, 0, scale.size()*sizeof(float), (void*)scale.data(), 0, NULL, NULL));
+
+  return avgBrightness;
 }
 
 

@@ -157,6 +157,7 @@ protected:
   float m_spp;
   float m_sppDone;
   float m_sppContrib;
+  float m_avgBrightness;
   bool  m_raysWasSorted;
 
   struct CL_SCREEN_BUFFERS
@@ -446,8 +447,8 @@ protected:
   void runKernel_MLTEvalContribFunc(cl_mem in_buff, cl_mem in_split, size_t a_size,
                                     cl_mem out_buff, cl_mem out_table);
 
-  void MMLT_BurningIn(int minBounce, int maxBounce,
-                      cl_mem out_rstate, cl_mem out_dsplit, cl_mem out_split2, cl_mem out_normC, std::vector<int>& out_activeThreads);
+  float MMLT_BurningIn(int minBounce, int maxBounce,
+                       cl_mem out_rstate, cl_mem out_dsplit, cl_mem out_split2, cl_mem out_normC, std::vector<int>& out_activeThreads);
 
   void runKernel_MMLTMakeStatesIndexToSort(cl_mem in_gens, cl_mem in_depth, size_t a_size,
                                           cl_mem out_index);

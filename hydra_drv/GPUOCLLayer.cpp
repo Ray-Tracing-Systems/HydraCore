@@ -716,6 +716,7 @@ GPUOCLLayer::GPUOCLLayer(int w, int h, int a_flags, int a_deviceId) : Base(w, h,
   m_spp           = 0.0f;
   m_sppDone       = 0.0f;
   m_sppContrib    = 0.0f;
+  m_avgBrightness = 1.0f;
 }
 
 void GPUOCLLayer::RecompileProcTexShaders(const char* a_shaderPath)
@@ -1083,17 +1084,17 @@ void GPUOCLLayer::BeginTracingPass()
     int minBounce = 3;
     int maxBounce = 6;
 
-    //MMLT_BurningIn(minBounce, maxBounce,
-    //               m_mlt.rstateNew, m_mlt.dNew, m_mlt.splitData, m_mlt.scaleTable, m_mlt.perBounceActiveThreads);
-    //MMLTDebugDrawSelectedSamples(minBounce, maxBounce, m_mlt.rstateNew, m_mlt.dNew, m_rays.MEGABLOCKSIZE);
-    //return;
-
     if(m_spp < 1e-5f) // run init stage
     {
-      MMLT_BurningIn(minBounce, maxBounce,
-                     m_mlt.rstateNew, m_mlt.dNew, m_mlt.splitData, m_mlt.scaleTable, m_mlt.perBounceActiveThreads);
+      m_avgBrightness = MMLT_BurningIn(minBounce, maxBounce,
+                                       m_mlt.rstateNew, m_mlt.dNew, m_mlt.splitData, m_mlt.scaleTable, m_mlt.perBounceActiveThreads);
 
-      // #TODO: swap (m_mlt.rstateNew, m_mlt.dNew) and (m_mlt.rstateOld, m_mlt.dOld)
+      // swap (m_mlt.rstateNew, m_mlt.dNew) and (m_mlt.rstateOld, m_mlt.dOld)
+      {
+        cl_mem sTmp     = m_mlt.rstateNew; cl_mem dTmp = m_mlt.dNew;
+        m_mlt.rstateNew = m_mlt.rstateOld;  m_mlt.dNew = m_mlt.dOld;
+        m_mlt.rstateOld = sTmp;             m_mlt.dOld = dTmp;
+      }
 
       std::cout << "MMLT, Init stage ... " << std::endl;
       MMLTInitSplitDataUniform(minBounce, maxBounce, m_rays.MEGABLOCKSIZE,
