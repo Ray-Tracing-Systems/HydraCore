@@ -131,6 +131,14 @@ protected:
                                   cl_mem out_colorHDR, cl_mem out_colorLDR);
 
   void AddContributionToScreenCPU(cl_mem& in_color, int a_size, int a_width, int a_height, float4* out_color);
+
+
+  /** \brief implements "add" contribution from in_color to screen buffer (just add values!!!) 
+  * 
+  * \param in_color   - in float4 buffer; in_color[i].xyz - color; as_int(in_color[i].w) - packed (x,y) where to contribute (accounted only if in_indices is nullptr or CPU fra,ebuffer is ised)
+  * \param in_indices - in int2 (zindex, oldIndex) coord; may be nullptr; in this case coord will ba taken from as_int(in_color[i].w) - packed (x,y) where to contribute
+  * \param a_copyToLDRNow - in flag for update LDR image on GPU in current pass (current AddContributionToScreen call)
+  */
   void AddContributionToScreen   (cl_mem& in_color, cl_mem in_indices, bool a_copyToLDRNow = true);
 
   std::vector<uchar4> NormalMapFromDisplacement(int w, int h, const uchar4* a_data, float bumpAmt, bool invHeight, float smoothLvl);
@@ -184,7 +192,7 @@ protected:
 
   struct CL_MLT_DATA
   {
-    CL_MLT_DATA() : rstateForAcceptReject(0), rstateCurr(0), rstateOld(0), rstateNew(0), dNew(0), dOld(0), yZindex(0),
+    CL_MLT_DATA() : rstateForAcceptReject(0), rstateCurr(0), rstateOld(0), rstateNew(0), dNew(0), dOld(0),
                     xVector(0), yVector(0), currVec(0), xColor(0), yColor(0), lightVertexSup(0), cameraVertexSup(0), cameraVertexHit(0), 
                     pdfArray(0), splitData(0), scaleTable(0), memTaken(0), mppDone(0.0), currBounceThreadsNum(0) {}
 
@@ -195,8 +203,6 @@ protected:
     
     cl_mem dNew;
     cl_mem dOld;
-    cl_mem yZindex;
-
 
     cl_mem xVector;               ///< current vector that store unit hipercube floats
     cl_mem yVector;               ///< next vector that store unit hipercube floats; it should be 0 when MCMC_LAZY is defined; 

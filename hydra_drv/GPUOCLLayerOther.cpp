@@ -29,8 +29,17 @@ void GPUOCLLayer::AddContributionToScreen(cl_mem& in_color, cl_mem in_indices, b
                                resultPtr);
   }
   else
+  {
+    if(in_indices == nullptr)
+    {
+      in_indices = m_rays.samZindex;
+      runKernel_UpdateZIndexFromColorW(in_color, m_rays.MEGABLOCKSIZE, 
+                                       in_indices);
+    }
+
     AddContributionToScreenGPU(in_color, in_indices, int(m_rays.MEGABLOCKSIZE), m_width, m_height, m_passNumber, a_copyToLDRNow,
                                m_screen.color0, m_screen.pbo);
+  }
 
   m_passNumber++;
 }

@@ -1103,13 +1103,7 @@ void GPUOCLLayer::BeginTracingPass()
         m_mlt.rstateOld = sTmp;             m_mlt.dOld = dTmp;
       }
 
-      if(ENABLE_SBDPT_FOR_DEBUG)
-      {
-        std::cout << "MMLT, Init stage ... " << std::endl;
-        MMLTInitSplitDataUniform(minBounce, maxBounce, m_rays.MEGABLOCKSIZE,
-                                 m_mlt.splitData, m_mlt.scaleTable, m_mlt.perBounceActiveThreads);
-      }
-      else
+      if(!ENABLE_SBDPT_FOR_DEBUG)
       {
         runKernel_MMLTMakeProposal(m_mlt.rstateOld, nullptr, 1, maxBounce, m_rays.MEGABLOCKSIZE, //#NOTE: force large step = 1 to generate numbers from current state
                                    nullptr, m_mlt.yVector);
@@ -1128,32 +1122,31 @@ void GPUOCLLayer::BeginTracingPass()
 
       // (1) make poposal / gen rands
       //
-      const bool largeStep = false; // ((pass+1)%4 == 0);
+      const bool largeStep = ENABLE_SBDPT_FOR_DEBUG ? true : false; // ((pass+1)%4 == 0);
       runKernel_MMLTMakeProposal(m_mlt.rstateOld, m_mlt.xVector, largeStep, maxBounce, m_rays.MEGABLOCKSIZE,
                                  m_mlt.rstateOld, m_mlt.yVector);
       
       // (2) trace; 
       //
       EvalSBDPT(m_mlt.yVector, minBounce, maxBounce, m_rays.MEGABLOCKSIZE,
-                m_mlt.yColor, m_mlt.yZindex);
+                m_mlt.yColor, m_rays.samZindex);
       
       // (3) Accept/Reject => (xColor, yColor) + (XZindex, YZindex)
       //
-      cl_mem yMultAlpha         = m_rays.pathAccColor;   // use this buffers 
-      cl_mem xMultOneMinusAlpha = m_rays.pathShadeColor; // use this buffers 
-      
-      runKernel_AcceptReject(m_mlt.xVector, m_mlt.yVector, m_mlt.xColor, m_mlt.yColor,
-                             m_mlt.rstateForAcceptReject, maxBounce, m_rays.MEGABLOCKSIZE,
-                             xMultOneMinusAlpha, yMultAlpha);
-      
-      AddContributionToScreen(xMultOneMinusAlpha, m_rays.samZindex, false);                  m_raysWasSorted = false;    
-      AddContributionToScreen(yMultAlpha        , m_mlt.yZindex, (pass == NUM_MMLT_PASS-1)); m_raysWasSorted = false;
-      runKernel_UpdateZIndexFromColorW(m_mlt.xColor, m_rays.MEGABLOCKSIZE, 
-                                       m_rays.samZindex);
-
-      // (4) Contrib to screen
-      //
-      //AddContributionToScreen(m_mlt.yColor, m_mlt.yZindex, (pass == NUM_MMLT_PASS-1));
+      if(!ENABLE_SBDPT_FOR_DEBUG)
+      {
+        cl_mem yMultAlpha         = m_rays.pathAccColor;   // use this buffers 
+        cl_mem xMultOneMinusAlpha = m_rays.pathShadeColor; // use this buffers 
+        
+        runKernel_AcceptReject(m_mlt.xVector, m_mlt.yVector, m_mlt.xColor, m_mlt.yColor,
+                               m_mlt.rstateForAcceptReject, maxBounce, m_rays.MEGABLOCKSIZE,
+                               xMultOneMinusAlpha, yMultAlpha);
+  
+        AddContributionToScreen(xMultOneMinusAlpha, nullptr, false);                         
+        AddContributionToScreen(yMultAlpha        , nullptr, (pass == NUM_MMLT_PASS-1)); 
+      }
+      else
+        AddContributionToScreen(m_mlt.yColor, nullptr, (pass == NUM_MMLT_PASS-1));
     }
   }
   else if((m_vars.m_flags & HRT_PRODUCTION_IMAGE_SAMPLING) != 0 && (m_vars.m_flags & HRT_UNIFIED_IMAGE_SAMPLING) != 0)
