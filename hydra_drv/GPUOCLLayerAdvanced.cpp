@@ -131,7 +131,7 @@ float GPUOCLLayer::MMLT_BurningIn(int minBounce, int maxBounce,
   MMLTInitSplitDataUniform(minBounce, maxBounce, m_rays.MEGABLOCKSIZE,
                            m_mlt.splitData, m_mlt.scaleTable, out_activeThreads);
 
-  const int BURN_ITERS   = 64;
+  const int BURN_ITERS   = 256;
   const int BURN_PORTION = m_rays.MEGABLOCKSIZE/BURN_ITERS;
 
   cl_mem temp_f1 = out_dsplit; // #NOTE: well, that's not ok in general, but due to sizeof(int) == sizeof(float) we can use this buffer temporary

@@ -273,7 +273,7 @@ __kernel void MMLTMakeProposal(__global const RandomGen* in_gens,
   if(a_forceLargeStep != 1)
   {
     const float p = rndFloat1_Pseudo(&gen);
-    if(p < 0.25f)
+    if(p < 0.2f)
       largeStep = true;
   }
   else
