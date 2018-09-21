@@ -360,10 +360,8 @@ __kernel void MMLTMakeProposal(__global const RandomGen* in_gens,
   //
   for(int bounce = 0; bounce < a_maxBounce; bounce++)
   {
-    const int bounceOffset = TabIndex(MMLT_HEAD_TOTAL_SIZE + MMLT_COMPRESSED_F_PERB*bounce, tid, iNumElements);
-    __global const uint* in_compressed = (__global const uint*)(in_numbers  + bounceOffset);
-    __global      uint* out_compressed = (__global       uint*)(out_numbers + bounceOffset);  
-
+    const int bounceOffset = MMLT_HEAD_TOTAL_SIZE + MMLT_COMPRESSED_F_PERB*bounce;
+   
     float6_gr gr1f;
     float4    gr2f;
 
@@ -376,12 +374,12 @@ __kernel void MMLTMakeProposal(__global const RandomGen* in_gens,
     else if(in_numbers != 0)
     {
       uint4 gr1; uint2 gr2;
-      gr1.x = in_compressed[TabIndex(0, tid, iNumElements)];
-      gr1.y = in_compressed[TabIndex(1, tid, iNumElements)];
-      gr1.z = in_compressed[TabIndex(2, tid, iNumElements)];
-      gr1.w = in_compressed[TabIndex(3, tid, iNumElements)];
-      gr2.x = in_compressed[TabIndex(4, tid, iNumElements)];
-      gr2.y = in_compressed[TabIndex(5, tid, iNumElements)];
+      gr1.x = as_int( in_numbers[TabIndex(bounceOffset + 0, tid, iNumElements)] );
+      gr1.y = as_int( in_numbers[TabIndex(bounceOffset + 1, tid, iNumElements)] );
+      gr1.z = as_int( in_numbers[TabIndex(bounceOffset + 2, tid, iNumElements)] );
+      gr1.w = as_int( in_numbers[TabIndex(bounceOffset + 3, tid, iNumElements)] );
+      gr2.x = as_int( in_numbers[TabIndex(bounceOffset + 4, tid, iNumElements)] );
+      gr2.y = as_int( in_numbers[TabIndex(bounceOffset + 5, tid, iNumElements)] );
 
       gr1f = unpackBounceGroup (gr1);
       gr2f = unpackBounceGroup2(gr2);
@@ -395,12 +393,12 @@ __kernel void MMLTMakeProposal(__global const RandomGen* in_gens,
     {
       uint4 gr1 = packBounceGroup(gr1f);
       uint2 gr2 = packBounceGroup2(gr2f);
-      out_compressed[TabIndex(0, tid, iNumElements)] = gr1.x;
-      out_compressed[TabIndex(1, tid, iNumElements)] = gr1.y;
-      out_compressed[TabIndex(2, tid, iNumElements)] = gr1.z;
-      out_compressed[TabIndex(3, tid, iNumElements)] = gr1.w;
-      out_compressed[TabIndex(4, tid, iNumElements)] = gr2.x;
-      out_compressed[TabIndex(5, tid, iNumElements)] = gr2.y;
+      out_numbers[TabIndex(bounceOffset + 0, tid, iNumElements)] = as_float(gr1.x);
+      out_numbers[TabIndex(bounceOffset + 1, tid, iNumElements)] = as_float(gr1.y);
+      out_numbers[TabIndex(bounceOffset + 2, tid, iNumElements)] = as_float(gr1.z);
+      out_numbers[TabIndex(bounceOffset + 3, tid, iNumElements)] = as_float(gr1.w);
+      out_numbers[TabIndex(bounceOffset + 4, tid, iNumElements)] = as_float(gr2.x);
+      out_numbers[TabIndex(bounceOffset + 5, tid, iNumElements)] = as_float(gr2.y);
     }
   }  
 
@@ -411,16 +409,15 @@ __kernel void MMLTMakeProposal(__global const RandomGen* in_gens,
 static inline MMLTReadMaterialBounceRands(__global const float* restrict in_numbers, int bounce, int tid, int iNumElements,
                                           __private float a_out[MMLT_FLOATS_PER_BOUNCE])
 {
-  const int bounceOffset = TabIndex(MMLT_HEAD_TOTAL_SIZE + MMLT_COMPRESSED_F_PERB*bounce, tid, iNumElements);
-  __global const uint* in_compressed = (__global const uint*)(in_numbers  + bounceOffset);
+  const int bounceOffset = MMLT_HEAD_TOTAL_SIZE + MMLT_COMPRESSED_F_PERB*bounce;
 
   uint4 gr1; uint2 gr2;
-  gr1.x = in_compressed[TabIndex(0, tid, iNumElements)];
-  gr1.y = in_compressed[TabIndex(1, tid, iNumElements)];
-  gr1.z = in_compressed[TabIndex(2, tid, iNumElements)];
-  gr1.w = in_compressed[TabIndex(3, tid, iNumElements)];
-  gr2.x = in_compressed[TabIndex(4, tid, iNumElements)];
-  gr2.y = in_compressed[TabIndex(5, tid, iNumElements)];
+  gr1.x = as_int( in_numbers[TabIndex(bounceOffset + 0, tid, iNumElements)] );
+  gr1.y = as_int( in_numbers[TabIndex(bounceOffset + 1, tid, iNumElements)] );
+  gr1.z = as_int( in_numbers[TabIndex(bounceOffset + 2, tid, iNumElements)] );
+  gr1.w = as_int( in_numbers[TabIndex(bounceOffset + 3, tid, iNumElements)] );
+  gr2.x = as_int( in_numbers[TabIndex(bounceOffset + 4, tid, iNumElements)] );
+  gr2.y = as_int( in_numbers[TabIndex(bounceOffset + 5, tid, iNumElements)] );
 
   const float6_gr gr1f = unpackBounceGroup(gr1);
   const float4    gr2f = unpackBounceGroup2(gr2);
