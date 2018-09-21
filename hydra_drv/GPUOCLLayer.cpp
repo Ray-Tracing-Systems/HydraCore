@@ -1122,7 +1122,7 @@ void GPUOCLLayer::BeginTracingPass()
 
       // (1) make poposal / gen rands
       //
-      const bool largeStep = ENABLE_SBDPT_FOR_DEBUG ? true : ((pass+1)%4 == 0);
+      const bool largeStep = ENABLE_SBDPT_FOR_DEBUG ? true : false;
       runKernel_MMLTMakeProposal(m_mlt.rstateOld, m_mlt.xVector, largeStep, maxBounce, m_rays.MEGABLOCKSIZE,
                                  m_mlt.rstateOld, m_mlt.yVector);
       

@@ -269,7 +269,15 @@ __kernel void MMLTMakeProposal(__global const RandomGen* in_gens,
 
   RandomGen gen = in_gens[tid];
 
-  const bool largeStep = (a_forceLargeStep == 1); // #TODO: select this via random
+  bool largeStep = false; 
+  if(a_forceLargeStep != 1)
+  {
+    const float p = rndFloat1_Pseudo(&gen);
+    if(p < 0.25f)
+      largeStep = true;
+  }
+  else
+    largeStep = true;
 
   // gen head first
   //
