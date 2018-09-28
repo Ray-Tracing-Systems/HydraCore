@@ -727,8 +727,6 @@ protected:
   float m_avgBrightness;
   std::vector<float> m_avgBPerBounce;
 
-  enum MUTATION_TYPE { MUTATE_LIGHT = 1, MUTATE_CAMERA = 2 };
-
   float3    F(const PSSampleV& a_xVec, const int d, int m_type, int* pX, int* pY);
   PSSampleV InitialSamplePS(const int d, const int a_burnIters = 0);
   PSSampleV MutatePrimarySpace(const PSSampleV& a_vec, int d, int* pMutationType);

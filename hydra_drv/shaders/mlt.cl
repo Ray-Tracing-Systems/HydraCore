@@ -255,10 +255,11 @@ __kernel void CopyAccColorTo(__global const float4* restrict in_vertexSup,
 }
 
 
-__kernel void MMLTMakeProposal(__global const RandomGen* in_gens,
-                               __global       RandomGen* out_gens,     // save new random gen state here if it is not null
-                               __global const float*     in_numbers,
-                               __global       float*     out_numbers,  // save random numbers here if it is not null
+__kernel void MMLTMakeProposal(__global int2*            restrict a_split,
+                               __global const RandomGen* restrict in_gens,
+                               __global       RandomGen* restrict out_gens,     // save new random gen state here if it is not null
+                               __global const float*     restrict in_numbers,
+                               __global       float*     restrict out_numbers,  // save random numbers here if it is not null
                                int a_forceLargeStep, int a_maxBounce,
                                __global const EngineGlobals* restrict a_globals,
                                int iNumElements)
@@ -269,15 +270,25 @@ __kernel void MMLTMakeProposal(__global const RandomGen* in_gens,
 
   RandomGen gen = in_gens[tid];
 
-  bool largeStep = false; 
-  if(a_forceLargeStep != 1)
+  bool largeStep    = false; 
+  int smallStepType = 0;
   {
     const float p = rndFloat1_Pseudo(&gen);
-    if(p < 0.2f)
+    if(a_forceLargeStep != 1)
+    {
+      if(p <= 0.25f)
+        largeStep = true;
+      else if(0.25f < p && p <= 0.50f)
+        smallStepType = MUTATE_LIGHT;
+      else if (0.50f < p && p <= 0.75f)
+        smallStepType = MUTATE_LIGHT | MUTATE_CAMERA;
+      else
+        smallStepType = MUTATE_CAMERA;
+    }
+    else
       largeStep = true;
   }
-  else
-    largeStep = true;
+  // enum MUTATION_TYPE { MUTATE_LIGHT = 1, MUTATE_CAMERA = 2 };
 
   // gen head first
   //
@@ -299,11 +310,14 @@ __kernel void MMLTMakeProposal(__global const RandomGen* in_gens,
       lensOffs.y = in_numbers[ TabIndex(MMLT_DIM_SCR_Y, tid, iNumElements) ];
       lensOffs.z = in_numbers[ TabIndex(MMLT_DIM_DOF_X, tid, iNumElements) ];
       lensOffs.w = in_numbers[ TabIndex(MMLT_DIM_DOF_Y, tid, iNumElements) ];
-
-      lensOffs.x = MutateKelemen(lensOffs.x, &gen, MUTATE_COEFF_SCREEN*screenScaleX);
-      lensOffs.y = MutateKelemen(lensOffs.y, &gen, MUTATE_COEFF_SCREEN*screenScaleY);
-      lensOffs.z = MutateKelemen(lensOffs.z, &gen, MUTATE_COEFF_BSDF);
-      lensOffs.w = MutateKelemen(lensOffs.w, &gen, MUTATE_COEFF_BSDF);
+      
+      if(smallStepType & MUTATE_CAMERA)
+      {
+        lensOffs.x = MutateKelemen(lensOffs.x, &gen, MUTATE_COEFF_SCREEN*screenScaleX);
+        lensOffs.y = MutateKelemen(lensOffs.y, &gen, MUTATE_COEFF_SCREEN*screenScaleY);
+        lensOffs.z = MutateKelemen(lensOffs.z, &gen, MUTATE_COEFF_BSDF);
+        lensOffs.w = MutateKelemen(lensOffs.w, &gen, MUTATE_COEFF_BSDF);
+      }
     }
     
     if(out_numbers != 0)
@@ -317,6 +331,7 @@ __kernel void MMLTMakeProposal(__global const RandomGen* in_gens,
 
   // light, split
   //
+  int d,s;
   {
     float4 lsam1; float2 lsam2; float lsamN; float split;
     if(largeStep)
@@ -338,15 +353,22 @@ __kernel void MMLTMakeProposal(__global const RandomGen* in_gens,
       lsamN   = in_numbers[ TabIndex(MMLT_DIM_LGT_N,  tid, iNumElements) ];
       split   = in_numbers[ TabIndex(MMLT_DIM_SPLIT,  tid, iNumElements) ];
 
-      lsam1.x = MutateKelemen(lsam1.x, &gen, MUTATE_COEFF_BSDF);
-      lsam1.y = MutateKelemen(lsam1.y, &gen, MUTATE_COEFF_BSDF);
-      lsam1.z = MutateKelemen(lsam1.z, &gen, MUTATE_COEFF_BSDF);
-      lsam1.w = MutateKelemen(lsam1.w, &gen, MUTATE_COEFF_BSDF);
-      lsam2.x = MutateKelemen(lsam2.x, &gen, MUTATE_COEFF_BSDF);
-      lsam2.y = MutateKelemen(lsam2.y, &gen, MUTATE_COEFF_BSDF); 
-
-      //#NOTE: do not mutate lsamN !!!
-      //#NOTE: do not mutate split !!!
+      const int2 oldSplit = a_split[tid];
+      d  = oldSplit.x; // MMLT_GPU_TEST_DEPTH;
+      s  = mapRndFloatToInt(split, 0, d); 
+   
+      if(smallStepType & MUTATE_LIGHT)
+      {
+        lsam1.x = MutateKelemen(lsam1.x, &gen, MUTATE_COEFF_BSDF);
+        lsam1.y = MutateKelemen(lsam1.y, &gen, MUTATE_COEFF_BSDF);
+        lsam1.z = MutateKelemen(lsam1.z, &gen, MUTATE_COEFF_BSDF);
+        lsam1.w = MutateKelemen(lsam1.w, &gen, MUTATE_COEFF_BSDF);
+        lsam2.x = MutateKelemen(lsam2.x, &gen, MUTATE_COEFF_BSDF);
+        lsam2.y = MutateKelemen(lsam2.y, &gen, MUTATE_COEFF_BSDF); 
+        
+        //#NOTE: do not mutate lsamN !!!
+        //#NOTE: do not mutate split !!!
+      }
     }
 
     if(out_numbers != 0)
@@ -391,10 +413,16 @@ __kernel void MMLTMakeProposal(__global const RandomGen* in_gens,
 
       gr1f = unpackBounceGroup (gr1);
       gr2f = unpackBounceGroup2(gr2);
+      
+      const bool lightT = (bounce < s) && (smallStepType & MUTATE_LIGHT) != 0;
+      const bool camT   = (bounce > s) && (smallStepType & MUTATE_CAMERA) != 0;
 
-      gr1f.group24.x = MutateKelemen(gr1f.group24.x, &gen, MUTATE_COEFF_BSDF);
-      gr1f.group24.y = MutateKelemen(gr1f.group24.y, &gen, MUTATE_COEFF_BSDF);
-      gr1f.group24.z = MutateKelemen(gr1f.group24.z, &gen, MUTATE_COEFF_BSDF);
+      if(lightT || camT || (bounce == s))
+      {
+        gr1f.group24.x = MutateKelemen(gr1f.group24.x, &gen, MUTATE_COEFF_BSDF);
+        gr1f.group24.y = MutateKelemen(gr1f.group24.y, &gen, MUTATE_COEFF_BSDF);
+        gr1f.group24.z = MutateKelemen(gr1f.group24.z, &gen, MUTATE_COEFF_BSDF);
+      }
     }
  
     if(out_numbers != 0)

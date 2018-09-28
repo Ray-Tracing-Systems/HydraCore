@@ -378,14 +378,15 @@ void GPUOCLLayer::runKernel_MMLTMakeProposal(cl_mem in_rgen, cl_mem in_vec, cl_i
   int            isize = int(a_size);
   a_size               = roundBlocks(a_size, int(localWorkSize));
 
-  CHECK_CL(clSetKernelArg(kernX, 0, sizeof(cl_mem), (void*)&in_rgen));
-  CHECK_CL(clSetKernelArg(kernX, 1, sizeof(cl_mem), (void*)&out_rgen));
-  CHECK_CL(clSetKernelArg(kernX, 2, sizeof(cl_mem), (void*)&in_vec));
-  CHECK_CL(clSetKernelArg(kernX, 3, sizeof(cl_mem), (void*)&out_vec));
-  CHECK_CL(clSetKernelArg(kernX, 4, sizeof(cl_int), (void*)&a_largeStep));
-  CHECK_CL(clSetKernelArg(kernX, 5, sizeof(cl_int), (void*)&a_maxBounce));
-  CHECK_CL(clSetKernelArg(kernX, 6, sizeof(cl_mem), (void*)&m_scene.allGlobsData));
-  CHECK_CL(clSetKernelArg(kernX, 7, sizeof(cl_int), (void*)&isize));
+  CHECK_CL(clSetKernelArg(kernX, 0, sizeof(cl_mem), (void*)&m_mlt.splitData));
+  CHECK_CL(clSetKernelArg(kernX, 1, sizeof(cl_mem), (void*)&in_rgen));
+  CHECK_CL(clSetKernelArg(kernX, 2, sizeof(cl_mem), (void*)&out_rgen));
+  CHECK_CL(clSetKernelArg(kernX, 3, sizeof(cl_mem), (void*)&in_vec));
+  CHECK_CL(clSetKernelArg(kernX, 4, sizeof(cl_mem), (void*)&out_vec));
+  CHECK_CL(clSetKernelArg(kernX, 5, sizeof(cl_int), (void*)&a_largeStep));
+  CHECK_CL(clSetKernelArg(kernX, 6, sizeof(cl_int), (void*)&a_maxBounce));
+  CHECK_CL(clSetKernelArg(kernX, 7, sizeof(cl_mem), (void*)&m_scene.allGlobsData));
+  CHECK_CL(clSetKernelArg(kernX, 8, sizeof(cl_int), (void*)&isize));
 
   CHECK_CL(clEnqueueNDRangeKernel(m_globals.cmdQueue, kernX, 1, NULL, &a_size, &localWorkSize, 0, NULL, NULL));
   waitIfDebug(__FILE__, __LINE__);
