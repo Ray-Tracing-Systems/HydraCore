@@ -1082,8 +1082,9 @@ void GPUOCLLayer::BeginTracingPass()
 
   if (m_vars.m_flags & HRT_ENABLE_MMLT)                 // SBDPT or MMLT pass
   {
-    int minBounce = 3;
-    int maxBounce = 8;
+    int minBounce  = 3;
+    int maxBounce  = 10;
+    int BURN_ITERS = 1024;
 
     if(!MLT_IsAllocated())
     {
@@ -1093,7 +1094,7 @@ void GPUOCLLayer::BeginTracingPass()
 
     if(m_spp < 1e-5f) // run init stage
     {
-      m_avgBrightness = MMLT_BurningIn(minBounce, maxBounce,
+      m_avgBrightness = MMLT_BurningIn(minBounce, maxBounce, BURN_ITERS,
                                        m_mlt.rstateNew, m_mlt.dNew, m_mlt.splitData, m_mlt.scaleTable, m_mlt.perBounceActiveThreads);
 
       // swap (m_mlt.rstateNew, m_mlt.dNew) and (m_mlt.rstateOld, m_mlt.dOld)

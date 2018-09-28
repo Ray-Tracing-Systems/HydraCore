@@ -107,7 +107,7 @@ size_t GPUOCLLayer::MMLTInitSplitDataUniform(int bounceBeg, int a_maxDepth, size
 
 std::vector<float> PrefixSumm(const std::vector<float>& a_vec);
 
-float GPUOCLLayer::MMLT_BurningIn(int minBounce, int maxBounce,
+float GPUOCLLayer::MMLT_BurningIn(int minBounce, int maxBounce, int BURN_ITERS,
                                   cl_mem out_rstate, cl_mem out_dsplit, cl_mem out_split2, cl_mem out_normC, std::vector<int>& out_activeThreads)
 {
   //testScanFloatsAnySize();
@@ -131,7 +131,6 @@ float GPUOCLLayer::MMLT_BurningIn(int minBounce, int maxBounce,
   MMLTInitSplitDataUniform(minBounce, maxBounce, m_rays.MEGABLOCKSIZE,
                            m_mlt.splitData, m_mlt.scaleTable, out_activeThreads);
 
-  const int BURN_ITERS   = 1024;
   const int BURN_PORTION = m_rays.MEGABLOCKSIZE/BURN_ITERS;
 
   cl_mem temp_f1 = out_dsplit; // #NOTE: well, that's not ok in general, but due to sizeof(int) == sizeof(float) we can use this buffer temporary

@@ -454,7 +454,7 @@ protected:
   void runKernel_MLTEvalContribFunc(cl_mem in_buff, cl_mem in_split, size_t a_size,
                                     cl_mem out_buff, cl_mem out_table);
 
-  float MMLT_BurningIn(int minBounce, int maxBounce,
+  float MMLT_BurningIn(int minBounce, int maxBounce, int BURN_ITERS,
                        cl_mem out_rstate, cl_mem out_dsplit, cl_mem out_split2, cl_mem out_normC, std::vector<int>& out_activeThreads);
 
   void runKernel_AcceptReject(cl_mem a_xVector, cl_mem a_yVector, cl_mem a_xColor,  cl_mem a_yColor, 

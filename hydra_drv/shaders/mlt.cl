@@ -1345,9 +1345,6 @@ __kernel void MMLTConnect(__global const int2  *  restrict in_splitInfo,
 
   sampleColor *= decompressShadow(in_shadow[tid]);
 
-  if (!isfinite(sampleColor.x) || !isfinite(sampleColor.y) || !isfinite(sampleColor.z))
-    sampleColor = make_float3(0, 0, 0);
-
   // calc MIS weight
   //
   float misWeight = 1.0f;
@@ -1392,8 +1389,10 @@ __kernel void MMLTConnect(__global const int2  *  restrict in_splitInfo,
   }
 
   sampleColor *= misWeight;
-
   sampleColor *= a_scaleTable[d];
+
+  if (!isfinite(sampleColor.x) || !isfinite(sampleColor.y) || !isfinite(sampleColor.z))
+    sampleColor = make_float3(0, 0, 0);
 
   if (tid >= iNumElements) // if threads num was less than MEGABLOCKSIZE
   {
