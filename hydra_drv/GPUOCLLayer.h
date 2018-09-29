@@ -119,7 +119,8 @@ protected:
   void float2half(const float* a_inData, size_t a_size, std::vector<cl_half>& a_out);
 
   void trace1DPrimaryOnly(cl_mem a_rpos, cl_mem a_rdir, cl_mem a_outColor, size_t a_size, size_t a_offset);
-  void trace1D(cl_mem a_rpos, cl_mem a_rdir, cl_mem a_outColor, size_t a_size);
+  void trace1D(int a_maxBounce, cl_mem a_rpos, cl_mem a_rdir, size_t a_size,
+               cl_mem a_outColor);
 
   void DrawNormals();
   void CopyShadowTo(cl_mem a_color, size_t a_size);

@@ -1132,7 +1132,8 @@ void GPUOCLLayer::BeginTracingPass()
 
     // (2) Compute sample colors
     //
-    trace1D(m_rays.rayPos, m_rays.rayDir, m_rays.pathAccColor, m_rays.MEGABLOCKSIZE);
+    trace1D(m_vars.m_varsI[HRT_TRACE_DEPTH], m_rays.rayPos, m_rays.rayDir, m_rays.MEGABLOCKSIZE,
+            m_rays.pathAccColor);
 
     // (3) accumulate colors
     //

@@ -476,7 +476,8 @@ void GPUOCLLayer::RunProductionSamplingMode()
     // (4) trace rays/paths
     //
     runKernel_ClearAllInternalTempBuffers(finalSize);
-    trace1D(m_rays.rayPos, m_rays.rayDir, m_rays.pathAccColor, finalSize);
+    trace1D(m_vars.m_varsI[HRT_TRACE_DEPTH], m_rays.rayPos, m_rays.rayDir, finalSize,
+            m_rays.pathAccColor);
     runKernel_GetShadowToAlpha(m_rays.pathAccColor, m_rays.pathShadow8B, finalSize);
 
     // (5) average colors

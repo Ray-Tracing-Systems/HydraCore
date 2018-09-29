@@ -6,7 +6,8 @@
 #undef min
 #undef max
 
-void GPUOCLLayer::trace1D(cl_mem a_rpos, cl_mem a_rdir, cl_mem a_outColor, size_t a_size)
+void GPUOCLLayer::trace1D(int a_maxBounce, cl_mem a_rpos, cl_mem a_rdir, size_t a_size,
+                          cl_mem a_outColor)
 {
   // trace rays
   //
@@ -53,7 +54,7 @@ void GPUOCLLayer::trace1D(cl_mem a_rpos, cl_mem a_rdir, cl_mem a_outColor, size_
     }
 
     runKernel_ComputeHit(a_rpos, a_rdir, m_rays.hits, a_size, a_size,
-                        m_rays.hitSurfaceAll, m_rays.hitProcTexData);
+                         m_rays.hitSurfaceAll, m_rays.hitProcTexData);
 
     if ((m_vars.m_flags & HRT_FORWARD_TRACING) == 0)
       runKernel_HitEnvOrLight(m_rays.rayFlags, a_rpos, a_rdir, a_outColor, bounce, a_size);
