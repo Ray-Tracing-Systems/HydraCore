@@ -18,6 +18,7 @@
 void GPUOCLLayer::CL_MLT_DATA::free()
 {
   if (rstateForAcceptReject) { clReleaseMemObject(rstateForAcceptReject); rstateForAcceptReject = 0; }
+  //if (rstateCurr)            { clReleaseMemObject(rstateCurr);            rstateCurr            = 0; }
   if (rstateOld)             { clReleaseMemObject(rstateOld);             rstateOld             = 0; }
   if (rstateNew)             { clReleaseMemObject(rstateNew);             rstateNew             = 0; }
   if (dNew)                  { clReleaseMemObject(dNew);                  dNew                  = 0; }
@@ -65,7 +66,7 @@ size_t GPUOCLLayer::MLT_Alloc(int a_width, int a_height, int a_maxBounce)
   // alloc additional random number
   //
   m_mlt.rstateForAcceptReject = clCreateBuffer(m_globals.ctx, CL_MEM_READ_WRITE, 1 * sizeof(RandomGen)*m_rays.MEGABLOCKSIZE, NULL, &ciErr1);
-  m_mlt.rstateCurr            = m_rays.randGenState; // clCreateBuffer(m_globals.ctx, CL_MEM_READ_WRITE, 1 * sizeof(RandomGen)*m_rays.MEGABLOCKSIZE, NULL, &ciErr1); // m_rays.randGenState;
+  m_mlt.rstateCurr            = m_rays.randGenState; //clCreateBuffer(m_globals.ctx, CL_MEM_READ_WRITE, 1 * sizeof(RandomGen)*m_rays.MEGABLOCKSIZE, NULL, &ciErr1); 
   m_mlt.rstateOld             = clCreateBuffer(m_globals.ctx, CL_MEM_READ_WRITE, 1 * sizeof(RandomGen)*m_rays.MEGABLOCKSIZE, NULL, &ciErr1);
   m_mlt.rstateNew             = clCreateBuffer(m_globals.ctx, CL_MEM_READ_WRITE, 1 * sizeof(RandomGen)*m_rays.MEGABLOCKSIZE, NULL, &ciErr1);
   m_mlt.dOld                  = clCreateBuffer(m_globals.ctx, CL_MEM_READ_WRITE, 1 * sizeof(int)*m_rays.MEGABLOCKSIZE, NULL, &ciErr1);

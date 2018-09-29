@@ -31,9 +31,8 @@ void GPUOCLLayer::trace1D(int a_maxBounce, cl_mem a_rpos, cl_mem a_rdir, size_t 
   float timeForHit      = 0.0f;
 
   int measureBounce = m_vars.m_varsI[HRT_MEASURE_RAYS_TYPE];
-  int maxBounce     = m_vars.m_varsI[HRT_TRACE_DEPTH];
 
-  for (int bounce = 0; bounce < maxBounce; bounce++)
+  for (int bounce = 0; bounce < a_maxBounce; bounce++)
   {
     const bool measureThisBounce = (bounce == measureBounce);
 
