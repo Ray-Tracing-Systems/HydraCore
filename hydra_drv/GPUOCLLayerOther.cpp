@@ -115,11 +115,11 @@ void GPUOCLLayer::AddContributionToScreenCPU2(cl_mem& in_color, cl_mem& in_color
   //
   if (m_passNumber != 0)
   {
-    clEnqueueCopyBuffer(m_globals.cmdQueueDevToHost, m_rays.pathAuxColor, m_rays.pathAuxColorCPU, 0, 0, a_size * sizeof(float4), 0, nullptr, nullptr);
+    clEnqueueCopyBuffer(m_globals.cmdQueueDevToHost, m_mlt.pathAuxColor,  m_mlt.pathAuxColorCPU,  0, 0, a_size * sizeof(float4), 0, nullptr, nullptr);
     clEnqueueCopyBuffer(m_globals.cmdQueueDevToHost, m_mlt.pathAuxColor2, m_mlt.pathAuxColorCPU2, 0, 0, a_size * sizeof(float4), 0, nullptr, nullptr);
 
     cl_int ciErr1  = 0;
-    float4* colors1 = (float4*)clEnqueueMapBuffer(m_globals.cmdQueueDevToHost, m_rays.pathAuxColorCPU, CL_TRUE, CL_MAP_READ, 0, a_size * sizeof(float4), 0, 0, 0, &ciErr1);
+    float4* colors1 = (float4*)clEnqueueMapBuffer(m_globals.cmdQueueDevToHost, m_mlt.pathAuxColorCPU,  CL_TRUE, CL_MAP_READ, 0, a_size * sizeof(float4), 0, 0, 0, &ciErr1);
     float4* colors2 = (float4*)clEnqueueMapBuffer(m_globals.cmdQueueDevToHost, m_mlt.pathAuxColorCPU2, CL_TRUE, CL_MAP_READ, 0, a_size * sizeof(float4), 0, 0, 0, &ciErr1);
 
     const float contribSPP = float(double(a_size) / double(a_width*a_height));
@@ -144,7 +144,7 @@ void GPUOCLLayer::AddContributionToScreenCPU2(cl_mem& in_color, cl_mem& in_color
 
     m_sppDone += contribSPP;
 
-    clEnqueueUnmapMemObject(m_globals.cmdQueueDevToHost, m_rays.pathAuxColorCPU, colors1, 0, 0, 0);
+    clEnqueueUnmapMemObject(m_globals.cmdQueueDevToHost, m_mlt.pathAuxColorCPU,  colors1, 0, 0, 0);
     clEnqueueUnmapMemObject(m_globals.cmdQueueDevToHost, m_mlt.pathAuxColorCPU2, colors2, 0, 0, 0);
   }
 
@@ -154,8 +154,8 @@ void GPUOCLLayer::AddContributionToScreenCPU2(cl_mem& in_color, cl_mem& in_color
   // (3) swap color buffers
   //
   {
-    cl_mem temp         = m_rays.pathAuxColor;
-    m_rays.pathAuxColor = in_color;
+    cl_mem temp         = m_mlt.pathAuxColor;
+    m_mlt.pathAuxColor  = in_color;
     in_color            = temp;
 
     temp                = m_mlt.pathAuxColor2;

@@ -34,6 +34,8 @@ void GPUOCLLayer::CL_MLT_DATA::free()
   if (cameraVertexHit)       { clReleaseMemObject(cameraVertexHit);   cameraVertexHit = 0; }
   if (pdfArray)              { clReleaseMemObject(pdfArray);          pdfArray        = 0; }
 
+  if (pathAuxColor)          { clReleaseMemObject(pathAuxColor);      pathAuxColor     = 0;}
+  if (pathAuxColorCPU)       { clReleaseMemObject(pathAuxColorCPU);   pathAuxColorCPU  = 0;}
   if (pathAuxColor2)         { clReleaseMemObject(pathAuxColor2);     pathAuxColor2    = 0;}
   if (pathAuxColorCPU2)      { clReleaseMemObject(pathAuxColorCPU2);  pathAuxColorCPU2 = 0;}
 
@@ -139,11 +141,13 @@ size_t GPUOCLLayer::MLT_Alloc(int a_width, int a_height, int a_maxBounce)
   if(!scan_alloc_internal(a_width*a_height, m_globals.ctx))
     RUN_TIME_ERROR("Error in scan_alloc_internal");
 
+  m_mlt.pathAuxColor     = clCreateBuffer(m_globals.ctx, CL_MEM_READ_WRITE,                         4 * sizeof(cl_float)*m_rays.MEGABLOCKSIZE, NULL, &ciErr1);
+  m_mlt.pathAuxColorCPU  = clCreateBuffer(m_globals.ctx, CL_MEM_WRITE_ONLY | CL_MEM_ALLOC_HOST_PTR, 4 * sizeof(cl_float)*m_rays.MEGABLOCKSIZE, NULL, &ciErr1);  
   m_mlt.pathAuxColor2    = clCreateBuffer(m_globals.ctx, CL_MEM_READ_WRITE,                         4 * sizeof(cl_float)*m_rays.MEGABLOCKSIZE, NULL, &ciErr1);
   m_mlt.pathAuxColorCPU2 = clCreateBuffer(m_globals.ctx, CL_MEM_WRITE_ONLY | CL_MEM_ALLOC_HOST_PTR, 4 * sizeof(cl_float)*m_rays.MEGABLOCKSIZE, NULL, &ciErr1);  
   if (ciErr1 != CL_SUCCESS) 
     RUN_TIME_ERROR("Error in clCreateBuffer");
-  m_mlt.memTaken += 4*sizeof(float)*m_rays.MEGABLOCKSIZE; 
+  m_mlt.memTaken += 8*sizeof(float)*m_rays.MEGABLOCKSIZE; 
 
   return m_mlt.memTaken;
 }
