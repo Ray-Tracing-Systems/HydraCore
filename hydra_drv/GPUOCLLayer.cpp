@@ -957,7 +957,9 @@ void GPUOCLLayer::GetLDRImage(uint* data, int width, int height) const
     if (m_passNumber - 1 <= 0) // remember about pipelined copy!!
       return;
 
-    const float normConst = 1.0f / m_spp; // 1.0f / float(m_passNumber - 1); // remember about pipelined copy!!
+    float normConst = 1.0f / m_spp; // 1.0f / float(m_passNumber - 1); // remember about pipelined copy!!
+    if (m_vars.m_flags & HRT_ENABLE_MMLT)  
+      normConst = EstimateMLTNormConst(m_screen.color0CPU.data(), width, height);
 
     if (!HydraSSE::g_useSSE)
     {
@@ -1015,15 +1017,34 @@ void GPUOCLLayer::GetLDRImage(uint* data, int width, int height) const
 
 }
 
+float GPUOCLLayer::EstimateMLTNormConst(const float4* data, int width, int height) const // #TODO: opt this with simdpp library ...   
+{
+  const int size = width*height;
+  double summ[3] = {0,0,0};
+  for (int i = 0; i < size; i++)  // #TODO: use sse and fast pow
+  {
+    float4 color = data[i];
+    summ[0] += double(color.x);
+    summ[1] += double(color.y);
+    summ[2] += double(color.z);
+  }
+  double avgDiv       = 1.0/double(size);
+  float avgBrightness = contribFunc(float3(avgDiv*summ[0], avgDiv*summ[1], avgDiv*summ[2]));
+  return m_avgBrightness / fmax(avgBrightness, DEPSILON2);
+}
+
 void GPUOCLLayer::GetHDRImage(float4* data, int width, int height) const
 {
   if (m_passNumber - 1 <= 0 || m_spp <= 1e-5f) // remember about pipelined copy!!
     return;
 
-  const float normConst = (1.0f / m_spp);
+  float normConst = (1.0f / m_spp);
 
   if (m_screen.m_cpuFrameBuffer)
   {
+    if (m_vars.m_flags & HRT_ENABLE_MMLT)  
+      normConst = EstimateMLTNormConst(m_screen.color0CPU.data(), width, height);
+
     for (size_t i = 0; i < (width*height); i++)
       data[i] = m_screen.color0CPU[i] * normConst;
   }

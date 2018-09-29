@@ -12,8 +12,8 @@ Input::Input()
   
   //noWindow      = false;         ///< run 'console_main', else run 'window_main'
   //inLibraryPath = "tests/test_42"; ///< cornell box with teapot
-  //inLibraryPath = "tests/test_223_small"; ///< cornell box with sphere
-  inLibraryPath = "/media/frol/886234F06234E49A/scenes/benchmark_for_mmlt_my_dark"; ///< cornell box with mirror glossy back wall
+  inLibraryPath = "tests/test_223_small"; ///< cornell box with sphere
+  //inLibraryPath = "/media/frol/886234F06234E49A/scenes/benchmark_for_mmlt_my_dark"; ///< cornell box with mirror glossy back wall
   //inLibraryPath = "/media/frol/886234F06234E49A/scenes/phong_test/torspar1";
   
   //inLibraryPath = "/home/frol/PROG/HydraAPI/main/tests/test_86";
@@ -29,7 +29,7 @@ Input::Input()
 
   inDevelopment = true;  ///< recompile shaders each time; note that nvidia have their own shader cache!
   inDeviceId    = 0;     ///< opencl device id
-  cpuFB         = false; ///< store frame buffer on CPU. Automaticly enabled if
+  cpuFB         = true;  ///< store frame buffer on CPU. Automaticly enabled if
   enableMLT     = false; ///< if use MMLT, you MUST enable it early, when render process just started (here or via command line).
   boxMode       = false; ///< special 'in the box' mode when render don't react to any commands
   

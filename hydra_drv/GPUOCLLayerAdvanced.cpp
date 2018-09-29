@@ -107,9 +107,32 @@ void GPUOCLLayer::MMLT_Pass(int minBounce, int maxBounce, int BURN_ITERS)
       runKernel_AcceptReject(m_mlt.xVector, m_mlt.yVector, m_mlt.xColor, m_mlt.yColor,
                              m_mlt.rstateForAcceptReject, maxBounce, m_rays.MEGABLOCKSIZE,
                              xMultOneMinusAlpha, yMultAlpha);
-
-      AddContributionToScreen(xMultOneMinusAlpha, nullptr, false);                         
-      AddContributionToScreen(yMultAlpha        , nullptr, (pass == NUM_MMLT_PASS-1)); 
+      
+      // (4) (xColor, yColor) => ContribToScreen
+      //
+      if(m_screen.m_cpuFrameBuffer)
+      {
+        float4* resultPtr = nullptr;
+        int width         = m_width;
+        int height        = m_height;
+    
+        if (m_pExternalImage != nullptr)
+        {
+          resultPtr = (float4*)m_pExternalImage->ImageData(0);
+          width     = m_pExternalImage->Header()->width;
+          height    = m_pExternalImage->Header()->height;
+        }
+        else
+          resultPtr = &m_screen.color0CPU[0];
+    
+        AddContributionToScreenCPU2(yMultAlpha, xMultOneMinusAlpha, int(m_rays.MEGABLOCKSIZE), width, height,
+                                    resultPtr);
+      }
+      else
+      {
+        AddContributionToScreen(xMultOneMinusAlpha, nullptr, false);                         
+        AddContributionToScreen(yMultAlpha        , nullptr, (pass == NUM_MMLT_PASS-1));
+      } 
     }
     else
       AddContributionToScreen(m_mlt.yColor, nullptr, (pass == NUM_MMLT_PASS-1));

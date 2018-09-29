@@ -131,8 +131,10 @@ protected:
                                   cl_mem out_colorHDR, cl_mem out_colorLDR);
 
   void AddContributionToScreenCPU(cl_mem& in_color, int a_size, int a_width, int a_height, float4* out_color);
+  void AddContributionToScreenCPU2(cl_mem& in_color, cl_mem& in_color2, int a_size, int a_width, int a_height, float4* out_color);
 
-
+  float EstimateMLTNormConst(const float4* data, int width, int height) const;
+ 
   /** \brief implements "add" contribution from in_color to screen buffer (just add values!!!) 
   * 
   * \param in_color   - in float4 buffer; in_color[i].xyz - color; as_int(in_color[i].w) - packed (x,y) where to contribute (accounted only if in_indices is nullptr or CPU fra,ebuffer is ised)
@@ -194,7 +196,7 @@ protected:
   {
     CL_MLT_DATA() : rstateForAcceptReject(0), rstateCurr(0), rstateOld(0), rstateNew(0), dNew(0), dOld(0),
                     xVector(0), yVector(0), currVec(0), xColor(0), yColor(0), lightVertexSup(0), cameraVertexSup(0), cameraVertexHit(0), 
-                    pdfArray(0), splitData(0), scaleTable(0), memTaken(0), mppDone(0.0), currBounceThreadsNum(0) {}
+                    pdfArray(0), pathAuxColor2(0), pathAuxColorCPU2(0), splitData(0), scaleTable(0), memTaken(0), mppDone(0.0), currBounceThreadsNum(0) {}
 
     cl_mem rstateForAcceptReject; // sizeof(RandGen), MEGABLOCKSIZE size
     cl_mem rstateCurr;            // sizeof(RandGen), MEGABLOCKSIZE size; not allocated, assign m_rays.randGenState
@@ -215,6 +217,9 @@ protected:
     cl_mem cameraVertexSup;
     cl_mem cameraVertexHit;
     cl_mem pdfArray;
+
+    cl_mem pathAuxColor2;
+    cl_mem pathAuxColorCPU2;
 
     cl_mem splitData;
     cl_mem scaleTable;

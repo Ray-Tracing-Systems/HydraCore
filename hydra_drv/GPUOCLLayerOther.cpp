@@ -106,6 +106,66 @@ void AddSamplesContributionS(float4* out_color, const float4* colors, const unsi
   }
 }
 
+
+void GPUOCLLayer::AddContributionToScreenCPU2(cl_mem& in_color, cl_mem& in_color2, int a_size, int a_width, int a_height, float4* out_color)
+{
+  clFlush(m_globals.cmdQueue);
+
+  // (2) sync copy of data (sync asyncronious call in future, pin pong) and eval contribution
+  //
+  if (m_passNumber != 0)
+  {
+    clEnqueueCopyBuffer(m_globals.cmdQueueDevToHost, m_rays.pathAuxColor, m_rays.pathAuxColorCPU, 0, 0, a_size * sizeof(float4), 0, nullptr, nullptr);
+    clEnqueueCopyBuffer(m_globals.cmdQueueDevToHost, m_mlt.pathAuxColor2, m_mlt.pathAuxColorCPU2, 0, 0, a_size * sizeof(float4), 0, nullptr, nullptr);
+
+    cl_int ciErr1  = 0;
+    float4* colors1 = (float4*)clEnqueueMapBuffer(m_globals.cmdQueueDevToHost, m_rays.pathAuxColorCPU, CL_TRUE, CL_MAP_READ, 0, a_size * sizeof(float4), 0, 0, 0, &ciErr1);
+    float4* colors2 = (float4*)clEnqueueMapBuffer(m_globals.cmdQueueDevToHost, m_mlt.pathAuxColorCPU2, CL_TRUE, CL_MAP_READ, 0, a_size * sizeof(float4), 0, 0, 0, &ciErr1);
+
+    const float contribSPP = float(double(a_size) / double(a_width*a_height));
+
+    bool lockSuccess = (m_pExternalImage == nullptr);
+    if (m_pExternalImage != nullptr)
+      lockSuccess = m_pExternalImage->Lock(250); // can wait 250 ms for success lock
+
+    if (lockSuccess)
+    {
+      AddSamplesContribution(out_color, colors1, int(a_size), a_width, a_height);
+      AddSamplesContribution(out_color, colors2, int(a_size), a_width, a_height);
+
+      if (m_pExternalImage != nullptr)
+      {  
+        m_pExternalImage->Header()->counterRcv++;
+        m_pExternalImage->Header()->spp += contribSPP;
+        m_sppContrib                    += contribSPP; 
+        m_pExternalImage->Unlock();
+      }
+    }
+
+    m_sppDone += contribSPP;
+
+    clEnqueueUnmapMemObject(m_globals.cmdQueueDevToHost, m_rays.pathAuxColorCPU, colors1, 0, 0, 0);
+    clEnqueueUnmapMemObject(m_globals.cmdQueueDevToHost, m_mlt.pathAuxColorCPU2, colors2, 0, 0, 0);
+  }
+
+  clFinish(m_globals.cmdQueueDevToHost);
+  clFinish(m_globals.cmdQueue);
+
+  // (3) swap color buffers
+  //
+  {
+    cl_mem temp         = m_rays.pathAuxColor;
+    m_rays.pathAuxColor = in_color;
+    in_color            = temp;
+
+    temp                = m_mlt.pathAuxColor2;
+    m_mlt.pathAuxColor2 = in_color2;
+    in_color2           = temp;
+  }
+
+  m_passNumber++;
+}
+
 void GPUOCLLayer::AddContributionToScreenCPU(cl_mem& in_color, int a_size, int a_width, int a_height, float4* out_color)
 {
   // (1) compute compressed index in color.w; use runKernel_MakeEyeRaysAndClearUnified for that task if CPU FB is enabled!!!

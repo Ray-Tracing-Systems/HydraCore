@@ -33,6 +33,10 @@ void GPUOCLLayer::CL_MLT_DATA::free()
   if (cameraVertexSup)       { clReleaseMemObject(cameraVertexSup);   cameraVertexSup = 0; }
   if (cameraVertexHit)       { clReleaseMemObject(cameraVertexHit);   cameraVertexHit = 0; }
   if (pdfArray)              { clReleaseMemObject(pdfArray);          pdfArray        = 0; }
+
+  if (pathAuxColor2)         { clReleaseMemObject(pathAuxColor2);     pathAuxColor2    = 0;}
+  if (pathAuxColorCPU2)      { clReleaseMemObject(pathAuxColorCPU2);  pathAuxColorCPU2 = 0;}
+
   if (splitData)             { clReleaseMemObject(splitData);         splitData       = 0; }
   if (scaleTable)            { clReleaseMemObject(scaleTable);        scaleTable      = 0; }
 
@@ -67,7 +71,7 @@ size_t GPUOCLLayer::MLT_Alloc(int a_width, int a_height, int a_maxBounce)
   if (ciErr1 != CL_SUCCESS)
     RUN_TIME_ERROR("[cl_core]: Failed to create rstateForAcceptReject ");
 
-  srand(GetTickCount()); // #TODO: use some more precise system timer!!!
+  srand(GetTickCount()); // #TODO: use some more precise system timer !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
   runKernel_InitRandomGen(m_mlt.rstateForAcceptReject, m_rays.MEGABLOCKSIZE, rand());
   runKernel_InitRandomGen(m_mlt.rstateCurr,            m_rays.MEGABLOCKSIZE, rand());
@@ -134,6 +138,12 @@ size_t GPUOCLLayer::MLT_Alloc(int a_width, int a_height, int a_maxBounce)
 
   if(!scan_alloc_internal(a_width*a_height, m_globals.ctx))
     RUN_TIME_ERROR("Error in scan_alloc_internal");
+
+  m_mlt.pathAuxColor2    = clCreateBuffer(m_globals.ctx, CL_MEM_READ_WRITE,                         4 * sizeof(cl_float)*m_rays.MEGABLOCKSIZE, NULL, &ciErr1);
+  m_mlt.pathAuxColorCPU2 = clCreateBuffer(m_globals.ctx, CL_MEM_WRITE_ONLY | CL_MEM_ALLOC_HOST_PTR, 4 * sizeof(cl_float)*m_rays.MEGABLOCKSIZE, NULL, &ciErr1);  
+  if (ciErr1 != CL_SUCCESS) 
+    RUN_TIME_ERROR("Error in clCreateBuffer");
+  m_mlt.memTaken += 4*sizeof(float)*m_rays.MEGABLOCKSIZE; 
 
   return m_mlt.memTaken;
 }
