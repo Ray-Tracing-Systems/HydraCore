@@ -1071,8 +1071,6 @@ void GPUOCLLayer::ResetPerfCounters()
   memset(&m_stat, 0, sizeof(MRaysStat));
 }
 
-constexpr static int NUM_MMLT_PASS = 8;
-
 void GPUOCLLayer::BeginTracingPass()
 {
   static int firstCall = 0;
@@ -1085,70 +1083,8 @@ void GPUOCLLayer::BeginTracingPass()
     int minBounce  = 3;
     int maxBounce  = 10;
     int BURN_ITERS = 1024;
-
-    if(!MLT_IsAllocated())
-    {
-       size_t mltMem = MLT_Alloc(m_width, m_height, maxBounce + 1); // #TODO: maxBounce works too !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-       std::cout << "[AllocAll]: MEM(MLT)    = " << mltMem / size_t(1024*1024) << "\tMB" << std::endl; 
-    }
-
-    if(m_spp < 1e-5f) // run init stage
-    {
-      m_avgBrightness = MMLT_BurningIn(minBounce, maxBounce, BURN_ITERS,
-                                       m_mlt.rstateNew, m_mlt.dNew, m_mlt.splitData, m_mlt.scaleTable, m_mlt.perBounceActiveThreads);
-
-      // swap (m_mlt.rstateNew, m_mlt.dNew) and (m_mlt.rstateOld, m_mlt.dOld)
-      {
-        cl_mem sTmp     = m_mlt.rstateNew; cl_mem dTmp = m_mlt.dNew;
-        m_mlt.rstateNew = m_mlt.rstateOld;  m_mlt.dNew = m_mlt.dOld;
-        m_mlt.rstateOld = sTmp;             m_mlt.dOld = dTmp;
-      }
-
-      if(!ENABLE_SBDPT_FOR_DEBUG)
-      {
-        runKernel_MMLTMakeProposal(m_mlt.rstateOld, nullptr, 1, maxBounce, m_rays.MEGABLOCKSIZE, //#NOTE: force large step = 1 to generate numbers from current state
-                                   nullptr, m_mlt.yVector);
-
-        runKernel_MMLTMakeProposal(m_mlt.rstateOld, nullptr, 1, maxBounce, m_rays.MEGABLOCKSIZE, //#NOTE: force large step = 1 to generate numbers from current state
-                                   nullptr, m_mlt.xVector);
-
-        EvalSBDPT(m_mlt.xVector, minBounce, maxBounce, m_rays.MEGABLOCKSIZE,
-                  m_mlt.xColor, m_rays.samZindex);
-      }
-    }
-
-    for(int pass = 0; pass < NUM_MMLT_PASS; pass ++)
-    {
-      m_raysWasSorted = false;
-
-      // (1) make poposal / gen rands
-      //
-      const bool largeStep = ENABLE_SBDPT_FOR_DEBUG ? true : false;
-      runKernel_MMLTMakeProposal(m_mlt.rstateOld, m_mlt.xVector, largeStep, maxBounce, m_rays.MEGABLOCKSIZE,
-                                 m_mlt.rstateOld, m_mlt.yVector);
-      
-      // (2) trace; 
-      //
-      EvalSBDPT(m_mlt.yVector, minBounce, maxBounce, m_rays.MEGABLOCKSIZE,
-                m_mlt.yColor, m_rays.samZindex);
-      
-      // (3) Accept/Reject => (xColor, yColor) + (XZindex, YZindex)
-      //
-      if(!ENABLE_SBDPT_FOR_DEBUG)
-      {
-        cl_mem yMultAlpha         = m_rays.pathAccColor;   // use this buffers 
-        cl_mem xMultOneMinusAlpha = m_rays.pathShadeColor; // use this buffers 
-        
-        runKernel_AcceptReject(m_mlt.xVector, m_mlt.yVector, m_mlt.xColor, m_mlt.yColor,
-                               m_mlt.rstateForAcceptReject, maxBounce, m_rays.MEGABLOCKSIZE,
-                               xMultOneMinusAlpha, yMultAlpha);
-  
-        AddContributionToScreen(xMultOneMinusAlpha, nullptr, false);                         
-        AddContributionToScreen(yMultAlpha        , nullptr, (pass == NUM_MMLT_PASS-1)); 
-      }
-      else
-        AddContributionToScreen(m_mlt.yColor, nullptr, (pass == NUM_MMLT_PASS-1));
-    }
+   
+    MMLT_Pass(minBounce, maxBounce, BURN_ITERS); 
   }
   else if((m_vars.m_flags & HRT_PRODUCTION_IMAGE_SAMPLING) != 0 && (m_vars.m_flags & HRT_UNIFIED_IMAGE_SAMPLING) != 0)
   {

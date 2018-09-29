@@ -53,6 +53,70 @@ void GPUOCLLayer::ConnectEyePass(cl_mem in_rayFlags, cl_mem in_rayDirOld, cl_mem
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+void GPUOCLLayer::MMLT_Pass(int minBounce, int maxBounce, int BURN_ITERS)
+{
+  if(!MLT_IsAllocated())
+  {
+     size_t mltMem = MLT_Alloc(m_width, m_height, maxBounce + 1); // #TODO: maxBounce works too !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+     std::cout << "[AllocAll]: MEM(MLT)    = " << mltMem / size_t(1024*1024) << "\tMB" << std::endl; 
+  } 
+  
+  if(m_spp < 1e-5f) // run init stage
+  {
+    m_avgBrightness = MMLT_BurningIn(minBounce, maxBounce, BURN_ITERS,
+                                     m_mlt.rstateNew, m_mlt.dNew, m_mlt.splitData, m_mlt.scaleTable, m_mlt.perBounceActiveThreads);
+    // swap (m_mlt.rstateNew, m_mlt.dNew) and (m_mlt.rstateOld, m_mlt.dOld)
+    {
+      cl_mem sTmp     = m_mlt.rstateNew; cl_mem dTmp = m_mlt.dNew;
+      m_mlt.rstateNew = m_mlt.rstateOld;  m_mlt.dNew = m_mlt.dOld;
+      m_mlt.rstateOld = sTmp;             m_mlt.dOld = dTmp;
+    }
+
+    if(!ENABLE_SBDPT_FOR_DEBUG)
+    {
+      runKernel_MMLTMakeProposal(m_mlt.rstateOld, nullptr, 1, maxBounce, m_rays.MEGABLOCKSIZE, //#NOTE: force large step = 1 to generate numbers from current state
+                                 nullptr, m_mlt.yVector);
+      runKernel_MMLTMakeProposal(m_mlt.rstateOld, nullptr, 1, maxBounce, m_rays.MEGABLOCKSIZE, //#NOTE: force large step = 1 to generate numbers from current state
+                                 nullptr, m_mlt.xVector);
+      EvalSBDPT(m_mlt.xVector, minBounce, maxBounce, m_rays.MEGABLOCKSIZE,
+                m_mlt.xColor);
+    }
+  }
+
+  for(int pass = 0; pass < NUM_MMLT_PASS; pass ++)
+  {
+    m_raysWasSorted = false;
+    // (1) make poposal / gen rands
+    //
+    const bool largeStep = ENABLE_SBDPT_FOR_DEBUG ? true : false;
+    runKernel_MMLTMakeProposal(m_mlt.rstateOld, m_mlt.xVector, largeStep, maxBounce, m_rays.MEGABLOCKSIZE,
+                               m_mlt.rstateOld, m_mlt.yVector);
+    
+    // (2) trace; 
+    //
+    EvalSBDPT(m_mlt.yVector, minBounce, maxBounce, m_rays.MEGABLOCKSIZE,
+              m_mlt.yColor);
+    
+    // (3) Accept/Reject => (xColor, yColor)
+    //
+    if(!ENABLE_SBDPT_FOR_DEBUG)
+    {
+      cl_mem yMultAlpha         = m_rays.pathAccColor;   // use this buffers 
+      cl_mem xMultOneMinusAlpha = m_rays.pathShadeColor; // use this buffers 
+      
+      runKernel_AcceptReject(m_mlt.xVector, m_mlt.yVector, m_mlt.xColor, m_mlt.yColor,
+                             m_mlt.rstateForAcceptReject, maxBounce, m_rays.MEGABLOCKSIZE,
+                             xMultOneMinusAlpha, yMultAlpha);
+
+      AddContributionToScreen(xMultOneMinusAlpha, nullptr, false);                         
+      AddContributionToScreen(yMultAlpha        , nullptr, (pass == NUM_MMLT_PASS-1)); 
+    }
+    else
+      AddContributionToScreen(m_mlt.yColor, nullptr, (pass == NUM_MMLT_PASS-1));
+  }
+  
+}
+
 size_t GPUOCLLayer::MMLTInitSplitDataUniform(int bounceBeg, int a_maxDepth, size_t a_size,
                                              cl_mem a_splitData, cl_mem a_scaleTable, std::vector<int>& activeThreads)
 {
@@ -146,7 +210,7 @@ float GPUOCLLayer::MMLT_BurningIn(int minBounce, int maxBounce, int BURN_ITERS,
                                m_mlt.rstateCurr, m_mlt.xVector);
 
     EvalSBDPT(m_mlt.xVector, minBounce, maxBounce, m_rays.MEGABLOCKSIZE,
-              m_rays.pathAccColor, m_rays.samZindex);
+              m_rays.pathAccColor);
 
     runKernel_MLTEvalContribFunc(m_rays.pathAccColor, m_mlt.splitData, m_rays.MEGABLOCKSIZE,
                                  temp_f1, nullptr);
@@ -279,32 +343,19 @@ float GPUOCLLayer::MMLT_BurningIn(int minBounce, int maxBounce, int BURN_ITERS,
 }
 
 
-void GPUOCLLayer::MMLTDebugDrawSelectedSamples(int minBounce, int maxBounce, cl_mem in_rstate, cl_mem in_dsplit, size_t a_size)
-{
-  runKernel_MMLTCopySelectedDepthToSplit(in_dsplit, a_size,
-                                         m_mlt.splitData);
- 
-  runKernel_MMLTMakeProposal(in_rstate, m_mlt.xVector, 1, maxBounce, m_rays.MEGABLOCKSIZE,
-                             in_rstate, m_mlt.xVector);
-  
-  m_raysWasSorted = false;
-  EvalSBDPT(m_mlt.xVector, minBounce, maxBounce, m_rays.MEGABLOCKSIZE,
-            m_rays.pathAccColor, m_rays.samZindex);
-
-  AddContributionToScreen(m_rays.pathAccColor, m_rays.samZindex);
-}
 
 void GPUOCLLayer::EvalSBDPT(cl_mem in_xVector, int minBounce, int maxBounce, size_t a_size,
-                            cl_mem a_outColor, cl_mem a_outZIndex)
+                            cl_mem a_outColor)
 {
   m_mlt.currVec = in_xVector;
   cl_mem a_rpos = m_rays.rayPos;
   cl_mem a_rdir = m_rays.rayDir;
+  cl_mem a_zind = m_rays.samZindex;
   
   // (1) init and camera pass 
   //
   runKernel_MMLTMakeEyeRays(a_size,
-                            m_rays.rayPos, m_rays.rayDir, a_outZIndex);
+                            m_rays.rayPos, m_rays.rayDir, a_zind);
   
   runKernel_MMLTInitSplitAndCamV(m_rays.rayFlags, a_outColor, m_mlt.splitData, m_mlt.cameraVertexSup, a_size);
 
@@ -356,7 +407,7 @@ void GPUOCLLayer::EvalSBDPT(cl_mem in_xVector, int minBounce, int maxBounce, siz
                         m_rays.lshadow);
   
   runKernel_MMLTConnect(m_mlt.splitData, m_mlt.cameraVertexHit, m_mlt.cameraVertexSup, lightVertexHit, lightVertexSup, m_rays.lshadow, a_size, m_rays.MEGABLOCKSIZE, 
-                        a_outColor, a_outZIndex);
+                        a_outColor, a_zind);
 
 
   m_mlt.currVec = nullptr;

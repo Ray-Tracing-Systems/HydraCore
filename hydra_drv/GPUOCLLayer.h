@@ -63,7 +63,7 @@ public:
   void RunProductionSamplingMode();
 
   void EvalSBDPT(cl_mem in_xVector, int minBounce, int maxBounce, size_t a_size,
-                 cl_mem a_outColor, cl_mem a_outZIndex);
+                 cl_mem a_outColor);
 
   void FinishAll() override;
 
@@ -454,6 +454,7 @@ protected:
   void runKernel_MLTEvalContribFunc(cl_mem in_buff, cl_mem in_split, size_t a_size,
                                     cl_mem out_buff, cl_mem out_table);
 
+  void  MMLT_Pass(int minBounce, int maxBounce, int BURN_ITERS);
   float MMLT_BurningIn(int minBounce, int maxBounce, int BURN_ITERS,
                        cl_mem out_rstate, cl_mem out_dsplit, cl_mem out_split2, cl_mem out_normC, std::vector<int>& out_activeThreads);
 
@@ -469,7 +470,6 @@ protected:
   void runKernel_UpdateZIndexFromColorW(cl_mem in_color, size_t a_size,
                                         cl_mem out_zind);
 
-  void MMLTDebugDrawSelectedSamples(int minBounce, int maxBounce, cl_mem in_rstate, cl_mem in_dsplit, size_t a_size);
   void runKernel_MMLTCopySelectedDepthToSplit(cl_mem in_buff, size_t a_size,
                                               cl_mem out_buff);
   
@@ -534,3 +534,4 @@ void RoundBlocks2D(size_t global_item_size[2], size_t local_item_size[2]);
 
 static constexpr bool FORCE_DRAW_SHADOW      = false;
 static constexpr bool ENABLE_SBDPT_FOR_DEBUG = false;
+static constexpr int  NUM_MMLT_PASS          = 8;
