@@ -746,7 +746,7 @@ GPUOCLLayer::~GPUOCLLayer()
 {
   FinishAll();
 
-  m_mlt.free();
+  MLT_Free();
   m_rays.free();
   m_screen.free();
   m_scene.free();

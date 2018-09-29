@@ -44,6 +44,8 @@ void GPUOCLLayer::CL_MLT_DATA::free()
 
   rstateCurr = 0;
   memTaken   = 0;
+
+  colorDLCPU = std::vector<float4, aligned16<float4> >();
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -149,6 +151,9 @@ size_t GPUOCLLayer::MLT_Alloc(int a_width, int a_height, int a_maxBounce)
     RUN_TIME_ERROR("Error in clCreateBuffer");
   m_mlt.memTaken += 8*sizeof(float)*m_rays.MEGABLOCKSIZE; 
 
+  if(m_pExternalImage == nullptr)
+    m_mlt.colorDLCPU.resize(a_width*a_height);
+
   return m_mlt.memTaken;
 }
 
@@ -158,43 +163,7 @@ void GPUOCLLayer::MLT_Free()
   m_mlt.free();
 }
 
-void GPUOCLLayer::MLT_Init(int a_seed)
-{
-  int a_seed2 = (a_seed | rand());
 
-  runKernel_InitRandomGen(m_mlt.rstateForAcceptReject, m_rays.MEGABLOCKSIZE, a_seed);
-  runKernel_InitRandomGen(m_mlt.rstateCurr,            m_rays.MEGABLOCKSIZE, a_seed2);
-
-}
-
-float4 GPUOCLLayer::MLT_Burn(int a_iters)
-{
-  double avgB[4] = {0.0, 0.0, 0.0, 0.0};
-
-  return float4(float(avgB[0]), float(avgB[1]), float(avgB[2]), float(avgB[3]));
-}
-
-
-void GPUOCLLayer::MLT_DoPass()
-{
-  const bool measure = false;
-
-  Timer myTimer(false);
-  float timeSort = 0.0f;
-  float timeGather = 0.0f;
-  float timeTrace = 0.0f;
-
-  BitonicCLArgs sortArgs;
-  sortArgs.bitonicPassK = m_progs.sort.kernel("bitonic_pass_kernel");
-  sortArgs.bitonic512   = m_progs.sort.kernel("bitonic_512");
-  sortArgs.bitonic1024  = m_progs.sort.kernel("bitonic_1024");
-  sortArgs.bitonic2048  = m_progs.sort.kernel("bitonic_2048");
-  sortArgs.cmdQueue     = m_globals.cmdQueue;
-  sortArgs.dev          = m_globals.device;
-
-  m_mlt.mppDone += ( double(m_rays.MEGABLOCKSIZE) / double(m_width*m_height) );
-
-}
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////

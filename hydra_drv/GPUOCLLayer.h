@@ -99,10 +99,6 @@ public:
   size_t MLT_Alloc(int width, int height, int a_maxBounce); ///< alloc internal MLT data
   void   MLT_Free();                                        ///< free internal MLT DATA
 
-  void   MLT_Init(int a_seed);
-  float4 MLT_Burn(int a_iters);
-  void   MLT_DoPass();
-
   void RecompileProcTexShaders(const char* a_shaderPath);
   
   float GetSPP       () const override { return m_spp; }
@@ -237,6 +233,8 @@ protected:
     std::vector<int> perBounceActiveThreads;
     size_t currBounceThreadsNum;
 
+    std::vector<float4, aligned16<float4> > colorDLCPU;
+    
   } m_mlt;
 
   struct CL_BUFFERS_RAYS

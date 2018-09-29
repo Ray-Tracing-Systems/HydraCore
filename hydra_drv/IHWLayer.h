@@ -191,10 +191,6 @@ public:
   virtual size_t MLT_Alloc(int a_width, int a_height, int a_maxBounce) { return 0; }
   virtual void   MLT_Free() {}
 
-  virtual void   MLT_Init(int a_seed)  { }
-  virtual float4 MLT_Burn(int a_iters) { return float4(1, 1, 1, 1); }
-  virtual void   MLT_DoPass() {}
-
   virtual void   SetProgressBarCallback(RTE_PROGRESSBAR_CALLBACK a_pFunc) { m_progressBar = a_pFunc; }
 
   // normalmap and aux computations
