@@ -1017,18 +1017,13 @@ void GPUOCLLayer::GetLDRImage(uint* data, int width, int height) const
 
 }
 
+std::tuple<double, double, double> HydraRender::ColorSummImage4f(const float* a_image4f, int a_width, int a_height);
+
 float GPUOCLLayer::EstimateMLTNormConst(const float4* data, int width, int height) const // #TODO: opt this with simdpp library ...   
 {
-  const int size = width*height;
-  double summ[3] = {0,0,0};
-  for (int i = 0; i < size; i++)  // #TODO: use sse and fast pow
-  {
-    float4 color = data[i];
-    summ[0] += double(color.x);
-    summ[1] += double(color.y);
-    summ[2] += double(color.z);
-  }
-  double avgDiv       = 1.0/double(size);
+  double summ[3];
+  std::tie(summ[0], summ[1], summ[2]) = HydraRender::ColorSummImage4f((const float*)data, width, height);
+  double avgDiv       = 1.0/double(width*height);
   float avgBrightness = contribFunc(float3(avgDiv*summ[0], avgDiv*summ[1], avgDiv*summ[2]));
   return m_avgBrightness / fmax(avgBrightness, DEPSILON2);
 }
