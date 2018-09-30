@@ -103,6 +103,7 @@ void GPUOCLLayer::MMLT_Pass(int a_passNumber, int minBounce, int maxBounce, int 
   {
     m_avgBrightness = MMLT_BurningIn(minBounce, maxBounce, BURN_ITERS,
                                      m_mlt.rstateNew, m_mlt.dNew, m_mlt.splitData, m_mlt.scaleTable, m_mlt.perBounceActiveThreads);
+
     // swap (m_mlt.rstateNew, m_mlt.dNew) and (m_mlt.rstateOld, m_mlt.dOld)
     {
       cl_mem sTmp     = m_mlt.rstateNew; cl_mem dTmp = m_mlt.dNew;
@@ -166,6 +167,16 @@ void GPUOCLLayer::MMLT_Pass(int a_passNumber, int minBounce, int maxBounce, int 
       AddContributionToScreen(m_mlt.yColor, nullptr, (pass == a_passNumber-1));
   }
   
+  //if(m_screen.m_cpuFrameBuffer)  ////////////////////////////////////////// #NOTE: strange bug with pointer swap. indirect light contributes to direct!
+  //{        
+  //  int width, height;
+  //  float4* resultPtr = const_cast<float4*>(GetCPUScreenBuffer(0, width, height));
+  //
+  //  memsetf4(m_rays.pathAccColor, float4(0,0,0,0), m_rays.MEGABLOCKSIZE, 0);
+  //  memsetf4(m_rays.pathShadeColor, float4(0,0,0,0), m_rays.MEGABLOCKSIZE, 0);
+  //  AddContributionToScreenCPU2(m_rays.pathAccColor, m_rays.pathShadeColor, int(m_rays.MEGABLOCKSIZE), width, height,
+  //                              resultPtr);
+  //}
 }
 
 size_t GPUOCLLayer::MMLTInitSplitDataUniform(int bounceBeg, int a_maxDepth, size_t a_size,

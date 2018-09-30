@@ -952,22 +952,28 @@ void GPUOCLLayer::GetLDRImage(uint* data, int width, int height) const
 
   const float gammaInv   = 1.0f / m_vars.m_varsF[HRT_IMAGE_GAMMA];
   const int size         = m_width*m_height;
-
+  
   if (m_screen.m_cpuFrameBuffer) 
   {
     if (m_passNumber - 1 <= 0) // remember about pipelined copy!!
       return;
 
-    float normConst = 1.0f / m_spp; // 1.0f / float(m_passNumber - 1); // remember about pipelined copy!!
+    int width2, height2;
+    const float4* color0 = GetCPUScreenBuffer(0, width2, height2);
+    const float4* color1 = GetCPUScreenBuffer(1, width2, height2);
+
+    float normConst   = 1.0f / m_spp; // 1.0f / float(m_passNumber - 1); // remember about pipelined copy!!
+    float normConstDL = 1.0f / m_sppDL; 
+
     if (m_vars.m_flags & HRT_ENABLE_MMLT)  
-      normConst = EstimateMLTNormConst(m_screen.color0CPU.data(), width, height);
+      normConst = EstimateMLTNormConst(color0, width, height);
 
     if (!HydraSSE::g_useSSE)
     {
       #pragma omp parallel for
       for (int i = 0; i < size; i++)  // #TODO: use sse and fast pow
       {
-        float4 color = m_screen.color0CPU[i];
+        float4 color = color0[i];
         color.x = powf(color.x*normConst, gammaInv);
         color.y = powf(color.y*normConst, gammaInv);
         color.z = powf(color.z*normConst, gammaInv);
@@ -977,15 +983,30 @@ void GPUOCLLayer::GetLDRImage(uint* data, int width, int height) const
     }
     else
     {
-      const __m128 powerf4 = _mm_set_ps(gammaInv, gammaInv, gammaInv, gammaInv);
-      const __m128 normc   = _mm_set_ps(normConst, normConst, normConst, normConst);
+      const __m128 powerf4   = _mm_set_ps(gammaInv, gammaInv, gammaInv, gammaInv);
+      const __m128 normc     = _mm_set_ps(normConst, normConst, normConst, normConst);
+      const __m128 normc2    = _mm_set_ps(normConstDL, normConstDL, normConstDL, normConstDL);
+      const __m128 const_255 = _mm_set_ps1(255.0f);
 
-      const float* dataHDR = (const float*)&m_screen.color0CPU[0];
+      const float* dataHDR  = (const float*)color0;
+      const float* dataHDR1 = (const float*)color1;
 
-      #pragma omp parallel for
-      for (int i = 0; i < size; i++)
-        data[i] = HydraSSE::gammaCorr(dataHDR + i*4, normc, powerf4);
-      
+      if (m_vars.m_flags & HRT_ENABLE_MMLT) 
+      {
+        // #pragma omp parallel for
+        // for (int i = 0; i < size; i++)
+        //   data[i] = HydraSSE::gammaCorr(dataHDR1 + i*4, normc2, powerf4);
+
+        #pragma omp parallel for
+        for (int i = 0; i < size; i++)
+          data[i] = HydraSSE::gammaCorr(dataHDR + i*4, normc, powerf4);
+      }
+      else
+      {
+        #pragma omp parallel for
+        for (int i = 0; i < size; i++)
+          data[i] = HydraSSE::gammaCorr(dataHDR + i*4, normc, powerf4);
+      }
     }
   }
   else
