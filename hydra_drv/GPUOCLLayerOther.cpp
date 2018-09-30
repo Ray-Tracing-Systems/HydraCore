@@ -13,7 +13,7 @@ void GPUOCLLayer::AddContributionToScreen(cl_mem& in_color, cl_mem in_indices, b
   if (m_screen.m_cpuFrameBuffer)
   { 
     int width, height;
-    float4* resultPtr = GetCPUScreenBuffer(a_layerId, width, height);
+    float4* resultPtr = const_cast<float4*>( GetCPUScreenBuffer(a_layerId, width, height) );
 
     assert(resultPtr != nullptr);
 

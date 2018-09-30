@@ -714,6 +714,7 @@ GPUOCLLayer::GPUOCLLayer(int w, int h, int a_flags, int a_deviceId) : Base(w, h,
 
   m_raysWasSorted = false;
   m_spp           = 0.0f;
+  m_sppDL         = 0.0f;
   m_sppDone       = 0.0f;
   m_sppContrib    = 0.0f;
   m_avgBrightness = 1.0f;
@@ -983,9 +984,8 @@ void GPUOCLLayer::GetLDRImage(uint* data, int width, int height) const
 
       #pragma omp parallel for
       for (int i = 0; i < size; i++)
-      {
         data[i] = HydraSSE::gammaCorr(dataHDR + i*4, normc, powerf4);
-      }
+      
     }
   }
   else
@@ -1088,14 +1088,14 @@ void GPUOCLLayer::ResetPerfCounters()
 }
 
 
-float4* GPUOCLLayer::GetCPUScreenBuffer(int a_layerId, int& width, int& height)
+const float4* GPUOCLLayer::GetCPUScreenBuffer(int a_layerId, int& width, int& height) const
 {
   if(!m_screen.m_cpuFrameBuffer)
     return nullptr;
      
-  float4* resultPtr = nullptr;
-  width             = m_width;
-  height            = m_height;
+  const float4* resultPtr = nullptr;
+  width  = m_width;
+  height = m_height;
   
   if (m_pExternalImage != nullptr)
   {
@@ -1127,8 +1127,8 @@ void GPUOCLLayer::BeginTracingPass()
     int maxBounce  = 10;
     int BURN_ITERS = 1024;
    
-    MMLT_Pass(NUM_MMLT_PASS, minBounce, maxBounce, BURN_ITERS); 
-    //DL_Pass(4); // #NOTE that current implementation allocate memory inside first call of 'MMLT_Pass', so DL_Pass should be after
+    MMLT_Pass(NUM_MMLT_PASS, minBounce, maxBounce, BURN_ITERS);   
+    DL_Pass(8);                                                  //#NOTE: strange bug, DL contribute to IL if reverse order
   }
   else if((m_vars.m_flags & HRT_PRODUCTION_IMAGE_SAMPLING) != 0 && (m_vars.m_flags & HRT_UNIFIED_IMAGE_SAMPLING) != 0)
   {
@@ -1198,6 +1198,7 @@ void GPUOCLLayer::EndTracingPass()
   {
     m_spp              = 0;
     m_passNumberForQMC = 0;
+    m_sppDL            = 0;
   }
 }
 

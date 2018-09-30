@@ -162,6 +162,7 @@ protected:
   int   m_passNumber;
   int   m_passNumberForQMC;
   float m_spp;
+  float m_sppDL;
   float m_sppDone;
   float m_sppContrib;
   float m_avgBrightness;
@@ -189,7 +190,7 @@ protected:
 
   } m_screen;
 
-  float4* GetCPUScreenBuffer(int a_layerId, int& width, int& height);
+  const float4* GetCPUScreenBuffer(int a_layerId, int& width, int& height) const;
 
   struct CL_MLT_DATA
   {
@@ -544,4 +545,4 @@ void RoundBlocks2D(size_t global_item_size[2], size_t local_item_size[2]);
 
 static constexpr bool FORCE_DRAW_SHADOW      = false;
 static constexpr bool ENABLE_SBDPT_FOR_DEBUG = false;
-static constexpr int  NUM_MMLT_PASS          = 8;
+static constexpr int  NUM_MMLT_PASS          = 16;

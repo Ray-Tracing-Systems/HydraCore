@@ -45,8 +45,6 @@ void GPUOCLLayer::CL_MLT_DATA::free()
 
   rstateCurr = 0;
   memTaken   = 0;
-
-  colorDLCPU = std::vector<float4, aligned16<float4> >();
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -152,14 +150,12 @@ size_t GPUOCLLayer::MLT_Alloc(int a_width, int a_height, int a_maxBounce)
     RUN_TIME_ERROR("Error in clCreateBuffer");
   m_mlt.memTaken += 8*sizeof(float)*m_rays.MEGABLOCKSIZE; 
 
-  if(m_pExternalImage == nullptr)
-    m_mlt.colorDLCPU.resize(a_width*a_height);
-
   return m_mlt.memTaken;
 }
 
 void GPUOCLLayer::MLT_Free()
 {
+  m_mlt.colorDLCPU = std::vector<float4, aligned16<float4> >();
   scan_free_internal();
   m_mlt.free();
 }

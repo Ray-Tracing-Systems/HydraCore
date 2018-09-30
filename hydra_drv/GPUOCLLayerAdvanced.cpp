@@ -55,6 +55,9 @@ void GPUOCLLayer::ConnectEyePass(cl_mem in_rayFlags, cl_mem in_rayDirOld, cl_mem
 
 void GPUOCLLayer::DL_Pass(int a_itersNum)
 {
+  if(m_pExternalImage == nullptr && m_mlt.colorDLCPU.size() == 0)
+    m_mlt.colorDLCPU.resize(m_width*m_height);
+
   auto oldFlags = m_vars.m_flags;
 
   m_vars.m_flags &= (~HRT_ENABLE_MMLT);
@@ -75,9 +78,17 @@ void GPUOCLLayer::DL_Pass(int a_itersNum)
     if(iter != a_itersNum-1)
       m_passNumberForQMC++;
   }  
+ 
+  if(m_screen.m_cpuFrameBuffer)  ////////////////////////////////////////// #NOTE: strange bug with pointer swap. direct light contributes to indirect!
+  {                                                                      // #TODO: do we need to add same for MMLT_Pass at the end ...
+    memsetf4(m_rays.pathAccColor, float4(0,0,0,0), m_rays.MEGABLOCKSIZE, 0);
+    AddContributionToScreen(m_rays.pathAccColor, m_rays.samZindex, false, 1); 
+  }
 
   m_vars.m_flags = oldFlags;
   UpdateVarsOnGPU();
+
+  m_sppDL += float(a_itersNum*m_rays.MEGABLOCKSIZE)/float(m_width*m_height);
 }
 
 void GPUOCLLayer::MMLT_Pass(int a_passNumber, int minBounce, int maxBounce, int BURN_ITERS)
@@ -140,7 +151,7 @@ void GPUOCLLayer::MMLT_Pass(int a_passNumber, int minBounce, int maxBounce, int 
       if(m_screen.m_cpuFrameBuffer)
       {
         int width, height;
-        float4* resultPtr = GetCPUScreenBuffer(0, width, height);
+        float4* resultPtr = const_cast<float4*>(GetCPUScreenBuffer(0, width, height));
        
         AddContributionToScreenCPU2(yMultAlpha, xMultOneMinusAlpha, int(m_rays.MEGABLOCKSIZE), width, height,
                                     resultPtr);
