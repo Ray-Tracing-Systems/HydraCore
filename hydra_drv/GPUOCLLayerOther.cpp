@@ -397,6 +397,7 @@ std::vector<int> GPUOCLLayer::MakeAllPixelsList()
   return allPixels;
 }
 
+
 void GPUOCLLayer::RunProductionSamplingMode()
 {
   std::cout << "ProductionSamplingMode begin" << std::endl; std::cout.flush();

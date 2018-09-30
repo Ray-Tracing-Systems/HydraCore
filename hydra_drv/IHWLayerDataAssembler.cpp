@@ -28,7 +28,7 @@ void AllRenderVarialbes::SetFlags(unsigned int bits, unsigned int a_value)
     m_flags |= bits;
 }
 
-bool AllRenderVarialbes::shadePassEnable(int a_bounceNumNoRegenerate)
+bool AllRenderVarialbes::shadePassEnable(int a_bounce)
 {
   if ((m_flags & HRT_MARK_SURFACES_FG)  || (m_flags & HRT_DISABLE_SHADING) || (m_flags & HRT_STUPID_PT_MODE))
     return false;
@@ -38,12 +38,15 @@ bool AllRenderVarialbes::shadePassEnable(int a_bounceNumNoRegenerate)
 
   if (m_varsI[HRT_ENABLE_PATH_REGENERATE] == 0)
   {
-    if (m_varsI[HRT_RENDER_LAYER] == LAYER_PRIMARY && a_bounceNumNoRegenerate == 1)
+    if (m_varsI[HRT_RENDER_LAYER] == LAYER_PRIMARY && a_bounce == 1)
       return false;
 
-    if (m_varsI[HRT_RENDER_LAYER] == LAYER_SECONDARY && a_bounceNumNoRegenerate == 0)
+    if (m_varsI[HRT_RENDER_LAYER] == LAYER_SECONDARY && a_bounce == 0)
       return false;
   }
+
+  if((m_flags & HRT_DIRECT_LIGHT_MODE)!=0 && a_bounce > 0)
+    return false;
 
   return true;
 }

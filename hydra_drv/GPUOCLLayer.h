@@ -460,8 +460,9 @@ protected:
 
   void runKernel_MLTEvalContribFunc(cl_mem in_buff, cl_mem in_split, size_t a_size,
                                     cl_mem out_buff, cl_mem out_table);
-
-  void  MMLT_Pass(int minBounce, int maxBounce, int BURN_ITERS);
+  
+  void  DL_Pass(int a_itersNum);
+  void  MMLT_Pass(int a_passNumber, int minBounce, int maxBounce, int BURN_ITERS);
   float MMLT_BurningIn(int minBounce, int maxBounce, int BURN_ITERS,
                        cl_mem out_rstate, cl_mem out_dsplit, cl_mem out_split2, cl_mem out_normC, std::vector<int>& out_activeThreads);
 

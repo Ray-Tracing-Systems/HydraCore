@@ -53,7 +53,34 @@ void GPUOCLLayer::ConnectEyePass(cl_mem in_rayFlags, cl_mem in_rayDirOld, cl_mem
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-void GPUOCLLayer::MMLT_Pass(int minBounce, int maxBounce, int BURN_ITERS)
+void GPUOCLLayer::DL_Pass(int a_itersNum)
+{
+  auto oldFlags = m_vars.m_flags;
+
+  m_vars.m_flags &= (~HRT_ENABLE_MMLT);
+  m_vars.m_flags |= (HRT_UNIFIED_IMAGE_SAMPLING | HRT_DIRECT_LIGHT_MODE);  // #TODO: add QMC mode if enebled (only for 1 GPU !!!)
+  UpdateVarsOnGPU();
+
+  for(int iter = 0; iter < a_itersNum; iter++)
+  {
+    m_raysWasSorted = false;
+    runKernel_MakeEyeRays(m_rays.rayPos, m_rays.rayDir, m_rays.samZindex, m_rays.MEGABLOCKSIZE, m_passNumberForQMC);
+    runKernel_ClearAllInternalTempBuffers(m_rays.MEGABLOCKSIZE);
+    
+    trace1D(2, m_rays.rayPos, m_rays.rayDir, m_rays.MEGABLOCKSIZE,
+            m_rays.pathAccColor);
+    
+    AddContributionToScreen(m_rays.pathAccColor, m_rays.samZindex); 
+
+    if(iter != a_itersNum-1)
+      m_passNumberForQMC++;
+  }  
+
+  m_vars.m_flags = oldFlags;
+  UpdateVarsOnGPU();
+}
+
+void GPUOCLLayer::MMLT_Pass(int a_passNumber, int minBounce, int maxBounce, int BURN_ITERS)
 {
   if(!MLT_IsAllocated())
   {
@@ -83,7 +110,7 @@ void GPUOCLLayer::MMLT_Pass(int minBounce, int maxBounce, int BURN_ITERS)
     }
   }
 
-  for(int pass = 0; pass < NUM_MMLT_PASS; pass ++)
+  for(int pass = 0; pass < a_passNumber; pass ++)
   {
     m_raysWasSorted = false;
     // (1) make poposal / gen rands
@@ -131,11 +158,11 @@ void GPUOCLLayer::MMLT_Pass(int minBounce, int maxBounce, int BURN_ITERS)
       else
       {
         AddContributionToScreen(xMultOneMinusAlpha, nullptr, false);                         
-        AddContributionToScreen(yMultAlpha        , nullptr, (pass == NUM_MMLT_PASS-1));
+        AddContributionToScreen(yMultAlpha        , nullptr, (pass == a_passNumber-1));
       } 
     }
     else
-      AddContributionToScreen(m_mlt.yColor, nullptr, (pass == NUM_MMLT_PASS-1));
+      AddContributionToScreen(m_mlt.yColor, nullptr, (pass == a_passNumber-1));
   }
   
 }
@@ -314,7 +341,7 @@ float GPUOCLLayer::MMLT_BurningIn(int minBounce, int maxBounce, int BURN_ITERS,
   std::cout << std::endl;
   std::cout << "[BurningIn] dd per_depth:" << std::endl;
   for(int i=0;i<threadsNumCopy.size();i++)
-     std::cout << "[d = " << i << ", N = " << threadsNumCopy[i] << ", coeff = 0]" << std::endl;
+     std::cout << "[d = " << i << ", N = " << threadsNumCopy[i] << ", coeff = 1]" << std::endl;
 
   for(int i=0;i<=minBounce;i++)
     out_activeThreads[i] = int(m_rays.MEGABLOCKSIZE);
@@ -331,7 +358,7 @@ float GPUOCLLayer::MMLT_BurningIn(int minBounce, int maxBounce, int BURN_ITERS,
   std::cout << std::endl;
   std::cout << "[BurningIn] dd final:" << std::endl;
   for(int i=0;i<out_activeThreads.size();i++)
-     std::cout << "[d = " << i << ", N = " << out_activeThreads[i] << ", coeff = 0]" << std::endl;
+     std::cout << "[d = " << i << ", N = " << out_activeThreads[i] << ", coeff = 1]" << std::endl;
 
   // get average brightness
   //

@@ -384,7 +384,7 @@ typedef struct MatSampleT
 
 enum FLAG_BITS{HRT_COMPUTE_SHADOWS                 = 1,
                HRT_DISABLE_SHADING                 = 2, 
-               HRT_DIFFUSE_REFLECTION              = 4,
+               HRT_DIRECT_LIGHT_MODE               = 4,
                HRT_UNIFIED_IMAGE_SAMPLING          = 8,
 
                HRT_PRODUCTION_IMAGE_SAMPLING       = 16, // 256 coherent rays per pixel.
@@ -2920,6 +2920,6 @@ static inline float3 decompressShadow(ushort4 shadowCompressed)
   return invNormCoeff*make_float3((float)shadowCompressed.x, (float)shadowCompressed.y, (float)shadowCompressed.z);
 }
 
-
+#define SPLIT_DL_BY_GRAMMAR false
 
 #endif

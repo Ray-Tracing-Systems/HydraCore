@@ -185,7 +185,7 @@ bool RenderDriverRTE::UpdateSettings(pugi::xml_node a_settingsNode)
   //
   auto vars = m_pHWLayer->GetAllFlagsAndVars();
 
-  vars.m_flags |= (HRT_DIFFUSE_REFLECTION | HRT_USE_MIS | HRT_COMPUTE_SHADOWS);
+  vars.m_flags |= (HRT_USE_MIS | HRT_COMPUTE_SHADOWS);
 
   if ((m_initFlags & GPU_ALLOC_FOR_COMPACT_MLT) || (m_initFlags & GPU_MLT_ENABLED_AT_START))
   {
@@ -1563,9 +1563,6 @@ void RenderDriverRTE::Draw()
       flagsAndVars.m_flags &= (~HRT_DRAW_LIGHT_LT);
       m_pHWLayer->SetAllFlagsAndVars(flagsAndVars);
       m_drawPassNumber = 0;
-
-      // (2) Burn In
-      //
     }
 
     // (3) Do MMLT pass

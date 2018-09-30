@@ -12,7 +12,6 @@
 #include "cmaterial.h"
 #include "cbidir.h"
 
-#define SPLIT_DL_BY_GRAMMAR false
 
 /**
 \brief Evaluate contib function and average brightess per bounce.

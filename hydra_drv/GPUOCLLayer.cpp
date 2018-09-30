@@ -1092,6 +1092,7 @@ void GPUOCLLayer::ResetPerfCounters()
   memset(&m_stat, 0, sizeof(MRaysStat));
 }
 
+
 void GPUOCLLayer::BeginTracingPass()
 {
   static int firstCall = 0;
@@ -1105,7 +1106,8 @@ void GPUOCLLayer::BeginTracingPass()
     int maxBounce  = 10;
     int BURN_ITERS = 1024;
    
-    MMLT_Pass(minBounce, maxBounce, BURN_ITERS); 
+    //DL_Pass(4);
+    MMLT_Pass(NUM_MMLT_PASS, minBounce, maxBounce, BURN_ITERS); 
   }
   else if((m_vars.m_flags & HRT_PRODUCTION_IMAGE_SAMPLING) != 0 && (m_vars.m_flags & HRT_UNIFIED_IMAGE_SAMPLING) != 0)
   {
@@ -1155,18 +1157,16 @@ void GPUOCLLayer::EndTracingPass()
     CHECK_CL(clFinish(m_globals.cmdQueue));
   }
 
+  m_passNumberForQMC++;
   if (m_vars.m_flags & HRT_UNIFIED_IMAGE_SAMPLING)
   {
     const float passScale = (m_vars.m_flags & HRT_ENABLE_MMLT) ? float(NUM_MMLT_PASS) : 1.0f;
-
     m_spp += passScale*float(double(m_rays.MEGABLOCKSIZE) / double(m_width*m_height));
-    m_passNumberForQMC++;
 
     const float time = m_timer.getElapsed();
     if (m_passNumberForQMC % 4 == 0 && m_passNumberForQMC > 0)
     {
       const float halfIfIBPT = (m_vars.m_flags & HRT_3WAY_MIS_WEIGHTS) ? 0.5f : 1.0f;
-
       auto precOld = std::cout.precision(2);
       std::cout << "spp =\t" << int(m_spp) << "\tspeed = " << passScale*halfIfIBPT * float(m_rays.MEGABLOCKSIZE) / (1e6f*time) << " M(samples)/s         \r";
       std::cout.precision(precOld);

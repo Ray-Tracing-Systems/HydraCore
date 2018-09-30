@@ -904,7 +904,8 @@ __kernel void NextBounce(__global   float4*        restrict a_rpos,
 	const float3 fogAtten  = attenuationStep(pHitMaterial, dist2, gotOutside, a_fog + tid);
   /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-  const float3 shadeColor = (a_globals->g_flags & HRT_STUPID_PT_MODE) ? make_float3(0,0,0) : to_float3(in_shadeColor[tid]);
+  const bool killShade    = (a_globals->g_flags & HRT_STUPID_PT_MODE) || ((a_globals->g_flags & HRT_DIRECT_LIGHT_MODE)!=0 && rayBounceNum > 0);  
+  const float3 shadeColor = killShade ? make_float3(0,0,0) : to_float3(in_shadeColor[tid]);
   oldPathThroughput       = to_float3(a_thoroughput[tid])*fogAtten;
   newPathThroughput       = oldPathThroughput*outPathThroughput;
   
