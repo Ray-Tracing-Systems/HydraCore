@@ -70,7 +70,7 @@ void GPUOCLLayer::DL_Pass(int a_itersNum)
     trace1D(2, m_rays.rayPos, m_rays.rayDir, m_rays.MEGABLOCKSIZE,
             m_rays.pathAccColor);
     
-    AddContributionToScreen(m_rays.pathAccColor, m_rays.samZindex); 
+    AddContributionToScreen(m_rays.pathAccColor, m_rays.samZindex, false, 1); 
 
     if(iter != a_itersNum-1)
       m_passNumberForQMC++;

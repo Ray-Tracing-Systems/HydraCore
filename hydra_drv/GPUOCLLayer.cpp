@@ -1127,8 +1127,8 @@ void GPUOCLLayer::BeginTracingPass()
     int maxBounce  = 10;
     int BURN_ITERS = 1024;
    
-    //DL_Pass(4);
     MMLT_Pass(NUM_MMLT_PASS, minBounce, maxBounce, BURN_ITERS); 
+    //DL_Pass(4); // #NOTE that current implementation allocate memory inside first call of 'MMLT_Pass', so DL_Pass should be after
   }
   else if((m_vars.m_flags & HRT_PRODUCTION_IMAGE_SAMPLING) != 0 && (m_vars.m_flags & HRT_UNIFIED_IMAGE_SAMPLING) != 0)
   {

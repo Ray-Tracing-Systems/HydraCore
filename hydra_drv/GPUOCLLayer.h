@@ -138,7 +138,7 @@ protected:
   * \param in_indices - in int2 (zindex, oldIndex) coord; may be nullptr; in this case coord will ba taken from as_int(in_color[i].w) - packed (x,y) where to contribute
   * \param a_copyToLDRNow - in flag for update LDR image on GPU in current pass (current AddContributionToScreen call)
   */
-  void AddContributionToScreen   (cl_mem& in_color, cl_mem in_indices, bool a_copyToLDRNow = true);
+  void AddContributionToScreen   (cl_mem& in_color, cl_mem in_indices, bool a_copyToLDRNow = true, int a_layerId = 0);
 
   std::vector<uchar4> NormalMapFromDisplacement(int w, int h, const uchar4* a_data, float bumpAmt, bool invHeight, float smoothLvl);
   void Denoise(cl_mem textureIn, cl_mem textureOut, int w, int h, float smoothLvl);

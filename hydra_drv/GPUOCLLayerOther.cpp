@@ -8,13 +8,15 @@
 
 #include "../../HydraAPI/hydra_api/ssemath.h"
 
-void GPUOCLLayer::AddContributionToScreen(cl_mem& in_color, cl_mem in_indices, bool a_copyToLDRNow)
+void GPUOCLLayer::AddContributionToScreen(cl_mem& in_color, cl_mem in_indices, bool a_copyToLDRNow, int a_layerId)
 {
   if (m_screen.m_cpuFrameBuffer)
   { 
     int width, height;
-    float4* resultPtr = GetCPUScreenBuffer(0, width, height);
-   
+    float4* resultPtr = GetCPUScreenBuffer(a_layerId, width, height);
+
+    assert(resultPtr != nullptr);
+
     AddContributionToScreenCPU(in_color, int(m_rays.MEGABLOCKSIZE), width, height,
                                resultPtr);
   }
