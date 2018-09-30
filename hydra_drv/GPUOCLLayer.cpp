@@ -1088,6 +1088,32 @@ void GPUOCLLayer::ResetPerfCounters()
 }
 
 
+float4* GPUOCLLayer::GetCPUScreenBuffer(int a_layerId, int& width, int& height)
+{
+  if(!m_screen.m_cpuFrameBuffer)
+    return nullptr;
+     
+  float4* resultPtr = nullptr;
+  width             = m_width;
+  height            = m_height;
+  
+  if (m_pExternalImage != nullptr)
+  {
+    resultPtr = (float4*)m_pExternalImage->ImageData(a_layerId);
+    width     = m_pExternalImage->Header()->width;
+    height    = m_pExternalImage->Header()->height;
+  }
+  else
+  {
+    if(a_layerId == 0)
+      resultPtr = m_screen.color0CPU.data();
+    else if(a_layerId == 1)
+      resultPtr = m_mlt.colorDLCPU.data();
+  }
+
+  return resultPtr;     
+}
+
 void GPUOCLLayer::BeginTracingPass()
 {
   static int firstCall = 0;

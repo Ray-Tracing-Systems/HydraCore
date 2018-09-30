@@ -189,6 +189,8 @@ protected:
 
   } m_screen;
 
+  float4* GetCPUScreenBuffer(int a_layerId, int& width, int& height);
+
   struct CL_MLT_DATA
   {
     CL_MLT_DATA() : rstateForAcceptReject(0), rstateCurr(0), rstateOld(0), rstateNew(0), dNew(0), dOld(0),

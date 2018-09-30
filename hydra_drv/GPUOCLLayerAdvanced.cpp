@@ -139,19 +139,9 @@ void GPUOCLLayer::MMLT_Pass(int a_passNumber, int minBounce, int maxBounce, int 
       //
       if(m_screen.m_cpuFrameBuffer)
       {
-        float4* resultPtr = nullptr;
-        int width         = m_width;
-        int height        = m_height;
-    
-        if (m_pExternalImage != nullptr)
-        {
-          resultPtr = (float4*)m_pExternalImage->ImageData(0);
-          width     = m_pExternalImage->Header()->width;
-          height    = m_pExternalImage->Header()->height;
-        }
-        else
-          resultPtr = &m_screen.color0CPU[0];
-    
+        int width, height;
+        float4* resultPtr = GetCPUScreenBuffer(0, width, height);
+       
         AddContributionToScreenCPU2(yMultAlpha, xMultOneMinusAlpha, int(m_rays.MEGABLOCKSIZE), width, height,
                                     resultPtr);
       }
