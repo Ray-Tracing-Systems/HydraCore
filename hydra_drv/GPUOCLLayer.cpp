@@ -1146,10 +1146,10 @@ void GPUOCLLayer::BeginTracingPass()
   {
     int minBounce  = 3;
     int maxBounce  = 10;
-    int BURN_ITERS = 1024;
+    int BURN_ITERS = 256;
    
+    //DL_Pass(8);  //#NOTE: strange bug, DL contribute to IL if reverse order
     MMLT_Pass(NUM_MMLT_PASS, minBounce, maxBounce, BURN_ITERS);   
-    DL_Pass(8);                                                  //#NOTE: strange bug, DL contribute to IL if reverse order
   }
   else if((m_vars.m_flags & HRT_PRODUCTION_IMAGE_SAMPLING) != 0 && (m_vars.m_flags & HRT_UNIFIED_IMAGE_SAMPLING) != 0)
   {

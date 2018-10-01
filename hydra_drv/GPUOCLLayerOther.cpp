@@ -143,6 +143,10 @@ void GPUOCLLayer::AddContributionToScreenCPU2(cl_mem& in_color, cl_mem& in_color
   clFinish(m_globals.cmdQueueDevToHost);
   clFinish(m_globals.cmdQueue);
 
+  //memsetf4(m_mlt.pathAuxColor,  float4(0,0,0,0), m_rays.MEGABLOCKSIZE, 0);
+  //memsetf4(m_mlt.pathAuxColor2, float4(0,0,0,0), m_rays.MEGABLOCKSIZE, 0);
+  //clFinish(m_globals.cmdQueue);
+
   // (3) swap color buffers
   //
   {
@@ -250,6 +254,8 @@ void GPUOCLLayer::AddContributionToScreenCPU(cl_mem& in_color, int a_size, int a
   clFinish(m_globals.cmdQueueDevToHost);
   clFinish(m_globals.cmdQueue);
 
+  //memsetf4(m_rays.pathAuxColor, float4(0,0,0,0), m_rays.MEGABLOCKSIZE, 0);
+  //clFinish(m_globals.cmdQueue);
 
   if (measureTime)
   {
@@ -268,6 +274,7 @@ void GPUOCLLayer::AddContributionToScreenCPU(cl_mem& in_color, int a_size, int a
     m_rays.pathShadow8BAux = m_rays.pathShadow8B;
     m_rays.pathShadow8B    = temp;
   }
+  
 }
 
 void GPUOCLLayer::ContribToExternalImageAccumulator(IHRSharedAccumImage* a_pImage)
@@ -698,7 +705,7 @@ void GPUOCLLayer::EvalGBuffer(IHRSharedAccumImage* a_pAccumImage, const std::vec
 
   clFinish(m_globals.cmdQueue);
 
-#pragma omp parallel for
+  #pragma omp parallel for
   for (int32_t line = 0; line < m_height; line++)
   {
     for (int x = 0; x < m_width; x++)

@@ -40,6 +40,9 @@ void GPUOCLLayer::CL_MLT_DATA::free()
   if (pathAuxColor2)         { clReleaseMemObject(pathAuxColor2);     pathAuxColor2    = 0;}
   if (pathAuxColorCPU2)      { clReleaseMemObject(pathAuxColorCPU2);  pathAuxColorCPU2 = 0;}
 
+  if (yMultAlpha)            { clReleaseMemObject(yMultAlpha);        yMultAlpha = 0;}
+  if (xMultOneMinusAlpha)    { clReleaseMemObject(xMultOneMinusAlpha);xMultOneMinusAlpha = 0;}
+
   if (splitData)             { clReleaseMemObject(splitData);         splitData       = 0; }
   if (scaleTable)            { clReleaseMemObject(scaleTable);        scaleTable      = 0; }
 
@@ -149,6 +152,12 @@ size_t GPUOCLLayer::MLT_Alloc(int a_width, int a_height, int a_maxBounce)
   if (ciErr1 != CL_SUCCESS) 
     RUN_TIME_ERROR("Error in clCreateBuffer");
   m_mlt.memTaken += 8*sizeof(float)*m_rays.MEGABLOCKSIZE; 
+
+  m_mlt.yMultAlpha         = clCreateBuffer(m_globals.ctx, CL_MEM_READ_WRITE, 4 * sizeof(cl_float)*m_rays.MEGABLOCKSIZE, NULL, &ciErr1);
+  m_mlt.xMultOneMinusAlpha = clCreateBuffer(m_globals.ctx, CL_MEM_READ_WRITE, 4 * sizeof(cl_float)*m_rays.MEGABLOCKSIZE, NULL, &ciErr1);
+  if (ciErr1 != CL_SUCCESS) 
+    RUN_TIME_ERROR("Error in clCreateBuffer");
+  m_mlt.memTaken += 4*sizeof(float)*m_rays.MEGABLOCKSIZE; 
 
   return m_mlt.memTaken;
 }
