@@ -164,16 +164,16 @@ void GPUOCLLayer::MMLT_Pass(int a_passNumber, int minBounce, int maxBounce, int 
       AddContributionToScreen(m_mlt.yColor, nullptr, (pass == a_passNumber-1));
   }
   
-  if(m_screen.m_cpuFrameBuffer)  ////////////////////////////////////////// #NOTE: strange bug with pointer swap. indirect light contributes to direct!
-  {        
-    int width, height;
-    float4* resultPtr = const_cast<float4*>(GetCPUScreenBuffer(0, width, height));
-  
-    memsetf4(m_mlt.xMultOneMinusAlpha,   float4(0,0,0,0), m_rays.MEGABLOCKSIZE, 0);
-    memsetf4(m_mlt.yMultAlpha,           float4(0,0,0,0), m_rays.MEGABLOCKSIZE, 0);
-    AddContributionToScreenCPU2(m_mlt.yMultAlpha, m_mlt.xMultOneMinusAlpha, int(m_rays.MEGABLOCKSIZE), width, height,
-                                resultPtr);
-  }
+  //if(m_screen.m_cpuFrameBuffer)  ////////////////////////////////////////// #NOTE: strange bug with pointer swap. indirect light contributes to direct!
+  //{        
+  //  int width, height;
+  //  float4* resultPtr = const_cast<float4*>(GetCPUScreenBuffer(0, width, height));
+  //
+  //  memsetf4(m_mlt.xMultOneMinusAlpha,   float4(0,0,0,0), m_rays.MEGABLOCKSIZE, 0);
+  //  memsetf4(m_mlt.yMultAlpha,           float4(0,0,0,0), m_rays.MEGABLOCKSIZE, 0);
+  //  AddContributionToScreenCPU2(m_mlt.yMultAlpha, m_mlt.xMultOneMinusAlpha, int(m_rays.MEGABLOCKSIZE), width, height,
+  //                              resultPtr);
+  //}
 }
 
 size_t GPUOCLLayer::MMLTInitSplitDataUniform(int bounceBeg, int a_maxDepth, size_t a_size,
