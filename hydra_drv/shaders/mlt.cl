@@ -312,10 +312,10 @@ __kernel void MMLTMakeProposal(__global int2*            restrict a_split,
       
       if(smallStepType & MUTATE_CAMERA)
       {
-        lensOffs.x = MutateKelemen(lensOffs.x, &gen, MUTATE_COEFF_SCREEN*screenScaleX);
-        lensOffs.y = MutateKelemen(lensOffs.y, &gen, MUTATE_COEFF_SCREEN*screenScaleY);
-        lensOffs.z = MutateKelemen(lensOffs.z, &gen, MUTATE_COEFF_BSDF);
-        lensOffs.w = MutateKelemen(lensOffs.w, &gen, MUTATE_COEFF_BSDF);
+        lensOffs.x = MutateKelemen(lensOffs.x, rndFloat2_Pseudo(&gen), MUTATE_COEFF_SCREEN*screenScaleX, 1024.0f);
+        lensOffs.y = MutateKelemen(lensOffs.y, rndFloat2_Pseudo(&gen), MUTATE_COEFF_SCREEN*screenScaleY, 1024.0f);
+        lensOffs.z = MutateKelemen(lensOffs.z, rndFloat2_Pseudo(&gen), MUTATE_COEFF_BSDF, 1024.0f);
+        lensOffs.w = MutateKelemen(lensOffs.w, rndFloat2_Pseudo(&gen), MUTATE_COEFF_BSDF, 1024.0f);
       }
     }
     
@@ -358,12 +358,12 @@ __kernel void MMLTMakeProposal(__global int2*            restrict a_split,
    
       if(smallStepType & MUTATE_LIGHT)
       {
-        lsam1.x = MutateKelemen(lsam1.x, &gen, MUTATE_COEFF_BSDF);
-        lsam1.y = MutateKelemen(lsam1.y, &gen, MUTATE_COEFF_BSDF);
-        lsam1.z = MutateKelemen(lsam1.z, &gen, MUTATE_COEFF_BSDF);
-        lsam1.w = MutateKelemen(lsam1.w, &gen, MUTATE_COEFF_BSDF);
-        lsam2.x = MutateKelemen(lsam2.x, &gen, MUTATE_COEFF_BSDF);
-        lsam2.y = MutateKelemen(lsam2.y, &gen, MUTATE_COEFF_BSDF); 
+        lsam1.x = MutateKelemen(lsam1.x, rndFloat2_Pseudo(&gen), MUTATE_COEFF_BSDF, 1024.0f);
+        lsam1.y = MutateKelemen(lsam1.y, rndFloat2_Pseudo(&gen), MUTATE_COEFF_BSDF, 1024.0f);
+        lsam1.z = MutateKelemen(lsam1.z, rndFloat2_Pseudo(&gen), MUTATE_COEFF_BSDF, 1024.0f);
+        lsam1.w = MutateKelemen(lsam1.w, rndFloat2_Pseudo(&gen), MUTATE_COEFF_BSDF, 1024.0f);
+        lsam2.x = MutateKelemen(lsam2.x, rndFloat2_Pseudo(&gen), MUTATE_COEFF_BSDF, 1024.0f);
+        lsam2.y = MutateKelemen(lsam2.y, rndFloat2_Pseudo(&gen), MUTATE_COEFF_BSDF, 1024.0f); 
         
         //#NOTE: do not mutate lsamN !!!
         //#NOTE: do not mutate split !!!
@@ -418,9 +418,9 @@ __kernel void MMLTMakeProposal(__global int2*            restrict a_split,
 
       if(lightT || camT || (bounce == s))
       {
-        gr1f.group24.x = MutateKelemen(gr1f.group24.x, &gen, MUTATE_COEFF_BSDF);
-        gr1f.group24.y = MutateKelemen(gr1f.group24.y, &gen, MUTATE_COEFF_BSDF);
-        gr1f.group24.z = MutateKelemen(gr1f.group24.z, &gen, MUTATE_COEFF_BSDF);
+        gr1f.group24.x = MutateKelemen(gr1f.group24.x, rndFloat2_Pseudo(&gen), MUTATE_COEFF_BSDF, 1024.0f);
+        gr1f.group24.y = MutateKelemen(gr1f.group24.y, rndFloat2_Pseudo(&gen), MUTATE_COEFF_BSDF, 1024.0f);
+        gr1f.group24.z = MutateKelemen(gr1f.group24.z, rndFloat2_Pseudo(&gen), MUTATE_COEFF_BSDF, 1024.0f);
       }
     }
  

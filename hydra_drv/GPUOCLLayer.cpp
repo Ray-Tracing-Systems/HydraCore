@@ -1158,7 +1158,7 @@ void GPUOCLLayer::BeginTracingPass()
   {
     int minBounce  = 3;
     int maxBounce  = 10;
-    int BURN_ITERS = 256;
+    int BURN_ITERS = 1024;
    
     DL_Pass(8);  //#NOTE: strange bug, DL contribute to IL if reverse order
     MMLT_Pass(NUM_MMLT_PASS, minBounce, maxBounce, BURN_ITERS);   

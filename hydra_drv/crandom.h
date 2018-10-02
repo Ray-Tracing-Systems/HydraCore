@@ -177,12 +177,21 @@ static inline float4 rndFloat4_Pseudo(RandomGen* gen)
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-static inline float MutateKelemen(float valueX, __private RandomGen* pGen, const float p2)   // mutate in primary space
-{
-  const float2 rands = rndFloat2_Pseudo(pGen);
+/**
+\brief mutate random number in primary sample space -- interval [0,1]
+\param valueX    - input original value
+\param rands     - input pseudo random numbers
+\param p2        - parameter of step size. The greater parameter is, the smaller step we gain.                     Default = 64.0f;
+\param p1        - parameter of step size. The greater parameter is, the smaller step we gain. assert(p1 > p2) !!! Default = 1024.0f;
+\return mutated random float in range [0,1]
 
-  const float s1 = 1.0f / 1024.0f, s2 = 1.0f / p2;
-  const float dv = fmax(s2*( exp(-log(s2 / s1)*sqrt(rands.x)) - exp(-log(s2 / s1)) ), 0.0f);
+*/
+static inline float MutateKelemen(float valueX, float2 rands, float p2, float p1)   // mutate in primary space
+{
+  const float s1    = 1.0f / p1;
+  const float s2    = 1.0f / p2;
+  const float power = -log(s2 / s1);
+  const float dv    = fmax(s2*( exp(power*sqrt(rands.x)) - exp(power) ), 0.0f);
 
   if (rands.y < 0.5f)
   {

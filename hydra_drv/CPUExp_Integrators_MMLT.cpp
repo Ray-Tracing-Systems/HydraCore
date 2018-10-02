@@ -64,12 +64,12 @@ void IntegratorMMLT::MutateLightPart(PSSampleV& v2, int s, RandomGen* pGen)
   // mutate light sample
   //
   for (size_t j = 4; j < 10; j++)
-    v2[j] = MutateKelemen(v2[j], pGen, MUTATE_COEFF_BSDF);
+    v2[j] = MutateKelemen(v2[j], rndFloat2_Pseudo(pGen), MUTATE_COEFF_BSDF, 1024.0f);
 
   // mutate light path
   //
   for (size_t j = lightBegin; j < camBegin; j++)
-    v2[j] = MutateKelemen(v2[j], pGen, MUTATE_COEFF_BSDF);
+    v2[j] = MutateKelemen(v2[j], rndFloat2_Pseudo(pGen), MUTATE_COEFF_BSDF, 1024.0f);
 }
 
 void IntegratorMMLT::MutateCameraPart(PSSampleV& v2, int s, RandomGen* pGen)
@@ -78,15 +78,15 @@ void IntegratorMMLT::MutateCameraPart(PSSampleV& v2, int s, RandomGen* pGen)
 
   // mutate lens
   //
-  v2[0] = MutateKelemen(v2[0], pGen, MUTATE_COEFF_SCREEN*1.0f);
-  v2[1] = MutateKelemen(v2[1], pGen, MUTATE_COEFF_SCREEN*1.0f);
-  v2[2] = MutateKelemen(v2[2], pGen, MUTATE_COEFF_BSDF);
-  v2[3] = MutateKelemen(v2[3], pGen, MUTATE_COEFF_BSDF);
+  v2[0] = MutateKelemen(v2[0], rndFloat2_Pseudo(pGen), MUTATE_COEFF_SCREEN*1.0f, 1024.0f);
+  v2[1] = MutateKelemen(v2[1], rndFloat2_Pseudo(pGen), MUTATE_COEFF_SCREEN*1.0f, 1024.0f);
+  v2[2] = MutateKelemen(v2[2], rndFloat2_Pseudo(pGen), MUTATE_COEFF_BSDF, 1024.0f);
+  v2[3] = MutateKelemen(v2[3], rndFloat2_Pseudo(pGen), MUTATE_COEFF_BSDF, 1024.0f);
 
   // mutate cam path
   //
   for (size_t j = camBegin; j < v2.size(); j++)
-    v2[j] = MutateKelemen(v2[j], pGen, MUTATE_COEFF_BSDF);
+    v2[j] = MutateKelemen(v2[j], rndFloat2_Pseudo(pGen), MUTATE_COEFF_BSDF, 1024.0f);
 }
 
 
