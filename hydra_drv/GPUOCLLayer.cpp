@@ -943,8 +943,7 @@ const char* GPUOCLLayer::GetDeviceName(int* pOCLVer) const
   return m_deviceName;
 }
 
-
-void GPUOCLLayer::GetLDRImage(uint* data, int width, int height) const
+void GPUOCLLayer::GetLDRImage(uint* data, int width, int height) const 
 {
   cl_int ciErr1          = CL_SUCCESS;
   cl_mem tempLDRBuff     = m_screen.pbo;
@@ -952,9 +951,11 @@ void GPUOCLLayer::GetLDRImage(uint* data, int width, int height) const
 
   const float gammaInv   = 1.0f / m_vars.m_varsF[HRT_IMAGE_GAMMA];
   const int size         = m_width*m_height;
-  
+
+
   if (m_screen.m_cpuFrameBuffer) 
   {
+   
     if (m_passNumber - 1 <= 0) // remember about pipelined copy!!
       return;
 
@@ -967,7 +968,7 @@ void GPUOCLLayer::GetLDRImage(uint* data, int width, int height) const
 
     if (m_vars.m_flags & HRT_ENABLE_MMLT)  
       normConst = EstimateMLTNormConst(color0, width, height);
-
+    
     if (!HydraSSE::g_useSSE)
     {
       #pragma omp parallel for
@@ -983,6 +984,7 @@ void GPUOCLLayer::GetLDRImage(uint* data, int width, int height) const
     }
     else
     {
+      
       const __m128 powerf4   = _mm_set_ps(gammaInv, gammaInv, gammaInv, gammaInv);
       const __m128 normc     = _mm_set_ps(normConst, normConst, normConst, normConst);
       const __m128 normc2    = _mm_set_ps(normConstDL, normConstDL, normConstDL, normConstDL);
@@ -991,8 +993,10 @@ void GPUOCLLayer::GetLDRImage(uint* data, int width, int height) const
       const float* dataHDR  = (const float*)color0;
       const float* dataHDR1 = (const float*)color1;
 
+      
       if (m_vars.m_flags & HRT_ENABLE_MMLT) 
       {
+     
         #pragma omp parallel for
         for (int i = 0; i < size; i++)
         {
@@ -1012,14 +1016,21 @@ void GPUOCLLayer::GetLDRImage(uint* data, int width, int height) const
         //#pragma omp parallel for
         //for (int i = 0; i < size; i++)
         //  data[i] = HydraSSE::gammaCorr(dataHDR + i*4, normc, powerf4);
+
       }
       else
       {
+
         #pragma omp parallel for
         for (int i = 0; i < size; i++)
-          data[i] = HydraSSE::gammaCorr(dataHDR + i*4, normc, powerf4);
+        {
+          data[i] = HydraSSE::gammaCorr(dataHDR + i * 4, normc, powerf4);
+        }
+
       }
+      
     }
+    
   }
   else
   {

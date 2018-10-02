@@ -11,8 +11,8 @@ Input::Input()
   g_hydraApiDisableSceneLoadInfo = true;
   
   //noWindow      = false;         ///< run 'console_main', else run 'window_main'
-  //inLibraryPath = "tests/test_42"; ///< cornell box with teapot
-  inLibraryPath = "tests/test_223_small"; ///< cornell box with sphere
+  inLibraryPath = "tests/test_42"; ///< cornell box with teapot
+  //inLibraryPath = "tests/test_223_small"; ///< cornell box with sphere
   //inLibraryPath = "/media/frol/886234F06234E49A/scenes/benchmark4"; ///< cornell box with mirror glossy back wall
   //inLibraryPath = "/media/frol/886234F06234E49A/scenes/phong_test/torspar1";
   

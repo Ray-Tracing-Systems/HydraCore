@@ -107,9 +107,6 @@
     <ClCompile Include="CPUExp_Integrators_Common.cpp">
       <Filter>CPULayer</Filter>
     </ClCompile>
-    <ClCompile Include="CPUExp_Integrators_MLT.cpp">
-      <Filter>CPULayer</Filter>
-    </ClCompile>
     <ClCompile Include="CPUExp_Integrators_PT.cpp">
       <Filter>CPULayer</Filter>
     </ClCompile>
