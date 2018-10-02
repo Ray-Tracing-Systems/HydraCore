@@ -1157,7 +1157,7 @@ void GPUOCLLayer::BeginTracingPass()
   if (m_vars.m_flags & HRT_ENABLE_MMLT)                 // SBDPT or MMLT pass
   {
     int minBounce  = 3;
-    int maxBounce  = 10;
+    int maxBounce  = m_vars.m_varsI[HRT_TRACE_DEPTH];
     int BURN_ITERS = 1024;
    
     DL_Pass(8);  //#NOTE: strange bug, DL contribute to IL if reverse order
