@@ -110,6 +110,9 @@ void GPUOCLLayer::MMLT_Pass(int a_passNumber, int minBounce, int maxBounce, int 
     m_avgBrightness = MMLT_BurningIn(minBounce, maxBounce, BURN_ITERS,
                                      m_mlt.rstateNew, m_mlt.dNew, m_mlt.splitData, m_mlt.scaleTable, m_mlt.perBounceActiveThreads);
 
+    if(m_pExternalImage != nullptr)
+      m_pExternalImage->Header()->avgImageB = m_avgBrightness;
+
     // swap (m_mlt.rstateNew, m_mlt.dNew) and (m_mlt.rstateOld, m_mlt.dOld)
     {
       cl_mem sTmp     = m_mlt.rstateNew; cl_mem dTmp = m_mlt.dNew;

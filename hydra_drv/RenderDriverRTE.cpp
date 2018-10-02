@@ -192,6 +192,11 @@ bool RenderDriverRTE::UpdateSettings(pugi::xml_node a_settingsNode)
     vars.m_flags |= HRT_ENABLE_MMLT;
     m_useMMLT = true;
   }
+  else if(std::wstring(a_settingsNode.child(L"method_secondary").text().as_string()) == L"mmlt" || 
+          std::wstring(a_settingsNode.child(L"method_secondary").text().as_string()) == L"mlt")
+  {
+    m_useMMLT = true;
+  }
   else
     m_useMMLT = false;
 

@@ -128,8 +128,6 @@ void GPUOCLLayer::AddContributionToScreenCPU2(cl_mem& in_color, cl_mem& in_color
       if (m_pExternalImage != nullptr)
       {  
         m_pExternalImage->Header()->counterRcv++;
-        m_pExternalImage->Header()->spp += contribSPP;
-        m_sppContrib                    += contribSPP; 
         m_pExternalImage->Unlock();
       }
     }
