@@ -885,8 +885,8 @@ void GPUOCLLayer::ResizeScreen(int width, int height, int a_flags)
   if(!m_screen.m_cpuFrameBuffer)
     m_memoryTaken[MEM_TAKEN_SCREEN] += (sizeof(cl_float) * 4)*width*height;                                                                             
 
-  const float scaleX = float(width) / 1024.0f;
-  const float scaleY = float(height) / 1024.0f;
+  const float scaleX = sqrtf( float(width)  / 1024.0f );
+  const float scaleY = sqrtf( float(height) / 1024.0f );
 
   m_vars.m_varsF[HRT_MLT_SCREEN_SCALE_X] = clamp(scaleX, 1.0f, 4.0f);
   m_vars.m_varsF[HRT_MLT_SCREEN_SCALE_Y] = clamp(scaleY, 1.0f, 4.0f);
@@ -1022,7 +1022,7 @@ void GPUOCLLayer::GetLDRImage(uint* data, int width, int height) const
       {
 
         #pragma omp parallel for
-        for (int i = 0; i < size; i++)
+        for (int i = 0; i < size; i++) //#NOTE: do not remove {}, MS compiler internal error ... 
         {
           data[i] = HydraSSE::gammaCorr(dataHDR + i * 4, normc, powerf4);
         }
