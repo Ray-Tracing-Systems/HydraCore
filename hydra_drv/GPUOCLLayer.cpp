@@ -991,27 +991,38 @@ void GPUOCLLayer::GetLDRImage(uint* data, int width, int height) const
       const float* dataHDR  = (const float*)color0;
       const float* dataHDR1 = (const float*)color1;
 
-      if (m_vars.m_flags & HRT_ENABLE_MMLT) 
+      if (m_vars.m_flags & HRT_ENABLE_MMLT && !ENABLE_SBDPT_FOR_DEBUG) 
       {
-        #pragma omp parallel for
-        for (int i = 0; i < size; i++)
+        if(color1 != nullptr && color0 != nullptr)
         {
-          const __m128 colorDL = _mm_mul_ps(normc2, _mm_load_ps(dataHDR1 + i*4));
-          const __m128 colorIL = _mm_mul_ps(normc , _mm_load_ps(dataHDR  + i*4));
-          const __m128 color2  = HydraSSE::powf4(_mm_add_ps(colorDL, colorIL), powerf4);
-          const __m128i rgba   = _mm_cvtps_epi32(_mm_min_ps(_mm_mul_ps(color2, const_255), const_255));
-          const __m128i out    = _mm_packus_epi32(rgba, _mm_setzero_si128());
-          const __m128i out2   = _mm_packus_epi16(out, _mm_setzero_si128());
-          data[i]              = _mm_cvtsi128_si32(out2);
+          #pragma omp parallel for
+          for (int i = 0; i < size; i++)
+          {
+            const __m128 colorDL = _mm_mul_ps(normc2, _mm_load_ps(dataHDR1 + i*4));
+            const __m128 colorIL = _mm_mul_ps(normc , _mm_load_ps(dataHDR  + i*4));
+            const __m128 color2  = HydraSSE::powf4(_mm_add_ps(colorDL, colorIL), powerf4);
+            const __m128i rgba   = _mm_cvtps_epi32(_mm_min_ps(_mm_mul_ps(color2, const_255), const_255));
+            const __m128i out    = _mm_packus_epi32(rgba, _mm_setzero_si128());
+            const __m128i out2   = _mm_packus_epi16(out, _mm_setzero_si128());
+            data[i]              = _mm_cvtsi128_si32(out2);
+          }
+        }
+        else if(color0 != nullptr)
+        {
+          #pragma omp parallel for
+          for (int i = 0; i < size; i++)
+            data[i] = HydraSSE::gammaCorr(dataHDR + i*4, normc, powerf4);
+        }
+        else
+        {
+          std::cerr << "GPUOCLLayer::GetLDRImage(HRT_ENABLE_MMLT): both internal CPU images == nullptr!!!" << std::endl;
+          std::cerr.flush();
         }
 
         //#pragma omp parallel for
         //for (int i = 0; i < size; i++)
         //  data[i] = HydraSSE::gammaCorr(dataHDR1 + i*4, normc2, powerf4);
 
-        //#pragma omp parallel for
-        //for (int i = 0; i < size; i++)
-        //  data[i] = HydraSSE::gammaCorr(dataHDR + i*4, normc, powerf4);
       }
       else
       {
@@ -1159,9 +1170,14 @@ void GPUOCLLayer::BeginTracingPass()
     int minBounce  = 3;
     int maxBounce  = m_vars.m_varsI[HRT_TRACE_DEPTH];
     int BURN_ITERS = 1024;
-   
-    DL_Pass(8);  //#NOTE: strange bug, DL contribute to IL if reverse order
-    MMLT_Pass(NUM_MMLT_PASS, minBounce, maxBounce, BURN_ITERS);   
+    
+    if(ENABLE_SBDPT_FOR_DEBUG)
+      SBDPT_Pass(minBounce, maxBounce, NUM_MMLT_PASS);
+    else
+    {
+      //DL_Pass(8);  //#NOTE: strange bug, DL contribute to IL if reverse order
+      MMLT_Pass(NUM_MMLT_PASS, minBounce, maxBounce, BURN_ITERS);   
+    }
   }
   else if((m_vars.m_flags & HRT_PRODUCTION_IMAGE_SAMPLING) != 0 && (m_vars.m_flags & HRT_UNIFIED_IMAGE_SAMPLING) != 0)
   {

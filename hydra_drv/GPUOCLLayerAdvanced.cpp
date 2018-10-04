@@ -79,9 +79,9 @@ void GPUOCLLayer::DL_Pass(int a_itersNum)
       m_passNumberForQMC++;
   }  
 
-  if(m_screen.m_cpuFrameBuffer)  ////////////////////////////////////////// #NOTE: strange bug with pointer swap. direct light contributes to indirect!
-  {                                                                      // #TODO: do we need to add same for MMLT_Pass at the end ...
-    memsetf4(m_rays.pathAccColor, float4(0,0,0,0), m_rays.MEGABLOCKSIZE, 0);
+  if(m_screen.m_cpuFrameBuffer) ////////////////////////////////////////// #NOTE: strange bug with pointer swap. direct light contributes to indirect!
+  {                                
+    memsetf4(m_rays.pathAccColor, float4(0, 0, 0, as_float(0xFFFFFFFF)), m_rays.MEGABLOCKSIZE, 0);
     AddContributionToScreen(m_rays.pathAccColor, m_rays.samZindex, false, 1); 
   }
 
@@ -105,7 +105,7 @@ void GPUOCLLayer::MMLT_Pass(int a_passNumber, int minBounce, int maxBounce, int 
     memsetf4(m_mlt.xMultOneMinusAlpha, float4(0,0,0,0), m_rays.MEGABLOCKSIZE, 0);
   } 
   
-  if(m_spp < 1e-5f) // run init stage
+  if(m_spp < 1e-5f) // run init stage and burning in
   {
     m_avgBrightness = MMLT_BurningIn(minBounce, maxBounce, BURN_ITERS,
                                      m_mlt.rstateNew, m_mlt.dNew, m_mlt.splitData, m_mlt.scaleTable, m_mlt.perBounceActiveThreads);
@@ -120,15 +120,12 @@ void GPUOCLLayer::MMLT_Pass(int a_passNumber, int minBounce, int maxBounce, int 
       m_mlt.rstateOld = sTmp;             m_mlt.dOld = dTmp;
     }
 
-    if(!ENABLE_SBDPT_FOR_DEBUG)
-    {
-      runKernel_MMLTMakeProposal(m_mlt.rstateOld, nullptr, 1, maxBounce, m_rays.MEGABLOCKSIZE, //#NOTE: force large step = 1 to generate numbers from current state
-                                 nullptr, m_mlt.yVector);
-      runKernel_MMLTMakeProposal(m_mlt.rstateOld, nullptr, 1, maxBounce, m_rays.MEGABLOCKSIZE, //#NOTE: force large step = 1 to generate numbers from current state
-                                 nullptr, m_mlt.xVector);
-      EvalSBDPT(m_mlt.xVector, minBounce, maxBounce, m_rays.MEGABLOCKSIZE,
-                m_mlt.xColor);
-    }
+    runKernel_MMLTMakeProposal(m_mlt.rstateOld, nullptr, 1, maxBounce, m_rays.MEGABLOCKSIZE, //#NOTE: force large step = 1 to generate numbers from current state
+                               nullptr, m_mlt.yVector);
+    runKernel_MMLTMakeProposal(m_mlt.rstateOld, nullptr, 1, maxBounce, m_rays.MEGABLOCKSIZE, //#NOTE: force large step = 1 to generate numbers from current state
+                               nullptr, m_mlt.xVector);
+    EvalSBDPT(m_mlt.xVector, minBounce, maxBounce, m_rays.MEGABLOCKSIZE,
+              m_mlt.xColor);
   }
 
   for(int pass = 0; pass < a_passNumber; pass++)
@@ -136,8 +133,7 @@ void GPUOCLLayer::MMLT_Pass(int a_passNumber, int minBounce, int maxBounce, int 
     m_raysWasSorted = false;
     // (1) make poposal / gen rands
     //
-    const bool largeStep = ENABLE_SBDPT_FOR_DEBUG ? true : false;
-    runKernel_MMLTMakeProposal(m_mlt.rstateOld, m_mlt.xVector, largeStep, maxBounce, m_rays.MEGABLOCKSIZE,
+    runKernel_MMLTMakeProposal(m_mlt.rstateOld, m_mlt.xVector, 0, maxBounce, m_rays.MEGABLOCKSIZE,
                                m_mlt.rstateOld, m_mlt.yVector);
     
     // (2) trace; 
@@ -147,42 +143,28 @@ void GPUOCLLayer::MMLT_Pass(int a_passNumber, int minBounce, int maxBounce, int 
     
     // (3) Accept/Reject => (xColor, yColor)
     //
-    if(!ENABLE_SBDPT_FOR_DEBUG)
+    runKernel_AcceptReject(m_mlt.xVector, m_mlt.yVector, m_mlt.xColor, m_mlt.yColor,
+                           m_mlt.rstateForAcceptReject, maxBounce, m_rays.MEGABLOCKSIZE,
+                           m_mlt.xMultOneMinusAlpha, m_mlt.yMultAlpha);
+    
+    // (4) (xColor, yColor) => ContribToScreen
+    //
+    if(m_screen.m_cpuFrameBuffer)
     {
-      runKernel_AcceptReject(m_mlt.xVector, m_mlt.yVector, m_mlt.xColor, m_mlt.yColor,
-                             m_mlt.rstateForAcceptReject, maxBounce, m_rays.MEGABLOCKSIZE,
-                             m_mlt.xMultOneMinusAlpha, m_mlt.yMultAlpha);
-      
-      // (4) (xColor, yColor) => ContribToScreen
-      //
-      if(m_screen.m_cpuFrameBuffer)
-      {
-        int width, height;
-        float4* resultPtr = const_cast<float4*>(GetCPUScreenBuffer(0, width, height));
-       
-        AddContributionToScreenCPU2(m_mlt.yMultAlpha, m_mlt.xMultOneMinusAlpha, int(m_rays.MEGABLOCKSIZE), width, height,
-                                    resultPtr);
-      }
-      else
-      {
-        AddContributionToScreen(m_mlt.xMultOneMinusAlpha, nullptr, false);                         
-        AddContributionToScreen(m_mlt.yMultAlpha        , nullptr, (pass == a_passNumber-1));
-      } 
+      int width, height;
+      float4* resultPtr = const_cast<float4*>(GetCPUScreenBuffer(0, width, height));
+     
+      AddContributionToScreenCPU2(m_mlt.yMultAlpha, m_mlt.xMultOneMinusAlpha, int(m_rays.MEGABLOCKSIZE), width, height,
+                                  resultPtr);
     }
     else
-      AddContributionToScreen(m_mlt.yColor, nullptr, (pass == a_passNumber-1));
+    {
+      AddContributionToScreen(m_mlt.xMultOneMinusAlpha, nullptr, false);                         
+      AddContributionToScreen(m_mlt.yMultAlpha        , nullptr, (pass == a_passNumber-1));
+    } 
+    
   }
-  
-  //if(m_screen.m_cpuFrameBuffer)  ////////////////////////////////////////// #NOTE: strange bug with pointer swap. indirect light contributes to direct!
-  //{        
-  //  int width, height;
-  //  float4* resultPtr = const_cast<float4*>(GetCPUScreenBuffer(0, width, height));
-  //
-  //  memsetf4(m_mlt.xMultOneMinusAlpha,   float4(0,0,0,0), m_rays.MEGABLOCKSIZE, 0);
-  //  memsetf4(m_mlt.yMultAlpha,           float4(0,0,0,0), m_rays.MEGABLOCKSIZE, 0);
-  //  AddContributionToScreenCPU2(m_mlt.yMultAlpha, m_mlt.xMultOneMinusAlpha, int(m_rays.MEGABLOCKSIZE), width, height,
-  //                              resultPtr);
-  //}
+
 }
 
 size_t GPUOCLLayer::MMLTInitSplitDataUniform(int bounceBeg, int a_maxDepth, size_t a_size,
@@ -238,6 +220,23 @@ size_t GPUOCLLayer::MMLTInitSplitDataUniform(int bounceBeg, int a_maxDepth, size
 }
 
 std::vector<float> PrefixSumm(const std::vector<float>& a_vec);
+
+void GPUOCLLayer::SBDPT_Pass(int minBounce, int maxBounce, int ITERS)
+{
+  MMLTInitSplitDataUniform(minBounce, maxBounce, m_rays.MEGABLOCKSIZE,
+                           m_mlt.splitData, m_mlt.scaleTable, m_mlt.perBounceActiveThreads);
+
+  //for(int iter=0; iter<ITERS;iter++)
+  //{
+    runKernel_MMLTMakeProposal(m_mlt.rstateCurr, m_mlt.xVector, 1, maxBounce, m_rays.MEGABLOCKSIZE,
+                               m_mlt.rstateCurr, m_mlt.xVector);
+
+    EvalSBDPT(m_mlt.xVector, minBounce, maxBounce, m_rays.MEGABLOCKSIZE,
+              m_rays.pathAccColor);
+    
+    AddContributionToScreen(m_rays.pathAccColor, nullptr, true); // (iter == ITERS-1)
+  //}
+}
 
 float GPUOCLLayer::MMLT_BurningIn(int minBounce, int maxBounce, int BURN_ITERS,
                                   cl_mem out_rstate, cl_mem out_dsplit, cl_mem out_split2, cl_mem out_normC, std::vector<int>& out_activeThreads)
@@ -409,8 +408,6 @@ float GPUOCLLayer::MMLT_BurningIn(int minBounce, int maxBounce, int BURN_ITERS,
 
   return avgBrightness;
 }
-
-
 
 void GPUOCLLayer::EvalSBDPT(cl_mem in_xVector, int minBounce, int maxBounce, size_t a_size,
                             cl_mem a_outColor)

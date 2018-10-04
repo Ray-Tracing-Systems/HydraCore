@@ -469,6 +469,7 @@ protected:
   
   void  DL_Pass(int a_itersNum);
   void  MMLT_Pass(int a_passNumber, int minBounce, int maxBounce, int BURN_ITERS);
+  void  SBDPT_Pass(int minBounce, int maxBounce, int ITERS);
   float MMLT_BurningIn(int minBounce, int maxBounce, int BURN_ITERS,
                        cl_mem out_rstate, cl_mem out_dsplit, cl_mem out_split2, cl_mem out_normC, std::vector<int>& out_activeThreads);
 
