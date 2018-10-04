@@ -72,8 +72,8 @@ void CPUExpLayer::ResizeScreen(int width, int height, int a_flags)
   m_width  = width;
   m_height = height;
 
-  const float scaleX = float(width) / 1024.0f;
-  const float scaleY = float(height) / 1024.0f;
+  const float scaleX = sqrtf( float(width)  / 1024.0f );
+  const float scaleY = sqrtf( float(height) / 1024.0f );
 
   m_vars.m_varsF[HRT_MLT_SCREEN_SCALE_X] = clamp(scaleX, 1.0f, 4.0f);
   m_vars.m_varsF[HRT_MLT_SCREEN_SCALE_Y] = clamp(scaleY, 1.0f, 4.0f);

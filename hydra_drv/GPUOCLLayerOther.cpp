@@ -118,7 +118,7 @@ void GPUOCLLayer::AddContributionToScreenCPU2(cl_mem& in_color, cl_mem& in_color
 
     bool lockSuccess = (m_pExternalImage == nullptr);
     if (m_pExternalImage != nullptr)
-      lockSuccess = m_pExternalImage->Lock(250); // can wait 250 ms for success lock
+      lockSuccess = m_pExternalImage->Lock(500); // can wait 500 ms for success lock
 
     if (lockSuccess)
     {
@@ -126,12 +126,16 @@ void GPUOCLLayer::AddContributionToScreenCPU2(cl_mem& in_color, cl_mem& in_color
       AddSamplesContribution(out_color, colors2, int(a_size), a_width, a_height);
 
       if (m_pExternalImage != nullptr)
-      {  
+      {
         m_pExternalImage->Header()->counterRcv++;
         m_pExternalImage->Unlock();
       }
     }
-
+    else
+    {
+      std::cerr << "AddContributionToScreenCPU2, failed to lock image!" << std::endl;
+      std::cerr.flush();
+    }
     m_sppDone += contribSPP;
 
     clEnqueueUnmapMemObject(m_globals.cmdQueueDevToHost, m_mlt.pathAuxColorCPU,  colors1, 0, 0, 0);
@@ -230,10 +234,15 @@ void GPUOCLLayer::AddContributionToScreenCPU(cl_mem& in_color, int a_size, int a
         {
           m_pExternalImage->Header()->counterRcv++;
           m_pExternalImage->Header()->spp += contribSPP;
-          m_sppContrib                    += contribSPP;
+          m_sppContrib += contribSPP;
         }
         m_pExternalImage->Unlock();
       }
+    }
+    else
+    {
+      std::cerr << "AddContributionToScreenCPU, failed to lock image!" << std::endl;
+      std::cerr.flush();
     }
 
     m_sppDone += contribSPP;
