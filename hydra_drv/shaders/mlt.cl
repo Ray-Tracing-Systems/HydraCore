@@ -351,10 +351,6 @@ __kernel void MMLTMakeProposal(__global int2*            restrict a_split,
       lsam2.y = in_numbers[ TabIndex(MMLT_DIM_LGT_Y1, tid, iNumElements) ];
       lsamN   = in_numbers[ TabIndex(MMLT_DIM_LGT_N,  tid, iNumElements) ];
       split   = in_numbers[ TabIndex(MMLT_DIM_SPLIT,  tid, iNumElements) ];
-
-      const int2 oldSplit = a_split[tid];
-      d  = oldSplit.x; // MMLT_GPU_TEST_DEPTH;
-      s  = mapRndFloatToInt(split, 0, d); 
    
       if(smallStepType & MUTATE_LIGHT)
       {
@@ -364,11 +360,14 @@ __kernel void MMLTMakeProposal(__global int2*            restrict a_split,
         lsam1.w = MutateKelemen(lsam1.w, rndFloat2_Pseudo(&gen), MUTATE_COEFF_BSDF, 1024.0f);
         lsam2.x = MutateKelemen(lsam2.x, rndFloat2_Pseudo(&gen), MUTATE_COEFF_BSDF, 1024.0f);
         lsam2.y = MutateKelemen(lsam2.y, rndFloat2_Pseudo(&gen), MUTATE_COEFF_BSDF, 1024.0f); 
-        
+      
         //#NOTE: do not mutate lsamN !!!
         //#NOTE: do not mutate split !!!
       }
     }
+    const int2 oldSplit = a_split[tid];
+    d  = oldSplit.x; // MMLT_GPU_TEST_DEPTH;
+    s  = mapRndFloatToInt(split, 0, d); 
 
     if(out_numbers != 0)
     {

@@ -1177,7 +1177,7 @@ void GPUOCLLayer::BeginTracingPass()
     }
     else
     {
-      //DL_Pass(8);  //#NOTE: strange bug, DL contribute to IL if reverse order
+      DL_Pass(8);  //#NOTE: strange bug, DL contribute to IL if reverse order
       MMLT_Pass(NUM_MMLT_PASS, minBounce, maxBounce, BURN_ITERS);   
     }
   }
