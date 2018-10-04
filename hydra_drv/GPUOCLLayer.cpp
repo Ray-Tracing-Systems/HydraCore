@@ -862,7 +862,7 @@ void GPUOCLLayer::ResizeScreen(int width, int height, int a_flags)
   m_width  = width;
   m_height = height;
 
-  const size_t MEGABLOCK_SIZE = CalcMegaBlockSize(); 
+  const size_t MEGABLOCK_SIZE = CalcMegaBlockSize() / 2; 
 
   if (ciErr1 != CL_SUCCESS)
     RUN_TIME_ERROR("[cl_core]: Failed to create cl half screen zblocks buffer ");
@@ -1169,7 +1169,7 @@ void GPUOCLLayer::BeginTracingPass()
   {
     int minBounce  = 3;
     int maxBounce  = m_vars.m_varsI[HRT_TRACE_DEPTH];
-    int BURN_ITERS = 1024;
+    int BURN_ITERS = 1024*4;
     
     if(ENABLE_SBDPT_FOR_DEBUG)
     {
@@ -1177,7 +1177,7 @@ void GPUOCLLayer::BeginTracingPass()
     }
     else
     {
-      DL_Pass(8);  //#NOTE: strange bug, DL contribute to IL if reverse order
+      DL_Pass(NUM_MMLT_PASS/2);  //#NOTE: strange bug, DL contribute to IL if reverse order
       MMLT_Pass(NUM_MMLT_PASS, minBounce, maxBounce, BURN_ITERS);   
     }
   }

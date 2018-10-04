@@ -201,23 +201,17 @@ __kernel void MMLTInitCameraPath(__global   uint*      restrict a_flags,
                                  __global int2*        restrict a_split,
                                  __global float4*      restrict a_vertexSup,
                                  __global PdfVertex*   restrict a_pdfVert,
-                                 __global const float* restrict in_numbers,
                                  const int iNumElements)
 {
   const int tid = GLOBAL_ID_X;
   if (tid >= iNumElements)
     return;
 
-  const float r0 = in_numbers[ TabIndex(MMLT_DIM_SPLIT, tid, iNumElements) ];
-
   const int2 oldSplit = a_split[tid];
-
-  const int d  = oldSplit.x; // MMLT_GPU_TEST_DEPTH;
-  const int s  = mapRndFloatToInt(r0, 0, d); 
+  const int  d        = oldSplit.x; // MMLT_GPU_TEST_DEPTH;
 
   a_flags[tid] = packBounceNum(0, 1);
   a_color[tid] = make_float4(1,1,1,1);
-  a_split[tid] = make_int2(d,s);
   
   PathVertex resVertex;
   resVertex.ray_dir      = make_float3(0,0,0); 
@@ -253,6 +247,17 @@ __kernel void CopyAccColorTo(__global const float4* restrict in_vertexSup,
     out_color[tid] = make_float4(0,0,0,0);
 }
 
+static inline int PickSplitFromRand(const float r, const int d)
+{
+  const float threshold = 0.75f;
+  const float r1        = (r - threshold)/(1.0f - threshold);
+
+  if(r <= threshold)
+    return 0;
+  else 
+    return mapRndFloatToInt(r1, 1, d);
+}
+
 
 __kernel void MMLTMakeProposal(__global int2*            restrict a_split,
                                __global const RandomGen* restrict in_gens,
@@ -275,11 +280,11 @@ __kernel void MMLTMakeProposal(__global int2*            restrict a_split,
     const float p = rndFloat1_Pseudo(&gen);
     if(a_forceLargeStep != 1)
     {
-      if(p <= 0.25f)
+      if(p <= 0.5f)
         largeStep = true;
-      else if(0.25f < p && p <= 0.50f)
+      else if(0.5f < p && p <= 0.666667f)
         smallStepType = MUTATE_LIGHT;
-      else if (0.50f < p && p <= 0.75f)
+      else if (0.666667 < p && p <= 0.85f)
         smallStepType = MUTATE_LIGHT | MUTATE_CAMERA;
       else
         smallStepType = MUTATE_CAMERA;
@@ -365,9 +370,11 @@ __kernel void MMLTMakeProposal(__global int2*            restrict a_split,
         //#NOTE: do not mutate split !!!
       }
     }
+
     const int2 oldSplit = a_split[tid];
-    d  = oldSplit.x; // MMLT_GPU_TEST_DEPTH;
-    s  = mapRndFloatToInt(split, 0, d); 
+    d  = oldSplit.x;                  // MMLT_GPU_TEST_DEPTH;
+    s  = PickSplitFromRand(split, d); // mapRndFloatToInt(split, 0, d); 
+    a_split[tid] = make_int2(d,s);
 
     if(out_numbers != 0)
     {
