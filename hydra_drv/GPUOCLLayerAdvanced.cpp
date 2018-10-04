@@ -202,7 +202,7 @@ size_t GPUOCLLayer::MMLTInitSplitDataUniform(int bounceBeg, int a_maxDepth, size
   std::vector<float> scale(a_maxDepth+1);
   for(size_t i=bounceBeg;i<scale.size();i++)
   {
-    float& selectorInvPdf = scale[i];
+    float& selectorInvPdf = scale[i]; // (1.0f/float(NUM_MMLT_PASS))
     const int d    = i;
     selectorInvPdf = float((d+1)*bouncesIntoAccount);
   }
@@ -228,9 +228,9 @@ void GPUOCLLayer::SBDPT_Pass(int minBounce, int maxBounce, int ITERS)
     size_t mltMem = MLT_Alloc(m_width, m_height, maxBounce + 1); // #TODO: maxBounce works too !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     std::cout << "[AllocAll]: MEM(MLT)    = " << mltMem / size_t(1024*1024) << "\tMB" << std::endl;  
     runKernel_ClearAllInternalTempBuffers(m_rays.MEGABLOCKSIZE);
-    memsetf4(m_rays.pathAuxColor, float4(0,0,0,0), m_rays.MEGABLOCKSIZE, 0);
-    memsetf4(m_mlt.pathAuxColor,  float4(0,0,0,0), m_rays.MEGABLOCKSIZE, 0);
-    memsetf4(m_mlt.pathAuxColor2, float4(0,0,0,0), m_rays.MEGABLOCKSIZE, 0);
+    memsetf4(m_rays.pathAuxColor,      float4(0,0,0,0), m_rays.MEGABLOCKSIZE, 0);
+    memsetf4(m_mlt.pathAuxColor,       float4(0,0,0,0), m_rays.MEGABLOCKSIZE, 0);
+    memsetf4(m_mlt.pathAuxColor2,      float4(0,0,0,0), m_rays.MEGABLOCKSIZE, 0);
     memsetf4(m_mlt.yMultAlpha,         float4(0,0,0,0), m_rays.MEGABLOCKSIZE, 0);
     memsetf4(m_mlt.xMultOneMinusAlpha, float4(0,0,0,0), m_rays.MEGABLOCKSIZE, 0);
   

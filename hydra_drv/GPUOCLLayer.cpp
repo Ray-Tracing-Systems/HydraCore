@@ -965,7 +965,7 @@ void GPUOCLLayer::GetLDRImage(uint* data, int width, int height) const
     float normConst   = 1.0f / m_spp; // 1.0f / float(m_passNumber - 1); // remember about pipelined copy!!
     float normConstDL = 1.0f / m_sppDL; 
 
-    if (m_vars.m_flags & HRT_ENABLE_MMLT)  
+    if (m_vars.m_flags & HRT_ENABLE_MMLT && !ENABLE_SBDPT_FOR_DEBUG)  
       normConst = EstimateMLTNormConst(color0, width, height);
 
     if (!HydraSSE::g_useSSE)
@@ -1173,7 +1173,7 @@ void GPUOCLLayer::BeginTracingPass()
     
     if(ENABLE_SBDPT_FOR_DEBUG)
     {
-      SBDPT_Pass(minBounce, maxBounce, NUM_MMLT_PASS);
+      SBDPT_Pass(1, maxBounce, NUM_MMLT_PASS);
     }
     else
     {
