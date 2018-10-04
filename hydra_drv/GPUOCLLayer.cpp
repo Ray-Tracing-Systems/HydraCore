@@ -1172,7 +1172,9 @@ void GPUOCLLayer::BeginTracingPass()
     int BURN_ITERS = 1024;
     
     if(ENABLE_SBDPT_FOR_DEBUG)
+    {
       SBDPT_Pass(minBounce, maxBounce, NUM_MMLT_PASS);
+    }
     else
     {
       //DL_Pass(8);  //#NOTE: strange bug, DL contribute to IL if reverse order
