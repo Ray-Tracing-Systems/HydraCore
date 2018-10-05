@@ -862,7 +862,7 @@ void GPUOCLLayer::ResizeScreen(int width, int height, int a_flags)
   m_width  = width;
   m_height = height;
 
-  const size_t MEGABLOCK_SIZE = CalcMegaBlockSize() / 2; 
+  const size_t MEGABLOCK_SIZE = CalcMegaBlockSize()/2; 
 
   if (ciErr1 != CL_SUCCESS)
     RUN_TIME_ERROR("[cl_core]: Failed to create cl half screen zblocks buffer ");
@@ -1167,9 +1167,9 @@ void GPUOCLLayer::BeginTracingPass()
 
   if (m_vars.m_flags & HRT_ENABLE_MMLT)                 // SBDPT or MMLT pass
   {
-    int minBounce  = 3;
-    int maxBounce  = m_vars.m_varsI[HRT_TRACE_DEPTH];
-    int BURN_ITERS = 1024*4;
+    const int minBounce  = m_vars.m_varsI[HRT_MMLT_FIRST_BOUNCE];
+    const int maxBounce  = m_vars.m_varsI[HRT_TRACE_DEPTH];
+    const int BURN_ITERS = m_vars.m_varsI[HRT_MMLT_BURN_ITERS];
     
     if(ENABLE_SBDPT_FOR_DEBUG)
     {

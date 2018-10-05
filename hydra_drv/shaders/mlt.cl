@@ -247,15 +247,20 @@ __kernel void CopyAccColorTo(__global const float4* restrict in_vertexSup,
     out_color[tid] = make_float4(0,0,0,0);
 }
 
-static inline int PickSplitFromRand(const float r, const int d)
+static inline int PickSplitFromRand(const float r, const int d, float a_threshold)
 {
-  const float threshold = 0.75f;
-  const float r1        = (r - threshold)/(1.0f - threshold);
-
-  if(r <= threshold)
-    return 0;
-  else 
-    return mapRndFloatToInt(r1, 1, d);
+  if(a_threshold < 0.1f)
+    return mapRndFloatToInt(r, 0, d);
+  else
+  {
+    const float threshold = a_threshold;
+    const float r1        = (r - threshold)/(1.0f - threshold);
+    
+    if(r <= threshold)
+      return 0;
+    else 
+      return mapRndFloatToInt(r1, 0, d);
+  }
 }
 
 
@@ -317,8 +322,11 @@ __kernel void MMLTMakeProposal(__global int2*            restrict a_split,
       
       if(smallStepType & MUTATE_CAMERA)
       {
-        lensOffs.x = MutateKelemen(lensOffs.x, rndFloat2_Pseudo(&gen), MUTATE_COEFF_SCREEN*screenScaleX, 1024.0f);
-        lensOffs.y = MutateKelemen(lensOffs.y, rndFloat2_Pseudo(&gen), MUTATE_COEFF_SCREEN*screenScaleY, 1024.0f);
+        const float power = a_globals->varsF[HRT_MMLT_STEP_SIZE_POWER];
+        const float coeff = a_globals->varsF[HRT_MMLT_STEP_SIZE_COEFF];
+
+        lensOffs.x = MutateKelemen(lensOffs.x, rndFloat2_Pseudo(&gen), coeff*MUTATE_COEFF_SCREEN*screenScaleX, 1024.0f);
+        lensOffs.y = MutateKelemen(lensOffs.y, rndFloat2_Pseudo(&gen), coeff*MUTATE_COEFF_SCREEN*screenScaleY, 1024.0f);
         lensOffs.z = MutateKelemen(lensOffs.z, rndFloat2_Pseudo(&gen), MUTATE_COEFF_BSDF, 1024.0f);
         lensOffs.w = MutateKelemen(lensOffs.w, rndFloat2_Pseudo(&gen), MUTATE_COEFF_BSDF, 1024.0f);
       }
@@ -359,12 +367,15 @@ __kernel void MMLTMakeProposal(__global int2*            restrict a_split,
    
       if(smallStepType & MUTATE_LIGHT)
       {
-        lsam1.x = MutateKelemen(lsam1.x, rndFloat2_Pseudo(&gen), MUTATE_COEFF_BSDF, 1024.0f);
-        lsam1.y = MutateKelemen(lsam1.y, rndFloat2_Pseudo(&gen), MUTATE_COEFF_BSDF, 1024.0f);
-        lsam1.z = MutateKelemen(lsam1.z, rndFloat2_Pseudo(&gen), MUTATE_COEFF_BSDF, 1024.0f);
-        lsam1.w = MutateKelemen(lsam1.w, rndFloat2_Pseudo(&gen), MUTATE_COEFF_BSDF, 1024.0f);
-        lsam2.x = MutateKelemen(lsam2.x, rndFloat2_Pseudo(&gen), MUTATE_COEFF_BSDF, 1024.0f);
-        lsam2.y = MutateKelemen(lsam2.y, rndFloat2_Pseudo(&gen), MUTATE_COEFF_BSDF, 1024.0f); 
+        const float power = a_globals->varsF[HRT_MMLT_STEP_SIZE_POWER];
+        const float coeff = a_globals->varsF[HRT_MMLT_STEP_SIZE_COEFF];
+
+        lsam1.x = MutateKelemen(lsam1.x, rndFloat2_Pseudo(&gen), coeff*MUTATE_COEFF_BSDF, power);
+        lsam1.y = MutateKelemen(lsam1.y, rndFloat2_Pseudo(&gen), coeff*MUTATE_COEFF_BSDF, power);
+        lsam1.z = MutateKelemen(lsam1.z, rndFloat2_Pseudo(&gen), coeff*MUTATE_COEFF_BSDF, power);
+        lsam1.w = MutateKelemen(lsam1.w, rndFloat2_Pseudo(&gen), coeff*MUTATE_COEFF_BSDF, power);
+        lsam2.x = MutateKelemen(lsam2.x, rndFloat2_Pseudo(&gen), coeff*MUTATE_COEFF_BSDF, power);
+        lsam2.y = MutateKelemen(lsam2.y, rndFloat2_Pseudo(&gen), coeff*MUTATE_COEFF_BSDF, power); 
       
         //#NOTE: do not mutate lsamN !!!
         //#NOTE: do not mutate split !!!
@@ -372,8 +383,8 @@ __kernel void MMLTMakeProposal(__global int2*            restrict a_split,
     }
 
     const int2 oldSplit = a_split[tid];
-    d  = oldSplit.x;                  // MMLT_GPU_TEST_DEPTH;
-    s  = PickSplitFromRand(split, d); // mapRndFloatToInt(split, 0, d); 
+    d  = oldSplit.x;                                                                  // MMLT_GPU_TEST_DEPTH;
+    s  = PickSplitFromRand(split, d, a_globals->varsF[HRT_MMLT_IMPLICIT_FIXED_PROB]); // mapRndFloatToInt(split, 0, d); 
     a_split[tid] = make_int2(d,s);
 
     if(out_numbers != 0)
@@ -424,9 +435,12 @@ __kernel void MMLTMakeProposal(__global int2*            restrict a_split,
 
       if(lightT || camT || (bounce == s))
       {
-        gr1f.group24.x = MutateKelemen(gr1f.group24.x, rndFloat2_Pseudo(&gen), MUTATE_COEFF_BSDF, 1024.0f);
-        gr1f.group24.y = MutateKelemen(gr1f.group24.y, rndFloat2_Pseudo(&gen), MUTATE_COEFF_BSDF, 1024.0f);
-        gr1f.group24.z = MutateKelemen(gr1f.group24.z, rndFloat2_Pseudo(&gen), MUTATE_COEFF_BSDF, 1024.0f);
+        const float power = a_globals->varsF[HRT_MMLT_STEP_SIZE_POWER];
+        const float coeff = a_globals->varsF[HRT_MMLT_STEP_SIZE_COEFF];
+
+        gr1f.group24.x = MutateKelemen(gr1f.group24.x, rndFloat2_Pseudo(&gen), coeff*MUTATE_COEFF_BSDF, power);
+        gr1f.group24.y = MutateKelemen(gr1f.group24.y, rndFloat2_Pseudo(&gen), coeff*MUTATE_COEFF_BSDF, power);
+        gr1f.group24.z = MutateKelemen(gr1f.group24.z, rndFloat2_Pseudo(&gen), coeff*MUTATE_COEFF_BSDF, power);
       }
     }
  
@@ -1286,11 +1300,13 @@ __kernel void MMLTConnect(__global const int2  *  restrict in_splitInfo,
   int x = ExtractXFromZIndex (zid2); // #TODO: in don;t like this but may be its ok ... 
   int y = ExtractYFromZIndex (zid2); // #TODO: in don;t like this but may be its ok ... 
 
+  const float fixImplicit = (1.0f - a_globals->varsF[HRT_MMLT_IMPLICIT_FIXED_PROB]);
+  const float fixOther    = 1.0f/fixImplicit;
+
   if (lightTraceDepth == -1)        // (3.1) -1 means we have full camera path, no conection is needed
   {
     if(cv.valid)
-      sampleColor = cv.accColor;
-    //sampleColor = make_float3(0,0,0);
+      sampleColor = cv.accColor * fixImplicit;
   }
   else
   {
@@ -1312,7 +1328,7 @@ __kernel void MMLTConnect(__global const int2  *  restrict in_splitInfo,
 
         sampleColor = ConnectEyeP(&lv, mLightSubPathCount, camDir, imageToSurfaceFactor,
                                   a_globals, in_mtlStorage, in_texStorage1, in_texStorage2, &ptl,
-                                  &v0, &v1, &x, &y);
+                                  &v0, &v1, &x, &y)*fixOther;
        
         if (imageToSurfaceFactor <= 0.0f)
           sampleColor = make_float3(0, 0, 0);
@@ -1335,7 +1351,7 @@ __kernel void MMLTConnect(__global const int2  *  restrict in_splitInfo,
         PdfVertex v2 = a_pdfVert[TabIndex(2, tid, iNumElements)];
         sampleColor  = cv.accColor*ConnectShadowP(&cv, t, pLight, explicitSam, lightPickProb,
                                                   a_globals, in_mtlStorage, in_texStorage1, in_texStorage2, in_pdfStorage, &ptl,
-                                                  &v0, &v1, &v2);
+                                                  &v0, &v1, &v2)*fixOther;
         //sampleColor = make_float3(0,0,0);
         a_pdfVert[TabIndex(0, tid, iNumElements)] = v0;
         a_pdfVert[TabIndex(1, tid, iNumElements)] = v1;
@@ -1366,7 +1382,7 @@ __kernel void MMLTConnect(__global const int2  *  restrict in_splitInfo,
       
           sampleColor = cv.accColor*lv.accColor*ConnectEndPointsP(&lv, &cv, d,
                                                                   a_globals, in_mtlStorage, in_texStorage1, in_texStorage2, &ptl,
-                                                                  &vSplitBefore, &vSplit, &vSplitAfter);
+                                                                  &vSplitBefore, &vSplit, &vSplitAfter)*fixOther;
 
           a_pdfVert[TabIndex(s-1, tid, iNumElements)] = vSplitBefore;
           a_pdfVert[TabIndex(s+0, tid, iNumElements)] = vSplit;
@@ -1375,8 +1391,9 @@ __kernel void MMLTConnect(__global const int2  *  restrict in_splitInfo,
       }
     }
   }
-
-  sampleColor *= decompressShadow(in_shadow[tid]);
+  
+  if (lightTraceDepth != -1)
+    sampleColor *= decompressShadow(in_shadow[tid]);
 
   // calc MIS weight
   //
