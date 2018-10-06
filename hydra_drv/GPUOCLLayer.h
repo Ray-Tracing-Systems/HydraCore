@@ -143,7 +143,7 @@ protected:
   std::vector<uchar4> NormalMapFromDisplacement(int w, int h, const uchar4* a_data, float bumpAmt, bool invHeight, float smoothLvl);
   void Denoise(cl_mem textureIn, cl_mem textureOut, int w, int h, float smoothLvl);
 
-  size_t CalcMegaBlockSize();
+  size_t CalcMegaBlockSize(int a_flags);
   std::string GetOCLShaderCompilerOptions();
 
   void inPlaceScanAnySize1f(cl_mem buff, size_t a_size);

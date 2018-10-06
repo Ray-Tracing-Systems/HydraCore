@@ -762,30 +762,41 @@ GPUOCLLayer::~GPUOCLLayer()
   if(m_globals.ctx)               { clReleaseContext     (m_globals.ctx);               m_globals.ctx               = nullptr; }
 }
 
-size_t GPUOCLLayer::CalcMegaBlockSize()
+size_t GPUOCLLayer::CalcMegaBlockSize(int a_flags)
 {
   const size_t memAmount = GetAvaliableMemoryAmount(true);
   const size_t MB = size_t(1024*1024);
 
-  if (m_globals.devIsCPU)
-  {
-    return 256 * 256;
-  }
-  else if (memAmount <= size_t(256)*MB)
-  {
-    return 256 * 256;
-  }
-  else if (memAmount <= size_t(1024)*MB)
-  {
-    return 512 * 512;
-  }
-  else if (memAmount <= size_t(4*1024)*MB)
-  {
-    return 1024 * 512;
-  }
-  else
-    return 1024 * 1024;
+  int MEGABLOCK_SIZE = 1024 * 512;
 
+  if (m_globals.devIsCPU)
+    MEGABLOCK_SIZE = 256 * 256;
+  else if (memAmount <= size_t(256)*MB)
+    MEGABLOCK_SIZE = 256 * 256;
+  else if (memAmount <= size_t(1024)*MB)
+    MEGABLOCK_SIZE = 512 * 512;
+  else if (memAmount <= size_t(4*1024)*MB)
+    MEGABLOCK_SIZE = 1024 * 512;
+  else
+    MEGABLOCK_SIZE = 1024 * 1024;
+
+  if (a_flags & GPU_MLT_ENABLED_AT_START)
+  {
+    MEGABLOCK_SIZE = 524288;
+    if (a_flags & GPU_MMLT_THREADS_262K)
+      MEGABLOCK_SIZE = 262144;
+    else if (a_flags & GPU_MMLT_THREADS_131K)
+      MEGABLOCK_SIZE = 131072;
+    else if (a_flags & GPU_MMLT_THREADS_65K)
+      MEGABLOCK_SIZE = 65536;
+    else if (a_flags & GPU_MMLT_THREADS_16K)
+      MEGABLOCK_SIZE = 16384;
+
+    if (m_globals.devIsCPU)
+      MEGABLOCK_SIZE = 16384;
+  }
+
+  return MEGABLOCK_SIZE;
 }
 
 std::string GPUOCLLayer::GetOCLShaderCompilerOptions()
@@ -862,7 +873,8 @@ void GPUOCLLayer::ResizeScreen(int width, int height, int a_flags)
   m_width  = width;
   m_height = height;
 
-  const size_t MEGABLOCK_SIZE = CalcMegaBlockSize()/2; 
+  const size_t MEGABLOCK_SIZE = CalcMegaBlockSize(a_flags); 
+
 
   if (ciErr1 != CL_SUCCESS)
     RUN_TIME_ERROR("[cl_core]: Failed to create cl half screen zblocks buffer ");
@@ -991,27 +1003,31 @@ void GPUOCLLayer::GetLDRImage(uint* data, int width, int height) const
       const float* dataHDR  = (const float*)color0;
       const float* dataHDR1 = (const float*)color1;
 
-      if (m_vars.m_flags & HRT_ENABLE_MMLT && !ENABLE_SBDPT_FOR_DEBUG) 
+      if (m_vars.m_flags & HRT_ENABLE_MMLT && !ENABLE_SBDPT_FOR_DEBUG)
       {
-        if(color1 != nullptr && color0 != nullptr)
+        if (color1 != nullptr && color0 != nullptr)
+        {
+
+#pragma omp parallel for
+          for (int i = 0; i < size; i++)
+          {
+            const __m128 colorDL = _mm_mul_ps(normc2, _mm_load_ps(dataHDR1 + i * 4));
+            const __m128 colorIL = _mm_mul_ps(normc, _mm_load_ps(dataHDR + i * 4));
+            const __m128 color2 = HydraSSE::powf4(_mm_add_ps(colorDL, colorIL), powerf4);
+            const __m128i rgba = _mm_cvtps_epi32(_mm_min_ps(_mm_mul_ps(color2, const_255), const_255));
+            const __m128i out = _mm_packus_epi32(rgba, _mm_setzero_si128());
+            const __m128i out2 = _mm_packus_epi16(out, _mm_setzero_si128());
+            data[i] = _mm_cvtsi128_si32(out2);
+          }
+
+        }
+        else if (color0 != nullptr)
         {
           #pragma omp parallel for
           for (int i = 0; i < size; i++)
           {
-            const __m128 colorDL = _mm_mul_ps(normc2, _mm_load_ps(dataHDR1 + i*4));
-            const __m128 colorIL = _mm_mul_ps(normc , _mm_load_ps(dataHDR  + i*4));
-            const __m128 color2  = HydraSSE::powf4(_mm_add_ps(colorDL, colorIL), powerf4);
-            const __m128i rgba   = _mm_cvtps_epi32(_mm_min_ps(_mm_mul_ps(color2, const_255), const_255));
-            const __m128i out    = _mm_packus_epi32(rgba, _mm_setzero_si128());
-            const __m128i out2   = _mm_packus_epi16(out, _mm_setzero_si128());
-            data[i]              = _mm_cvtsi128_si32(out2);
+            data[i] = HydraSSE::gammaCorr(dataHDR + i * 4, normc, powerf4);
           }
-        }
-        else if(color0 != nullptr)
-        {
-          #pragma omp parallel for
-          for (int i = 0; i < size; i++)
-            data[i] = HydraSSE::gammaCorr(dataHDR + i*4, normc, powerf4);
         }
         else
         {
@@ -1021,14 +1037,17 @@ void GPUOCLLayer::GetLDRImage(uint* data, int width, int height) const
 
         //#pragma omp parallel for
         //for (int i = 0; i < size; i++)
+        //{
         //  data[i] = HydraSSE::gammaCorr(dataHDR1 + i*4, normc2, powerf4);
-
+        //}
       }
       else
       {
         #pragma omp parallel for
         for (int i = 0; i < size; i++)
-          data[i] = HydraSSE::gammaCorr(dataHDR + i*4, normc, powerf4);
+        {
+          data[i] = HydraSSE::gammaCorr(dataHDR + i * 4, normc, powerf4);
+        }
       }
     }
   }

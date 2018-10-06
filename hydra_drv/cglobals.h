@@ -1969,22 +1969,6 @@ static void ImageZBlockMemToRowPitch(const float4* inData, float4* outData, int 
 
 #endif
 
-
-static inline int calcMegaBlockSize(int w, int h, size_t memAmount)
-{ 
-  int MEGA_BLOCK_SIZE = 512*512;
-  if (w*h <= 512 * 512)
-    MEGA_BLOCK_SIZE = 256 * 256;
-  else if (w*h <= 1024 * 768)
-    MEGA_BLOCK_SIZE = 512 * 512;
-  else if (w*h < 1920 * 1200)
-    MEGA_BLOCK_SIZE = (1024*1024/2); // #TODO: check this !!!
-  else 
-    MEGA_BLOCK_SIZE = 1024 * 1024;
-  return MEGA_BLOCK_SIZE;
-}
-
-
 #ifdef __CUDACC__ 
   #undef ushort
   #undef uint
