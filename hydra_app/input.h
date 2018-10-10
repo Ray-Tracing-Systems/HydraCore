@@ -51,6 +51,7 @@ struct Input
   bool lightTracingEnabled;
   bool ibptEnabled;
   bool cameraFreeze;
+  bool productionPTMode;
 
   void ParseCommandLineParams(const std::unordered_map<std::string, std::string>& a_params);
 };

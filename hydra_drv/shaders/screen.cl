@@ -66,6 +66,56 @@ __kernel void MakeEyeRaysSPP(__global float4* out_pos,
   out_dir [tid] = to_float4(ray_dir, fy);
 }
 
+
+
+__kernel void MakeEyeRaysSPPPixels(__global float4*              restrict out_pos,
+                                   __global float4*              restrict out_dir,
+                                   __global int*                 restrict out_XY,
+
+                                   int w, int h, 
+                                   __global const int*           restrict in_pixcoords,
+                                   
+                                   __global RandomGen*           restrict out_gens,
+                                    __constant unsigned int*     restrict a_qmcTable, 
+                                    int a_passNumberForQmc,
+                                   __global const float2*        restrict in_qmc,
+                                   __global const EngineGlobals* restrict a_globals, 
+                                   int a_size)
+{
+  const int tid       = GLOBAL_ID_X;
+  const int pixPacked = in_pixcoords[tid / PMPIX_SAMPLES];
+
+  const int y = (pixPacked & 0xFFFF0000) >> 16;
+  const int x = (pixPacked & 0x0000FFFF);
+
+  //const float2 qmc      = in_qmc[tid % PMPIX_SAMPLES];
+  //const float4 lensOffs = make_float4(qmc.x, qmc.y, 0, 0); //#TODO: add dof sampling via sobol qmc. 
+  
+  RandomGen gen             = out_gens[tid];
+  const float2 mutateScale  = make_float2(a_globals->varsF[HRT_MLT_SCREEN_SCALE_X], a_globals->varsF[HRT_MLT_SCREEN_SCALE_Y]);
+  const unsigned int qmcPos = (tid % PMPIX_SAMPLES) + a_passNumberForQmc*PMPIX_SAMPLES; // we use reverseBits due to neighbour thread number put in to sobol random generator are too far from each other 
+  const float4 lensOffs     = rndLens(&gen, 0, mutateScale, 
+                                      a_globals->rmQMC, qmcPos, a_qmcTable);
+  out_gens[tid]             = gen;
+
+  const float sizeInvX  = 1.0f / (float)(w);
+  const float sizeInvY  = 1.0f / (float)(h);
+
+  lensOffs.x = sizeInvX * (lensOffs.x + (float)x);
+  lensOffs.y = sizeInvY * (lensOffs.y + (float)y);
+
+  // (2) generate random camera sample
+  //
+  float  fx = (float)x, fy = (float)y;
+  float3 ray_pos, ray_dir;
+  MakeEyeRayFromF4Rnd(lensOffs, a_globals,
+                      &ray_pos, &ray_dir, &fx, &fy);
+
+  out_pos [tid] = to_float4(ray_pos, fx);
+  out_dir [tid] = to_float4(ray_dir, fy);
+  out_XY  [tid] = packXY1616(x,y);
+}
+
 __kernel void MakeEyeRaysSamplesOnly(__global RandomGen*           restrict out_gens,
                                      __global float4*              restrict out_samples,
                                      __global int2*                restrict out_zind,
@@ -116,13 +166,6 @@ __kernel void MakeEyeRaysUnifiedSampling(__global float4*              restrict 
 
                                          int w, int h, int a_size,
                                          __global const EngineGlobals* restrict a_globals, 
-                                         __global uint*                restrict a_flags,
-                                         __global float4*              restrict out_color,
-                                         __global float4*              restrict out_thoroughput,
-                                         __global float4*              restrict out_fog,
-                                         __global HitMatRef*           restrict out_hitMat,
-                                         __global PerRayAcc*           restrict out_accPdf,
-
                                          __global const int2*          restrict in_zind,
                                          __global const float4*        restrict in_samples,
                                          __constant ushort*            restrict a_mortonTable256,
@@ -157,14 +200,26 @@ __kernel void MakeEyeRaysUnifiedSampling(__global float4*              restrict 
   out_pos   [tid] = to_float4(ray_pos, fx);
   out_dir   [tid] = to_float4(ray_dir, fy);
   out_packXY[tid] = packXY1616(x, y);
+}
 
-  // clear all other per-ray data
-  //
+__kernel void ClearAllInternalTempBuffers(__global uint*      restrict out_flags,
+                                          __global float4*    restrict out_color,
+                                          __global float4*    restrict out_thoroughput,
+                                          __global float4*    restrict out_fog,
+                                          __global HitMatRef* restrict out_hitMat,
+                                          __global PerRayAcc* restrict out_accPdf,
+                                          int a_size)
+
+{
+  int tid = GLOBAL_ID_X;
+  if (tid >= a_size)
+    return;
+
   HitMatRef data3;
   data3.m_data    = 0; 
   data3.accumDist = 0.0f;
 
-  a_flags        [tid] = 0;
+  out_flags      [tid] = 0;
   out_color      [tid] = make_float4(0.0f, 0.0f, 0.0f, 0.0f);
   out_thoroughput[tid] = make_float4(1.0f, 1.0f, 1.0f, 1.0f);
   out_fog        [tid] = make_float4(0.0f, 0.0f, 0.0f, 0.0f);
@@ -326,6 +381,31 @@ __kernel void SimpleReductionTest(__global int* a_data, int iNumElements)
   if (LOCAL_ID_X == 0)
     a_data[tid] = sArray[0];
 
+}
+
+
+__kernel void CountNumLiveThreads(__global int* a_counter, __global uint* a_flags, int iNumElements)
+{ 
+  int tid = GLOBAL_ID_X;
+  if (tid >= iNumElements)
+    return;
+
+  __local int sArray[256];
+
+  // reduce all thisRayIsDead to shared allBlockRaysAreDead
+  //
+  sArray[LOCAL_ID_X] = (unpackRayFlags(a_flags[tid]) & RAY_IS_DEAD) ? 0 : 1;
+  SYNCTHREADS_LOCAL;
+
+  for (uint c = 256 / 2; c>0; c /= 2)
+  {
+    if (LOCAL_ID_X < c)
+      sArray[LOCAL_ID_X] += sArray[LOCAL_ID_X + c];
+    SYNCTHREADS_LOCAL;
+  }
+
+  if (LOCAL_ID_X == 0)
+    atomic_add(a_counter, sArray[0]);
 }
 
 
@@ -504,6 +584,17 @@ __kernel void GetAlphaToGBuffer(__global float4* out_data, __global const float4
   out_data[tid]     = packGBuffer1(buffRes);
 }
 
+__kernel void GetShadowToAlpha(__global float4* inout_data, __global const uchar* in_shadow, int iNumElements)
+{
+  int tid = GLOBAL_ID_X;
+  if (tid >= iNumElements)
+    return;
+
+  float4 color = inout_data[tid];
+  float shadow = (float)(in_shadow[tid])/255.0f;
+  color.w = shadow;
+  inout_data[tid] = color;
+}
 
 __kernel void FloatToHalf(__global float* a_inData, __global half* a_outData, int iNumElements, int iOffset)
 {

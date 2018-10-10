@@ -136,8 +136,20 @@ RenderDriverRTE::RenderDriverRTE(const wchar_t* a_options, int w, int h, int a_d
   m_maxRaysPerPixel      = 1000000;
   m_shadowMatteBackTexId = INVALID_TEXTURE;
   m_shadowMatteBackGamma = 2.2f;
-  m_boxModeOn            = false;
-  m_pSysMutex = hr_create_system_mutex("hydrabvh");
+  m_pSysMutex            = hr_create_system_mutex("hydrabvh");
+}
+
+void RenderDriverRTE::ExecuteCommand(const wchar_t* a_cmd, wchar_t* a_out)
+{
+#ifndef WIN32
+  if(std::wstring(a_cmd) == L"exitnow" && m_pHWLayer != nullptr) 
+  {
+    std::cerr << "[RTE], exitnow" << std::endl;
+    //m_pHWLayer->FinishAll();
+    //std::cerr << "[RTE], exitnow, after  FinishAll" << std::endl;
+    exit(0);
+  }
+#endif
 }
 
 bool RenderDriverRTE::UpdateSettings(pugi::xml_node a_settingsNode)
@@ -272,8 +284,10 @@ bool RenderDriverRTE::UpdateSettings(pugi::xml_node a_settingsNode)
     m_legacy.minRaysPerPixel = a_settingsNode.child(L"minRaysPerPixel").text().as_int();
 
   if (a_settingsNode.child(L"maxRaysPerPixel") != nullptr)
+  {
     m_legacy.maxRaysPerPixel = a_settingsNode.child(L"maxRaysPerPixel").text().as_int();
-
+    vars.m_varsI[HRT_MAX_SAMPLES_PER_PIXEL] = m_legacy.maxRaysPerPixel;
+  }
   if (a_settingsNode.child(L"seed") != nullptr)
     m_legacy.m_lastSeed = a_settingsNode.child(L"seed").text().as_int();
 
@@ -288,11 +302,29 @@ bool RenderDriverRTE::UpdateSettings(pugi::xml_node a_settingsNode)
   else
     vars.m_varsI[HRT_STORE_SHADOW_COLOR_W] = 0;
 
+  // production pt settings
+  //
   if(a_settingsNode.child(L"boxmode") != nullptr)
-    m_boxModeOn = (a_settingsNode.child(L"boxmode").text().as_int() == 1);
+    vars.m_varsI[HRT_BOX_MODE_ON] = a_settingsNode.child(L"boxmode").text().as_int();
   else
-    m_boxModeOn = false;
-  
+    vars.m_varsI[HRT_BOX_MODE_ON] = 0;
+
+  if(a_settingsNode.child(L"offline_pt") != nullptr)
+  {
+    int mode = a_settingsNode.child(L"offline_pt").text().as_int();
+    if(mode == 1)
+      vars.m_flags |= HRT_PRODUCTION_IMAGE_SAMPLING;
+    else
+      vars.m_flags = vars.m_flags & ~HRT_PRODUCTION_IMAGE_SAMPLING;
+
+    vars.m_varsI[HRT_CONTRIB_SAMPLES] = a_settingsNode.child(L"contribsamples").text().as_int();
+  }
+  else
+  {
+    vars.m_flags = vars.m_flags & ~HRT_PRODUCTION_IMAGE_SAMPLING;
+    vars.m_varsI[HRT_CONTRIB_SAMPLES] = 1000000;
+  }
+
   m_pHWLayer->SetAllFlagsAndVars(vars);
 
   return true;
@@ -925,7 +957,7 @@ bool RenderDriverRTE::UpdateMesh(int32_t a_meshId, pugi::xml_node a_meshNode, co
   const size_t vertTexcSize   = 0; // roundBlocks(sizeof(float2)*a_input.vertNum, align);   // #TODO: add aux text coord channel if have such.
     
   const size_t vertTangOffset = vertTexcOffset + vertTexcSize;
-  const size_t vertTangSize   = roundBlocks(sizeof(int)*a_input.vertNum, align); // compressed tangent
+  const size_t vertTangSize   = roundBlocks(sizeof(float4)*a_input.vertNum, align); // compressed tangent
    
   const size_t triIndOffset   = vertTangOffset + vertTangSize;
   const size_t triIndSize     = roundBlocks(a_input.triNum * 3 * sizeof(int), align);
@@ -940,10 +972,7 @@ bool RenderDriverRTE::UpdateMesh(int32_t a_meshId, pugi::xml_node a_meshNode, co
 
   // (1) compress tangents
   //
-  const float4* a_tan = (const float4*)a_input.tan4f;
-  std::vector<int> compressedTangent(a_input.vertNum);
-  for (int i = 0; i < a_input.vertNum; i++)
-    compressedTangent[i] = encodeNormal(to_float3(a_tan[i]));
+  const float4* tan4f  = (const float4*)a_input.tan4f;
 
   // (2) pack first texture coordinates to pos.w and norm.w
   //
@@ -1001,7 +1030,7 @@ bool RenderDriverRTE::UpdateMesh(int32_t a_meshId, pugi::xml_node a_meshNode, co
   m_pGeomStorage->UpdatePartial(a_meshId, &posAndTx[0],          vertPosOffset,  a_input.vertNum * sizeof(float4));
   m_pGeomStorage->UpdatePartial(a_meshId, &normAndTy[0],         vertNormOffset, a_input.vertNum * sizeof(float4));
   //m_pGeomStorage->UpdatePartial(a_meshId, a_input.texcoord2f,    vertTexcOffset, a_input.vertNum * sizeof(float2)); //#TODO: put auxilarry tex coord channel if has such
-  m_pGeomStorage->UpdatePartial(a_meshId, &compressedTangent[0], vertTangOffset, a_input.vertNum * sizeof(int)); // compressed tangent
+  m_pGeomStorage->UpdatePartial(a_meshId, tan4f, vertTangOffset, a_input.vertNum * sizeof(float4)); // compressed tangent
 
   m_pGeomStorage->UpdatePartial(a_meshId, a_input.indices,       triIndOffset,   a_input.triNum  * 3 * sizeof(int));
   m_pGeomStorage->UpdatePartial(a_meshId, a_input.triMatIndices, triMIndOffset,  a_input.triNum  * sizeof(int));
@@ -1845,15 +1874,8 @@ HRRenderUpdateInfo RenderDriverRTE::HaveUpdateNow(int a_maxRaysperPixel)
   res.finalUpdate = false; // (res.progress >= 1.5f);  //#TODO: this is due to the possibility of render to finish earlier than API get upgate from it
   // std::cout << "progress = " << res.progress << std::endl;
   
-  float sppDone    = m_pHWLayer->GetSPPDone();
-  float sppContrib = m_pHWLayer->GetSPPContrib();
-  
-  if(m_boxModeOn) // it does not work whrn GPU frame buffer enabled for some unknown reason ...
-  {
-    res.progress  = sppContrib / a_maxRaysperPixel;
-    if(sppContrib > a_maxRaysperPixel || sppDone > a_maxRaysperPixel)
-      res.finalUpdate = true;
-  }
+  // float sppDone    = m_pHWLayer->GetSPPDone();
+  // float sppContrib = m_pHWLayer->GetSPPContrib();
   
   // std::cout << std::endl;
   // std::cout << "m_boxModeOn             = " << m_boxModeOn << std::endl;

@@ -688,6 +688,10 @@ static inline float3 sample2DLite(int a_samplerOffset, float2 texCoord, __global
   return to_float3(texColor4);
 }
 
+/**
+\brief Sample normal map from different tex storage.
+
+*/
 static inline float3 sample2DAux(int2 a_samplerOffset, float2 texCoord, __global const int4* a_samStorage, __global const int4* a_texStorage, __global const EngineGlobals* a_globals)
 {
   if (a_samplerOffset.y == INVALID_TEXTURE)
@@ -703,6 +707,42 @@ static inline float3 sample2DAux(int2 a_samplerOffset, float2 texCoord, __global
   //const int offset = textureAuxHeaderOffset(a_globals, sampler.texId);
 
   float4 texColor4 = read_imagef_sw4(a_texStorage + offset, texCoordT, sampler.flags);
+
+  texColor4.x = pow(texColor4.x, sampler.gamma);
+  texColor4.y = pow(texColor4.y, sampler.gamma);
+  texColor4.z = pow(texColor4.z, sampler.gamma);
+
+  if (sampler.flags & TEX_ALPHASRC_W)
+  {
+    texColor4.x = texColor4.w;
+    texColor4.y = texColor4.w;
+    texColor4.z = texColor4.w;
+  }
+
+  return to_float3(texColor4);
+}
+
+/**
+\brief Sample normal map from different tex storage. Support procedure texture fetch.
+
+*/
+static inline float3 sample2DAuxExt(int2 a_samplerOffset, float2 texCoord, __global const int4* a_samStorage, 
+                                    __global const int4* a_texStorage, __global const EngineGlobals* a_globals, __private const ProcTextureList* a_ptList)
+{
+  if (a_samplerOffset.y == INVALID_TEXTURE)
+    return make_float3(1, 1, 1);
+
+  const SWTexSampler sampler = ReadSampler(a_samStorage, a_samplerOffset.y);
+  const float2 texCoordT     = mul2x4(sampler.row0, sampler.row1, texCoord);
+
+  if (sampler.texId == 0)
+    return make_float3(1, 1, 1);
+
+  const int offset = textureAuxHeaderOffset(a_globals, a_samplerOffset.x);
+
+  const float4 texColor2 = read_imagef_sw4(a_texStorage + offset, texCoordT, sampler.flags);
+  const float4 texColor1 = readProcTex(sampler.texId, a_ptList);
+  float4 texColor4       = (fabs(texColor1.w + 1.0f) < 1e-5f) ? texColor2 : texColor1;
 
   texColor4.x = pow(texColor4.x, sampler.gamma);
   texColor4.y = pow(texColor4.y, sampler.gamma);
@@ -979,10 +1019,16 @@ static inline __global const float4* meshNorms(__global const PlainMesh* a_pMesh
   return pheader + a_pMesh->vNormOffset;
 }
 
-static inline __global const uint* meshTangentsCompressed(__global const PlainMesh* a_pMesh)
+//static inline __global const uint* meshTangentsCompressed(__global const PlainMesh* a_pMesh)
+//{
+//  __global const float4* pheader = (__global const float4*)a_pMesh;
+//  return (__global const uint*)(pheader + a_pMesh->vTangentOffset);
+//}
+
+static inline __global const float4* meshTangents(__global const PlainMesh* a_pMesh)
 {
   __global const float4* pheader = (__global const float4*)a_pMesh;
-  return (__global const uint*)(pheader + a_pMesh->vTangentOffset);
+  return (__global const float4*)(pheader + a_pMesh->vTangentOffset);
 }
 
 //vTangentOffset

@@ -126,6 +126,9 @@ struct RenderDriverRTE : public IHRRenderDriver
   int   m_shadowMatteBackTexId;
   float m_shadowMatteBackGamma;
 
+  void ExecuteCommand(const wchar_t* a_cmd, wchar_t* a_out) override;
+  void ReadBumpAndOpacity(std::shared_ptr<RAYTR::IMaterial> pResult, pugi::xml_node a_node);
+
 protected:
 
   void CalcCameraMatrices(float4x4* a_pModelViewMatrixInv, float4x4* a_projMatrixInv, float4x4* a_pModelViewMatrix, float4x4* a_projMatrix);
@@ -293,9 +296,6 @@ protected:
   bool  m_alreadyDeleted;
   bool  m_haveAtLeastOneAOMat;
   bool  m_haveAtLeastOneAOMat2;
-  bool  m_boxModeOn;
-  
-  friend void ReadBumpAndOpacity(std::shared_ptr<RAYTR::IMaterial> pResult, pugi::xml_node a_node, RenderDriverRTE* a_pRTE);
 
   void FreeCPUMem();
 

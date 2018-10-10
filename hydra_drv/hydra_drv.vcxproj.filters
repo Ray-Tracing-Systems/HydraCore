@@ -206,6 +206,18 @@
     <ClCompile Include="RenderDriverRTE_ProcTex.cpp">
       <Filter>Файлы исходного кода</Filter>
     </ClCompile>
+    <ClCompile Include="CPUExp_Integrators_PT_QMC.cpp">
+      <Filter>CPULayer</Filter>
+    </ClCompile>
+    <ClCompile Include="GPUOCLLayerAdvanced.cpp">
+      <Filter>Файлы исходного кода</Filter>
+    </ClCompile>
+    <ClCompile Include="GPUOCLLayerCore.cpp">
+      <Filter>Файлы исходного кода</Filter>
+    </ClCompile>
+    <ClCompile Include="GPUOCLLayerOther.cpp">
+      <Filter>Файлы исходного кода</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="shaders\image.cl">

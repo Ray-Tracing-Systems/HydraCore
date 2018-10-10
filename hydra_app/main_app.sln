@@ -1,9 +1,9 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio 15
-VisualStudioVersion = 15.0.27130.2003
+# Visual Studio 14
+VisualStudioVersion = 14.0.25420.1
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "main_app", "main_app.vcxproj", "{ACF3BDA6-E228-4015-A8C6-4450AFACDE39}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "hydra", "main_app.vcxproj", "{ACF3BDA6-E228-4015-A8C6-4450AFACDE39}"
 	ProjectSection(ProjectDependencies) = postProject
 		{5F13E40F-C0F1-4EF4-A775-AB8BC703DE88} = {5F13E40F-C0F1-4EF4-A775-AB8BC703DE88}
 		{2758DD4A-78F6-452F-BBF5-4E86B46BD2EA} = {2758DD4A-78F6-452F-BBF5-4E86B46BD2EA}
@@ -25,6 +25,8 @@ EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ies_parser", "..\..\HydraAPI\ies_parser\ies_parser.vcxproj", "{1D53B494-4B7E-464B-82A1-A2052240F6EF}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "shaderpack", "..\shaderpack\shaderpack.vcxproj", "{E0914440-7CB6-4D4F-84FD-49BD580663A3}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "mikktspace", "..\..\HydraAPI\mikktspace\mikktspace.vcxproj", "{7844C04D-F5D4-4C90-B080-6744A10C3332}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -50,16 +52,15 @@ Global
 		{ACF3BDA6-E228-4015-A8C6-4450AFACDE39}.RelWithDebInfo|x86.Build.0 = Release|Win32
 		{C05FF9EA-3D61-48B7-ABEA-4353253691DC}.Debug|x64.ActiveCfg = Debug|x64
 		{C05FF9EA-3D61-48B7-ABEA-4353253691DC}.Debug|x64.Build.0 = Debug|x64
-		{C05FF9EA-3D61-48B7-ABEA-4353253691DC}.Debug|x86.ActiveCfg = Debug|Win32
-		{C05FF9EA-3D61-48B7-ABEA-4353253691DC}.Debug|x86.Build.0 = Debug|Win32
+		{C05FF9EA-3D61-48B7-ABEA-4353253691DC}.Debug|x86.ActiveCfg = Debug|x64
 		{C05FF9EA-3D61-48B7-ABEA-4353253691DC}.Release|x64.ActiveCfg = Release|x64
 		{C05FF9EA-3D61-48B7-ABEA-4353253691DC}.Release|x64.Build.0 = Release|x64
-		{C05FF9EA-3D61-48B7-ABEA-4353253691DC}.Release|x86.ActiveCfg = Release|Win32
-		{C05FF9EA-3D61-48B7-ABEA-4353253691DC}.Release|x86.Build.0 = Release|Win32
+		{C05FF9EA-3D61-48B7-ABEA-4353253691DC}.Release|x86.ActiveCfg = Release|x64
 		{C05FF9EA-3D61-48B7-ABEA-4353253691DC}.RelWithDebInfo|x64.ActiveCfg = Release|x64
 		{C05FF9EA-3D61-48B7-ABEA-4353253691DC}.RelWithDebInfo|x64.Build.0 = Release|x64
-		{C05FF9EA-3D61-48B7-ABEA-4353253691DC}.RelWithDebInfo|x86.ActiveCfg = Release|Win32
-		{C05FF9EA-3D61-48B7-ABEA-4353253691DC}.RelWithDebInfo|x86.Build.0 = Release|Win32
+		{C05FF9EA-3D61-48B7-ABEA-4353253691DC}.RelWithDebInfo|x86.ActiveCfg = 2019Hybrid|x64
+		{C05FF9EA-3D61-48B7-ABEA-4353253691DC}.RelWithDebInfo|x86.Build.0 = 2019Hybrid|x64
+		{C05FF9EA-3D61-48B7-ABEA-4353253691DC}.RelWithDebInfo|x86.Deploy.0 = 2019Hybrid|x64
 		{CB095789-F909-46DC-B9D6-9160BA7C508C}.Debug|x64.ActiveCfg = Debug|x64
 		{CB095789-F909-46DC-B9D6-9160BA7C508C}.Debug|x64.Build.0 = Debug|x64
 		{CB095789-F909-46DC-B9D6-9160BA7C508C}.Debug|x86.ActiveCfg = Debug|Win32
@@ -120,6 +121,18 @@ Global
 		{E0914440-7CB6-4D4F-84FD-49BD580663A3}.RelWithDebInfo|x64.Build.0 = Release|x64
 		{E0914440-7CB6-4D4F-84FD-49BD580663A3}.RelWithDebInfo|x86.ActiveCfg = Release|Win32
 		{E0914440-7CB6-4D4F-84FD-49BD580663A3}.RelWithDebInfo|x86.Build.0 = Release|Win32
+		{7844C04D-F5D4-4C90-B080-6744A10C3332}.Debug|x64.ActiveCfg = Debug|x64
+		{7844C04D-F5D4-4C90-B080-6744A10C3332}.Debug|x64.Build.0 = Debug|x64
+		{7844C04D-F5D4-4C90-B080-6744A10C3332}.Debug|x86.ActiveCfg = Debug|Win32
+		{7844C04D-F5D4-4C90-B080-6744A10C3332}.Debug|x86.Build.0 = Debug|Win32
+		{7844C04D-F5D4-4C90-B080-6744A10C3332}.Release|x64.ActiveCfg = Release|x64
+		{7844C04D-F5D4-4C90-B080-6744A10C3332}.Release|x64.Build.0 = Release|x64
+		{7844C04D-F5D4-4C90-B080-6744A10C3332}.Release|x86.ActiveCfg = Release|Win32
+		{7844C04D-F5D4-4C90-B080-6744A10C3332}.Release|x86.Build.0 = Release|Win32
+		{7844C04D-F5D4-4C90-B080-6744A10C3332}.RelWithDebInfo|x64.ActiveCfg = Release|x64
+		{7844C04D-F5D4-4C90-B080-6744A10C3332}.RelWithDebInfo|x64.Build.0 = Release|x64
+		{7844C04D-F5D4-4C90-B080-6744A10C3332}.RelWithDebInfo|x86.ActiveCfg = Release|Win32
+		{7844C04D-F5D4-4C90-B080-6744A10C3332}.RelWithDebInfo|x86.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

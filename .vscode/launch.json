@@ -31,7 +31,6 @@
             "request": "launch",
             "program": "${workspaceFolder}/cmake-build-debug/hydra_app/hydra",
             "args": ["-nowindow", "0"],
-                     // "-logdir", "/home/frol/hydra/"],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}/hydra_app",
             "environment": [],
