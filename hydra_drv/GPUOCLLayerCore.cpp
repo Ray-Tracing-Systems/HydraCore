@@ -177,8 +177,8 @@ void GPUOCLLayer::trace1DPrimaryOnly(cl_mem a_rpos, cl_mem a_rdir, cl_mem a_outC
 
   // trace rays
   //
-  memsetu32(m_rays.rayFlags, 0, a_size);                                         // fill flags with zero data
-  memsetf4(a_outColor, make_float4(0, 0, 0, 0), a_size, a_offset);               // fill initial out color with black
+  memsetu32(m_rays.rayFlags, 0, a_size);                                                           // fill flags with zero data
+  memsetf4(m_rays.hitSurfaceAll, float4(0,0,0,0), SURFACE_HIT_SIZE_IN_F4*m_rays.MEGABLOCKSIZE, 0); // clear surface hit
 
   if (m_vars.m_varsI[HRT_ENABLE_MRAYS_COUNTERS])
   {
@@ -251,6 +251,8 @@ void GPUOCLLayer::CopyShadowTo(cl_mem a_color, size_t a_size)
 
 void GPUOCLLayer::DrawNormals()
 {
+  //memsetf4(m_screen.color0, float4(0,0,0,0), m_width*m_height, 0);
+
   cl_kernel makeRaysKern = m_progs.screen.kernel("MakeEyeRays");
 
   int iter = 0;
