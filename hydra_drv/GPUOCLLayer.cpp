@@ -727,9 +727,12 @@ void GPUOCLLayer::RecompileProcTexShaders(const char* a_shaderPath)
   std::cout << "[cl_core]: recompile " << a_shaderPath << " ..." << std::endl;
   m_progs.texproc = CLProgram(m_globals.device, m_globals.ctx, a_shaderPath, options, HydraInstallPath(), "", "", SAVE_BUILD_LOG);
 
+  if(m_rays.hitProcTexData != nullptr)
+    clReleaseMemObject(m_rays.hitProcTexData);
+
   cl_int ciErr1 = 0;
-  m_rays.hitProcTexData = clCreateBuffer(m_globals.ctx, CL_MEM_READ_WRITE, sizeof(ProcTextureList)*m_rays.MEGABLOCKSIZE, NULL, &ciErr1);
-  //currSize += sizeof(ProcTextureList)*MEGABLOCKSIZE; //#TODO: ACCOUNT THIS MEM FOR MEM INFO
+  m_rays.hitProcTexData = clCreateBuffer(m_globals.ctx, CL_MEM_READ_WRITE, F4_PROCTEX_SIZE*sizeof(float4)*m_rays.MEGABLOCKSIZE, NULL, &ciErr1);
+  //currSize += (F4_PROCTEX_SIZE*sizeof(float4)*m_rays.MEGABLOCKSIZE); //#TODO: ACCOUNT THIS MEM FOR MEM INFO
 
   if (ciErr1 != CL_SUCCESS)
     RUN_TIME_ERROR("Error in RecompileProcTexShaders -> clCreateBuffer for proc tex");

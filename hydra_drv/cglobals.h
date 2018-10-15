@@ -2250,102 +2250,81 @@ typedef struct ShadeContextT
 
 } ShadeContext;
 
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+#define MAXPROCTEX 16
+#define F4_PROCTEX_SIZE 12
 
 /**
 \brief this structure will store results of procedural texture kernel execution.
 
 */
-
-#define MAXPROCTEX 5
-
 typedef struct ProcTextureListT
 {
-  float3  fdata4[MAXPROCTEX];  
+  int     currMaxProcTex;
   int     id_f4 [MAXPROCTEX];
+  float3  fdata4[MAXPROCTEX];  
 
 } ProcTextureList;
 
 
 static inline void InitProcTextureList(__private ProcTextureList* a_pList)
 {
+  a_pList->currMaxProcTex = 0;
   a_pList->id_f4[0] = INVALID_TEXTURE;
   a_pList->id_f4[1] = INVALID_TEXTURE;
   a_pList->id_f4[2] = INVALID_TEXTURE;
   a_pList->id_f4[3] = INVALID_TEXTURE;
-  a_pList->id_f4[4] = INVALID_TEXTURE;
-
-  a_pList->fdata4[0] = make_float3(1,1,1);
-  a_pList->fdata4[1] = make_float3(1,1,1);
-  a_pList->fdata4[2] = make_float3(1,1,1);
-  a_pList->fdata4[3] = make_float3(1,1,1);
-  a_pList->fdata4[4] = make_float3(1,1,1);
 }
 
 static inline void ReadProcTextureList(__global float4* fdata, int tid, int size,
-                                       __private ProcTextureList* a_pRes)
+                                       __private ProcTextureList* a_pList)
 {
   if (fdata == 0)
     return;
 
-  const float4 f0 = fdata[tid + size * 0];
-  const float4 f1 = fdata[tid + size * 1];
-  const float4 f2 = fdata[tid + size * 2];
-  const float4 f3 = fdata[tid + size * 3];
-  const float4 f4 = fdata[tid + size * 4];
-
-  a_pRes->id_f4[0] = as_int(f4.x);
-  a_pRes->id_f4[1] = as_int(f4.y);
-  a_pRes->id_f4[2] = as_int(f4.z);
-  a_pRes->id_f4[3] = as_int(f4.w);
-  a_pRes->id_f4[4] = as_int(f3.w);
-
-  a_pRes->fdata4[3] = to_float3(f3);
-
-  if (a_pRes->id_f4[0] != INVALID_TEXTURE || a_pRes->id_f4[4] != INVALID_TEXTURE)
-  {
-    a_pRes->fdata4[0]   = to_float3(f0);
-    a_pRes->fdata4[4].x = f0.w;
-  }
-
-  if (a_pRes->id_f4[1] != INVALID_TEXTURE || a_pRes->id_f4[4] != INVALID_TEXTURE)
-  {
-    a_pRes->fdata4[1]   = to_float3(f1);
-    a_pRes->fdata4[4].y = f1.w;
-  }
+  __global int* idata = (__global int*)fdata;
   
-  if (a_pRes->id_f4[2] != INVALID_TEXTURE || a_pRes->id_f4[4] != INVALID_TEXTURE)
+  int currMaxProcTex = 0;
+  for(int i=0;i<MAXPROCTEX;i++)
   {
-    a_pRes->fdata4[2]   = to_float3(f2);
-    a_pRes->fdata4[4].z = f2.w;
+    const int texId = idata[tid + size * i];
+    a_pList->id_f4[i] = texId;
+    if(texId == INVALID_TEXTURE)
+      break;
+
+    currMaxProcTex++;
   }
+
+  for(int i=0;i<a_pList->currMaxProcTex;i++)
+    a_pList->fdata4[i] = to_float3(fdata[tid + size * (i + MAXPROCTEX/4)]);
+
+  #ifdef OCL_COMPILER
+
+  #endif
  
 }
 
 
-static inline void WriteProcTextureList(__global float4* fdata, int tid, int size, __private const ProcTextureList* a_pRes)
+static inline void WriteProcTextureList(__global float4* fdata, int tid, int size, __private const ProcTextureList* a_pList)
 {
-  const float4 f0 = make_float4(a_pRes->fdata4[0].x, a_pRes->fdata4[0].y, a_pRes->fdata4[0].z, a_pRes->fdata4[4].x);
-  const float4 f1 = make_float4(a_pRes->fdata4[1].x, a_pRes->fdata4[1].y, a_pRes->fdata4[1].z, a_pRes->fdata4[4].y);
-  const float4 f2 = make_float4(a_pRes->fdata4[2].x, a_pRes->fdata4[2].y, a_pRes->fdata4[2].z, a_pRes->fdata4[4].z);
-  const float4 f3 = make_float4(a_pRes->fdata4[3].x, a_pRes->fdata4[3].y, a_pRes->fdata4[3].z, as_float(a_pRes->id_f4[4]));
+  __global int* idata = (__global int*)fdata;
 
-  if (a_pRes->id_f4[0] != INVALID_TEXTURE || a_pRes->id_f4[4] != INVALID_TEXTURE)
-    fdata[tid + size * 0] = f0;
-  
-  if (a_pRes->id_f4[1] != INVALID_TEXTURE || a_pRes->id_f4[4] != INVALID_TEXTURE)
-    fdata[tid + size * 1] = f1;
+  if(a_pList->currMaxProcTex == 0)
+  {
+    idata[tid] = INVALID_TEXTURE;
+    return;
+  }
 
-  if (a_pRes->id_f4[2] != INVALID_TEXTURE || a_pRes->id_f4[4] != INVALID_TEXTURE)
-    fdata[tid + size * 2] = f2;
+  for(int i=0;i<a_pList->currMaxProcTex;i++)
+    idata[tid + size * i] = a_pList->id_f4[i];
 
-  fdata[tid + size * 3] = f3;
-  fdata[tid + size * 4] = make_float4( as_float(a_pRes->id_f4[0]), as_float(a_pRes->id_f4[1]), as_float(a_pRes->id_f4[2]), as_float(a_pRes->id_f4[3]));
-}
+  for(int i=0;i<a_pList->currMaxProcTex;i++)
+    fdata[tid + size * (i + MAXPROCTEX/4)] = to_float4(a_pList->fdata4[i], 0.0f);
 
-
-static inline bool isProcTexId(int a_texId, const __private ProcTextureList* a_pList)
-{
-  return (a_pList->id_f4[0] != INVALID_TEXTURE);
+  //#ifdef OCL_COMPILER
+  //#endif
 }
 
 /**
@@ -2357,19 +2336,19 @@ static inline bool isProcTexId(int a_texId, const __private ProcTextureList* a_p
 */
 static inline float4 readProcTex(int a_texId, const __private ProcTextureList* a_pList)
 {
-  if(a_texId == a_pList->id_f4[0])
-    return to_float4(a_pList->fdata4[0], 0.0f);
-  else if(a_texId == a_pList->id_f4[1])
-    return to_float4(a_pList->fdata4[1], 0.0f);
-  else if(a_texId == a_pList->id_f4[2])
-    return to_float4(a_pList->fdata4[2], 0.0f);
-  else if(a_texId == a_pList->id_f4[3])
-    return to_float4(a_pList->fdata4[3], 0.0f);
-  else if(a_texId == a_pList->id_f4[4])
-    return to_float4(a_pList->fdata4[4], 0.0f);
-  else
-    return make_float4(1, 1, 1, -1.0f);
+  const int maxIter = (a_pList->currMaxProcTex < MAXPROCTEX-1) ? a_pList->currMaxProcTex :  MAXPROCTEX-1; // min
+
+  for(int i=0; i<maxIter; i++) // #TODO: opt this for GPU ???
+  {
+    if(a_texId == a_pList->id_f4[i])
+      return to_float4(a_pList->fdata4[i], 0.0f);
+  }  
+
+  return make_float4(1, 1, 1, -1.0f);
 }
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 typedef struct ShadowSampleT
 {
@@ -2659,6 +2638,19 @@ static inline void GetProcTexturesIdListFromMaterialHead(__global const PlainMat
   a_pData->id_f4[2] = as_int(a_pMat->data[PROC_TEX3_F4_HEAD_OFFSET]);
   a_pData->id_f4[3] = as_int(a_pMat->data[PROC_TEX4_F4_HEAD_OFFSET]);
   a_pData->id_f4[4] = as_int(a_pMat->data[PROC_TEX5_F4_HEAD_OFFSET]);
+
+  if(a_pData->id_f4[0] == INVALID_TEXTURE)
+    a_pData->currMaxProcTex = 0;
+  else if(a_pData->id_f4[1] == INVALID_TEXTURE)
+    a_pData->currMaxProcTex = 1;
+  else if(a_pData->id_f4[2] == INVALID_TEXTURE)
+    a_pData->currMaxProcTex = 2;
+  else if(a_pData->id_f4[3] == INVALID_TEXTURE)
+    a_pData->currMaxProcTex = 3;
+  else if(a_pData->id_f4[4] == INVALID_TEXTURE)
+    a_pData->currMaxProcTex = 4;
+  else
+    a_pData->currMaxProcTex = 5;
 }
 
 static inline bool materialHeadHaveTargetProcTex(__global const PlainMaterial* a_pMat, int a_texId)
