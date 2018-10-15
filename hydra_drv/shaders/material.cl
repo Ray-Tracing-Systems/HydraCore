@@ -684,8 +684,6 @@ __kernel void Shade(__global const float4*    restrict a_rpos,
                       &ptl);
 
   const BxDFResult evalData = materialEval(pHitMaterial, &sc, disableCaustics, false, /* global data --> */ a_globals, in_texStorage1, in_texStorage2, &ptl);
-  const float3 shadow       = decompressShadow(in_shadow[tid]);
-  //const int lightOffset     = in_loffs[tid];
 
   __global const PlainLight* pLight = lightAt(a_globals, lightOffset);
 
@@ -740,6 +738,8 @@ __kernel void Shade(__global const float4*    restrict a_rpos,
       misWeight = 1.0f;
   }
 
+  const float3 shadow = decompressShadow(in_shadow[tid]);
+
   if (out_shadow != 0 && rayBounceNum == 0)
   {
     float shadow1 = 255.0f*0.33333f*(shadow.x + shadow.y + shadow.z);
@@ -782,7 +782,7 @@ __kernel void NextBounce(__global   float4*        restrict a_rpos,
                          __global float4*          restrict a_color,
                          __global float4*          restrict a_thoroughput,
                          __global MisData*         restrict a_misDataPrev,
-                         __global ushort4*         restrict a_shadow,
+                         __global const ushort4*   restrict in_shadow,
                          __global float4*          restrict a_fog,
                          __global const float4*    restrict in_shadeColor,
                          __global const float4*    restrict in_emissionColor,
@@ -847,8 +847,10 @@ __kernel void NextBounce(__global   float4*        restrict a_rpos,
     out_gens[tid] = gen;
   }
   
+  const float3 shadowVal = decompressShadow(in_shadow[tid]);
+
   MatSample brdfSample; int localOffset = 0; 
-  MaterialSampleAndEvalBxDF(pHitMaterial, allRands, &surfHit, ray_dir, decompressShadow(a_shadow[tid]), flags,
+  MaterialSampleAndEvalBxDF(pHitMaterial, allRands, &surfHit, ray_dir, shadowVal, flags,
                             a_globals, in_texStorage1, in_texStorage2, &ptl, 
                             &brdfSample, &localOffset);
                             

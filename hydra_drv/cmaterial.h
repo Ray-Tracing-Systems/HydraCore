@@ -998,7 +998,7 @@ static inline void ShadowmatteSampleAndEvalBRDF(__global const PlainMaterial* a_
 
   a_out->direction    = ray_dir;
   a_out->pdf          = 1.0f;
-  a_out->color        = a_shadowVal/fmax(cosThetaOut, 1e-5f);
+  a_out->color        = a_shadowVal/fmax(fabs(cosThetaOut), 1e-5f);
   a_out->flags        = RAY_EVENT_S | RAY_EVENT_T;
 }
 
