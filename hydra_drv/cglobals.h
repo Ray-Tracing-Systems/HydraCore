@@ -2301,10 +2301,6 @@ static inline void WriteProcTextureList(__global float4* fdata, int tid, int siz
   //#ifdef OCL_COMPILER
   //#endif
 
-  //idata[tid + size * 0] = 4;
-  //idata[tid + size * 1] = INVALID_TEXTURE;
-  //fdata[tid + size * (0 + MAXPROCTEX/4)] = make_float4(1,0,0,0);
-
 }
 
 static inline void ReadProcTextureList(__global float4* fdata, int tid, int size,
@@ -2315,18 +2311,14 @@ static inline void ReadProcTextureList(__global float4* fdata, int tid, int size
 
   __global int* idata = (__global int*)fdata;
   
-  int currMaxProcTex = 0;
-  for(int i=0;i<MAXPROCTEX;i++)
+  int currMaxProcTex;
+  for(currMaxProcTex = 0; currMaxProcTex < MAXPROCTEX; currMaxProcTex++)
   {
-    const int texId = idata[tid + size * i];
-    a_pList->id_f4[i] = texId;
+    const int texId = idata[tid + size * currMaxProcTex];
+    a_pList->id_f4[currMaxProcTex] = texId;
     if(texId == INVALID_TEXTURE)
       break;
-  
-    currMaxProcTex++;
   }
-
-  //currMaxProcTex = (currMaxProcTex < MAXPROCTEX) ? currMaxProcTex : MAXPROCTEX; // min
 
   for(int i=0;i<currMaxProcTex;i++)
     a_pList->fdata4[i] = to_float3(fdata[tid + size * (i + MAXPROCTEX/4)]);
