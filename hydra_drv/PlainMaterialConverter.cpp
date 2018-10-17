@@ -1207,18 +1207,18 @@ std::shared_ptr<IMaterial> CreateBlendDefferedProxyFromXmlNode(pugi::xml_node a_
   bool fresnelBlend = false;
   bool extrusive = false;
 
-  //if (blendType == L"mask_blend")
-  //{
-  //
-  //}
-  //else if (blendType == L"fresnel_blend")
-  //{
-  //  fresnelBlend = true;
-  //}
-  //else if (blendType == L"faloff_blend")
-  //{
-  //
-  //}
+  if (blendType == L"mask_blend")
+  {
+  
+  }
+  else if (blendType == L"fresnel_blend")
+  {
+    fresnelBlend = true;
+  }
+  else if (blendType == L"faloff_blend")
+  {
+  
+  }
   
   const float fresnelIOR    = ReadFresnelIOR(a_node.child(L"blend"));
   const int   reflExtrusion = ReadExtrusionType(a_node);
@@ -1228,12 +1228,12 @@ std::shared_ptr<IMaterial> CreateBlendDefferedProxyFromXmlNode(pugi::xml_node a_
   
   // read mask texture
   //
-  int32_t texId;
-  SWTexSampler sampler;
+  int32_t texId = INVALID_TEXTURE;
+  SWTexSampler sampler = DummySampler();
   if (a_node.child(L"blend").child(L"mask").child(L"texture") != nullptr)
   {
     sampler = SamplerFromTexref(a_node.child(L"blend").child(L"mask").child(L"texture"));
-    texId = sampler.texId;
+    texId   = sampler.texId;
   }
 
   std::shared_ptr<IMaterial> m1 = nullptr;  // will replace them later
