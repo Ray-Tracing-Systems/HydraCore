@@ -2295,11 +2295,24 @@ static inline void WriteProcTextureList(__global float4* fdata, int tid, int siz
   if(a_pList->currMaxProcTex != MAXPROCTEX)
     idata[tid + size * a_pList->currMaxProcTex] = INVALID_TEXTURE; // list end
 
-  for(int i=0;i<a_pList->currMaxProcTex;i++)
-    fdata[tid + size * (i + MAXPROCTEX/4)] = to_float4(a_pList->fdata4[i], 0.0f);
+  //for(int i=0;i<a_pList->currMaxProcTex;i++)
+  //  fdata[tid + size * (i + MAXPROCTEX/4)] = to_float4(a_pList->fdata4[i], 0.0f);
 
-  //#ifdef OCL_COMPILER
-  //#endif
+  #ifdef OCL_COMPILER
+
+  for(int i=0;i<a_pList->currMaxProcTex;i+=2)
+  {
+    const float4 h1 = to_float4(a_pList->fdata4[i+0], 0.0f);
+    const float4 h2 = to_float4(a_pList->fdata4[i+1], 0.0f);
+    float8 data = {h1.x, h1.y, h1.z, h1.w, 
+                   h2.x, h2.y, h2.z, h2.w,};
+    
+    const int offset = (tid + size * (i + MAXPROCTEX/4));
+    vstore_half8(data, 0, (__global half*)(fdata + offset) );
+
+  }
+
+  #endif
 
 }
 
@@ -2320,8 +2333,20 @@ static inline void ReadProcTextureList(__global float4* fdata, int tid, int size
       break;
   }
 
-  for(int i=0;i<currMaxProcTex;i++)
-    a_pList->fdata4[i] = to_float3(fdata[tid + size * (i + MAXPROCTEX/4)]);
+  //for(int i=0;i<currMaxProcTex;i++)
+  //  a_pList->fdata4[i] = to_float3(fdata[tid + size * (i + MAXPROCTEX/4)]);
+
+  #ifdef OCL_COMPILER
+
+  for(int i=0;i<currMaxProcTex;i+=2)
+  {
+    const int offset  = (tid + size * (i + MAXPROCTEX/4));
+    const float8 data = vload_half8(0, (__global half*)(fdata + offset));
+    a_pList->fdata4[i+0] = to_float3(data.s0123);
+    a_pList->fdata4[i+1] = to_float3(data.s4567);
+  }
+
+  #endif
 
   a_pList->currMaxProcTex = currMaxProcTex;
 }
