@@ -270,6 +270,8 @@ ProcTextureList MakePTListFromTupleArray(const std::vector<std::tuple<int, ProcT
       std::cerr << "[RTE]: too many float4 procedural textures for tex id = " << texId << std::endl;
   }
 
+  ptl.currMaxProcTex = counterf4;
+
   return ptl;
 }
 

@@ -2627,10 +2627,8 @@ typedef struct PlainMaterialT PlainMaterial;
 #define PROC_TEX_AO_LENGTH2          (PLAIN_MATERIAL_CUSTOM_DATA_SIZE+82)
 
 #define PROC_TEX1_F4_HEAD_OFFSET     (PLAIN_MATERIAL_CUSTOM_DATA_SIZE+83)
-#define PROC_TEX2_F4_HEAD_OFFSET     (PLAIN_MATERIAL_CUSTOM_DATA_SIZE+84)
-#define PROC_TEX3_F4_HEAD_OFFSET     (PLAIN_MATERIAL_CUSTOM_DATA_SIZE+85)
-#define PROC_TEX4_F4_HEAD_OFFSET     (PLAIN_MATERIAL_CUSTOM_DATA_SIZE+86)
-#define PROC_TEX5_F4_HEAD_OFFSET     (PLAIN_MATERIAL_CUSTOM_DATA_SIZE+87)
+#define PROC_TEXN_F4_HEAD_OFFSET     (PLAIN_MATERIAL_CUSTOM_DATA_SIZE+99)
+
 
 enum AO_TYPES { AO_TYPE_NONE = 0, AO_TYPE_UP = 1, AO_TYPE_DOWN = 2, AO_TYPE_BOTH = 4 };
 
@@ -2650,42 +2648,45 @@ static inline bool materialIsInvisLight    (__global const PlainMaterial* a_pMat
 
 static inline void PutProcTexturesIdListToMaterialHead(const ProcTextureList* a_pData, PlainMaterial* a_pMat)
 {
-  ((int*)(a_pMat->data))[PROC_TEX1_F4_HEAD_OFFSET] = a_pData->id_f4[0];
-  ((int*)(a_pMat->data))[PROC_TEX2_F4_HEAD_OFFSET] = a_pData->id_f4[1];
-  ((int*)(a_pMat->data))[PROC_TEX3_F4_HEAD_OFFSET] = a_pData->id_f4[2];
-  ((int*)(a_pMat->data))[PROC_TEX4_F4_HEAD_OFFSET] = a_pData->id_f4[3];
-  ((int*)(a_pMat->data))[PROC_TEX5_F4_HEAD_OFFSET] = a_pData->id_f4[4];
+  for(int i=0;i<a_pData->currMaxProcTex;i++)
+    ((int*)(a_pMat->data))[PROC_TEX1_F4_HEAD_OFFSET + i] = a_pData->id_f4[i];
+  
+  for(int i=a_pData->currMaxProcTex; i<MAXPROCTEX; i++)
+    ((int*)(a_pMat->data))[PROC_TEX1_F4_HEAD_OFFSET + i] = INVALID_TEXTURE;
 }
 
 static inline void GetProcTexturesIdListFromMaterialHead(__global const PlainMaterial* a_pMat, __private ProcTextureList* a_pData)
 {
-  a_pData->id_f4[0] = as_int(a_pMat->data[PROC_TEX1_F4_HEAD_OFFSET]);
-  a_pData->id_f4[1] = as_int(a_pMat->data[PROC_TEX2_F4_HEAD_OFFSET]);
-  a_pData->id_f4[2] = as_int(a_pMat->data[PROC_TEX3_F4_HEAD_OFFSET]);
-  a_pData->id_f4[3] = as_int(a_pMat->data[PROC_TEX4_F4_HEAD_OFFSET]);
-  a_pData->id_f4[4] = as_int(a_pMat->data[PROC_TEX5_F4_HEAD_OFFSET]);
+  int currMaxProcTex;
+  for(currMaxProcTex = 0; currMaxProcTex < MAXPROCTEX; currMaxProcTex++)
+  {
+    const int texId = as_int(a_pMat->data[PROC_TEX1_F4_HEAD_OFFSET + currMaxProcTex]);
+    a_pData->id_f4[currMaxProcTex] = texId;
+    if(texId == INVALID_TEXTURE)
+      break;
+  }
 
-  if(a_pData->id_f4[0] == INVALID_TEXTURE)
-    a_pData->currMaxProcTex = 0;
-  else if(a_pData->id_f4[1] == INVALID_TEXTURE)
-    a_pData->currMaxProcTex = 1;
-  else if(a_pData->id_f4[2] == INVALID_TEXTURE)
-    a_pData->currMaxProcTex = 2;
-  else if(a_pData->id_f4[3] == INVALID_TEXTURE)
-    a_pData->currMaxProcTex = 3;
-  else if(a_pData->id_f4[4] == INVALID_TEXTURE)
-    a_pData->currMaxProcTex = 4;
-  else
-    a_pData->currMaxProcTex = 5;
+  a_pData->currMaxProcTex = currMaxProcTex;
 }
 
 static inline bool materialHeadHaveTargetProcTex(__global const PlainMaterial* a_pMat, int a_texId)
 {
-  return (as_int(a_pMat->data[PROC_TEX1_F4_HEAD_OFFSET]) == a_texId || 
-          as_int(a_pMat->data[PROC_TEX2_F4_HEAD_OFFSET]) == a_texId ||
-          as_int(a_pMat->data[PROC_TEX3_F4_HEAD_OFFSET]) == a_texId ||
-          as_int(a_pMat->data[PROC_TEX4_F4_HEAD_OFFSET]) == a_texId ||
-          as_int(a_pMat->data[PROC_TEX5_F4_HEAD_OFFSET]) == a_texId);
+  return (as_int(a_pMat->data[PROC_TEX1_F4_HEAD_OFFSET+0]) == a_texId || 
+          as_int(a_pMat->data[PROC_TEX1_F4_HEAD_OFFSET+1]) == a_texId ||
+          as_int(a_pMat->data[PROC_TEX1_F4_HEAD_OFFSET+2]) == a_texId ||
+          as_int(a_pMat->data[PROC_TEX1_F4_HEAD_OFFSET+3]) == a_texId ||
+          as_int(a_pMat->data[PROC_TEX1_F4_HEAD_OFFSET+4]) == a_texId || 
+          as_int(a_pMat->data[PROC_TEX1_F4_HEAD_OFFSET+5]) == a_texId ||
+          as_int(a_pMat->data[PROC_TEX1_F4_HEAD_OFFSET+6]) == a_texId ||
+          as_int(a_pMat->data[PROC_TEX1_F4_HEAD_OFFSET+7]) == a_texId ||
+          as_int(a_pMat->data[PROC_TEX1_F4_HEAD_OFFSET+8]) == a_texId || 
+          as_int(a_pMat->data[PROC_TEX1_F4_HEAD_OFFSET+9]) == a_texId ||
+          as_int(a_pMat->data[PROC_TEX1_F4_HEAD_OFFSET+10]) == a_texId ||
+          as_int(a_pMat->data[PROC_TEX1_F4_HEAD_OFFSET+11]) == a_texId ||
+          as_int(a_pMat->data[PROC_TEX1_F4_HEAD_OFFSET+12]) == a_texId || 
+          as_int(a_pMat->data[PROC_TEX1_F4_HEAD_OFFSET+13]) == a_texId ||
+          as_int(a_pMat->data[PROC_TEX1_F4_HEAD_OFFSET+14]) == a_texId ||
+          as_int(a_pMat->data[PROC_TEX1_F4_HEAD_OFFSET+15]) == a_texId);
 }
 
 static inline bool MaterialHaveAtLeastOneProcTex(__global const PlainMaterial* a_pMat)
