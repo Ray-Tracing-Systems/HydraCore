@@ -521,7 +521,16 @@ void RenderDriverRTE::EndTexturesUpdate()
     if (line.find("#PUT_YOUR_PROCEDURAL_TEXTURES_EVAL_HERE:") != std::string::npos)
     {
       m_outProcTexFile << spaces.c_str() << "float3 texcolor[" << m_procTextures.size() << "];" << std::endl;
-      m_outProcTexFile << spaces.c_str() << "int    texid[" << m_procTextures.size() << "];" << std::endl;
+      m_outProcTexFile << spaces.c_str() << "int    texid[" << m_procTextures.size() << "] = {";
+      for (int i=0;i<m_procTextures.size();i++)
+      {
+        m_outProcTexFile << "-1";
+        if(i != m_procTextures.size()-1)
+          m_outProcTexFile << ", ";
+        else
+           m_outProcTexFile << "};";
+      }
+      m_outProcTexFile << std::endl;
       m_outProcTexFile << std::endl;
 
       int counter = 0;
@@ -567,6 +576,7 @@ void RenderDriverRTE::EndTexturesUpdate()
   }
 
   m_inProcTexFile.close();
+  m_outProcTexFile.flush();
   m_outProcTexFile.close();
 
   m_pHWLayer->RecompileProcTexShaders(m_outProcTexFileName.c_str());

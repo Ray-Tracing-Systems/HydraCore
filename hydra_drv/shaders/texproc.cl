@@ -19,7 +19,7 @@ static inline float4 StoreNormal(float3 res, float a_mode)
 static inline float4 InternalFetch(int a_texId, const float2 texCoord, const int a_flags, 
                                    __global const float4* restrict in_texStorage1, __global const EngineGlobals* restrict in_globals)
 {
-  if (a_texId < 0)
+  if (a_texId < 0 || a_texId >= in_globals->texturesTableSize)
     return make_float4(1, 1, 1, 1);
   else
   {
