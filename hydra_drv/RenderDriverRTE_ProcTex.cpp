@@ -526,19 +526,8 @@ void RenderDriverRTE::EndTexturesUpdate()
     m_outProcTexFile << line.c_str() << std::endl;
     if (line.find("#PUT_YOUR_PROCEDURAL_TEXTURES_EVAL_HERE:") != std::string::npos)
     {
-      m_outProcTexFile << spaces.c_str() << "float3 texcolor[" << m_procTextures.size() << "];" << std::endl;
-      m_outProcTexFile << spaces.c_str() << "int    texid[" << m_procTextures.size() << "] = {";
-      for (int i=0;i<m_procTextures.size();i++)
-      {
-        m_outProcTexFile << "-1";
-        if(i != m_procTextures.size()-1)
-          m_outProcTexFile << ", ";
-        else
-           m_outProcTexFile << "};";
-      }
       m_outProcTexFile << std::endl;
-      m_outProcTexFile << std::endl;
-
+      m_outProcTexFile << spaces.c_str() << "int counter = 0; " << std::endl;
       int counter = 0;
       for (auto ptex : m_procTextures)
       {
@@ -547,34 +536,19 @@ void RenderDriverRTE::EndTexturesUpdate()
           std::cerr << "[HydraCore]: RenderDriverRTE::EndTexturesUpdate, empty texture call code, id =  " << ptex.first << std::endl;
         }
 
-        m_outProcTexFile << "    if(materialHeadHaveTargetProcTex(pHitMaterial," << ptex.first << "))" << std::endl;
+        m_outProcTexFile << "    if(materialHeadHaveTargetProcTex(pHitMaterial," << ptex.first << ") && counter < MAXPROCTEX)" << std::endl;
         m_outProcTexFile << "    {" << std::endl;
         m_outProcTexFile << spaces.c_str() << "  __global const float* stack = fdata + findArgDataOffsetInTable(" << ptex.first << ", table);" << std::endl;
-        m_outProcTexFile << spaces.c_str() << "  " << "texcolor[" << counter << "] = to_float3(" << ptex.second.call.c_str() << ");" << std::endl;
-        m_outProcTexFile << spaces.c_str() << "  " << "texid   [" << counter << "] = "           << ptex.first << ";" << std::endl;
+        m_outProcTexFile << spaces.c_str() << "  " << "ptl.fdata4[counter] = to_float3(" << ptex.second.call.c_str() << ");" << std::endl;
+        m_outProcTexFile << spaces.c_str() << "  " << "ptl.id_f4 [counter] = "           << ptex.first << ";" << std::endl;
+        m_outProcTexFile << spaces.c_str() << "  " << "counter++;" << std::endl;
         m_outProcTexFile << "    }" << std::endl;
-        m_outProcTexFile << "    else" << std::endl;
-        m_outProcTexFile << "    {" << std::endl;
-        m_outProcTexFile << spaces.c_str() << "  " << "texcolor[" << counter << "] = " << "make_float3(0,0,1)" << ";" << std::endl;
-        m_outProcTexFile << spaces.c_str() << "  " << "texid   [" << counter << "] = " << ptex.first << ";" << std::endl;
-        m_outProcTexFile << "    }" << std::endl << std::endl; 
+        m_outProcTexFile << std::endl;   
         counter++;
       }
 
+      m_outProcTexFile << spaces.c_str() << "ptl.currMaxProcTex = counter;";
       m_outProcTexFile << std::endl;
-      
-      counter = 0;
-      for (auto ptex : m_procTextures)
-      {
-        for (int j = 0; j < MAXPROCTEX; j++)
-        {
-          m_outProcTexFile << spaces.c_str() << "if(ptl.id_f4[" << j << "] == texid[" << counter << "])" << std::endl;
-          m_outProcTexFile << spaces.c_str() << "  ptl.fdata4[" << j << "] = texcolor[" << counter << "];" << std::endl;
-          m_outProcTexFile << std::endl;
-        }
-
-        counter++;
-      }
 
       std::string currtime = currentDateTime();
       m_outProcTexFile << "    // BREAK SHADER CACHE AT: " << currtime << "\n";
