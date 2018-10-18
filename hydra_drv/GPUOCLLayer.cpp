@@ -720,12 +720,18 @@ GPUOCLLayer::GPUOCLLayer(int w, int h, int a_flags, int a_deviceId) : Base(w, h,
   m_avgBrightness = 1.0f;
 }
 
-void GPUOCLLayer::RecompileProcTexShaders(const char* a_shaderPath)
+void GPUOCLLayer::RecompileProcTexShaders(const std::string& a_shaderPath)
 {
   std::string options = GetOCLShaderCompilerOptions();
+ 
+  #ifndef RECOMPILE_PROCTEX_FROM_STRING
+  std::cout << "[cl_core]: recompile " << a_shaderPath.c_str() << " ..." << std::endl;
+  m_progs.texproc = CLProgram(m_globals.device, m_globals.ctx, a_shaderPath.c_str(), options, HydraInstallPath(), "", "", SAVE_BUILD_LOG);
+  #else 
+  std::cout << "[cl_core]: recompile from string ..." << std::endl;
+  m_progs.texproc = CLProgram(m_globals.device, m_globals.ctx, a_shaderPath, options, HydraInstallPath(), nullptr);
+  #endif
 
-  std::cout << "[cl_core]: recompile " << a_shaderPath << " ..." << std::endl;
-  m_progs.texproc = CLProgram(m_globals.device, m_globals.ctx, a_shaderPath, options, HydraInstallPath(), "", "", SAVE_BUILD_LOG);
 
   if(m_rays.hitProcTexData != nullptr)
     clReleaseMemObject(m_rays.hitProcTexData);

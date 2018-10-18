@@ -429,6 +429,8 @@ CLProgram::CLProgram() : m_refCounter(0)
   m_programLength = 0;
 }
 
+constexpr int BUILD_LOG_SIZE = 204800*10;
+
 CLProgram::CLProgram(cl_device_id a_devId, cl_context a_ctx, 
                      const std::string cs_path, const std::string options, const std::string includeFolderPath, 
                      const std::string encrypted, const std::string binPath, bool a_saveLog) : m_refCounter(0)
@@ -526,10 +528,10 @@ CLProgram::CLProgram(cl_device_id a_devId, cl_context a_ctx,
 
   if (m_lastErr != CL_SUCCESS)
   {
-    char* buffer = (char*)malloc(204800);
-    memset(buffer, 0, 204800);
-    size_t len = 204800;
-    cl_int err = clGetProgramBuildInfo(program, a_devId, CL_PROGRAM_BUILD_LOG, 204800, buffer, &len);
+    char* buffer = (char*)malloc(BUILD_LOG_SIZE);
+    memset(buffer, 0, BUILD_LOG_SIZE);
+    size_t len = BUILD_LOG_SIZE;
+    cl_int err = clGetProgramBuildInfo(program, a_devId, CL_PROGRAM_BUILD_LOG, BUILD_LOG_SIZE, buffer, &len);
     if (err != CL_SUCCESS)
       std::cerr << "clGetProgramBuildInfo error = " << getOpenCLErrorString(err) << std::endl;
 
@@ -546,10 +548,10 @@ CLProgram::CLProgram(cl_device_id a_devId, cl_context a_ctx,
   }
   else if (a_saveLog)
   {
-    char* buffer = (char*)malloc(204800);
-    memset(buffer, 0, 204800);
-    size_t len = 204800;
-    cl_int err = clGetProgramBuildInfo(program, a_devId, CL_PROGRAM_BUILD_LOG, 204800, buffer, &len);
+    char* buffer = (char*)malloc(BUILD_LOG_SIZE);
+    memset(buffer, 0, BUILD_LOG_SIZE);
+    size_t len = BUILD_LOG_SIZE;
+    cl_int err = clGetProgramBuildInfo(program, a_devId, CL_PROGRAM_BUILD_LOG, BUILD_LOG_SIZE, buffer, &len);
     if (err != CL_SUCCESS)
       std::cerr << "clGetProgramBuildInfo error = " << getOpenCLErrorString(err) << std::endl;
 
@@ -570,6 +572,52 @@ CLProgram::CLProgram(cl_device_id a_devId, cl_context a_ctx,
 
   if (!Link())
     throw std::runtime_error(std::string("cl program build failed!\tfile : ") + cs_path + std::string(", cl error type =  ") + getOpenCLErrorString(m_lastErr));
+
+  m_refCounter++;
+}
+
+CLProgram::CLProgram(cl_device_id a_devId, cl_context a_ctx, 
+                     const std::string& computeSource, const std::string options, const std::string includeFolderPath, void* unusedPtr) : m_refCounter(0)
+{
+  m_ctx = a_ctx;
+  m_dev = a_devId;
+  
+  // load from text source
+  //
+  const char* tmpComputeSource = computeSource.c_str();
+  m_programLength = computeSource.size();
+  
+  program = clCreateProgramWithSource(a_ctx, 1, (const char **)&tmpComputeSource, &m_programLength, &m_lastErr);
+  if (m_lastErr != CL_SUCCESS)
+    std::cerr << "clCreateProgramWithSource error = " << getOpenCLErrorString(m_lastErr) << std::endl;
+  
+  // actual shader compile
+  //
+  m_lastErr = clBuildProgram(program, 0, NULL, options.c_str(), NULL, NULL);
+
+  if (m_lastErr != CL_SUCCESS)
+  {
+    char* buffer = (char*)malloc(BUILD_LOG_SIZE);
+    memset(buffer, 0, BUILD_LOG_SIZE);
+    size_t len = BUILD_LOG_SIZE;
+    cl_int err = clGetProgramBuildInfo(program, a_devId, CL_PROGRAM_BUILD_LOG, BUILD_LOG_SIZE, buffer, &len);
+    if (err != CL_SUCCESS)
+      std::cerr << "clGetProgramBuildInfo error = " << getOpenCLErrorString(err) << std::endl;
+
+    std::cerr << "cl program compilation failed!\f (from source): " << std::endl;
+    std::cerr << buffer << std::endl;
+    std::cerr.flush();
+
+    std::cout << "cl program compilation failed!\t (from source): " << std::endl;
+    std::cout << buffer << std::endl;
+    std::cout.flush();
+
+    free(buffer);
+    throw std::runtime_error(std::string("cl program compilation failed!\t (from source) : ") + std::string(", cl error type = ") + getOpenCLErrorString(m_lastErr));
+  }
+
+  if (!Link())
+    throw std::runtime_error(std::string("cl program build failed!\t (from source) : ") + std::string(", cl error type =  ") + getOpenCLErrorString(m_lastErr));
 
   m_refCounter++;
 }

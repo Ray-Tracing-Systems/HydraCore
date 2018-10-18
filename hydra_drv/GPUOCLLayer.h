@@ -99,7 +99,7 @@ public:
   size_t MLT_Alloc(int width, int height, int a_maxBounce); ///< alloc internal MLT data
   void   MLT_Free();                                        ///< free internal MLT DATA
 
-  void RecompileProcTexShaders(const char* a_shaderPath);
+  void RecompileProcTexShaders(const std::string& a_shaderPath) override;
   
   float GetSPP       () const override { return m_spp; }
   float GetSPPDone   () const override { return m_sppDone + m_spp; }

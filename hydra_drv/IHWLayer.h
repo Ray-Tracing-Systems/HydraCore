@@ -198,7 +198,7 @@ public:
 
   virtual EngineGlobals* GetEngineGlobals(); //#NOTE: this function used for debug needs only!!!
 
-  virtual void RecompileProcTexShaders(const char* a_shaderPath) {}
+  virtual void RecompileProcTexShaders(const std::string& a_shaderPath) {}
 
   virtual float GetSPP       () const { return 0.0f;}
   virtual float GetSPPDone   () const { return GetSPP(); }
@@ -330,3 +330,5 @@ enum {GPU_RT_MEMORY_FULL_SIZE_MODE     = 2,
       GPU_MMLT_THREADS_65K             = 65536*4,
       GPU_MMLT_THREADS_16K             = 65536*8,
       };
+
+#define RECOMPILE_PROCTEX_FROM_STRING 

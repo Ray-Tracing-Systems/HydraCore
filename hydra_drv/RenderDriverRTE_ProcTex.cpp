@@ -464,15 +464,19 @@ void RenderDriverRTE::BeginTexturesUpdate()
   if (!isFileExists(pathOut))  pathOut = installPath2 + "shaders/texproc_generated.cl";
 
   m_inProcTexFile.open(pathIn.c_str());
+  #ifndef RECOMPILE_PROCTEX_FROM_STRING
   m_outProcTexFile.open(pathOut.c_str());
+  #endif
 
   m_outProcTexFileName = pathOut;
 
   if (!m_inProcTexFile.is_open())
     std::cerr << "RenderDriverRTE::BeginTexturesUpdate(): can't open in texproc file";
 
+  #ifndef RECOMPILE_PROCTEX_FROM_STRING
   if (!m_outProcTexFile.is_open())
     std::cerr << "RenderDriverRTE::BeginTexturesUpdate(): can't open out texproc file";
+  #endif
 
   std::string line;
   while (std::getline(m_inProcTexFile, line))
@@ -508,7 +512,9 @@ void RenderDriverRTE::EndTexturesUpdate()
   if (m_procTextures.size() == 0)
   {
     m_inProcTexFile.close();
+    #ifndef RECOMPILE_PROCTEX_FROM_STRING
     m_outProcTexFile.close();
+    #endif
     return;
   }
 
@@ -576,10 +582,20 @@ void RenderDriverRTE::EndTexturesUpdate()
   }
 
   m_inProcTexFile.close();
+
+  #ifndef RECOMPILE_PROCTEX_FROM_STRING
   m_outProcTexFile.flush();
   m_outProcTexFile.close();
-
-  m_pHWLayer->RecompileProcTexShaders(m_outProcTexFileName.c_str());
+  m_pHWLayer->RecompileProcTexShaders(m_outProcTexFileName);
+  #else
+  m_pHWLayer->RecompileProcTexShaders(m_outProcTexFile.str());
+  if(true)
+  {
+    std::ofstream fout(m_outProcTexFileName);
+    fout << m_outProcTexFile.str();
+    fout.close();
+  }
+  #endif
 
   m_texShadersWasRecompiled = true;
 }
