@@ -2254,7 +2254,7 @@ typedef struct ShadeContextT
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 #define MAXPROCTEX 16
-#define F4_PROCTEX_SIZE (12+8)
+#define F4_PROCTEX_SIZE 12
 
 /**
 \brief this structure will store results of procedural texture kernel execution.
@@ -2302,7 +2302,7 @@ static inline void WriteProcTextureList(__global float4* fdata, int tid, int siz
     float8 data = {h1.x, h1.y, h1.z, h1.w, 
                    h2.x, h2.y, h2.z, h2.w,};
     
-    const int offset = (tid + size * (i + MAXPROCTEX/4));
+    const int offset = (tid + size * (i/2 + MAXPROCTEX/4));
     vstore_half8(data, 0, (__global half*)(fdata + offset) );
   }
 
@@ -2331,7 +2331,7 @@ static inline void ReadProcTextureList(__global float4* fdata, int tid, int size
 
   for(int i=0;i<currMaxProcTex;i+=2)
   {
-    const int offset  = (tid + size * (i + MAXPROCTEX/4));
+    const int offset  = (tid + size * (i/2 + MAXPROCTEX/4));
     const float8 data = vload_half8(0, (__global half*)(fdata + offset));
     a_pList->fdata4[i+0] = to_float3(data.s0123);
     a_pList->fdata4[i+1] = to_float3(data.s4567);
