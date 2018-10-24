@@ -2254,7 +2254,7 @@ typedef struct ShadeContextT
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 #define MAXPROCTEX 16
-#define F4_PROCTEX_SIZE 12
+#define F4_PROCTEX_SIZE (12+8)
 
 /**
 \brief this structure will store results of procedural texture kernel execution.
@@ -2291,12 +2291,11 @@ static inline void WriteProcTextureList(__global float4* fdata, int tid, int siz
   if(a_pList->currMaxProcTex != MAXPROCTEX)
     idata[tid + size * a_pList->currMaxProcTex] = INVALID_TEXTURE; // list end
 
-  //for(int i=0;i<a_pList->currMaxProcTex;i++)
-  //  fdata[tid + size * (i + MAXPROCTEX/4)] = to_float4(a_pList->fdata4[i], 0.0f);
-
   #ifdef OCL_COMPILER
 
-  for(int i=0;i<a_pList->currMaxProcTex;i+=2)
+  const int finalProcTex = (a_pList->currMaxProcTex > MAXPROCTEX) ? MAXPROCTEX : a_pList->currMaxProcTex;
+
+  for(int i=0;i<finalProcTex;i+=2)
   {
     const float4 h1 = to_float4(a_pList->fdata4[i+0], 0.0f);
     const float4 h2 = to_float4(a_pList->fdata4[i+1], 0.0f);
@@ -2305,7 +2304,6 @@ static inline void WriteProcTextureList(__global float4* fdata, int tid, int siz
     
     const int offset = (tid + size * (i + MAXPROCTEX/4));
     vstore_half8(data, 0, (__global half*)(fdata + offset) );
-
   }
 
   #endif
@@ -2328,9 +2326,6 @@ static inline void ReadProcTextureList(__global float4* fdata, int tid, int size
     if(texId == INVALID_TEXTURE)
       break;
   }
-
-  //for(int i=0;i<currMaxProcTex;i++)
-  //  a_pList->fdata4[i] = to_float3(fdata[tid + size * (i + MAXPROCTEX/4)]);
 
   #ifdef OCL_COMPILER
 
