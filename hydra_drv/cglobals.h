@@ -2285,15 +2285,15 @@ static inline void WriteProcTextureList(__global float4* fdata, int tid, int siz
     return;
   }
   
-  for(int i=0;i<a_pList->currMaxProcTex;i++)
+  const int finalProcTex = (a_pList->currMaxProcTex > MAXPROCTEX) ? MAXPROCTEX : a_pList->currMaxProcTex;
+
+  for(int i=0;i<finalProcTex;i++)
     idata[tid + size * i] = a_pList->id_f4[i];
   
-  if(a_pList->currMaxProcTex != MAXPROCTEX)
-    idata[tid + size * a_pList->currMaxProcTex] = INVALID_TEXTURE; // list end
+  if(finalProcTex < MAXPROCTEX)
+    idata[tid + size * finalProcTex] = INVALID_TEXTURE; // list end
 
   #ifdef OCL_COMPILER
-
-  const int finalProcTex = (a_pList->currMaxProcTex > MAXPROCTEX) ? MAXPROCTEX : a_pList->currMaxProcTex;
 
   for(int i=0;i<finalProcTex;i+=2)
   {
@@ -2351,7 +2351,7 @@ static inline void ReadProcTextureList(__global float4* fdata, int tid, int size
 */
 static inline float4 readProcTex(int a_texId, const __private ProcTextureList* a_pList)
 {
-  const int maxIter = (a_pList->currMaxProcTex < MAXPROCTEX-1) ? a_pList->currMaxProcTex :  MAXPROCTEX-1; // min
+  const int maxIter = (a_pList->currMaxProcTex < MAXPROCTEX) ? a_pList->currMaxProcTex :  MAXPROCTEX; // min
   
   for(int i=0; i<maxIter; i++) // #TODO: opt this for GPU ???
   {
