@@ -8,29 +8,30 @@
 
 #include "../../HydraAPI/hydra_api/ssemath.h"
 
-void GPUOCLLayer::AddContributionToScreen(cl_mem& in_color)
+void GPUOCLLayer::AddContributionToScreen(cl_mem& in_color, cl_mem in_indices, bool a_copyToLDRNow, int a_layerId)
 {
   if (m_screen.m_cpuFrameBuffer)
-  {
-    float4* resultPtr = nullptr;
-    int width         = m_width;
-    int height        = m_height;
+  { 
+    int width, height;
+    float4* resultPtr = const_cast<float4*>( GetCPUScreenBuffer(a_layerId, width, height) );
 
-    if (m_pExternalImage != nullptr)
-    {
-      resultPtr = (float4*)m_pExternalImage->ImageData(0);
-      width     = m_pExternalImage->Header()->width;
-      height    = m_pExternalImage->Header()->height;
-    }
-    else
-      resultPtr = &m_screen.color0CPU[0];
+    assert(resultPtr != nullptr);
 
-    AddContributionToScreenCPU(in_color, m_rays.samZindex, int(m_rays.MEGABLOCKSIZE), width, height,
+    AddContributionToScreenCPU(in_color, int(m_rays.MEGABLOCKSIZE), width, height,
                                resultPtr);
   }
   else
-    AddContributionToScreenGPU(in_color, m_rays.samZindex, int(m_rays.MEGABLOCKSIZE), m_width, m_height, m_passNumber,
+  {
+    if(in_indices == nullptr)
+    {
+      in_indices = m_rays.samZindex;
+      runKernel_UpdateZIndexFromColorW(in_color, m_rays.MEGABLOCKSIZE, 
+                                       in_indices);
+    }
+
+    AddContributionToScreenGPU(in_color, in_indices, int(m_rays.MEGABLOCKSIZE), m_width, m_height, m_passNumber, a_copyToLDRNow,
                                m_screen.color0, m_screen.pbo);
+  }
 
   m_passNumber++;
 }
@@ -97,7 +98,73 @@ void AddSamplesContributionS(float4* out_color, const float4* colors, const unsi
   }
 }
 
-void GPUOCLLayer::AddContributionToScreenCPU(cl_mem& in_color, cl_mem in_indices, int a_size, int a_width, int a_height, float4* out_color)
+
+void GPUOCLLayer::AddContributionToScreenCPU2(cl_mem& in_color, cl_mem& in_color2, int a_size, int a_width, int a_height, float4* out_color)
+{
+  clFlush(m_globals.cmdQueue);
+
+  // (2) sync copy of data (sync asyncronious call in future, pin pong) and eval contribution
+  //
+  if (m_passNumber != 0)
+  {
+    clEnqueueCopyBuffer(m_globals.cmdQueueDevToHost, m_mlt.pathAuxColor,  m_mlt.pathAuxColorCPU,  0, 0, a_size * sizeof(float4), 0, nullptr, nullptr);
+    clEnqueueCopyBuffer(m_globals.cmdQueueDevToHost, m_mlt.pathAuxColor2, m_mlt.pathAuxColorCPU2, 0, 0, a_size * sizeof(float4), 0, nullptr, nullptr);
+
+    cl_int ciErr1  = 0;
+    float4* colors1 = (float4*)clEnqueueMapBuffer(m_globals.cmdQueueDevToHost, m_mlt.pathAuxColorCPU,  CL_TRUE, CL_MAP_READ, 0, a_size * sizeof(float4), 0, 0, 0, &ciErr1);
+    float4* colors2 = (float4*)clEnqueueMapBuffer(m_globals.cmdQueueDevToHost, m_mlt.pathAuxColorCPU2, CL_TRUE, CL_MAP_READ, 0, a_size * sizeof(float4), 0, 0, 0, &ciErr1);
+
+    const float contribSPP = float(double(a_size) / double(a_width*a_height));
+
+    bool lockSuccess = (m_pExternalImage == nullptr);
+    if (m_pExternalImage != nullptr)
+      lockSuccess = m_pExternalImage->Lock(500); // can wait 500 ms for success lock
+
+    if (lockSuccess)
+    {
+      AddSamplesContribution(out_color, colors1, int(a_size), a_width, a_height);
+      AddSamplesContribution(out_color, colors2, int(a_size), a_width, a_height);
+
+      if (m_pExternalImage != nullptr)
+      {
+        m_pExternalImage->Header()->counterRcv++;
+        m_pExternalImage->Unlock();
+      }
+    }
+    else
+    {
+      std::cerr << "AddContributionToScreenCPU2, failed to lock image!" << std::endl;
+      std::cerr.flush();
+    }
+    m_sppDone += contribSPP;
+
+    clEnqueueUnmapMemObject(m_globals.cmdQueueDevToHost, m_mlt.pathAuxColorCPU,  colors1, 0, 0, 0);
+    clEnqueueUnmapMemObject(m_globals.cmdQueueDevToHost, m_mlt.pathAuxColorCPU2, colors2, 0, 0, 0);
+  }
+
+  clFinish(m_globals.cmdQueueDevToHost);
+  clFinish(m_globals.cmdQueue);
+
+  //memsetf4(m_mlt.pathAuxColor,  float4(0,0,0,0), m_rays.MEGABLOCKSIZE, 0);
+  //memsetf4(m_mlt.pathAuxColor2, float4(0,0,0,0), m_rays.MEGABLOCKSIZE, 0);
+  //clFinish(m_globals.cmdQueue);
+
+  // (3) swap color buffers
+  //
+  {
+    cl_mem temp         = m_mlt.pathAuxColor;
+    m_mlt.pathAuxColor  = in_color;
+    in_color            = temp;
+
+    temp                = m_mlt.pathAuxColor2;
+    m_mlt.pathAuxColor2 = in_color2;
+    in_color2           = temp;
+  }
+
+  m_passNumber++;
+}
+
+void GPUOCLLayer::AddContributionToScreenCPU(cl_mem& in_color, int a_size, int a_width, int a_height, float4* out_color)
 {
   // (1) compute compressed index in color.w; use runKernel_MakeEyeRaysAndClearUnified for that task if CPU FB is enabled!!!
   //
@@ -105,7 +172,8 @@ void GPUOCLLayer::AddContributionToScreenCPU(cl_mem& in_color, cl_mem in_indices
   cl_int iNumElements    = cl_int(a_size);
   size_t size            = roundBlocks(size_t(a_size), int(szLocalWorkSize));
 
-  if ((m_vars.m_flags & HRT_FORWARD_TRACING) == 0) // lt already pack index to color, so, don't do that again!!!
+  if ((m_vars.m_flags & HRT_FORWARD_TRACING) == 0 && 
+      (m_vars.m_flags & HRT_ENABLE_MMLT)     == 0) // lt/mmlt already pack index to color, so, don't do that again!!!
   {
     cl_kernel kern = m_progs.screen.kernel("PackIndexToColorW");
 
@@ -166,10 +234,15 @@ void GPUOCLLayer::AddContributionToScreenCPU(cl_mem& in_color, cl_mem in_indices
         {
           m_pExternalImage->Header()->counterRcv++;
           m_pExternalImage->Header()->spp += contribSPP;
-          m_sppContrib                    += contribSPP;
+          m_sppContrib += contribSPP;
         }
         m_pExternalImage->Unlock();
       }
+    }
+    else
+    {
+      std::cerr << "AddContributionToScreenCPU, failed to lock image!" << std::endl;
+      std::cerr.flush();
     }
 
     m_sppDone += contribSPP;
@@ -189,6 +262,8 @@ void GPUOCLLayer::AddContributionToScreenCPU(cl_mem& in_color, cl_mem in_indices
   clFinish(m_globals.cmdQueueDevToHost);
   clFinish(m_globals.cmdQueue);
 
+  //memsetf4(m_rays.pathAuxColor, float4(0,0,0,0), m_rays.MEGABLOCKSIZE, 0);
+  //clFinish(m_globals.cmdQueue);
 
   if (measureTime)
   {
@@ -207,6 +282,7 @@ void GPUOCLLayer::AddContributionToScreenCPU(cl_mem& in_color, cl_mem in_indices
     m_rays.pathShadow8BAux = m_rays.pathShadow8B;
     m_rays.pathShadow8B    = temp;
   }
+  
 }
 
 void GPUOCLLayer::ContribToExternalImageAccumulator(IHRSharedAccumImage* a_pImage)
@@ -328,6 +404,7 @@ std::vector<int> GPUOCLLayer::MakeAllPixelsList()
   return allPixels;
 }
 
+
 void GPUOCLLayer::RunProductionSamplingMode()
 {
   std::cout << "ProductionSamplingMode begin" << std::endl; std::cout.flush();
@@ -407,7 +484,8 @@ void GPUOCLLayer::RunProductionSamplingMode()
     // (4) trace rays/paths
     //
     runKernel_ClearAllInternalTempBuffers(finalSize);
-    trace1D(m_rays.rayPos, m_rays.rayDir, m_rays.pathAccColor, finalSize);
+    trace1D(m_vars.m_varsI[HRT_TRACE_DEPTH], m_rays.rayPos, m_rays.rayDir, finalSize,
+            m_rays.pathAccColor);
     runKernel_GetShadowToAlpha(m_rays.pathAccColor, m_rays.pathShadow8B, finalSize);
 
     // (5) average colors
@@ -584,11 +662,14 @@ void GPUOCLLayer::EvalGBuffer(IHRSharedAccumImage* a_pAccumImage, const std::vec
 
     // (2) trace1D with single bounce
     //
-    memsetu32(m_rays.rayFlags, 0, finalSize);                                                              // fill flags with zero
-    memsetf4 (m_rays.hitMatId, make_float4(0, 0, 0, 0), (finalSize * sizeof(HitMatRef)) / sizeof(float4)); // fill accumulated rays dist with zero
+    memsetu32(m_rays.rayFlags, 0, finalSize);                                                                // fill flags with zero
+    //memsetf4 (m_rays.hitMatId, make_float4(0, 0, 0, 0), (finalSize * sizeof(HitMatRef)) / sizeof(float4)); // #TODO: fill accumulated rays dist with zero
 
-    runKernel_Trace     (m_rays.rayPos, m_rays.rayDir, m_rays.hits, finalSize);
-    runKernel_ComputeHit(m_rays.rayPos, m_rays.rayDir, finalSize);
+    runKernel_Trace(m_rays.rayPos, m_rays.rayDir, finalSize,
+                    m_rays.hits);
+
+    runKernel_ComputeHit(m_rays.rayPos, m_rays.rayDir, m_rays.hits, finalSize, finalSize,
+                         m_rays.hitSurfaceAll, m_rays.hitProcTexData);
 
     // (3) get compressed samples
     //
@@ -606,8 +687,12 @@ void GPUOCLLayer::EvalGBuffer(IHRSharedAccumImage* a_pAccumImage, const std::vec
       runKernel_NextTransparentBounce(m_rays.rayPos, m_rays.rayDir, m_rays.pathThoroughput, finalSize);
       if (bounce == maxBounce - 1)
         break;
-      runKernel_Trace                (m_rays.rayPos, m_rays.rayDir, m_rays.hits,            finalSize);
-      runKernel_ComputeHit           (m_rays.rayPos, m_rays.rayDir,                         finalSize);
+
+      runKernel_Trace(m_rays.rayPos, m_rays.rayDir, finalSize,
+                      m_rays.hits);
+
+      runKernel_ComputeHit(m_rays.rayPos, m_rays.rayDir, m_rays.hits, finalSize, finalSize,
+                           m_rays.hitSurfaceAll, m_rays.hitProcTexData);
     }
 
     runKernel_PutAlphaToGBuffer(m_rays.pathThoroughput, m_rays.pathAccColor, finalSize);
@@ -628,7 +713,7 @@ void GPUOCLLayer::EvalGBuffer(IHRSharedAccumImage* a_pAccumImage, const std::vec
 
   clFinish(m_globals.cmdQueue);
 
-#pragma omp parallel for
+  #pragma omp parallel for
   for (int32_t line = 0; line < m_height; line++)
   {
     for (int x = 0; x < m_width; x++)

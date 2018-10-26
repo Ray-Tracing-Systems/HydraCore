@@ -107,9 +107,6 @@
     <ClCompile Include="CPUExp_Integrators_Common.cpp">
       <Filter>CPULayer</Filter>
     </ClCompile>
-    <ClCompile Include="CPUExp_Integrators_MLT.cpp">
-      <Filter>CPULayer</Filter>
-    </ClCompile>
     <ClCompile Include="CPUExp_Integrators_PT.cpp">
       <Filter>CPULayer</Filter>
     </ClCompile>
@@ -210,13 +207,13 @@
       <Filter>CPULayer</Filter>
     </ClCompile>
     <ClCompile Include="GPUOCLLayerAdvanced.cpp">
-      <Filter>Файлы исходного кода</Filter>
+      <Filter>GPULayer</Filter>
     </ClCompile>
     <ClCompile Include="GPUOCLLayerCore.cpp">
-      <Filter>Файлы исходного кода</Filter>
+      <Filter>GPULayer</Filter>
     </ClCompile>
     <ClCompile Include="GPUOCLLayerOther.cpp">
-      <Filter>Файлы исходного кода</Filter>
+      <Filter>GPULayer</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

@@ -24,7 +24,7 @@ void IntegratorSBDPT::DoPass(std::vector<uint>& a_imageLDR)
     const float selectorInvPdf = float((d + 1)*(m_maxDepth - 1));  // 
 
     //const int s = 3;
-    //const int t = 1;
+    //const int t = 0;
     //const int d = s + t;
     //const float selectorInvPdf = 1.0f;
 
@@ -413,10 +413,10 @@ PathVertex IntegratorSBDPT::CameraPath(float3 ray_pos, float3 ray_dir, float3 a_
   else if (a_currDepth == a_targetDepth && !a_haveToHitLightSource) // #NOTE: what if a_targetDepth == 1 ?
   {
     PathVertex resVertex;
-    resVertex.hit          = surfElem;
-    resVertex.ray_dir      = ray_dir;
-    resVertex.valid        = true;
-    resVertex.accColor     = float3(1, 1, 1);
+    resVertex.hit      = surfElem;
+    resVertex.ray_dir  = ray_dir;
+    resVertex.valid    = true;
+    resVertex.accColor = float3(1, 1, 1);
 
     if (a_targetDepth != 1)
     {
@@ -514,13 +514,19 @@ float3 IntegratorSBDPT::ConnectEye(const PathVertex& a_lv, int a_ltDepth,
 
   auto hit = rayTrace(a_lv.hit.pos + epsilonOfPos(a_lv.hit.pos)*signOfNormal*a_lv.hit.normal, camDir);
   
-  float3 result(0, 0, 0);
+  auto* v0 = a_perThread->pdfArray.data() + a_ltDepth + 0;
+  auto* v1 = a_perThread->pdfArray.data() + a_ltDepth + 1;
 
-  ::ConnectEyeP(a_lv, a_ltDepth, mLightSubPathCount, hit, 
-                m_pGlobals, m_matStorage, m_texStorage, m_texStorageAux, &m_ptlDummy,
-                &a_perThread->pdfArray[0], pX, pY, &result);
+  if (imageToSurfaceFactor <= 0.0f || (HitSome(hit) && hit.t <= zDepth))
+  {
+    (*pX)         = -1;
+    (*pY)         = -1;
+    return make_float3(0, 0, 0);
+  }
 
-  return result;
+  return ConnectEyeP(&a_lv, mLightSubPathCount, camDir, imageToSurfaceFactor,
+                     m_pGlobals, m_matStorage, m_texStorage, m_texStorageAux, &m_ptlDummy,
+                     v0, v1, pX, pY);
 }
 
 
@@ -554,9 +560,13 @@ float3 IntegratorSBDPT::ConnectShadow(const PathVertex& a_cv, PerThreadData* a_p
     
     if (dot(shadow, shadow) > 1e-12f)
     {
-      explicitColor = shadow*ConnectShadowP(a_cv, a_camDepth, pLight, explicitSam, lightPickProb,
+      auto* v0 = &a_perThread->pdfArray[0];
+      auto* v1 = &a_perThread->pdfArray[1];
+      auto* v2 = &a_perThread->pdfArray[2];
+     
+      explicitColor = shadow*ConnectShadowP(&a_cv, a_camDepth, pLight, explicitSam, lightPickProb,
                                             m_pGlobals, m_matStorage, m_texStorage, m_texStorageAux, m_pdfStorage, &m_ptlDummy,
-                                            &a_perThread->pdfArray[0]);
+                                            v0, v1, v2);
     }
   }
 
@@ -577,13 +587,17 @@ float3 IntegratorSBDPT::ConnectEndPoints(const PathVertex& a_lv, const PathVerte
   const float3 shadowRayDir = lToC;
   const float3 shadowRayPos = OffsRayPos(a_lv.hit.pos, a_lv.hit.normal, shadowRayDir); 
   const float3 shadow       = shadowTrace(shadowRayPos, shadowRayDir, dist*0.9995f);
+  
+  auto* vSplitBefore = &a_perThread->pdfArray[a_spit-1];
+  auto* vSplit       = &a_perThread->pdfArray[a_spit+0];
+  auto* vSplitAfter  = &a_perThread->pdfArray[a_spit+1];
 
   if (dot(shadow, shadow) < 1e-12f)
     return float3(0, 0, 0);
   else
-    return shadow*ConnectEndPointsP(a_lv, a_cv, a_spit, a_depth,
+    return shadow*ConnectEndPointsP(&a_lv, &a_cv, a_depth,
                                     m_pGlobals, m_matStorage, m_texStorage, m_texStorageAux, &m_ptlDummy,
-                                    &a_perThread->pdfArray[0]);
+                                    vSplitBefore, vSplit, vSplitAfter);
 }
 
 

@@ -180,7 +180,6 @@
     <ClCompile Include="CPUExp_IntegratorSSS.cpp" />
     <ClCompile Include="CPUExp_Integrators_Common.cpp" />
     <ClCompile Include="CPUExp_Integrators_LT.cpp" />
-    <ClCompile Include="CPUExp_Integrators_MLT.cpp" />
     <ClCompile Include="CPUExp_Integrators_MMLT.cpp" />
     <ClCompile Include="CPUExp_Integrators_PT.cpp" />
     <ClCompile Include="CPUExp_Integrators_PT_QMC.cpp" />

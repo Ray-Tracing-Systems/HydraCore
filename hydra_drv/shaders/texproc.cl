@@ -19,7 +19,7 @@ static inline float4 StoreNormal(float3 res, float a_mode)
 static inline float4 InternalFetch(int a_texId, const float2 texCoord, const int a_flags, 
                                    __global const float4* restrict in_texStorage1, __global const EngineGlobals* restrict in_globals)
 {
-  if (a_texId < 0)
+  if (a_texId < 0 || a_texId >= in_globals->texturesTableSize)
     return make_float4(1, 1, 1, 1);
   else
   {
@@ -86,24 +86,14 @@ const int findArgDataOffsetInTable(int a_texId, __global const int* a_table)
   return offset;
 }
 
-static inline float3 decompressShadow(ushort4 shadowCompressed)
-{
-  const float invNormCoeff = 1.0f / 65535.0f;
-  return invNormCoeff * make_float3((float)shadowCompressed.x, (float)shadowCompressed.y, (float)shadowCompressed.z);
-}
-
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 __kernel void ProcTexExec(__global       uint*          restrict a_flags,
-                          __global const float4*        restrict in_rdir,                                                      
-
-                          __global const float4*        restrict in_hitPosNorm,
-                          __global const float2*        restrict in_hitTexCoord,
-                          __global const HitMatRef*     restrict in_matData,
-                          __global const Hit_Part4*     restrict in_tangents,
+                          __global const float4*        restrict in_rdir,        
+                          __global const float4*        restrict in_surfaceHit,
 
                           __global const uchar*         restrict in_shadowAOCompressed1,
                           __global const uchar*         restrict in_shadowAOCompressed2,
@@ -128,7 +118,11 @@ __kernel void ProcTexExec(__global       uint*          restrict a_flags,
   if (!rayIsActiveU(flags))
     return;
 
-  __global const PlainMaterial* pHitMaterial = materialAt(in_globals, in_mtlStorage, GetMaterialId(in_matData[tid]));
+  SurfaceHit sHit2;
+  ReadSurfaceHit(in_surfaceHit, tid, iNumElements, 
+                 &sHit2);
+
+  __global const PlainMaterial* pHitMaterial = materialAt(in_globals, in_mtlStorage, sHit2.matId);
 
   if (materialGetFlags(pHitMaterial) & PLAIN_MATERIAL_HAVE_PROC_TEXTURES)
   {
@@ -146,18 +140,16 @@ __kernel void ProcTexExec(__global       uint*          restrict a_flags,
     const Lite_Hit hit = in_hits[tid];
     const float4x4 instanceMatrixInv = fetchMatrix(hit, in_matrices);
 
-    const float4 dataPos  = in_hitPosNorm[tid];
-    const Hit_Part4 data4 = in_tangents  [tid];
-
     SurfaceInfo surfHit;
-    surfHit.wp  = to_float3(in_hitPosNorm[tid]);
+    surfHit.wp  = sHit2.pos;
     surfHit.lp  = mul4x3(instanceMatrixInv, surfHit.wp);
-    surfHit.n   = normalize(decodeNormal(as_int(dataPos.w)));
-    surfHit.tg  = decodeNormal(data4.tangentCompressed);
-    surfHit.bn  = decodeNormal(data4.bitangentCompressed);
-    surfHit.tc0 = in_hitTexCoord[tid];
+    surfHit.n   = sHit2.normal;
+    surfHit.tg  = sHit2.tangent;
+    surfHit.bn  = sHit2.biTangent;
+    surfHit.tc0 = sHit2.texCoord;
     surfHit.ao  = shadow1; 
     surfHit.ao2 = shadow2;
+
     __private const SurfaceInfo* sHit = &surfHit;
 
     const float3 hr_viewVectorHack = to_float3(in_rdir[tid]); // make dependence of this vector is not physycally correct but useful for artists ... 
@@ -194,10 +186,7 @@ __kernel void ProcTexExec(__global       uint*          restrict a_flags,
     WriteProcTextureList(out_procTexData, tid, iNumElements, &ptl);
   }
 
-
-
 } 
-
 
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////

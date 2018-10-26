@@ -37,6 +37,7 @@ struct Input
   
   int32_t     maxSamples;
   int32_t     maxSamplesContrib;
+  int32_t     mmltThreads;
 
   // mouse and keyboad/oher gui input
   //

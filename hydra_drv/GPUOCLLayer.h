@@ -62,7 +62,8 @@ public:
   std::vector<int> MakeAllPixelsList();
   void RunProductionSamplingMode();
 
-  void TraceSBDPTPass(cl_mem a_rpos, cl_mem a_rdir, cl_mem a_outColor, size_t a_size);
+  void EvalSBDPT(cl_mem in_xVector, int minBounce, int maxBounce, size_t a_size,
+                 cl_mem a_outColor);
 
   void FinishAll() override;
 
@@ -94,15 +95,11 @@ public:
 
   bool StoreCPUData() const { return m_globals.cpuTrace; }
 
-  bool   MLT_IsAllocated() const;                ///< return true if internal MLT data is allocated
-  size_t MLT_Alloc(int a_maxBounce);             ///< alloc internal MLT data
-  void   MLT_Free();                             ///< free internal MLT DATA
+  bool   MLT_IsAllocated() const;                           ///< return true if internal MLT data is allocated
+  size_t MLT_Alloc(int width, int height, int a_maxBounce); ///< alloc internal MLT data
+  void   MLT_Free();                                        ///< free internal MLT DATA
 
-  void   MLT_Init(int a_seed);
-  float4 MLT_Burn(int a_iters);
-  void   MLT_DoPass();
-
-  void RecompileProcTexShaders(const char* a_shaderPath);
+  void RecompileProcTexShaders(const std::string& a_shaderPath) override;
   
   float GetSPP       () const override { return m_spp; }
   float GetSPPDone   () const override { return m_sppDone + m_spp; }
@@ -122,20 +119,31 @@ protected:
   void float2half(const float* a_inData, size_t a_size, std::vector<cl_half>& a_out);
 
   void trace1DPrimaryOnly(cl_mem a_rpos, cl_mem a_rdir, cl_mem a_outColor, size_t a_size, size_t a_offset);
-  void trace1D(cl_mem a_rpos, cl_mem a_rdir, cl_mem a_outColor, size_t a_size);
+  void trace1D(int a_maxBounce, cl_mem a_rpos, cl_mem a_rdir, size_t a_size,
+               cl_mem a_outColor);
 
   void DrawNormals();
   void CopyShadowTo(cl_mem a_color, size_t a_size);
-  void AddContributionToScreenGPU(cl_mem in_color, cl_mem in_indices, int a_size, int a_width, int a_height, int a_spp,
+  void AddContributionToScreenGPU(cl_mem in_color, cl_mem in_indices, int a_size, int a_width, int a_height, int a_spp, bool a_copyToLDRNow,
                                   cl_mem out_colorHDR, cl_mem out_colorLDR);
 
-  void AddContributionToScreenCPU(cl_mem& in_color, cl_mem in_indices, int a_size, int a_width, int a_height, float4* out_color);
-  void AddContributionToScreen   (cl_mem& in_color);
+  void AddContributionToScreenCPU(cl_mem& in_color, int a_size, int a_width, int a_height, float4* out_color);
+  void AddContributionToScreenCPU2(cl_mem& in_color, cl_mem& in_color2, int a_size, int a_width, int a_height, float4* out_color);
+
+  float EstimateMLTNormConst(const float4* data, int width, int height) const;
+ 
+  /** \brief implements "add" contribution from in_color to screen buffer (just add values!!!) 
+  * 
+  * \param in_color   - in float4 buffer; in_color[i].xyz - color; as_int(in_color[i].w) - packed (x,y) where to contribute (accounted only if in_indices is nullptr or CPU fra,ebuffer is ised)
+  * \param in_indices - in int2 (zindex, oldIndex) coord; may be nullptr; in this case coord will ba taken from as_int(in_color[i].w) - packed (x,y) where to contribute
+  * \param a_copyToLDRNow - in flag for update LDR image on GPU in current pass (current AddContributionToScreen call)
+  */
+  void AddContributionToScreen   (cl_mem& in_color, cl_mem in_indices, bool a_copyToLDRNow = true, int a_layerId = 0);
 
   std::vector<uchar4> NormalMapFromDisplacement(int w, int h, const uchar4* a_data, float bumpAmt, bool invHeight, float smoothLvl);
   void Denoise(cl_mem textureIn, cl_mem textureOut, int w, int h, float smoothLvl);
 
-  size_t CalcMegaBlockSize();
+  size_t CalcMegaBlockSize(int a_flags);
   std::string GetOCLShaderCompilerOptions();
 
   void inPlaceScanAnySize1f(cl_mem buff, size_t a_size);
@@ -154,8 +162,10 @@ protected:
   int   m_passNumber;
   int   m_passNumberForQMC;
   float m_spp;
+  float m_sppDL;
   float m_sppDone;
   float m_sppContrib;
+  float m_avgBrightness;
   bool  m_raysWasSorted;
 
   struct CL_SCREEN_BUFFERS
@@ -180,25 +190,45 @@ protected:
 
   } m_screen;
 
+  const float4* GetCPUScreenBuffer(int a_layerId, int& width, int& height) const;
+
   struct CL_MLT_DATA
   {
-    CL_MLT_DATA() : rstateForAcceptReject(0), rstateCurr(0), rstateOld(0), rstateNew(0),
-                    xVector(0), yVector(0), xColor(0), yColor(0), cameraVertex(0), pdfArray(0),
-                    memTaken(0), mppDone(0.0) {}
+    CL_MLT_DATA() : rstateForAcceptReject(0), rstateCurr(0), rstateOld(0), rstateNew(0), dNew(0), dOld(0),
+                    xVector(0), yVector(0), currVec(0), xColor(0), yColor(0), lightVertexSup(0), cameraVertexSup(0), cameraVertexHit(0), 
+                    pdfArray(0), pathAuxColor(0), pathAuxColorCPU(0), pathAuxColor2(0), pathAuxColorCPU2(0), yMultAlpha(0), xMultOneMinusAlpha(0), 
+                    splitData(0), scaleTable(0), memTaken(0), mppDone(0.0), currBounceThreadsNum(0) {}
 
     cl_mem rstateForAcceptReject; // sizeof(RandGen), MEGABLOCKSIZE size
     cl_mem rstateCurr;            // sizeof(RandGen), MEGABLOCKSIZE size; not allocated, assign m_rays.randGenState
     cl_mem rstateOld;
     cl_mem rstateNew;
+    
+    cl_mem dNew;
+    cl_mem dOld;
 
     cl_mem xVector;               ///< current vector that store unit hipercube floats
     cl_mem yVector;               ///< next vector that store unit hipercube floats; it should be 0 when MCMC_LAZY is defined; 
+    cl_mem currVec;               ///< points to some real vec (xVector|yVector); does not consume memory
 
     cl_mem xColor;
     cl_mem yColor;
 
-    cl_mem cameraVertex;
+    cl_mem lightVertexSup;
+    cl_mem cameraVertexSup;
+    cl_mem cameraVertexHit;
     cl_mem pdfArray;
+    
+    cl_mem pathAuxColor;
+    cl_mem pathAuxColorCPU;
+    cl_mem pathAuxColor2;
+    cl_mem pathAuxColorCPU2;
+
+    cl_mem yMultAlpha;
+    cl_mem xMultOneMinusAlpha;
+
+    cl_mem splitData;
+    cl_mem scaleTable;
 
     size_t memTaken;
 
@@ -207,13 +237,18 @@ protected:
 
     void free();
 
+    std::vector<int> perBounceActiveThreads;
+    size_t currBounceThreadsNum;
+
+    std::vector<float4, aligned16<float4> > colorDLCPU;
+    
   } m_mlt;
 
   struct CL_BUFFERS_RAYS
   {
-    CL_BUFFERS_RAYS() : rayPos(0), rayDir(0), hits(0), rayFlags(0), hitPosNorm(0), hitTexCoord(0), hitMatId(0), hitTangent(0), hitFlatNorm(0), hitPrimSize(0), hitNormUncompressed(0), hitProcTexData(0),
-                        pathThoroughput(0), pathMisDataPrev(0), pathShadeColor(0), pathAccColor(0), pathAuxColor(0), pathAuxColorCPU(0), pathShadow8B(0), pathShadow8BAux(0), pathShadow8BAuxCPU(0), randGenState(0),
-                        lsam1(0), lsam2(0), lsamCos(0), shadowRayPos(0), shadowRayDir(0), accPdf(0), oldFlags(0), oldRayDir(0), oldColor(0), lightNumberLT(0), lsamProb(0),
+    CL_BUFFERS_RAYS() : rayPos(0), rayDir(0), hits(0), rayFlags(0), hitSurfaceAll(0), hitProcTexData(0),
+                        pathThoroughput(0), pathMisDataPrev(0), pathShadeColor(0), pathAccColor(0), pathAuxColor(0), pathAuxColorCPU(0), pathShadow8B(0), pathShadow8BAux(0), pathShadow8BAuxCPU(0), 
+                        randGenState(0), lsamRev(0), shadowRayPos(0), shadowRayDir(0), accPdf(0), oldFlags(0), oldRayDir(0), oldColor(0),
                         lshadow(0), fogAtten(0), samZindex(0), aoCompressed(0), aoCompressed2(0), lightOffsetBuff(0), packedXY(0), debugf4(0), atomicCounterMem(0), MEGABLOCKSIZE(0) {}
 
     void free();
@@ -224,13 +259,7 @@ protected:
     cl_mem hits;
     cl_mem rayFlags;
 
-    cl_mem hitPosNorm;
-    cl_mem hitTexCoord;
-    cl_mem hitMatId;
-    cl_mem hitTangent;
-    cl_mem hitFlatNorm;
-    cl_mem hitPrimSize;
-    cl_mem hitNormUncompressed;
+    cl_mem hitSurfaceAll;
     cl_mem hitProcTexData;
 
     cl_mem pathThoroughput;
@@ -243,11 +272,8 @@ protected:
     cl_mem pathShadow8BAux;
     cl_mem pathShadow8BAuxCPU;
     cl_mem randGenState;
+    cl_mem lsamRev;
 
-    cl_mem lsam1;         // 
-    cl_mem lsam2;         // when LT is enabled: CONSTANT FOR ALL BOUNCES; .xyz store sample.dir; .w store lightPdfA;
-                          // when PT is enabled: TEMP PER BOUNCE;          .xyz store lsam.color; .w store lsam.maxDist
-    cl_mem lsamCos;       // store single float lsam.cosAtLight when use PT
     cl_mem shadowRayPos;
     cl_mem shadowRayDir;
     cl_mem accPdf;        ///< accumulated pdf weights for 3-way Bogolepov light transport
@@ -256,9 +282,7 @@ protected:
     cl_mem oldFlags;      // prev bounce flags;                                                         #NOTE: when PT pass of IBPT is run, store camPdfA in this nuffer 
     cl_mem oldRayDir;     // prev bounce 'rayDir'
     cl_mem oldColor;      // prev bounce accumulated color
-    cl_mem lightNumberLT; // store single int32_t light number that was selected by forward sampling kernel.
 
-    cl_mem lsamProb;      // used by PT only currently;
     cl_mem lshadow;       // store short4 colored shadow;
 
     cl_mem fogAtten;
@@ -391,15 +415,19 @@ protected:
   mutable char m_deviceName[1024];
 
   void runKernel_InitRandomGen(cl_mem a_buffer, size_t a_size, int a_seed);
-  void runKernel_MakeEyeRays(cl_mem a_rpos, cl_mem a_rdir, cl_mem a_zindex, size_t a_size, int a_passNumber);
+  void runKernel_MakeEyeRays(cl_mem a_rpos, cl_mem a_rdir, cl_mem a_zindex, size_t a_size, int a_passNumber, bool a_setSortedFlag = true);
   void runKernel_MakeLightRays(cl_mem a_rpos, cl_mem a_rdir, cl_mem a_outColor, size_t a_size);
   void runKernel_MakeEyeRaysSpp(int32_t a_blockSize, int32_t yBegin, size_t a_size, cl_mem in_pixels,
                                 cl_mem rayPos, cl_mem rayDir);
 
   void runKernel_ClearAllInternalTempBuffers(size_t a_size);
  
-  void runKernel_Trace(cl_mem a_rpos, cl_mem a_rdir, cl_mem a_hits, size_t a_size);
-  void runKernel_ComputeHit(cl_mem a_rpos, cl_mem a_rdir, size_t a_size, bool a_doNotEvaluateProcTex = false);
+  void runKernel_Trace(cl_mem a_rpos, cl_mem a_rdir, size_t a_size,
+                       cl_mem a_hits);
+
+  void runKernel_ComputeHit(cl_mem a_rpos, cl_mem a_rdir, cl_mem a_hits, size_t a_size, size_t a_sizeRun,
+                            cl_mem a_outSurfaceHit, cl_mem a_outProcTexData);
+
   void runKernel_HitEnvOrLight(cl_mem a_rayFlags, cl_mem a_rpos, cl_mem a_rdir, cl_mem a_outColor, int a_currBounce, size_t a_size);
 
   void runKernel_ComputeAO(cl_mem outCompressedAO, size_t a_size);
@@ -409,17 +437,21 @@ protected:
   void runKernel_NextTransparentBounce(cl_mem a_rpos, cl_mem a_rdir, cl_mem a_outColor, size_t a_size);
 
   void ShadePass(cl_mem a_rpos, cl_mem a_rdir, cl_mem a_outColor, size_t a_size, bool a_measureTime);
-  void ConnectEyePass(cl_mem in_rayFlags, cl_mem in_hitPos, cl_mem in_hitNorm, cl_mem in_rayDirOld, cl_mem in_color, int a_bounce, size_t a_size);
+  void ConnectEyePass(cl_mem in_rayFlags, cl_mem in_rayDirOld, cl_mem in_color, int a_bounce, size_t a_size);
   void CopyForConnectEye(cl_mem in_flags, cl_mem in_raydir, cl_mem in_color, 
                                 cl_mem out_flags, cl_mem out_raydir, cl_mem out_color, size_t a_size);
 
-  void runKernel_ShadowTrace(cl_mem a_rayFlags, cl_mem a_rpos, cl_mem a_rdir, cl_mem a_outShadow, size_t a_size);
+  void runKernel_ShadowTrace(cl_mem a_rayFlags, cl_mem a_rpos, cl_mem a_rdir, size_t a_size,
+                             cl_mem a_outShadow);
+
   void runKernel_ShadowTraceAO(cl_mem a_rayFlags, cl_mem a_rpos, cl_mem a_rdir, cl_mem a_instId,
                                cl_mem a_outShadow, size_t a_size);
 
-  void runKernel_EyeShadowRays(cl_mem a_rayFlags, cl_mem a_hitPos, cl_mem a_hitNorm, cl_mem a_rdir2, 
+  void runKernel_EyeShadowRays(cl_mem a_rayFlags, cl_mem a_rdir2, 
                                cl_mem a_rpos, cl_mem a_rdir, size_t a_size);
-  void runKernel_ProjectSamplesToScreen(cl_mem a_rayFlags, cl_mem a_hitPos, cl_mem a_hitNorm, cl_mem a_rdir, cl_mem a_rdir2, cl_mem a_colorsIn, cl_mem a_colorsOut, cl_mem a_zindex, size_t a_size, int a_currBounce);
+
+  void runKernel_ProjectSamplesToScreen(cl_mem a_rayFlags, cl_mem a_rdir, cl_mem a_rdir2, cl_mem a_colorsIn, 
+                                        cl_mem a_colorsOut, cl_mem a_zindex, size_t a_size, int a_currBounce);
 
   void runKernel_UpdateForwardPdfFor3Way(cl_mem a_flags, cl_mem old_rayDir, cl_mem next_rayDir, cl_mem acc_pdf, size_t a_size);
   void runKernel_GetGBufferSamples      (cl_mem a_rdir,  cl_mem a_gbuff1,   cl_mem a_gbuff2, int a_blockSize, size_t a_size);
@@ -428,18 +460,68 @@ protected:
 
   // MLT
   //
-  void runKernel_MLTContribToScreenAtomics(cl_mem xVector, cl_mem xColor, cl_mem yColor, size_t a_size);
+
+  void runKernel_MLTSelectSampleProportionalToContrib(cl_mem in_rndState, cl_mem in_split, cl_mem in_array, int a_arraySize, cl_mem gen_select, size_t a_size,
+                                                      cl_int offset, cl_mem out_rndState, cl_mem out_split);
+
+  void runKernel_MLTEvalContribFunc(cl_mem in_buff, cl_mem in_split, size_t a_size,
+                                    cl_mem out_buff, cl_mem out_table);
+  
+  void  DL_Pass(int a_itersNum);
+  void  MMLT_Pass(int a_passNumber, int minBounce, int maxBounce, int BURN_ITERS);
+  void  SBDPT_Pass(int minBounce, int maxBounce, int ITERS);
+  float MMLT_BurningIn(int minBounce, int maxBounce, int BURN_ITERS,
+                       cl_mem out_rstate, cl_mem out_dsplit, cl_mem out_split2, cl_mem out_normC, std::vector<int>& out_activeThreads);
+
+  void runKernel_AcceptReject(cl_mem a_xVector, cl_mem a_yVector, cl_mem a_xColor,  cl_mem a_yColor, 
+                              cl_mem a_rstateForAcceptReject, int a_maxBounce, size_t a_size,
+                              cl_mem xMultOneMinusAlpha, cl_mem yMultAlpha);
+  
+  void runKernel_MMLTMakeStatesIndexToSort(cl_mem in_gens, cl_mem in_depth, size_t a_size,
+                                          cl_mem out_index);
+  void runKernel_MMLTMoveStatesByIndex(cl_mem in_index, cl_mem in_gens, cl_mem in_depth, size_t a_size,
+                                       cl_mem out_gen, cl_mem out_depth, cl_mem out_split);
+ 
+  void runKernel_UpdateZIndexFromColorW(cl_mem in_color, size_t a_size,
+                                        cl_mem out_zind);
+
+  void runKernel_MMLTCopySelectedDepthToSplit(cl_mem in_buff, size_t a_size,
+                                              cl_mem out_buff);
+  
+
+  size_t MMLTInitSplitDataUniform(int bounceBeg, int a_maxDepth, size_t a_size,
+                                  cl_mem a_splitData, cl_mem a_scaleTable, std::vector<int>& activeThreads);
+
+  void runKernel_MMLTInitSplitAndCamV(cl_mem a_flags, cl_mem a_color, cl_mem a_split, cl_mem a_hitSup, size_t a_size);
+  
+  void runKernel_MMLTMakeProposal(cl_mem in_rgen, cl_mem in_vec, cl_int a_largeStep, cl_int a_maxBounce, size_t a_size,
+                                  cl_mem out_rgen, cl_mem out_vec);
+
+  void runKernel_MMLTMakeEyeRays(size_t a_size,
+                                 cl_mem a_rpos, cl_mem a_rdir, cl_mem a_zindex);
+  void runKernel_MMLTCameraPathBounce(cl_mem rayFlags, cl_mem a_rpos, cl_mem a_rdir, cl_mem a_color, cl_mem a_split, size_t a_size,
+                                      cl_mem a_outHitCom, cl_mem a_outHitSup);
+  
+  void runKernel_MMLTLightSampleForward(cl_mem a_rayFlags, cl_mem a_rpos, cl_mem a_rdir, cl_mem a_outColor, cl_mem lightVertexSup, size_t a_size);
+  void runKernel_MMLTLightPathBounce(cl_mem rayFlags, cl_mem a_rpos, cl_mem a_rdir, cl_mem a_color, cl_mem a_split, size_t a_size,
+                                     cl_mem a_outHitCom, cl_mem a_outHitSup);
+
+
+  void runkernel_MMLTMakeShadowRay(cl_mem in_splitInfo, cl_mem  in_cameraVertexHit, cl_mem in_cameraVertexSup, cl_mem  in_lightVertexHit, cl_mem  in_lightVertexSup, size_t a_size,
+                                   cl_mem sray_pos, cl_mem sray_dir, cl_mem sray_flags);
+  void runKernel_MMLTConnect(cl_mem in_splitInfo, cl_mem  in_cameraVertexHit, cl_mem in_cameraVertexSup, cl_mem  in_lightVertexHit, cl_mem  in_lightVertexSup, cl_mem in_shadow, size_t a_size, size_t a_sizeWholeBuff, 
+                             cl_mem a_outColor, cl_mem a_outZIndex);
+
+  // Aux and debug screen kernels
+  //                           
+  void runKernel_CopyAccColorTo(cl_mem cameraVertexSup, size_t a_size, cl_mem a_outColor);
+  void runKernel_HDRToLDRWithScale(cl_mem in_colorHDR, float a_kScale, int a_width, int a_height, 
+                                   cl_mem out_colorLDR);
 
   // GBuffer and e.t.c
   //
   void runKernel_GenerateSPPRays(cl_mem a_pixels, cl_mem a_sppPos, cl_mem a_rpos, cl_mem a_rdir, size_t a_size, int a_blockSize);
-  void runKernel_GetNormalsAndDepth(cl_mem resultBuff, size_t a_size);
-  void runKernel_GetTexColor(cl_mem resultBuff, size_t a_size);
-  void runKernel_GetGBufferFirstBounce(cl_mem resultBuff, size_t a_size);
-  void runKernel_GetAlphaToGBuffer(cl_mem outBuff, cl_mem inBuff, size_t a_size);
-  
   void runKernel_ReductionFloat4Average(cl_mem a_src, cl_mem a_dst, size_t a_size, int a_bsize);
-  void runKernel_ReductionGBuffer(cl_mem a_src, cl_mem a_dst, size_t a_size, int a_bsize);
   int  CountNumActiveThreads(cl_mem a_rayFlags, size_t a_size);
   
   float2 runKernel_TestAtomicsPerf(size_t a_size);
@@ -465,4 +547,6 @@ protected:
 void RoundBlocks2D(size_t global_item_size[2], size_t local_item_size[2]);
 
 
-static constexpr bool FORCE_DRAW_SHADOW = false;
+static constexpr bool FORCE_DRAW_SHADOW      = false;
+static constexpr bool ENABLE_SBDPT_FOR_DEBUG = false;
+static constexpr int  NUM_MMLT_PASS          = 32;

@@ -12,7 +12,7 @@ extern "C" void initQuasirandomGenerator(unsigned int table[QRNG_DIMENSIONS][QRN
 #undef min
 #undef max
 
-constexpr bool SAVE_BUILD_LOG    = false;
+constexpr bool SAVE_BUILD_LOG = false;
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -26,7 +26,6 @@ void GPUOCLLayer::CL_SCREEN_BUFFERS::free()
 
   color0 = 0;
   pbo    = 0;
-  //scan_free_internal();
 }
 
 void GPUOCLLayer::CL_BUFFERS_RAYS::free()
@@ -36,14 +35,8 @@ void GPUOCLLayer::CL_BUFFERS_RAYS::free()
   if(hits)     { clReleaseMemObject(hits);     hits     = nullptr; }
   if(rayFlags) { clReleaseMemObject(rayFlags); rayFlags = nullptr; }
                                                                                                      
-  if (hitPosNorm)          { clReleaseMemObject(hitPosNorm);          hitPosNorm          = nullptr; }
-  if (hitTexCoord)         { clReleaseMemObject(hitTexCoord);         hitTexCoord         = nullptr; }
-  if (hitMatId)            { clReleaseMemObject(hitMatId);            hitMatId            = nullptr; }
-  if (hitTangent)          { clReleaseMemObject(hitTangent);          hitTangent          = nullptr; }
-  if (hitFlatNorm)         { clReleaseMemObject(hitFlatNorm);         hitFlatNorm         = nullptr; }
-  if (hitPrimSize)         { clReleaseMemObject(hitPrimSize);         hitPrimSize         = nullptr; }
-  if (hitNormUncompressed) { clReleaseMemObject(hitNormUncompressed); hitNormUncompressed = nullptr; }
-  if (hitProcTexData)      { clReleaseMemObject(hitProcTexData);      hitProcTexData      = nullptr;}
+  if (hitSurfaceAll)   { clReleaseMemObject(hitSurfaceAll);  hitSurfaceAll    = nullptr; }
+  if (hitProcTexData)  { clReleaseMemObject(hitProcTexData); hitProcTexData   = nullptr;}
 
   if (pathThoroughput) { clReleaseMemObject(pathThoroughput); pathThoroughput = nullptr; }
   if (pathMisDataPrev) { clReleaseMemObject(pathMisDataPrev); pathMisDataPrev = nullptr; }
@@ -59,9 +52,8 @@ void GPUOCLLayer::CL_BUFFERS_RAYS::free()
 
   if (pathAuxColorCPU) { clReleaseMemObject(pathAuxColorCPU); pathAuxColorCPU = nullptr; }
 
-  if (lsam1)           { clReleaseMemObject(lsam1); lsam1 = nullptr; }
-  if (lsam2)           { clReleaseMemObject(lsam2); lsam2 = nullptr; }
-  if (lsamCos)         { clReleaseMemObject(lsamCos); lsamCos = nullptr; }
+  if (lsamRev)         { clReleaseMemObject(lsamRev);  lsamRev  = nullptr; }
+  if (lshadow)         { clReleaseMemObject(lshadow);  lshadow  = nullptr; }
 
   if (shadowRayPos)    { clReleaseMemObject(shadowRayPos); shadowRayPos = nullptr; }
   if (shadowRayDir)    { clReleaseMemObject(shadowRayDir); shadowRayDir = nullptr; }
@@ -70,10 +62,6 @@ void GPUOCLLayer::CL_BUFFERS_RAYS::free()
   if(oldFlags)         { clReleaseMemObject(oldFlags);  oldFlags  = nullptr; }
   if(oldRayDir)        { clReleaseMemObject(oldRayDir); oldRayDir = nullptr; }
   if(oldColor)         { clReleaseMemObject(oldColor);  oldColor  = nullptr; }
-  if(lightNumberLT)    { clReleaseMemObject(lightNumberLT); lightNumberLT = nullptr; }
-
-  if (lsamProb)        { clReleaseMemObject(lsamProb); lsamProb = nullptr; }
-  if (lshadow)         { clReleaseMemObject(lshadow);  lshadow  = nullptr; }
                        
   if (fogAtten)        { clReleaseMemObject(fogAtten);   fogAtten   = nullptr; }
   if (samZindex)       { clReleaseMemObject(samZindex);  samZindex  = nullptr; }
@@ -106,14 +94,9 @@ size_t GPUOCLLayer::CL_BUFFERS_RAYS::resize(cl_context ctx, cl_command_queue cmd
   if (ciErr1 != CL_SUCCESS)
     RUN_TIME_ERROR("Error in resize rays buffers");
 
-  hitPosNorm  = clCreateBuffer(ctx, CL_MEM_READ_WRITE | shareFlags, 4 * sizeof(cl_float)*MEGABLOCKSIZE, NULL, &ciErr1); currSize += buff1Size * 4;
-  hitTexCoord = clCreateBuffer(ctx, CL_MEM_READ_WRITE, 2 * sizeof(cl_float)*MEGABLOCKSIZE, NULL, &ciErr1);              currSize += buff1Size * 2;
-  hitMatId    = clCreateBuffer(ctx, CL_MEM_READ_WRITE, sizeof(HitMatRef)*MEGABLOCKSIZE, NULL, &ciErr1);                 currSize += buff1Size * 2;
-  hitTangent  = clCreateBuffer(ctx, CL_MEM_READ_WRITE, sizeof(Hit_Part4)*MEGABLOCKSIZE, NULL, &ciErr1);                 currSize += buff1Size * 2;
-  hitFlatNorm = clCreateBuffer(ctx, CL_MEM_READ_WRITE, sizeof(uint)*MEGABLOCKSIZE, NULL, &ciErr1);                      currSize += buff1Size * 1;
-  hitPrimSize = clCreateBuffer(ctx, CL_MEM_READ_WRITE, sizeof(float)*MEGABLOCKSIZE, NULL, &ciErr1);                     currSize += buff1Size * 1;
-  hitNormUncompressed = clCreateBuffer(ctx, CL_MEM_READ_WRITE, sizeof(float4)*MEGABLOCKSIZE, NULL, &ciErr1);            currSize += buff1Size * 4;
-  hitProcTexData      = nullptr;
+  const size_t sizeOfHit = SURFACE_HIT_SIZE_IN_F4*sizeof(float4)*MEGABLOCKSIZE;
+  hitSurfaceAll          = clCreateBuffer(ctx, CL_MEM_READ_WRITE, sizeOfHit, NULL, &ciErr1);                            currSize += sizeOfHit;
+  hitProcTexData         = nullptr;
 
   if (ciErr1 != CL_SUCCESS)
     RUN_TIME_ERROR("Error in resize rays buffers");
@@ -126,15 +109,13 @@ size_t GPUOCLLayer::CL_BUFFERS_RAYS::resize(cl_context ctx, cl_command_queue cmd
     RUN_TIME_ERROR("Error in resize rays buffers");
 
   pathAccColor = clCreateBuffer(ctx, CL_MEM_READ_WRITE, 4 * sizeof(cl_float)*MEGABLOCKSIZE, NULL, &ciErr1);  currSize += buff1Size * 4;
-  randGenState = clCreateBuffer(ctx, CL_MEM_READ_WRITE, 1 * sizeof(RandomGen)*MEGABLOCKSIZE, NULL, &ciErr1); currSize += buff1Size * 1;
+  randGenState = clCreateBuffer(ctx, CL_MEM_READ_WRITE, 1 * sizeof(RandomGen)*MEGABLOCKSIZE, NULL, &ciErr1); currSize += (sizeof(RandomGen)*MEGABLOCKSIZE);
 
   if (ciErr1 != CL_SUCCESS)
     RUN_TIME_ERROR("Error in resize rays buffers");
 
-  lsam1        = clCreateBuffer(ctx, CL_MEM_READ_WRITE | shareFlags, 4 * sizeof(cl_float)*MEGABLOCKSIZE, NULL, &ciErr1);     currSize += buff1Size * 4;
-  lsam2        = clCreateBuffer(ctx, CL_MEM_READ_WRITE | shareFlags, 4 * sizeof(cl_float)*MEGABLOCKSIZE, NULL, &ciErr1);     currSize += buff1Size * 4;
-  lsamCos      = clCreateBuffer(ctx, CL_MEM_READ_WRITE | shareFlags, 4 * sizeof(cl_float)*MEGABLOCKSIZE, NULL, &ciErr1);     currSize += buff1Size * 4;
-                                                                                                                          
+  lsamRev      = clCreateBuffer(ctx, CL_MEM_READ_WRITE, 12 * sizeof(cl_float)*MEGABLOCKSIZE, NULL, &ciErr1);  currSize += buff1Size * 12;
+
   shadowRayPos = clCreateBuffer(ctx, CL_MEM_READ_WRITE | shareFlags, 4 * sizeof(cl_float)*MEGABLOCKSIZE, NULL, &ciErr1);   currSize += buff1Size * 4;
   shadowRayDir = clCreateBuffer(ctx, CL_MEM_READ_WRITE | shareFlags, 4 * sizeof(cl_float)*MEGABLOCKSIZE, NULL, &ciErr1);   currSize += buff1Size * 4;
   accPdf       = clCreateBuffer(ctx, CL_MEM_READ_WRITE | shareFlags, 1 * sizeof(PerRayAcc)*MEGABLOCKSIZE, NULL, &ciErr1);  currSize += buff1Size * 1;
@@ -145,12 +126,10 @@ size_t GPUOCLLayer::CL_BUFFERS_RAYS::resize(cl_context ctx, cl_command_queue cmd
   oldFlags      = clCreateBuffer(ctx, CL_MEM_READ_WRITE | shareFlags, 1 * sizeof(uint)*MEGABLOCKSIZE,     NULL, &ciErr1);   currSize += buff1Size * 1;
   oldRayDir     = clCreateBuffer(ctx, CL_MEM_READ_WRITE | shareFlags, 4 * sizeof(cl_float)*MEGABLOCKSIZE, NULL, &ciErr1);   currSize += buff1Size * 4;
   oldColor      = clCreateBuffer(ctx, CL_MEM_READ_WRITE | shareFlags, 4 * sizeof(cl_float)*MEGABLOCKSIZE, NULL, &ciErr1);   currSize += buff1Size * 4;
-  lightNumberLT = clCreateBuffer(ctx, CL_MEM_READ_WRITE | shareFlags, 1 * sizeof(int)*MEGABLOCKSIZE,      NULL, &ciErr1);   currSize += buff1Size * 1;
 
   if (ciErr1 != CL_SUCCESS)
     RUN_TIME_ERROR("Error in resize rays buffers");
 
-  lsamProb = clCreateBuffer(ctx, CL_MEM_READ_WRITE,              1 * sizeof(cl_float)*MEGABLOCKSIZE, NULL, &ciErr1);        currSize += buff1Size * 1;
   lshadow  = clCreateBuffer(ctx, CL_MEM_READ_WRITE | shareFlags, 4 * sizeof(cl_ushort)*MEGABLOCKSIZE, NULL, &ciErr1);       currSize += buff1Size * 4;
   fogAtten = clCreateBuffer(ctx, CL_MEM_READ_WRITE,              4 * sizeof(cl_float)*MEGABLOCKSIZE, NULL, &ciErr1);        currSize += buff1Size * 4;
 
@@ -178,9 +157,9 @@ size_t GPUOCLLayer::CL_BUFFERS_RAYS::resize(cl_context ctx, cl_command_queue cmd
   if (ciErr1 != CL_SUCCESS)
     RUN_TIME_ERROR("Error in resize rays buffers");
 
-  samZindex       = clCreateBuffer(ctx, CL_MEM_READ_WRITE, 1*2*sizeof(int)*MEGABLOCKSIZE, NULL, &ciErr1); currSize += buff1Size * 2;
-  packedXY        = clCreateBuffer(ctx, CL_MEM_READ_WRITE, sizeof(int)*MEGABLOCKSIZE, NULL, &ciErr1);     currSize += buff1Size*1;
-  lightOffsetBuff = clCreateBuffer(ctx, CL_MEM_READ_WRITE, sizeof(int)*MEGABLOCKSIZE, NULL, &ciErr1);     currSize += buff1Size * 1;
+  samZindex       = clCreateBuffer(ctx, CL_MEM_READ_WRITE, 2*sizeof(int)*MEGABLOCKSIZE, NULL, &ciErr1); currSize += buff1Size * 2;
+  packedXY        = clCreateBuffer(ctx, CL_MEM_READ_WRITE, 1*sizeof(int)*MEGABLOCKSIZE, NULL, &ciErr1); currSize += buff1Size * 1;
+  lightOffsetBuff = clCreateBuffer(ctx, CL_MEM_READ_WRITE, 1*sizeof(int)*MEGABLOCKSIZE, NULL, &ciErr1); currSize += buff1Size * 1;
 
   if (ciErr1 != CL_SUCCESS)
     RUN_TIME_ERROR("Error in resize rays buffers");
@@ -430,9 +409,12 @@ const HRRenderDeviceInfoListElem* GPUOCLLayer::ListDevices() const
     return &g_deviceList[0];
 }
 
+//void TestPathVertexReadWrite();
 
 GPUOCLLayer::GPUOCLLayer(int w, int h, int a_flags, int a_deviceId) : Base(w, h, a_flags)
 { 
+  //TestPathVertexReadWrite();
+
   m_initFlags = a_flags;
   for (int i = 0; i < MEM_TAKEN_OBJECTS_NUM; i++)
     m_memoryTaken[i] = 0;
@@ -665,9 +647,6 @@ GPUOCLLayer::GPUOCLLayer(int w, int h, int a_flags, int a_deviceId) : Base(w, h,
   std::cout << "[cl_core]: building " << soshaderpath.c_str() << "     ..." << std::endl;
   m_progs.sort   = CLProgram(m_globals.device, m_globals.ctx, soshaderpath.c_str(), options.c_str(), HydraInstallPath(), loadEncrypted, soshaderpathBin, SAVE_BUILD_LOG);
 
-  std::cout << "[cl_core]: building " << mshaderpath.c_str() << "      ... " << std::endl;
-  m_progs.mlt    = CLProgram(m_globals.device, m_globals.ctx, mshaderpath.c_str(), options.c_str(), HydraInstallPath(), loadEncrypted, moshaderpathBin, SAVE_BUILD_LOG);
-
   std::cout << "[cl_core]: building " << sshaderpath.c_str() <<  "   ... " << std::endl;
   m_progs.screen = CLProgram(m_globals.device, m_globals.ctx, sshaderpath.c_str(), options.c_str(), HydraInstallPath(), loadEncrypted, sshaderpathBin, SAVE_BUILD_LOG);
 
@@ -679,6 +658,9 @@ GPUOCLLayer::GPUOCLLayer(int w, int h, int a_flags, int a_deviceId) : Base(w, h,
 
   std::cout << "[cl_core]: building " << yshaderpath.c_str() << " ..." << std::endl;
   m_progs.material = CLProgram(m_globals.device, m_globals.ctx, yshaderpath.c_str(), options.c_str(), HydraInstallPath(), loadEncrypted, yoshaderpathBin, SAVE_BUILD_LOG);
+
+  std::cout << "[cl_core]: building " << mshaderpath.c_str() << "      ... " << std::endl;
+  m_progs.mlt    = CLProgram(m_globals.device, m_globals.ctx, mshaderpath.c_str(), options.c_str(), HydraInstallPath(), loadEncrypted, moshaderpathBin, SAVE_BUILD_LOG);
 
   std::cout << "[cl_core]: build cl programs complete" << std::endl << std::endl;
 
@@ -732,20 +714,31 @@ GPUOCLLayer::GPUOCLLayer(int w, int h, int a_flags, int a_deviceId) : Base(w, h,
 
   m_raysWasSorted = false;
   m_spp           = 0.0f;
+  m_sppDL         = 0.0f;
   m_sppDone       = 0.0f;
   m_sppContrib    = 0.0f;
+  m_avgBrightness = 1.0f;
 }
 
-void GPUOCLLayer::RecompileProcTexShaders(const char* a_shaderPath)
+void GPUOCLLayer::RecompileProcTexShaders(const std::string& a_shaderPath)
 {
   std::string options = GetOCLShaderCompilerOptions();
+ 
+  #ifndef RECOMPILE_PROCTEX_FROM_STRING
+  std::cout << "[cl_core]: recompile " << a_shaderPath.c_str() << " ..." << std::endl;
+  m_progs.texproc = CLProgram(m_globals.device, m_globals.ctx, a_shaderPath.c_str(), options, HydraInstallPath(), "", "", SAVE_BUILD_LOG);
+  #else 
+  std::cout << "[cl_core]: recompile from string ..." << std::endl;
+  m_progs.texproc = CLProgram(m_globals.device, m_globals.ctx, a_shaderPath, options, HydraInstallPath(), nullptr);
+  #endif
 
-  std::cout << "[cl_core]: recompile " << a_shaderPath << " ..." << std::endl;
-  m_progs.texproc = CLProgram(m_globals.device, m_globals.ctx, a_shaderPath, options, HydraInstallPath(), "", "", SAVE_BUILD_LOG);
+
+  if(m_rays.hitProcTexData != nullptr)
+    clReleaseMemObject(m_rays.hitProcTexData);
 
   cl_int ciErr1 = 0;
-  m_rays.hitProcTexData = clCreateBuffer(m_globals.ctx, CL_MEM_READ_WRITE, sizeof(ProcTextureList)*m_rays.MEGABLOCKSIZE, NULL, &ciErr1);
-  //currSize += sizeof(ProcTextureList)*MEGABLOCKSIZE; //#TODO: ACCOUNT THIS MEM FOR MEM INFO
+  m_rays.hitProcTexData = clCreateBuffer(m_globals.ctx, CL_MEM_READ_WRITE, F4_PROCTEX_SIZE*sizeof(float4)*m_rays.MEGABLOCKSIZE, NULL, &ciErr1);
+  //currSize += (F4_PROCTEX_SIZE*sizeof(float4)*m_rays.MEGABLOCKSIZE); //#TODO: ACCOUNT THIS MEM FOR MEM INFO
 
   if (ciErr1 != CL_SUCCESS)
     RUN_TIME_ERROR("Error in RecompileProcTexShaders -> clCreateBuffer for proc tex");
@@ -763,7 +756,7 @@ GPUOCLLayer::~GPUOCLLayer()
 {
   FinishAll();
 
-  m_mlt.free();
+  MLT_Free();
   m_rays.free();
   m_screen.free();
   m_scene.free();
@@ -778,30 +771,41 @@ GPUOCLLayer::~GPUOCLLayer()
   if(m_globals.ctx)               { clReleaseContext     (m_globals.ctx);               m_globals.ctx               = nullptr; }
 }
 
-size_t GPUOCLLayer::CalcMegaBlockSize()
+size_t GPUOCLLayer::CalcMegaBlockSize(int a_flags)
 {
   const size_t memAmount = GetAvaliableMemoryAmount(true);
   const size_t MB = size_t(1024*1024);
 
-  if (m_globals.devIsCPU)
-  {
-    return 256 * 256;
-  }
-  else if (memAmount <= size_t(256)*MB)
-  {
-    return 256 * 256;
-  }
-  else if (memAmount <= size_t(1024)*MB)
-  {
-    return 512 * 512;
-  }
-  else if (memAmount <= size_t(4*1024)*MB)
-  {
-    return 1024 * 512;
-  }
-  else
-    return 1024 * 1024;
+  int MEGABLOCK_SIZE = 1024 * 512;
 
+  if (m_globals.devIsCPU)
+    MEGABLOCK_SIZE = 256 * 256;
+  else if (memAmount <= size_t(256)*MB)
+    MEGABLOCK_SIZE = 256 * 256;
+  else if (memAmount <= size_t(1024)*MB)
+    MEGABLOCK_SIZE = 512 * 512;
+  else if (memAmount <= size_t(4*1024)*MB)
+    MEGABLOCK_SIZE = 1024 * 512;
+  else
+    MEGABLOCK_SIZE = 1024 * 1024;
+
+  if (a_flags & GPU_MLT_ENABLED_AT_START)
+  {
+    MEGABLOCK_SIZE = 524288;
+    if (a_flags & GPU_MMLT_THREADS_262K)
+      MEGABLOCK_SIZE = 262144;
+    else if (a_flags & GPU_MMLT_THREADS_131K)
+      MEGABLOCK_SIZE = 131072;
+    else if (a_flags & GPU_MMLT_THREADS_65K)
+      MEGABLOCK_SIZE = 65536;
+    else if (a_flags & GPU_MMLT_THREADS_16K)
+      MEGABLOCK_SIZE = 16384;
+
+    if (m_globals.devIsCPU)
+      MEGABLOCK_SIZE = 16384;
+  }
+
+  return MEGABLOCK_SIZE;
 }
 
 std::string GPUOCLLayer::GetOCLShaderCompilerOptions()
@@ -878,12 +882,11 @@ void GPUOCLLayer::ResizeScreen(int width, int height, int a_flags)
   m_width  = width;
   m_height = height;
 
-  const size_t MEGABLOCK_SIZE = CalcMegaBlockSize(); 
+  const size_t MEGABLOCK_SIZE = CalcMegaBlockSize(a_flags); 
+
 
   if (ciErr1 != CL_SUCCESS)
     RUN_TIME_ERROR("[cl_core]: Failed to create cl half screen zblocks buffer ");
-
-  //scan_alloc_internal(m_width*m_height, m_globals.ctx);
 
   if(m_screen.color0 != nullptr)
     memsetf4(m_screen.color0, float4(0, 0, 0, 0), m_width*m_height);
@@ -970,20 +973,28 @@ void GPUOCLLayer::GetLDRImage(uint* data, int width, int height) const
 
   const float gammaInv   = 1.0f / m_vars.m_varsF[HRT_IMAGE_GAMMA];
   const int size         = m_width*m_height;
-
+  
   if (m_screen.m_cpuFrameBuffer) 
   {
     if (m_passNumber - 1 <= 0) // remember about pipelined copy!!
       return;
 
-    const float normConst = 1.0f / m_spp; // 1.0f / float(m_passNumber - 1); // remember about pipelined copy!!
+    int width2, height2;
+    const float4* color0 = GetCPUScreenBuffer(0, width2, height2);
+    const float4* color1 = GetCPUScreenBuffer(1, width2, height2);
+
+    float normConst   = 1.0f / m_spp; // 1.0f / float(m_passNumber - 1); // remember about pipelined copy!!
+    float normConstDL = 1.0f / m_sppDL; 
+
+    if (m_vars.m_flags & HRT_ENABLE_MMLT && !ENABLE_SBDPT_FOR_DEBUG)  
+      normConst = EstimateMLTNormConst(color0, width, height);
 
     if (!HydraSSE::g_useSSE)
     {
       #pragma omp parallel for
       for (int i = 0; i < size; i++)  // #TODO: use sse and fast pow
       {
-        float4 color = m_screen.color0CPU[i];
+        float4 color = color0[i];
         color.x = powf(color.x*normConst, gammaInv);
         color.y = powf(color.y*normConst, gammaInv);
         color.z = powf(color.z*normConst, gammaInv);
@@ -993,15 +1004,59 @@ void GPUOCLLayer::GetLDRImage(uint* data, int width, int height) const
     }
     else
     {
-      const __m128 powerf4 = _mm_set_ps(gammaInv, gammaInv, gammaInv, gammaInv);
-      const __m128 normc   = _mm_set_ps(normConst, normConst, normConst, normConst);
+      const __m128 powerf4   = _mm_set_ps(gammaInv, gammaInv, gammaInv, gammaInv);
+      const __m128 normc     = _mm_set_ps(normConst, normConst, normConst, normConst);
+      const __m128 normc2    = _mm_set_ps(normConstDL, normConstDL, normConstDL, normConstDL);
+      const __m128 const_255 = _mm_set_ps1(255.0f);
 
-      const float* dataHDR = (const float*)&m_screen.color0CPU[0];
+      const float* dataHDR  = (const float*)color0;
+      const float* dataHDR1 = (const float*)color1;
 
-      #pragma omp parallel for
-      for (int i = 0; i < size; i++)
+      if (m_vars.m_flags & HRT_ENABLE_MMLT && !ENABLE_SBDPT_FOR_DEBUG)
       {
-        data[i] = HydraSSE::gammaCorr(dataHDR + i*4, normc, powerf4);
+        if (color1 != nullptr && color0 != nullptr)
+        {
+
+#pragma omp parallel for
+          for (int i = 0; i < size; i++)
+          {
+            const __m128 colorDL = _mm_mul_ps(normc2, _mm_load_ps(dataHDR1 + i * 4));
+            const __m128 colorIL = _mm_mul_ps(normc, _mm_load_ps(dataHDR + i * 4));
+            const __m128 color2 = HydraSSE::powf4(_mm_add_ps(colorDL, colorIL), powerf4);
+            const __m128i rgba = _mm_cvtps_epi32(_mm_min_ps(_mm_mul_ps(color2, const_255), const_255));
+            const __m128i out = _mm_packus_epi32(rgba, _mm_setzero_si128());
+            const __m128i out2 = _mm_packus_epi16(out, _mm_setzero_si128());
+            data[i] = _mm_cvtsi128_si32(out2);
+          }
+
+        }
+        else if (color0 != nullptr)
+        {
+          #pragma omp parallel for
+          for (int i = 0; i < size; i++)
+          {
+            data[i] = HydraSSE::gammaCorr(dataHDR + i * 4, normc, powerf4);
+          }
+        }
+        else
+        {
+          std::cerr << "GPUOCLLayer::GetLDRImage(HRT_ENABLE_MMLT): both internal CPU images == nullptr!!!" << std::endl;
+          std::cerr.flush();
+        }
+
+        //#pragma omp parallel for
+        //for (int i = 0; i < size; i++)
+        //{
+        //  data[i] = HydraSSE::gammaCorr(dataHDR1 + i*4, normc2, powerf4);
+        //}
+      }
+      else
+      {
+        #pragma omp parallel for
+        for (int i = 0; i < size; i++)
+        {
+          data[i] = HydraSSE::gammaCorr(dataHDR + i * 4, normc, powerf4);
+        }
       }
     }
   }
@@ -1034,15 +1089,29 @@ void GPUOCLLayer::GetLDRImage(uint* data, int width, int height) const
 
 }
 
+std::tuple<double, double, double> HydraRender::ColorSummImage4f(const float* a_image4f, int a_width, int a_height);
+
+float GPUOCLLayer::EstimateMLTNormConst(const float4* data, int width, int height) const // #TODO: opt this with simdpp library ...   
+{
+  double summ[3];
+  std::tie(summ[0], summ[1], summ[2]) = HydraRender::ColorSummImage4f((const float*)data, width, height);
+  double avgDiv       = 1.0/double(width*height);
+  float avgBrightness = contribFunc(float3(avgDiv*summ[0], avgDiv*summ[1], avgDiv*summ[2]));
+  return m_avgBrightness / fmax(avgBrightness, DEPSILON2);
+}
+
 void GPUOCLLayer::GetHDRImage(float4* data, int width, int height) const
 {
   if (m_passNumber - 1 <= 0 || m_spp <= 1e-5f) // remember about pipelined copy!!
     return;
 
-  const float normConst = (1.0f / m_spp);
+  float normConst = (1.0f / m_spp);
 
   if (m_screen.m_cpuFrameBuffer)
   {
+    if (m_vars.m_flags & HRT_ENABLE_MMLT)  
+      normConst = EstimateMLTNormConst(m_screen.color0CPU.data(), width, height);
+
     for (size_t i = 0; i < (width*height); i++)
       data[i] = m_screen.color0CPU[i] * normConst;
   }
@@ -1091,6 +1160,32 @@ void GPUOCLLayer::ResetPerfCounters()
 }
 
 
+const float4* GPUOCLLayer::GetCPUScreenBuffer(int a_layerId, int& width, int& height) const
+{
+  if(!m_screen.m_cpuFrameBuffer)
+    return nullptr;
+     
+  const float4* resultPtr = nullptr;
+  width  = m_width;
+  height = m_height;
+  
+  if (m_pExternalImage != nullptr)
+  {
+    resultPtr = (float4*)m_pExternalImage->ImageData(a_layerId);
+    width     = m_pExternalImage->Header()->width;
+    height    = m_pExternalImage->Header()->height;
+  }
+  else
+  {
+    if(a_layerId == 0)
+      resultPtr = m_screen.color0CPU.data();
+    else if(a_layerId == 1)
+      resultPtr = m_mlt.colorDLCPU.data();
+  }
+
+  return resultPtr;     
+}
+
 void GPUOCLLayer::BeginTracingPass()
 {
   static int firstCall = 0;
@@ -1100,22 +1195,19 @@ void GPUOCLLayer::BeginTracingPass()
 
   if (m_vars.m_flags & HRT_ENABLE_MMLT)                 // SBDPT or MMLT pass
   {
-    // (1) EyeSample
-    //
-    m_raysWasSorted = false;
-    runKernel_MakeEyeRays(m_rays.rayPos, m_rays.rayDir, m_rays.samZindex, m_rays.MEGABLOCKSIZE, m_passNumberForQMC);
-
-    // (2) trace; 
-    //
-    TraceSBDPTPass(m_rays.rayPos, m_rays.rayDir, m_rays.pathAccColor, m_rays.MEGABLOCKSIZE);
-
-    // (3) Connect
-    //
-
-    // (4) Contrib to screen
-    //
-    AddContributionToScreen(m_rays.pathAccColor);
-
+    const int minBounce  = m_vars.m_varsI[HRT_MMLT_FIRST_BOUNCE];
+    const int maxBounce  = m_vars.m_varsI[HRT_TRACE_DEPTH];
+    const int BURN_ITERS = m_vars.m_varsI[HRT_MMLT_BURN_ITERS];
+    
+    if(ENABLE_SBDPT_FOR_DEBUG)
+    {
+      SBDPT_Pass(1, maxBounce, NUM_MMLT_PASS);
+    }
+    else
+    {
+      DL_Pass(NUM_MMLT_PASS/2);  //#NOTE: strange bug, DL contribute to IL if reverse order
+      MMLT_Pass(NUM_MMLT_PASS, minBounce, maxBounce, BURN_ITERS);   
+    }
   }
   else if((m_vars.m_flags & HRT_PRODUCTION_IMAGE_SAMPLING) != 0 && (m_vars.m_flags & HRT_UNIFIED_IMAGE_SAMPLING) != 0)
   {
@@ -1130,23 +1222,25 @@ void GPUOCLLayer::BeginTracingPass()
     {
       runKernel_MakeLightRays(m_rays.rayPos, m_rays.rayDir, m_rays.pathAccColor, m_rays.MEGABLOCKSIZE);
 
-      if ((m_vars.m_flags & HRT_DRAW_LIGHT_LT) ) 
-        ConnectEyePass(m_rays.rayFlags, m_rays.lsam1, m_rays.hitNormUncompressed, nullptr, m_rays.pathAccColor, -1, m_rays.MEGABLOCKSIZE);
+      //if ((m_vars.m_flags & HRT_DRAW_LIGHT_LT) ) //#NOTE: broken after surface hit refactoring !!!!
+        //ConnectEyePass(m_rays.rayFlags, m_rays.lsam1, m_rays.hitNormUncompressed, nullptr, m_rays.pathAccColor, -1, m_rays.MEGABLOCKSIZE);
     }
     else
     {
       m_raysWasSorted = false;
       runKernel_MakeEyeRays(m_rays.rayPos, m_rays.rayDir, m_rays.samZindex, m_rays.MEGABLOCKSIZE, m_passNumberForQMC);
+      runKernel_ClearAllInternalTempBuffers(m_rays.MEGABLOCKSIZE);
     }
 
     // (2) Compute sample colors
     //
-    trace1D(m_rays.rayPos, m_rays.rayDir, m_rays.pathAccColor, m_rays.MEGABLOCKSIZE);
+    trace1D(m_vars.m_varsI[HRT_TRACE_DEPTH], m_rays.rayPos, m_rays.rayDir, m_rays.MEGABLOCKSIZE,
+            m_rays.pathAccColor);
 
     // (3) accumulate colors
     //
     if ((m_vars.m_flags & HRT_FORWARD_TRACING) == 0)
-      AddContributionToScreen(m_rays.pathAccColor);
+      AddContributionToScreen(m_rays.pathAccColor, m_rays.samZindex);
     
   }
   else if(!m_screen.m_cpuFrameBuffer)
@@ -1163,18 +1257,18 @@ void GPUOCLLayer::EndTracingPass()
     CHECK_CL(clFinish(m_globals.cmdQueue));
   }
 
+  m_passNumberForQMC++;
   if (m_vars.m_flags & HRT_UNIFIED_IMAGE_SAMPLING)
   {
-    m_spp += float(double(m_rays.MEGABLOCKSIZE) / double(m_width*m_height));
-    m_passNumberForQMC++;
+    const float passScale = (m_vars.m_flags & HRT_ENABLE_MMLT) ? float(NUM_MMLT_PASS) : 1.0f;
+    m_spp += passScale*float(double(m_rays.MEGABLOCKSIZE) / double(m_width*m_height));
 
     const float time = m_timer.getElapsed();
     if (m_passNumberForQMC % 4 == 0 && m_passNumberForQMC > 0)
     {
       const float halfIfIBPT = (m_vars.m_flags & HRT_3WAY_MIS_WEIGHTS) ? 0.5f : 1.0f;
-
       auto precOld = std::cout.precision(2);
-      std::cout << "spp =\t" << int(m_spp) << "\tspeed = " << halfIfIBPT * float(m_rays.MEGABLOCKSIZE) / (1e6f*time) << " M(samples)/s         \r";
+      std::cout << "spp =\t" << int(m_spp) << "\tspeed = " << passScale*halfIfIBPT * float(m_rays.MEGABLOCKSIZE) / (1e6f*time) << " M(samples)/s         \r";
       std::cout.precision(precOld);
       std::cout.flush();
     }
@@ -1183,6 +1277,7 @@ void GPUOCLLayer::EndTracingPass()
   {
     m_spp              = 0;
     m_passNumberForQMC = 0;
+    m_sppDL            = 0;
   }
 }
 

@@ -6,7 +6,8 @@
 #undef min
 #undef max
 
-void GPUOCLLayer::trace1D(cl_mem a_rpos, cl_mem a_rdir, cl_mem a_outColor, size_t a_size)
+void GPUOCLLayer::trace1D(int a_maxBounce, cl_mem a_rpos, cl_mem a_rdir, size_t a_size,
+                          cl_mem a_outColor)
 {
   // trace rays
   //
@@ -30,9 +31,8 @@ void GPUOCLLayer::trace1D(cl_mem a_rpos, cl_mem a_rdir, cl_mem a_outColor, size_
   float timeForHit      = 0.0f;
 
   int measureBounce = m_vars.m_varsI[HRT_MEASURE_RAYS_TYPE];
-  int maxBounce     = m_vars.m_varsI[HRT_TRACE_DEPTH];
 
-  for (int bounce = 0; bounce < maxBounce; bounce++)
+  for (int bounce = 0; bounce < a_maxBounce; bounce++)
   {
     const bool measureThisBounce = (bounce == measureBounce);
 
@@ -42,7 +42,8 @@ void GPUOCLLayer::trace1D(cl_mem a_rpos, cl_mem a_rdir, cl_mem a_outColor, size_
       timeStart = m_timer.getElapsed();
     }
 
-    runKernel_Trace(a_rpos, a_rdir, m_rays.hits, a_size);
+    runKernel_Trace(a_rpos, a_rdir, a_size,
+                    m_rays.hits);
 
     if (m_vars.m_varsI[HRT_ENABLE_MRAYS_COUNTERS] && measureThisBounce)
     {
@@ -51,7 +52,8 @@ void GPUOCLLayer::trace1D(cl_mem a_rpos, cl_mem a_rdir, cl_mem a_outColor, size_
       timeForTrace    = timeForHitStart - timeStart;
     }
 
-    runKernel_ComputeHit(a_rpos, a_rdir, a_size);
+    runKernel_ComputeHit(a_rpos, a_rdir, m_rays.hits, a_size, a_size,
+                         m_rays.hitSurfaceAll, m_rays.hitProcTexData);
 
     if ((m_vars.m_flags & HRT_FORWARD_TRACING) == 0)
       runKernel_HitEnvOrLight(m_rays.rayFlags, a_rpos, a_rdir, a_outColor, bounce, a_size);
@@ -105,7 +107,7 @@ void GPUOCLLayer::trace1D(cl_mem a_rpos, cl_mem a_rdir, cl_mem a_outColor, size_
 
     if (m_vars.m_flags & HRT_FORWARD_TRACING)
     {
-      ConnectEyePass(m_rays.oldFlags, m_rays.hitPosNorm, m_rays.hitNormUncompressed, m_rays.oldRayDir, m_rays.oldColor, bounce, a_size);
+      ConnectEyePass(m_rays.oldFlags, m_rays.oldRayDir, m_rays.oldColor, bounce, a_size);
       if (m_vars.m_flags & HRT_3WAY_MIS_WEIGHTS)
         runKernel_UpdateForwardPdfFor3Way(m_rays.oldFlags, m_rays.oldRayDir, m_rays.rayDir, m_rays.accPdf, a_size);
     }
@@ -175,8 +177,8 @@ void GPUOCLLayer::trace1DPrimaryOnly(cl_mem a_rpos, cl_mem a_rdir, cl_mem a_outC
 
   // trace rays
   //
-  memsetu32(m_rays.rayFlags, 0, a_size);                                         // fill flags with zero data
-  memsetf4(a_outColor, make_float4(0, 0, 0, 0), a_size, a_offset);               // fill initial out color with black
+  memsetu32(m_rays.rayFlags, 0, a_size);                                                           // fill flags with zero data
+  memsetf4(m_rays.hitSurfaceAll, float4(0,0,0,0), SURFACE_HIT_SIZE_IN_F4*m_rays.MEGABLOCKSIZE, 0); // clear surface hit
 
   if (m_vars.m_varsI[HRT_ENABLE_MRAYS_COUNTERS])
   {
@@ -184,7 +186,8 @@ void GPUOCLLayer::trace1DPrimaryOnly(cl_mem a_rpos, cl_mem a_rdir, cl_mem a_outC
     m_timer.start();
   }
 
-  runKernel_Trace(a_rpos, a_rdir, m_rays.hits, a_size);
+  runKernel_Trace(a_rpos, a_rdir, a_size,
+                  m_rays.hits);
 
   if (m_vars.m_varsI[HRT_ENABLE_MRAYS_COUNTERS])
   {
@@ -192,13 +195,14 @@ void GPUOCLLayer::trace1DPrimaryOnly(cl_mem a_rpos, cl_mem a_rdir, cl_mem a_outC
     m_stat.raysPerSec = float(a_size) / m_timer.getElapsed();
   }
 
-  runKernel_ComputeHit(a_rpos, a_rdir, a_size, true);
+  runKernel_ComputeHit(a_rpos, a_rdir, m_rays.hits, a_size, a_size,
+                       m_rays.hitSurfaceAll, m_rays.hitProcTexData);
 
   //
   //
   if (true)
   {
-    CHECK_CL(clSetKernelArg(kernShowN, 0, sizeof(cl_mem), (void*)&m_rays.hitPosNorm));
+    CHECK_CL(clSetKernelArg(kernShowN, 0, sizeof(cl_mem), (void*)&m_rays.hitSurfaceAll));
     CHECK_CL(clSetKernelArg(kernShowN, 1, sizeof(cl_mem), (void*)&a_outColor));
     CHECK_CL(clSetKernelArg(kernShowN, 2, sizeof(cl_int), (void*)&isize));
     CHECK_CL(clSetKernelArg(kernShowN, 3, sizeof(cl_int), (void*)&ioffset));
@@ -208,7 +212,7 @@ void GPUOCLLayer::trace1DPrimaryOnly(cl_mem a_rpos, cl_mem a_rdir, cl_mem a_outC
   }
   else if (false)
   {
-    CHECK_CL(clSetKernelArg(kernShowT, 0, sizeof(cl_mem), (void*)&m_rays.hitTexCoord));
+    CHECK_CL(clSetKernelArg(kernShowT, 0, sizeof(cl_mem), (void*)&m_rays.hitSurfaceAll));
     CHECK_CL(clSetKernelArg(kernShowT, 1, sizeof(cl_mem), (void*)&a_outColor));
     CHECK_CL(clSetKernelArg(kernShowT, 2, sizeof(cl_int), (void*)&isize));
     CHECK_CL(clSetKernelArg(kernShowT, 3, sizeof(cl_int), (void*)&ioffset));
@@ -247,6 +251,8 @@ void GPUOCLLayer::CopyShadowTo(cl_mem a_color, size_t a_size)
 
 void GPUOCLLayer::DrawNormals()
 {
+  //memsetf4(m_screen.color0, float4(0,0,0,0), m_width*m_height, 0);
+
   cl_kernel makeRaysKern = m_progs.screen.kernel("MakeEyeRays");
 
   int iter = 0;

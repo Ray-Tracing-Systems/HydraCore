@@ -140,12 +140,7 @@ __kernel void ComputeHit(__global const float4*   restrict rpos,
                          __global const int*      restrict in_remapInst,
 
                          __global uint*           restrict out_flags,
-                         __global float4*         restrict out_hitPosNorm,
-                         __global float2*         restrict out_hitTexCoord,
-                         __global uint*           restrict out_flatNorm,
-                         __global HitMatRef*      restrict out_matData,
-                         __global Hit_Part4*      restrict out_hitTangent,
-                         __global float4*         restrict out_normalsFull,
+                         __global float4*         restrict out_surfaceHit,
 
                          __global const EngineGlobals* restrict a_globals,
                          int a_remapTableSize, int a_totalInstNumber,  int a_size)
@@ -164,11 +159,8 @@ __kernel void ComputeHit(__global const float4*   restrict rpos,
 
   if (HitNone(hit))
   {
-    HitMatRef data3;
-    data3.m_data        = -1; // ray is out of scene (or rc alpha range)
-    data3.accumDist     = 0.0f;
-    out_matData[tid]    = data3;
-    out_hitPosNorm[tid] = make_float4(0, 0, 0, 0);
+    WriteSurfaceHitMatId(-1, tid, a_size, 
+                         out_surfaceHit);
 
     uint rayOtherFlags = unpackRayFlags(flags);
     rayOtherFlags     |= RAY_GRAMMAR_OUT_OF_SCENE;
@@ -178,8 +170,6 @@ __kernel void ComputeHit(__global const float4*   restrict rpos,
 
   float3 ray_pos = to_float3(rpos[tid]);
   float3 ray_dir = to_float3(rdir[tid]);
-
- 
 
  
   // (1) mul ray with instanceMatrixInv
@@ -234,55 +224,17 @@ __kernel void ComputeHit(__global const float4*   restrict rpos,
   }
   /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-  out_hitPosNorm [tid] = to_float4(surfHitWS.pos, as_float(encodeNormal(surfHitWS.normal)));
-  out_hitTexCoord[tid] = surfHitWS.texCoord;
-  out_normalsFull[tid] = to_float4(surfHitWS.normal, surfHitWS.sRayOff);
+  surfHitWS.matId  = remapMaterialId(surfHitWS.matId, hit.instId, 
+                                     in_remapInst, a_totalInstNumber, in_allMatRemapLists, in_remapTable, a_remapTableSize);
 
-  const int remapedId  = remapMaterialId(surfHitWS.matId, hit.instId, 
-                                         in_remapInst, a_totalInstNumber, in_allMatRemapLists, 
-                                         in_remapTable, a_remapTableSize);
-
-  HitMatRef data3 = out_matData[tid];
-  {
-    SetMaterialId(&data3, remapedId);
-    if (unpackBounceNum(flags) == 0)
-      data3.accumDist = hit.t;
-    else
-      data3.accumDist += hit.t;
-  }
-
-  Hit_Part4 data4;
-  data4.tangentCompressed   = encodeNormal(surfHitWS.tangent);
-  data4.bitangentCompressed = encodeNormal(surfHitWS.biTangent);
-
-  out_matData   [tid] = data3;
-  out_hitTangent[tid] = data4;
-  out_flatNorm  [tid] = encodeNormal(surfHitWS.flatNormal);
+  WriteSurfaceHit(&surfHitWS, tid, a_size, 
+                  out_surfaceHit);
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-
-static inline ushort4 compressShadow(float3 shadow)
-{
-  ushort4 shadowCompressed;
-
-  shadowCompressed.x = (ushort)(65535.0f * shadow.x);
-  shadowCompressed.y = (ushort)(65535.0f * shadow.y);
-  shadowCompressed.z = (ushort)(65535.0f * shadow.z);
-  shadowCompressed.w = 0;
-
-  return shadowCompressed;
-}
-
-static inline float3 decompressShadow(ushort4 shadowCompressed)
-{
-  const float invNormCoeff = 1.0f / 65535.0f;
-  return invNormCoeff*make_float3((float)shadowCompressed.x, (float)shadowCompressed.y, (float)shadowCompressed.z);
-}
 
 __kernel void NoShadow(__global ushort4* a_shadow, int a_size)
 {
@@ -603,13 +555,17 @@ __kernel void BVH4TraversalInstShadowKenrelAS_Packed(__global const uint*       
 
 
 
-__kernel void ShowNormals(__global float4* in_posNorm, __global float4* a_color, int iNumElements, int iOffset)
+__kernel void ShowNormals(__global const float4* restrict in_surfaceHit, __global float4* restrict a_color, int iNumElements, int iOffset)
 {
   int tid = GLOBAL_ID_X;
   if (tid >= iNumElements)
     return;
 
-  float3 norm = normalize( decodeNormal(as_int(in_posNorm[tid].w)) );
+  SurfaceHit sHit;
+  ReadSurfaceHit(in_surfaceHit, tid, iNumElements, 
+                 &sHit);
+
+  float3 norm = sHit.normal;
 
   norm.x = fabs(norm.x);
   norm.y = fabs(norm.y);
@@ -620,13 +576,17 @@ __kernel void ShowNormals(__global float4* in_posNorm, __global float4* a_color,
 
 
 
-__kernel void ShowTexCoord(__global float2* in_texCoord, __global float4* a_color, int iNumElements, int iOffset)
+__kernel void ShowTexCoord(__global const float4* restrict in_surfaceHit, __global float4* a_color, int iNumElements, int iOffset)
 {
   int tid = GLOBAL_ID_X;
   if (tid >= iNumElements)
     return;
 
-  float2 texCoord = in_texCoord[tid];
+  SurfaceHit sHit;
+  ReadSurfaceHit(in_surfaceHit, tid, iNumElements, 
+                 &sHit);
+
+  float2 texCoord = sHit.texCoord;
 
   a_color[tid + iOffset] = make_float4(texCoord.x, texCoord.y, 0.0f, 0.0f);
 }

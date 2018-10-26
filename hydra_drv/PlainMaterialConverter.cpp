@@ -946,6 +946,9 @@ std::shared_ptr<IMaterial> TransparentMaterialFromHydraMtl(const pugi::xml_node 
 
 static const int ReadExtrusionType(pugi::xml_node a_node)
 {
+  if(a_node == nullptr)
+    return BLEND_MASK_EXTRUSION_STRONG;
+  
 	const std::wstring extrusion = a_node.child(L"extrusion").attribute(L"val").as_string();
 
 	if (extrusion == L"maxcolor")
@@ -960,7 +963,9 @@ static const int ReadExtrusionType(pugi::xml_node a_node)
 
 static const float ReadFresnelIOR(pugi::xml_node a_node)
 {
-	if (a_node.child(L"fresnel_ior") != nullptr)
+  if(a_node == nullptr)
+    return 1.5f;
+	else if (a_node.child(L"fresnel_ior") != nullptr)
 		return a_node.child(L"fresnel_ior").attribute(L"val").as_float();
 	else 
 	  return a_node.child(L"fresnel_IOR").attribute(L"val").as_float();
@@ -1197,14 +1202,14 @@ void RenderDriverRTE::ReadBumpAndOpacity(std::shared_ptr<IMaterial> pResult, pug
 
 std::shared_ptr<IMaterial> CreateBlendDefferedProxyFromXmlNode(pugi::xml_node a_node)
 {
-  const std::wstring blendType = a_node.attribute(L"type").as_string();
+  const std::wstring blendType = a_node.child(L"blend").attribute(L"type").as_string();
 
   bool fresnelBlend = false;
   bool extrusive = false;
 
   if (blendType == L"mask_blend")
   {
-
+  
   }
   else if (blendType == L"fresnel_blend")
   {
@@ -1212,10 +1217,10 @@ std::shared_ptr<IMaterial> CreateBlendDefferedProxyFromXmlNode(pugi::xml_node a_
   }
   else if (blendType == L"faloff_blend")
   {
-
+  
   }
   
-  const float fresnelIOR    = ReadFresnelIOR(a_node);
+  const float fresnelIOR    = ReadFresnelIOR(a_node.child(L"blend"));
   const int   reflExtrusion = ReadExtrusionType(a_node);
 
   // TODO: if sigmoid   ...
@@ -1223,18 +1228,19 @@ std::shared_ptr<IMaterial> CreateBlendDefferedProxyFromXmlNode(pugi::xml_node a_
   
   // read mask texture
   //
-  int32_t texId;
-  SWTexSampler sampler;
+  int32_t texId = INVALID_TEXTURE;
+  SWTexSampler sampler = DummySampler();
   if (a_node.child(L"blend").child(L"mask").child(L"texture") != nullptr)
   {
     sampler = SamplerFromTexref(a_node.child(L"blend").child(L"mask").child(L"texture"));
-    texId = sampler.texId;
+    texId   = sampler.texId;
   }
 
   std::shared_ptr<IMaterial> m1 = nullptr;  // will replace them later
   std::shared_ptr<IMaterial> m2 = nullptr;  // will replace them later
 
-  std::shared_ptr<BlendMaskMaterial> pResult2 = std::make_shared<BlendMaskMaterial>(m1, m2, float3(1,1,1), texId, sampler, fresnelBlend, extrusive, reflExtrusion, fresnelIOR);
+  std::shared_ptr<BlendMaskMaterial> pResult2 = std::make_shared<BlendMaskMaterial>(m1, m2, float3(1,1,1), texId, sampler, 
+                                                                                    fresnelBlend, extrusive, reflExtrusion, fresnelIOR);
 
   return pResult2;
 }

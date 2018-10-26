@@ -59,6 +59,62 @@
 #define PEPSILON      0.025f
 #define PG_SCALE      1000.0f
 
+/**
+ * These defines are for the QMC remap table to support different mappings in run time.
+ * for example you may decide to map (0,1) to screen (x,y) and (2,3) to DOF (x,y) or
+ *             you may decide to map (0,1) to screen (x,y) and (2,3,4) to material sampling
+ * if no mapping presents in the table (id == -1) then pseudo random should be used.
+ *
+ */
+#define QMC_VAR_SCR_X 0
+#define QMC_VAR_SCR_Y 1
+#define QMC_VAR_DOF_X 2
+#define QMC_VAR_DOF_Y 3
+#define QMC_VAR_SRC_A 4
+
+#define QMC_VAR_MAT_L 5
+#define QMC_VAR_MAT_0 6
+#define QMC_VAR_MAT_1 7
+
+#define QMC_VAR_LGT_N 8
+#define QMC_VAR_LGT_0 9
+#define QMC_VAR_LGT_1 10
+#define QMC_VAR_LGT_2 11
+
+/**
+ * Note that unlike QMC, MMLT don't use remap table.
+ * These offsets are direct offsets in the ramdom vector table (in floats) 
+ *
+ */
+
+#define MMLT_HEAD_TOTAL_SIZE 12  //
+
+// [0-3] :  LENS;  4 in total
+//
+#define MMLT_DIM_SCR_X 0 
+#define MMLT_DIM_SCR_Y 1 
+#define MMLT_DIM_DOF_X 2 
+#define MMLT_DIM_DOF_Y 3 
+
+// [4-10]:  LIGHT; 7 in total
+//
+#define MMLT_DIM_LGT_X 4     
+#define MMLT_DIM_LGT_Y 5    
+#define MMLT_DIM_LGT_Z 6    
+#define MMLT_DIM_LGT_W 7    
+  
+#define MMLT_DIM_LGT_X1 8  
+#define MMLT_DIM_LGT_Y1 9 
+#define MMLT_DIM_LGT_N 10 
+
+// [11] :  SPLIT; 
+//
+#define MMLT_DIM_SPLIT 11
+
+#define MMLT_FLOATS_PER_MLAYER 7
+#define MMLT_FLOATS_PER_SAMPLE 3
+#define MMLT_FLOATS_PER_BOUNCE (MMLT_FLOATS_PER_SAMPLE + MMLT_FLOATS_PER_MLAYER)
+#define MMLT_COMPRESSED_F_PERB 6
 
 enum MEGATEX_USAGE{ MEGATEX_SHADING      = 1, 
                     MEGATEX_SHADING_HDR  = 2, 
@@ -98,11 +154,11 @@ enum MEGATEX_USAGE{ MEGATEX_SHADING      = 1,
    #define SYNCTHREADS_LOCAL  barrier(CLK_LOCAL_MEM_FENCE)
    #define SYNCTHREADS_GLOBAL barrier(CLK_GLOBAL_MEM_FENCE)
 
-   IDH_CALL float maxcomp(float3 v) { return fmax(v.x, fmax(v.y, v.z)); }
+   static inline float maxcomp(float3 v) { return fmax(v.x, fmax(v.y, v.z)); }
 
    #define NULL 0
 
-   IDH_CALL ushort4 make_ushort4(ushort a, ushort b, ushort c, ushort d)
+   static inline ushort4 make_ushort4(ushort a, ushort b, ushort c, ushort d)
    {
      ushort4 res;
      res.x = a;
@@ -112,7 +168,7 @@ enum MEGATEX_USAGE{ MEGATEX_SHADING      = 1,
      return res;
    }
 
-   ID_CALL void atomic_addf(volatile __global float *source, const float operand)
+   static inline void atomic_addf(volatile __global float *source, const float operand)
    {
      union {
        unsigned int intVal;
@@ -328,7 +384,7 @@ typedef struct MatSampleT
 
 enum FLAG_BITS{HRT_COMPUTE_SHADOWS                 = 1,
                HRT_DISABLE_SHADING                 = 2, 
-               HRT_DIFFUSE_REFLECTION              = 4,
+               HRT_DIRECT_LIGHT_MODE               = 4,
                HRT_UNIFIED_IMAGE_SAMPLING          = 8,
 
                HRT_PRODUCTION_IMAGE_SAMPLING       = 16, // 256 coherent rays per pixel.
@@ -391,7 +447,7 @@ enum VARIABLE_NAMES { // int vars
                       HRT_ENV_PDF_TABLE_ID         = 30,
                       HRT_MLT_MAX_NUMBERS          = 31,
                       HRT_MLT_ITERS_MULT           = 32,
-                      HRT_MLT_BURN_ITERS           = 33,
+                      HRT_MMLT_BURN_ITERS          = 33,
                       HRT_MMLT_FIRST_BOUNCE        = 34,
                       HRT_SHADOW_MATTE_BACK        = 35,
                       HRT_MAX_SAMPLES_PER_PIXEL    = 36,
@@ -440,9 +496,9 @@ enum VARIABLE_FLOAT_NAMES{ // float vars
                            HRT_ABLOW_SCALE_X                       = 29,
                            HRT_ABLOW_SCALE_Y                       = 30,
   
-                           HRT_VAR_FLOAT_DUMMY31                   = 31,
-                           HRT_MLT_PLARGE                          = 32,
-                           HRT_VAR_FLOAT_DUMMY33                   = 33,
+                           HRT_MMLT_IMPLICIT_FIXED_PROB            = 31,
+                           HRT_MMLT_STEP_SIZE_POWER                = 32,
+                           HRT_MMLT_STEP_SIZE_COEFF                = 33,
                            HRT_MLT_SCREEN_SCALE_X                  = 34,
                            HRT_MLT_SCREEN_SCALE_Y                  = 35,
                            HRT_BACK_TEXINPUT_GAMMA                 = 36,
@@ -1225,12 +1281,13 @@ struct _PACKED RayFlagsT
 typedef struct RayFlagsT RayFlags;
 
 enum MATERIAL_EVENT {
-  RAY_EVENT_S    = 1,  ///< Indicates Specular reflection or refraction (check for RAY_EVENT_T)
-  RAY_EVENT_D    = 2,  ///< Indicates Diffuse  reflection or translucent (check for RAY_EVENT_T)
-  RAY_EVENT_G    = 4,  ///< Indicates GLossy   reflection or refraction (check for RAY_EVENT_T)
-  RAY_EVENT_T    = 8,  ///< Indicates Transparensy or reftacrion. 
-  RAY_EVENT_V    = 16, ///< Indicates Volume scattering, not used for a while
-  RAY_EVENT_TOUT = 32, ///< Indicates Transparensy Outside of water or glass or e.t.c. (old RAY_IS_INSIDE_TRANSPARENT_OBJECT = 128)
+  RAY_EVENT_S         = 1,  ///< Indicates Specular reflection or refraction (check for RAY_EVENT_T)
+  RAY_EVENT_D         = 2,  ///< Indicates Diffuse  reflection or translucent (check for RAY_EVENT_T)
+  RAY_EVENT_G         = 4,  ///< Indicates GLossy   reflection or refraction (check for RAY_EVENT_T)
+  RAY_EVENT_T         = 8,  ///< Indicates Transparensy or reftacrion. 
+  RAY_EVENT_V         = 16, ///< Indicates Volume scattering, not used for a while
+  RAY_EVENT_TOUT      = 32, ///< Indicates Transparensy Outside of water or glass or e.t.c. (old RAY_IS_INSIDE_TRANSPARENT_OBJECT = 128)
+  RAY_EVENT_TNINGLASS = 64,
 };
 
 static inline bool isPureSpecular(const MatSample a_sample) { return (a_sample.flags & RAY_EVENT_S) != 0; }
@@ -1469,7 +1526,7 @@ IDH_CALL float3 MapSampleToModifiedCosineDistribution(float r1, float r2, float3
   float3 deviation;
   deviation.x = sin_theta*cos_phi;
   deviation.y = sin_theta*sin_phi;
-  deviation.z = pow(r2, 1.0f / (power + 1.0f));
+  deviation.z = sqrt(1.0f - deviation.x*deviation.x - deviation.y*deviation.y); //pow(r2, 1.0f / (power + 1.0f));
 
   float3 ny = direction, nx, nz;
   CoordinateSystem(ny, &nx, &nz);
@@ -1912,22 +1969,6 @@ static void ImageZBlockMemToRowPitch(const float4* inData, float4* outData, int 
 
 #endif
 
-
-static inline int calcMegaBlockSize(int w, int h, size_t memAmount)
-{ 
-  int MEGA_BLOCK_SIZE = 512*512;
-  if (w*h <= 512 * 512)
-    MEGA_BLOCK_SIZE = 256 * 256;
-  else if (w*h <= 1024 * 768)
-    MEGA_BLOCK_SIZE = 512 * 512;
-  else if (w*h < 1920 * 1200)
-    MEGA_BLOCK_SIZE = (1024*1024/2); // #TODO: check this !!!
-  else 
-    MEGA_BLOCK_SIZE = 1024 * 1024;
-  return MEGA_BLOCK_SIZE;
-}
-
-
 #ifdef __CUDACC__ 
   #undef ushort
   #undef uint
@@ -2209,102 +2250,96 @@ typedef struct ShadeContextT
 
 } ShadeContext;
 
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+#define MAXPROCTEX 16
+#define F4_PROCTEX_SIZE 12
 
 /**
 \brief this structure will store results of procedural texture kernel execution.
 
 */
-
-#define MAXPROCTEX 5
-
 typedef struct ProcTextureListT
 {
-  float3  fdata4[MAXPROCTEX];  
+  int     currMaxProcTex;
   int     id_f4 [MAXPROCTEX];
+  float3  fdata4[MAXPROCTEX];  
 
 } ProcTextureList;
 
 
 static inline void InitProcTextureList(__private ProcTextureList* a_pList)
 {
+  a_pList->currMaxProcTex = 0;
   a_pList->id_f4[0] = INVALID_TEXTURE;
-  a_pList->id_f4[1] = INVALID_TEXTURE;
-  a_pList->id_f4[2] = INVALID_TEXTURE;
-  a_pList->id_f4[3] = INVALID_TEXTURE;
-  a_pList->id_f4[4] = INVALID_TEXTURE;
+}
 
-  a_pList->fdata4[0] = make_float3(1,1,1);
-  a_pList->fdata4[1] = make_float3(1,1,1);
-  a_pList->fdata4[2] = make_float3(1,1,1);
-  a_pList->fdata4[3] = make_float3(1,1,1);
-  a_pList->fdata4[4] = make_float3(1,1,1);
+static inline void WriteProcTextureList(__global float4* fdata, int tid, int size, __private const ProcTextureList* a_pList)
+{
+  __global int* idata = (__global int*)fdata;
+
+  if(a_pList->currMaxProcTex == 0)
+  {
+    idata[tid] = INVALID_TEXTURE;
+    return;
+  }
+  
+  const int finalProcTex = (a_pList->currMaxProcTex > MAXPROCTEX) ? MAXPROCTEX : a_pList->currMaxProcTex;
+
+  for(int i=0;i<finalProcTex;i++)
+    idata[tid + size * i] = a_pList->id_f4[i];
+  
+  if(finalProcTex < MAXPROCTEX)
+    idata[tid + size * finalProcTex] = INVALID_TEXTURE; // list end
+
+  #ifdef OCL_COMPILER
+
+  for(int i=0;i<finalProcTex;i+=2)
+  {
+    const float4 h1 = to_float4(a_pList->fdata4[i+0], 0.0f);
+    const float4 h2 = to_float4(a_pList->fdata4[i+1], 0.0f);
+    float8 data = {h1.x, h1.y, h1.z, h1.w, 
+                   h2.x, h2.y, h2.z, h2.w,};
+    
+    const int offset = (tid + size * (i/2 + MAXPROCTEX/4));
+    vstore_half8(data, 0, (__global half*)(fdata + offset) );
+  }
+
+  #endif
+
 }
 
 static inline void ReadProcTextureList(__global float4* fdata, int tid, int size,
-                                       __private ProcTextureList* a_pRes)
+                                       __private ProcTextureList* a_pList)
 {
   if (fdata == 0)
     return;
 
-  const float4 f0 = fdata[tid + size * 0];
-  const float4 f1 = fdata[tid + size * 1];
-  const float4 f2 = fdata[tid + size * 2];
-  const float4 f3 = fdata[tid + size * 3];
-  const float4 f4 = fdata[tid + size * 4];
-
-  a_pRes->id_f4[0] = as_int(f4.x);
-  a_pRes->id_f4[1] = as_int(f4.y);
-  a_pRes->id_f4[2] = as_int(f4.z);
-  a_pRes->id_f4[3] = as_int(f4.w);
-  a_pRes->id_f4[4] = as_int(f3.w);
-
-  a_pRes->fdata4[3] = to_float3(f3);
-
-  if (a_pRes->id_f4[0] != INVALID_TEXTURE || a_pRes->id_f4[4] != INVALID_TEXTURE)
-  {
-    a_pRes->fdata4[0]   = to_float3(f0);
-    a_pRes->fdata4[4].x = f0.w;
-  }
-
-  if (a_pRes->id_f4[1] != INVALID_TEXTURE || a_pRes->id_f4[4] != INVALID_TEXTURE)
-  {
-    a_pRes->fdata4[1]   = to_float3(f1);
-    a_pRes->fdata4[4].y = f1.w;
-  }
+  __global int* idata = (__global int*)fdata;
   
-  if (a_pRes->id_f4[2] != INVALID_TEXTURE || a_pRes->id_f4[4] != INVALID_TEXTURE)
+  int currMaxProcTex;
+  for(currMaxProcTex = 0; currMaxProcTex < MAXPROCTEX; currMaxProcTex++)
   {
-    a_pRes->fdata4[2]   = to_float3(f2);
-    a_pRes->fdata4[4].z = f2.w;
+    const int texId = idata[tid + size * currMaxProcTex];
+    a_pList->id_f4[currMaxProcTex] = texId;
+    if(texId == INVALID_TEXTURE)
+      break;
   }
- 
-}
 
+  #ifdef OCL_COMPILER
 
-static inline void WriteProcTextureList(__global float4* fdata, int tid, int size, __private const ProcTextureList* a_pRes)
-{
-  const float4 f0 = make_float4(a_pRes->fdata4[0].x, a_pRes->fdata4[0].y, a_pRes->fdata4[0].z, a_pRes->fdata4[4].x);
-  const float4 f1 = make_float4(a_pRes->fdata4[1].x, a_pRes->fdata4[1].y, a_pRes->fdata4[1].z, a_pRes->fdata4[4].y);
-  const float4 f2 = make_float4(a_pRes->fdata4[2].x, a_pRes->fdata4[2].y, a_pRes->fdata4[2].z, a_pRes->fdata4[4].z);
-  const float4 f3 = make_float4(a_pRes->fdata4[3].x, a_pRes->fdata4[3].y, a_pRes->fdata4[3].z, as_float(a_pRes->id_f4[4]));
+  for(int i=0;i<currMaxProcTex;i+=2)
+  {
+    const int offset  = (tid + size * (i/2 + MAXPROCTEX/4));
+    const float8 data = vload_half8(0, (__global half*)(fdata + offset));
+    a_pList->fdata4[i+0] = to_float3(data.s0123);
+    a_pList->fdata4[i+1] = to_float3(data.s4567);
+  }
 
-  if (a_pRes->id_f4[0] != INVALID_TEXTURE || a_pRes->id_f4[4] != INVALID_TEXTURE)
-    fdata[tid + size * 0] = f0;
-  
-  if (a_pRes->id_f4[1] != INVALID_TEXTURE || a_pRes->id_f4[4] != INVALID_TEXTURE)
-    fdata[tid + size * 1] = f1;
+  #endif
 
-  if (a_pRes->id_f4[2] != INVALID_TEXTURE || a_pRes->id_f4[4] != INVALID_TEXTURE)
-    fdata[tid + size * 2] = f2;
-
-  fdata[tid + size * 3] = f3;
-  fdata[tid + size * 4] = make_float4( as_float(a_pRes->id_f4[0]), as_float(a_pRes->id_f4[1]), as_float(a_pRes->id_f4[2]), as_float(a_pRes->id_f4[3]));
-}
-
-
-static inline bool isProcTexId(int a_texId, const __private ProcTextureList* a_pList)
-{
-  return (a_pList->id_f4[0] != INVALID_TEXTURE);
+  a_pList->currMaxProcTex = currMaxProcTex;
 }
 
 /**
@@ -2314,34 +2349,59 @@ static inline bool isProcTexId(int a_texId, const __private ProcTextureList* a_p
 
 \return texture color; 
 */
-
 static inline float4 readProcTex(int a_texId, const __private ProcTextureList* a_pList)
 {
-  if(a_texId == a_pList->id_f4[0])
-    return to_float4(a_pList->fdata4[0], 0.0f);
-  else if(a_texId == a_pList->id_f4[1])
-    return to_float4(a_pList->fdata4[1], 0.0f);
-  else if(a_texId == a_pList->id_f4[2])
-    return to_float4(a_pList->fdata4[2], 0.0f);
-  else if(a_texId == a_pList->id_f4[3])
-    return to_float4(a_pList->fdata4[3], 0.0f);
-  else if(a_texId == a_pList->id_f4[4])
-    return to_float4(a_pList->fdata4[4], 0.0f);
-  else
-    return make_float4(1, 1, 1, -1.0f);
+  const int maxIter = (a_pList->currMaxProcTex < MAXPROCTEX) ? a_pList->currMaxProcTex :  MAXPROCTEX; // min
+  
+  for(int i=0; i<maxIter; i++) // #TODO: opt this for GPU ???
+  {
+    if(a_texId == a_pList->id_f4[i])
+      return to_float4(a_pList->fdata4[i], 0.0f);
+  }  
+
+  return make_float4(1, 1, 1, -1.0f);
 }
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 typedef struct ShadowSampleT
 {
-
   float3 pos;
   float3 color;
   float  pdf;
   float  maxDist;
   float  cosAtLight;
   bool   isPoint;
-
 } ShadowSample;
+
+static inline void WriteShadowSample(const __private ShadowSample* a_pSam, float a_lightProbSel, int a_lightOffset, int a_tid, int a_threadNum,
+                                     __global float4* a_out)
+{
+  const float pdfAndIsPoint = a_pSam->isPoint ? (-1.0f)*a_pSam->pdf : a_pSam->pdf;
+
+  a_out[a_tid + a_threadNum*0] = make_float4(a_pSam->pos.x,   a_pSam->pos.y,   a_pSam->pos.z,   pdfAndIsPoint);
+  a_out[a_tid + a_threadNum*1] = make_float4(a_pSam->color.x, a_pSam->color.y, a_pSam->color.z, a_pSam->maxDist);
+  a_out[a_tid + a_threadNum*2] = make_float4(a_pSam->cosAtLight, a_lightProbSel, as_float(a_lightOffset), 0);
+}
+
+static inline void ReadShadowSample(const __global float4* a_in, int a_tid, int a_threadNum,
+                                    __private ShadowSample* a_pSam, __private float* a_pLightProbSel, __private int* a_pLightOffset)
+{
+  const float4 f0 = a_in[a_tid + a_threadNum*0];
+  const float4 f1 = a_in[a_tid + a_threadNum*1];
+  const float4 f2 = a_in[a_tid + a_threadNum*2];
+ 
+  a_pSam->pos.x = f0.x; a_pSam->pos.y = f0.y;
+  a_pSam->pos.z = f0.z; a_pSam->pdf   = fabs(f0.w); a_pSam->isPoint = (f0.w <= 0); // this is ok, if pdf is 0, it can be only point light
+  
+  a_pSam->color.x = f1.x; a_pSam->color.y = f1.y;
+  a_pSam->color.z = f1.z; a_pSam->maxDist = f1.w;
+
+  a_pSam->cosAtLight = f2.x; (*a_pLightProbSel) = f2.y; 
+  (*a_pLightOffset)  = as_int(f2.z);
+}
+
 
 /**
 \brief Per ray accumulated (for all bounces) data. 
@@ -2355,6 +2415,21 @@ typedef struct ALIGN_S(16) PerRayAccT
   float  pdfCamA0;    ///< equal to pdfWP[0]*G[0] (if [0] means light)
 
 } PerRayAcc;
+
+static inline PerRayAcc InitialPerParAcc()
+{
+  PerRayAcc res;
+  res.pdfGTerm     = 1.0f;
+  res.pdfLightWP   = 1.0f;
+  res.pdfCameraWP  = 1.0f;
+  res.pdfCamA0     = 1.0f;
+  return res;
+}
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 typedef struct SurfaceHitT
 {
@@ -2370,14 +2445,72 @@ typedef struct SurfaceHitT
   bool   hfi;
 } SurfaceHit;
 
-static inline PerRayAcc InitialPerParAcc()
+#define PV_PACK_VALID_FIELD 1
+#define PV_PACK_WASSP_FIELD 2
+#define PV_PACK_HITFI_FIELD 4 // Hit From Inside 
+#define PV_PACK_RCONN_FIELD 8 // Ready For Connect (pack this if capera path don't hit light but store camera vertex istead). 
+
+#define SURFACE_HIT_SIZE_IN_F4 4
+
+static inline void WriteSurfaceHit(const __private SurfaceHit* a_pHit, int a_tid, int a_threadNum, 
+                                   __global float4* a_out)
 {
-  PerRayAcc res;
-  res.pdfGTerm     = 1.0f;
-  res.pdfLightWP   = 1.0f;
-  res.pdfCameraWP  = 1.0f;
-  res.pdfCamA0     = 1.0f;
-  return res;
+  const float4 f1 = to_float4(a_pHit->pos,    a_pHit->texCoord.x);
+  const float4 f2 = to_float4(a_pHit->normal, a_pHit->texCoord.y);
+  const float4 f3 = make_float4(as_float( encodeNormal(a_pHit->flatNormal)), 
+                                as_float( encodeNormal(a_pHit->tangent)), 
+                                as_float( encodeNormal(a_pHit->biTangent)), 
+                                as_float( a_pHit->matId) 
+                                );
+
+  // ignore (hit.t, hit.sRayOff) because bpt don't need them! 
+
+  const int bit3  = a_pHit->hfi ? PV_PACK_HITFI_FIELD : 0;
+  const float4 f4 = make_float4(a_pHit->t, a_pHit->sRayOff, 0, as_float(bit3));
+
+  a_out[a_tid + 0*a_threadNum] = f1;
+  a_out[a_tid + 1*a_threadNum] = f2;
+  a_out[a_tid + 2*a_threadNum] = f3;
+  a_out[a_tid + 3*a_threadNum] = f4;
+} 
+
+static inline void WriteSurfaceHitMatId(const int a_matId, int a_tid, int a_threadNum, 
+                                        __global float4* a_out)
+{
+  const float4 f3 = make_float4(0, 0, 0, as_float(a_matId));
+  a_out[a_tid + 2*a_threadNum] = f3;
+}
+
+static inline void ReadSurfaceHit(const __global float4* a_in, int a_tid, int a_threadNum, 
+                                  __private SurfaceHit* a_pHit)
+{
+  const float4 f1 = a_in[a_tid + 0*a_threadNum];
+  const float4 f2 = a_in[a_tid + 1*a_threadNum];
+  const float4 f3 = a_in[a_tid + 2*a_threadNum];
+  const float4 f4 = a_in[a_tid + 3*a_threadNum];
+
+  a_pHit->pos        = to_float3   (f1); a_pHit->texCoord.x = f1.w;
+  a_pHit->normal     = to_float3   (f2); a_pHit->texCoord.y = f2.w;
+  a_pHit->flatNormal = decodeNormal(as_int(f3.x));
+  a_pHit->tangent    = decodeNormal(as_int(f3.y));
+  a_pHit->biTangent  = decodeNormal(as_int(f3.z));
+  a_pHit->matId      =              as_int(f3.w);
+  a_pHit->t          = f4.x;
+  a_pHit->sRayOff    = f4.y;
+
+  const int flags    = as_int(f4.w);
+  a_pHit->hfi        = ((flags & PV_PACK_HITFI_FIELD) != 0);
+} 
+
+static inline int ReadSurfaceHitMatId(const __global float4* a_in, int a_tid, int a_threadNum)
+{
+  const float4 f3 = a_in[a_tid + 2*a_threadNum];
+  return as_int(f3.w);
+}
+
+static inline float3 ReadSurfaceHitPos(const __global float4* a_in, int a_tid, int a_threadNum)
+{
+  return to_float3(a_in[a_tid + 0*a_threadNum]);
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -2435,7 +2568,7 @@ enum PLAIN_MAT_FLAGS{
 
 #define PLAIN_MATERIAL_DATA_SIZE        192
 #define PLAIN_MATERIAL_CUSTOM_DATA_SIZE 80
-#define MIX_TREE_MAX_DEEP               16
+#define MIX_TREE_MAX_DEEP               7
 
 struct PlainMaterialT
 {
@@ -2467,11 +2600,11 @@ typedef struct PlainMaterialT PlainMaterial;
 #define NORMAL_SAMPLER_OFFSET        (PLAIN_MATERIAL_CUSTOM_DATA_SIZE+20)
 #define OPACITY_SAMPLER_OFFSET       (PLAIN_MATERIAL_CUSTOM_DATA_SIZE+32)
 
-#define PROC_TEX1_F4_HEAD_OFFSET     (PLAIN_MATERIAL_CUSTOM_DATA_SIZE+44)
-#define PROC_TEX2_F4_HEAD_OFFSET     (PLAIN_MATERIAL_CUSTOM_DATA_SIZE+45)
-#define PROC_TEX3_F4_HEAD_OFFSET     (PLAIN_MATERIAL_CUSTOM_DATA_SIZE+46)
-#define PROC_TEX4_F4_HEAD_OFFSET     (PLAIN_MATERIAL_CUSTOM_DATA_SIZE+47)
-#define PROC_TEX5_F4_HEAD_OFFSET     (PLAIN_MATERIAL_CUSTOM_DATA_SIZE+48)
+// #define PROC_TEX1_F4_HEAD_OFFSET     (PLAIN_MATERIAL_CUSTOM_DATA_SIZE+44) // FREE SLOT! 
+// #define PROC_TEX2_F4_HEAD_OFFSET     (PLAIN_MATERIAL_CUSTOM_DATA_SIZE+45) // FREE SLOT!
+// #define PROC_TEX3_F4_HEAD_OFFSET     (PLAIN_MATERIAL_CUSTOM_DATA_SIZE+46) // FREE SLOT!
+// #define PROC_TEX4_F4_HEAD_OFFSET     (PLAIN_MATERIAL_CUSTOM_DATA_SIZE+47) // FREE SLOT!
+// #define PROC_TEX5_F4_HEAD_OFFSET     (PLAIN_MATERIAL_CUSTOM_DATA_SIZE+48) // FREE SLOT!
 
 #define PROC_TEX_TABLE_OFFSET        (PLAIN_MATERIAL_CUSTOM_DATA_SIZE+49)
 
@@ -2487,6 +2620,10 @@ typedef struct PlainMaterialT PlainMaterial;
 #define PROC_TEX_TEX_ID2             (PLAIN_MATERIAL_CUSTOM_DATA_SIZE+80)
 #define PROC_TEXMATRIX_ID2           (PLAIN_MATERIAL_CUSTOM_DATA_SIZE+81)
 #define PROC_TEX_AO_LENGTH2          (PLAIN_MATERIAL_CUSTOM_DATA_SIZE+82)
+
+#define PROC_TEX1_F4_HEAD_OFFSET     (PLAIN_MATERIAL_CUSTOM_DATA_SIZE+83)
+#define PROC_TEXN_F4_HEAD_OFFSET     (PLAIN_MATERIAL_CUSTOM_DATA_SIZE+99)
+
 
 enum AO_TYPES { AO_TYPE_NONE = 0, AO_TYPE_UP = 1, AO_TYPE_DOWN = 2, AO_TYPE_BOTH = 4 };
 
@@ -2506,29 +2643,45 @@ static inline bool materialIsInvisLight    (__global const PlainMaterial* a_pMat
 
 static inline void PutProcTexturesIdListToMaterialHead(const ProcTextureList* a_pData, PlainMaterial* a_pMat)
 {
-  ((int*)(a_pMat->data))[PROC_TEX1_F4_HEAD_OFFSET] = a_pData->id_f4[0];
-  ((int*)(a_pMat->data))[PROC_TEX2_F4_HEAD_OFFSET] = a_pData->id_f4[1];
-  ((int*)(a_pMat->data))[PROC_TEX3_F4_HEAD_OFFSET] = a_pData->id_f4[2];
-  ((int*)(a_pMat->data))[PROC_TEX4_F4_HEAD_OFFSET] = a_pData->id_f4[3];
-  ((int*)(a_pMat->data))[PROC_TEX5_F4_HEAD_OFFSET] = a_pData->id_f4[4];
+  for(int i=0;i<a_pData->currMaxProcTex;i++)
+    ((int*)(a_pMat->data))[PROC_TEX1_F4_HEAD_OFFSET + i] = a_pData->id_f4[i];
+  
+  for(int i=a_pData->currMaxProcTex; i<MAXPROCTEX; i++)
+    ((int*)(a_pMat->data))[PROC_TEX1_F4_HEAD_OFFSET + i] = INVALID_TEXTURE;
 }
 
 static inline void GetProcTexturesIdListFromMaterialHead(__global const PlainMaterial* a_pMat, __private ProcTextureList* a_pData)
 {
-  a_pData->id_f4[0] = as_int(a_pMat->data[PROC_TEX1_F4_HEAD_OFFSET]);
-  a_pData->id_f4[1] = as_int(a_pMat->data[PROC_TEX2_F4_HEAD_OFFSET]);
-  a_pData->id_f4[2] = as_int(a_pMat->data[PROC_TEX3_F4_HEAD_OFFSET]);
-  a_pData->id_f4[3] = as_int(a_pMat->data[PROC_TEX4_F4_HEAD_OFFSET]);
-  a_pData->id_f4[4] = as_int(a_pMat->data[PROC_TEX5_F4_HEAD_OFFSET]);
+  int currMaxProcTex;
+  for(currMaxProcTex = 0; currMaxProcTex < MAXPROCTEX; currMaxProcTex++)
+  {
+    const int texId = as_int(a_pMat->data[PROC_TEX1_F4_HEAD_OFFSET + currMaxProcTex]);
+    a_pData->id_f4[currMaxProcTex] = texId;
+    if(texId == INVALID_TEXTURE)
+      break;
+  }
+
+  a_pData->currMaxProcTex = currMaxProcTex;
 }
 
 static inline bool materialHeadHaveTargetProcTex(__global const PlainMaterial* a_pMat, int a_texId)
 {
-  return (as_int(a_pMat->data[PROC_TEX1_F4_HEAD_OFFSET]) == a_texId || 
-          as_int(a_pMat->data[PROC_TEX2_F4_HEAD_OFFSET]) == a_texId ||
-          as_int(a_pMat->data[PROC_TEX3_F4_HEAD_OFFSET]) == a_texId ||
-          as_int(a_pMat->data[PROC_TEX4_F4_HEAD_OFFSET]) == a_texId ||
-          as_int(a_pMat->data[PROC_TEX5_F4_HEAD_OFFSET]) == a_texId);
+  return (as_int(a_pMat->data[PROC_TEX1_F4_HEAD_OFFSET+0]) == a_texId || 
+          as_int(a_pMat->data[PROC_TEX1_F4_HEAD_OFFSET+1]) == a_texId ||
+          as_int(a_pMat->data[PROC_TEX1_F4_HEAD_OFFSET+2]) == a_texId ||
+          as_int(a_pMat->data[PROC_TEX1_F4_HEAD_OFFSET+3]) == a_texId ||
+          as_int(a_pMat->data[PROC_TEX1_F4_HEAD_OFFSET+4]) == a_texId || 
+          as_int(a_pMat->data[PROC_TEX1_F4_HEAD_OFFSET+5]) == a_texId ||
+          as_int(a_pMat->data[PROC_TEX1_F4_HEAD_OFFSET+6]) == a_texId ||
+          as_int(a_pMat->data[PROC_TEX1_F4_HEAD_OFFSET+7]) == a_texId ||
+          as_int(a_pMat->data[PROC_TEX1_F4_HEAD_OFFSET+8]) == a_texId || 
+          as_int(a_pMat->data[PROC_TEX1_F4_HEAD_OFFSET+9]) == a_texId ||
+          as_int(a_pMat->data[PROC_TEX1_F4_HEAD_OFFSET+10]) == a_texId ||
+          as_int(a_pMat->data[PROC_TEX1_F4_HEAD_OFFSET+11]) == a_texId ||
+          as_int(a_pMat->data[PROC_TEX1_F4_HEAD_OFFSET+12]) == a_texId || 
+          as_int(a_pMat->data[PROC_TEX1_F4_HEAD_OFFSET+13]) == a_texId ||
+          as_int(a_pMat->data[PROC_TEX1_F4_HEAD_OFFSET+14]) == a_texId ||
+          as_int(a_pMat->data[PROC_TEX1_F4_HEAD_OFFSET+15]) == a_texId);
 }
 
 static inline bool MaterialHaveAtLeastOneProcTex(__global const PlainMaterial* a_pMat)
@@ -2747,7 +2900,24 @@ static inline int remapMaterialId(int a_mId, int a_instId,
 
 
 
+static inline ushort4 compressShadow(float3 shadow)
+{
+  ushort4 shadowCompressed;
 
+  shadowCompressed.x = (ushort)(65535.0f * shadow.x);
+  shadowCompressed.y = (ushort)(65535.0f * shadow.y);
+  shadowCompressed.z = (ushort)(65535.0f * shadow.z);
+  shadowCompressed.w = 0;
 
+  return shadowCompressed;
+}
+
+static inline float3 decompressShadow(ushort4 shadowCompressed)
+{
+  const float invNormCoeff = 1.0f / 65535.0f;
+  return invNormCoeff*make_float3((float)shadowCompressed.x, (float)shadowCompressed.y, (float)shadowCompressed.z);
+}
+
+#define SPLIT_DL_BY_GRAMMAR false
 
 #endif

@@ -320,9 +320,9 @@ float3 IntegratorShadowPTSSS::directLightSample(const SurfaceHit surfElem, const
 	{
 		__global const PlainLight* pLight = lightAt(m_pGlobals, lightOffset);
 
-    ShadowSample explicitSam;
-    LightSampleRev(pLight, rndFloat3(&gen), surfElem.pos, m_pGlobals, m_pdfStorage, m_texStorage,
-                   &explicitSam); 
+        ShadowSample explicitSam;
+        LightSampleRev(pLight, rndFloat3(&gen), surfElem.pos, m_pGlobals, m_pdfStorage, m_texStorage,
+                       &explicitSam); 
 
 		float3 shadowRayDir = normalize(explicitSam.pos - surfElem.pos); // explicitSam.direction;
 		float3 shadowRayPos = surfElem.pos + shadowRayDir*fmax(maxcomp(surfElem.pos), 1.0f)*GEPSILON;
@@ -365,9 +365,9 @@ float3 IntegratorShadowPTSSS::directLightSampleScatter(const SurfaceHit surfElem
 	{
 		__global const PlainLight* pLight = lightAt(m_pGlobals, lightOffset);
 
-    ShadowSample explicitSam;
-    LightSampleRev(pLight, rndFloat3(&gen), pos, m_pGlobals, m_pdfStorage, m_texStorage,
-                   &explicitSam);
+        ShadowSample explicitSam;
+        LightSampleRev(pLight, rndFloat3(&gen), pos, m_pGlobals, m_pdfStorage, m_texStorage,
+                       &explicitSam);
 
 		float3 shadowRayDir = normalize(explicitSam.pos - pos); // explicitSam.direction;
 		float3 shadowRayPos = pos; //+ shadowRayDir*fmax(maxcomp(pos), 1.0f)*GEPSILON;

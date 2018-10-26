@@ -9,9 +9,7 @@
 
 typedef struct RandomGenT
 {
-  uint2          state;
-  unsigned int   maxNumbers;
-  unsigned int   lazy; // or dummy to have uint4 generator data.
+  uint2 state;
 
 #ifdef RAND_MLT_CPU
   __global const float* rptr;
@@ -33,7 +31,6 @@ static inline RandomGen RandomGenInit(const int a_seed)
 
   gen.state.x  = (a_seed * (a_seed * a_seed * 15731 + 74323) + 871483);
   gen.state.y  = (a_seed * (a_seed * a_seed * 13734 + 37828) + 234234);
-  gen.lazy     = 0;
 
   for(int i=0;i<(a_seed%7);i++)
     NextState(&gen);
@@ -90,8 +87,6 @@ static inline float rndFloat1_Pseudo(RandomGen* gen)
 typedef struct RandomGenT
 {
   unsigned int x[5];
-  unsigned int maxNumbers;
-  unsigned int lazy; 
   unsigned int dummy;  // to have uint4 generator data.
 
 #ifdef RAND_MLT_CPU
@@ -182,12 +177,21 @@ static inline float4 rndFloat4_Pseudo(RandomGen* gen)
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-static inline float MutateKelemen(float valueX, __private RandomGen* pGen, const float p2)   // mutate in primary space
-{
-  const float2 rands = rndFloat2_Pseudo(pGen);
+/**
+\brief mutate random number in primary sample space -- interval [0,1]
+\param valueX    - input original value
+\param rands     - input pseudo random numbers
+\param p2        - parameter of step size. The greater parameter is, the smaller step we gain.                     Default = 64.0f;
+\param p1        - parameter of step size. The greater parameter is, the smaller step we gain. assert(p1 > p2) !!! Default = 1024.0f;
+\return mutated random float in range [0,1]
 
-  const float s1 = 1.0f / 1024.0f, s2 = 1.0f / p2;
-  const float dv = fmax(s2*( exp(-log(s2 / s1)*sqrt(rands.x)) - exp(-log(s2 / s1)) ), 0.0f);
+*/
+static inline float MutateKelemen(float valueX, float2 rands, float p2, float p1)   // mutate in primary space
+{
+  const float s1    = 1.0f / p1;
+  const float s2    = 1.0f / p2;
+  const float power = -log(s2 / s1);
+  const float dv    = fmax(s2*( exp(power*sqrt(rands.x)) - exp(power) ), 0.0f);
 
   if (rands.y < 0.5f)
   {
@@ -205,7 +209,7 @@ static inline float MutateKelemen(float valueX, __private RandomGen* pGen, const
   return valueX;
 }
 
-//#define MCMC_LAZY
+
 //#define COMPRESS_RAND
 
 #define MUTATE_LAZY_YES   1
@@ -232,28 +236,6 @@ static inline float rndQmcSobolN(unsigned int pos, int dim, __constant unsigned 
   return (float)(result + 1) * INT_SCALE;
 }
 
-/**
- * These defines are for the QMC remap table to support different mappings in run time.
- * for example you may decide to map (0,1) to screen (x,y) and (2,3) to DOF (x,y) or
- *             you may decide to map (0,1) to screen (x,y) and (2,3,4) to material sampling
- * if no mapping presents in the table (id == -1) then pseudo random should be used.
- *
- */
-#define QMC_VAR_SCR_X 0
-#define QMC_VAR_SCR_Y 1
-#define QMC_VAR_DOF_X 2
-#define QMC_VAR_DOF_Y 3
-#define QMC_VAR_SRC_A 4
-
-#define QMC_VAR_MAT_L 5
-#define QMC_VAR_MAT_0 6
-#define QMC_VAR_MAT_1 7
-
-#define QMC_VAR_LGT_N 8
-#define QMC_VAR_LGT_0 9
-#define QMC_VAR_LGT_1 10
-#define QMC_VAR_LGT_2 11
-
 
 
 /**
@@ -277,43 +259,8 @@ static inline float rndQmcTab(__private RandomGen* pGen, __global const int* a_t
     return rndQmcSobolN(pos, dim, c_Table);
 }
 
-/**
- * Note that unlike QMC, MMLT don't use remap table.
- * These offsets are direct offsets in the ramdom vector table (in floats) 
- *
- */
 
-#define MMLT_HEAD_TOTAL_SIZE 12  //
-
-// [0-3] :  LENS;  4 in total
-//
-#define MMLT_DIM_SCR_X 0 
-#define MMLT_DIM_SCR_Y 1 
-#define MMLT_DIM_DOF_X 2 
-#define MMLT_DIM_DOF_Y 3 
-
-// [4-10]:  LIGHT; 7 in total
-//
-#define MMLT_DIM_LGT_X 4     
-#define MMLT_DIM_LGT_Y 5    
-#define MMLT_DIM_LGT_Z 6    
-#define MMLT_DIM_LGT_W 7    
-  
-#define MMLT_DIM_LGT_X1 8  
-#define MMLT_DIM_LGT_Y1 9 
-#define MMLT_DIM_LGT_N 10 
-
-// [11] :  SPLIT; 
-//
-#define MMLT_DIM_SPLIT 11
-
-#define MMLT_FLOATS_PER_MLAYER 6
-#define MMLT_FLOATS_PER_SAMPLE 3
-#define MMLT_FLOATS_PER_BOUNCE (MMLT_FLOATS_PER_SAMPLE + MMLT_FLOATS_PER_MLAYER)
-
-static inline int rndMatOffsetMMLT (const int a_bounceId) { return a_bounceId*MMLT_FLOATS_PER_BOUNCE; }                          // relative offset, dont add MMLT_HEAD_TOTAL_SIZE!
-static inline int rndMatLOffsetMMLT(const int a_bounceId) { return a_bounceId*MMLT_FLOATS_PER_BOUNCE + MMLT_FLOATS_PER_SAMPLE; } // relative offset, dont add MMLT_HEAD_TOTAL_SIZE!
-
+static inline int rndMatOffsetMMLT(const int a_bounceId) { return a_bounceId*MMLT_FLOATS_PER_BOUNCE; }                          // relative offset, dont add MMLT_HEAD_TOTAL_SIZE!
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -324,18 +271,18 @@ typedef struct float6GroupT
 } float6_gr;
 
 
-#define MANTISSA23 8388607.0f // 16777215.0f; actually you can use only 23 bit because sign is not used, randoms from [0..1] are always positive ... 
-#define MANTISSA23_INV (1.0f / MANTISSA23)
+#define MANTISSA24 16777215.0f // 16777215.0f 
+#define MANTISSA24_INV (1.0f / MANTISSA24)
 
 #define MANTISSA16 65535.0f
 #define MANTISSA16_INV (1.0f/65535.0f)
 
 static inline uint4 packBounceGroup(float6_gr data)
 {
-  const unsigned int ix0 = (unsigned int)(MANTISSA23*data.group24.x);
-  const unsigned int ix1 = (unsigned int)(MANTISSA23*data.group24.y);
-  const unsigned int ix2 = (unsigned int)(MANTISSA23*data.group24.z);
-  const unsigned int ix3 = (unsigned int)(MANTISSA23*data.group24.w);
+  const unsigned int ix0 = (unsigned int)(MANTISSA24*data.group24.x);
+  const unsigned int ix1 = (unsigned int)(MANTISSA24*data.group24.y);
+  const unsigned int ix2 = (unsigned int)(MANTISSA24*data.group24.z);
+  const unsigned int ix3 = (unsigned int)(MANTISSA24*data.group24.w);
   const unsigned int iy0 = (unsigned int)(MANTISSA16*data.group16.x);
   const unsigned int iy1 = (unsigned int)(MANTISSA16*data.group16.y);
 
@@ -359,12 +306,40 @@ static inline float6_gr unpackBounceGroup(uint4 data)
   const unsigned int x3i = ((data.z & 0xFF000000) >> 8) | (data.w & 0x0000FFFF);
 
   float6_gr res;
-  res.group24.x = (float)(x0i)*MANTISSA23_INV;
-  res.group24.y = (float)(x1i)*MANTISSA23_INV;
-  res.group24.z = (float)(x2i)*MANTISSA23_INV;
-  res.group24.w = (float)(x3i)*MANTISSA23_INV;
+  res.group24.x = (float)(x0i)*MANTISSA24_INV;
+  res.group24.y = (float)(x1i)*MANTISSA24_INV;
+  res.group24.z = (float)(x2i)*MANTISSA24_INV;
+  res.group24.w = (float)(x3i)*MANTISSA24_INV;
   res.group16.x = (float)(y0i)*MANTISSA16_INV;
   res.group16.y = (float)(y1i)*MANTISSA16_INV;
+  return res;
+}
+
+static inline uint2 packBounceGroup2(float4 data)
+{
+  const unsigned int iy0 = (unsigned int)(MANTISSA16*data.x);
+  const unsigned int iy1 = (unsigned int)(MANTISSA16*data.y);
+  const unsigned int iy2 = (unsigned int)(MANTISSA16*data.z);
+  const unsigned int iy3 = (unsigned int)(MANTISSA16*data.w);
+
+  uint2 res;
+  res.x = iy0 | (iy1 << 16);
+  res.y = iy2 | (iy3 << 16);
+  return res;
+}
+
+static inline float4 unpackBounceGroup2(uint2 data)
+{
+  const unsigned int y0i = (data.x & 0x0000FFFF);
+  const unsigned int y1i = (data.x & 0xFFFF0000) >> 16;
+  const unsigned int y2i = (data.y & 0x0000FFFF);
+  const unsigned int y3i = (data.y & 0xFFFF0000) >> 16;
+
+  float4 res;
+  res.x = (float)(y0i)*MANTISSA16_INV;
+  res.y = (float)(y1i)*MANTISSA16_INV;
+  res.z = (float)(y2i)*MANTISSA16_INV;
+  res.w = (float)(y3i)*MANTISSA16_INV;
   return res;
 }
 
@@ -397,20 +372,12 @@ static inline float4 rndLensOld(__global const float* rptr)
 static inline float4 rndLens(RandomGen* gen, __global const float* rptr, const float2 screenScale,
                              __global const int* a_tab, const unsigned int a_qmcPos, __constant unsigned int* a_qmcTable)
 {
-  if (rptr != 0 && (gen->lazy != MUTATE_LAZY_LARGE))
+  if (rptr != 0)
   {
     float x = rptr[MMLT_DIM_SCR_X];
     float y = rptr[MMLT_DIM_SCR_Y];
     float z = rptr[MMLT_DIM_DOF_X];
     float w = rptr[MMLT_DIM_DOF_Y];
-
-    if (gen->lazy == MUTATE_LAZY_YES)
-    {
-      x = MutateKelemen(x, gen, MUTATE_COEFF_SCREEN*screenScale.x);
-      y = MutateKelemen(y, gen, MUTATE_COEFF_SCREEN*screenScale.y);
-      z = MutateKelemen(z, gen, MUTATE_COEFF_BSDF);
-      w = MutateKelemen(w, gen, MUTATE_COEFF_BSDF);
-    }
 
     return make_float4(x, y, z, w);
   }
@@ -467,19 +434,11 @@ static inline float4 rndLight(RandomGen* gen, const int bounceId,
 static inline float3 rndMat(RandomGen* gen, __global const float* rptr, const int bounceId,
                             __global const int* a_tab, const unsigned int qmcPos, __constant unsigned int* a_qmcTable)
 {
-  if (rptr != 0 && (gen->lazy != MUTATE_LAZY_LARGE))
+  if (rptr != 0)
   {
     float x = rptr[0];
     float y = rptr[1];
     float z = rptr[2];
-
-    if (gen->lazy == MUTATE_LAZY_YES)
-    {
-      x = MutateKelemen(x, gen, MUTATE_COEFF_BSDF);
-      y = MutateKelemen(y, gen, MUTATE_COEFF_BSDF);
-      z = MutateKelemen(z, gen, MUTATE_COEFF_BSDF);
-    }
-
     return make_float3(x, y, z);
   }
   else if(bounceId == 0 && a_tab != 0 && a_qmcTable != 0)
@@ -510,7 +469,7 @@ static inline float3 rndMat(RandomGen* gen, __global const float* rptr, const in
 static inline float rndMatLayer(RandomGen* gen, __global const float* rptr, const int bounceId, const int layerId,
                                 __global const int* a_tab, const unsigned int a_qmcPos, __constant unsigned int* a_qmcTable)
 {
-  if (rptr != 0 && (gen->lazy != MUTATE_LAZY_LARGE))                   // MCMC way; #NOTE: Lazy mutations is not needed due to small step
+  if (rptr != 0)                                                       // MCMC way; #NOTE: Lazy mutations is not needed due to small step
     return rptr[layerId];                                              // must never change material layer, no mutations is allowed!
   else if(bounceId == 0 && a_tab != 0 && a_qmcTable != 0)              // QMC way;
     return rndQmcTab(gen, a_tab, a_qmcPos, QMC_VAR_MAT_L, a_qmcTable);
@@ -518,21 +477,50 @@ static inline float rndMatLayer(RandomGen* gen, __global const float* rptr, cons
     return rndFloat1_Pseudo(gen);                                      
 }
 
-///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-
-
-static inline unsigned int mapRndFloatToUInt(float a_val, unsigned int a, unsigned int b)
+static inline void RndMatAll(RandomGen* gen, __global const float* rptr, const int bounceId,
+                             __global const int* a_tab, const unsigned int a_qmcPos, __constant unsigned int* a_qmcTable, 
+                             __private float a_rands[MMLT_FLOATS_PER_BOUNCE])
 {
-  const float fa = (float)a;
-  const float fb = (float)b;
+
+  const float3 directionRands = rndMat(gen, rptr, bounceId,  a_tab, a_qmcPos, a_qmcTable);
+  
+  a_rands[0] = directionRands.x;
+  a_rands[1] = directionRands.y;
+  a_rands[2] = directionRands.z;
+
+  __global const float* rptrLayer = (rptr == 0) ? 0 : rptr + MMLT_FLOATS_PER_SAMPLE;
+
+  #pragma unroll MMLT_FLOATS_PER_MLAYER
+  for(int layerId=0;layerId<MMLT_FLOATS_PER_MLAYER;layerId++)
+    a_rands[MMLT_FLOATS_PER_SAMPLE + layerId] = rndMatLayer(gen, rptrLayer, bounceId, layerId, a_tab, a_qmcPos, a_qmcTable);
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+/**
+\brief map float random to int, including boundaries.
+\param a_val - in random float in range [0,1].
+\param a     - in min value
+\param b     - in max value
+
+\return integer random in ragne [a,b]
+
+for example mapRndFloatToInt(r,3,5) will give these numbers: (3,4,5)
+for example mapRndFloatToInt(r,1,6) will give these numbers: (1,2,3,4,5,6)
+
+*/
+static inline int mapRndFloatToInt(float a_val, int a, int b)
+{
+  const float fa = (float)(a+0);
+  const float fb = (float)(b+1);
   const float fR = fa + a_val * (fb - fa);
 
-  const unsigned int res = (unsigned int)(fR);
+  const int res =  (int)(fR);
 
-  if (res > b - 1)
-    return b - 1;
+  if (res > b)
+    return b;
   else
     return res;
 }
@@ -547,7 +535,7 @@ typedef struct LightGroup2T
 static inline void RndLightMMLT(RandomGen* gen, __global const float* rptr,
                                 __private LightGroup2* pOut)
 {
-  if (rptr != 0 && gen->lazy != MUTATE_LAZY_LARGE)
+  if (rptr != 0)
   {
     float x  = rptr[MMLT_DIM_LGT_X]; //#TODO: opt read as 2xfloat4
     float y  = rptr[MMLT_DIM_LGT_Y];
@@ -557,17 +545,6 @@ static inline void RndLightMMLT(RandomGen* gen, __global const float* rptr,
     float x1 = rptr[MMLT_DIM_LGT_X1];
     float y1 = rptr[MMLT_DIM_LGT_Y1];
     float n  = rptr[MMLT_DIM_LGT_N];
-     
-    if (gen->lazy == MUTATE_LAZY_YES)
-    {
-      x  = MutateKelemen(x,  gen, MUTATE_COEFF_BSDF);
-      y  = MutateKelemen(y,  gen, MUTATE_COEFF_BSDF);
-      z  = MutateKelemen(z,  gen, MUTATE_COEFF_BSDF);
-      w  = MutateKelemen(w,  gen, MUTATE_COEFF_BSDF); 
-      x1 = MutateKelemen(x1, gen, MUTATE_COEFF_BSDF);
-      y1 = MutateKelemen(y1, gen, MUTATE_COEFF_BSDF);
-      //n = n, n1=n1; // don't mutate light numbers
-    }
 
     pOut->group1 = make_float4(x, y, z, w);
     pOut->group2 = make_float3(x1, y1, n);
@@ -582,16 +559,14 @@ static inline void RndLightMMLT(RandomGen* gen, __global const float* rptr,
 static inline int rndSplitMMLT(RandomGen* gen, __global const float* rptr, const int d)
 {
   float x;
-  if (rptr != 0 && gen->lazy != MUTATE_LAZY_LARGE)
+  if (rptr != 0)
   {
     x = rptr[MMLT_DIM_SPLIT];
-    if (gen->lazy == MUTATE_LAZY_YES)
-      x = MutateKelemen(x, gen, MUTATE_COEFF_BSDF);
   }
   else
     x = rndFloat1_Pseudo(gen);
 
-  return mapRndFloatToUInt(x, 0, d+1);
+  return mapRndFloatToInt(x, 0, d);
 }
 
 
@@ -673,6 +648,7 @@ static inline int camOffsetInRandArrayMMLT(int s)
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+enum MUTATION_TYPE { MUTATE_LIGHT = 1, MUTATE_CAMERA = 2 };
 
 #endif
 

@@ -154,11 +154,6 @@ void IntegratorLT::ConnectEye(SurfaceHit a_hit, float3 ray_dir, float3 a_accColo
       const int x = int(posScreenSpace.x + 0.5f);
       const int y = int(posScreenSpace.y + 0.5f);
 
-      if (x == 431 && y == 424)
-      {
-        int a = 2;
-      }
-
       if(x >=0 && x <= m_width-1 && y >=0 && y <= m_height-1)
       { 
         const int offset = y*m_width + x;

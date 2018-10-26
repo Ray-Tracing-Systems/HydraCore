@@ -41,6 +41,9 @@ struct CLProgram
   CLProgram(cl_device_id a_devId, cl_context a_ctx, const std::string cs_path, const std::string options, 
             const std::string includeFolderPath = "", const std::string encryptedBufferPath = "", const std::string binPath = "", bool a_saveLog = false);
 
+  CLProgram(cl_device_id a_devId, cl_context a_ctx, 
+            const std::string& computeSource, const std::string options, const std::string includeFolderPath, void* unusedPtr); // load from source
+
   CLProgram(const CLProgram& a_prog);
 
   virtual ~CLProgram();

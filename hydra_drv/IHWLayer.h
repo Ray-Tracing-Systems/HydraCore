@@ -28,13 +28,8 @@ struct AllRenderVarialbes
     memset(m_varsF, 0, sizeof(int)*GMAXVARS);
     m_flags = 0;
 
-    m_varsF[HRT_ABLOW_SCALE_X] = 1.0f;
-    m_varsF[HRT_ABLOW_SCALE_Y] = 1.0f;
-
-    m_varsF[HRT_MLT_PLARGE]        = 0.05f;
-    m_varsI[HRT_MLT_MAX_NUMBERS]   = 128;
-    m_varsI[HRT_MLT_ITERS_MULT]    = 2;
-    m_varsI[HRT_MLT_BURN_ITERS]    = 128;
+    m_varsF[HRT_ABLOW_SCALE_X]     = 1.0f;
+    m_varsF[HRT_ABLOW_SCALE_Y]     = 1.0f;
     m_varsI[HRT_SHADOW_MATTE_BACK] = INVALID_TEXTURE;
   }
 
@@ -188,12 +183,8 @@ public:
   // color accumulators, MLT
   //             
   virtual bool   MLT_IsAllocated() const { return true; }
-  virtual size_t MLT_Alloc(int a_maxBounce) { return 0; }
+  virtual size_t MLT_Alloc(int a_width, int a_height, int a_maxBounce) { return 0; }
   virtual void   MLT_Free() {}
-
-  virtual void   MLT_Init(int a_seed)  { }
-  virtual float4 MLT_Burn(int a_iters) { return float4(1, 1, 1, 1); }
-  virtual void   MLT_DoPass() {}
 
   virtual void   SetProgressBarCallback(RTE_PROGRESSBAR_CALLBACK a_pFunc) { m_progressBar = a_pFunc; }
 
@@ -207,7 +198,7 @@ public:
 
   virtual EngineGlobals* GetEngineGlobals(); //#NOTE: this function used for debug needs only!!!
 
-  virtual void RecompileProcTexShaders(const char* a_shaderPath) {}
+  virtual void RecompileProcTexShaders(const std::string& a_shaderPath) {}
 
   virtual float GetSPP       () const { return 0.0f;}
   virtual float GetSPPDone   () const { return GetSPP(); }
@@ -333,5 +324,11 @@ enum {GPU_RT_MEMORY_FULL_SIZE_MODE     = 2,
       GPU_MLT_ENABLED_AT_START         = 2048,
       GPU_RT_DO_NOT_PRINT_PASS_NUMBER  = 4096,
       GPU_RT_ALLOC_INTERNAL_IMAGEB     = 8192,
-      GPU_RT_CPU_FRAMEBUFFER           = 16384,
+      GPU_RT_CPU_FRAMEBUFFER           = 32768,
+      GPU_MMLT_THREADS_262K            = 65536,
+      GPU_MMLT_THREADS_131K            = 65536*2,
+      GPU_MMLT_THREADS_65K             = 65536*4,
+      GPU_MMLT_THREADS_16K             = 65536*8,
       };
+
+#define RECOMPILE_PROCTEX_FROM_STRING 

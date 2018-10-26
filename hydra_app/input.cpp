@@ -2,18 +2,25 @@
 #include <time.h>
 #include <iostream>
 
+extern bool g_hydraApiDisableSceneLoadInfo;
+
 //
 
 Input::Input()
 {
+  g_hydraApiDisableSceneLoadInfo = true;
+  
   //noWindow      = false;         ///< run 'console_main', else run 'window_main'
   inLibraryPath = "tests/test_42"; ///< cornell box with teapot
-  //inLibraryPath = "tests/test_01"; ///< cornell box with sphere
-  //inLibraryPath = "tests/test_223_small"; ///< cornell box with mirror glossy back wall
-  
-  //inLibraryPath = "/home/frol/PROG/HydraAPI/main/tests/test_90";
-  //inLibraryPath = "/home/frol/PROG/HydraAPI/main/tests_f/test_127";
-  //inLibraryPath = "/home/frol/yandexdisk/Hydra/scenelib";
+  //inLibraryPath = "tests/test_223_small"; ///< cornell box with sphere
+  //inLibraryPath = "/media/frol/886234F06234E49A/scenes/benchmark4"; ///< cornell box with mirror glossy back wall
+  //inLibraryPath = "/media/frol/886234F06234E49A/scenes/phong_test/torspar1";
+  //inLibraryPath = "/media/frol/886234F06234E49A/scenes/cornell_water";
+
+  //inLibraryPath = "/home/frol/PROG/HydraAPI/main/tests/test_76";
+  //inLibraryPath = "/home/frol/temp/hydra_debug_scene";
+  //inLibraryPath = "/home/frol/PROG/HydraAPI/main/tests_f/test_170"; 
+  //inLibraryPath = "/home/frol/yandexdisk/Hydra/scenelib"; 
   
   //inLibraryPath = "D:/[archive]/2017/HydraAPP/hydra_app/tests/hydra_benchmark_07";
   //inLibraryPath = "D:/[archive]/2017/HydraOldRepo/HydraAPP/hydra_app/tests/hydra_benchmark_07";
@@ -21,14 +28,14 @@ Input::Input()
   //inLibraryPath = "C:/[Hydra]/pluginFiles/scenelib";
   //inLibraryPath = "D:/temp/scenelib/"; 
 
-  inDevelopment = false;  ///< recompile shaders each time; note that nvidia have their own shader cache!
+  inDevelopment = false; ///< recompile shaders each time; note that nvidia have their own shader cache!
   inDeviceId    = 0;     ///< opencl device id
   cpuFB         = false; ///< store frame buffer on CPU. Automaticly enabled if
   enableMLT     = false; ///< if use MMLT, you MUST enable it early, when render process just started (here or via command line).
   boxMode       = false; ///< special 'in the box' mode when render don't react to any commands
   
   winWidth      = 1024;  ///<
-  winHeight     = 1024;  ///< 
+  winHeight     = 1024;  ///<
 
   enableOpenGL1 = false; ///< if you want to draw scene for some debug needs with OpenGL1.
   exitStatus    = false;
@@ -50,6 +57,7 @@ Input::Input()
   productionPTMode       = false;
 
   maxSamplesContrib      = 1000000;
+  mmltThreads            = (1024 * 1024) / 2;
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -175,6 +183,7 @@ void Input::ParseCommandLineParams(const std::unordered_map<std::string, std::st
   
   ReadIntCmd(a_params,    "-maxsamples",       &maxSamples);
   ReadIntCmd(a_params,    "-contribsamples",   &maxSamplesContrib);
+  ReadIntCmd(a_params,    "-mmltthreads",      &mmltThreads);
   
   ReadStringCmd(a_params, "-inputlib",    &inLibraryPath);
   ReadStringCmd(a_params, "-statefile",   &inTargetState);

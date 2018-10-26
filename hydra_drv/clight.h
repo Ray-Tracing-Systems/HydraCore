@@ -82,6 +82,13 @@ static inline __global const float* lightIESPdfTable(__global const PlainLight* 
   return pTexHeader + 4;
 }
 
+static inline float lightShadowRayMaxDistScale(__global const PlainLight* pLight)
+{
+  float lightShadowDistScale = (as_int(pLight->data[PLIGHT_TYPE]) == PLAIN_LIGHT_TYPE_SKY_DOME) ? 2.0f : 0.995f;
+  if (as_int(pLight->data[PLIGHT_FLAGS]) & AREA_LIGHT_SKY_PORTAL)
+    lightShadowDistScale = 1.1f;
+  return lightShadowDistScale;
+}
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -1620,11 +1627,6 @@ static inline float lightEvalPDF(__global const PlainLight* pLight, float3 illum
 
 }
 
-static inline bool mltStrageCondition(const int flags, const int a_gflags, const MisData misPrev)
-{
-  return false;
-}
-
 
 static inline int hitDirectLight(const float3 ray_dir, __global const EngineGlobals* a_globals)
 {
@@ -1651,8 +1653,8 @@ static inline int hitDirectLight(const float3 ray_dir, __global const EngineGlob
 
 
 
-static inline float3 lightGetIntensity(__global const PlainLight* pLight, float3 ray_pos, float3 a_rayDir, float3 hitNorm, float2 a_texCoord, unsigned int flags, const MisData misPrev,
-                                       __global const EngineGlobals* a_globals, texture2d_t a_tex, __global const float4* a_storagePdf) // float3 rayDir
+static inline float3 lightGetIntensity(__global const PlainLight* pLight, float3 ray_pos, float3 a_rayDir, float3 hitNorm, float2 a_texCoord, 
+                                       const unsigned int flags, const bool a_wasSpecular, __global const EngineGlobals* a_globals, texture2d_t a_tex, __global const float4* a_storagePdf) // float3 rayDir
 {
   const bool eyeRay   = (unpackBounceNumDiff(flags) == 0);
   const int lightType = as_int(pLight->data[PLIGHT_TYPE]);
@@ -1662,9 +1664,8 @@ static inline float3 lightGetIntensity(__global const PlainLight* pLight, float3
 
   if ((as_int(pLight->data[PLIGHT_FLAGS]) & AREA_LIGHT_SKY_PORTAL) && unpackBounceNumDiff(flags) > 0)
   {
-    const int hitId                 = hitDirectLight(a_rayDir, a_globals);
-    const bool makeZeroBecauseOfMLT = mltStrageCondition(flags, a_globals->g_flags, misPrev);
-
+    const int hitId = hitDirectLight(a_rayDir, a_globals);
+    
     if (hitId >= 0) // hit any sun light
     {
       __global const PlainLight* pLight = a_globals->suns + hitId;
@@ -1672,12 +1673,12 @@ static inline float3 lightGetIntensity(__global const PlainLight* pLight, float3
 
       const float pdfW = directLightEvalPDF(pLight, a_rayDir);
 
-      ///////////////////////////////////////////////////////////////////////////////////////////////////////////
-      if (makeZeroBecauseOfMLT || (unpackBounceNum(flags) > 0 && !(a_globals->g_flags & HRT_STUPID_PT_MODE) && (misPrev.isSpecular == 0))) 
+      ///////////////////////////////////////////////////////////////////////////////////////////////////////////  SHIT!!!!!!!!!!!!!!!!!!!!!!!
+      if ((unpackBounceNum(flags) > 0 && !(a_globals->g_flags & HRT_STUPID_PT_MODE) && !a_wasSpecular)) 
         lightColor = make_float3(0, 0, 0);
-      else if (((misPrev.isSpecular == 1) && (a_globals->g_flags & HRT_ENABLE_PT_CAUSTICS)) || (a_globals->g_flags & HRT_STUPID_PT_MODE))
+      else if ((a_wasSpecular && (a_globals->g_flags & HRT_ENABLE_PT_CAUSTICS)) || (a_globals->g_flags & HRT_STUPID_PT_MODE))
         lightColor *= (1.0f / pdfW);
-      ///////////////////////////////////////////////////////////////////////////////////////////////////////////
+      ///////////////////////////////////////////////////////////////////////////////////////////////////////////  SHIT!!!!!!!!!!!!!!!!!!!!!!!
 
       return lightColor;
     }
@@ -1731,10 +1732,15 @@ static inline float lightPredictVisibility(__global const PlainLight* pLight, fl
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 static inline __global const PlainLight* lightAt(__global const EngineGlobals* a_pGlobals, int lightId)
-{
-  __global const int* pBegin  = (__global const int*)a_pGlobals;
-  __global const int* pTarget = pBegin + a_pGlobals->lightsOffset;
-  return (((__global const PlainLight*)pTarget) + lightId);
+{ 
+  if(lightId < 0)
+    return 0;
+  else
+  {
+    __global const int* pBegin  = (__global const int*)a_pGlobals;
+    __global const int* pTarget = pBegin + a_pGlobals->lightsOffset;
+    return (((__global const PlainLight*)pTarget) + lightId);
+  }
 }
 
 static inline unsigned int rndIntFromFloatLocal(float r, unsigned int a, unsigned int b)

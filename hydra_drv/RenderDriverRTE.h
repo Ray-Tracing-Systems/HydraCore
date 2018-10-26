@@ -243,8 +243,14 @@ protected:
   bool m_needToFreeCPUMem;
 
   std::ifstream m_inProcTexFile;
-  std::ofstream m_outProcTexFile;
   std::string   m_outProcTexFileName;
+
+#ifdef RECOMPILE_PROCTEX_FROM_STRING
+  std::stringstream m_outProcTexFile;
+#else
+  std::ofstream m_outProcTexFile;
+#endif
+
   bool m_texShadersWasRecompiled;
   /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 

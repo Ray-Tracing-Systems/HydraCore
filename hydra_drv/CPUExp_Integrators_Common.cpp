@@ -514,40 +514,16 @@ const PlainLight* IntegratorCommon::getLightFromInstId(const int a_instId)
 
 float3 IntegratorCommon::emissionEval(const float3 ray_pos, const float3 ray_dir, const SurfaceHit& surfElem, uint flags, const MisData misPrev, const int a_instId)
 {
+  const int lightOffset             = m_geom.instLightInstId[a_instId];
   const PlainMaterial* pHitMaterial = materialAt(m_pGlobals, m_matStorage, surfElem.matId);
+  __global const PlainLight* pLight = lightAt(m_pGlobals, lightOffset);
 
-  float3 normal;
-  if (surfElem.hfi)
-    normal = (-1.0f)*surfElem.normal;
-  else
-    normal = surfElem.normal;
+  ProcTextureList ptl;
+  InitProcTextureList(&ptl);
 
-  if (dot(ray_dir, normal) < 0.0f)
-  {
-    ProcTextureList ptl;
-    InitProcTextureList(&ptl);
-
-    float3 outPathColor = materialEvalEmission(pHitMaterial, ray_dir, normal, surfElem.texCoord, m_pGlobals, m_texStorage, m_texStorage, &ptl); // a_shadingTexture, a_shadingTextureHDR
-   
-		if ((materialGetFlags(pHitMaterial) & PLAIN_MATERIAL_FORBID_EMISSIVE_GI) && unpackBounceNumDiff(flags) > 0)
-			outPathColor = float3(0, 0, 0);
-
-    if (m_pGlobals->lightsNum > 0)
-    {
-      const int lightOffset = m_geom.instLightInstId[a_instId];
-      if (lightOffset >= 0)
-      {
-        __global const PlainLight* pLight = lightAt(m_pGlobals, lightOffset);
-        outPathColor = lightGetIntensity(pLight, ray_pos, ray_dir, normal, surfElem.texCoord, flags, misPrev, m_pGlobals, m_texStorage, m_pdfStorage); // a_shadingTexture, a_shadingTextureHDR
-      }
-    }
-
-    return outPathColor;
-  }
-  else
-    return float3(0, 0, 0);
+  return ::emissionEval(ray_pos, ray_dir, &surfElem, flags, (misPrev.isSpecular == 1), 
+                        pLight, pHitMaterial, m_texStorage, m_pdfStorage, m_pGlobals, &ptl);
 }
-
 
 
 RandomGen& IntegratorCommon::randomGen()
@@ -560,69 +536,26 @@ std::tuple<MatSample, int, float3> IntegratorCommon::sampleAndEvalBxDF(float3 ra
   const PlainMaterial* pHitMaterial = materialAt(m_pGlobals, m_matStorage, surfElem.matId);
   auto& gen = randomGen();
 
-  int matOffset = materialOffset(m_pGlobals, surfElem.matId);
   const int rayBounceNum   = unpackBounceNum(flags);
   const uint otherRayFlags = unpackRayFlags(flags);
    
   const bool canSampleReflOnly    = (materialGetFlags(pHitMaterial) & PLAIN_MATERIAL_CAN_SAMPLE_REFL_ONLY) != 0;
   const bool sampleReflectionOnly = ((otherRayFlags & RAY_GRAMMAR_DIRECT_LIGHT) != 0) && canSampleReflOnly; 
-
-  auto ptlCopy = m_ptlDummy;
-  GetProcTexturesIdListFromMaterialHead(pHitMaterial, &ptlCopy);
   
+  const float* matRandsArray      = (gen.rptr == 0) ? 0 : gen.rptr + rndMatOffsetMMLT(rayBounceNum);
   const unsigned int* qmcTablePtr = GetQMCTableIfEnabled();
-  
-  const float* matLayerRandsArray = (gen.rptr == 0) ? 0 : gen.rptr + rndMatLOffsetMMLT(rayBounceNum);
 
-  BRDFSelector mixSelector = materialRandomWalkBRDF(pHitMaterial, &gen, matLayerRandsArray, 
-                                                    ray_dir, surfElem.normal, surfElem.texCoord, 
-                                                    m_pGlobals, m_texStorage, &ptlCopy,
-                                                    rayBounceNum, sampleReflectionOnly,
-                                                    PerThread().qmcPos, qmcTablePtr); //
+  float allRands[MMLT_FLOATS_PER_BOUNCE];
+  RndMatAll(&gen, matRandsArray, rayBounceNum, 
+            m_pGlobals->rmQMC, PerThread().qmcPos, qmcTablePtr,
+            allRands);
 
-  /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////// --- >
+  MatSample brdfSample; int matOffset;
+  MaterialSampleAndEvalBxDF(pHitMaterial, allRands, &surfElem, ray_dir, shadow, flags,
+                            m_pGlobals, m_texStorage, m_texStorageAux, &m_ptlDummy, 
+                            &brdfSample, &matOffset);
 
-  if ((m_pGlobals->varsI[HRT_RENDER_LAYER] == LAYER_INCOMING_RADIANCE || m_pGlobals->varsI[HRT_RENDER_LAYER] == LAYER_INCOMING_PRIMARY) && (m_pGlobals->varsI[HRT_RENDER_LAYER_DEPTH] == rayBounceNum)) // piss execution way (render incoming radiance)
-  {
-    matOffset     = m_pGlobals->varsI[HRT_WHITE_DIFFUSE_OFFSET];
-    pHitMaterial  = materialAtOffset(m_matStorage, m_pGlobals->varsI[HRT_WHITE_DIFFUSE_OFFSET]);
-    mixSelector.w = 1.0f;
-  }
-  else // normal execution way
-  {
-		// this is needed component for mis further (misNext.prevMaterialOffset = matOffset;)
-		//
-    matOffset    = matOffset    + mixSelector.localOffs*(sizeof(PlainMaterial) / sizeof(float4));   
-    pHitMaterial = pHitMaterial + mixSelector.localOffs;
-  }
-
-  // const bool hitFromBack        = (unpackRayFlags(flags) & RAY_HIT_SURFACE_FROM_OTHER_SIDE) != 0;
-  // const bool hitGlassFromInside = (materialGetType(pHitMaterial) == PLAIN_MAT_CLASS_GLASS) && hitFromBack;
-
-  ShadeContext sc;
-
-  sc.wp  = surfElem.pos;
-  sc.l   = ray_dir; 
-  sc.v   = ray_dir;
-  sc.n   = surfElem.normal;
-  sc.fn  = surfElem.flatNormal;
-  sc.tg  = surfElem.tangent;
-  sc.bn  = surfElem.biTangent;
-  sc.tc  = surfElem.texCoord;
-  sc.hfi = surfElem.hfi;
-  
-  const float* matRandsArray = (gen.rptr == 0) ? 0 : gen.rptr + rndMatOffsetMMLT(rayBounceNum);
-
-  const float3 rands = rndMat(&gen, matRandsArray, rayBounceNum, 
-                              m_pGlobals->rmQMC, PerThread().qmcPos, qmcTablePtr);
-  
-  MatSample brdfSample;
-  MaterialLeafSampleAndEvalBRDF(pHitMaterial, rands, &sc, shadow, m_pGlobals, m_texStorage, m_texStorageAux, &ptlCopy,
-                                &brdfSample);
-
-  brdfSample.pdf *= fmax(mixSelector.w, 0.025f);
-
-  return std::make_tuple(brdfSample, matOffset, make_float3(1,1,1));
+  return std::make_tuple(brdfSample, matOffset, make_float3(1,1,1)); // #TODO: remove third parameter from tuple
 }
 
 

@@ -185,11 +185,16 @@ bool RenderDriverRTE::UpdateSettings(pugi::xml_node a_settingsNode)
   //
   auto vars = m_pHWLayer->GetAllFlagsAndVars();
 
-  vars.m_flags |= (HRT_DIFFUSE_REFLECTION | HRT_USE_MIS | HRT_COMPUTE_SHADOWS);
+  vars.m_flags |= (HRT_USE_MIS | HRT_COMPUTE_SHADOWS);
 
   if ((m_initFlags & GPU_ALLOC_FOR_COMPACT_MLT) || (m_initFlags & GPU_MLT_ENABLED_AT_START))
   {
     vars.m_flags |= HRT_ENABLE_MMLT;
+    m_useMMLT = true;
+  }
+  else if(std::wstring(a_settingsNode.child(L"method_secondary").text().as_string()) == L"mmlt" || 
+          std::wstring(a_settingsNode.child(L"method_secondary").text().as_string()) == L"mlt")
+  {
     m_useMMLT = true;
   }
   else
@@ -232,9 +237,21 @@ bool RenderDriverRTE::UpdateSettings(pugi::xml_node a_settingsNode)
   vars.m_varsF[HRT_PATH_TRACE_ERROR] = 0.025f;
   vars.m_varsF[HRT_TRACE_PROCEEDINGS_TRESHOLD] = 1e-8f;
 
-  vars.m_varsF[HRT_MLT_PLARGE]        = 0.25f;
-  vars.m_varsI[HRT_MLT_BURN_ITERS]    = 128;
-  vars.m_varsI[HRT_MMLT_FIRST_BOUNCE] = 3;      // 2,3 or >3; if >3 separate by specular bounce.
+  if(a_settingsNode.child(L"mmlt_burn_iters") != nullptr)
+    vars.m_varsI[HRT_MMLT_BURN_ITERS] = a_settingsNode.child(L"mmlt_burn_iters").text().as_int();
+  else
+    vars.m_varsI[HRT_MMLT_BURN_ITERS] = 1024;
+
+  if(a_settingsNode.child(L"mmlt_sds_fixed_prob") != nullptr)
+    vars.m_varsF[HRT_MMLT_IMPLICIT_FIXED_PROB] = clamp(a_settingsNode.child(L"mmlt_sds_fixed_prob").text().as_float(), 0.0f, 0.95f);
+  else
+    vars.m_varsF[HRT_MMLT_IMPLICIT_FIXED_PROB] = 0.0f;
+
+  vars.m_varsF[HRT_MMLT_STEP_SIZE_POWER] = 1024.0f; // (512, 1024, 2048)  -- 512 is large step, 2048 is small
+  vars.m_varsF[HRT_MMLT_STEP_SIZE_COEFF] = 1.0f;    // (1.0f, 1.5f, 2.0f) -- 1.0f is normal step, 2.0f is small
+
+  vars.m_varsI[HRT_MMLT_FIRST_BOUNCE] = 3; 
+
 
   // override default settings from scene settings
   //
@@ -656,10 +673,6 @@ HRDriverAllocInfo RenderDriverRTE::AllocAll(HRDriverAllocInfo a_info)
   const int32_t maxMaterialIndex   = a_info.matNum-1;
   const int32_t whiteDiffuseOffset = m_pMaterialStorage->Update(maxMaterialIndex, &plainData[0], plainData.size()*sizeof(PlainMaterial));
 
-  size_t mltMem = 0;
-  bool m_needAllocForMLT = (m_initFlags & GPU_MLT_ENABLED_AT_START);
-  if (m_needAllocForMLT)
-    mltMem = m_pHWLayer->MLT_Alloc(10);
 
   auto vars = m_pHWLayer->GetAllFlagsAndVars();
   vars.m_varsI[HRT_WHITE_DIFFUSE_OFFSET] = whiteDiffuseOffset;
@@ -671,7 +684,6 @@ HRDriverAllocInfo RenderDriverRTE::AllocAll(HRDriverAllocInfo a_info)
   std::cout << "[AllocAll]: MEM(GEOM)   = " << newMemForGeo / MB << "\tMB" << std::endl;  m_memAllocated += newMemForGeo;
   std::cout << "[AllocAll]: MEM(PDFTAB) = " << (newMemForMat + newMemForTab) / MB << "\tMB" << std::endl; m_memAllocated += (newMemForMat + newMemForTab);
   std::cout << "[AllocAll]: MEM(RAYBUF) = " << memUsedByR / MB << "\tMB" << std::endl;    m_memAllocated += memUsedByR;
-  std::cout << "[AllocAll]: MEM(MLT)    = " << mltMem / MB << "\tMB" << std::endl;        m_memAllocated += mltMem;
 
   if (newTotalMem >= freeMem)
   {
@@ -1568,9 +1580,6 @@ void RenderDriverRTE::Draw()
       flagsAndVars.m_flags &= (~HRT_DRAW_LIGHT_LT);
       m_pHWLayer->SetAllFlagsAndVars(flagsAndVars);
       m_drawPassNumber = 0;
-
-      // (2) Burn In
-      //
     }
 
     // (3) Do MMLT pass

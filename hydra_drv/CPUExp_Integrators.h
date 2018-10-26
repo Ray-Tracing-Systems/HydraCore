@@ -509,59 +509,6 @@ static inline PTSamle DecompressSampleInfo(const PTSampleCompressed& a_sampleInf
 }
 
 
-class IntegratorPSSMLT : public IntegratorMISPT // unidirectional PSSMLT
-{
-public:
-
-  typedef IntegratorMISPT Base;
-
-  IntegratorPSSMLT(int w, int h, EngineGlobals* a_pGlobals, int a_createFlags) : Base(w, h, a_pGlobals, a_createFlags)
-  {
-    initRands();
-
-    m_hystColored.resize(w,h);
-    m_directLight.resize(w,h);
-
-    memset(m_hystColored.data(), 0, sizeof(float4)*w*h);
-    memset(m_directLight.data(), 0, sizeof(float4)*w*h);
-
-    m_firstPass         = true;
-    m_averageBrightness = 0.0f;
-    m_ordinarySpp       = 0;
-  }
-
-  bool IsFullCore() const { return false; } // don't used tiled rendering
-  void DoPass(std::vector<uint>& a_imageLDR);
-
-protected:
-
-  /////////////////////////////////////////////////////////////////////////////////////////////////
-
-  inline RandomGen& randomGen2() { return m_perThread[omp_get_thread_num()].gen2; }
-
-  /////////////////////////////////////////////////////////////////////////////////////////////////
-
-  void DoPassDL(HDRImage4f& a_summHDR);
-  void DoPassIndirectMLT(int mutationsNum);
-  void DoPassIndirectOrdinaryMC(int a_spp, HDRImage4f& a_color);
-
-  typedef std::vector<float> PSSampleV;
-
-  HDRImage4f m_hystColored;
-  HDRImage4f m_directLight;
-  
-  float m_averageBrightness;
-  int   m_ordinarySpp;
-  bool  m_firstPass;
-
-  void initRands();
-
-  PSSampleV initialSample_PS(int a_mutationsNum);
-  PSSampleV mutatePrimarySpace(const PSSampleV& a_vec, bool* pIsLargeStep = nullptr);
-
-  float3 F(const PSSampleV& x_ps);
-};
-
 class IntegratorLT : public IntegratorCommon
 {
 public:
@@ -747,11 +694,11 @@ public:
 
 protected:
 
-  void DoPassIndirectMLT(int d, float a_bkScale, float4* a_outImage);
+  virtual void DoPassIndirectMLT(int d, float a_bkScale, float4* a_outImage);
 
   PathVertex LightPath(PerThreadData* a_perThread, int a_lightTraceDepth);
 
-  PathVertex CameraPath(float3 ray_pos, float3 ray_dir, float3 a_prevNormal, MisData a_misPrev, int a_currDepth, uint flags,
+  PathVertex CameraPath(float3 ray_pos, float3 ray_dir, MisData a_misPrev, int a_currDepth, uint flags,
                         PerThreadData* a_perThread, int a_targetDepth, bool a_haveToHitLightSource, int a_fullPathDepth);
 
   float3 ConnectEye(const PathVertex& a_lv, int a_lightTraceDepth,
@@ -780,8 +727,6 @@ protected:
   float m_avgBrightness;
   std::vector<float> m_avgBPerBounce;
 
-  enum MUTATION_TYPE { MUTATE_LIGHT = 1, MUTATE_CAMERA = 2 };
-
   float3    F(const PSSampleV& a_xVec, const int d, int m_type, int* pX, int* pY);
   PSSampleV InitialSamplePS(const int d, const int a_burnIters = 0);
   PSSampleV MutatePrimarySpace(const PSSampleV& a_vec, int d, int* pMutationType);
@@ -808,7 +753,36 @@ protected:
 };
 
 
+class IntegratorMMLT_CompressedRand : public IntegratorMMLT
+{
+public:
+
+  IntegratorMMLT_CompressedRand(int w, int h, EngineGlobals* a_pGlobals)                         : IntegratorMMLT(w, h, a_pGlobals) {}
+  IntegratorMMLT_CompressedRand(int w, int h, EngineGlobals* a_pGlobals, float4* pIndirectImage) : IntegratorMMLT(w, h, a_pGlobals, pIndirectImage) {}
+
+protected:
+
+  enum {MMLT_MAX_BOUNCE_COMPRESSED = 20};
+  
+  struct PSSampleVC
+  {
+    float head  [MMLT_HEAD_TOTAL_SIZE];
+    uint4 group1[MMLT_MAX_BOUNCE_COMPRESSED];
+    uint2 group2[MMLT_MAX_BOUNCE_COMPRESSED];
+    int bounceNum;
+  };
+  
+  PSSampleVC Compress(const PSSampleV& a_vec);
+  PSSampleV  Decompress(const PSSampleVC& a_vec);
+  
+  PSSampleVC InitialSamplePS2(const int d, const int a_burnIters = 0); 
+  void DoPassIndirectMLT(int d, float a_bkScale, float4* a_outImage) override;
+};
+
+
+
 float3 EstimateAverageBrightnessRGB(const HDRImage4f& a_color);
 float  EstimateAverageBrightness   (const HDRImage4f& a_color);
 float3 EstimateAverageBrightnessRGB(const std::vector<float4>& a_color);
 float  EstimateAverageBrightness   (const std::vector<float4>& a_color);
+

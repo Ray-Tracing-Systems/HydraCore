@@ -28,7 +28,7 @@ void AllRenderVarialbes::SetFlags(unsigned int bits, unsigned int a_value)
     m_flags |= bits;
 }
 
-bool AllRenderVarialbes::shadePassEnable(int a_bounceNumNoRegenerate)
+bool AllRenderVarialbes::shadePassEnable(int a_bounce)
 {
   if ((m_flags & HRT_MARK_SURFACES_FG)  || (m_flags & HRT_DISABLE_SHADING) || (m_flags & HRT_STUPID_PT_MODE))
     return false;
@@ -38,12 +38,15 @@ bool AllRenderVarialbes::shadePassEnable(int a_bounceNumNoRegenerate)
 
   if (m_varsI[HRT_ENABLE_PATH_REGENERATE] == 0)
   {
-    if (m_varsI[HRT_RENDER_LAYER] == LAYER_PRIMARY && a_bounceNumNoRegenerate == 1)
+    if (m_varsI[HRT_RENDER_LAYER] == LAYER_PRIMARY && a_bounce == 1)
       return false;
 
-    if (m_varsI[HRT_RENDER_LAYER] == LAYER_SECONDARY && a_bounceNumNoRegenerate == 0)
+    if (m_varsI[HRT_RENDER_LAYER] == LAYER_SECONDARY && a_bounce == 0)
       return false;
   }
+
+  if((m_flags & HRT_DIRECT_LIGHT_MODE)!=0 && a_bounce > 0)
+    return false;
 
   return true;
 }
@@ -595,8 +598,8 @@ void CPUSharedData::PrepareEngineGlobals()
     //m_pIntegrator = new IntegratorShadowPT(m_width, m_height, (EngineGlobals*)&m_cdataPrepared[0]);
 		//m_pIntegrator = new IntegratorShadowPTSSS(m_width, m_height, (EngineGlobals*)&m_cdataPrepared[0]);
     
-    //m_pIntegrator = new IntegratorMISPT(m_width, m_height, (EngineGlobals*)&m_cdataPrepared[0], 0);     //#TODO: where m_createFlags gone ???
-    m_pIntegrator = new IntegratorMISPT_QMC(m_width, m_height, (EngineGlobals*)&m_cdataPrepared[0], 0);
+    m_pIntegrator = new IntegratorMISPT(m_width, m_height, (EngineGlobals*)&m_cdataPrepared[0], 0);     //#TODO: where m_createFlags gone ???
+    //m_pIntegrator = new IntegratorMISPT_QMC(m_width, m_height, (EngineGlobals*)&m_cdataPrepared[0], 0);
     //m_pIntegrator = new IntegratorMISPT_AQMC(m_width, m_height, (EngineGlobals*)&m_cdataPrepared[0], 0);
    
     //m_pIntegrator = new IntegratorLT(m_width, m_height, (EngineGlobals*)&m_cdataPrepared[0]);
@@ -605,6 +608,7 @@ void CPUSharedData::PrepareEngineGlobals()
 
     //m_pIntegrator = new IntegratorSBDPT(m_width, m_height, (EngineGlobals*)&m_cdataPrepared[0]);
     //m_pIntegrator = new IntegratorMMLT(m_width, m_height, (EngineGlobals*)&m_cdataPrepared[0]);
+    //m_pIntegrator = new IntegratorMMLT_CompressedRand(m_width, m_height, (EngineGlobals*)&m_cdataPrepared[0]);
 
     // if (m_vars.m_flags & HRT_ENABLE_MLT)
     //   m_pIntegrator = new IntegratorPSSMLT(m_width, m_height, (EngineGlobals*)&m_cdataPrepared[0], m_createFlags);

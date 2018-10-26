@@ -125,12 +125,7 @@ bool InitSceneLibAndRTE(HRCameraRef& a_camRef, HRSceneInstRef& a_scnRef, HRRende
         node2.append_copy(child);
 
       if (g_input.enableMLT)
-      {
-        node2.child(L"method_secondary").text() = L"mlt";
-        node2.child(L"method_tertiary").text()  = L"mlt";
-        if(std::wstring(node2.child(L"method_caustic").text().as_string()) != L"none")
-          node2.child(L"method_caustic").text()   = L"mlt";
-      }
+        node2.child(L"method_secondary").text() = L"mmlt";
       
       if (g_input.runTests)
         node2.force_child(L"seed").text() = 777;

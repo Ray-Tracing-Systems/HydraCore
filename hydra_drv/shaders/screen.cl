@@ -206,7 +206,7 @@ __kernel void ClearAllInternalTempBuffers(__global uint*      restrict out_flags
                                           __global float4*    restrict out_color,
                                           __global float4*    restrict out_thoroughput,
                                           __global float4*    restrict out_fog,
-                                          __global HitMatRef* restrict out_hitMat,
+                                          __global float4*    restrict out_surfaceHit,
                                           __global PerRayAcc* restrict out_accPdf,
                                           int a_size)
 
@@ -223,8 +223,10 @@ __kernel void ClearAllInternalTempBuffers(__global uint*      restrict out_flags
   out_color      [tid] = make_float4(0.0f, 0.0f, 0.0f, 0.0f);
   out_thoroughput[tid] = make_float4(1.0f, 1.0f, 1.0f, 1.0f);
   out_fog        [tid] = make_float4(0.0f, 0.0f, 0.0f, 0.0f);
-  out_hitMat     [tid] = data3;
   out_accPdf     [tid] = InitialPerParAcc();
+  
+  WriteSurfaceHitMatId(-1, tid, a_size, 
+                       out_surfaceHit);
 }
 
 
@@ -282,6 +284,25 @@ __kernel void ContribSampleToScreen(const __global float4* in_color, const __glo
     color2.w = pow(scaleConst*newColor.w, a_gammaInv);
     out_colorLDR[Index2D(x, y, w)] = RealColorToUint32(ToneMapping4(color2));
   }
+}
+
+__kernel void HDRToLDRWithScale(const __global float4* in_color, __global uint* out_colorLDR,
+                                const float a_gammaInv, const float a_scale, const int w, const int h)
+{
+  const int x = GLOBAL_ID_X;
+  const int y = GLOBAL_ID_Y;
+
+  if (x >= w || y >= h)
+    return;
+
+  const float4 newColor = in_color[Index2D(x, y, w)];
+
+  float4 color2;
+  color2.x = pow(a_scale*newColor.x, a_gammaInv);
+  color2.y = pow(a_scale*newColor.y, a_gammaInv);
+  color2.z = pow(a_scale*newColor.z, a_gammaInv);
+  color2.w = pow(a_scale*newColor.w, a_gammaInv);
+  out_colorLDR[Index2D(x, y, w)] = RealColorToUint32(ToneMapping4(color2));
 }
 
 __kernel void PackIndexToColorW(const __global int* a_packedId, __global float4* out_color, const int iNumElements)
@@ -522,68 +543,6 @@ __kernel void ReductionFloat4Avg16(__global const float4* in_data, __global floa
     out_data[tid / 16] = sArray[0] * (1.0f / 16.0f);
 }
 
-__kernel void ReductionGBuffer16(__global const float4* in_data, __global float4* out_data, int iNumElements)
-{
-  int tid  = GLOBAL_ID_X;
-  if (tid >= iNumElements)
-    return;
-
-  GBuffer1 buffRes;
-
-  buffRes.depth = 0.0f;
-  buffRes.norm  = make_float3(0, 0, 0);
-  buffRes.rgba  = make_float4(0, 0, 0, 0);
-  buffRes.matId = -1;
-
-  int normalCounter = 0;
-  int depthCounter = 0;
-
-  for (int i = 0; i < 16; i++)
-  {
-    int tid2 = tid * 16 + i;
-
-    GBuffer1 buffSpp = unpackGBuffer1(in_data[tid2]);
-
-    if (buffSpp.depth < 1000000000.0f - 100.0f)
-    {
-      buffRes.depth += buffSpp.depth;
-      depthCounter++;
-    }
-
-    if (dot(buffSpp.norm, buffSpp.norm) > 1e-5f)
-    {
-      buffRes.norm += buffSpp.norm;
-      normalCounter++;
-    }
-
-    buffRes.rgba += buffSpp.rgba;
-
-    if (buffSpp.matId != -1)
-      buffRes.matId = buffSpp.matId;
-  }
-
-  // #TODO: add correct reduction of matId based on max spp for target material
- 
-  buffRes.depth *= (1.0f / fmax((float)depthCounter, 1.0f));
-  buffRes.norm  *= (1.0f / fmax((float)normalCounter, 1.0f));
-  buffRes.rgba  *= (1.0f / 16.0f);
-
-  out_data[tid] = packGBuffer1(buffRes);
-}
-
-
-__kernel void GetAlphaToGBuffer(__global float4* out_data, __global const float4* in_data, int iNumElements)
-{
-  int tid = GLOBAL_ID_X;
-  if (tid >= iNumElements)
-    return;
-
-  GBuffer1 buffRes  = unpackGBuffer1(out_data[tid]);
-  float3 alphaColor = to_float3(in_data[tid]);
-  buffRes.rgba.w    = 1.0f - dot(alphaColor, make_float3(0.35f, 0.51f, 0.14f));
-  out_data[tid]     = packGBuffer1(buffRes);
-}
-
 __kernel void GetShadowToAlpha(__global float4* inout_data, __global const uchar* in_shadow, int iNumElements)
 {
   int tid = GLOBAL_ID_X;
@@ -673,27 +632,6 @@ __kernel void Texture2DTest(texture2d_t a_tex, __global float* a_outData, int a_
 
   a_outData[y*a_w + x] = texColor4.x;
 }
-
-
-
-__kernel void ReadNormalsAndDepth(__global const float4* in_posNorm, __global const Lite_Hit* in_hits, __global float4* a_color, int iNumElements)
-{
-  int tid = GLOBAL_ID_X;
-  if (tid >= iNumElements)
-    return;
-
-  Lite_Hit hit = in_hits[tid];
-  float3 norm  = normalize(decodeNormal(as_int(in_posNorm[tid].w)));
-
-  if (HitNone(hit))
-  {
-    norm  = make_float3(0, 0, 0);
-    hit.t = 1000000000.0f;
-  }
-
-  a_color[tid] = to_float4(norm, hit.t);
-}
-
 
 __kernel void MaxPixelSize256(__global const Lite_Hit*  in_hits,
                               __global const HitMatRef* in_matData,

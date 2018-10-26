@@ -32,7 +32,6 @@ static float EstimateAverageBrightness2(const float4* a_color, int a_size)
     return val;
 }
 
-
 void IntegratorMMLT::SetMaxDepth(int a_depth)
 {
   m_maxDepth = a_depth;
@@ -45,11 +44,6 @@ void IntegratorMMLT::SetMaxDepth(int a_depth)
 
     m_perThread[i].gen.rptr  = nullptr;
     m_perThread[i].gen2.rptr = nullptr;
-    m_perThread[i].gen.lazy  = MUTATE_LAZY_NO;
-    m_perThread[i].gen2.lazy = MUTATE_LAZY_NO;
-
-    m_perThread[i].gen.maxNumbers  = int(m_pss[i].size());
-    m_perThread[i].gen2.maxNumbers = int(m_pss[i].size());
   }
 
 }
@@ -70,12 +64,12 @@ void IntegratorMMLT::MutateLightPart(PSSampleV& v2, int s, RandomGen* pGen)
   // mutate light sample
   //
   for (size_t j = 4; j < 10; j++)
-    v2[j] = MutateKelemen(v2[j], pGen, MUTATE_COEFF_BSDF);
+    v2[j] = MutateKelemen(v2[j], rndFloat2_Pseudo(pGen), MUTATE_COEFF_BSDF, 1024.0f);
 
   // mutate light path
   //
   for (size_t j = lightBegin; j < camBegin; j++)
-    v2[j] = MutateKelemen(v2[j], pGen, MUTATE_COEFF_BSDF);
+    v2[j] = MutateKelemen(v2[j], rndFloat2_Pseudo(pGen), MUTATE_COEFF_BSDF, 1024.0f);
 }
 
 void IntegratorMMLT::MutateCameraPart(PSSampleV& v2, int s, RandomGen* pGen)
@@ -84,15 +78,15 @@ void IntegratorMMLT::MutateCameraPart(PSSampleV& v2, int s, RandomGen* pGen)
 
   // mutate lens
   //
-  v2[0] = MutateKelemen(v2[0], pGen, MUTATE_COEFF_SCREEN*1.0f);
-  v2[1] = MutateKelemen(v2[1], pGen, MUTATE_COEFF_SCREEN*1.0f);
-  v2[2] = MutateKelemen(v2[2], pGen, MUTATE_COEFF_BSDF);
-  v2[3] = MutateKelemen(v2[3], pGen, MUTATE_COEFF_BSDF);
+  v2[0] = MutateKelemen(v2[0], rndFloat2_Pseudo(pGen), MUTATE_COEFF_SCREEN*1.0f, 1024.0f);
+  v2[1] = MutateKelemen(v2[1], rndFloat2_Pseudo(pGen), MUTATE_COEFF_SCREEN*1.0f, 1024.0f);
+  v2[2] = MutateKelemen(v2[2], rndFloat2_Pseudo(pGen), MUTATE_COEFF_BSDF, 1024.0f);
+  v2[3] = MutateKelemen(v2[3], rndFloat2_Pseudo(pGen), MUTATE_COEFF_BSDF, 1024.0f);
 
   // mutate cam path
   //
   for (size_t j = camBegin; j < v2.size(); j++)
-    v2[j] = MutateKelemen(v2[j], pGen, MUTATE_COEFF_BSDF);
+    v2[j] = MutateKelemen(v2[j], rndFloat2_Pseudo(pGen), MUTATE_COEFF_BSDF, 1024.0f);
 }
 
 
@@ -126,7 +120,7 @@ IntegratorMMLT::PSSampleV IntegratorMMLT::MutatePrimarySpace(const PSSampleV& a_
   }
   else                                              // small step
   {
-    const int currSplit = rndSplitMMLT(&gen, &v2[0], d); // mapRndFloatToUInt(v2[9], 0, d + 1);
+    const int currSplit = rndSplitMMLT(&gen, &v2[0], d); // mapRndFloatToInt(v2[9], 0, d);
   
     if (plarge < selector && selector <= plarge + plight)      // small step for light path
     {
@@ -205,7 +199,7 @@ float3 IntegratorMMLT::F(const PSSampleV& a_xVec, const int d, int m_type,
 
     const bool haveToHitLight = (lightTraceDepth == -1);  // when lightTraceDepth == -1, use only camera strategy, so have to hit light at some depth level   
 
-    cv = CameraPath(ray_pos, ray_dir, float3(0, 0, 1), makeInitialMisData(), 1, 0,
+    cv = CameraPath(ray_pos, ray_dir, makeInitialMisData(), 1, 0,
                     &PerThread(), camTraceDepth, haveToHitLight, d);
   }
 
@@ -320,7 +314,7 @@ float3 IntegratorMMLT::F(const PSSampleV& a_xVec, const int d, int m_type,
   return sampleColor;
 }
 
-std::vector<float> PrefixSumm(const std::vector<float>& a_vec)
+static std::vector<float> PrefixSumm(const std::vector<float>& a_vec)
 {
   float accum = 0.0f;
   std::vector<float> avgBAccum(a_vec.size() + 1);
@@ -517,10 +511,10 @@ float IntegratorMMLT::DoPassEstimateAvgBrightness()
   {
     m_avgBPerBounce[i] *= (1.0f / float(numPass*samplesPerPass));
     m_avgBrightness += m_avgBPerBounce[i];
-    //std::cout << "B[" << i << "] = " << m_avgBPerBounce[i] << std::endl;
+    std::cout << "[d = " << i << ", avgB = " << m_avgBPerBounce[i] << ", coeff = " << float(i + 1) << "]" << std::endl;
   }
 
-  //std::cout << "avgB = " << m_avgBrightness << std::endl;
+  std::cout << "[d = a, avgB = " << m_avgBrightness << "]" << std::endl;
   std::cout << "MMLT: finish estimating avg brightness." << std::endl;
   return m_avgBrightness;
 }
@@ -677,8 +671,8 @@ PathVertex IntegratorMMLT::LightPath(PerThreadData* a_perThread, int a_lightTrac
 }
 
 void IntegratorMMLT::TraceLightPath(float3 ray_pos, float3 ray_dir, int a_currDepth, float a_prevLightCos, float a_prevPdf,
-                                     float3 a_color, PerThreadData* a_perThread, int a_lightTraceDepth, bool a_wasSpecular,
-                                     PathVertex* a_pOutLightVertex)
+                                    float3 a_color, PerThreadData* a_perThread, int a_lightTraceDepth, bool a_wasSpecular,
+                                    PathVertex* a_pOutLightVertex)
 {
   if (a_currDepth > a_lightTraceDepth)
     return;
@@ -761,11 +755,11 @@ void IntegratorMMLT::TraceLightPath(float3 ray_pos, float3 ray_dir, int a_currDe
                  a_pOutLightVertex);
 }
 
-PathVertex IntegratorMMLT::CameraPath(float3 ray_pos, float3 ray_dir, float3 a_prevNormal, MisData a_misPrev, int a_currDepth, uint flags,
+PathVertex IntegratorMMLT::CameraPath(float3 ray_pos, float3 ray_dir, MisData a_misPrev, int a_currDepth, uint flags,
                                       PerThreadData* a_perThread, int a_targetDepth, bool a_haveToHitLightSource, int a_fullPathDepth)
 
 {
-  const int prevVertexId = a_fullPathDepth - a_currDepth + 1; //#CHECK_THIS
+  const int prevVertexId = a_fullPathDepth - a_currDepth + 1; 
 
   if (a_currDepth > a_targetDepth)
   {
@@ -791,10 +785,12 @@ PathVertex IntegratorMMLT::CameraPath(float3 ray_pos, float3 ray_dir, float3 a_p
   m_debugRaysPos[ThreadId()][prevVertexId-1] = to_float4(surfElem.pos, -1.0f);
   /////////////////////////////////////////////////////////////////////
 
+  // (1)
+  //
   const float cosHere = fabs(dot(ray_dir, surfElem.normal));
-  const float cosPrev = fabs(dot(ray_dir, a_prevNormal));
+  const float cosPrev = fabs(a_misPrev.cosThetaPrev); // fabs(dot(ray_dir, a_prevNormal));
   float GTerm = 1.0f;
-  
+
   if (a_currDepth == 1)
   {
     float3 camDirDummy; float zDepthDummy;
@@ -811,6 +807,8 @@ PathVertex IntegratorMMLT::CameraPath(float3 ray_pos, float3 ray_dir, float3 a_p
     GTerm = cosHere*cosPrev / fmax(dist*dist, DEPSILON2);
   }
 
+  // (2)
+  //
   float3 emission = emissionEval(ray_pos, ray_dir, surfElem, flags, a_misPrev, fetchInstId(hit));
   if (dot(emission, emission) > 1e-3f)
   {
@@ -831,6 +829,8 @@ PathVertex IntegratorMMLT::CameraPath(float3 ray_pos, float3 ray_dir, float3 a_p
       a_perThread->pdfArray[1].pdfFwd = pdfLightWP*GTerm;
       a_perThread->pdfArray[1].pdfRev = a_misPrev.isSpecular ? -1.0f*GTerm : pdfMatRevWP*GTerm;
 
+      resVertex.hit      = surfElem;
+      resVertex.ray_dir  = ray_dir;
       resVertex.accColor = emission;
       resVertex.valid    = true;
       return resVertex;
@@ -865,14 +865,14 @@ PathVertex IntegratorMMLT::CameraPath(float3 ray_pos, float3 ray_dir, float3 a_p
     
     return resVertex;
   }
-
+  
+  // (3) eval reverse and forward pdfs
+  //
   const PlainMaterial* pHitMaterial = materialAt(m_pGlobals, m_matStorage, surfElem.matId);
   const MatSample matSam = std::get<0>(sampleAndEvalBxDF(ray_dir, surfElem, packBounceNum(0, a_currDepth - 1), float3(0, 0, 0), true));
   const float3 bxdfVal   = matSam.color; // *(1.0f / fmaxf(matSam.pdf, 1e-20f));
   const float cosNext    = fabs(dot(matSam.direction, surfElem.normal));
 
-  // eval reverse and forward pdfs
-  //
   if (a_currDepth == 1)
   {
     if (isPureSpecular(matSam))  //  ow ... but if we met specular reflection when tracing from camera, we must put 0 because this path cannot be sample by light strategy at all.
@@ -892,7 +892,8 @@ PathVertex IntegratorMMLT::CameraPath(float3 ray_pos, float3 ray_dir, float3 a_p
       sc.bn = surfElem.biTangent;
       sc.tc = surfElem.texCoord;
 
-      const float pdfFwdW  = materialEval(pHitMaterial, &sc, false, false, /* global data --> */ m_pGlobals, m_texStorage, m_texStorage, &m_ptlDummy).pdfFwd;
+      const float pdfFwdW  = materialEval(pHitMaterial, &sc, false, false, // global data -->
+                                          m_pGlobals, m_texStorage, m_texStorageAux, &m_ptlDummy).pdfFwd;
       const float pdfFwdWP = pdfFwdW / fmax(cosHere, DEPSILON);
 
       a_perThread->pdfArray[prevVertexId].pdfFwd = pdfFwdWP*GTerm;
@@ -905,7 +906,7 @@ PathVertex IntegratorMMLT::CameraPath(float3 ray_pos, float3 ray_dir, float3 a_p
   }
   
  
-  // proceed to next bounce
+  // (4) proceed to next bounce
   //
   const float3 nextRay_dir = matSam.direction;
   const float3 nextRay_pos = OffsRayPos(surfElem.pos, surfElem.normal, matSam.direction);
@@ -913,10 +914,11 @@ PathVertex IntegratorMMLT::CameraPath(float3 ray_pos, float3 ray_dir, float3 a_p
   MisData thisBounce       = makeInitialMisData();
   thisBounce.isSpecular    = isPureSpecular(matSam);
   thisBounce.matSamplePdf  = matSam.pdf;
+  thisBounce.cosThetaPrev  = dot(nextRay_dir, surfElem.normal);
 
   const bool stopDL        = m_splitDLByGrammar ? flagsHaveOnlySpecular(flags) : false;
 
-  PathVertex nextVertex  = CameraPath(nextRay_pos, nextRay_dir, surfElem.normal, thisBounce, a_currDepth + 1, flagsNextBounceLite(flags, matSam, m_pGlobals),
+  PathVertex nextVertex  = CameraPath(nextRay_pos, nextRay_dir, thisBounce, a_currDepth + 1, flagsNextBounceLite(flags, matSam, m_pGlobals),
                                       a_perThread, a_targetDepth, a_haveToHitLightSource, a_fullPathDepth);
 
   nextVertex.accColor *= (bxdfVal*cosNext / fmax(matSam.pdf, DEPSILON2));
@@ -926,8 +928,6 @@ PathVertex IntegratorMMLT::CameraPath(float3 ray_pos, float3 ray_dir, float3 a_p
 
   return nextVertex;
 }
-
-
 
 
 float3 IntegratorMMLT::ConnectEye(const PathVertex& a_lv, int a_ltDepth,
@@ -944,14 +944,20 @@ float3 IntegratorMMLT::ConnectEye(const PathVertex& a_lv, int a_ltDepth,
     signOfNormal = -1.0f;
 
   auto hit = rayTrace(a_lv.hit.pos + epsilonOfPos(a_lv.hit.pos)*signOfNormal*a_lv.hit.normal, camDir);
-  
-  float3 result(0, 0, 0);
 
-  ::ConnectEyeP(a_lv, a_ltDepth, mLightSubPathCount, hit, 
-                m_pGlobals, m_matStorage, m_texStorage, m_texStorageAux, &m_ptlDummy,
-                &a_perThread->pdfArray[0], pX, pY, &result);
+  auto* v0 = a_perThread->pdfArray.data() + a_ltDepth + 0;
+  auto* v1 = a_perThread->pdfArray.data() + a_ltDepth + 1;
 
-  return result;
+  if (imageToSurfaceFactor <= 0.0f || (HitSome(hit) && hit.t <= zDepth))
+  {
+    (*pX)         = -1;
+    (*pY)         = -1;
+    return make_float3(0, 0, 0);
+  }
+
+  return ConnectEyeP(&a_lv, mLightSubPathCount, camDir, imageToSurfaceFactor,
+                     m_pGlobals, m_matStorage, m_texStorage, m_texStorageAux, &m_ptlDummy,
+                     v0, v1, pX, pY);
 }
 
 
@@ -990,9 +996,13 @@ float3 IntegratorMMLT::ConnectShadow(const PathVertex& a_cv, PerThreadData* a_pe
    
      if (dot(shadow, shadow) > 1e-12f)
      {
-       explicitColor = shadow*ConnectShadowP(a_cv, a_camDepth, pLight, explicitSam, lightPickProb,
+       auto* v0 = &a_perThread->pdfArray[0];
+       auto* v1 = &a_perThread->pdfArray[1];
+       auto* v2 = &a_perThread->pdfArray[2];
+
+       explicitColor = shadow*ConnectShadowP(&a_cv, a_camDepth, pLight, explicitSam, lightPickProb,
                                              m_pGlobals, m_matStorage, m_texStorage, m_texStorageAux, m_pdfStorage, &m_ptlDummy,
-                                             &a_perThread->pdfArray[0]);
+                                             v0, v1, v2);
      }
    }
   
@@ -1023,12 +1033,16 @@ float3 IntegratorMMLT::ConnectEndPoints(const PathVertex& a_lv, const PathVertex
   const float3 shadowRayPos = OffsRayPos(a_lv.hit.pos, a_lv.hit.normal, shadowRayDir);
   const float3 shadow       = shadowTrace(shadowRayPos, shadowRayDir, dist*0.9995f);
 
+  auto* vSplitBefore = &a_perThread->pdfArray[a_spit-1];
+  auto* vSplit       = &a_perThread->pdfArray[a_spit+0];
+  auto* vSplitAfter  = &a_perThread->pdfArray[a_spit+1];
+
   if (dot(shadow, shadow) < 1e-12f)
     return float3(0, 0, 0);
   else
-    return shadow*ConnectEndPointsP(a_lv, a_cv, a_spit, a_depth,
+    return shadow*ConnectEndPointsP(&a_lv, &a_cv, a_depth,
                                     m_pGlobals, m_matStorage, m_texStorage, m_texStorageAux, &m_ptlDummy,
-                                    &a_perThread->pdfArray[0]);
+                                    vSplitBefore, vSplit, vSplitAfter);
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////// PT for direct light

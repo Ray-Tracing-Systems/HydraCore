@@ -183,3 +183,73 @@ __kernel void bitonic_2048(__global ElemT* theArray, int stage, int passOfStageB
   theArray[blockId * 2048 + lid + 1024] = s_array[lid + 1024];
 }
 
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+#define GLOBAL_ID_X        get_global_id(0)
+#define LOCAL_ID_X         get_local_id(0)
+#define SYNCTHREADS_LOCAL  barrier(CLK_LOCAL_MEM_FENCE)
+
+#define PREFIX_SUMM_MACROF(idata,odata,l_Data,_bsize)      \
+{                                                          \
+  uint pos = 2 * LOCAL_ID_X - (LOCAL_ID_X & (_bsize - 1)); \
+  l_Data[pos] = 0.0f;                                      \
+  pos += _bsize;                                           \
+  l_Data[pos] = idata;                                     \
+                                                           \
+  for (uint offset = 1; offset < _bsize; offset <<= 1)     \
+  {                                                        \
+    SYNCTHREADS_LOCAL;                                     \
+    float t = l_Data[pos] + l_Data[pos - offset];          \
+    SYNCTHREADS_LOCAL;                                     \
+    l_Data[pos] = t;                                       \
+  }                                                        \
+                                                           \
+  odata = l_Data[pos];                                     \
+}                                                          \
+
+
+__kernel void scan_block_scan1f(__global float* a_inData, __global float* a_outData, int a_size)
+{
+  int tid = get_global_id(0);
+
+  const int size = 256;
+  __local float l_Data[512];
+
+  float idata = 0;
+  float odata = 0;
+
+  if (tid < a_size)
+    idata = a_inData[tid];
+
+  PREFIX_SUMM_MACROF(idata, odata, l_Data, size);
+
+  if (tid < a_size)
+    a_inData[tid] = odata;
+
+  if (LOCAL_ID_X == 255)
+    a_outData[tid / 256] = odata;
+}
+
+__kernel void scan_propagate1f(__global float* a_inOutData, __global const float* a_inSumm, int a_size)
+{
+  int tid = GLOBAL_ID_X;
+  if (tid >= a_size)
+    return;
+
+  int nextBlockId = (tid / 256) - 1;
+
+  if (nextBlockId >= 0)
+    a_inOutData[tid] += a_inSumm[nextBlockId];
+}
+
+
+// change 18.09.2018 17:32; restore scan kernels ... ;
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////

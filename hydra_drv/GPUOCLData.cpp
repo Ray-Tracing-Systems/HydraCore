@@ -401,67 +401,7 @@ void GPUOCLLayer::runTraceCPU(cl_mem a_rpos, cl_mem a_rdir, cl_mem a_hits, size_
 
 void GPUOCLLayer::runTraceShadowCPU(size_t a_size)
 {
-  cl_int ciErr1 = 0;
 
-  float4*  a_data1       = (float4*) clEnqueueMapBuffer(m_globals.cmdQueue, m_rays.lsam1, CL_TRUE, CL_MAP_READ, 0, a_size*sizeof(float4), 0, 0, 0, &ciErr1);
-  float4*  a_data2       = (float4*) clEnqueueMapBuffer(m_globals.cmdQueue, m_rays.lsam2, CL_TRUE, CL_MAP_READ, 0, a_size*sizeof(float4), 0, 0, 0, &ciErr1);
-  ushort4* a_shadow      = (ushort4*)clEnqueueMapBuffer(m_globals.cmdQueue, m_rays.lshadow, CL_TRUE, CL_MAP_WRITE, 0, a_size*sizeof(ushort4), 0, 0, 0, &ciErr1);
-  float4*  in_hitPosNorm = (float4*) clEnqueueMapBuffer(m_globals.cmdQueue, m_rays.hitPosNorm, CL_TRUE, CL_MAP_READ, 0, a_size*sizeof(float4), 0, 0, 0, &ciErr1);
-  uint*    flgs          = (uint*)   clEnqueueMapBuffer(m_globals.cmdQueue, m_rays.rayFlags, CL_TRUE, CL_MAP_READ, 0, a_size*sizeof(uint), 0, 0, 0, &ciErr1);
-
-  const float4* nodes = (const float4*)&m_scnBVH.nodes[0];
-  const float4* plist = (const float4*)&m_scnBVH.primListData[0];
-  
-  IntegratorCommon* pCore = dynamic_cast<IntegratorCommon*>(m_pIntegrator);
-  if (pCore == nullptr)
-  {
-    std::cerr << "GPUOCLLayer::runTraceShadowCPU: bad dynamic cast for integrator" << std::endl;
-    return;
-  }
-
-  #pragma omp parallel for
-  for (int tid = 0; tid < a_size; tid++)
-  {
-    uint flags = flgs[tid];
-    if (!rayIsActiveU(flags))
-      continue;
-
-    float4 data1 = a_data1[tid];
-    float4 data2 = a_data2[tid];
-
-    ShadowSample explicitSam;
-
-    explicitSam.pos     = to_float3(data1);
-    explicitSam.color   = to_float3(data2);
-    explicitSam.pdf     = data1.w > 0 ? data1.w : 1.0f;
-    explicitSam.maxDist = data2.w;
-    explicitSam.isPoint = (data1.w <= 0);
-
-    float4 data    = in_hitPosNorm[tid];
-    float3 hitPos  = to_float3(data);
-    float3 hitNorm = normalize(decodeNormal(as_int(data.w)));
-
-    float3 shadowRayDir = normalize(explicitSam.pos - hitPos); // explicitSam.direction;
-    float3 shadowRayPos = hitPos + shadowRayDir*fmax(maxcomp(hitPos), 1.0f)*GEPSILON;
-
-    float3 shadow       = pCore->shadowTrace(shadowRayPos, shadowRayDir, explicitSam.maxDist);
-
-    ushort4 shadowCompressed;
-
-    shadowCompressed.x = (ushort)(65535.0f * shadow.x);
-    shadowCompressed.y = (ushort)(65535.0f * shadow.y);
-    shadowCompressed.z = (ushort)(65535.0f * shadow.z);
-    shadowCompressed.w = 0;
-
-    a_shadow[tid] = shadowCompressed;
-  }
-
-
-  CHECK_CL(clEnqueueUnmapMemObject(m_globals.cmdQueue, m_rays.lsam1, a_data1, 0, 0, 0));
-  CHECK_CL(clEnqueueUnmapMemObject(m_globals.cmdQueue, m_rays.lsam2, a_data2, 0, 0, 0));
-  CHECK_CL(clEnqueueUnmapMemObject(m_globals.cmdQueue, m_rays.lshadow, a_shadow, 0, 0, 0));
-  CHECK_CL(clEnqueueUnmapMemObject(m_globals.cmdQueue, m_rays.hitPosNorm, in_hitPosNorm, 0, 0, 0));
-  CHECK_CL(clEnqueueUnmapMemObject(m_globals.cmdQueue, m_rays.rayFlags, flgs, 0, 0, 0));
 }
 
 void GPUOCLLayer::saveBlocksInfoToFile(cl_mem a_blocks, size_t a_size)
