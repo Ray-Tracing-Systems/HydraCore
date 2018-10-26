@@ -732,7 +732,6 @@ void GPUOCLLayer::RecompileProcTexShaders(const std::string& a_shaderPath)
   m_progs.texproc = CLProgram(m_globals.device, m_globals.ctx, a_shaderPath, options, HydraInstallPath(), nullptr);
   #endif
 
-
   if(m_rays.hitProcTexData != nullptr)
     clReleaseMemObject(m_rays.hitProcTexData);
 
