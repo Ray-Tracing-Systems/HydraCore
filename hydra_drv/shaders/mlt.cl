@@ -625,6 +625,8 @@ __kernel void MMLTCameraPathBounce(__global   float4*        restrict a_rpos,
 
  
   __global const PlainMaterial* pHitMaterial = materialAt(a_globals, in_mtlStorage, surfElem.matId);
+  if(pHitMaterial == 0)
+    return;
 
   const float3 ray_pos    = to_float3(a_rpos[tid]);
   const float3 ray_dir    = to_float3(a_rdir[tid]);
@@ -1028,6 +1030,8 @@ __kernel void MMLTLightPathBounce (__global   float4*        restrict a_rpos,
                       &ptl);
 
   __global const PlainMaterial* pHitMaterial = materialAt(a_globals, in_mtlStorage, surfElem.matId);
+  if(pHitMaterial == 0)
+    return;
   
   float allRands[MMLT_FLOATS_PER_BOUNCE];
   MMLTReadMaterialBounceRands(in_numbers, a_currDepth - 1, tid, iNumElements,
@@ -1175,8 +1179,11 @@ __kernel void MMLTMakeShadowRay(__global const int2  *  restrict in_splitInfo,
          if (lv.hit.matId >= 0)
          {
            __global const PlainMaterial* pHitMaterial = materialAt(a_globals, in_mtlStorage, lv.hit.matId);
-           if ((materialGetFlags(pHitMaterial) & PLAIN_MATERIAL_HAVE_BTDF) != 0 && dot(camDir, lv.hit.normal) < -0.01f)
-             signOfNormal *= -1.0f;
+           if(pHitMaterial != 0)
+           {
+             if ((materialGetFlags(pHitMaterial) & PLAIN_MATERIAL_HAVE_BTDF) != 0 && dot(camDir, lv.hit.normal) < -0.01f)
+               signOfNormal *= -1.0f;
+           }
          }
 
          out_ray_pos[tid] = to_float4(lv.hit.pos + epsilonOfPos(lv.hit.pos)*signOfNormal*lv.hit.normal, zDepth); // OffsRayPos(lv.hit.pos, lv.hit.normal, camDir);
@@ -1319,10 +1326,13 @@ __kernel void MMLTConnect(__global const int2  *  restrict in_splitInfo,
                                                                       &camDir, &zDepth);
       
         __global const PlainMaterial* pHitMaterial = materialAt(a_globals, in_mtlStorage, lv.hit.matId);
-        float signOfNormal = 1.0f;
-        if ((materialGetFlags(pHitMaterial) & PLAIN_MATERIAL_HAVE_BTDF) != 0 && dot(camDir, lv.hit.normal) < -0.01f)
-          signOfNormal = -1.0f;
-    
+        if(pHitMaterial != 0)
+        {
+          float signOfNormal = 1.0f;
+          if ((materialGetFlags(pHitMaterial) & PLAIN_MATERIAL_HAVE_BTDF) != 0 && dot(camDir, lv.hit.normal) < -0.01f)
+            signOfNormal = -1.0f;
+        }
+
         PdfVertex v0, v1;
         v0 = a_pdfVert[TabIndex(lightTraceDepth + 0, tid, iNumElements)];
 

@@ -123,6 +123,8 @@ __kernel void ProcTexExec(__global       uint*          restrict a_flags,
                  &sHit2);
 
   __global const PlainMaterial* pHitMaterial = materialAt(in_globals, in_mtlStorage, sHit2.matId);
+  if(pHitMaterial == 0)
+    return;
 
   if (materialGetFlags(pHitMaterial) & PLAIN_MATERIAL_HAVE_PROC_TEXTURES)
   {

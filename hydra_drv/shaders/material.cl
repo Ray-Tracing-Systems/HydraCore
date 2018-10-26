@@ -39,9 +39,11 @@ __kernel void MakeEyeShadowRays(__global const uint*          restrict a_flags,
   if (haveMaterials == 1)
   {
     __global const PlainMaterial* pHitMaterial = materialAt(a_globals, in_mtlStorage, sHit.matId);
-
-    if ((materialGetFlags(pHitMaterial) & PLAIN_MATERIAL_HAVE_BTDF) != 0 && dot(camDir, sHit.normal) < -0.01f)
-      signOfNormal *= -1.0f;
+    if(pHitMaterial != 0)
+    {
+      if ((materialGetFlags(pHitMaterial) & PLAIN_MATERIAL_HAVE_BTDF) != 0 && dot(camDir, sHit.normal) < -0.01f)
+        signOfNormal *= -1.0f;
+    }
   }
 
   out_sraypos[tid] = to_float4(sHit.pos + epsilonOfPos(sHit.pos)*signOfNormal*sHit.normal, zDepth); // OffsRayPos(sHit.pos, sHit.normal, camDir);
@@ -101,10 +103,9 @@ __kernel void UpdateForwardPdfFor3Way(__global const uint*          restrict a_f
 
   // eval reverse pdf
   //
-  if (!isSpecular)
+  __global const PlainMaterial* pHitMaterial = materialAt(a_globals, in_mtlStorage, sHit.matId);
+  if (!isSpecular && pHitMaterial != 0)
   {
-    __global const PlainMaterial* pHitMaterial = materialAt(a_globals, in_mtlStorage, sHit.matId);
-    
     ShadeContext sc;
     sc.wp  = sHit.pos;
     sc.l   = (-1.0f)*ray_dir;
@@ -201,27 +202,30 @@ __kernel void ConnectToEyeKernel(__global const uint*          restrict a_flags,
   if(a_currBounce > 0) // if 0, this is light surface
   {
     __global const PlainMaterial* pHitMaterial = materialAt(a_globals, in_mtlStorage, surfHit.matId);
-    if ((materialGetFlags(pHitMaterial) & PLAIN_MATERIAL_HAVE_BTDF) != 0 && dot(camDir, surfHit.normal) < -0.01f)
-      signOfNormal = -1.0f;
+    if (pHitMaterial != 0)
+    {
+      if ((materialGetFlags(pHitMaterial) & PLAIN_MATERIAL_HAVE_BTDF) != 0 && dot(camDir, surfHit.normal) < -0.01f)
+        signOfNormal = -1.0f;
 
-    ShadeContext sc;
-    sc.wp = surfHit.pos;
-    sc.l  = camDir;           
-    sc.v  = (-1.0f)*ray_dir;  
-    sc.n  = surfHit.normal;
-    sc.fn = surfHit.flatNormal;
-    sc.tg = surfHit.tangent;
-    sc.bn = surfHit.biTangent;
-    sc.tc = surfHit.texCoord;
-   
-    ProcTextureList ptl;
-    InitProcTextureList(&ptl);
-    ReadProcTextureList(in_procTexData, tid, iNumElements, 
-                        &ptl);
+      ShadeContext sc;
+      sc.wp = surfHit.pos;
+      sc.l  = camDir;
+      sc.v  = (-1.0f)*ray_dir;
+      sc.n  = surfHit.normal;
+      sc.fn = surfHit.flatNormal;
+      sc.tg = surfHit.tangent;
+      sc.bn = surfHit.biTangent;
+      sc.tc = surfHit.texCoord;
 
-    BxDFResult matRes = materialEval(pHitMaterial, &sc, false, true, /* global data --> */ a_globals, in_texStorage1, in_texStorage2, &ptl);
-    colorConnect      = matRes.brdf + matRes.btdf; 
-    pdfRevW           = matRes.pdfRev;
+      ProcTextureList ptl;
+      InitProcTextureList(&ptl);
+      ReadProcTextureList(in_procTexData, tid, iNumElements,
+                          &ptl);
+
+      BxDFResult matRes = materialEval(pHitMaterial, &sc, false, true, /* global data --> */ a_globals, in_texStorage1, in_texStorage2, &ptl);
+      colorConnect      = matRes.brdf + matRes.btdf;
+      pdfRevW           = matRes.pdfRev;
+    }
   }
 
   float misWeight = 1.0f;
@@ -405,6 +409,8 @@ __kernel void HitEnvOrLightKernel(__global const float4*    restrict in_rpos,
     const float3 ray_dir = to_float3(in_rdir[tid]);
 
     __global const PlainMaterial* pHitMaterial = materialAt(a_globals, in_mtlStorage, surfHit.matId);
+    if(pHitMaterial == 0)
+      return;
 
     // eval PDFs for 3WAY 
     //
@@ -540,10 +546,13 @@ __kernel void HitEnvOrLightKernel(__global const float4*    restrict in_rpos,
           if (misPrev.prevMaterialOffset >= 0)
           {
             __global const PlainMaterial* pPrevMaterial = materialAtOffset(in_mtlStorage, misPrev.prevMaterialOffset);
-
-            bool disableCaustics = (unpackBounceNumDiff(flags) > 0) && !(a_globals->g_flags & HRT_ENABLE_PT_CAUSTICS) && materialCastCaustics(pPrevMaterial); // and prev material cast caustics
-            if (disableCaustics)
-              emissColor = make_float3(0, 0, 0);
+            if(pPrevMaterial != 0)
+            {
+              bool disableCaustics = (unpackBounceNumDiff(flags) > 0) && !(a_globals->g_flags & HRT_ENABLE_PT_CAUSTICS) &&
+                                     materialCastCaustics(pPrevMaterial); // and prev material cast caustics
+              if (disableCaustics)
+                emissColor = make_float3(0, 0, 0);
+            }
           }
 
           hitLightSource = true; // kill thread next if it hit real light source
@@ -647,6 +656,8 @@ __kernel void Shade(__global const float4*    restrict a_rpos,
                  &surfHit);
 
   __global const PlainMaterial* pHitMaterial = materialAt(a_globals, in_mtlStorage, surfHit.matId);
+  if(pHitMaterial == 0)
+    return;
 
   float3 ray_pos = to_float3(a_rpos[tid]);
   float3 ray_dir = to_float3(a_rdir[tid]);
@@ -820,6 +831,9 @@ __kernel void NextBounce(__global   float4*        restrict a_rpos,
                  &surfHit);
 
   __global const PlainMaterial* pHitMaterial     = materialAt(a_globals, in_mtlStorage, surfHit.matId);
+  if(pHitMaterial == 0)
+    return;
+
   float4 emissData    = (in_emissionColor == 0) ? make_float4(0, 0, 0, 0) : in_emissionColor[tid];
   outPathColor        = to_float3(emissData);
   int matOffset       = materialOffset(a_globals, surfHit.matId);
@@ -1047,6 +1061,8 @@ __kernel void NextTransparentBounce(__global   float4*        restrict a_rpos,
                    &surfHit);
 
     __global const PlainMaterial* pHitMaterial = materialAt(in_globals, in_mtlStorage, surfHit.matId);
+    if(pHitMaterial == 0)
+      return;
 
     ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -1261,13 +1277,16 @@ __kernel void ReadDiffuseColor(__global const float4*    restrict a_rdir,
                    &surfHit);
 
     __global const PlainMaterial* pHitMaterial = materialAt(a_globals, in_mtlStorage, surfHit.matId);
+    if(pHitMaterial != 0)
+    {
+       ProcTextureList ptl;
+       InitProcTextureList(&ptl);
+       ReadProcTextureList(in_procTexData, tid, iNumElements,
+                           &ptl);
 
-    ProcTextureList ptl;
-    InitProcTextureList(&ptl);
-    ReadProcTextureList(in_procTexData, tid, iNumElements,
-                        &ptl);
-
-    color = materialEvalDiffuse(pHitMaterial, to_float3(a_rdir[tid]), surfHit.normal, surfHit.texCoord, a_globals, in_texStorage1, &ptl);
+       color = materialEvalDiffuse(pHitMaterial, to_float3(a_rdir[tid]), surfHit.normal, surfHit.texCoord, a_globals,
+                                   in_texStorage1, &ptl);
+    }
   }
 
   a_color[tid] = to_float4(color, 0.0f);
@@ -1308,8 +1327,10 @@ __kernel void GetGBufferSample(__global const float4*    a_rdir,
     ReadProcTextureList(in_procTexData, tid, iNumElements,
                         &ptl);
 
+    float3 diffColor = make_float3(0,0,0);
     __global const PlainMaterial* pHitMaterial = materialAt(a_globals, in_mtlStorage, surfHit.matId);
-    const float3 diffColor = materialEvalDiffuse(pHitMaterial, to_float3(a_rdir[tid]), surfHit.normal, surfHit.texCoord, a_globals, a_shadingTexture, &ptl);
+    if(pHitMaterial != 0)
+      diffColor = materialEvalDiffuse(pHitMaterial, to_float3(a_rdir[tid]), surfHit.normal, surfHit.texCoord, a_globals, a_shadingTexture, &ptl);
 
     samples[LOCAL_ID_X].data1.depth    = liteHit.t;
     samples[LOCAL_ID_X].data1.norm     = surfHit.normal;

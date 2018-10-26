@@ -263,6 +263,8 @@ __kernel void MakeAORays(__global const uint*      restrict in_flags,
                  &sHit);
 
   __global const PlainMaterial* pMaterialHead = materialAt(a_globals, in_mtlStorage, sHit.matId);
+  if(pMaterialHead == 0)
+    return;
 
   float3 sRayPos    = make_float3(0, 1e30f, 0);
   float3 sRayDir    = make_float3(0, 1, 0);
@@ -322,10 +324,12 @@ __kernel void MakeAORaysPacked4(__global const uint*      restrict in_flags,
     return;
 
   SurfaceHit sHit;
-  ReadSurfaceHit(in_surfaceHit, tid, iNumElements, 
+  ReadSurfaceHit(in_surfaceHit, tid, iNumElements,                                                //#TODO: opt surface read for this kernel !!!
                  &sHit);
 
   __global const PlainMaterial* pMaterialHead = materialAt(a_globals, in_mtlStorage, sHit.matId);
+  if(pMaterialHead == 0)
+    return;
 
   float3 sRayPos  = make_float3(0, 1e30f, 0);
   float3 sRayDir1 = make_float3(0, 1, 0);
@@ -347,10 +351,10 @@ __kernel void MakeAORaysPacked4(__global const uint*      restrict in_flags,
   if (MaterialHaveAO(pMaterialHead))
   {
     RandomGen gen = a_gens[tid];
-    float3 rands1 = to_float3(rndFloat4_Pseudo(&gen));
-    float3 rands2 = to_float3(rndFloat4_Pseudo(&gen));
-    float3 rands3 = to_float3(rndFloat4_Pseudo(&gen));
-    float3 rands4 = to_float3(rndFloat4_Pseudo(&gen));
+    const float3 rands1 = to_float3(rndFloat4_Pseudo(&gen));
+    const float3 rands2 = to_float3(rndFloat4_Pseudo(&gen));
+    const float3 rands3 = to_float3(rndFloat4_Pseudo(&gen));
+    const float3 rands4 = to_float3(rndFloat4_Pseudo(&gen));
     a_gens[tid]   = gen;
 
     const float3 aoDir = (aoType == AO_TYPE_UP) ? sHit.normal : -1.0f*(sHit.normal);
@@ -359,6 +363,7 @@ __kernel void MakeAORaysPacked4(__global const uint*      restrict in_flags,
     sRayDir2 = MapSampleToCosineDistribution(rands2.x, rands2.y, aoDir, aoDir, 1.0f);
     sRayDir3 = MapSampleToCosineDistribution(rands3.x, rands3.y, aoDir, aoDir, 1.0f);
     sRayDir4 = MapSampleToCosineDistribution(rands4.x, rands4.y, aoDir, aoDir, 1.0f);
+
     sRayPos  = OffsRayPos(sHit.pos, aoDir, aoDir);
 
     if (flagLocal)

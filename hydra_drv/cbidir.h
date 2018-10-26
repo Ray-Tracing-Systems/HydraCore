@@ -155,21 +155,23 @@ static float3 ConnectEyeP(const PathVertex* a_lv, float a_mLightSubPathCount, fl
   float3 colorConnect = make_float3(1, 1, 1);
   {
     __global const PlainMaterial* pHitMaterial = materialAt(a_globals, a_mltStorage, a_lv->hit.matId);
+    if(pHitMaterial != 0)
+    {
+      ShadeContext sc;
+      sc.wp = a_lv->hit.pos;
+      sc.l  = camDir;                // seems like that sc.l = camDir, see smallVCM
+      sc.v  = (-1.0f)*a_lv->ray_dir; // seems like that sc.v = (-1.0f)*ray_dir, see smallVCM
+      sc.n  = a_lv->hit.normal;
+      sc.fn = a_lv->hit.flatNormal;
+      sc.tg = a_lv->hit.tangent;
+      sc.bn = a_lv->hit.biTangent;
+      sc.tc = a_lv->hit.texCoord;
 
-    ShadeContext sc;
-    sc.wp = a_lv->hit.pos;
-    sc.l  = camDir;               // seems like that sc.l = camDir, see smallVCM
-    sc.v  = (-1.0f)*a_lv->ray_dir; // seems like that sc.v = (-1.0f)*ray_dir, see smallVCM
-    sc.n  = a_lv->hit.normal;
-    sc.fn = a_lv->hit.flatNormal;
-    sc.tg = a_lv->hit.tangent;
-    sc.bn = a_lv->hit.biTangent;
-    sc.tc = a_lv->hit.texCoord;
+      BxDFResult colorAndPdf = materialEval(pHitMaterial, &sc, false, true, a_globals, a_texStorage1, a_texStorage2, a_ptList);
 
-    BxDFResult colorAndPdf = materialEval(pHitMaterial, &sc, false, true, a_globals, a_texStorage1, a_texStorage2, a_ptList);
-
-    colorConnect     = colorAndPdf.brdf + colorAndPdf.btdf;
-    pdfRevW          = colorAndPdf.pdfRev;
+      colorConnect     = colorAndPdf.brdf + colorAndPdf.btdf;
+      pdfRevW          = colorAndPdf.pdfRev;
+    }
   }
 
   // we didn't eval reverse pdf yet. Imagine light ray hit surface and we immediately connect.
@@ -244,7 +246,9 @@ static float3 ConnectShadowP(__private const PathVertex* a_cv, const int a_camDe
   const float3 shadowRayDir = normalize(a_explicitSam.pos - a_cv->hit.pos); // explicitSam.direction;
   
   __global const PlainMaterial* pHitMaterial = materialAt(a_globals, a_mltStorage, a_cv->hit.matId);
-  
+  if(pHitMaterial == 0)
+    return make_float3(0,0,0);
+
   ShadeContext sc;
   sc.wp = a_cv->hit.pos;
   sc.l  = shadowRayDir;
@@ -334,14 +338,17 @@ static float3 ConnectEndPointsP(__private const PathVertex* a_lv, __private cons
     sc.tc = a_lv->hit.texCoord;
 
     __global const PlainMaterial* pHitMaterial = materialAt(a_globals, a_mltStorage, a_lv->hit.matId);
-    BxDFResult evalData = materialEval(pHitMaterial, &sc, false, true, /* global data --> */ a_globals, a_texStorage1, a_texStorage2, a_ptList);
-    lightBRDF     = evalData.brdf + evalData.btdf;
-    lightVPdfFwdW = evalData.pdfFwd;
-    lightVPdfRevW = evalData.pdfRev;
+    if(pHitMaterial != 0)
+    {
+      BxDFResult evalData = materialEval(pHitMaterial, &sc, false, true, /* global data --> */ a_globals, a_texStorage1, a_texStorage2, a_ptList);
+      lightBRDF     = evalData.brdf + evalData.btdf;
+      lightVPdfFwdW = evalData.pdfFwd;
+      lightVPdfRevW = evalData.pdfRev;
 
-    const bool underSurfaceL = (dot(lToC, a_lv->hit.normal) < -0.01f);
-    if ((materialGetFlags(pHitMaterial) & PLAIN_MATERIAL_HAVE_BTDF) != 0 && underSurfaceL)
-      signOfNormalL = -1.0f;
+      const bool underSurfaceL = (dot(lToC, a_lv->hit.normal) < -0.01f);
+      if ((materialGetFlags(pHitMaterial) & PLAIN_MATERIAL_HAVE_BTDF) != 0 && underSurfaceL)
+        signOfNormalL = -1.0f;
+    }
   }
 
   float3 camBRDF = make_float3(0, 0, 0);
@@ -360,14 +367,17 @@ static float3 ConnectEndPointsP(__private const PathVertex* a_lv, __private cons
     sc.tc = a_cv->hit.texCoord;
 
     __global const PlainMaterial* pHitMaterial = materialAt(a_globals, a_mltStorage, a_cv->hit.matId);
-    BxDFResult evalData = materialEval(pHitMaterial, &sc, false, false, /* global data --> */ a_globals, a_texStorage1, a_texStorage2, a_ptList);
-    camBRDF       = evalData.brdf + evalData.btdf;
-    camVPdfRevW   = evalData.pdfFwd;
-    camVPdfFwdW   = evalData.pdfRev;
+    if(pHitMaterial != 0)
+    {
+      BxDFResult evalData = materialEval(pHitMaterial, &sc, false, false, /* global data --> */ a_globals, a_texStorage1, a_texStorage2, a_ptList);
+      camBRDF       = evalData.brdf + evalData.btdf;
+      camVPdfRevW   = evalData.pdfFwd;
+      camVPdfFwdW   = evalData.pdfRev;
 
-    const bool underSurfaceC = (dot((-1.0f)*lToC, a_cv->hit.normal) < -0.01f);
-    if ((materialGetFlags(pHitMaterial) & PLAIN_MATERIAL_HAVE_BTDF) != 0 && underSurfaceC)
-      signOfNormalC = -1.0f;
+      const bool underSurfaceC = (dot((-1.0f)*lToC, a_cv->hit.normal) < -0.01f);
+      if ((materialGetFlags(pHitMaterial) & PLAIN_MATERIAL_HAVE_BTDF) != 0 && underSurfaceC)
+        signOfNormalC = -1.0f;
+    }
   }
 
   const float cosAtLightVertex      = +signOfNormalL*dot(a_lv->hit.normal, lToC);  // signOfNormalL*
@@ -459,9 +469,12 @@ static inline float3 environmentColor(float3 rayDir, MisData misPrev, unsigned i
   if (misPrev.prevMaterialOffset >= 0)
   {
     __global const PlainMaterial* pPrevMaterial = materialAtOffset(a_mltStorage, misPrev.prevMaterialOffset);                            // in_plainData + misPrev.prevMaterialOffset;
-    bool disableCaustics = (diffBounceNum > 0) && !(a_globals->g_flags & HRT_ENABLE_PT_CAUSTICS) && materialCastCaustics(pPrevMaterial); // and prev material cast caustics
-    if (disableCaustics)
-      envColor = make_float3(0, 0, 0);
+    if(pPrevMaterial != 0)
+    {
+      bool disableCaustics = (diffBounceNum > 0) && !(a_globals->g_flags & HRT_ENABLE_PT_CAUSTICS) && materialCastCaustics(pPrevMaterial); // and prev material cast caustics
+      if (disableCaustics)
+        envColor = make_float3(0, 0, 0);
+    }
   }
 
   // \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\

@@ -751,7 +751,6 @@ void GPUOCLLayer::runKernel_NextBounce(cl_mem a_rayFlags, cl_mem a_rpos, cl_mem 
 
 }
 
-
 void GPUOCLLayer::runKernel_NextTransparentBounce(cl_mem a_rpos, cl_mem a_rdir, cl_mem a_thoroughput, size_t a_size)
 {
   cl_kernel kernX = m_progs.material.kernel("NextTransparentBounce");
