@@ -249,7 +249,7 @@ protected:
     CL_BUFFERS_RAYS() : rayPos(0), rayDir(0), hits(0), rayFlags(0), hitSurfaceAll(0), hitProcTexData(0),
                         pathThoroughput(0), pathMisDataPrev(0), pathShadeColor(0), pathAccColor(0), pathAuxColor(0), pathAuxColorCPU(0), pathShadow8B(0), pathShadow8BAux(0), pathShadow8BAuxCPU(0), 
                         randGenState(0), lsamRev(0), shadowRayPos(0), shadowRayDir(0), accPdf(0), oldFlags(0), oldRayDir(0), oldColor(0),
-                        lshadow(0), fogAtten(0), samZindex(0), aoCompressed(0), aoCompressed2(0), lightOffsetBuff(0), packedXY(0), debugf4(0), atomicCounterMem(0), MEGABLOCKSIZE(0) {}
+                        lshadow(0), shadowTemp1i(0), fogAtten(0), samZindex(0), aoCompressed(0), aoCompressed2(0), lightOffsetBuff(0), packedXY(0), debugf4(0), atomicCounterMem(0), MEGABLOCKSIZE(0) {}
 
     void free();
     size_t resize(cl_context ctx, cl_command_queue cmdQueue, size_t a_size, bool a_cpuShare, bool a_cpuFB);
@@ -276,14 +276,14 @@ protected:
 
     cl_mem shadowRayPos;
     cl_mem shadowRayDir;
+    cl_mem lshadow;       // store short4 colored shadow;
+    cl_mem shadowTemp1i;
     cl_mem accPdf;        ///< accumulated pdf weights for 3-way Bogolepov light transport
 
                           // used when LT is enabled: store copy of curr bounce flags for ConnectEye:
     cl_mem oldFlags;      // prev bounce flags;                                                         #NOTE: when PT pass of IBPT is run, store camPdfA in this nuffer 
     cl_mem oldRayDir;     // prev bounce 'rayDir'
     cl_mem oldColor;      // prev bounce accumulated color
-
-    cl_mem lshadow;       // store short4 colored shadow;
 
     cl_mem fogAtten;
     cl_mem samZindex;     // used by LT only;
