@@ -481,7 +481,7 @@ void GPUOCLLayer::runKernel_ComputeAO2(cl_mem outCompressedAO, size_t a_size, in
 
   CHECK_CL(clSetKernelArg(kernAO, 4, sizeof(cl_mem), (void*)&m_rays.shadowRayPos));
   CHECK_CL(clSetKernelArg(kernAO, 5, sizeof(cl_mem), (void*)&m_rays.shadowRayDir));
-  CHECK_CL(clSetKernelArg(kernAO, 6, sizeof(cl_mem), (void*)&m_rays.lightOffsetBuff)); // put target inst id to 'lightOffsetBuff'
+  CHECK_CL(clSetKernelArg(kernAO, 6, sizeof(cl_mem), (void*)&m_rays.shadowTemp1i)); // put target inst id to 'shadowTemp1i'
 
   CHECK_CL(clSetKernelArg(kernAO, 7,  sizeof(cl_mem), (void*)&m_scene.storageTex));
   CHECK_CL(clSetKernelArg(kernAO, 8,  sizeof(cl_mem), (void*)&m_scene.storageMat));
@@ -494,7 +494,7 @@ void GPUOCLLayer::runKernel_ComputeAO2(cl_mem outCompressedAO, size_t a_size, in
 
   // (3) calc shadows
   //
-  runKernel_ShadowTraceAO(m_rays.rayFlags, m_rays.shadowRayPos, m_rays.shadowRayDir, m_rays.lightOffsetBuff, // read target inst id from 'lightOffsetBuff'
+  runKernel_ShadowTraceAO(m_rays.rayFlags, m_rays.shadowRayPos, m_rays.shadowRayDir, m_rays.shadowTemp1i, // read target inst id from 'shadowTemp1i'
                           m_rays.lshadow, AO_RAYS_PACKED*a_size);
 
   // (4) pack them in outCompressedAO

@@ -10,7 +10,7 @@
             "request": "launch",
             "program": "${workspaceFolder}/cmake-build-release/hydra_app/hydra",
             "args"   : ["-nowindow", "0", 
-                        "-saveinterval", "60",
+                        "-saveinterval", "300",
                         "-enable_mlt", "0"],
             "stopAtEntry": false,
             "cwd"    : "${workspaceFolder}/hydra_app",
