@@ -340,11 +340,11 @@ enum MEGATEX_USAGE{ MEGATEX_SHADING      = 1,
 
     #define COMMON_CPLUS_PLUS_CODE 1
 
-    ID_CALL int   __float_as_int(float x) { return *( (int*)&x ); }
-    ID_CALL float __int_as_float(int x) { return *( (float*)&x ); }
+    static inline int   __float_as_int(float x) { return *( (int*)&x ); }
+    static inline float __int_as_float(int x) { return *( (float*)&x ); }
    
-    ID_CALL int   as_int(float x) { return __float_as_int(x); }
-    ID_CALL float as_float(int x) { return __int_as_float(x); }
+    static inline int   as_int(float x) { return __float_as_int(x); }
+    static inline float as_float(int x) { return __int_as_float(x); }
 
     #define _PACKED
 
@@ -354,6 +354,8 @@ enum MEGATEX_USAGE{ MEGATEX_SHADING      = 1,
     IDH_CALL float sign(float a) { return (a > 0.0f) ? 1.0f : -1.0f; }
 
     IDH_CALL int2 make_int2(int a, int b) { int2 res; res.x = a; res.y = b; return res; }
+
+    using std::isinf;
 
     #define ENABLE_OPACITY_TEX 1
     #define SHADOW_TRACE_COLORED_SHADOWS 1
@@ -698,19 +700,29 @@ static inline float3 SafeInverse(float3 d)
 }
 
 static inline float epsilonOfPos(float3 hitPos) { return fmax(fmax(fabs(hitPos.x), fmax(fabs(hitPos.y), fabs(hitPos.z))), 2.0f*GEPSILON)*GEPSILON; }
-static inline float misHeuristicPower1(float p) { return isfinite(p) ? fabs(p) : 0.0f; }
-static inline float misHeuristicPower2(float p) { return isfinite(p) ? p*p     : 0.0f; }
+static inline float misHeuristicPower1(float p) { return isfinite(p)   ? fabs(p) : 0.0f; }
+static inline float misHeuristicPower2(float p) { return isfinite(p*p) ? p*p     : 0.0f; }
 
 static inline float misWeightHeuristic(float a, float b)
 {
-  const float w = misHeuristicPower1(a) / fmax(misHeuristicPower1(a) + misHeuristicPower1(b), DEPSILON2);
-  return isfinite(w) ? w : 0.0f;
+  if(isinf(a) && isfinite(b))
+    return 1.0f;
+  else
+  {
+    const float w = misHeuristicPower1(a) / fmax(misHeuristicPower1(a) + misHeuristicPower1(b), DEPSILON2);
+    return isfinite(w) ? w : 0.0f;
+  }
 }
 
 static inline float misWeightHeuristic3(float a, float b, float c)
 {
-  const float w = misHeuristicPower2(a) / fmax(misHeuristicPower2(a) + misHeuristicPower2(b) + misHeuristicPower2(c), DEPSILON2);
-  return isfinite(w) ? w : 0.0f;
+  if(isinf(a) && isfinite(b) && isfinite(c))
+    return 1.0f;
+  else
+  {
+    const float w = misHeuristicPower2(a) / fmax(misHeuristicPower2(a) + misHeuristicPower2(b) + misHeuristicPower2(c), DEPSILON2);
+    return isfinite(w) ? w : 0.0f;
+  }
 }
 
 /**
