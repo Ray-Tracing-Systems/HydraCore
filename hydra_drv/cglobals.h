@@ -2351,15 +2351,17 @@ static inline void ReadProcTextureList(__global float4* fdata, int tid, int size
 */
 static inline float4 readProcTex(int a_texId, const __private ProcTextureList* a_pList)
 {
-  const int maxIter = (a_pList->currMaxProcTex < MAXPROCTEX) ? a_pList->currMaxProcTex :  MAXPROCTEX; // min
-  
-  for(int i=0; i<maxIter; i++) // #TODO: opt this for GPU ???
-  {
-    if(a_texId == a_pList->id_f4[i])
-      return to_float4(a_pList->fdata4[i], 0.0f);
-  }  
-
   return make_float4(1, 1, 1, -1.0f);
+  
+  //const int maxIter = (a_pList->currMaxProcTex < MAXPROCTEX) ? a_pList->currMaxProcTex :  MAXPROCTEX; // min
+  //
+  //for(int i=0; i<maxIter; i++) // #TODO: opt this for GPU ???
+  //{
+  //  if(a_texId == a_pList->id_f4[i])
+  //    return to_float4(a_pList->fdata4[i], 0.0f);
+  //}  
+  //
+  //return make_float4(1, 1, 1, -1.0f);
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////

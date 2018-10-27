@@ -133,7 +133,8 @@ void GPUOCLLayer::MMLT_Pass(int a_passNumber, int minBounce, int maxBounce, int 
     m_raysWasSorted = false;
     // (1) make poposal / gen rands
     //
-    runKernel_MMLTMakeProposal(m_mlt.rstateOld, m_mlt.xVector, 0, maxBounce, m_rays.MEGABLOCKSIZE,
+    const int largeStep = (pass + 1) % 4 == 0 ? 1 : 0;
+    runKernel_MMLTMakeProposal(m_mlt.rstateOld, m_mlt.xVector, largeStep, maxBounce, m_rays.MEGABLOCKSIZE,
                                m_mlt.rstateOld, m_mlt.yVector);
     
     // (2) trace; 

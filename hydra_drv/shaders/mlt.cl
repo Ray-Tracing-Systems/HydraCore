@@ -285,11 +285,11 @@ __kernel void MMLTMakeProposal(__global int2*            restrict a_split,
     const float p = rndFloat1_Pseudo(&gen);
     if(a_forceLargeStep != 1)
     {
-      if(p <= 0.5f)
-        largeStep = true;
-      else if(0.5f < p && p <= 0.666667f)
+      //if(p <= 0.25f)
+      //  largeStep = true;
+      if(p <= 0.333f)
         smallStepType = MUTATE_LIGHT;
-      else if (0.666667 < p && p <= 0.85f)
+      else if (0.333f < p && p <= 0.667f)
         smallStepType = MUTATE_LIGHT | MUTATE_CAMERA;
       else
         smallStepType = MUTATE_CAMERA;
