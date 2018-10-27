@@ -2351,17 +2351,45 @@ static inline void ReadProcTextureList(__global float4* fdata, int tid, int size
 */
 static inline float4 readProcTex(int a_texId, const __private ProcTextureList* a_pList)
 {
+  //for(int i=0; i<maxIter; i++) 
+  //{
+  //  if(a_texId == a_pList->id_f4[i])
+  //    return to_float4(a_pList->fdata4[i], 0.0f);
+  //}  
+  //
   //return make_float4(1, 1, 1, -1.0f);
 
   const int maxIter = (a_pList->currMaxProcTex < MAXPROCTEX) ? a_pList->currMaxProcTex :  MAXPROCTEX; // min
   
-  for(int i=0; i<maxIter; i++) // #TODO: opt this for GPU ???
-  {
-    if(a_texId == a_pList->id_f4[i])
-      return to_float4(a_pList->fdata4[i], 0.0f);
-  }  
-  
-  return make_float4(1, 1, 1, -1.0f);
+  float4 quad1 = make_float4(1, 1, 1, -1.0f);
+  quad1 = (0 < maxIter && a_texId == a_pList->id_f4[0]) ? to_float4(a_pList->fdata4[0], 0.0f) : quad1;  
+  quad1 = (1 < maxIter && a_texId == a_pList->id_f4[1]) ? to_float4(a_pList->fdata4[1], 0.0f) : quad1;
+  quad1 = (2 < maxIter && a_texId == a_pList->id_f4[2]) ? to_float4(a_pList->fdata4[2], 0.0f) : quad1;
+  quad1 = (3 < maxIter && a_texId == a_pList->id_f4[3]) ? to_float4(a_pList->fdata4[3], 0.0f) : quad1;
+
+  float4 quad2 = make_float4(1, 1, 1, -1.0f);
+  quad2 = (4 < maxIter && a_texId == a_pList->id_f4[4]) ? to_float4(a_pList->fdata4[4], 0.0f) : quad2;  
+  quad2 = (5 < maxIter && a_texId == a_pList->id_f4[5]) ? to_float4(a_pList->fdata4[5], 0.0f) : quad2;
+  quad2 = (6 < maxIter && a_texId == a_pList->id_f4[6]) ? to_float4(a_pList->fdata4[6], 0.0f) : quad2;
+  quad2 = (7 < maxIter && a_texId == a_pList->id_f4[7]) ? to_float4(a_pList->fdata4[7], 0.0f) : quad2;
+
+  const float4 quad12 = (quad1.w != -1.0f) ? quad1 : quad2;
+
+  float4 quad3 = make_float4(1, 1, 1, -1.0f);
+  quad3 = (8  < maxIter && a_texId == a_pList->id_f4[8])  ? to_float4(a_pList->fdata4[8],  0.0f) : quad3;  
+  quad3 = (9  < maxIter && a_texId == a_pList->id_f4[9])  ? to_float4(a_pList->fdata4[9],  0.0f) : quad3;
+  quad3 = (10 < maxIter && a_texId == a_pList->id_f4[10]) ? to_float4(a_pList->fdata4[10], 0.0f) : quad3;
+  quad3 = (11 < maxIter && a_texId == a_pList->id_f4[11]) ? to_float4(a_pList->fdata4[11], 0.0f) : quad3;
+
+  float4 quad4 = make_float4(1, 1, 1, -1.0f);
+  quad4 = (12 < maxIter && a_texId == a_pList->id_f4[12]) ? to_float4(a_pList->fdata4[12], 0.0f) : quad4;  
+  quad4 = (13 < maxIter && a_texId == a_pList->id_f4[13]) ? to_float4(a_pList->fdata4[13], 0.0f) : quad4;
+  quad4 = (14 < maxIter && a_texId == a_pList->id_f4[14]) ? to_float4(a_pList->fdata4[14], 0.0f) : quad4;
+  quad4 = (15 < maxIter && a_texId == a_pList->id_f4[15]) ? to_float4(a_pList->fdata4[15], 0.0f) : quad4;
+
+  const float4 quad34 = (quad3.w != -1.0f) ? quad3 : quad4;
+
+  return (quad12.w != -1.0f) ? quad12 : quad34;
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
