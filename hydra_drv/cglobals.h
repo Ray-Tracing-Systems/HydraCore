@@ -340,20 +340,17 @@ enum MEGATEX_USAGE{ MEGATEX_SHADING      = 1,
 
     #define COMMON_CPLUS_PLUS_CODE 1
 
-    static inline int   __float_as_int(float x) { return *( (int*)&x ); }
-    static inline float __int_as_float(int x) { return *( (float*)&x ); }
-   
-    static inline int   as_int(float x) { return __float_as_int(x); }
-    static inline float as_float(int x) { return __int_as_float(x); }
+    static inline int   as_int(float x) { return reinterpret_cast<int&>  (x); }
+    static inline float as_float(int x) { return reinterpret_cast<float&>(x); }
 
     #define _PACKED
 
     typedef unsigned short half;
-    ID_CALL void vstore_half(float data, size_t offset, __global half *p) { p[offset] = 0; }
+    static inline void vstore_half(float data, size_t offset, __global half *p) { p[offset] = 0; }
 
-    IDH_CALL float sign(float a) { return (a > 0.0f) ? 1.0f : -1.0f; }
+    static inline float sign(float a) { return (a > 0.0f) ? 1.0f : -1.0f; }
 
-    IDH_CALL int2 make_int2(int a, int b) { int2 res; res.x = a; res.y = b; return res; }
+    static inline int2 make_int2(int a, int b) { int2 res; res.x = a; res.y = b; return res; }
 
     using std::isinf;
 
