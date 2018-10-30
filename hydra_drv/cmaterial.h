@@ -751,8 +751,8 @@ static inline float TorranceSparrowG2(const float3 wo, const float3 wi, const fl
 
 static inline float TorranceSparrowGF1(const float3 wo, const float3 wi) // in PBRT coord system
 {
-  float cosThetaO = fabs(wo.z); // inline float AbsCosTheta(const Vector &w) { return fabsf(w.z); }
-  float cosThetaI = fabs(wi.z); // inline float AbsCosTheta(const Vector &w) { return fabsf(w.z); }
+  const float cosThetaO = fabs(wo.z); // inline float AbsCosTheta(const Vector &w) { return fabsf(w.z); }
+  const float cosThetaI = fabs(wi.z); // inline float AbsCosTheta(const Vector &w) { return fabsf(w.z); }
 
   if (cosThetaI == 0.0f || cosThetaO == 0.0f)
     return 0.0f;
@@ -763,16 +763,16 @@ static inline float TorranceSparrowGF1(const float3 wo, const float3 wi) // in P
 
   wh = normalize(wh);
 
-  float cosThetaH = dot(wi, wh);
-  float F = FrCond(cosThetaH, 5.0f, 1.25f); // fresnel->Evaluate(cosThetaH);
+  const float cosThetaH = dot(wi, wh);
+  const float F         = FrCond(cosThetaH, 5.0f, 1.25f); // fresnel->Evaluate(cosThetaH);
 
-  return fmin(TorranceSparrowG1(wo, wi, wh) * F / fmax(4.f * cosThetaI * cosThetaO, DEPSILON), 50.0f);
+  return fmin(TorranceSparrowG1(wo, wi, wh) * F / fmax(4.f * cosThetaI * cosThetaO, DEPSILON), 1000.0f);
 }
 
 static inline float TorranceSparrowGF2(const float3 wo, const float3 wi, const float3 n)  // in normal word coord system
 {
-  float cosThetaO = fabs(dot(wo,n)); // inline float AbsCosTheta(const Vector &w) { return fabsf(w.z); }
-  float cosThetaI = fabs(dot(wi,n)); // inline float AbsCosTheta(const Vector &w) { return fabsf(w.z); }
+  const float cosThetaO = fabs(dot(wo,n)); // inline float AbsCosTheta(const Vector &w) { return fabsf(w.z); }
+  const float cosThetaI = fabs(dot(wi,n)); // inline float AbsCosTheta(const Vector &w) { return fabsf(w.z); }
 
   if (cosThetaI == 0.f || cosThetaO == 0.0f)
     return 0.0f;
@@ -783,10 +783,10 @@ static inline float TorranceSparrowGF2(const float3 wo, const float3 wi, const f
 
   wh = normalize(wh);
 
-  float cosThetaH = dot(wi, wh);
-  float F = FrCond(cosThetaH, 5.0f, 1.25f); // fresnel->Evaluate(cosThetaH);
+  const float cosThetaH = dot(wi, wh);
+  const float F         = FrCond(cosThetaH, 5.0f, 1.25f); // fresnel->Evaluate(cosThetaH);
 
-  return fmin(TorranceSparrowG2(wo, wi, wh, n) * F / fmax(4.0f * cosThetaI * cosThetaO, DEPSILON), 4.0f);
+  return fmin(TorranceSparrowG2(wo, wi, wh, n) * F / fmax(4.0f * cosThetaI * cosThetaO, DEPSILON), 10.0f);
 }
 
 
@@ -835,7 +835,7 @@ static inline float3 blinnEvalBxDF(__global const PlainMaterial* a_pMat, const f
 {
   const float3 texColor = sample2DExt(blinnGetTex(a_pMat).y, a_texCoord, (__global const int4*)a_pMat, a_tex, a_globals, a_ptList);
 
-  const float3 color    = BLINN_COLOR_MULT*clamp(blinnGetColor(a_pMat)*texColor, 0.0f, 1.0f);
+  const float3 color    = clamp(blinnGetColor(a_pMat)*texColor, 0.0f, 1.0f);
   const float  gloss    = blinnGlosiness(a_pMat, a_texCoord, a_globals, a_tex, a_ptList);
   const float  exponent = cosPowerFromGlosiness(gloss); 
 
@@ -845,7 +845,7 @@ static inline float3 blinnEvalBxDF(__global const PlainMaterial* a_pMat, const f
   const float D         = (exponent + 2.0f) * INV_TWOPI * pow(costhetah, exponent);
   const float cosTheta  = fmax(dot(l, n), 0.0f);
 
-  return color*D*TorranceSparrowGF2(l, v, n);
+  return BLINN_COLOR_MULT*color*D*TorranceSparrowGF2(l, v, n);
 }
 
 static inline void BlinnSampleAndEvalBRDF(__global const PlainMaterial* a_pMat, const float a_r1, const float a_r2, const float3 ray_dir, const float3 a_normal, const float2 a_texCoord,
@@ -853,7 +853,7 @@ static inline void BlinnSampleAndEvalBRDF(__global const PlainMaterial* a_pMat, 
                                           __private MatSample* a_out)
 {
   const float3 texColor = sample2DExt(blinnGetTex(a_pMat).y, a_texCoord, (__global const int4*)a_pMat, a_tex, a_globals, a_ptList);
-  const float3 color    = BLINN_COLOR_MULT*clamp(blinnGetColor(a_pMat)*texColor, 0.0f, 1.0f);
+  const float3 color    = clamp(blinnGetColor(a_pMat)*texColor, 0.0f, 1.0f);
   const float  gloss    = blinnGlosiness(a_pMat, a_texCoord, a_globals, a_tex, a_ptList);
   const float  cosPower = cosPowerFromGlosiness(gloss);
 
@@ -892,19 +892,17 @@ static inline void BlinnSampleAndEvalBRDF(__global const PlainMaterial* a_pMat, 
   const float blinn_pdf = ((exponent + 1.0f) * pow(costheta, exponent)) / fmax(2.f * M_PI * 4.f * dot(wo, wh), DEPSILON);
   const float D         = ((exponent + 2.0f) * INV_TWOPI * pow(costheta, exponent));
 
-  const float3 newDir      = wi.x*nx + wi.y*ny + wi.z*nz;
-  const float  cosThetaOut = dot(newDir, a_normal);
+  const float3 newDir      = wi.x*nx + wi.y*ny + wi.z*nz; // back to normal coordinate system
+  const float  cosThetaOut = fabs(dot(newDir, a_normal));
+  const float  GF1         = TorranceSparrowGF1(wo, wi);
 
-  const float  GF1 = TorranceSparrowGF1(wo, wi);
+  const float estimatedThoroughput = cosThetaOut*(D * GF1) / fmax(blinn_pdf, DEPSILON2);
+  const float brightBordersMult    = fmin(estimatedThoroughput, 0.675f) / fmax(estimatedThoroughput, DEPSILON2);
 
-  a_out->direction = newDir; // back to normal coordinate system
+  a_out->direction = newDir; 
   a_out->pdf       = blinn_pdf;
-  a_out->color     = color * D * GF1;
-
-  if (cosThetaOut <= 1e-6f || dot(wo, wh) <= 0.0f) // reflection under surface occured
-    a_out->color = make_float3(0, 0, 0);
-
-  a_out->flags = (gloss == 1.0f) ? RAY_EVENT_S : RAY_EVENT_G;
+  a_out->color     = (BLINN_COLOR_MULT * color * D * GF1) * brightBordersMult;
+  a_out->flags     = RAY_EVENT_G;
 }
 
 
