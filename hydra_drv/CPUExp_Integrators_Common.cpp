@@ -292,6 +292,9 @@ void IntegratorCommon::DoPass(std::vector<uint>& a_imageLDR)
       float3 ray_pos, ray_dir;
       std::tie(ray_pos, ray_dir) = makeEyeRay(x, y);
 
+      if (x == 725 && y == 391)
+        int a = 2;
+
 			const float3 color = PathTrace(ray_pos, ray_dir, makeInitialMisData(), 0, 0); 
       const float maxCol = maxcomp(color);
 
@@ -409,9 +412,7 @@ void IntegratorCommon::TracePrimary(std::vector<uint>& a_imageLDR)
       float3 ray_pos, ray_dir;
       std::tie(ray_pos,ray_dir) = makeEyeRay(x, y);
 
-      if (x == 512 && y == 125)
-        int a = 2;
-      if (x == 667 && y == 487)
+      if (x == 725 && y == 391)
         int a = 2;
 
       float3 color = IntegratorCommon::PathTrace(ray_pos, ray_dir, makeInitialMisData(), 0, 0); // IntegratorCommon::PathTrace

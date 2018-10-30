@@ -53,13 +53,6 @@ static inline float sigmoid(float x)
   return 1.0f / (1.0f + exp(-1.0f*x));
 }
 
-static inline float PreDivCosThetaFixMult(const float gloss, const float cosThetaOut)
-{
-  const float t       = sigmoid(20.0f*(gloss - 0.5f));
-  const float lerpVal = 1.0f + t*(1.0f / fmax(cosThetaOut, 1e-5f) - 1.0f); // mylerp { return u + t * (v - u); }
-  return lerpVal;
-}
-
 //////////////////////////////////////////////////////////////// all other components may overlay their offsets
 
 // lambert material
@@ -638,6 +631,13 @@ static inline float phongEvalPDF(__global const PlainMaterial* a_pMat, const flo
   return pow(cosTheta, cosPower) * (cosPower + 1.0f) * (0.5f * INV_PI);
 }
 
+static inline float PhongPreDivCosThetaFixMult(const float gloss, const float cosThetaOut)
+{
+  const float t       = sigmoid(20.0f*(gloss - 0.5f));
+  const float lerpVal = 1.0f + t*(1.0f / fmax(cosThetaOut, 1e-5f) - 1.0f); // mylerp { return u + t * (v - u); }
+  return lerpVal;
+}
+
 static inline float3 phongEvalBxDF(__global const PlainMaterial* a_pMat, const float3 l, const float3 v, const float3 n, const float2 a_texCoord, const bool a_fwdDir,
                                    __global const EngineGlobals* a_globals, texture2d_t a_tex, __private const ProcTextureList* a_ptList)
 {
@@ -650,7 +650,7 @@ static inline float3 phongEvalBxDF(__global const PlainMaterial* a_pMat, const f
   const float3 r        = reflect((-1.0)*v, n);
   const float  cosAlpha = clamp(dot(l, r), 0.0f, M_PI*0.499995f);
 
-  const float cosThetaFix = a_fwdDir ? PreDivCosThetaFixMult(gloss, fabs(dot(v, n))) : 1.0f;
+  const float cosThetaFix = a_fwdDir ? PhongPreDivCosThetaFixMult(gloss, fabs(dot(v, n))) : 1.0f;
   
   return color*(cosPower + 2.0f)*0.5f*INV_PI*pow(cosAlpha, cosPower-1.0f)*cosThetaFix; // 
 }
@@ -671,7 +671,7 @@ static inline void PhongSampleAndEvalBRDF(__global const PlainMaterial* a_pMat, 
   const float cosAlpha    = clamp(dot(newDir, r), 0.0, M_PI*0.499995f);
   const float cosThetaOut = dot(newDir, a_normal);
  
-  const float cosLerp     = PreDivCosThetaFixMult(gloss, cosThetaOut);
+  const float cosLerp     = PhongPreDivCosThetaFixMult(gloss, cosThetaOut);
 
   a_out->direction    = newDir;
   a_out->pdf          = pow(cosAlpha, cosPower) * (cosPower + 1.0f) * (0.5f * INV_PI);
@@ -766,7 +766,7 @@ static inline float TorranceSparrowGF1(const float3 wo, const float3 wi) // in P
   float cosThetaH = dot(wi, wh);
   float F = FrCond(cosThetaH, 5.0f, 1.25f); // fresnel->Evaluate(cosThetaH);
 
-  return fmin(TorranceSparrowG1(wo, wi, wh) * F / fmax(4.f * cosThetaI * cosThetaO, DEPSILON), 4.0f);
+  return fmin(TorranceSparrowG1(wo, wi, wh) * F / fmax(4.f * cosThetaI * cosThetaO, DEPSILON), 50.0f);
 }
 
 static inline float TorranceSparrowGF2(const float3 wo, const float3 wi, const float3 n)  // in normal word coord system
@@ -894,11 +894,12 @@ static inline void BlinnSampleAndEvalBRDF(__global const PlainMaterial* a_pMat, 
 
   const float3 newDir      = wi.x*nx + wi.y*ny + wi.z*nz;
   const float  cosThetaOut = dot(newDir, a_normal);
-  const float cosLerp      = 1.0f; //PreDivCosThetaFixMult(gloss, cosThetaOut);
+
+  const float  GF1 = TorranceSparrowGF1(wo, wi);
 
   a_out->direction = newDir; // back to normal coordinate system
   a_out->pdf       = blinn_pdf;
-  a_out->color     = color * D * TorranceSparrowGF1(wo, wi) * cosLerp;
+  a_out->color     = color * D * GF1;
 
   if (cosThetaOut <= 1e-6f || dot(wo, wh) <= 0.0f) // reflection under surface occured
     a_out->color = make_float3(0, 0, 0);
