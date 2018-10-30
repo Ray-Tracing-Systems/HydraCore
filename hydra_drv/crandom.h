@@ -491,7 +491,7 @@ static inline void RndMatAll(RandomGen* gen, __global const float* rptr, const i
 
   __global const float* rptrLayer = (rptr == 0) ? 0 : rptr + MMLT_FLOATS_PER_SAMPLE;
 
-  #pragma unroll MMLT_FLOATS_PER_MLAYER
+  #pragma unroll (MMLT_FLOATS_PER_MLAYER)
   for(int layerId=0;layerId<MMLT_FLOATS_PER_MLAYER;layerId++)
     a_rands[MMLT_FLOATS_PER_SAMPLE + layerId] = rndMatLayer(gen, rptrLayer, bounceId, layerId, a_tab, a_qmcPos, a_qmcTable);
 }
