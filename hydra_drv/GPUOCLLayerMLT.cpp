@@ -45,6 +45,8 @@ void GPUOCLLayer::CL_MLT_DATA::free()
 
   if (splitData)             { clReleaseMemObject(splitData);         splitData       = 0; }
   if (scaleTable)            { clReleaseMemObject(scaleTable);        scaleTable      = 0; }
+  if (scaleTable2)           { clReleaseMemObject(scaleTable2);       scaleTable2     = 0; }
+
 
   rstateCurr = 0;
   memTaken   = 0;
@@ -138,7 +140,8 @@ size_t GPUOCLLayer::MLT_Alloc(int a_width, int a_height, int a_maxBounce)
   for(auto& coeff : scale)
     coeff = 1.0f;
 
-  m_mlt.scaleTable = clCreateBuffer(m_globals.ctx, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, 256*sizeof(float), (void*)scale.data(), &ciErr1);   
+  m_mlt.scaleTable  = clCreateBuffer(m_globals.ctx, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, 256*sizeof(float), (void*)scale.data(), &ciErr1);
+  m_mlt.scaleTable2 = clCreateBuffer(m_globals.ctx, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, 256*sizeof(float), (void*)scale.data(), &ciErr1);    
   if (ciErr1 != CL_SUCCESS) 
     RUN_TIME_ERROR("Error in clCreateBuffer");
 

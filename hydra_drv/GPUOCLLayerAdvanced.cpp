@@ -147,7 +147,7 @@ void GPUOCLLayer::MMLT_Pass(int a_passNumber, int minBounce, int maxBounce, int 
 
     // (3) Accept/Reject => (xColor, yColor)
     //
-    runKernel_AcceptReject(m_mlt.xVector, m_mlt.yVector, m_mlt.xColor, m_mlt.yColor, m_mlt.scaleTable, m_mlt.splitData,
+    runKernel_AcceptReject(m_mlt.xVector, m_mlt.yVector, m_mlt.xColor, m_mlt.yColor, m_mlt.scaleTable2, m_mlt.splitData,
                            m_mlt.rstateForAcceptReject, maxBounce, m_rays.MEGABLOCKSIZE,
                            m_mlt.xMultOneMinusAlpha, m_mlt.yMultAlpha);
     
@@ -439,10 +439,17 @@ float GPUOCLLayer::MMLT_BurningIn(int minBounce, int maxBounce, int BURN_ITERS,
   std::vector<float> scale(maxBounce+1);
   for(int i=0;i<scale.size();i++)
   {
-    scale[i] = 1.0f;
-    //scale[i] = float(i+1)*float(m_rays.MEGABLOCKSIZE) / fmax(float(threadsNumCopy[i]), 2.0f);
+    //scale[i] = 1.0f;
+    scale[i] = float(i+1)*float(m_rays.MEGABLOCKSIZE) / fmax(float(threadsNumCopy[i]), 2.0f);
   }
   CHECK_CL(clEnqueueWriteBuffer(m_globals.cmdQueue, out_normC, CL_TRUE, 0, scale.size()*sizeof(float), (void*)scale.data(), 0, NULL, NULL));
+  
+  // init m_mlt.scaleTable2
+  // 
+  scale.resize(256);
+  for(auto& x : scale)
+    x = 1.0f;
+  CHECK_CL(clEnqueueWriteBuffer(m_globals.cmdQueue, m_mlt.scaleTable2, CL_TRUE, 0, scale.size()*sizeof(float), (void*)scale.data(), 0, NULL, NULL));
 
   return avgBrightness;
 }
@@ -470,7 +477,8 @@ void GPUOCLLayer::MMLTUpdateAverageBrightnessConstants(int minBounce, cl_mem in_
 
     // (2) Reduce contrib func
     //
-    const double scaleCoeff        = double(bounce+1)*double(m_rays.MEGABLOCKSIZE) / fmax(double(perBounceThreads[bounce]), 1.0);
+    //const double scaleCoeff        = double(bounce+1)*double(m_rays.MEGABLOCKSIZE) / fmax(double(perBounceThreads[bounce]), 1.0);
+    const double scaleCoeff        = 1.0f;
     const double avgBrightness     = scaleCoeff*reduce_add1f(temp_f1, currSize);
     m_mlt.avgBrightnessCPU[bounce] = avgBrightness*alpha + (1.0 - alpha)*m_mlt.avgBrightnessCPU[bounce];
     currOffset += currSize;

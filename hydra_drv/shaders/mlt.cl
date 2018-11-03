@@ -135,9 +135,9 @@ __kernel void MMLTAcceptReject(__global       float*         restrict a_xVector,
                                __global const float*         restrict a_yVector,
                                __global       float4*        restrict a_xColor,
                                __global const float4*        restrict a_yColor,
-                               
+
                                __global const int2*          restrict a_split, 
-                               __constant     float*         restrict a_scaleTable,
+                               __global       float*         restrict a_scaleTable,
                                
                                __global   RandomGen*         restrict a_gensAR,
                                __global       float4*        restrict out_xAlpha,
@@ -153,7 +153,8 @@ __kernel void MMLTAcceptReject(__global       float*         restrict a_xVector,
   const float p = rndFloat1_Pseudo(&gen);
   a_gensAR[tid] = gen;
   
-  const int d   = a_split[tid].x;
+  const int d       = a_split[tid].x;  // per bounce average bounce refinement
+  const float coeff = a_scaleTable[d]; // per bounce average bounce refinement
 
   const float4 yOldColor = a_xColor[tid];
   const float4 yNewColor = a_yColor[tid];
@@ -164,8 +165,8 @@ __kernel void MMLTAcceptReject(__global       float*         restrict a_xVector,
   const float a = (yOld == 0.0f) ? 1.0f : fmin(1.0f, yNew / yOld);
 
   float4 contribAtX, contribAtY;
-  contribAtX.xyz = yOldColor.xyz*(1.0f / fmax(yOld, 1e-6f))*(1.0f - a);  contribAtX.w = yOldColor.w;
-  contribAtY.xyz = yNewColor.xyz*(1.0f / fmax(yNew, 1e-6f))*a;           contribAtY.w = yNewColor.w;
+  contribAtX.xyz = yOldColor.xyz*(1.0f / fmax(yOld, 1e-6f))*(1.0f - a)*coeff;  contribAtX.w = yOldColor.w;
+  contribAtY.xyz = yNewColor.xyz*(1.0f / fmax(yNew, 1e-6f))*a*coeff;           contribAtY.w = yNewColor.w;
 
   out_xAlpha[tid] = contribAtX;
   out_yAlpha[tid] = contribAtY;
