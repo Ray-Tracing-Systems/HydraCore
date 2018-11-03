@@ -209,6 +209,7 @@ size_t GPUOCLLayer::MMLTInitSplitDataUniform(int bounceBeg, int a_maxDepth, size
     float& selectorInvPdf = scale[i]; // (1.0f/float(NUM_MMLT_PASS))
     const int d    = i;
     selectorInvPdf = float((d+1)*bouncesIntoAccount);
+    //               double(bounce+1)*double(m_rays.MEGABLOCKSIZE);
   }
 
   CHECK_CL(clEnqueueWriteBuffer(m_globals.cmdQueue, a_splitData,  CL_TRUE, 0, splitDataCPU.size()*sizeof(int2), (void*)splitDataCPU.data(), 0, NULL, NULL));
@@ -490,6 +491,8 @@ void GPUOCLLayer::MMLTUpdateAverageBrightnessConstants(int minBounce, cl_mem in_
     for(int bounce = minBounce; bounce < m_mlt.avgBrightnessCPU.size(); bounce++)
       std::cout << "avgB(" << bounce << ") = " << m_mlt.avgBrightnessCPU[bounce] << "\tthreads = " << perBounceThreads[bounce] << std::endl;
     std::cout << std::endl;
+
+    //CHECK_CL(clEnqueueWriteBuffer(m_globals.cmdQueue, m_mlt.scaleTable2, CL_TRUE, 0, scale.size()*sizeof(float), (void*)scale.data(), 0, NULL, NULL));
   }
 
   m_mlt.avgBrightnessSamples++;
