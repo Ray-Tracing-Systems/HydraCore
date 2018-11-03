@@ -143,9 +143,7 @@ void GPUOCLLayer::MMLT_Pass(int a_passNumber, int minBounce, int maxBounce, int 
               m_mlt.yColor);
     
     if(largeStep)
-    {
-      //UpdateAverageBrightnessConstants();
-    }
+      MMLTUpdateAverageBrightnessConstants(m_mlt.yColor, m_rays.MEGABLOCKSIZE);
 
     // (3) Accept/Reject => (xColor, yColor)
     //
@@ -332,9 +330,6 @@ float GPUOCLLayer::MMLT_BurningIn(int minBounce, int maxBounce, int BURN_ITERS,
     runKernel_MLTSelectSampleProportionalToContrib(m_mlt.rstateCurr, m_mlt.splitData, temp_f1, m_rays.MEGABLOCKSIZE, m_mlt.rstateForAcceptReject, BURN_PORTION,
                                                    BURN_PORTION*iter, m_mlt.rstateOld, m_mlt.dOld);
 
-    // accum normalisation constant per bounce (#TBD!!!)
-    //
-
     clFinish(m_globals.cmdQueue);
     
     if(iter%4 == 0)
@@ -392,6 +387,8 @@ float GPUOCLLayer::MMLT_BurningIn(int minBounce, int maxBounce, int BURN_ITERS,
   for(int i=0;i<threadsNumCopy.size();i++)
      std::cout << "[d = " << i << ", N = " << threadsNumCopy[i] << ", coeff = 1]" << std::endl;
 
+  m_mlt.perBounceThreads = threadsNumCopy;
+
   for(int i=0;i<=minBounce;i++)
     out_activeThreads[i] = int(m_rays.MEGABLOCKSIZE);
 
@@ -436,9 +433,23 @@ float GPUOCLLayer::MMLT_BurningIn(int minBounce, int maxBounce, int BURN_ITERS,
     //scale[i] = 1.0f;
     scale[i] = float(i+1)*float(m_rays.MEGABLOCKSIZE) / fmax(float(threadsNumCopy[i]), 2.0f);
   }
+  m_mlt.scaleTableCPU = scale;
   CHECK_CL(clEnqueueWriteBuffer(m_globals.cmdQueue, out_normC, CL_TRUE, 0, scale.size()*sizeof(float), (void*)scale.data(), 0, NULL, NULL));
 
   return avgBrightness;
+}
+
+void GPUOCLLayer::MMLTUpdateAverageBrightnessConstants(cl_mem in_color, size_t a_size)
+{
+  std::vector<int>  & perBounceThreads = m_mlt.perBounceThreads;
+  std::vector<float>& perBounceCoeff   = m_mlt.scaleTableCPU;
+  
+  // std::cout << std::endl;
+  // for(size_t i = 0; i < m_mlt.perBounceThreads.size(); i++)
+  //   std::cout << "N(threads) = " << perBounceThreads[i] << ",\t" << "coeff = " << perBounceCoeff[i] << std::endl;
+
+  
+
 }
 
 void GPUOCLLayer::EvalSBDPT(cl_mem in_xVector, int minBounce, int maxBounce, size_t a_size,

@@ -232,6 +232,7 @@ protected:
     cl_mem splitData;
     cl_mem scaleTable;
 
+
     size_t memTaken;
 
     Timer  timer;
@@ -239,7 +240,9 @@ protected:
 
     void free();
 
-    std::vector<int> perBounceActiveThreads;
+    std::vector<int>   perBounceActiveThreads;
+    std::vector<int>   perBounceThreads;
+    std::vector<float> scaleTableCPU;
     size_t currBounceThreadsNum;
 
     std::vector<float4, aligned16<float4> > colorDLCPU;
@@ -513,6 +516,9 @@ protected:
                                    cl_mem sray_pos, cl_mem sray_dir, cl_mem sray_flags);
   void runKernel_MMLTConnect(cl_mem in_splitInfo, cl_mem  in_cameraVertexHit, cl_mem in_cameraVertexSup, cl_mem  in_lightVertexHit, cl_mem  in_lightVertexSup, cl_mem in_shadow, size_t a_size, size_t a_sizeWholeBuff, 
                              cl_mem a_outColor, cl_mem a_outZIndex);
+
+
+  void MMLTUpdateAverageBrightnessConstants(cl_mem in_color, size_t a_size);
 
   // Aux and debug screen kernels
   //                           
