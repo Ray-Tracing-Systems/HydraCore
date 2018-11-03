@@ -98,9 +98,9 @@ void GPUOCLLayer::MMLT_Pass(int a_passNumber, int minBounce, int maxBounce, int 
     size_t mltMem = MLT_Alloc(m_width, m_height, maxBounce + 1); // #TODO: maxBounce works too !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     std::cout << "[AllocAll]: MEM(MLT)    = " << mltMem / size_t(1024*1024) << "\tMB" << std::endl;  
     runKernel_ClearAllInternalTempBuffers(m_rays.MEGABLOCKSIZE);
-    memsetf4(m_rays.pathAuxColor, float4(0,0,0,0), m_rays.MEGABLOCKSIZE, 0);
-    memsetf4(m_mlt.pathAuxColor,  float4(0,0,0,0), m_rays.MEGABLOCKSIZE, 0);
-    memsetf4(m_mlt.pathAuxColor2, float4(0,0,0,0), m_rays.MEGABLOCKSIZE, 0);
+    memsetf4(m_rays.pathAuxColor,      float4(0,0,0,0), m_rays.MEGABLOCKSIZE, 0);
+    memsetf4(m_mlt.pathAuxColor,       float4(0,0,0,0), m_rays.MEGABLOCKSIZE, 0);
+    memsetf4(m_mlt.pathAuxColor2,      float4(0,0,0,0), m_rays.MEGABLOCKSIZE, 0);
     memsetf4(m_mlt.yMultAlpha,         float4(0,0,0,0), m_rays.MEGABLOCKSIZE, 0);
     memsetf4(m_mlt.xMultOneMinusAlpha, float4(0,0,0,0), m_rays.MEGABLOCKSIZE, 0);
   } 
@@ -143,7 +143,7 @@ void GPUOCLLayer::MMLT_Pass(int a_passNumber, int minBounce, int maxBounce, int 
               m_mlt.yColor);
     
     if(largeStep)
-      MMLTUpdateAverageBrightnessConstants(m_mlt.yColor, m_rays.MEGABLOCKSIZE);
+      MMLTUpdateAverageBrightnessConstants(minBounce, m_mlt.yColor, m_rays.MEGABLOCKSIZE);
 
     // (3) Accept/Reject => (xColor, yColor)
     //
@@ -318,8 +318,8 @@ float GPUOCLLayer::MMLT_BurningIn(int minBounce, int maxBounce, int BURN_ITERS,
     EvalSBDPT(m_mlt.xVector, minBounce, maxBounce, m_rays.MEGABLOCKSIZE,
               m_rays.pathAccColor);
 
-    runKernel_MLTEvalContribFunc(m_rays.pathAccColor, m_mlt.splitData, m_rays.MEGABLOCKSIZE,
-                                 temp_f1, nullptr);
+    runKernel_MLTEvalContribFunc(m_rays.pathAccColor, 0, m_rays.MEGABLOCKSIZE,
+                                 temp_f1);
     
     avgBrightness += reduce_add1f(temp_f1, m_rays.MEGABLOCKSIZE)*(1.0f/float(BURN_ITERS));
 
@@ -439,15 +439,34 @@ float GPUOCLLayer::MMLT_BurningIn(int minBounce, int maxBounce, int BURN_ITERS,
   return avgBrightness;
 }
 
-void GPUOCLLayer::MMLTUpdateAverageBrightnessConstants(cl_mem in_color, size_t a_size)
+void GPUOCLLayer::MMLTUpdateAverageBrightnessConstants(int minBounce, cl_mem in_color, size_t a_size)
 {
   std::vector<int>  & perBounceThreads = m_mlt.perBounceThreads;
   std::vector<float>& perBounceCoeff   = m_mlt.scaleTableCPU;
-  
+  cl_mem temp_f1                       = m_mlt.dNew;
+
   // std::cout << std::endl;
   // for(size_t i = 0; i < m_mlt.perBounceThreads.size(); i++)
   //   std::cout << "N(threads) = " << perBounceThreads[i] << ",\t" << "coeff = " << perBounceCoeff[i] << std::endl;
 
+  return;
+
+  int currOffset = 0;
+  for(int bounce = minBounce; bounce < perBounceThreads.size(); bounce++)
+  {
+    int currSize = perBounceThreads[bounce];
+
+    // (1) Evaluate contrib func from in_color to temp_buffer1f
+    //
+    runKernel_MLTEvalContribFunc(in_color, currOffset, currSize,
+                                 temp_f1);
+
+    // (2) Reduce contrib func
+    //
+    float avgBrightness = reduce_add1f(temp_f1, currSize);
+
+    currOffset += currSize;
+  }
   
 
 }

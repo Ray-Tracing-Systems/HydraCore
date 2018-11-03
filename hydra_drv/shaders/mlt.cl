@@ -12,17 +12,16 @@
 #include "cmaterial.h"
 #include "cbidir.h"
 
-
 /**
 \brief Evaluate contib function and average brightess per bounce.
 \param in_color   - input color
 \param out_colors - output contrib value
+\param offset     - offset to out buffer
 
 */
 __kernel void MMLTEvalContribFunc(__global const float4* restrict in_color,
-                                  __global const int2*   restrict in_split,
                                   __global float*        restrict out_colors,
-                                  __global float*        restrict out_avgb, 
+                                  int offset,
                                   int iNumElements)
 {
   int tid = GLOBAL_ID_X;
@@ -30,14 +29,7 @@ __kernel void MMLTEvalContribFunc(__global const float4* restrict in_color,
     return;
 
   const float val = contribFunc(to_float3(in_color[tid]));
-  out_colors[tid] = val;
-
-  if(out_avgb != 0)
-  {
-    const int d = in_split[tid].x;
-    atomic_addf(out_avgb + d, val);
-  }
-
+  out_colors[offset + tid] = val;
 }
 
 /**

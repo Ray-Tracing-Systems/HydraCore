@@ -469,8 +469,8 @@ protected:
   void runKernel_MLTSelectSampleProportionalToContrib(cl_mem in_rndState, cl_mem in_split, cl_mem in_array, int a_arraySize, cl_mem gen_select, size_t a_size,
                                                       cl_int offset, cl_mem out_rndState, cl_mem out_split);
 
-  void runKernel_MLTEvalContribFunc(cl_mem in_buff, cl_mem in_split, size_t a_size,
-                                    cl_mem out_buff, cl_mem out_table);
+  void runKernel_MLTEvalContribFunc(cl_mem in_buff, size_t a_offset, size_t a_size,
+                                    cl_mem out_buff);
   
   void  DL_Pass(int a_itersNum);
   void  MMLT_Pass(int a_passNumber, int minBounce, int maxBounce, int BURN_ITERS);
@@ -518,7 +518,7 @@ protected:
                              cl_mem a_outColor, cl_mem a_outZIndex);
 
 
-  void MMLTUpdateAverageBrightnessConstants(cl_mem in_color, size_t a_size);
+  void MMLTUpdateAverageBrightnessConstants(int minBounce, cl_mem in_color, size_t a_size);
 
   // Aux and debug screen kernels
   //                           
