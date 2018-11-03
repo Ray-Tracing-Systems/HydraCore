@@ -142,6 +142,11 @@ void GPUOCLLayer::MMLT_Pass(int a_passNumber, int minBounce, int maxBounce, int 
     EvalSBDPT(m_mlt.yVector, minBounce, maxBounce, m_rays.MEGABLOCKSIZE,
               m_mlt.yColor);
     
+    if(largeStep)
+    {
+      //UpdateAverageBrightnessConstants();
+    }
+
     // (3) Accept/Reject => (xColor, yColor)
     //
     runKernel_AcceptReject(m_mlt.xVector, m_mlt.yVector, m_mlt.xColor, m_mlt.yColor,
@@ -263,6 +268,17 @@ void GPUOCLLayer::SBDPT_Pass(int minBounce, int maxBounce, int ITERS)
   }
 }
 
+float GPUOCLLayer::reduce_add1f(cl_mem a_buff, size_t a_size)
+{
+   ReduceCLArgs args;
+   args.cmdQueue   = m_globals.cmdQueue;
+   args.reductionK = m_progs.screen.kernel("ReductionFloat4Avg256");
+   
+   float4 avg(0,0,0,0);
+   reduce_average4f_gpu(a_buff, a_size/4, &avg.x, args); 
+   return 0.25f*(avg.x + avg.y + avg.z + avg.w);
+}
+
 float GPUOCLLayer::MMLT_BurningIn(int minBounce, int maxBounce, int BURN_ITERS,
                                   cl_mem out_rstate, cl_mem out_dsplit, cl_mem out_split2, cl_mem out_normC, std::vector<int>& out_activeThreads)
 {
@@ -307,16 +323,7 @@ float GPUOCLLayer::MMLT_BurningIn(int minBounce, int maxBounce, int BURN_ITERS,
     runKernel_MLTEvalContribFunc(m_rays.pathAccColor, m_mlt.splitData, m_rays.MEGABLOCKSIZE,
                                  temp_f1, nullptr);
     
-    {
-      ReduceCLArgs args;
-      args.cmdQueue   = m_globals.cmdQueue;
-      args.reductionK = m_progs.screen.kernel("ReductionFloat4Avg256");
-      
-      float4 avg(0,0,0,0);
-      reduce_average4f_gpu(temp_f1, m_rays.MEGABLOCKSIZE/4, &avg.x, args);
-
-      avgBrightness += (0.25f/float(BURN_ITERS))*(avg.x + avg.y + avg.z + avg.w);
-    }
+    avgBrightness += reduce_add1f(temp_f1, m_rays.MEGABLOCKSIZE)*(1.0f/float(BURN_ITERS));
 
     inPlaceScanAnySize1f(temp_f1, m_rays.MEGABLOCKSIZE);
 
