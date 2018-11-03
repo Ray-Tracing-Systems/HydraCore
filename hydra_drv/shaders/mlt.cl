@@ -134,7 +134,10 @@ inline int TabIndex(const int vertId, const int tid, const int iNumElements)
 __kernel void MMLTAcceptReject(__global       float*         restrict a_xVector,
                                __global const float*         restrict a_yVector,
                                __global       float4*        restrict a_xColor,
-                               __global const float4*        restrict a_yColor, 
+                               __global const float4*        restrict a_yColor,
+                               
+                               __global const int2*          restrict a_split, 
+                               __constant     float*         restrict a_scaleTable,
                                
                                __global   RandomGen*         restrict a_gensAR,
                                __global       float4*        restrict out_xAlpha,
@@ -150,6 +153,8 @@ __kernel void MMLTAcceptReject(__global       float*         restrict a_xVector,
   const float p = rndFloat1_Pseudo(&gen);
   a_gensAR[tid] = gen;
   
+  const int d   = a_split[tid].x;
+
   const float4 yOldColor = a_xColor[tid];
   const float4 yNewColor = a_yColor[tid];
 

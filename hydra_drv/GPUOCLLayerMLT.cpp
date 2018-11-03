@@ -308,8 +308,8 @@ void GPUOCLLayer::runKernel_MLTSelectSampleProportionalToContrib(cl_mem in_rndSt
   waitIfDebug(__FILE__, __LINE__);
 }
 
-void GPUOCLLayer::runKernel_AcceptReject(cl_mem a_xVector, cl_mem a_yVector, 
-                                         cl_mem a_xColor,  cl_mem a_yColor, 
+void GPUOCLLayer::runKernel_AcceptReject(cl_mem a_xVector, cl_mem a_yVector, cl_mem a_xColor,  cl_mem a_yColor, 
+                                         cl_mem a_scaleTable, cl_mem a_split,
                                          cl_mem a_rstateForAcceptReject, int a_maxBounce, size_t a_size,
                                          cl_mem xMultOneMinusAlpha, cl_mem yMultAlpha)
 {
@@ -324,11 +324,14 @@ void GPUOCLLayer::runKernel_AcceptReject(cl_mem a_xVector, cl_mem a_yVector,
   CHECK_CL(clSetKernelArg(kernX, 2, sizeof(cl_mem), (void*)&a_xColor));
   CHECK_CL(clSetKernelArg(kernX, 3, sizeof(cl_mem), (void*)&a_yColor));
 
-  CHECK_CL(clSetKernelArg(kernX, 4, sizeof(cl_mem), (void*)&a_rstateForAcceptReject));
-  CHECK_CL(clSetKernelArg(kernX, 5, sizeof(cl_mem), (void*)&xMultOneMinusAlpha));
-  CHECK_CL(clSetKernelArg(kernX, 6, sizeof(cl_mem), (void*)&yMultAlpha));
-  CHECK_CL(clSetKernelArg(kernX, 7, sizeof(cl_int), (void*)&a_maxBounce));
-  CHECK_CL(clSetKernelArg(kernX, 8, sizeof(cl_int), (void*)&isize));
+  CHECK_CL(clSetKernelArg(kernX, 4, sizeof(cl_mem), (void*)&a_split));
+  CHECK_CL(clSetKernelArg(kernX, 5, sizeof(cl_mem), (void*)&a_scaleTable));
+
+  CHECK_CL(clSetKernelArg(kernX, 6, sizeof(cl_mem), (void*)&a_rstateForAcceptReject));
+  CHECK_CL(clSetKernelArg(kernX, 7, sizeof(cl_mem), (void*)&xMultOneMinusAlpha));
+  CHECK_CL(clSetKernelArg(kernX, 8, sizeof(cl_mem), (void*)&yMultAlpha));
+  CHECK_CL(clSetKernelArg(kernX, 9, sizeof(cl_int), (void*)&a_maxBounce));
+  CHECK_CL(clSetKernelArg(kernX,10, sizeof(cl_int), (void*)&isize));
   
   CHECK_CL(clEnqueueNDRangeKernel(m_globals.cmdQueue, kernX, 1, NULL, &a_size, &localWorkSize, 0, NULL, NULL));
   waitIfDebug(__FILE__, __LINE__);

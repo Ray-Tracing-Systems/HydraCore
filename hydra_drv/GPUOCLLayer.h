@@ -242,7 +242,6 @@ protected:
 
     std::vector<int>    perBounceActiveThreads;
     std::vector<int>    perBounceThreads;
-    std::vector<float>  scaleTableCPU;
     std::vector<double> avgBrightnessCPU;
     int                 avgBrightnessSamples;
     size_t currBounceThreadsNum;
@@ -480,7 +479,7 @@ protected:
   float MMLT_BurningIn(int minBounce, int maxBounce, int BURN_ITERS,
                        cl_mem out_rstate, cl_mem out_dsplit, cl_mem out_split2, cl_mem out_normC, std::vector<int>& out_activeThreads);
 
-  void runKernel_AcceptReject(cl_mem a_xVector, cl_mem a_yVector, cl_mem a_xColor,  cl_mem a_yColor, 
+  void runKernel_AcceptReject(cl_mem a_xVector, cl_mem a_yVector, cl_mem a_xColor, cl_mem a_yColor, cl_mem a_scaleTable, cl_mem a_split,
                               cl_mem a_rstateForAcceptReject, int a_maxBounce, size_t a_size,
                               cl_mem xMultOneMinusAlpha, cl_mem yMultAlpha);
   
