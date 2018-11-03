@@ -25,5 +25,5 @@ struct ReduceCLArgs
   cl_command_queue cmdQueue;
 };
 
-void reduce_average4f_gpu(cl_mem a_data, size_t a_size, float result[4], ReduceCLArgs args);
+void reduce_average4f_gpu(cl_mem a_data, size_t a_size, double result[4], ReduceCLArgs args);
 

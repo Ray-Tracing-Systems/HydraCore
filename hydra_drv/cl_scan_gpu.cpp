@@ -134,9 +134,8 @@ void scan1f_gpu(cl_mem a_inBuff, size_t a_size, ScanCLArgs args)
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 
-void reduce_average4f_gpu(cl_mem a_data, size_t a_size, float result[4], ReduceCLArgs args)
+void reduce_average4f_gpu(cl_mem a_data, size_t a_size, double result[4], ReduceCLArgs args)
 {
-
   cl_kernel kernX = args.reductionK;
 
   //
@@ -172,10 +171,10 @@ void reduce_average4f_gpu(cl_mem a_data, size_t a_size, float result[4], ReduceC
       summ[3] += double(finalColor[i * 4 + 3]);
     }
 
-    result[0] = float( summ[0] * (1.0 / double(a_size)) );
-    result[1] = float( summ[1] * (1.0 / double(a_size)) );
-    result[2] = float( summ[2] * (1.0 / double(a_size)) );
-    result[3] = float( summ[3] * (1.0 / double(a_size)) );
+    result[0] = summ[0] * (1.0 / double(a_size));
+    result[1] = summ[1] * (1.0 / double(a_size));
+    result[2] = summ[2] * (1.0 / double(a_size));
+    result[3] = summ[3] * (1.0 / double(a_size));
     return;
   }
 
@@ -208,8 +207,8 @@ void reduce_average4f_gpu(cl_mem a_data, size_t a_size, float result[4], ReduceC
     summ[3] += double(finalColor[i * 4 + 3]);
   }
 
-  result[0] = float( summ[0] * (1.0 /double(a_size)) );
-  result[1] = float( summ[1] * (1.0 /double(a_size)) );
-  result[2] = float( summ[2] * (1.0 /double(a_size)) );
-  result[3] = float( summ[3] * (1.0 /double(a_size)) );
+  result[0] = summ[0] * (1.0 /double(a_size));
+  result[1] = summ[1] * (1.0 /double(a_size));
+  result[2] = summ[2] * (1.0 /double(a_size));
+  result[3] = summ[3] * (1.0 /double(a_size));
 }

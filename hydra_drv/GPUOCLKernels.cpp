@@ -285,9 +285,9 @@ void GPUOCLLayer::AddContributionToScreenGPU(cl_mem in_color,     cl_mem in_indi
     args.cmdQueue   = m_globals.cmdQueue;
     args.reductionK = m_progs.screen.kernel("ReductionFloat4Avg256");
     
-    float4 avg(0,0,0,0);
-    reduce_average4f_gpu(out_colorHDR, m_width*m_height, &avg.x, args);  
-    const float avgBrightness = contribFunc(to_float3(avg));
+    double avg[4] = {0,0,0,0};
+    reduce_average4f_gpu(out_colorHDR, m_width*m_height, avg, args);  
+    const float avgBrightness = contribFunc(float3(avg[0], avg[1], avg[2]));
     const float kScale        = m_avgBrightness / fmax(avgBrightness, DEPSILON2);
 
     runKernel_HDRToLDRWithScale(out_colorHDR, kScale, m_width, m_height, 

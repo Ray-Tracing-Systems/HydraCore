@@ -266,15 +266,15 @@ void GPUOCLLayer::SBDPT_Pass(int minBounce, int maxBounce, int ITERS)
   }
 }
 
-float GPUOCLLayer::reduce_add1f(cl_mem a_buff, size_t a_size)
+double GPUOCLLayer::reduce_add1f(cl_mem a_buff, size_t a_size)
 {
    ReduceCLArgs args;
    args.cmdQueue   = m_globals.cmdQueue;
    args.reductionK = m_progs.screen.kernel("ReductionFloat4Avg256");
    
-   float4 avg(0,0,0,0);
-   reduce_average4f_gpu(a_buff, a_size/4, &avg.x, args); 
-   return 0.25f*(avg.x + avg.y + avg.z + avg.w);
+   double avg[4] = {0,0,0,0};
+   reduce_average4f_gpu(a_buff, a_size/4, avg, args); 
+   return 0.25*(avg[0] + avg[1] + avg[2] + avg[3]);
 }
 
 float GPUOCLLayer::MMLT_BurningIn(int minBounce, int maxBounce, int BURN_ITERS,
@@ -307,7 +307,7 @@ float GPUOCLLayer::MMLT_BurningIn(int minBounce, int maxBounce, int BURN_ITERS,
                                // #NOTE: do you allocate enough memory for this buffer? --> seems yes (see inPlaceScanAnySize1f impl).
                                // #NOTE: current search will not work !!! It need size+1 array !!!  
                                // #NOTE: you can just set last element to size-2, not size-1. So it will work in this way.
-  float avgBrightness = 0.0f;
+  double avgBrightness = 0.0f;
 
   std::cout << std::endl;
   for(int iter=0; iter<BURN_ITERS;iter++)
@@ -386,8 +386,17 @@ float GPUOCLLayer::MMLT_BurningIn(int minBounce, int maxBounce, int BURN_ITERS,
   std::cout << "[BurningIn] dd per_depth:" << std::endl;
   for(int i=0;i<threadsNumCopy.size();i++)
      std::cout << "[d = " << i << ", N = " << threadsNumCopy[i] << ", coeff = 1]" << std::endl;
-
-  m_mlt.perBounceThreads = threadsNumCopy;
+  
+  // init per bounce arrays for future normalisation constants rectification
+  //
+  {
+    m_mlt.perBounceThreads = threadsNumCopy;
+    m_mlt.avgBrightnessCPU.resize(threadsNumCopy.size());
+    for(auto& val : m_mlt.avgBrightnessCPU)
+      val = 0;
+    m_mlt.avgBrightnessSamples = 0;
+  }
+  // \\
 
   for(int i=0;i<=minBounce;i++)
     out_activeThreads[i] = int(m_rays.MEGABLOCKSIZE);
@@ -449,7 +458,7 @@ void GPUOCLLayer::MMLTUpdateAverageBrightnessConstants(int minBounce, cl_mem in_
   // for(size_t i = 0; i < m_mlt.perBounceThreads.size(); i++)
   //   std::cout << "N(threads) = " << perBounceThreads[i] << ",\t" << "coeff = " << perBounceCoeff[i] << std::endl;
 
-  return;
+  const double alpha = 1.0/double(m_mlt.avgBrightnessSamples + 1);
 
   int currOffset = 0;
   for(int bounce = minBounce; bounce < perBounceThreads.size(); bounce++)
@@ -463,12 +472,20 @@ void GPUOCLLayer::MMLTUpdateAverageBrightnessConstants(int minBounce, cl_mem in_
 
     // (2) Reduce contrib func
     //
-    float avgBrightness = reduce_add1f(temp_f1, currSize);
-
+    const double avgBrightness     = reduce_add1f(temp_f1, currSize);
+    m_mlt.avgBrightnessCPU[bounce] = avgBrightness*alpha + (1.0 - alpha)*m_mlt.avgBrightnessCPU[bounce];
     currOffset += currSize;
   }
   
+  if((m_mlt.avgBrightnessSamples+1) % 64 == 0)
+  {
+    std::cout << std::endl;
+    for(int bounce = minBounce; bounce < m_mlt.avgBrightnessCPU.size(); bounce++)
+      std::cout << "avgB(" << bounce << ") = " << m_mlt.avgBrightnessCPU[bounce] << std::endl;
+    std::cout << std::endl;
+  }
 
+  m_mlt.avgBrightnessSamples++;
 }
 
 void GPUOCLLayer::EvalSBDPT(cl_mem in_xVector, int minBounce, int maxBounce, size_t a_size,
