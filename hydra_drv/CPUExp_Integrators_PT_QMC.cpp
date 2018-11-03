@@ -183,7 +183,7 @@ void IntegratorMISPT_AQMC::DoPass(std::vector<uint>& a_imageLDR)
 
     //testImage.medianFilterInPlace(0.0f, 0.0f);
     testImage.resampleTo(m_errorMap);
-    m_errorMap.medianFilterInPlace(0.0f, 0.0f);
+    m_errorMap.medianFilterInPlace(0.0f);
 
     std::vector<float> errorMap1f(m_errorMap.width()*m_errorMap.height());
     for(size_t i=0;i<errorMap1f.size();i++)
