@@ -521,6 +521,9 @@ protected:
 
   void MMLTUpdateAverageBrightnessConstants(int minBounce, cl_mem in_color, size_t a_size);
 
+  void MMLTCheatThirdBounceContrib(cl_mem in_split, float a_multValue, size_t a_size,
+                                   cl_mem a_contrib1f);
+
   // Aux and debug screen kernels
   //                           
   void runKernel_CopyAccColorTo(cl_mem cameraVertexSup, size_t a_size, cl_mem a_outColor);

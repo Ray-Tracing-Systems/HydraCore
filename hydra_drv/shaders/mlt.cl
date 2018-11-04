@@ -28,8 +28,23 @@ __kernel void MMLTEvalContribFunc(__global const float4* restrict in_color,
   if (tid >= iNumElements)
     return;
 
-  const float val = contribFunc(to_float3(in_color[tid]));
+  float val = contribFunc(to_float3(in_color[tid]));
   out_colors[offset + tid] = val;
+}
+
+__kernel void MMLTCheatThirdBounceContrib(__global const int2* restrict in_split,
+                                          __global float*      restrict a_contrib1f,
+                                          float a_mult,
+                                          int iNumElements)
+{
+  int tid = GLOBAL_ID_X;
+  if (tid >= iNumElements)
+    return;
+
+  float contrib = a_contrib1f[tid];
+  if(in_split[tid].x == 3)
+    contrib *= a_mult;
+  a_contrib1f[tid] = contrib;
 }
 
 /**
@@ -153,8 +168,11 @@ __kernel void MMLTAcceptReject(__global       float*         restrict a_xVector,
   const float p = rndFloat1_Pseudo(&gen);
   a_gensAR[tid] = gen;
   
-  const int d       = a_split[tid].x;  // per bounce average bounce refinement
-  const float coeff = a_scaleTable[d]; // per bounce average bounce refinement
+  const int d = a_split[tid].x;  // per bounce average bounce refinement
+  float coeff = a_scaleTable[d]; // per bounce average bounce refinement
+
+  if(d == 3)                     // see MMLTCheatThirdBounceContrib
+    coeff *= 2.0f;               // THIS IS IN UNKNOWN (bounce==3) ISSUE/BUG !!!!
 
   const float4 yOldColor = a_xColor[tid];
   const float4 yNewColor = a_yColor[tid];

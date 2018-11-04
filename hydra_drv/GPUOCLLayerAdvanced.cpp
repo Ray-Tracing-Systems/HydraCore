@@ -203,13 +203,26 @@ size_t GPUOCLLayer::MMLTInitSplitDataUniform(int bounceBeg, int a_maxDepth, size
       activeThreads[index] = int(finalThreadsNum - currPos*256);
   }
 
+  //std::vector<int> testThreadsPerBounce(a_maxDepth+1);
+  //for(int& x : testThreadsPerBounce) x = 0;
+  //if(true)
+  //{
+  //  for(size_t i=0;i<splitDataCPU.size();i++)
+  //    testThreadsPerBounce[splitDataCPU[i].x]++;
+  //
+  //  for(int i=0;i<=a_maxDepth;i++)
+  //    std::cout << "[d = " << i << ",\tN = " << testThreadsPerBounce[i] << "]" << std::endl;
+  //}
+
+
   std::vector<float> scale(a_maxDepth+1);
   for(size_t i=bounceBeg;i<scale.size();i++)
   {
-    float& selectorInvPdf = scale[i]; // (1.0f/float(NUM_MMLT_PASS))
+    float& selectorInvPdf = scale[i]; 
     const int d    = i;
     selectorInvPdf = float((d+1)*bouncesIntoAccount);
-    //               double(bounce+1)*double(m_rays.MEGABLOCKSIZE);
+    //if(i == bounceBeg)                                 // THIS IS IN UNKNOWN (bounce==3) ISSUE/BUG !!!! 
+    //  selectorInvPdf *= 0.50f;                         // THIS IS IN UNKNOWN (bounce==3) ISSUE/BUG !!!!
   }
 
   CHECK_CL(clEnqueueWriteBuffer(m_globals.cmdQueue, a_splitData,  CL_TRUE, 0, splitDataCPU.size()*sizeof(int2), (void*)splitDataCPU.data(), 0, NULL, NULL));
@@ -323,6 +336,8 @@ float GPUOCLLayer::MMLT_BurningIn(int minBounce, int maxBounce, int BURN_ITERS,
                                  temp_f1);
     
     avgBrightness += reduce_add1f(temp_f1, m_rays.MEGABLOCKSIZE)*(1.0f/float(BURN_ITERS));
+
+    MMLTCheatThirdBounceContrib(m_mlt.splitData, 0.5f, m_rays.MEGABLOCKSIZE, temp_f1);
 
     inPlaceScanAnySize1f(temp_f1, m_rays.MEGABLOCKSIZE);
 
@@ -441,7 +456,7 @@ float GPUOCLLayer::MMLT_BurningIn(int minBounce, int maxBounce, int BURN_ITERS,
   for(int i=0;i<scale.size();i++)
   {
     //scale[i] = 1.0f;
-    scale[i] = float(i+1)*float(m_rays.MEGABLOCKSIZE) / fmax(float(threadsNumCopy[i]), 2.0f);
+    scale[i] = float(i+1)*( float(m_rays.MEGABLOCKSIZE) / fmax(float(threadsNumCopy[i]), 2.0f) );
   }
   CHECK_CL(clEnqueueWriteBuffer(m_globals.cmdQueue, out_normC, CL_TRUE, 0, scale.size()*sizeof(float), (void*)scale.data(), 0, NULL, NULL));
   
@@ -478,8 +493,8 @@ void GPUOCLLayer::MMLTUpdateAverageBrightnessConstants(int minBounce, cl_mem in_
 
     // (2) Reduce contrib func
     //
-    //const double scaleCoeff        = double(bounce+1)*double(m_rays.MEGABLOCKSIZE) / fmax(double(perBounceThreads[bounce]), 1.0);
-    const double scaleCoeff        = 1.0f;
+    //const double scaleCoeff        = double(bounce+1)*double(m_rays.MEGABLOCKSIZE)/double(currSize);
+    const double scaleCoeff        = 1.0f; // double(m_rays.MEGABLOCKSIZE) / double(currSize);
     const double avgBrightness     = scaleCoeff*reduce_add1f(temp_f1, currSize);
     m_mlt.avgBrightnessCPU[bounce] = avgBrightness*alpha + (1.0 - alpha)*m_mlt.avgBrightnessCPU[bounce];
     currOffset += currSize;
@@ -495,7 +510,7 @@ void GPUOCLLayer::MMLTUpdateAverageBrightnessConstants(int minBounce, cl_mem in_
     //CHECK_CL(clEnqueueWriteBuffer(m_globals.cmdQueue, m_mlt.scaleTable2, CL_TRUE, 0, scale.size()*sizeof(float), (void*)scale.data(), 0, NULL, NULL));
   }
 
-  m_mlt.avgBrightnessSamples++;
+  m_mlt.avgBrightnessSamples++; 
 }
 
 void GPUOCLLayer::EvalSBDPT(cl_mem in_xVector, int minBounce, int maxBounce, size_t a_size,

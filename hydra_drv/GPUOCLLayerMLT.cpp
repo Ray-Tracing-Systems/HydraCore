@@ -210,6 +210,26 @@ void GPUOCLLayer::runKernel_MLTEvalContribFunc(cl_mem in_buff, size_t a_offset, 
   waitIfDebug(__FILE__, __LINE__);
 }
 
+void GPUOCLLayer::MMLTCheatThirdBounceContrib(cl_mem in_split, float a_multValue, size_t a_size,
+                                              cl_mem a_contrib1f)
+{
+  cl_kernel kernX      = m_progs.mlt.kernel("MMLTCheatThirdBounceContrib");
+
+  size_t localWorkSize = 256;
+  int            isize = int(a_size);
+  a_size               = roundBlocks(a_size, int(localWorkSize));
+  
+  cl_float multVal     = cl_float(a_multValue);
+
+  CHECK_CL(clSetKernelArg(kernX, 0, sizeof(cl_mem),   (void*)&in_split));
+  CHECK_CL(clSetKernelArg(kernX, 1, sizeof(cl_mem),   (void*)&a_contrib1f));
+  CHECK_CL(clSetKernelArg(kernX, 2, sizeof(cl_float), (void*)&multVal));
+  CHECK_CL(clSetKernelArg(kernX, 3, sizeof(cl_int),   (void*)&isize));
+
+  CHECK_CL(clEnqueueNDRangeKernel(m_globals.cmdQueue, kernX, 1, NULL, &a_size, &localWorkSize, 0, NULL, NULL));
+  waitIfDebug(__FILE__, __LINE__);
+}
+
 void GPUOCLLayer::runKernel_UpdateZIndexFromColorW(cl_mem in_color, size_t a_size,
                                                    cl_mem out_zind)
 {
