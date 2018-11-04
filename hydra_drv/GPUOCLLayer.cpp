@@ -886,7 +886,6 @@ void GPUOCLLayer::ResizeScreen(int width, int height, int a_flags)
 
   const size_t MEGABLOCK_SIZE = CalcMegaBlockSize(a_flags); 
 
-
   if (ciErr1 != CL_SUCCESS)
     RUN_TIME_ERROR("[cl_core]: Failed to create cl half screen zblocks buffer ");
 

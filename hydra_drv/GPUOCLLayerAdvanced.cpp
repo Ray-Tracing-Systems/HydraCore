@@ -126,6 +126,8 @@ void GPUOCLLayer::MMLT_Pass(int a_passNumber, int minBounce, int maxBounce, int 
                                nullptr, m_mlt.xVector);
     EvalSBDPT(m_mlt.xVector, minBounce, maxBounce, m_rays.MEGABLOCKSIZE,
               m_mlt.xColor);
+
+    m_mlt.lastBurnIters = BURN_ITERS;
   }
 
   for(int pass = 0; pass < a_passNumber; pass++)
@@ -493,21 +495,44 @@ void GPUOCLLayer::MMLTUpdateAverageBrightnessConstants(int minBounce, cl_mem in_
 
     // (2) Reduce contrib func
     //
-    //const double scaleCoeff        = double(bounce+1)*double(m_rays.MEGABLOCKSIZE)/double(currSize);
-    const double scaleCoeff        = 1.0f; // double(m_rays.MEGABLOCKSIZE) / double(currSize);
-    const double avgBrightness     = scaleCoeff*reduce_add1f(temp_f1, currSize);
+    const double avgBrightness     = reduce_add1f(temp_f1, currSize);
     m_mlt.avgBrightnessCPU[bounce] = avgBrightness*alpha + (1.0 - alpha)*m_mlt.avgBrightnessCPU[bounce];
     currOffset += currSize;
   }
   
-  if((m_mlt.avgBrightnessSamples+1) % 64 == 0)
+  if(m_mlt.avgBrightnessSamples % 128 == 0 && m_mlt.avgBrightnessSamples > 0)
   {
-    std::cout << std::endl;
+    double summ = 0.0;
+    int iters = 0;
+    //std::cout << std::endl;
     for(int bounce = minBounce; bounce < m_mlt.avgBrightnessCPU.size(); bounce++)
-      std::cout << "avgB(" << bounce << ") = " << m_mlt.avgBrightnessCPU[bounce] << "\tthreads = " << perBounceThreads[bounce] << std::endl;
-    std::cout << std::endl;
+    {
+      summ += double(m_mlt.avgBrightnessCPU[bounce]);
+      iters++;
+      //std::cout << "avgB(" << bounce << ") = " << m_mlt.avgBrightnessCPU[bounce] << "\tthreads = " << perBounceThreads[bounce] << std::endl;
+    }
+    //std::cout << std::endl;
 
-    //CHECK_CL(clEnqueueWriteBuffer(m_globals.cmdQueue, m_mlt.scaleTable2, CL_TRUE, 0, scale.size()*sizeof(float), (void*)scale.data(), 0, NULL, NULL));
+    if(1.8f*m_mlt.avgBrightnessCPU[3] < m_mlt.avgBrightnessCPU[4]) // strange 3 bounce bug.
+    {
+      std::cout << "3 bounce bug happened!" << std::endl;
+      m_mlt.avgBrightnessCPU[3] *= 2.0f;
+    }
+
+    std::vector<float> coeffs(m_mlt.avgBrightnessCPU.size());
+
+    if(m_mlt.avgBrightnessSamples > m_mlt.lastBurnIters)
+    {
+      std::cout << std::endl;
+      for(int bounce = minBounce; bounce < m_mlt.avgBrightnessCPU.size(); bounce++)
+      {
+        coeffs[bounce] = float(iters)*m_mlt.avgBrightnessCPU[bounce] / float(summ);
+        std::cout << "coef(" << bounce << ") = " << coeffs[bounce] << "\tthreads = " << perBounceThreads[bounce] << std::endl;
+      }
+     
+      CHECK_CL(clEnqueueWriteBuffer(m_globals.cmdQueue, m_mlt.scaleTable2, CL_TRUE, 0, coeffs.size()*sizeof(float), (void*)coeffs.data(), 0, NULL, NULL));
+      std::cout << "coeff has updated" << std::endl;
+    }
   }
 
   m_mlt.avgBrightnessSamples++; 
