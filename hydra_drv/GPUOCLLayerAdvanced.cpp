@@ -515,6 +515,7 @@ void GPUOCLLayer::MMLTUpdateAverageBrightnessConstants(int minBounce, cl_mem in_
 
     if(1.8f*m_mlt.avgBrightnessCPU[3] < m_mlt.avgBrightnessCPU[4]) // strange 3 bounce bug.
     {
+      std::cout << std::endl;
       std::cout << "3 bounce bug happened!" << std::endl;
       m_mlt.avgBrightnessCPU[3] *= 2.0f;
     }
