@@ -144,8 +144,8 @@ void GPUOCLLayer::MMLT_Pass(int a_passNumber, int minBounce, int maxBounce, int 
     EvalSBDPT(m_mlt.yVector, minBounce, maxBounce, m_rays.MEGABLOCKSIZE,
               m_mlt.yColor);
     
-    if(largeStep)
-      MMLTUpdateAverageBrightnessConstants(minBounce, m_mlt.yColor, m_rays.MEGABLOCKSIZE);
+    // if(largeStep)
+    //   MMLTUpdateAverageBrightnessConstants(minBounce, m_mlt.yColor, m_rays.MEGABLOCKSIZE);
 
     // (3) Accept/Reject => (xColor, yColor)
     //
@@ -223,8 +223,6 @@ size_t GPUOCLLayer::MMLTInitSplitDataUniform(int bounceBeg, int a_maxDepth, size
     float& selectorInvPdf = scale[i]; 
     const int d    = i;
     selectorInvPdf = float((d+1)*bouncesIntoAccount);
-    //if(i == bounceBeg)                                 // THIS IS IN UNKNOWN (bounce==3) ISSUE/BUG !!!! 
-    //  selectorInvPdf *= 0.50f;                         // THIS IS IN UNKNOWN (bounce==3) ISSUE/BUG !!!!
   }
 
   CHECK_CL(clEnqueueWriteBuffer(m_globals.cmdQueue, a_splitData,  CL_TRUE, 0, splitDataCPU.size()*sizeof(int2), (void*)splitDataCPU.data(), 0, NULL, NULL));
@@ -339,7 +337,7 @@ float GPUOCLLayer::MMLT_BurningIn(int minBounce, int maxBounce, int BURN_ITERS,
     
     avgBrightness += reduce_add1f(temp_f1, m_rays.MEGABLOCKSIZE)*(1.0f/float(BURN_ITERS));
 
-    MMLTCheatThirdBounceContrib(m_mlt.splitData, 0.5f, m_rays.MEGABLOCKSIZE, temp_f1);
+    MMLTCheatThirdBounceContrib(m_mlt.splitData, 0.5f, m_rays.MEGABLOCKSIZE, temp_f1); // THIS IS IN UNKNOWN (bounce==3) ISSUE/BUG !!!!
 
     inPlaceScanAnySize1f(temp_f1, m_rays.MEGABLOCKSIZE);
 
