@@ -57,6 +57,7 @@ cmake-build-debug/CMakeFiles/FindOpenMP/ompver_CXX.bin
 cmake-build-debug/hydra_app/CMakeFiles/hydra.dir/main.cpp.o
 cmake-build-debug/hydra_app/Makefile
 cmake-build-debug/hydra_app/cmake_install.cmake
+cmake-build-debug/hydra_app/CMakeFiles/
 cmake-build-debug/hydra_app/hydra
 cmake-build-debug/hydra_app/CMakeFiles/CMakeDirectoryInformation.cmake
 cmake-build-debug/hydra_app/CMakeFiles/progress.marks
@@ -297,3 +298,6 @@ hydra_drv/shaders/sort.xx
 hydra_drv/shaders/trace.xx
 .idea/.name
 .idea/.name
+hydra_app/CMakeFiles/Makefile.cmake
+hydra_app/CMakeCache.txt
+hydra_app/Makefile

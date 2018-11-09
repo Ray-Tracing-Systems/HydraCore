@@ -766,7 +766,7 @@ static inline float TorranceSparrowGF1(const float3 wo, const float3 wi) // in P
   const float cosThetaH = dot(wi, wh);
   const float F         = FrCond(cosThetaH, 5.0f, 1.25f); // fresnel->Evaluate(cosThetaH);
 
-  return fmin(TorranceSparrowG1(wo, wi, wh) * F / fmax(4.f * cosThetaI * cosThetaO, DEPSILON), 1000.0f);
+  return fmin(TorranceSparrowG1(wo, wi, wh) * F / fmax(4.f * cosThetaI * cosThetaO, DEPSILON), 250.0f);
 }
 
 static inline float TorranceSparrowGF2(const float3 wo, const float3 wi, const float3 n)  // in normal word coord system
@@ -828,7 +828,7 @@ static inline float blinnEvalPDF(__global const PlainMaterial* a_pMat, const flo
   return blinn_pdf;
 }
 
-#define BLINN_COLOR_MULT 2.0f
+#define BLINN_COLOR_MULT 2.25f
 
 static inline float3 blinnEvalBxDF(__global const PlainMaterial* a_pMat, const float3 l, const float3 v, const float3 n, 
                                    const float2 a_texCoord, __global const EngineGlobals* a_globals, texture2d_t a_tex, __private const ProcTextureList* a_ptList)
@@ -897,7 +897,7 @@ static inline void BlinnSampleAndEvalBRDF(__global const PlainMaterial* a_pMat, 
   const float  GF1         = TorranceSparrowGF1(wo, wi);
 
   const float estimatedThoroughput = cosThetaOut*(D * GF1) / fmax(blinn_pdf, DEPSILON2);
-  const float brightBordersMult    = fmin(estimatedThoroughput, 0.65f) / fmax(estimatedThoroughput, DEPSILON2);
+  const float brightBordersMult    = fmin(estimatedThoroughput, 0.525f) / fmax(estimatedThoroughput, DEPSILON2);
 
   a_out->direction = newDir; 
   a_out->pdf       = blinn_pdf;
