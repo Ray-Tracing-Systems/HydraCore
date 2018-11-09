@@ -25,9 +25,10 @@ Input::Input()
   //inLibraryPath = "/home/frol/yandexdisk/Hydra/scenelib"; 
   
   //inLibraryPath = "D:/[archive]/2017/HydraAPP/hydra_app/tests/hydra_benchmark_07";
-  //inLibraryPath = "D:/[archive]/2017/HydraOldRepo/HydraAPP/hydra_app/tests/hydra_benchmark_07";
+  //inLibraryPath = "D:/[archive]/2017/HydraOldRepo/HydraAPP/home/frol/hydra/rendered_images/a_3602.png/hydra_app/tests/hydra_benchmark_07";
 
   //inLibraryPath = "C:/[Hydra]/pluginFiles/scenelib";
+  //inLibraryPath   = "/media/frol/6E0467C0046789C3/[Hydra]/pluginFiles/scenelib";
   //inLibraryPath = "D:/temp/scenelib/"; 
 
   inDevelopment = false; ///< recompile shaders each time; note that nvidia have their own shader cache!
