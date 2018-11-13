@@ -53,7 +53,7 @@ void GPUOCLLayer::ConnectEyePass(cl_mem in_rayFlags, cl_mem in_rayDirOld, cl_mem
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-void GPUOCLLayer::DL_Pass(int a_itersNum)
+void GPUOCLLayer::DL_Pass(int a_maxBounce, int a_itersNum)
 {
   if(m_pExternalImage == nullptr && m_mlt.colorDLCPU.size() == 0)
     m_mlt.colorDLCPU.resize(m_width*m_height);
@@ -70,7 +70,7 @@ void GPUOCLLayer::DL_Pass(int a_itersNum)
     runKernel_MakeEyeRays(m_rays.rayPos, m_rays.rayDir, m_rays.samZindex, m_rays.MEGABLOCKSIZE, m_passNumberForQMC);
     runKernel_ClearAllInternalTempBuffers(m_rays.MEGABLOCKSIZE);
     
-    trace1D(2, m_rays.rayPos, m_rays.rayDir, m_rays.MEGABLOCKSIZE,
+    trace1D(a_maxBounce, m_rays.rayPos, m_rays.rayDir, m_rays.MEGABLOCKSIZE,
             m_rays.pathAccColor);
     
     AddContributionToScreen(m_rays.pathAccColor, m_rays.samZindex, false, 1); 
@@ -216,13 +216,12 @@ size_t GPUOCLLayer::MMLTInitSplitDataUniform(int bounceBeg, int a_maxDepth, size
   //    std::cout << "[d = " << i << ",\tN = " << testThreadsPerBounce[i] << "]" << std::endl;
   //}
 
-
   std::vector<float> scale(a_maxDepth+1);
   for(size_t i=bounceBeg;i<scale.size();i++)
   {
     float& selectorInvPdf = scale[i]; 
     const int d    = i;
-    selectorInvPdf = float((d+1)*bouncesIntoAccount);
+    selectorInvPdf = float((d+1)*bouncesIntoAccount);  
   }
 
   CHECK_CL(clEnqueueWriteBuffer(m_globals.cmdQueue, a_splitData,  CL_TRUE, 0, splitDataCPU.size()*sizeof(int2), (void*)splitDataCPU.data(), 0, NULL, NULL));
@@ -291,6 +290,7 @@ double GPUOCLLayer::reduce_add1f(cl_mem a_buff, size_t a_size)
    return 0.25*(avg[0] + avg[1] + avg[2] + avg[3]);
 }
 
+
 float GPUOCLLayer::MMLT_BurningIn(int minBounce, int maxBounce, int BURN_ITERS,
                                   cl_mem out_rstate, cl_mem out_dsplit, cl_mem out_split2, cl_mem out_normC, std::vector<int>& out_activeThreads)
 {
@@ -353,6 +353,8 @@ float GPUOCLLayer::MMLT_BurningIn(int minBounce, int maxBounce, int BURN_ITERS,
       std::cout << "MMLT Burning in, progress = " << 100.0f*float(iter)/float(BURN_ITERS) << "% \r";
       std::cout.flush();
     }
+
+    //AddContributionToScreen(m_rays.pathAccColor, nullptr);
   }
   std::cout << std::endl;
 

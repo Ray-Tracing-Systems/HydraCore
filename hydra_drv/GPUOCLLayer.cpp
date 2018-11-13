@@ -1018,7 +1018,7 @@ void GPUOCLLayer::GetLDRImage(uint* data, int width, int height) const
         if (color1 != nullptr && color0 != nullptr)
         {
 
-#pragma omp parallel for
+          #pragma omp parallel for
           for (int i = 0; i < size; i++)
           {
             const __m128 colorDL = _mm_mul_ps(normc2, _mm_load_ps(dataHDR1 + i * 4));
@@ -1206,7 +1206,7 @@ void GPUOCLLayer::BeginTracingPass()
     }
     else
     {
-      DL_Pass(NUM_MMLT_PASS/2);  //#NOTE: strange bug, DL contribute to IL if reverse order
+      DL_Pass(maxBounce, NUM_MMLT_PASS/2);  //#NOTE: strange bug, DL contribute to IL if reverse order
       MMLT_Pass(NUM_MMLT_PASS, minBounce, maxBounce, BURN_ITERS);   
     }
   }

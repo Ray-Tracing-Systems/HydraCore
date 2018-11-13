@@ -937,6 +937,18 @@ __kernel void NextBounce(__global   float4*        restrict a_rpos,
   }
   ///////////////////////////////////////////////// 
   flags = flagsNextBounce(flags, brdfSample, a_globals);
+  
+  ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////// Specular DL for MMLT
+  const bool evalSpecularOnly  = ((a_globals->g_flags & HRT_DIRECT_LIGHT_MODE) !=0);
+  if(evalSpecularOnly && !flagsHaveOnlySpecular(flags) && rayBounceNum > 1)
+  {
+    outPathThroughput = make_float3(0,0,0);
+    newPathThroughput = make_float3(0,0,0);
+    oldPathThroughput = make_float3(0,0,0);
+    flags = packRayFlags(flags, unpackRayFlags(flags) | RAY_IS_DEAD);
+  }
+   ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////// Specular DL for MMLT
+
   float4 nextPathColor;
   if (a_globals->g_flags & HRT_ENABLE_MMLT)
   {

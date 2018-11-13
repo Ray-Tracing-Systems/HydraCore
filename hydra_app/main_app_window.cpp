@@ -506,3 +506,4 @@ void window_main(std::shared_ptr<IHRRenderDriver> a_pDriverImpl)
 
 }
 
+void extSwapBuffers() { glfwSwapBuffers(g_window); } 

@@ -475,7 +475,7 @@ protected:
   void runKernel_MLTEvalContribFunc(cl_mem in_buff, size_t a_offset, size_t a_size,
                                     cl_mem out_buff);
   
-  void  DL_Pass(int a_itersNum);
+  void  DL_Pass(int a_maxBounce, int a_itersNum);
   void  MMLT_Pass(int a_passNumber, int minBounce, int maxBounce, int BURN_ITERS);
   void  SBDPT_Pass(int minBounce, int maxBounce, int ITERS);
   float MMLT_BurningIn(int minBounce, int maxBounce, int BURN_ITERS,
