@@ -13,7 +13,7 @@ Input::Input()
   //noWindow      = false;         ///< run 'console_main', else run 'window_main'
   //inLibraryPath = "tests/test_42"; ///< cornell box with teapot
   //inLibraryPath = "tests/test_223_small"; ///< cornell box with sphere
-  //inLibraryPath = "tests/test_224_sphere";
+  inLibraryPath = "tests/test_224_gloss";
   //inLibraryPath = "/media/frol/886234F06234E49A/scenes/benchmark4"; ///< cornell box with mirror glossy back wall
   //inLibraryPath = "/media/frol/886234F06234E49A/scenes/phong_test/torspar1";
   //inLibraryPath = "/media/frol/886234F06234E49A/scenes/cornell_water";
@@ -22,7 +22,7 @@ Input::Input()
   //inLibraryPath = "/home/frol/temp/hydra_debug_scene";
   //inLibraryPath = "/home/frol/PROG/HydraAPI/main/tests_f/test_202";
   //inLibraryPath = "/home/frol/PROG/HydraAPI/main/tests_f/test_224"; 
-  inLibraryPath = "/home/frol/yandexdisk/samsungdata/HeadlampLights/SimpleLightModel/scenelib_sphere";
+  //inLibraryPath = "/home/frol/yandexdisk/samsungdata/HeadlampLights/SimpleLightModel/scenelib_sphere";
   //inLibraryPath = "/home/frol/yandexdisk/samsungdata/HeadlampLights/SimpleLightModel/scenelib_rectangle"; 
   
   //inLibraryPath = "D:/[archive]/2017/HydraAPP/hydra_app/tests/hydra_benchmark_07";
