@@ -241,7 +241,6 @@ static void Draw(void)
 
   hrCommit(scnRef, renderRef, camRef);
 
-
   if (!g_input.enableOpenGL1)
   {
     glViewport(0, 0, g_width, g_height);

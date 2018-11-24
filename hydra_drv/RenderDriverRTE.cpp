@@ -264,7 +264,10 @@ bool RenderDriverRTE::UpdateSettings(pugi::xml_node a_settingsNode)
     }
     else if (method == L"pathtracing" || method == L"pt" || method == L"PT")
     {
-      m_renderMethod = RENDER_METHOD_PT;
+      if(m_initFlags & GPU_MLT_ENABLED_AT_START)
+        m_renderMethod = RENDER_METHOD_MMLT;
+      else
+        m_renderMethod = RENDER_METHOD_PT;
     }
     else if (method == L"lighttracing" || method == L"lt" || method == L"LT")
     {
@@ -1556,6 +1559,7 @@ void RenderDriverRTE::Draw()
   //
   if (m_renderMethod == RENDER_METHOD_MMLT)
   {
+
     if (!m_ptInitDone)
     {
       // (1) init random gens
@@ -1570,6 +1574,8 @@ void RenderDriverRTE::Draw()
       flagsAndVars.m_flags &= (~HRT_3WAY_MIS_WEIGHTS);
       flagsAndVars.m_flags &= (~HRT_FORWARD_TRACING);
       flagsAndVars.m_flags &= (~HRT_DRAW_LIGHT_LT);
+      flagsAndVars.m_flags &= (~HRT_ENABLE_SBPT);
+
       m_pHWLayer->SetAllFlagsAndVars(flagsAndVars);
       m_drawPassNumber = 0;
     }
@@ -1619,8 +1625,16 @@ void RenderDriverRTE::Draw()
         flagsAndVars.m_flags &= (~HRT_FORWARD_TRACING);
         flagsAndVars.m_flags &= (~HRT_DRAW_LIGHT_LT);
 
-        flagsAndVars.m_flags &= (~HRT_ENABLE_MMLT);
-        flagsAndVars.m_flags &= (~HRT_ENABLE_SBPT);
+        if(m_renderMethod == RENDER_METHOD_MMLT)
+        {
+          flagsAndVars.m_flags &= (~HRT_ENABLE_SBPT);
+          flagsAndVars.m_flags |= HRT_ENABLE_MMLT;
+        }
+        else
+        {
+          flagsAndVars.m_flags &= (~HRT_ENABLE_MMLT);
+          flagsAndVars.m_flags &= (~HRT_ENABLE_SBPT);
+        }
       }
 
       m_pHWLayer->SetAllFlagsAndVars(flagsAndVars);
@@ -1691,6 +1705,7 @@ void RenderDriverRTE::Draw()
     flagsAndVars.m_flags &= (~HRT_FORWARD_TRACING);
     flagsAndVars.m_flags &= (~HRT_DRAW_LIGHT_LT);
     flagsAndVars.m_flags &= (~HRT_ENABLE_MMLT);
+    flagsAndVars.m_flags &= (~HRT_ENABLE_SBPT);
     m_pHWLayer->SetAllFlagsAndVars(flagsAndVars);
 
     m_pHWLayer->BeginTracingPass();
