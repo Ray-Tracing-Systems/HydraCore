@@ -190,6 +190,7 @@ bool RenderDriverRTE::UpdateSettings(pugi::xml_node a_settingsNode)
     m_renderMethod = RENDER_METHOD_MMLT;
   }
   else if(std::wstring(a_settingsNode.child(L"method_secondary").text().as_string()) == L"mmlt" || 
+          std::wstring(a_settingsNode.child(L"method_secondary").text().as_string()) == L"MMLT" ||
           std::wstring(a_settingsNode.child(L"method_secondary").text().as_string()) == L"mlt")
   {
     vars.m_flags |= HRT_ENABLE_MMLT;
@@ -272,6 +273,10 @@ bool RenderDriverRTE::UpdateSettings(pugi::xml_node a_settingsNode)
     else if (method == L"lighttracing" || method == L"lt" || method == L"LT")
     {
       m_renderMethod = RENDER_METHOD_LT;
+    }
+    else if (method == L"mlt" || method == L"mmlt" || method == L"MMLT")
+    {
+      m_renderMethod = RENDER_METHOD_MMLT;
     }
     else
     {

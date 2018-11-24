@@ -55,6 +55,7 @@ Input::Input()
   lightTracingEnabled = false;
   ibptEnabled         = false;
   sbptEnabled         = false;
+  mmltEnabled         = false;
   
   cameraFreeze        = false;
   inSeed              = clock();

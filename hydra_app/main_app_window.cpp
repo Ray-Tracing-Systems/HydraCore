@@ -219,7 +219,12 @@ static void Draw(void)
   {
     xml_node settingsNode = hrRenderParamNode(renderRef);
 
-    if(g_input.ibptEnabled)
+    if(g_input.mmltEnabled)
+    {
+      settingsNode.child(L"method_primary").text() = L"pathtracing";
+      settingsNode.child(L"method_secondary").text() = L"MMLT";
+    }
+    else if(g_input.ibptEnabled)
       settingsNode.child(L"method_primary").text() = L"IBPT";
     else if (g_input.sbptEnabled)
        settingsNode.child(L"method_primary").text() = L"SBPT";
@@ -352,38 +357,69 @@ static void key(GLFWwindow* window, int k, int s, int action, int mods)
 
   case GLFW_KEY_P:
     g_input.pathTracingEnabled  = !g_input.pathTracingEnabled;
-    g_input.productionPTMode    = false;
     g_input.cameraFreeze        = !g_input.cameraFreeze;
+    g_input.productionPTMode    = false;
+
     g_input.lightTracingEnabled = false;
+    g_input.ibptEnabled         = false;
+    g_input.sbptEnabled         = false;
+    g_input.mmltEnabled         = false;
     break;
 
   case GLFW_KEY_O:
     g_input.pathTracingEnabled  = !g_input.pathTracingEnabled;
-    g_input.productionPTMode    = true;
     g_input.cameraFreeze        = !g_input.cameraFreeze;
+    g_input.productionPTMode    = true;
+
     g_input.lightTracingEnabled = false;
+    g_input.ibptEnabled         = false;
+    g_input.sbptEnabled         = false;
+    g_input.mmltEnabled         = false;
     break;
 
   case GLFW_KEY_L:
     g_input.lightTracingEnabled = !g_input.lightTracingEnabled;
     g_input.cameraFreeze        = !g_input.cameraFreeze;
-    g_input.pathTracingEnabled  = false;
     g_input.productionPTMode    = false;
+
+    g_input.pathTracingEnabled  = false;
+    g_input.ibptEnabled         = false;
+    g_input.sbptEnabled         = false;
+    g_input.mmltEnabled         = false;
     break;
 
   case GLFW_KEY_B:
     g_input.ibptEnabled        = !g_input.ibptEnabled;
     g_input.cameraFreeze       = !g_input.cameraFreeze;
-    g_input.pathTracingEnabled = false;
     g_input.productionPTMode   = false;
+
+    g_input.lightTracingEnabled = false;
+    g_input.pathTracingEnabled  = false;
+    g_input.sbptEnabled         = false;
+    g_input.mmltEnabled         = false;
     break;
 
   case GLFW_KEY_V:
-    g_input.sbptEnabled        = !g_input.sbptEnabled;
-    g_input.cameraFreeze       = !g_input.cameraFreeze;
-    g_input.pathTracingEnabled = false;
-    g_input.productionPTMode   = false;
+    g_input.sbptEnabled         = !g_input.sbptEnabled;
+    g_input.cameraFreeze        = !g_input.cameraFreeze;
+    g_input.productionPTMode    = false;
+
+    g_input.lightTracingEnabled = false;
+    g_input.pathTracingEnabled  = false;
+    g_input.ibptEnabled         = false;
+    g_input.mmltEnabled         = false;
     break;
+
+  case GLFW_KEY_M:
+    g_input.mmltEnabled         = !g_input.mmltEnabled;
+    g_input.cameraFreeze        = !g_input.cameraFreeze;
+    g_input.pathTracingEnabled  = false;
+    g_input.lightTracingEnabled = false;
+    g_input.productionPTMode    = false;
+    g_input.ibptEnabled         = false;
+    g_input.sbptEnabled         = false;
+    break;
+
 
   default:
     return;
