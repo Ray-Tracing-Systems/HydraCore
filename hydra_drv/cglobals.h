@@ -386,9 +386,9 @@ enum FLAG_BITS{HRT_COMPUTE_SHADOWS                 = 1,
                HRT_DIRECT_LIGHT_MODE               = 4,
                HRT_UNIFIED_IMAGE_SAMPLING          = 8,
 
-               HRT_PRODUCTION_IMAGE_SAMPLING       = 16, // 256 coherent rays per pixel.
+               HRT_PRODUCTION_IMAGE_SAMPLING       = 16,  // 256 coherent rays per pixel.
                HRT_USE_MIS                         = 32,
-               HRT_DUMMY2                          = 64, 
+               HRT_DUMMY2                          = 64,  // !!!!!!!! DONT USE THIS FLAG !!!! UNKNOWN BUG, PT DOES NOT CONTRIBUTE TO SCREEN.
                HRT_STORE_SUBPIXELS                 = 128,
                HRT_FORWARD_TRACING                 = 256, /// tracing from light to eye; otherwise from eye to light.
                HRT_DRAW_LIGHT_LT                   = 512,
@@ -396,7 +396,8 @@ enum FLAG_BITS{HRT_COMPUTE_SHADOWS                 = 1,
     
                HRT_STORE_RAY_SAMPLES               = 8192,
                HRT_ENABLE_MMLT                     = 16384,
-               HRT_DUMMY3                          = 65536*2,
+               HRT_ENABLE_SBPT                     = 32768,
+               
                HRT_DUMMY4                          = 65536*4,
                HRT_STUPID_PT_MODE                  = 65536*8,
                HRT_NO_RANDOM_LIGHTS_SELECT         = 65536*16,

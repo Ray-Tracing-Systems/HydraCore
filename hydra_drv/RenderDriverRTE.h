@@ -225,6 +225,13 @@ protected:
 
   HRDriverAllocInfo m_lastAllocInfo;
 
+  enum RENDER_METHOD {RENDER_METHOD_PT   = 0, 
+                      RENDER_METHOD_LT   = 1, 
+                      RENDER_METHOD_IBPT = 2, 
+                      RENDER_METHOD_SBPT = 4, 
+                      RENDER_METHOD_MMLT = 5, 
+                      RENDER_METHOD_RT   = 0xFFFFFFFF};
+
   int m_initFlags;
   int m_devId;
   int m_auxImageNumber;
@@ -232,10 +239,8 @@ protected:
 
   bool m_useConvertedLayout;
   bool m_useBvhInstInsert;
-  bool m_usePT;
-  bool m_useLT;
-  bool m_useIBPT;
-  bool m_useMMLT;
+  RENDER_METHOD m_renderMethod;
+
   bool m_gpuFB;
   bool m_ptInitDone;
   bool m_firstResizeOfScreen;

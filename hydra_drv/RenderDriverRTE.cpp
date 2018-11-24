@@ -62,12 +62,9 @@ RenderDriverRTE::RenderDriverRTE(const wchar_t* a_options, int w, int h, int a_d
 
   m_initFlags |= a_flags;
 
-  m_gpuFB      = ((m_initFlags & GPU_RT_CPU_FRAMEBUFFER) == 0);
-  m_usePT      = false;
-  m_useLT      = false;
-  m_useIBPT    = false;
-  m_useMMLT    = false;
-  m_ptInitDone = false;
+  m_gpuFB        = ((m_initFlags & GPU_RT_CPU_FRAMEBUFFER) == 0);
+  m_renderMethod = RENDER_METHOD_RT;
+  m_ptInitDone   = false;
   m_legacy.m_lastSeed         = GetTickCount();
   std::cout << "[main]::RenderDriverRTE(): SEED = " << m_legacy.m_lastSeed << std::endl;
   m_legacy.updateProgressCall = &UpdateProgress;
@@ -190,19 +187,20 @@ bool RenderDriverRTE::UpdateSettings(pugi::xml_node a_settingsNode)
   if ((m_initFlags & GPU_ALLOC_FOR_COMPACT_MLT) || (m_initFlags & GPU_MLT_ENABLED_AT_START))
   {
     vars.m_flags |= HRT_ENABLE_MMLT;
-    m_useMMLT = true;
+    m_renderMethod = RENDER_METHOD_MMLT;
   }
   else if(std::wstring(a_settingsNode.child(L"method_secondary").text().as_string()) == L"mmlt" || 
           std::wstring(a_settingsNode.child(L"method_secondary").text().as_string()) == L"mlt")
   {
-    m_useMMLT = true;
+    vars.m_flags |= HRT_ENABLE_MMLT;
+    m_renderMethod = RENDER_METHOD_MMLT;
   }
-  else
-    m_useMMLT = false;
-
-  if (std::wstring(a_settingsNode.child(L"method_caustic").text().as_string()) == L"none" ||
-      std::wstring(a_settingsNode.child(L"method_caustic").text().as_string()) == L"disabled")
-    ;
+  else if (std::wstring(a_settingsNode.child(L"method_caustic").text().as_string()) == L"none" ||
+           std::wstring(a_settingsNode.child(L"method_caustic").text().as_string()) == L"disabled")
+  {
+    m_renderMethod = RENDER_METHOD_PT;
+    vars.m_flags   = vars.m_flags & (~HRT_ENABLE_PT_CAUSTICS);
+  }
   else
   {
     vars.m_flags |= HRT_ENABLE_PT_CAUSTICS;
@@ -256,34 +254,30 @@ bool RenderDriverRTE::UpdateSettings(pugi::xml_node a_settingsNode)
   if (a_settingsNode.child(L"method_primary") != nullptr)
   {
     const std::wstring method = std::wstring(a_settingsNode.child(L"method_primary").text().as_string());
-    if (method == L"IBPT")
+    if (method == L"IBPT" || method == L"ibpt")
     {
-      m_useIBPT = true;
-      m_usePT   = false;
-      m_useLT   = false;
+      m_renderMethod = RENDER_METHOD_IBPT;
     }
-    else if (method == L"pathtracing")
+    else if (method == L"SBPT" || method == L"sbpt")
     {
-      m_useIBPT = false;
-      m_usePT   = true;
-      m_useLT   = false;
+      m_renderMethod = RENDER_METHOD_SBPT;
     }
-    else if (method == L"lighttracing")
+    else if (method == L"pathtracing" || method == L"pt" || method == L"PT")
     {
-      m_useIBPT = false;
-      m_usePT   = false;
-      m_useLT   = true;
+      m_renderMethod = RENDER_METHOD_PT;
+    }
+    else if (method == L"lighttracing" || method == L"lt" || method == L"LT")
+    {
+      m_renderMethod = RENDER_METHOD_LT;
     }
     else
     {
-      m_useIBPT = false;
-      m_useLT   = false;
-      m_usePT   = false;
+      m_renderMethod = RENDER_METHOD_RT;
     }
   }
   else
   {
-    m_usePT = true;
+    m_renderMethod = RENDER_METHOD_PT;
   }
 
   if (a_settingsNode.child(L"trace_depth") != nullptr)
@@ -1560,7 +1554,7 @@ void RenderDriverRTE::Draw()
 
   // (2) run rendering pass (depends on enabled algorithm)
   //
-  if (m_useMMLT && m_usePT)
+  if (m_renderMethod == RENDER_METHOD_MMLT)
   {
     if (!m_ptInitDone)
     {
@@ -1594,7 +1588,7 @@ void RenderDriverRTE::Draw()
 
     // std::cout << "MMLT pass" << std::endl;
   }
-  else if (m_usePT || m_useLT || m_useIBPT)
+  else if (m_renderMethod != RENDER_METHOD_RT)
   {
     if (!m_ptInitDone)
     {
@@ -1605,7 +1599,13 @@ void RenderDriverRTE::Draw()
       flagsAndVars.m_flags |= HRT_UNIFIED_IMAGE_SAMPLING;
       flagsAndVars.m_flags &= (~HRT_3WAY_MIS_WEIGHTS);
 
-      if (m_useLT)
+      if(m_renderMethod == RENDER_METHOD_SBPT)
+      {
+        //flagsAndVars.m_flags |= HRT_ENABLE_SBPT;
+        flagsAndVars.m_flags &= (~HRT_FORWARD_TRACING);
+        flagsAndVars.m_flags &= (~HRT_DRAW_LIGHT_LT);
+      }
+      else if (m_renderMethod == RENDER_METHOD_LT)
       {
         flagsAndVars.m_flags |= HRT_FORWARD_TRACING;
         flagsAndVars.m_flags |= HRT_DRAW_LIGHT_LT;
@@ -1620,7 +1620,7 @@ void RenderDriverRTE::Draw()
       m_drawPassNumber = 0;
     }
 
-    if (m_useIBPT)
+    if (m_renderMethod == RENDER_METHOD_IBPT)
     {
       for (int i = 0; i < NUM_PASS; i++)
       {
@@ -1660,7 +1660,7 @@ void RenderDriverRTE::Draw()
 
     //imageB to imageA contribution
     //
-    if ((m_useLT || m_gpuFB || m_useIBPT) && m_pAccumImage != nullptr)
+    if ((m_renderMethod == RENDER_METHOD_LT || m_gpuFB || m_renderMethod == RENDER_METHOD_IBPT) && m_pAccumImage != nullptr)
     {
       auto size = m_pHWLayer->GetRayBuffSize();
       const double freq = 8.0*double(m_width*m_height)/double(size);
@@ -1692,7 +1692,7 @@ void RenderDriverRTE::Draw()
   }
 
 
-  if (MEASURE_RAYS && m_usePT)
+  if (MEASURE_RAYS && m_renderMethod != RENDER_METHOD_RT)
   {
     auto stats = m_pHWLayer->GetRaysStat();
 

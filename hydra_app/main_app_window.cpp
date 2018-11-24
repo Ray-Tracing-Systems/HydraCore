@@ -111,7 +111,7 @@ static void Init(std::shared_ptr<IHRRenderDriver> pDriverImpl)
         node2.child(L"method_secondary").text() = L"mlt";
         node2.child(L"method_tertiary").text()  = L"mlt";
         if(std::wstring(node2.child(L"method_caustic").text().as_string()) != L"none")
-          node2.child(L"method_caustic").text()   = L"mlt";
+          node2.child(L"method_caustic").text() = L"mlt";
       }
 
       if (g_input.runTests)
@@ -221,6 +221,8 @@ static void Draw(void)
 
     if(g_input.ibptEnabled)
       settingsNode.child(L"method_primary").text() = L"IBPT";
+    else if (g_input.sbptEnabled)
+       settingsNode.child(L"method_primary").text() = L"SBPT";
     else if(g_input.pathTracingEnabled)
     {
       settingsNode.child(L"method_primary").text() = L"pathtracing";
@@ -371,8 +373,15 @@ static void key(GLFWwindow* window, int k, int s, int action, int mods)
     break;
 
   case GLFW_KEY_B:
-    g_input.ibptEnabled  = !g_input.ibptEnabled;
-    g_input.cameraFreeze = !g_input.cameraFreeze;
+    g_input.ibptEnabled        = !g_input.ibptEnabled;
+    g_input.cameraFreeze       = !g_input.cameraFreeze;
+    g_input.pathTracingEnabled = false;
+    g_input.productionPTMode   = false;
+    break;
+
+  case GLFW_KEY_V:
+    g_input.sbptEnabled        = !g_input.sbptEnabled;
+    g_input.cameraFreeze       = !g_input.cameraFreeze;
     g_input.pathTracingEnabled = false;
     g_input.productionPTMode   = false;
     break;
@@ -383,7 +392,6 @@ static void key(GLFWwindow* window, int k, int s, int action, int mods)
 
 
 }
-
 
 // new window size 
 static void reshape(GLFWwindow* window, int width, int height)
