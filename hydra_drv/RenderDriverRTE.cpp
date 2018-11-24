@@ -1601,7 +1601,8 @@ void RenderDriverRTE::Draw()
 
       if(m_renderMethod == RENDER_METHOD_SBPT)
       {
-        //flagsAndVars.m_flags |= HRT_ENABLE_SBPT;
+        flagsAndVars.m_flags |= HRT_ENABLE_MMLT;
+        flagsAndVars.m_flags |= HRT_ENABLE_SBPT;
         flagsAndVars.m_flags &= (~HRT_FORWARD_TRACING);
         flagsAndVars.m_flags &= (~HRT_DRAW_LIGHT_LT);
       }
@@ -1609,11 +1610,17 @@ void RenderDriverRTE::Draw()
       {
         flagsAndVars.m_flags |= HRT_FORWARD_TRACING;
         flagsAndVars.m_flags |= HRT_DRAW_LIGHT_LT;
+
+        flagsAndVars.m_flags &= (~HRT_ENABLE_MMLT);
+        flagsAndVars.m_flags &= (~HRT_ENABLE_SBPT);
       }
       else
       {
         flagsAndVars.m_flags &= (~HRT_FORWARD_TRACING);
         flagsAndVars.m_flags &= (~HRT_DRAW_LIGHT_LT);
+
+        flagsAndVars.m_flags &= (~HRT_ENABLE_MMLT);
+        flagsAndVars.m_flags &= (~HRT_ENABLE_SBPT);
       }
 
       m_pHWLayer->SetAllFlagsAndVars(flagsAndVars);
