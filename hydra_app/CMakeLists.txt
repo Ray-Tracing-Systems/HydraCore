@@ -83,4 +83,7 @@ install(FILES ${CMAKE_SOURCE_DIR}/hydra_drv/cfetch.h
               ${CMAKE_SOURCE_DIR}/hydra_drv/shaders/trace.xx
         DESTINATION hydra/shaders)
 
+install(CODE "if(EXISTS \${ENV}\${CMAKE_INSTALL_PREFIX}/hydra/shadercache)
+                FILE(REMOVE_RECURSE \${ENV}\${CMAKE_INSTALL_PREFIX}/hydra/shadercache)
+              ENDIF()")
 install(CODE "FILE(MAKE_DIRECTORY \${ENV}\${CMAKE_INSTALL_PREFIX}/hydra/shadercache)")
