@@ -401,6 +401,11 @@ __kernel void MMLTMakeProposal(__global int2*            restrict a_split,
     const int2 oldSplit = a_split[tid];
     d  = oldSplit.x;                                                                  // MMLT_GPU_TEST_DEPTH;
     s  = PickSplitFromRand(split, d, a_globals->varsF[HRT_MMLT_IMPLICIT_FIXED_PROB]); // mapRndFloatToInt(split, 0, d); 
+
+    #ifdef SBDPT_DEBUG_SPLIT
+    s = SBDPT_DEBUG_SPLIT;
+    #endif
+
     a_split[tid] = make_int2(d,s);
 
     if(out_numbers != 0)
@@ -1467,8 +1472,12 @@ __kernel void MMLTConnect(__global const int2  *  restrict in_splitInfo,
     misWeight = pdfThisWay / fmax(pdfSumm, DEPSILON2);
   }
 
+  #ifdef SBDPT_DEBUG_SPLIT
+  misWeight = 1.0f;
+  #else
   sampleColor *= misWeight;
   sampleColor *= a_scaleTable[d];
+  #endif
 
   if (!isfinite(sampleColor.x) || !isfinite(sampleColor.y) || !isfinite(sampleColor.z))
     sampleColor = make_float3(0, 0, 0);

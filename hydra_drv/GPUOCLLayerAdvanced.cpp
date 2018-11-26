@@ -197,12 +197,21 @@ size_t GPUOCLLayer::MMLTInitSplitDataUniform(int bounceBeg, int a_maxDepth, size
     {
       for(int i=0;i<256;i++)
         splitDataCPU[(currPos + b)*256 + i] = make_int2(bounce, bounce);
+
+      #ifdef SBDPT_DEBUG_SPLIT
+      for(int i=0;i<256;i++)
+        splitDataCPU[(currPos + b)*256 + i] = make_int2(SBDPT_DEBUG_DEPTH, SBDPT_DEBUG_DEPTH);
+      #endif
     }
     currPos += blocksPerTargetDepth;
 
     const int index = activeThreads.size() - bounce + bounceBeg;
     if(index >=0 && index < activeThreads.size())
       activeThreads[index] = int(finalThreadsNum - currPos*256);
+
+    #ifdef SBDPT_DEBUG_SPLIT
+    activeThreads[index] = int(finalThreadsNum);
+    #endif
   }
 
   //std::vector<int> testThreadsPerBounce(a_maxDepth+1);
@@ -222,6 +231,9 @@ size_t GPUOCLLayer::MMLTInitSplitDataUniform(int bounceBeg, int a_maxDepth, size
     float& selectorInvPdf = scale[i]; 
     const int d    = i;
     selectorInvPdf = float((d+1)*bouncesIntoAccount);  
+    #ifdef SBDPT_DEBUG_SPLIT
+    selectorInvPdf = 1.0f;
+    #endif
   }
 
   CHECK_CL(clEnqueueWriteBuffer(m_globals.cmdQueue, a_splitData,  CL_TRUE, 0, splitDataCPU.size()*sizeof(int2), (void*)splitDataCPU.data(), 0, NULL, NULL));
@@ -254,7 +266,7 @@ void GPUOCLLayer::SBDPT_Pass(int minBounce, int maxBounce, int ITERS)
     MMLTInitSplitDataUniform(minBounce, maxBounce, m_rays.MEGABLOCKSIZE,
                              m_mlt.splitData, m_mlt.scaleTable, m_mlt.perBounceActiveThreads);
   } 
-  
+
   for(int iter = 0; iter < ITERS; iter++)
   {
     runKernel_MMLTMakeProposal(m_mlt.rstateCurr, m_mlt.xVector, 1, maxBounce, m_rays.MEGABLOCKSIZE,
@@ -262,18 +274,6 @@ void GPUOCLLayer::SBDPT_Pass(int minBounce, int maxBounce, int ITERS)
     
     EvalSBDPT(m_mlt.xVector, minBounce, maxBounce, m_rays.MEGABLOCKSIZE,
               m_rays.pathAccColor);
-    
-    //std::vector<float4> colorsCPU(m_rays.MEGABLOCKSIZE);
-    //CHECK_CL(clEnqueueReadBuffer(m_globals.cmdQueue, m_rays.pathAccColor, CL_TRUE, 0, colorsCPU.size()*sizeof(float4), (void*)colorsCPU.data(), 0, NULL, NULL));
-    //std::ofstream fout("/home/frol/temp/test.txt");
-    //for(size_t i=0;i<colorsCPU.size();i++)
-    //{
-    //  const int packedXY = as_int(colorsCPU[i].w);
-    //  const int screenX  = (packedXY & 0x0000FFFF);
-    //  const int screenY  = (packedXY & 0xFFFF0000) >> 16;
-    //  fout << colorsCPU[i].x << "\t"  << colorsCPU[i].y << "\t" << colorsCPU[i].z << "\t" << "(" << screenX << ", " << screenY << ")" << std::endl;
-    //}
-    //fout.close();
     
     AddContributionToScreen(m_rays.pathAccColor, nullptr, (iter == ITERS-1));
   }

@@ -2950,4 +2950,7 @@ static inline float3 decompressShadow(ushort4 shadowCompressed)
 
 #define SPLIT_DL_BY_GRAMMAR false
 
+// #define SBDPT_DEBUG_SPLIT 3
+// #define SBDPT_DEBUG_DEPTH 3
+
 #endif
