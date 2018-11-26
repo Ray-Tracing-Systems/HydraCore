@@ -90,7 +90,7 @@
     <nearClipPlane>0.01</nearClipPlane>
     <farClipPlane>100.0</farClipPlane>
     <up>0 1 0</up>
-    <position>0 0 15</position>
+    <position>0 0 14</position>
     <look_at>0 0 0</look_at>
   </camera>
 </cam_lib>
@@ -159,12 +159,13 @@
   </render_settings>
 </render_lib>
 <scenes>
-  <scene id="0" name="my scene" discard="1" bbox="    -4 4 -4 4 -4 4">
-    <instance id="0" mesh_id="1" rmap_id="-1" scn_id="0" scn_sid="0" matrix="-1 0 8.74228e-08 0 0 1 0 0 -8.74228e-08 0 -1 0 0 0 0 1 " />
+  <scene id="0" name="my scene" discard="1" bbox="    -4 4 -4.03344 4 -4 4">
+    <instance id="0" mesh_id="0" rmap_id="-1" scn_id="0" scn_sid="0" matrix="3.65 0 0 0 0 3.65 0 -2.555 0 0 3.65 0 0 0 0 1 " />
+    <instance id="1" mesh_id="1" rmap_id="-1" scn_id="0" scn_sid="0" matrix="-1 0 8.74228e-08 0 0 1 0 0 -8.74228e-08 0 -1 0 0 0 0 1 " />
     <instance_light id="0" light_id="0" matrix="0.939693 0 0.34202 -3.25 0.17101 0.866025 -0.469846 3.25 -0.296198 0.5 0.813798 -2 0 0 0 1 " lgroup_id="-1" />
     <instance_light id="1" light_id="0" matrix="1 0 0 3.75 0 1 0 3.95 0 0 1 -3.5 0 0 0 1 " lgroup_id="-1" />
-    <instance id="1" mesh_id="5" rmap_id="-1" matrix="0.939693 0 0.34202 -3.25 0.17101 0.866025 -0.469846 3.25 -0.296198 0.5 0.813798 -2 0 0 0 1 " light_id="0" linst_id="0" />
-    <instance id="2" mesh_id="5" rmap_id="-1" matrix="1 0 0 3.75 0 1 0 3.95 0 0 1 -3.5 0 0 0 1 " light_id="0" linst_id="1" />
+    <instance id="2" mesh_id="5" rmap_id="-1" matrix="0.939693 0 0.34202 -3.25 0.17101 0.866025 -0.469846 3.25 -0.296198 0.5 0.813798 -2 0 0 0 1 " light_id="0" linst_id="0" />
+    <instance id="3" mesh_id="5" rmap_id="-1" matrix="1 0 0 3.75 0 1 0 3.95 0 0 1 -3.5 0 0 0 1 " light_id="0" linst_id="1" />
   </scene>
 </scenes>
 <trash />

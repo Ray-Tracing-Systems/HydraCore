@@ -279,7 +279,7 @@ void GPUOCLLayer::AddContributionToScreenGPU(cl_mem in_color,     cl_mem in_indi
   
   // recalculate LDR image rely on normalisation constants
   // 
-  if((m_vars.m_flags & HRT_ENABLE_MMLT) != 0 && ENABLE_SBDPT_FOR_DEBUG == false && a_copyToLDRNow)
+  if((m_vars.m_flags & HRT_ENABLE_MMLT) != 0 && (m_vars.m_flags & HRT_ENABLE_SBPT) == 0 && a_copyToLDRNow)
   {
     ReduceCLArgs args;
     args.cmdQueue   = m_globals.cmdQueue;

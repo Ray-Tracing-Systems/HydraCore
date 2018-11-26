@@ -53,7 +53,7 @@ void GPUOCLLayer::ConnectEyePass(cl_mem in_rayFlags, cl_mem in_rayDirOld, cl_mem
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-void GPUOCLLayer::DL_Pass(int a_itersNum)
+void GPUOCLLayer::DL_Pass(int a_maxBounce, int a_itersNum)
 {
   if(m_pExternalImage == nullptr && m_mlt.colorDLCPU.size() == 0)
     m_mlt.colorDLCPU.resize(m_width*m_height);
@@ -70,7 +70,7 @@ void GPUOCLLayer::DL_Pass(int a_itersNum)
     runKernel_MakeEyeRays(m_rays.rayPos, m_rays.rayDir, m_rays.samZindex, m_rays.MEGABLOCKSIZE, m_passNumberForQMC);
     runKernel_ClearAllInternalTempBuffers(m_rays.MEGABLOCKSIZE);
     
-    trace1D(2, m_rays.rayPos, m_rays.rayDir, m_rays.MEGABLOCKSIZE,
+    trace1D(a_maxBounce, m_rays.rayPos, m_rays.rayDir, m_rays.MEGABLOCKSIZE,
             m_rays.pathAccColor);
     
     AddContributionToScreen(m_rays.pathAccColor, m_rays.samZindex, false, 1); 
@@ -216,13 +216,12 @@ size_t GPUOCLLayer::MMLTInitSplitDataUniform(int bounceBeg, int a_maxDepth, size
   //    std::cout << "[d = " << i << ",\tN = " << testThreadsPerBounce[i] << "]" << std::endl;
   //}
 
-
   std::vector<float> scale(a_maxDepth+1);
   for(size_t i=bounceBeg;i<scale.size();i++)
   {
     float& selectorInvPdf = scale[i]; 
     const int d    = i;
-    selectorInvPdf = float((d+1)*bouncesIntoAccount);
+    selectorInvPdf = float((d+1)*bouncesIntoAccount);  
   }
 
   CHECK_CL(clEnqueueWriteBuffer(m_globals.cmdQueue, a_splitData,  CL_TRUE, 0, splitDataCPU.size()*sizeof(int2), (void*)splitDataCPU.data(), 0, NULL, NULL));
@@ -280,7 +279,7 @@ void GPUOCLLayer::SBDPT_Pass(int minBounce, int maxBounce, int ITERS)
   }
 }
 
-double GPUOCLLayer::reduce_add1f(cl_mem a_buff, size_t a_size)
+double GPUOCLLayer::reduce_avg1f(cl_mem a_buff, size_t a_size)
 {
    ReduceCLArgs args;
    args.cmdQueue   = m_globals.cmdQueue;
@@ -291,11 +290,11 @@ double GPUOCLLayer::reduce_add1f(cl_mem a_buff, size_t a_size)
    return 0.25*(avg[0] + avg[1] + avg[2] + avg[3]);
 }
 
+
 float GPUOCLLayer::MMLT_BurningIn(int minBounce, int maxBounce, int BURN_ITERS,
                                   cl_mem out_rstate, cl_mem out_dsplit, cl_mem out_split2, cl_mem out_normC, std::vector<int>& out_activeThreads)
 {
-  //testScanFloatsAnySize();
- 
+
   if(m_mlt.rstateOld == out_rstate || out_dsplit == m_mlt.dOld)
   {
     std::cerr << "MMLT_BurningIn, wrong input buffers! Select (m_mlt.rstateNew, dNew) instead!" << std::endl;
@@ -313,7 +312,7 @@ float GPUOCLLayer::MMLT_BurningIn(int minBounce, int maxBounce, int BURN_ITERS,
   //
   
   MMLTInitSplitDataUniform(minBounce, maxBounce, m_rays.MEGABLOCKSIZE,
-                           m_mlt.splitData, m_mlt.scaleTable, out_activeThreads);
+                           out_split2, out_normC, out_activeThreads);
 
   const int BURN_PORTION = m_rays.MEGABLOCKSIZE/BURN_ITERS;
 
@@ -335,7 +334,7 @@ float GPUOCLLayer::MMLT_BurningIn(int minBounce, int maxBounce, int BURN_ITERS,
     runKernel_MLTEvalContribFunc(m_rays.pathAccColor, 0, m_rays.MEGABLOCKSIZE,
                                  temp_f1);
     
-    avgBrightness += reduce_add1f(temp_f1, m_rays.MEGABLOCKSIZE)*(1.0f/float(BURN_ITERS));
+    avgBrightness += reduce_avg1f(temp_f1, m_rays.MEGABLOCKSIZE)*(1.0/double(BURN_ITERS));
 
     MMLTCheatThirdBounceContrib(m_mlt.splitData, 0.5f, m_rays.MEGABLOCKSIZE, temp_f1); // THIS IS IN UNKNOWN (bounce==3) ISSUE/BUG !!!!
 
@@ -353,6 +352,8 @@ float GPUOCLLayer::MMLT_BurningIn(int minBounce, int maxBounce, int BURN_ITERS,
       std::cout << "MMLT Burning in, progress = " << 100.0f*float(iter)/float(BURN_ITERS) << "% \r";
       std::cout.flush();
     }
+
+    //AddContributionToScreen(m_rays.pathAccColor, nullptr);
   }
   std::cout << std::endl;
 
@@ -467,8 +468,13 @@ float GPUOCLLayer::MMLT_BurningIn(int minBounce, int maxBounce, int BURN_ITERS,
     x = 1.0f;
   CHECK_CL(clEnqueueWriteBuffer(m_globals.cmdQueue, m_mlt.scaleTable2, CL_TRUE, 0, scale.size()*sizeof(float), (void*)scale.data(), 0, NULL, NULL));
 
-  return avgBrightness;
+  return float(avgBrightness);
 }
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 void GPUOCLLayer::MMLTUpdateAverageBrightnessConstants(int minBounce, cl_mem in_color, size_t a_size)
 {
@@ -493,7 +499,7 @@ void GPUOCLLayer::MMLTUpdateAverageBrightnessConstants(int minBounce, cl_mem in_
 
     // (2) Reduce contrib func
     //
-    const double avgBrightness     = reduce_add1f(temp_f1, currSize);
+    const double avgBrightness     = reduce_avg1f(temp_f1, currSize);
     m_mlt.avgBrightnessCPU[bounce] = avgBrightness*alpha + (1.0 - alpha)*m_mlt.avgBrightnessCPU[bounce];
     currOffset += currSize;
   }

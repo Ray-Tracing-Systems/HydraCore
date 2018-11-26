@@ -51,6 +51,8 @@ struct Input
   bool pathTracingEnabled;
   bool lightTracingEnabled;
   bool ibptEnabled;
+  bool sbptEnabled;
+  bool mmltEnabled;
   bool cameraFreeze;
   bool productionPTMode;
 

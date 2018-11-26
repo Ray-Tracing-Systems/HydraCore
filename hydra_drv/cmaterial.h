@@ -2328,7 +2328,7 @@ static inline bool flagsHaveOnlySpecular(const unsigned int flags)
 {
   const unsigned int otherFlags = unpackRayFlags(flags);
 
-  return ( (otherFlags & RAY_EVENT_G)  == 0) && 
+  return ( (otherFlags & RAY_EVENT_G) == 0) && 
          ( (otherFlags & RAY_EVENT_D) == 0) ;
 }
 

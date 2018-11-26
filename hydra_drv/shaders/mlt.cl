@@ -684,8 +684,8 @@ __kernel void MMLTCameraPathBounce(__global   float4*        restrict a_rpos,
   const int lightOffset   = (a_globals->lightsNum == 0 || liteHit.instId < 0) ? -1 : in_instLightInstId[liteHit.instId]; // #TODO: refactor this into function!
   __global const PlainLight* pLight = lightAt(a_globals, lightOffset);
 
-  const float3 emission = emissionEval(ray_pos, ray_dir, &surfElem, flags, (a_misPrev.isSpecular == 1), pLight,
-                                       pHitMaterial, in_texStorage1, in_pdfStorage, a_globals, &ptl);
+  float3 emission = emissionEval(ray_pos, ray_dir, &surfElem, flags, (a_misPrev.isSpecular == 1), pLight,
+                                 pHitMaterial, in_texStorage1, in_pdfStorage, a_globals, &ptl);
   
   
   if (dot(emission, emission) > 1e-3f)
@@ -709,6 +709,9 @@ __kernel void MMLTCameraPathBounce(__global   float4*        restrict a_rpos,
         a_pdfVert[TabIndex(1, tid, iNumElements)] = v1;
       } 
       
+      if(flagsHaveOnlySpecular(flags))  // put such lighting in direct light pass
+        emission = make_float3(0,0,0);
+
       PathVertex resVertex;
       resVertex.ray_dir     = ray_dir;
       resVertex.accColor    = emission*to_float3(a_color[tid]);   

@@ -118,7 +118,7 @@ protected:
   void float2half(const std::vector<float>& a_in, std::vector<cl_half>& a_out);
   void float2half(const float* a_inData, size_t a_size, std::vector<cl_half>& a_out);
 
-  double reduce_add1f(cl_mem a_buff, size_t a_size);
+  double reduce_avg1f(cl_mem a_buff, size_t a_size);
 
   void trace1DPrimaryOnly(cl_mem a_rpos, cl_mem a_rdir, cl_mem a_outColor, size_t a_size, size_t a_offset);
   void trace1D(int a_maxBounce, cl_mem a_rpos, cl_mem a_rdir, size_t a_size,
@@ -475,7 +475,7 @@ protected:
   void runKernel_MLTEvalContribFunc(cl_mem in_buff, size_t a_offset, size_t a_size,
                                     cl_mem out_buff);
   
-  void  DL_Pass(int a_itersNum);
+  void  DL_Pass(int a_maxBounce, int a_itersNum);
   void  MMLT_Pass(int a_passNumber, int minBounce, int maxBounce, int BURN_ITERS);
   void  SBDPT_Pass(int minBounce, int maxBounce, int ITERS);
   float MMLT_BurningIn(int minBounce, int maxBounce, int BURN_ITERS,
@@ -561,6 +561,5 @@ protected:
 void RoundBlocks2D(size_t global_item_size[2], size_t local_item_size[2]);
 
 static constexpr bool FORCE_DRAW_SHADOW      = false;
-static constexpr bool ENABLE_SBDPT_FOR_DEBUG = false;
 static constexpr int  NUM_MMLT_PASS          = 32;
 
