@@ -329,7 +329,7 @@ static float3 ConnectEndPointsP(__private const PathVertex* a_lv, __private cons
   {
     ShadeContext sc;
     sc.wp = a_lv->hit.pos;
-    sc.l  = lToC;                 // try to swap them ?
+    sc.l  = lToC;                  // try to swap them ?
     sc.v  = (-1.0f)*a_lv->ray_dir; // try to swap them ?
     sc.n  = a_lv->hit.normal;
     sc.fn = a_lv->hit.flatNormal;
@@ -358,8 +358,8 @@ static float3 ConnectEndPointsP(__private const PathVertex* a_lv, __private cons
   {
     ShadeContext sc;
     sc.wp = a_cv->hit.pos;
-    sc.l  = (-1.0f)*lToC;
-    sc.v  = (-1.0f)*a_cv->ray_dir;
+    sc.l  = (-1.0f)*lToC;           // try to swap them ?
+    sc.v  = (-1.0f)*a_cv->ray_dir;  // try to swap them ?
     sc.n  = a_cv->hit.normal;
     sc.fn = a_cv->hit.flatNormal;
     sc.tg = a_cv->hit.tangent;
@@ -368,10 +368,10 @@ static float3 ConnectEndPointsP(__private const PathVertex* a_lv, __private cons
 
     __global const PlainMaterial* pHitMaterial = materialAt(a_globals, a_mltStorage, a_cv->hit.matId);
     if(pHitMaterial != 0)
-    {
-      BxDFResult evalData = materialEval(pHitMaterial, &sc, false, false, /* global data --> */ a_globals, a_texStorage1, a_texStorage2, a_ptList);
-      camBRDF       = evalData.brdf + evalData.btdf;
-      camVPdfRevW   = evalData.pdfFwd;
+    {                                                                                                                                              // (false, true) --> true !!!
+      BxDFResult evalData = materialEval(pHitMaterial, &sc, false, true, /* global data --> */ a_globals, a_texStorage1, a_texStorage2, a_ptList); // WTF ??? WHY WE NEED TO APPLY FWD DIR HERE ???????
+      camBRDF       = evalData.brdf + evalData.btdf;                                                                                               // BUT IT ACTUALLY WORKS !!!! SHIT !!!
+      camVPdfRevW   = evalData.pdfFwd;                                                                                                             // THIS IS DUE TO A_FWD_DIR INFLUENCE ON GLOSSY_COS_THETA_FIX
       camVPdfFwdW   = evalData.pdfRev;
 
       const bool underSurfaceC = (dot((-1.0f)*lToC, a_cv->hit.normal) < -0.01f);
@@ -380,8 +380,8 @@ static float3 ConnectEndPointsP(__private const PathVertex* a_lv, __private cons
     }
   }
 
-  const float cosAtLightVertex      = +signOfNormalL*dot(a_lv->hit.normal, lToC);  // signOfNormalL*
-  const float cosAtCameraVertex     = -signOfNormalC*dot(a_cv->hit.normal, lToC);  // signOfNormalC*
+  const float cosAtLightVertex      = +signOfNormalL*dot(a_lv->hit.normal, lToC); // 
+  const float cosAtCameraVertex     = -signOfNormalC*dot(a_cv->hit.normal, lToC); // 
 
   const float cosAtLightVertexPrev  = -dot(a_lv->hit.normal, a_lv->ray_dir);
   const float cosAtCameraVertexPrev = -dot(a_cv->hit.normal, a_cv->ray_dir);
@@ -393,8 +393,8 @@ static float3 ConnectEndPointsP(__private const PathVertex* a_lv, __private cons
 
   // calc remaining PDFs
   //
-  const float lightPdfFwdWP  = lightVPdfFwdW / fmax(cosAtLightVertex,  DEPSILON);
-  const float cameraPdfRevWP = camVPdfRevW   / fmax(cosAtCameraVertex, DEPSILON);
+  const float lightPdfFwdWP  = lightVPdfFwdW / fmax(cosAtLightVertex,  DEPSILON2);
+  const float cameraPdfRevWP = camVPdfRevW   / fmax(cosAtCameraVertex, DEPSILON2);
 
   vSplit->pdfFwd = (lightPdfFwdWP  == 0.0f) ? -1.0f*GTerm : lightPdfFwdWP*GTerm;   // let s=2,t=1 => (a_spit == s == 2)
   vSplit->pdfRev = (cameraPdfRevWP == 0.0f) ? -1.0f*GTerm : cameraPdfRevWP*GTerm;  // let s=2,t=1 => (a_spit == s == 2)
