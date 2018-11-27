@@ -91,7 +91,7 @@ float3  IntegratorShadowPT::PathTrace(float3 ray_pos, float3 ray_dir, MisData mi
     sc.bn = surfElem.biTangent;
     sc.tc = surfElem.texCoord;
 
-    const float3 brdfVal    = materialEval(pHitMaterial, &sc, false, false, /* global data --> */ m_pGlobals, m_texStorage, m_texStorage, &ptlCopy).brdf; // a_shadingTexture
+    const float3 brdfVal    = materialEval(pHitMaterial, &sc, (EVAL_FLAG_DEFAULT), /* global data --> */ m_pGlobals, m_texStorage, m_texStorage, &ptlCopy).brdf; // a_shadingTexture
     const float cosThetaOut = fmax(dot(shadowRayDir, surfElem.normal), 0.0f);
 
     explicitColor = (1.0f / lightPickProb)*(explicitSam.color * (1.0f / fmax(explicitSam.pdf, DEPSILON)))*cosThetaOut*brdfVal*shadow; // clamp brdfVal ? test it !!!
@@ -188,7 +188,7 @@ float3 IntegratorMISPT::PathTrace(float3 ray_pos, float3 ray_dir, MisData misPre
     auto ptlCopy = m_ptlDummy;
     GetProcTexturesIdListFromMaterialHead(pHitMaterial, &ptlCopy);
     
-    const auto evalData      = materialEval(pHitMaterial, &sc, false, false, /* global data --> */ m_pGlobals, m_texStorage, m_texStorage, &ptlCopy);
+    const auto evalData      = materialEval(pHitMaterial, &sc, (EVAL_FLAG_DEFAULT), /* global data --> */ m_pGlobals, m_texStorage, m_texStorage, &ptlCopy);
     
     const float cosThetaOut1 = fmax(+dot(shadowRayDir, surfElem.normal), 0.0f);
     const float cosThetaOut2 = fmax(-dot(shadowRayDir, surfElem.normal), 0.0f);

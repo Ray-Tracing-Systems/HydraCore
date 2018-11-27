@@ -739,7 +739,7 @@ void IntegratorMMLT::TraceLightPath(float3 ray_pos, float3 ray_dir, int a_currDe
     sc.bn = surfElem.biTangent;
     sc.tc = surfElem.texCoord;
 
-    const float pdfW         = materialEval(pHitMaterial, &sc, false, false, m_pGlobals, m_texStorage, m_texStorage, &m_ptlDummy).pdfFwd;
+    const float pdfW         = materialEval(pHitMaterial, &sc, (EVAL_FLAG_DEFAULT), m_pGlobals, m_texStorage, m_texStorage, &m_ptlDummy).pdfFwd;
     const float prevPdfRevWP = pdfW / fmax(cosCurr, DEPSILON);
     a_perThread->pdfArray[a_currDepth].pdfRev = prevPdfRevWP*GTermPrev;
   }
@@ -892,7 +892,7 @@ PathVertex IntegratorMMLT::CameraPath(float3 ray_pos, float3 ray_dir, MisData a_
       sc.bn = surfElem.biTangent;
       sc.tc = surfElem.texCoord;
 
-      const float pdfFwdW  = materialEval(pHitMaterial, &sc, false, false, // global data -->
+      const float pdfFwdW  = materialEval(pHitMaterial, &sc, (EVAL_FLAG_DEFAULT), // global data -->
                                           m_pGlobals, m_texStorage, m_texStorageAux, &m_ptlDummy).pdfFwd;
       const float pdfFwdWP = pdfFwdW / fmax(cosHere, DEPSILON);
 
@@ -1119,7 +1119,7 @@ float3 IntegratorMMLT::PathTraceDirectLight(float3 ray_pos, float3 ray_dir, MisD
     sc.bn = surfElem.biTangent;
     sc.tc = surfElem.texCoord;
 
-    const auto evalData      = materialEval(pHitMaterial, &sc, false, false, /* global data --> */ m_pGlobals, m_texStorage, m_texStorage, &m_ptlDummy);
+    const auto evalData      = materialEval(pHitMaterial, &sc, (EVAL_FLAG_DEFAULT), /* global data --> */ m_pGlobals, m_texStorage, m_texStorage, &m_ptlDummy);
 
     const float cosThetaOut1 = fmax(+dot(shadowRayDir, surfElem.normal), 0.0f);
     const float cosThetaOut2 = fmax(-dot(shadowRayDir, surfElem.normal), 0.0f);

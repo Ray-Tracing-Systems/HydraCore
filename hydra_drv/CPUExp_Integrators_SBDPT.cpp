@@ -310,7 +310,7 @@ void IntegratorSBDPT::TraceLightPath(float3 ray_pos, float3 ray_dir, int a_currD
     sc.bn = surfElem.biTangent;
     sc.tc = surfElem.texCoord;
 
-    const float pdfW         = materialEval(pHitMaterial, &sc, false, false, /* global data --> */ m_pGlobals, m_texStorage, m_texStorage, &m_ptlDummy).pdfFwd;
+    const float pdfW         = materialEval(pHitMaterial, &sc, (EVAL_FLAG_DEFAULT), /* global data --> */ m_pGlobals, m_texStorage, m_texStorage, &m_ptlDummy).pdfFwd;
     const float prevPdfRevWP = pdfW / fmax(cosCurr, DEPSILON);
     a_perThread->pdfArray[a_currDepth].pdfRev = prevPdfRevWP*GTermPrev;
   }
@@ -467,7 +467,7 @@ PathVertex IntegratorSBDPT::CameraPath(float3 ray_pos, float3 ray_dir, float3 a_
       sc.bn = surfElem.biTangent;
       sc.tc = surfElem.texCoord;
 
-      const float pdfFwdW  = materialEval(pHitMaterial, &sc, false, false, /* global data --> */ m_pGlobals, m_texStorage, m_texStorage, &m_ptlDummy).pdfFwd;
+      const float pdfFwdW  = materialEval(pHitMaterial, &sc, (EVAL_FLAG_DEFAULT), /* global data --> */ m_pGlobals, m_texStorage, m_texStorage, &m_ptlDummy).pdfFwd;
       const float pdfFwdWP = pdfFwdW / fmax(cosHere, DEPSILON);
 
       a_perThread->pdfArray[prevVertexId].pdfFwd = pdfFwdWP*GTerm;

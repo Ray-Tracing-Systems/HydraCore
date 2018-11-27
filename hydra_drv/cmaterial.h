@@ -619,7 +619,7 @@ static inline float phongGlosiness(__global const PlainMaterial* a_pMat, const f
     return a_pMat->data[PHONG_GLOSINESS_OFFSET];
 }
 
-static inline float phongEvalPDF(__global const PlainMaterial* a_pMat, const float3 l, const float3 v, const float3 n, const float2 a_texCoord, const bool a_fwdDir,
+static inline float phongEvalPDF(__global const PlainMaterial* a_pMat, const float3 l, const float3 v, const float3 n, const float2 a_texCoord,
                                  __global const EngineGlobals* a_globals, texture2d_t a_tex, __private const ProcTextureList* a_ptList)
 {
   const float3 r        = reflect((-1.0)*v, n);
@@ -638,7 +638,7 @@ static inline float PhongPreDivCosThetaFixMult(const float gloss, const float co
   return lerpVal;
 }
 
-static inline float3 phongEvalBxDF(__global const PlainMaterial* a_pMat, const float3 l, const float3 v, const float3 n, const float2 a_texCoord, const bool a_fwdDir,
+static inline float3 phongEvalBxDF(__global const PlainMaterial* a_pMat, const float3 l, const float3 v, const float3 n, const float2 a_texCoord, const int a_evalFlags,
                                    __global const EngineGlobals* a_globals, texture2d_t a_tex, __private const ProcTextureList* a_ptList)
 {
   const float3 texColor = sample2DExt(phongGetTex(a_pMat).y, a_texCoord, (__global const int4*)a_pMat, a_tex, a_globals, a_ptList);
@@ -650,7 +650,7 @@ static inline float3 phongEvalBxDF(__global const PlainMaterial* a_pMat, const f
   const float3 r        = reflect((-1.0)*v, n);
   const float  cosAlpha = clamp(dot(l, r), 0.0f, M_PI*0.499995f);
 
-  const float cosThetaFix = a_fwdDir ? PhongPreDivCosThetaFixMult(gloss, fabs(dot(v, n))) : 1.0f;
+  const float cosThetaFix = ((a_evalFlags & EVAL_FLAG_APPLY_GLOSS_SIG) != 0) ? PhongPreDivCosThetaFixMult(gloss, fabs(dot(v, n))) : 1.0f;
   
   return color*(cosPower + 2.0f)*0.5f*INV_PI*pow(cosAlpha, cosPower-1.0f)*cosThetaFix; // 
 }
@@ -1475,10 +1475,12 @@ static inline float adjointBsdfShadeNormalFix(const float3 toLightWo, const floa
 \return RDF and BTDF values and also fwd. and rev. pdfs
 
 */
-static inline BxDFResult materialLeafEval(__global const PlainMaterial* pMat, __private const ShadeContext* sc, const bool a_fwdDir,
+static inline BxDFResult materialLeafEval(__global const PlainMaterial* pMat, __private const ShadeContext* sc, const int a_evalFlags,
                                           __global const EngineGlobals* a_globals, texture2d_t a_tex, texture2d_t a_texNormal, __private const ProcTextureList* a_ptList)
 {
   ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////// cosThetaFix for normalmap
+  const bool a_fwdDir = ((a_evalFlags & EVAL_FLAG_FWD_DIR) != 0);
+
   float3 n       = sc->n;
   float cosMult  = 1.0f;
   float cosMult2 = 1.0f;
@@ -1522,9 +1524,9 @@ static inline BxDFResult materialLeafEval(__global const PlainMaterial* pMat, __
   switch (materialGetType(pMat))
   {
   case PLAIN_MAT_CLASS_PHONG_SPECULAR: 
-    res.brdf    = phongEvalBxDF(pMat, sc->l, sc->v, n, sc->tc, a_fwdDir, a_globals, a_tex, a_ptList)*cosMult;
-    res.pdfFwd  = phongEvalPDF (pMat, sc->l, sc->v, n, sc->tc, a_fwdDir, a_globals, a_tex, a_ptList);
-    res.pdfRev  = phongEvalPDF (pMat, sc->v, sc->l, n, sc->tc, a_fwdDir, a_globals, a_tex, a_ptList);
+    res.brdf    = phongEvalBxDF(pMat, sc->l, sc->v, n, sc->tc, a_evalFlags, a_globals, a_tex, a_ptList)*cosMult;
+    res.pdfFwd  = phongEvalPDF (pMat, sc->l, sc->v, n, sc->tc,              a_globals, a_tex, a_ptList);
+    res.pdfRev  = phongEvalPDF (pMat, sc->v, sc->l, n, sc->tc,              a_globals, a_tex, a_ptList);
     break;
   case PLAIN_MAT_CLASS_BLINN_SPECULAR: 
     res.brdf    = blinnEvalBxDF(pMat, sc->l, sc->v, n, sc->tc, a_globals, a_tex, a_ptList)*cosMult;
@@ -1585,7 +1587,7 @@ static inline BxDFResult materialLeafEval(__global const PlainMaterial* pMat, __
 }
 
 
-static inline BxDFResult materialEval(__global const PlainMaterial* a_pMat, __private const ShadeContext* sc, const bool disableCaustics, const bool a_fwdDir,
+static inline BxDFResult materialEval(__global const PlainMaterial* a_pMat, __private const ShadeContext* sc, const int a_evalFlags,
                                       __global const EngineGlobals* a_globals, texture2d_t a_tex, texture2d_t a_texNormal, __private const ProcTextureList* a_ptList)
 {
   BxDFResult val;
@@ -1594,6 +1596,8 @@ static inline BxDFResult materialEval(__global const PlainMaterial* a_pMat, __pr
   val.pdfFwd  = 0.0f;
   val.pdfRev  = 0.0f;
   val.diffuse = true;
+
+  const bool disableCaustics = ((a_evalFlags & EVAL_FLAG_DISABLE_CAUSTICS) != 0);
 
   float2 stack[MIX_TREE_MAX_DEEP];
   int top = 0;
@@ -1646,7 +1650,7 @@ static inline BxDFResult materialEval(__global const PlainMaterial* a_pMat, __pr
     }
     else  if (!(disableCaustics && materialCastCaustics(pMat)))
     {
-      const BxDFResult bxdfAndPdf = materialLeafEval(pMat, sc, a_fwdDir, a_globals, a_tex, a_texNormal, a_ptList);
+      const BxDFResult bxdfAndPdf = materialLeafEval(pMat, sc, a_evalFlags, a_globals, a_tex, a_texNormal, a_ptList);
       val.brdf   += currW*bxdfAndPdf.brdf;
       val.btdf   += currW*bxdfAndPdf.btdf;
       val.pdfFwd += currW*bxdfAndPdf.pdfFwd;

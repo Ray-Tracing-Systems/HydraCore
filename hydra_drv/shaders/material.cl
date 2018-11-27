@@ -124,7 +124,7 @@ __kernel void UpdateForwardPdfFor3Way(__global const uint*          restrict a_f
     ReadProcTextureList(in_procTexData, tid, iNumElements, 
                         &ptl);
     #endif
-    const float pdfW = materialEval(pHitMaterial, &sc, false, false, /* global data --> */ a_globals, in_texStorage1, in_texStorage2, &ptl).pdfFwd;
+    const float pdfW = materialEval(pHitMaterial, &sc, (EVAL_FLAG_DEFAULT), /* global data --> */ a_globals, in_texStorage1, in_texStorage2, &ptl).pdfFwd;
     
     accData.pdfCameraWP *= (pdfW / fmax(cosCurr, DEPSILON));
     accData.pdfLightWP  *= (matSamplePdf / fmax(cosNext, DEPSILON));
@@ -222,7 +222,7 @@ __kernel void ConnectToEyeKernel(__global const uint*          restrict a_flags,
       ReadProcTextureList(in_procTexData, tid, iNumElements,
                           &ptl);
 
-      BxDFResult matRes = materialEval(pHitMaterial, &sc, false, true, /* global data --> */ a_globals, in_texStorage1, in_texStorage2, &ptl);
+      BxDFResult matRes = materialEval(pHitMaterial, &sc, (EVAL_FLAG_FWD_DIR), /* global data --> */ a_globals, in_texStorage1, in_texStorage2, &ptl);
       colorConnect      = matRes.brdf + matRes.btdf;
       pdfRevW           = matRes.pdfRev;
     }
@@ -694,7 +694,9 @@ __kernel void Shade(__global const float4*    restrict a_rpos,
   ReadProcTextureList(in_procTexData, tid, iNumElements,
                       &ptl);
 
-  const BxDFResult evalData = materialEval(pHitMaterial, &sc, disableCaustics, false, /* global data --> */ a_globals, in_texStorage1, in_texStorage2, &ptl);
+  const int evalFlags       = (disableCaustics ? EVAL_FLAG_DISABLE_CAUSTICS : EVAL_FLAG_DEFAULT);
+
+  const BxDFResult evalData = materialEval(pHitMaterial, &sc, (evalFlags), /* global data --> */ a_globals, in_texStorage1, in_texStorage2, &ptl);
 
   __global const PlainLight* pLight = lightAt(a_globals, lightOffset);
 
@@ -1001,7 +1003,7 @@ __kernel void NextBounce(__global   float4*        restrict a_rpos,
             InitProcTextureList(&ptl); 
             ReadProcTextureList(in_procTexData, tid, iNumElements,
                                 &ptl);
-            const float pdfFwdW = materialEval(pHitMaterial, &sc, false, false, // global data on the second line -->                          
+            const float pdfFwdW = materialEval(pHitMaterial, &sc, (EVAL_FLAG_DEFAULT), // global data on the second line -->                          
                                                a_globals, in_texStorage1, in_texStorage2, &ptl).pdfFwd; 
            
             accPdf.pdfLightWP *= (pdfFwdW / fmax(cosHere, DEPSILON));

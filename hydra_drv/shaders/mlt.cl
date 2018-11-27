@@ -819,7 +819,7 @@ __kernel void MMLTCameraPathBounce(__global   float4*        restrict a_rpos,
       sc.bn = surfElem.biTangent;
       sc.tc = surfElem.texCoord;
 
-      const float pdfFwdW  = materialEval(pHitMaterial, &sc, false, false, 
+      const float pdfFwdW  = materialEval(pHitMaterial, &sc, (EVAL_FLAG_DEFAULT), 
                                           a_globals, in_texStorage1, in_texStorage2, &ptl).pdfFwd;
       const float pdfFwdWP = pdfFwdW / fmax(cosHere, DEPSILON);
 
@@ -1097,7 +1097,7 @@ __kernel void MMLTLightPathBounce (__global   float4*        restrict a_rpos,
     sc.bn = surfElem.biTangent;
     sc.tc = surfElem.texCoord;
 
-    const float pdfW         = materialEval(pHitMaterial, &sc, false, false, a_globals, in_texStorage1, in_texStorage2, &ptl).pdfFwd;
+    const float pdfW         = materialEval(pHitMaterial, &sc, (EVAL_FLAG_DEFAULT), a_globals, in_texStorage1, in_texStorage2, &ptl).pdfFwd;
     const float prevPdfRevWP = pdfW / fmax(cosCurr, DEPSILON);
     vCurr.pdfRev = prevPdfRevWP*GTermPrev;
   }
