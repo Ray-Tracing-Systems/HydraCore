@@ -215,7 +215,7 @@ void IntegratorThreeWay::ConnectEye(SurfaceHit a_hit, float3 ray_pos, float3 ray
     sc.bn = a_hit.biTangent;
     sc.tc = a_hit.texCoord;
 
-    auto colorAndPdf = materialEval(pHitMaterial, &sc, (EVAL_FLAG_FWD_DIR | EVAL_FLAG_APPLY_GLOSS_SIG), /* global data --> */ m_pGlobals, m_texStorage, m_texStorage, &m_ptlDummy);
+    auto colorAndPdf = materialEval(pHitMaterial, &sc, (EVAL_FLAG_FWD_DIR), /* global data --> */ m_pGlobals, m_texStorage, m_texStorage, &m_ptlDummy);
     colorConnect     = colorAndPdf.brdf + colorAndPdf.btdf;
     pdfRevW          = colorAndPdf.pdfRev;
   }

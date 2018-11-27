@@ -650,7 +650,7 @@ static inline float3 phongEvalBxDF(__global const PlainMaterial* a_pMat, const f
   const float3 r        = reflect((-1.0)*v, n);
   const float  cosAlpha = clamp(dot(l, r), 0.0f, M_PI*0.499995f);
 
-  const float cosThetaFix = ((a_evalFlags & EVAL_FLAG_APPLY_GLOSS_SIG) != 0) ? PhongPreDivCosThetaFixMult(gloss, fabs(dot(v, n))) : 1.0f;
+  const float cosThetaFix = fmin(PhongPreDivCosThetaFixMult(gloss, fabs(dot(v, n))), 100.0f);
   
   return color*(cosPower + 2.0f)*0.5f*INV_PI*pow(cosAlpha, cosPower-1.0f)*cosThetaFix; // 
 }

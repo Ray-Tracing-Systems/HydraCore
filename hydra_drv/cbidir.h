@@ -167,7 +167,7 @@ static float3 ConnectEyeP(const PathVertex* a_lv, float a_mLightSubPathCount, fl
       sc.bn = a_lv->hit.biTangent;
       sc.tc = a_lv->hit.texCoord;
 
-      BxDFResult colorAndPdf = materialEval(pHitMaterial, &sc, (EVAL_FLAG_FWD_DIR | EVAL_FLAG_APPLY_GLOSS_SIG), a_globals, a_texStorage1, a_texStorage2, a_ptList);
+      BxDFResult colorAndPdf = materialEval(pHitMaterial, &sc, (EVAL_FLAG_FWD_DIR), a_globals, a_texStorage1, a_texStorage2, a_ptList);
 
       colorConnect     = colorAndPdf.brdf + colorAndPdf.btdf;
       pdfRevW          = colorAndPdf.pdfRev;
@@ -340,7 +340,7 @@ static float3 ConnectEndPointsP(__private const PathVertex* a_lv, __private cons
     __global const PlainMaterial* pHitMaterial = materialAt(a_globals, a_mltStorage, a_lv->hit.matId);
     if(pHitMaterial != 0)
     {
-      BxDFResult evalData = materialEval(pHitMaterial, &sc, (EVAL_FLAG_FWD_DIR | EVAL_FLAG_APPLY_GLOSS_SIG), /* global data --> */ a_globals, a_texStorage1, a_texStorage2, a_ptList);
+      BxDFResult evalData = materialEval(pHitMaterial, &sc, (EVAL_FLAG_FWD_DIR), /* global data --> */ a_globals, a_texStorage1, a_texStorage2, a_ptList);
       lightBRDF     = evalData.brdf + evalData.btdf;
       lightVPdfFwdW = evalData.pdfFwd;
       lightVPdfRevW = evalData.pdfRev;
@@ -369,7 +369,7 @@ static float3 ConnectEndPointsP(__private const PathVertex* a_lv, __private cons
     __global const PlainMaterial* pHitMaterial = materialAt(a_globals, a_mltStorage, a_cv->hit.matId);
     if(pHitMaterial != 0)
     {                                                                                                                                             
-      BxDFResult evalData = materialEval(pHitMaterial, &sc, (EVAL_FLAG_APPLY_GLOSS_SIG), /* global data --> */ a_globals, a_texStorage1, a_texStorage2, a_ptList); // #NOTE: EVAL_FLAG_APPLY_GLOSS_SIG 
+      BxDFResult evalData = materialEval(pHitMaterial, &sc, (EVAL_FLAG_DEFAULT), /* global data --> */ a_globals, a_texStorage1, a_texStorage2, a_ptList);  
       camBRDF       = evalData.brdf + evalData.btdf;                                                                                               
       camVPdfRevW   = evalData.pdfFwd;                                                                                                            
       camVPdfFwdW   = evalData.pdfRev;
