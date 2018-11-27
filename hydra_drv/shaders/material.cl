@@ -222,7 +222,7 @@ __kernel void ConnectToEyeKernel(__global const uint*          restrict a_flags,
       ReadProcTextureList(in_procTexData, tid, iNumElements,
                           &ptl);
 
-      BxDFResult matRes = materialEval(pHitMaterial, &sc, (EVAL_FLAG_FWD_DIR), /* global data --> */ a_globals, in_texStorage1, in_texStorage2, &ptl);
+      BxDFResult matRes = materialEval(pHitMaterial, &sc, (EVAL_FLAG_FWD_DIR | EVAL_FLAG_APPLY_GLOSS_SIG), /* global data --> */ a_globals, in_texStorage1, in_texStorage2, &ptl);
       colorConnect      = matRes.brdf + matRes.btdf;
       pdfRevW           = matRes.pdfRev;
     }

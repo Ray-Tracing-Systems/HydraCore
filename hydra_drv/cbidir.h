@@ -167,7 +167,7 @@ static float3 ConnectEyeP(const PathVertex* a_lv, float a_mLightSubPathCount, fl
       sc.bn = a_lv->hit.biTangent;
       sc.tc = a_lv->hit.texCoord;
 
-      BxDFResult colorAndPdf = materialEval(pHitMaterial, &sc, (EVAL_FLAG_FWD_DIR), a_globals, a_texStorage1, a_texStorage2, a_ptList);
+      BxDFResult colorAndPdf = materialEval(pHitMaterial, &sc, (EVAL_FLAG_FWD_DIR | EVAL_FLAG_APPLY_GLOSS_SIG), a_globals, a_texStorage1, a_texStorage2, a_ptList);
 
       colorConnect     = colorAndPdf.brdf + colorAndPdf.btdf;
       pdfRevW          = colorAndPdf.pdfRev;
