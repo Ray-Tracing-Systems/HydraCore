@@ -843,7 +843,9 @@ __kernel void MMLTCameraPathBounce(__global   float4*        restrict a_rpos,
   if (stopDL && a_haveToHitLightSource && a_currDepth + 1 == a_targetDepth) // exclude direct light
     accColor = make_float3(0, 0, 0);
 
-  flags = flagsNextBounce(flags, matSam, a_globals);
+  //flags = flagsNextBounce(flags, matSam, a_globals);
+  flags = flagsNextBounceLite(flags, matSam, a_globals);
+  
   if (maxcomp(accColor) < 0.00001f)
   {
     PathVertex resVertex;
@@ -1114,7 +1116,8 @@ __kernel void MMLTLightPathBounce (__global   float4*        restrict a_rpos,
   a_rpos [tid] = to_float4(nextRay_pos, cosNext);
   a_rdir [tid] = to_float4(nextRay_dir, matSam.pdf);
 
-  flags = flagsNextBounce(flags, matSam, a_globals);
+  //flags = flagsNextBounce(flags, matSam, a_globals);
+  flags = flagsNextBounceLite(flags, matSam, a_globals);
   if (maxcomp(accColor) < 0.00001f)
   {
     PathVertex resVertex;
@@ -1327,7 +1330,7 @@ __kernel void MMLTConnect(__global const int2  *  restrict in_splitInfo,
 
 
   float3 sampleColor = make_float3(0,0,0);  
-  const int zid2 = out_zind[tid].x;
+  const int zid2     = out_zind[tid].x;
   int x = ExtractXFromZIndex (zid2); // #TODO: in don;t like this but may be its ok ... 
   int y = ExtractYFromZIndex (zid2); // #TODO: in don;t like this but may be its ok ... 
 
@@ -1438,6 +1441,7 @@ __kernel void MMLTConnect(__global const int2  *  restrict in_splitInfo,
     float pdfSumm    = 0.0f;
 
     const PdfVertex vD = a_pdfVert[TabIndex(d, tid, iNumElements)];
+    int   validStrat = 0;
 
     for (int split = 0; split <= d; split++)
     {
@@ -1463,13 +1467,19 @@ __kernel void MMLTConnect(__global const int2  *  restrict in_splitInfo,
         pdfOtherWay *= misHeuristicPower1(vI.pdfRev);
       }
 
+       if (pdfOtherWay != 0.0f)
+        validStrat++;
+
       if (s1 == s && t1 == t)
         pdfThisWay = pdfOtherWay;
 
       pdfSumm += pdfOtherWay;
     }
 
-    misWeight = pdfThisWay / fmax(pdfSumm, DEPSILON2);
+    if(validStrat != 0)
+      misWeight = pdfThisWay / fmax(pdfSumm, DEPSILON2);
+    else
+      misWeight = 1.0f;
   }
 
   #ifdef SBDPT_DEBUG_SPLIT

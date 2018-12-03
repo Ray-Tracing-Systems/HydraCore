@@ -489,7 +489,7 @@ PathVertex IntegratorSBDPT::CameraPath(float3 ray_pos, float3 ray_dir, float3 a_
   thisBounce.isSpecular    = isPureSpecular(matSam);
   thisBounce.matSamplePdf  = matSam.pdf;
 
-  PathVertex nextVertex = CameraPath(nextRay_pos, nextRay_dir, surfElem.normal, thisBounce, a_currDepth + 1, flags,
+  PathVertex nextVertex = CameraPath(nextRay_pos, nextRay_dir, surfElem.normal, thisBounce, a_currDepth + 1, flagsNextBounceLite(flags, matSam, m_pGlobals),
                                      a_perThread, a_targetDepth, a_haveToHitLightSource, a_fullPathDepth);
 
   nextVertex.accColor *= (bxdfVal*cosNext / fmax(matSam.pdf, DEPSILON2));
