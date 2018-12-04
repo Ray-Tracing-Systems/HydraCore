@@ -810,7 +810,7 @@ PathVertex IntegratorMMLT::CameraPath(float3 ray_pos, float3 ray_dir, MisData a_
   // (2)
   //
   float3 emission = emissionEval(ray_pos, ray_dir, surfElem, flags, a_misPrev, fetchInstId(hit));
-  if (dot(emission, emission) > 1e-3f)
+  if (dot(emission, emission) > 1e-6f)
   {
     PathVertex resVertex;
     if (a_currDepth == a_targetDepth && a_haveToHitLightSource)
