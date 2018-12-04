@@ -263,21 +263,21 @@ __kernel void CopyAccColorTo(__global const float4* restrict in_vertexSup,
     out_color[tid] = make_float4(0,0,0,0);
 }
 
-static inline int PickSplitFromRand(const float r, const int d, float a_threshold)
-{
-  if(a_threshold < 0.1f)
-    return mapRndFloatToInt(r, 0, d);
-  else
-  {
-    const float threshold = a_threshold;
-    const float r1        = (r - threshold)/(1.0f - threshold);
-    
-    if(r <= threshold)
-      return 0;
-    else 
-      return mapRndFloatToInt(r1, 0, d);
-  }
-}
+//static inline int PickSplitFromRand(const float r, const int d, float a_threshold)
+//{
+//  if(a_threshold < 0.1f)
+//    return mapRndFloatToInt(r, 0, d);
+//  else
+//  {
+//    const float threshold = a_threshold;
+//    const float r1        = (r - threshold)/(1.0f - threshold);
+//    
+//    if(r <= threshold)
+//      return 0;
+//    else 
+//      return mapRndFloatToInt(r1, 0, d);
+//  }
+//}
 
 
 __kernel void MMLTMakeProposal(__global int2*            restrict a_split,
@@ -399,8 +399,8 @@ __kernel void MMLTMakeProposal(__global int2*            restrict a_split,
     }
 
     const int2 oldSplit = a_split[tid];
-    d  = oldSplit.x;                                                                  // MMLT_GPU_TEST_DEPTH;
-    s  = PickSplitFromRand(split, d, a_globals->varsF[HRT_MMLT_IMPLICIT_FIXED_PROB]); // mapRndFloatToInt(split, 0, d); 
+    d  = oldSplit.x;                    // MMLT_GPU_TEST_DEPTH;
+    s  = mapRndFloatToInt(split, 0, d); //(split, d, a_globals->varsF[HRT_MMLT_IMPLICIT_FIXED_PROB]); // mapRndFloatToInt(split, 0, d); 
 
     #ifdef SBDPT_DEBUG_SPLIT
     s = SBDPT_DEBUG_SPLIT;
@@ -1334,8 +1334,8 @@ __kernel void MMLTConnect(__global const int2  *  restrict in_splitInfo,
   int x = ExtractXFromZIndex (zid2); // #TODO: in don;t like this but may be its ok ... 
   int y = ExtractYFromZIndex (zid2); // #TODO: in don;t like this but may be its ok ... 
 
-  const float fixImplicit = (1.0f - a_globals->varsF[HRT_MMLT_IMPLICIT_FIXED_PROB]);
-  const float fixOther    = 1.0f/fixImplicit;
+  const float fixImplicit = 1.0f; // (1.0f - a_globals->varsF[HRT_MMLT_IMPLICIT_FIXED_PROB]);
+  const float fixOther    = 1.0f; // 1.0f/(1.0f - a_globals->varsF[HRT_MMLT_IMPLICIT_FIXED_PROB]);
 
   if (lightTraceDepth == -1)        // (3.1) -1 means we have full camera path, no conection is needed
   {

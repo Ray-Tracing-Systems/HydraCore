@@ -292,6 +292,19 @@ int main(int argc, const char** argv)
       if (g_input.enableMLT)
         flags |= GPU_MLT_ENABLED_AT_START;
       
+      if (g_input.enableMLT)
+      {
+        flags |= GPU_MLT_ENABLED_AT_START;
+      
+        if (g_input.mmltThreads == 262144)
+          flags |= GPU_MMLT_THREADS_262K;
+        else if (g_input.mmltThreads == 131072)
+          flags |= GPU_MMLT_THREADS_131K;
+        else if (g_input.mmltThreads == 65536)
+          flags |= GPU_MMLT_THREADS_65K;
+        else if (g_input.mmltThreads == 16384)
+          flags |= GPU_MMLT_THREADS_16K;
+      }
       g_pDriver = std::shared_ptr<IHRRenderDriver>(CreateDriverRTE(L"", g_width, g_height, g_input.inDeviceId, flags, nullptr));
 
       std::cout << "[main]: detached render driver was created for [window_main]" << std::endl;
