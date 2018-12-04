@@ -297,22 +297,20 @@ __kernel void MMLTMakeProposal(__global int2*            restrict a_split,
 
   bool largeStep    = false; 
   int smallStepType = 0;
+  
+  if(a_forceLargeStep != 1)
   {
     const float p = rndFloat1_Pseudo(&gen);
-    if(a_forceLargeStep != 1)
-    {
-      //if(p <= 0.25f)
-      //  largeStep = true;
-      if(p <= 0.333f)
-        smallStepType = MUTATE_LIGHT;
-      else if (0.333f < p && p <= 0.667f)
-        smallStepType = MUTATE_LIGHT | MUTATE_CAMERA;
-      else
-        smallStepType = MUTATE_CAMERA;
-    }
+    if(p <= 0.333f)
+      smallStepType = MUTATE_LIGHT;
+    else if (0.333f < p && p <= 0.667f)
+      smallStepType = MUTATE_LIGHT | MUTATE_CAMERA;
     else
-      largeStep = true;
+      smallStepType = MUTATE_CAMERA;
   }
+  else
+    largeStep = true;
+  
   // enum MUTATION_TYPE { MUTATE_LIGHT = 1, MUTATE_CAMERA = 2 };
 
   // gen head first

@@ -120,10 +120,10 @@ void GPUOCLLayer::MMLT_Pass(int a_passNumber, int minBounce, int maxBounce, int 
       m_mlt.rstateOld = sTmp;             m_mlt.dOld = dTmp;
     }
 
+    
     runKernel_MMLTMakeProposal(m_mlt.rstateOld, nullptr, 1, maxBounce, m_rays.MEGABLOCKSIZE, //#NOTE: force large step = 1 to generate numbers from current state
-                               nullptr, m_mlt.yVector);
-    runKernel_MMLTMakeProposal(m_mlt.rstateOld, nullptr, 1, maxBounce, m_rays.MEGABLOCKSIZE, //#NOTE: force large step = 1 to generate numbers from current state
-                               nullptr, m_mlt.xVector);
+                               m_mlt.rstateOld, m_mlt.xVector);
+
     EvalSBDPT(m_mlt.xVector, minBounce, maxBounce, m_rays.MEGABLOCKSIZE,
               m_mlt.xColor);
 
@@ -325,8 +325,8 @@ float GPUOCLLayer::MMLT_BurningIn(int minBounce, int maxBounce, int BURN_ITERS,
   std::cout << std::endl;
   for(int iter=0; iter<BURN_ITERS;iter++)
   {
-    runKernel_MMLTMakeProposal(m_mlt.rstateCurr, m_mlt.xVector, 1, maxBounce, m_rays.MEGABLOCKSIZE,
-                               m_mlt.rstateCurr, m_mlt.xVector);
+    runKernel_MMLTMakeProposal(m_mlt.rstateCurr, nullptr, 1, maxBounce, m_rays.MEGABLOCKSIZE,
+                               m_mlt.rstateNew,  m_mlt.xVector);
 
     EvalSBDPT(m_mlt.xVector, minBounce, maxBounce, m_rays.MEGABLOCKSIZE,
               m_rays.pathAccColor);
@@ -344,10 +344,16 @@ float GPUOCLLayer::MMLT_BurningIn(int minBounce, int maxBounce, int BURN_ITERS,
     // 
     runKernel_MLTSelectSampleProportionalToContrib(m_mlt.rstateCurr, m_mlt.splitData, temp_f1, m_rays.MEGABLOCKSIZE, m_mlt.rstateForAcceptReject, BURN_PORTION,
                                                    BURN_PORTION*iter, m_mlt.rstateOld, m_mlt.dOld);
+ 
+    {
+      cl_mem temp      = m_mlt.rstateCurr;
+      m_mlt.rstateCurr = m_mlt.rstateNew;
+      m_mlt.rstateNew  = temp;
+    }
 
     clFinish(m_globals.cmdQueue);
     
-    if(iter%4 == 0)
+    if(iter%16 == 0)
     {
       std::cout << "MMLT Burning in, progress = " << 100.0f*float(iter)/float(BURN_ITERS) << "% \r";
       std::cout.flush();

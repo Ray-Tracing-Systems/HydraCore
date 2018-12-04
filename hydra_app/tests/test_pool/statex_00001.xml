@@ -217,9 +217,9 @@
     <pt_error>1</pt_error>
     <minRaysPerPixel>1024</minRaysPerPixel>
     <maxRaysPerPixel>2000000</maxRaysPerPixel>
-    <mmlt_burn_iters>1024</mmlt_burn_iters>
+    <mmlt_burn_iters>4096</mmlt_burn_iters>
     <mmlt_threads>262144</mmlt_threads>
-    <mmlt_sds_fixed_prob>0.9</mmlt_sds_fixed_prob>
+    <mmlt_sds_fixed_prob>0.0</mmlt_sds_fixed_prob>
     <mmlt_multBrightness>1</mmlt_multBrightness>
     <envclamp>1000000</envclamp>
     <bsdfclamp>1000000</bsdfclamp>

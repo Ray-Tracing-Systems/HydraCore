@@ -1261,8 +1261,8 @@ void GPUOCLLayer::memcpyu32(cl_mem buff1, uint a_offset1, cl_mem buff2, uint a_o
   cl_kernel kern = m_progs.screen.kernel("MemCopyu32");
 
   size_t szLocalWorkSize = 256;
-  cl_int iNumElements = cl_int(a_size);
-  a_size = roundBlocks(a_size, int(szLocalWorkSize));
+  cl_int iNumElements    = cl_int(a_size);
+  a_size                 = roundBlocks(a_size, int(szLocalWorkSize));
 
   CHECK_CL(clSetKernelArg(kern, 0, sizeof(cl_mem), (void*)&buff2));
   CHECK_CL(clSetKernelArg(kern, 1, sizeof(cl_uint), (void*)&a_offset2));
