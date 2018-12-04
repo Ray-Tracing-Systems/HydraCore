@@ -239,7 +239,7 @@ bool RenderDriverRTE::UpdateSettings(pugi::xml_node a_settingsNode)
   if(a_settingsNode.child(L"mmlt_burn_iters") != nullptr)
     vars.m_varsI[HRT_MMLT_BURN_ITERS] = a_settingsNode.child(L"mmlt_burn_iters").text().as_int();
   else
-    vars.m_varsI[HRT_MMLT_BURN_ITERS] = 4096;
+    vars.m_varsI[HRT_MMLT_BURN_ITERS] = 1024;
 
   if(a_settingsNode.child(L"mmlt_sds_fixed_prob") != nullptr)
     vars.m_varsF[HRT_MMLT_IMPLICIT_FIXED_PROB] = clamp(a_settingsNode.child(L"mmlt_sds_fixed_prob").text().as_float(), 0.0f, 0.95f);
