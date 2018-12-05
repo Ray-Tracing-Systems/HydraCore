@@ -136,6 +136,45 @@ bool InitSceneLibAndRTE(HRCameraRef& a_camRef, HRSceneInstRef& a_scnRef, HRRende
         node2.force_child(L"seed").text() = int(now_ms & 0xEFFFFFFF);
       }
       
+      // override rendering method if it as set via command line
+      //
+      if(g_input.inMethod != "")
+      {
+        if(g_input.inMethod == "pt" || g_input.inMethod == "PT" || g_input.inMethod == "pathtracing")
+        {
+           node2.child(L"method_primary").text()   = L"pathtracing";
+           node2.child(L"method_secondary").text() = L"pathtracing";
+           node2.child(L"method_tertiary").text()  = L"pathtracing";
+           node2.child(L"method_caustic").text()   = L"pathtracing";
+        }
+        else if (g_input.inMethod == "lt" || g_input.inMethod == "LT" || g_input.inMethod == "lighttracing")
+        {
+           node2.child(L"method_primary").text()   = L"lighttracing";
+           node2.child(L"method_secondary").text() = L"lighttracing";
+           node2.child(L"method_tertiary").text()  = L"lighttracing";
+           node2.child(L"method_caustic").text()   = L"lighttracing"; 
+        }
+        else if (g_input.inMethod == "ibpt" || g_input.inMethod == "IBPT")
+        {
+           node2.child(L"method_primary").text()   = L"IBPT";
+           node2.child(L"method_secondary").text() = L"IBPT";
+           node2.child(L"method_tertiary").text()  = L"IBPT";
+           node2.child(L"method_caustic").text()   = L"IBPT"; 
+        }
+        else if (g_input.inMethod == "mmlt" || g_input.inMethod == "MMLT")
+        {
+           node2.child(L"method_primary").text()   = L"pathtracing";
+           node2.child(L"method_secondary").text() = L"MMLT";
+           node2.child(L"method_tertiary").text()  = L"MMLT";
+           node2.child(L"method_caustic").text()   = L"MMLT"; 
+        }
+        else
+        {
+          std::cerr << "unknown rendering method(command line '-method'): " << g_input.inMethod;
+          exit(0);
+        }
+      }
+      
     }
     hrRenderClose(a_renderRef);
   }
@@ -222,16 +261,27 @@ static void Draw(std::shared_ptr<IHRRenderDriver> a_pDetachedRenderDriverPointer
     if (saveImages > saveImageLast)
     {
       std::wstringstream fname1, fname2;
-      #ifdef WIN32
-      fname1 << L"C:/[Hydra]/rendered_images/a_" << int(time) << L".png";
-      #else
-      fname1 << L"/home/frol/hydra/rendered_images/a_" << int(time) << L".png";
-      #endif
-      //fname2 << L"C:/[Hydra]/rendered_images/b_" << int(time) << L".hdr";
+      if(g_input.outDir == "")
+      {
+        #ifdef WIN32
+        fname1 << L"C:/[Hydra]/rendered_images/a_" << int(time) << L".png";
+        fname2 << L"C:/[Hydra]/rendered_images/b_" << int(time) << L".hdr";
+        #else
+        fname1 << L"/home/frol/hydra/rendered_images/a_" << int(time) << L".png";
+        fname2 << L"/home/frol/hydra/rendered_images/b_" << int(time) << L".hdr";
+        #endif
+      }
+      else
+      {
+        std::wstring dir = s2ws(g_input.outDir);
+        fname1 << dir.c_str() << L"/LDR_" << int(int(time)/60) << L"min.png";
+        fname2 << dir.c_str() << L"/HDR_" << int(int(time)/60) << L"min.png";
+      }
+    
       const std::wstring outStr1 = fname1.str();
       const std::wstring outStr2 = fname2.str();
       hrRenderSaveFrameBufferLDR(renderRef, outStr1.c_str());
-      //hrRenderSaveFrameBufferHDR(renderRef, outStr2.c_str());
+      hrRenderSaveFrameBufferHDR(renderRef, outStr2.c_str());
       saveImageLast = saveImages;
       std::wcout << L"image " << outStr1.c_str() << L" saved " << std::endl;
     }

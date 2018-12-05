@@ -66,6 +66,9 @@ Input::Input()
 
   maxSamplesContrib      = 1000000;
   mmltThreads            = (1024 * 1024) / 2;
+
+  outDir   = ""; 
+  inMethod = "";
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -195,8 +198,10 @@ void Input::ParseCommandLineParams(const std::unordered_map<std::string, std::st
   
   ReadStringCmd(a_params, "-inputlib",    &inLibraryPath);
   ReadStringCmd(a_params, "-statefile",   &inTargetState);
+  ReadStringCmd(a_params, "-method",      &inMethod);
   
   ReadStringCmd(a_params, "-out",         &outLDRImage); 
+  ReadStringCmd(a_params, "-outdir",      &outDir);
   ReadStringCmd(a_params, "-logdir",      &inLogDirCust);
   ReadStringCmd(a_params, "-sharedimage", &inSharedImageName);
   

@@ -24,11 +24,15 @@ struct Input
   std::string   inLibraryPath;
   std::string   inTargetState;
   std::string   inStateFile;
-  std::string   outLDRImage;
+  
   std::string   inLogDirCust;
   std::string   inSharedImageName;
 
   std::wstring  inTestsFolder;
+  std::string   inMethod;     // override for rendering method
+
+  std::string   outLDRImage;
+  std::string   outDir;       // override for output directory
 
   int32_t     inSeed;
   int32_t     inDeviceId;
