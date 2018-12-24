@@ -12,12 +12,13 @@ Input::Input()
   
   //noWindow      = false;         ///< run 'console_main', else run 'window_main'
   //inLibraryPath = "tests/test_42"; ///< cornell box with teapot
-  //inLibraryPath = "tests/test_223_small"; ///< cornell box with sphere
+  inLibraryPath = "tests/test_223_small"; ///< cornell box with sphere
   //inLibraryPath = "tests/test_224_sphere";
   //inLibraryPath = "/media/frol/886234F06234E49A/scenes/benchmark4"; ///< cornell box with mirror glossy back wall
   //inLibraryPath = "/media/frol/886234F06234E49A/scenes/phong_test/torspar1";
   //inLibraryPath = "/media/frol/886234F06234E49A/scenes/cornell_water";
-  inLibraryPath = "tests/test_pool";
+  //inLibraryPath = "tests/test_pool";
+  //inLibraryPath = "/home/frol/temp/suncg1_scenelib/statex_00003.xml";
 
   //inLibraryPath = "/home/frol/PROG/HydraAPI/main/tests/test_86";
   //inLibraryPath = "/home/frol/temp/hydra_debug_scene";
@@ -32,6 +33,7 @@ Input::Input()
   //inLibraryPath = "C:/[Hydra]/pluginFiles/scenelib";
   //inLibraryPath   = "/media/frol/6E0467C0046789C3/[Hydra]/pluginFiles/scenelib";
   //inLibraryPath = "D:/temp/scenelib/"; 
+  //inLibraryPath = "/home/frol/temp/scenes/scene_07";
 
   inDevelopment = true;  ///< recompile shaders each time; note that nvidia have their own shader cache!
   inDeviceId    = 0;     ///< opencl device id

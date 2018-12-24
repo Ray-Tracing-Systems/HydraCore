@@ -113,16 +113,16 @@ void GPUOCLLayer::MMLT_Pass(int a_passNumber, int minBounce, int maxBounce, int 
     if(m_pExternalImage != nullptr)
       m_pExternalImage->Header()->avgImageB = m_avgBrightness;
 
+    //#NOTE: force large step = 1 to generate numbers from current state
+    runKernel_MMLTMakeProposal(m_mlt.rstateNew, nullptr, 1, maxBounce, m_rays.MEGABLOCKSIZE, 
+                               m_mlt.rstateNew, m_mlt.xVector);
+
     // swap (m_mlt.rstateNew, m_mlt.dNew) and (m_mlt.rstateOld, m_mlt.dOld)
     {
       cl_mem sTmp     = m_mlt.rstateNew; cl_mem dTmp = m_mlt.dNew;
       m_mlt.rstateNew = m_mlt.rstateOld;  m_mlt.dNew = m_mlt.dOld;
       m_mlt.rstateOld = sTmp;             m_mlt.dOld = dTmp;
     }
-
-    
-    runKernel_MMLTMakeProposal(m_mlt.rstateOld, nullptr, 1, maxBounce, m_rays.MEGABLOCKSIZE, //#NOTE: force large step = 1 to generate numbers from current state
-                               m_mlt.rstateOld, m_mlt.xVector);
 
     EvalSBDPT(m_mlt.xVector, minBounce, maxBounce, m_rays.MEGABLOCKSIZE,
               m_mlt.xColor);

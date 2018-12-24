@@ -275,7 +275,7 @@ static void Draw(std::shared_ptr<IHRRenderDriver> a_pDetachedRenderDriverPointer
       {
         std::wstring dir = s2ws(g_input.outDir);
         fname1 << dir.c_str() << L"/LDR_" << int(int(time)/60) << L"min.png";
-        fname2 << dir.c_str() << L"/HDR_" << int(int(time)/60) << L"min.png";
+        fname2 << dir.c_str() << L"/HDR_" << int(int(time)/60) << L"min.hdr";
       }
     
       const std::wstring outStr1 = fname1.str();
