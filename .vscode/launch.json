@@ -9,9 +9,10 @@
             "type"   : "cppdbg",
             "request": "launch",
             "program": "${workspaceFolder}/cmake-build-release/hydra_app/hydra",
-            "args"   : ["-nowindow", "0", 
+            "args"   : ["-nowindow", "1", 
                         "-saveinterval", "600",
-                        "-enable_mlt", "0"],
+                        "-enable_mlt", "0",
+                        "-out", "/home/frol/temp/test_out/image.png"],
 
             "stopAtEntry": false,
             "cwd"    : "${workspaceFolder}/hydra_app",

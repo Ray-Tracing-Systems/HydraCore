@@ -224,9 +224,10 @@ int main(int argc, const char** argv)
 
         if (!externalImageIsOk)
         {
-          std::cerr << "failed to attach to external image" << std::endl;
+          std::cerr << "failed to attach to external image, enter to boxmode" << std::endl;
           delete g_pExternalImage;
           g_pExternalImage = nullptr;
+          g_input.boxMode  = true;
         }
       }
 

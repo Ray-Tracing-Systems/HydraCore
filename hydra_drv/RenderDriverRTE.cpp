@@ -1905,17 +1905,8 @@ HRRenderUpdateInfo RenderDriverRTE::HaveUpdateNow(int a_maxRaysperPixel)
   const float spp = m_pHWLayer->GetSPP();
   
   res.progress    = spp/float(a_maxRaysperPixel);
-  res.finalUpdate = false; // (res.progress >= 1.5f);  //#TODO: this is due to the possibility of render to finish earlier than API get upgate from it
-  // std::cout << "progress = " << res.progress << std::endl;
-  
-  // float sppDone    = m_pHWLayer->GetSPPDone();
-  // float sppContrib = m_pHWLayer->GetSPPContrib();
-  
-  // std::cout << std::endl;
-  // std::cout << "m_boxModeOn             = " << m_boxModeOn << std::endl;
-  // std::cout << "m_boxModeContribSamples = " << m_boxModeContribSamples << std::endl;
-  // std::cout << "m_boxModeMaxSamples     = " << m_boxModeMaxSamples << std::endl;
-  
+  res.finalUpdate = (res.progress >= 1.0f); 
+ 
   return res;
 }
 

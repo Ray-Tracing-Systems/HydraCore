@@ -238,7 +238,7 @@ static void Draw(std::shared_ptr<IHRRenderDriver> a_pDetachedRenderDriverPointer
   
   HRRenderUpdateInfo info = hrRenderHaveUpdate(renderRef);
   
-  if (info.finalUpdate)  // save final image
+  if (info.finalUpdate && g_input.boxMode)  // save final image
   {
     if (g_input.outLDRImage != "")
     {

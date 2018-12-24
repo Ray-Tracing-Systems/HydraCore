@@ -35,7 +35,7 @@ Input::Input()
   //inLibraryPath = "D:/temp/scenelib/"; 
   //inLibraryPath = "/home/frol/temp/scenes/scene_07";
 
-  inDevelopment = true;  ///< recompile shaders each time; note that nvidia have their own shader cache!
+  inDevelopment = false;  ///< recompile shaders each time; note that nvidia have their own shader cache!
   inDeviceId    = 0;     ///< opencl device id
   cpuFB         = true;  ///< store frame buffer on CPU. Automaticly enabled if
   enableMLT     = false; ///< if use MMLT, you MUST enable it early, when render process just started (here or via command line).
