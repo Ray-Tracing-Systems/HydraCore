@@ -1770,7 +1770,13 @@ void RenderDriverRTE::EvalGBuffer()
   if(m_pAccumImage != nullptr)
     m_pHWLayer->EvalGBuffer(m_pAccumImage, m_instIdByInstId);
   else
+  {
+    char errMsg[256];
+    m_gbufferImage.Create(m_width, m_height, 3, "gbuffer-only", errMsg);
+    //m_pHWLayer->EvalGBuffer(&m_gbufferImage, m_instIdByInstId);
+
     std::cerr << "RenderDriverRTE::EvalGBuffer: nullptr m_pAccumImage" << std::endl;
+  }
 }
 
 void RenderDriverRTE::InstanceMeshes(int32_t a_mesh_id, const float* a_matrices, int32_t a_instNum, 

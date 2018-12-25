@@ -133,8 +133,8 @@ void IntegratorMISPT_AQMC::DoPass(std::vector<uint>& a_imageLDR)
     
     #pragma omp critical
     {
-    m_summColors      [y*m_width + x] = m_summColors      [y*m_width + x] + to_float4(color, 0.0f);
-    m_summSquareColors[y*m_width + x] = m_summSquareColors[y*m_width + x] + avgCol*avgCol;
+      m_summColors      [y*m_width + x] = m_summColors      [y*m_width + x] + to_float4(color, 0.0f);
+      m_summSquareColors[y*m_width + x] = m_summSquareColors[y*m_width + x] + avgCol*avgCol;
     }
   }
 

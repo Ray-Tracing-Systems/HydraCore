@@ -310,6 +310,60 @@ protected:
 
   void FreeCPUMem();
 
+  // this image is used only if we do not have external image accumulator
+  //
+  struct DummyGBufferImage : public IHRSharedAccumImage
+  {
+    DummyGBufferImage() : half1(nullptr), half2(nullptr) {}
+
+    bool Create(int w, int h, int d, const char* name, char errMsg[256]) override 
+    {
+      m_data.resize(w*h*8);
+
+      header.width  = w;
+      header.height = h;
+      header.depth  = d;
+
+      half1 = m_data.data();
+      half2 = m_data.data() + w*h*4;
+    }
+
+    bool Attach(const char* name, char errMsg[256]) override {}
+    void Clear()                                    override { memset(m_data.data(), 0, m_data.size()*sizeof(float)); }
+                 
+    bool Lock(int a_miliseconds)    override { return true; }
+    void Unlock()                   override { }
+
+    HRSharedBufferHeader* Header()  override { return &header; }
+
+    char* MessageSendData()         override { return nullptr; }
+    char* MessageRcvData()          override { return nullptr; }
+
+    /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////// #TODO: refactor this
+    // please look at GPUOCLLayer::EvalGBuffer
+    float*  ImageData(int layerNum) override 
+    { 
+      if(layerNum == 1)
+        return half1;
+      else if (layerNum == 2)
+        return half2; 
+      else
+        return nullptr;
+    }
+    /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////// #TODO: refactor this
+
+    private:
+
+    HRSharedBufferHeader header;
+    std::vector<float>  m_data;
+
+    float* half1;
+    float* half2;
+
+  } m_gbufferImage;
+
+  
+
 };
 
 struct ProcTexParams
