@@ -353,10 +353,12 @@ protected:
     }
     /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////// #TODO: refactor this
 
+    std::vector<float>   shadowCopy;
+
     private:
 
     HRSharedBufferHeader header;
-    std::vector<float>  m_data;
+    std::vector<float>   m_data;
 
     float* half1;
     float* half2;

@@ -259,12 +259,17 @@ static void Draw(std::shared_ptr<IHRRenderDriver> a_pDetachedRenderDriverPointer
         const std::wstring normsName  = s2ws(g_input.outAllDir + "/02_norms.png");
         const std::wstring diffcName  = s2ws(g_input.outAllDir + "/03_diffc.png");
         const std::wstring coverName  = s2ws(g_input.outAllDir + "/04_bords.png");
+        const std::wstring shadowName = s2ws(g_input.outAllDir + "/05_shadw.png");
+        const std::wstring alphaName  = s2ws(g_input.outAllDir + "/06_alpha.png");
 
         hrRenderSaveFrameBufferHDR (renderRef, hdrImgName.c_str());
         hrRenderSaveGBufferLayerLDR(renderRef, depthName.c_str(), L"depth");
         hrRenderSaveGBufferLayerLDR(renderRef, normsName.c_str(), L"normals");
         hrRenderSaveGBufferLayerLDR(renderRef, diffcName.c_str(), L"diffcolor");
         hrRenderSaveGBufferLayerLDR(renderRef, coverName.c_str(), L"coverage");
+
+        hrRenderSaveGBufferLayerLDR(renderRef, alphaName.c_str(), L"alpha");
+        hrRenderSaveGBufferLayerLDR(renderRef, shadowName.c_str(),L"shadow");
 
         /*
         hrRenderSaveGBufferLayerLDR(renderRef, L"tests_images/test_77/z_out2.png", L"depth");
@@ -273,7 +278,6 @@ static void Draw(std::shared_ptr<IHRRenderDriver> a_pDetachedRenderDriverPointer
         hrRenderSaveGBufferLayerLDR(renderRef, L"tests_images/test_77/z_out5.png", L"diffcolor");
         hrRenderSaveGBufferLayerLDR(renderRef, L"tests_images/test_77/z_out6.png", L"alpha");
         hrRenderSaveGBufferLayerLDR(renderRef, L"tests_images/test_77/z_out7.png", L"shadow");
-
 
         const unsigned int palette[20] = { 0xffff0000, 0xff00ff00, 0xff0000ff, 0xff0082c8,
                                            0xfff58231, 0xff911eb4, 0xff46f0f0, 0xfff032e6,
@@ -285,8 +289,6 @@ static void Draw(std::shared_ptr<IHRRenderDriver> a_pDetachedRenderDriverPointer
         hrRenderSaveGBufferLayerLDR(renderRef, L"tests_images/test_77/z_out9.png", L"objid",  (const int32_t*)palette, 20);
         hrRenderSaveGBufferLayerLDR(renderRef, L"tests_images/test_77/z_out10.png", L"instid", (const int32_t*)palette, 20);
       
-        hrRenderSaveGBufferLayerLDR(renderRef, L"tests_images/test_77/z_out11.png", L"coverage");
-        hrRenderSaveGBufferLayerLDR(renderRef, L"tests_images/test_77/z_out12.png", L"catcher");
         */
       }
     }

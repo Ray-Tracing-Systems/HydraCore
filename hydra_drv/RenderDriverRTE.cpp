@@ -1918,6 +1918,15 @@ HRRenderUpdateInfo RenderDriverRTE::HaveUpdateNow(int a_maxRaysperPixel)
 void RenderDriverRTE::GetFrameBufferHDR(int32_t w, int32_t h, float*   a_out, const wchar_t* a_layerName)
 {
   m_pHWLayer->GetHDRImage((float4*)a_out, w, h);
+
+  if(m_gbufferImage.Header()->width == w && m_gbufferImage.Header()->height == h) // save shadow values in separate buffer
+  {
+    if(m_gbufferImage.shadowCopy.size() != w*h)
+      m_gbufferImage.shadowCopy.resize(w*h);
+    
+    for(int i=0;i<(w*h);i++)
+      m_gbufferImage.shadowCopy[i] = a_out[4*i+3];
+  }
 }
 
 void RenderDriverRTE::GetFrameBufferLDR(int32_t w, int32_t h, int32_t* a_out)
@@ -1974,6 +1983,9 @@ void RenderDriverRTE::GetGBufferLine(int32_t a_lineNumber, HRGBufferPixel* a_lin
   const float* data1 = m_gbufferImage.ImageData(1);
   const float* data2 = m_gbufferImage.ImageData(2);
 
+  if(data1 == nullptr || data2 == nullptr || m_gbufferImage.shadowCopy.size() == 0)
+    return;
+
   if (a_endX > m_width)
     a_endX = m_width;
 
@@ -1986,8 +1998,8 @@ void RenderDriverRTE::GetGBufferLine(int32_t a_lineNumber, HRGBufferPixel* a_lin
   {
     const float* data11  = &data1[(lineOffset + x) * 4];
     const float* data22  = &data2[(lineOffset + x) * 4];
-    a_lineData[x]        = UnpackGBuffer(data11, data22);                  // store main gbuffer data
-    //a_lineData[x].shadow = 1.0f - data0[(lineOffset + x) * 4 + 3]*normC; // get shadow from the fourth channel
+    a_lineData[x]        = UnpackGBuffer(data11, data22);                          // store main gbuffer data
+    a_lineData[x].shadow = 1.0f - m_gbufferImage.shadowCopy[lineOffset + x]*normC; // get shadow from the preserved to 'shadowCopy' fourth channel
   }
 
 }
