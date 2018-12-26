@@ -243,7 +243,11 @@ static void Draw(std::shared_ptr<IHRRenderDriver> a_pDetachedRenderDriverPointer
     if (g_input.outLDRImage != "")
     {
       const std::wstring outStr = s2ws(g_input.outLDRImage);
-      hrRenderSaveFrameBufferLDR(renderRef, outStr.c_str());
+
+      if(outStr.find(L".hdr") != std::wstring::npos || outStr.find(L".exr") != std::wstring::npos)
+        hrRenderSaveFrameBufferHDR(renderRef, outStr.c_str());
+      else
+        hrRenderSaveFrameBufferLDR(renderRef, outStr.c_str());
     }
     g_input.exitStatus = true;
   }
@@ -296,7 +300,7 @@ static void GetGBuffer(std::shared_ptr<IHRRenderDriver> a_pDetachedRenderDriverP
 
   InitSceneLibAndRTE(camRef, scnRef, renderRef, a_pDetachedRenderDriverPointer);
   
-  hrRenderOpen(renderRef, HR_OPEN_EXISTING); // #TODO: refector; this is needed here due to we update settings only once if g_firstCall == true
+  hrRenderOpen(renderRef, HR_OPEN_EXISTING); // #TODO: refactor; this is needed here due to we update settings only once if g_firstCall == true
   {
     auto paramNode = hrRenderParamNode(renderRef);
     paramNode.force_child(L"boxmode").text()        = g_input.boxMode ? 1 : 0;
