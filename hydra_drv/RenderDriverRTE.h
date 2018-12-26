@@ -323,6 +323,7 @@ protected:
       header.width  = w;
       header.height = h;
       header.depth  = d;
+      header.gbufferIsEmpty = 1;
 
       half1 = m_data.data();
       half2 = m_data.data() + w*h*4;

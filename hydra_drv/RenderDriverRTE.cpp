@@ -1771,11 +1771,10 @@ void RenderDriverRTE::EvalGBuffer()
     m_pHWLayer->EvalGBuffer(m_pAccumImage, m_instIdByInstId);
   else
   {
+    std::cerr << "EvalGBuffer: nullptr external AccumImage, save gbuffer to internal image" << std::endl;
     char errMsg[256];
     m_gbufferImage.Create(m_width, m_height, 3, "gbuffer-only", errMsg);
-    //m_pHWLayer->EvalGBuffer(&m_gbufferImage, m_instIdByInstId);
-
-    std::cerr << "RenderDriverRTE::EvalGBuffer: nullptr m_pAccumImage" << std::endl;
+    m_pHWLayer->EvalGBuffer(&m_gbufferImage, m_instIdByInstId);
   }
 }
 

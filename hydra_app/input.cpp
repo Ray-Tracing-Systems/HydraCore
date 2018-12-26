@@ -29,6 +29,7 @@ Input::Input()
   
   //inLibraryPath = "D:/[archive]/2017/HydraAPP/hydra_app/tests/hydra_benchmark_07";
   //inLibraryPath = "D:/[archive]/2017/HydraOldRepo/HydraAPP/home/frol/hydra/rendered_images/a_3602.png/hydra_app/tests/hydra_benchmark_07";
+  //inLibraryPath = "/home/frol/PROG/HydraAPI/main/tests/test_77";
 
   //inLibraryPath = "C:/[Hydra]/pluginFiles/scenelib";
   //inLibraryPath   = "/media/frol/6E0467C0046789C3/[Hydra]/pluginFiles/scenelib";
@@ -204,6 +205,7 @@ void Input::ParseCommandLineParams(const std::unordered_map<std::string, std::st
   
   ReadStringCmd(a_params, "-out",         &outLDRImage); 
   ReadStringCmd(a_params, "-outdir",      &outDir);
+  ReadStringCmd(a_params, "-outall",      &outAllDir);
   ReadStringCmd(a_params, "-logdir",      &inLogDirCust);
   ReadStringCmd(a_params, "-sharedimage", &inSharedImageName);
   

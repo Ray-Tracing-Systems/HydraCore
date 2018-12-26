@@ -32,6 +32,7 @@ struct Input
   std::string   inMethod;     // override for rendering method
 
   std::string   outLDRImage;
+  std::string   outAllDir;
   std::string   outDir;       // override for output directory
 
   int32_t     inSeed;

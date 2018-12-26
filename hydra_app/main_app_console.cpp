@@ -242,12 +242,53 @@ static void Draw(std::shared_ptr<IHRRenderDriver> a_pDetachedRenderDriverPointer
   {
     if (g_input.outLDRImage != "")
     {
-      const std::wstring outStr = s2ws(g_input.outLDRImage);
+      std::cout << "save final image to " << g_input.outLDRImage.c_str() << std::endl; 
+      const std::wstring outStr = s2ws(g_input.outLDRImage);      
 
       if(outStr.find(L".hdr") != std::wstring::npos || outStr.find(L".exr") != std::wstring::npos)
         hrRenderSaveFrameBufferHDR(renderRef, outStr.c_str());
       else
         hrRenderSaveFrameBufferLDR(renderRef, outStr.c_str());
+
+      if(g_input.outAllDir != "")
+      {
+        std::cout << "save gbuffer     to " << g_input.outAllDir.c_str() << std::endl; 
+        
+        const std::wstring hdrImgName = s2ws(g_input.outAllDir + "/00_color.exr");
+        const std::wstring depthName  = s2ws(g_input.outAllDir + "/01_depth.png");
+        const std::wstring normsName  = s2ws(g_input.outAllDir + "/02_norms.png");
+        const std::wstring diffcName  = s2ws(g_input.outAllDir + "/03_diffc.png");
+        const std::wstring coverName  = s2ws(g_input.outAllDir + "/04_bords.png");
+
+        hrRenderSaveFrameBufferHDR (renderRef, hdrImgName.c_str());
+        hrRenderSaveGBufferLayerLDR(renderRef, depthName.c_str(), L"depth");
+        hrRenderSaveGBufferLayerLDR(renderRef, normsName.c_str(), L"normals");
+        hrRenderSaveGBufferLayerLDR(renderRef, diffcName.c_str(), L"diffcolor");
+        hrRenderSaveGBufferLayerLDR(renderRef, coverName.c_str(), L"coverage");
+
+        /*
+        hrRenderSaveGBufferLayerLDR(renderRef, L"tests_images/test_77/z_out2.png", L"depth");
+        hrRenderSaveGBufferLayerLDR(renderRef, L"tests_images/test_77/z_out3.png", L"normals");
+        hrRenderSaveGBufferLayerLDR(renderRef, L"tests_images/test_77/z_out4.png", L"texcoord");
+        hrRenderSaveGBufferLayerLDR(renderRef, L"tests_images/test_77/z_out5.png", L"diffcolor");
+        hrRenderSaveGBufferLayerLDR(renderRef, L"tests_images/test_77/z_out6.png", L"alpha");
+        hrRenderSaveGBufferLayerLDR(renderRef, L"tests_images/test_77/z_out7.png", L"shadow");
+
+
+        const unsigned int palette[20] = { 0xffff0000, 0xff00ff00, 0xff0000ff, 0xff0082c8,
+                                           0xfff58231, 0xff911eb4, 0xff46f0f0, 0xfff032e6,
+                                           0xffd2f53c, 0xfffabebe, 0xff008080, 0xffe6beff,
+                                           0xffaa6e28, 0xfffffac8, 0xff800000, 0xffaaffc3,
+                                           0xff808000, 0xffffd8b1, 0xff000080, 0xff808080 };
+      
+        hrRenderSaveGBufferLayerLDR(renderRef, L"tests_images/test_77/z_out8.png", L"matid",  (const int32_t*)palette, 20);
+        hrRenderSaveGBufferLayerLDR(renderRef, L"tests_images/test_77/z_out9.png", L"objid",  (const int32_t*)palette, 20);
+        hrRenderSaveGBufferLayerLDR(renderRef, L"tests_images/test_77/z_out10.png", L"instid", (const int32_t*)palette, 20);
+      
+        hrRenderSaveGBufferLayerLDR(renderRef, L"tests_images/test_77/z_out11.png", L"coverage");
+        hrRenderSaveGBufferLayerLDR(renderRef, L"tests_images/test_77/z_out12.png", L"catcher");
+        */
+      }
     }
     g_input.exitStatus = true;
   }
