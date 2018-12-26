@@ -315,7 +315,6 @@ static void Draw(std::shared_ptr<IHRRenderDriver> a_pDetachedRenderDriverPointer
 
     if (saveImages > saveImageLast)
     {
-
       std::wstringstream fname1, fname2;
       if(g_input.outDir == "")
       {
@@ -330,15 +329,15 @@ static void Draw(std::shared_ptr<IHRRenderDriver> a_pDetachedRenderDriverPointer
       else
       {
         std::wstring dir = s2ws(g_input.outDir);
-        fname1 << dir.c_str() << L"/LDR_" << int(int(time)/60) << L"min.png";
-        fname2 << dir.c_str() << L"/HDR_" << int(int(time)/60) << L"min.exr";
+        fname1 << dir.c_str() << std::fixed << L"/LDR_" << std::setfill(L"0"[0]) << std::setw(3) << int(int(time)/60) << L"min.png"; 
+        fname2 << dir.c_str() << std::fixed << L"/HDR_" << std::setfill(L"0"[0]) << std::setw(3) << int(int(time)/60) << L"min.exr";
       }
     
       const std::wstring outStr1 = fname1.str();
       const std::wstring outStr2 = fname2.str();
       hrRenderSaveFrameBufferLDR(renderRef, outStr1.c_str());
       hrRenderSaveFrameBufferHDR(renderRef, outStr2.c_str());
-      saveImageLast = saveImages;
+      saveImageLast = saveImages*2-1; // to save 1, 2, 4, 8, ... ; and saveImages to save 1, 2, 3, 4, ... 
       std::wcout << L"image " << outStr1.c_str() << L" saved " << std::endl;
     }
   }

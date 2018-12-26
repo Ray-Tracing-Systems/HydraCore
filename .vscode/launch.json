@@ -16,7 +16,8 @@
                         "-outall", "/home/frol/temp/test_out/gbuff",
                         "-outdir", "/home/frol/temp/test_out/imgseq",
                         "-saveinterval", "60",
-                        "-evalgbuffer", "1"],
+                        "-evalgbuffer", "1",
+                        "-cl_device_id","1"],
 
             "stopAtEntry": false,
             "cwd"    : "${workspaceFolder}/hydra_app",
