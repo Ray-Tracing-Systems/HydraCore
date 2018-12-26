@@ -194,7 +194,8 @@ bool InitSceneLibAndRTE(HRCameraRef& a_camRef, HRSceneInstRef& a_scnRef, HRRende
   return true;
 }
 
-static bool g_firstCall = true;
+static bool g_firstCall     = true;
+static bool g_startTimerNow = false;
 
 //
 static void Draw(std::shared_ptr<IHRRenderDriver> a_pDetachedRenderDriverPointer)
@@ -227,8 +228,15 @@ static void Draw(std::shared_ptr<IHRRenderDriver> a_pDetachedRenderDriverPointer
 
     hrCommit(scnRef, renderRef, camRef);
     timer.start();
-    g_firstCall = false;
+    g_firstCall   = false;
+    saveImageLast = 0;
     return;
+  }
+  else if(g_startTimerNow)
+  {
+    timer.start();
+    saveImageLast = 0;
+    g_startTimerNow = false;
   }
   
   hrErrorCallerPlace(L"Draw");
@@ -300,13 +308,14 @@ static void Draw(std::shared_ptr<IHRRenderDriver> a_pDetachedRenderDriverPointer
     const float time     = timer.getElapsed();
     const int saveImages = int(time / g_input.saveInterval);
 
-    // std::cout << "saveImages    = " << saveImages << std::endl;
-    // std::cout << "saveImageLast = " << saveImageLast << std::endl;
-    // std::cout << "time          = " << time << std::endl;
-    // std::cout << "saveInterval  = " << g_input.saveInterval << std::endl;
+    //std::cout << "saveImages    = " << saveImages << std::endl;
+    //std::cout << "saveImageLast = " << saveImageLast << std::endl;
+    //std::cout << "time          = " << time << std::endl;
+    //std::cout << "saveInterval  = " << g_input.saveInterval << std::endl;
 
     if (saveImages > saveImageLast)
     {
+
       std::wstringstream fname1, fname2;
       if(g_input.outDir == "")
       {
@@ -315,14 +324,14 @@ static void Draw(std::shared_ptr<IHRRenderDriver> a_pDetachedRenderDriverPointer
         fname2 << L"C:/[Hydra]/rendered_images/b_" << int(time) << L".hdr";
         #else
         fname1 << L"/home/frol/hydra/rendered_images/a_" << int(time) << L".png";
-        fname2 << L"/home/frol/hydra/rendered_images/b_" << int(time) << L".hdr";
+        fname2 << L"/home/frol/hydra/rendered_images/b_" << int(time) << L".exr";
         #endif
       }
       else
       {
         std::wstring dir = s2ws(g_input.outDir);
         fname1 << dir.c_str() << L"/LDR_" << int(int(time)/60) << L"min.png";
-        fname2 << dir.c_str() << L"/HDR_" << int(int(time)/60) << L"min.hdr";
+        fname2 << dir.c_str() << L"/HDR_" << int(int(time)/60) << L"min.exr";
       }
     
       const std::wstring outStr1 = fname1.str();
@@ -353,7 +362,8 @@ static void GetGBuffer(std::shared_ptr<IHRRenderDriver> a_pDetachedRenderDriverP
   hrRenderClose(renderRef);
   
   hrCommit(scnRef, renderRef, camRef);
-  g_firstCall = false;
+  g_firstCall     = false;
+  g_startTimerNow = true;
 
   hrRenderEvalGbuffer(renderRef);  
 }
