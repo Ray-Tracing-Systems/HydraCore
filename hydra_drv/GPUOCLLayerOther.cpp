@@ -613,7 +613,6 @@ void GPUOCLLayer::EvalGBuffer(IHRSharedAccumImage* a_pAccumImage, const std::vec
     return;
   }
 
-
   /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////// #TODO: refactor this
   float4* data1 = nullptr;
   float4* data2 = nullptr;
