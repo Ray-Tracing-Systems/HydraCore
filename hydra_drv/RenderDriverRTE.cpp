@@ -1925,8 +1925,70 @@ void RenderDriverRTE::GetFrameBufferLDR(int32_t w, int32_t h, int32_t* a_out)
   m_pHWLayer->GetLDRImage((uint32_t*)a_out, w, h);
 }
 
+static inline void decodeNormal2(unsigned int a_data, float a_norm[3])
+{
+  const float divInv = 1.0f / 32767.0f;
+
+  short a_enc_x, a_enc_y;
+
+  a_enc_x = (short)(a_data & 0x0000FFFF);
+  a_enc_y = (short)((int)(a_data & 0xFFFF0000) >> 16);
+
+  float sign = (a_enc_x & 0x0001) ? -1.0f : 1.0f;
+
+  a_norm[0] = (short)(a_enc_x & 0xfffe)*divInv;
+  a_norm[1] = (short)(a_enc_y & 0xfffe)*divInv;
+  a_norm[2] = sign*sqrt(fmax(1.0f - a_norm[0] * a_norm[0] - a_norm[1] * a_norm[1], 0.0f));
+}
+
+static inline HRGBufferPixel UnpackGBuffer(const float a_input[4], const float a_input2[4])
+{
+  HRGBufferPixel res;
+
+  res.depth = a_input[0];
+  res.matId = as_int(a_input[2]) & 0x00FFFFFF;
+  decodeNormal2(as_int(a_input[1]), res.norm);
+
+  unsigned int rgba = as_int(a_input[3]);
+  res.rgba[0] = (rgba & 0x000000FF)*(1.0f / 255.0f);
+  res.rgba[1] = ((rgba & 0x0000FF00) >> 8)*(1.0f / 255.0f);
+  res.rgba[2] = ((rgba & 0x00FF0000) >> 16)*(1.0f / 255.0f);
+  res.rgba[3] = ((rgba & 0xFF000000) >> 24)*(1.0f / 255.0f);
+
+  res.texc[0] = a_input2[0];
+  res.texc[1] = a_input2[1];
+  res.objId   = as_int(a_input2[2]);
+  res.instId  = as_int(a_input2[3]);
+
+  const int compressedCoverage = (as_int(a_input[2]) & 0xFF000000) >> 24;
+  res.coverage = ((float)compressedCoverage)*(1.0f / 255.0f);
+  res.shadow   = 0.0f;
+
+  return res;
+}
+
+//
+//
 void RenderDriverRTE::GetGBufferLine(int32_t a_lineNumber, HRGBufferPixel* a_lineData, int32_t a_startX, int32_t a_endX, const std::unordered_set<int32_t>& a_shadowCatchers)
 {
+  const float* data1 = m_gbufferImage.ImageData(1);
+  const float* data2 = m_gbufferImage.ImageData(2);
+
+  if (a_endX > m_width)
+    a_endX = m_width;
+
+  const int32_t lineOffset = (a_lineNumber*m_width + a_startX);
+  const int32_t lineSize   = (a_endX - a_startX);
+
+  const float normC = 1.0f / m_gbufferImage.Header()->spp;
+
+  for (int32_t x = 0; x < lineSize; x++)
+  {
+    const float* data11  = &data1[(lineOffset + x) * 4];
+    const float* data22  = &data2[(lineOffset + x) * 4];
+    a_lineData[x]        = UnpackGBuffer(data11, data22);                  // store main gbuffer data
+    //a_lineData[x].shadow = 1.0f - data0[(lineOffset + x) * 4 + 3]*normC; // get shadow from the fourth channel
+  }
 
 }
 
