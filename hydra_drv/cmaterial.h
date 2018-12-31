@@ -671,11 +671,11 @@ static inline void PhongSampleAndEvalBRDF(__global const PlainMaterial* a_pMat, 
   const float cosAlpha    = clamp(dot(newDir, r), 0.0, M_PI*0.499995f);
   const float cosThetaOut = dot(newDir, a_normal);
  
-  const float cosLerp     = PhongPreDivCosThetaFixMult(gloss, cosThetaOut);
+  const float cosThetaFix = PhongPreDivCosThetaFixMult(gloss, fabs(cosThetaOut));
 
   a_out->direction    = newDir;
   a_out->pdf          = pow(cosAlpha, cosPower) * (cosPower + 1.0f) * (0.5f * INV_PI);
-  a_out->color        = color*((cosPower + 2.0f) * INV_TWOPI * pow(cosAlpha, cosPower))*cosLerp;
+  a_out->color        = color*((cosPower + 2.0f) * INV_TWOPI * pow(cosAlpha, cosPower))*cosThetaFix;
   if (cosThetaOut <= 1e-6f)  // reflection under surface must be zerowed!
     a_out->color = make_float3(0, 0, 0);
 
@@ -893,15 +893,18 @@ static inline void BlinnSampleAndEvalBRDF(__global const PlainMaterial* a_pMat, 
   const float D         = ((exponent + 2.0f) * INV_TWOPI * pow(costheta, exponent));
 
   const float3 newDir      = wi.x*nx + wi.y*ny + wi.z*nz; // back to normal coordinate system
-  const float  cosThetaOut = fabs(dot(newDir, a_normal));
+  const float  cosThetaOut = dot(newDir, a_normal);
   const float  GF1         = TorranceSparrowGF1(wo, wi);
 
-  const float estimatedThoroughput = cosThetaOut*(D * GF1) / fmax(blinn_pdf, DEPSILON2);
+  const float estimatedThoroughput = fabs(cosThetaOut)*(D * GF1) / fmax(blinn_pdf, DEPSILON2);
   const float brightBordersMult    = fmin(estimatedThoroughput, 0.525f) / fmax(estimatedThoroughput, DEPSILON2);
 
   a_out->direction = newDir; 
   a_out->pdf       = blinn_pdf;
   a_out->color     = (BLINN_COLOR_MULT * color * D * GF1) * brightBordersMult;
+  if(cosThetaOut < 1e-6f)
+    a_out->color   = make_float3(0,0,0);
+
   a_out->flags     = RAY_EVENT_G;
 }
 

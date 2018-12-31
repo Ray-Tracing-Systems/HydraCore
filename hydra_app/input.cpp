@@ -12,8 +12,9 @@ Input::Input()
   
   //noWindow      = false;         ///< run 'console_main', else run 'window_main'
   //inLibraryPath = "tests/test_42"; ///< cornell box with teapot
-  inLibraryPath = "tests/test_223_small"; ///< cornell box with sphere
+  //inLibraryPath = "tests/test_223_small"; ///< cornell box with sphere
   //inLibraryPath = "tests/test_224_sphere";
+  inLibraryPath = "tests/test_224_sphere_microfacet";
   //inLibraryPath = "/media/frol/886234F06234E49A/scenes/benchmark4"; ///< cornell box with mirror glossy back wall
   //inLibraryPath = "/media/frol/886234F06234E49A/scenes/phong_test/torspar1";
   //inLibraryPath = "/media/frol/886234F06234E49A/scenes/cornell_water";
@@ -36,7 +37,7 @@ Input::Input()
   //inLibraryPath = "D:/temp/scenelib/"; 
   //inLibraryPath = "/home/frol/temp/scenes/scene_07";
 
-  inDevelopment = false;  ///< recompile shaders each time; note that nvidia have their own shader cache!
+  inDevelopment = true;  ///< recompile shaders each time; note that nvidia have their own shader cache!
   inDeviceId    = 0;     ///< opencl device id
   cpuFB         = true;  ///< store frame buffer on CPU. Automaticly enabled if
   enableMLT     = false; ///< if use MMLT, you MUST enable it early, when render process just started (here or via command line).
