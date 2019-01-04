@@ -35,12 +35,12 @@ EmbreeBVH4_2::~EmbreeBVH4_2()
  
 }
 
-void EmbreeBVH4_2::Init(char* cfg)
+void EmbreeBVH4_2::Init(const char* cfg)
 {
   m_device = rtcNewDevice("tri_accel=bvh4.triangle4v");
   //m_device = rtcNewDevice(nullptr);
 
-  rtcDeviceSetErrorFunction2(m_device, error_handler, nullptr);
+  //rtcDeviceSetErrorFunction2(m_device, error_handler, nullptr); // #TODO: GO THIS BACK !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! <============== !!!!!!!!!!!!!!!!!!!!!!
 
   for (int i = 0; i < MAXBVHTREES; i++)
   {

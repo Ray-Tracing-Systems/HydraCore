@@ -24,7 +24,7 @@ struct EmbreeBVH4_2 : public IBVHBuilder2
   EmbreeBVH4_2();
   ~EmbreeBVH4_2() override;
 
-  void Init(char* cgf) override;
+  void Init(const char* cgf) override;
   void Destroy() override;
   void GetBounds(float a_bMin[3], float a_bMax[3]) override;
 

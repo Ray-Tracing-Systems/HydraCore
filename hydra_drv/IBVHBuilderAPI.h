@@ -65,7 +65,6 @@ struct IBVHBuilder2
   virtual Lite_Hit RayTrace(float3 ray_pos, float3 ray_dir) = 0;                   // for CPU engine and test only
   virtual float3   ShadowTrace(float3 ray_pos, float3 ray_dir, float t_far) = 0;   // for CPU engine and test only
 
-
 };
 
 IBVHBuilder2* CreateBuilderFromDLL(const wchar_t* a_path, char* a_cfg);

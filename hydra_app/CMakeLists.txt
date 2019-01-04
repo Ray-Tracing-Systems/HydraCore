@@ -39,7 +39,7 @@ link_directories(${CMAKE_SOURCE_DIR}/../HydraAPI/bin/ ${CMAKE_SOURCE_DIR}/LIBRAR
 add_executable(hydra ${SOURCE_FILES})
 
 #MESSAGE(WARNING "CMAKE_SOURCE_DIR: " ${CMAKE_SOURCE_DIR} )
-
+#SET (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=address -fsanitize-address-use-after-scope -fno-omit-frame-pointer -fsanitize=leak -fsanitize=undefined -fsanitize=bounds-strict")
 SET (CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} -ldl")
 
 if(WIN32)
