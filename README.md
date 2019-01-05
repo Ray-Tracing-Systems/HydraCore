@@ -57,6 +57,30 @@ hydra -nowindow 1 -inputlib "tests/test_42" -width 1024 -height 768 -cpu_fb 0 -s
 hydra -nowindow 1 -inputlib "tests/test_42" -width 1024 -height 768 -cpu_fb 0 -sharedimage hydraimage_1533639330288 -cl_device_id 1
 ```
 
+# Building Embree (if you need it for some reason under your custom OS)
+
+Linux:
+
+1. Clone embree2 (we used 2.17 last time). #NOTE: do not use embree3, it will not work.
+2. install cmake curces (ccmake).
+3. mkdir build
+4. ccmake ..
+5. set EMBREE_MAX_ISA to SSE2 #NOTE: this is important! Other will not work due to different BVH layout.
+6. set EMBREE_TASKING_SYSTEM to INTERNAL
+7. set EMBREE_STATIC_LIB to ON
+8. build embree. Press c, then g and quit from ccmake. Then exec "make -j 4".
+   Make sure everything works (for example any of their samples). 
+9. copy all files from "HydraCore/bvh_builder" to "embree2/tutorials/bvh_access". Replace all.
+10. exec "make -j 4" from "embree2/build" folder again.
+    Now you should get "libhydrabvhbuilder.a" inside "embree2/build" folder.
+11. Copy several files to "HydraCore/LIBRARY/lib_x64_linux" (or configure your own OS folder via CMake):
+    libembree.a
+    libhydrabvhbuilder.a
+    liblexers.a
+    libsimd.a
+    libsys.a
+    libtasking.a
+
 # Licence and dependency
 
 HydraCore uses MIT licence itself, however it depends on the other software as follows (see doc/licence directory):
