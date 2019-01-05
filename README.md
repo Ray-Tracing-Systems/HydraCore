@@ -83,8 +83,8 @@ Unix:
 
 Windows:
 
-It's almost the same except that you need to pack all to the single "bvh_builder.dll" file.
-We usually edit project for "embree2/tutorials/bvh_access" in Visual Studio.
+It's almost the same except that you need to pack all to the single "bvh_builder.dll" file. \
+We usually edit project for "embree2/tutorials/bvh_access" in Visual Studio. \
 So, you don't have to replace "embree2/tutorials/bvh_access/CMakeLists.txt" with "HydraCore/bvh_builderCMakeLists.txt".
 
 # Licence and dependency
