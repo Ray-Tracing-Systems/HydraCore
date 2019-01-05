@@ -59,7 +59,7 @@ hydra -nowindow 1 -inputlib "tests/test_42" -width 1024 -height 768 -cpu_fb 0 -s
 
 # Building Embree (if you need it for some reason under your custom OS)
 
-Linux:
+Unix:
 
 1. Clone embree2 (we used 2.17 last time). #NOTE: do not use embree3, it will not work.
 2. install cmake curces (ccmake).
@@ -80,6 +80,12 @@ Linux:
     libsimd.a
     libsys.a
     libtasking.a
+
+Windows:
+
+It's almost the same except that you need to pack all to the single "bvh_builder.dll" file.
+We usually edit project for "embree2/tutorials/bvh_access" in Visual Studio.
+So, you don't have to replace "embree2/tutorials/bvh_access/CMakeLists.txt" with "HydraCore/bvh_builderCMakeLists.txt".
 
 # Licence and dependency
 
