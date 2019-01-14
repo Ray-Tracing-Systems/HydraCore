@@ -599,28 +599,6 @@ __kernel void MMLTCameraPathBounce(__global   float4*        restrict a_rpos,
 
   uint flags = a_flags[tid]; // #NOTE: what if ray miss object just recently .. don't we need to do soem thing in MMLT? See original code.
 
-  // (0) Ray is outside of scene, hit environment
-  //
-  if (unpackRayFlags(flags) & RAY_GRAMMAR_OUT_OF_SCENE) // #TODO: read environment! 
-  {
-    float3 envColor = make_float3(0,0,0);
-    
-    PathVertex resVertex;
-    resVertex.ray_dir     = to_float3(a_rdir[tid]);
-    resVertex.accColor    = make_float3(0,0,0); // envColor*to_float3(a_color[tid]);   
-    resVertex.valid       = false; //(a_currDepth == a_targetDepth);     // #TODO: dunno if this is correct ... 
-    resVertex.hitLight    = true;
-    resVertex.wasSpecOnly = SPLIT_DL_BY_GRAMMAR ? flagsHaveOnlySpecular(flags) : false;
-    WritePathVertexSupplement(&resVertex, tid, iNumElements, 
-                              a_vertexSup);
-    
-    flags        = packRayFlags(0, RAY_IS_DEAD);
-    a_flags[tid] = flags;
-  } 
-
-  if (!rayIsActiveU(flags)) 
-    return;
-
   // (0) Read "IntegratorMMLT::CameraPath" arguments and calc ray hit
   //
   const int2 splitData = in_splitInfo[tid];
@@ -633,6 +611,34 @@ __kernel void MMLTCameraPathBounce(__global   float4*        restrict a_rpos,
   const int  a_targetDepth          = t;
   const int  a_currDepth            = unpackBounceNum(flags); // #NOTE: first bounce must be equal to 1                           
   const int  prevVertexId           = a_fullPathDepth - a_currDepth + 1; 
+
+  // (0) Ray is outside of scene, hit environment
+  //
+  if (unpackRayFlags(flags) & RAY_GRAMMAR_OUT_OF_SCENE) // #TODO: read environment! 
+  { 
+    const float3 ray_pos    = to_float3(a_rpos[tid]);
+    const float3 ray_dir    = to_float3(a_rdir[tid]);
+    const MisData a_misPrev = a_misDataPrev[tid];
+
+    float3 envColor = make_float3(0,0,0);
+    //float3 envColor = environmentColorExtended(ray_pos, ray_dir, a_misPrev, flags, 0, 0,
+      //                                         a_globals, in_mtlStorage, in_pdfStorage, in_texStorage1);
+    
+    PathVertex resVertex;
+    resVertex.ray_dir     = to_float3(a_rdir[tid]);
+    resVertex.accColor    = envColor*to_float3(a_color[tid]);   
+    resVertex.valid       = (a_currDepth == a_targetDepth);     // #TODO: dunno if this is correct ... 
+    resVertex.hitLight    = true;
+    resVertex.wasSpecOnly = SPLIT_DL_BY_GRAMMAR ? flagsHaveOnlySpecular(flags) : false;
+    WritePathVertexSupplement(&resVertex, tid, iNumElements, 
+                              a_vertexSup);
+    
+    flags        = packRayFlags(0, RAY_IS_DEAD);
+    a_flags[tid] = flags;
+  } 
+
+  if (!rayIsActiveU(flags)) 
+    return;
 
   if(a_currDepth > t)
     return;
