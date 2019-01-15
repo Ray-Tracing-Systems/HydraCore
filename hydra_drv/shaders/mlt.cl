@@ -619,7 +619,8 @@ __kernel void MMLTCameraPathBounce(__global   float4*        restrict a_rpos,
     const float3 ray_pos  = to_float3(a_rpos[tid]);
     const float3 ray_dir  = to_float3(a_rdir[tid]);
     MisData misPrev       = a_misDataPrev[tid];
-    misPrev.isSpecular    = 1;               // disable mis weight applied to env. But why ???
+    //misPrev.isSpecular    = 1;               // disable mis weight applied to env. 
+    //                                         // we will apply MIS weight in the end, when ConnectEndPoints kernel is called.
 
     //float3 envColor = make_float3(1,1,1);
     float3 envColor = environmentColorExtended(ray_pos, ray_dir, misPrev, flags, 0, 0,
@@ -636,6 +637,21 @@ __kernel void MMLTCameraPathBounce(__global   float4*        restrict a_rpos,
     
     flags        = packRayFlags(0, RAY_IS_DEAD);
     a_flags[tid] = flags;
+    
+    // Adjust per vertex pdfA. Note that we treat environment as spetial case and use pdfWP instead of pdfA.
+    //
+    //const float pdfMatRevWP = 1.0f; // misPrev.matSamplePdf / fmax(misPrev.cosThetaPrev, DEPSILON);      
+    {
+      misPrev = a_misDataPrev[tid];
+      PdfVertex v0,v1;
+      v0.pdfFwd = 0.0f;
+      v0.pdfRev = 1.0f;
+      v1.pdfFwd = 0.0f;
+      v1.pdfRev = misPrev.isSpecular ? -1.0f : 1.0f;
+      a_pdfVert[TabIndex(0, tid, iNumElements)] = v0;
+      a_pdfVert[TabIndex(1, tid, iNumElements)] = v1;
+    } 
+
     return;
   } 
 
@@ -1335,10 +1351,12 @@ __kernel void MMLTConnect(__global const int2  *  restrict in_splitInfo,
                       &ptl);
 
 
-  float3 sampleColor = make_float3(0,0,0);  
+  float3 sampleColor = make_float3(0,0,0);
+  bool   disableMMLTMisDueToEnv = false;
+
   const int zid2     = out_zind[tid].x;
-  int x = ExtractXFromZIndex (zid2); // #TODO: in don;t like this but may be its ok ... 
-  int y = ExtractYFromZIndex (zid2); // #TODO: in don;t like this but may be its ok ... 
+  int x = ExtractXFromZIndex (zid2); // #TODO: in don't like this but may be its ok ... 
+  int y = ExtractYFromZIndex (zid2); // #TODO: in don't like this but may be its ok ... 
 
   const float fixImplicit = 1.0f; // (1.0f - a_globals->varsF[HRT_MMLT_IMPLICIT_FIXED_PROB]);
   const float fixOther    = 1.0f; // 1.0f/(1.0f - a_globals->varsF[HRT_MMLT_IMPLICIT_FIXED_PROB]);
@@ -1399,6 +1417,8 @@ __kernel void MMLTConnect(__global const int2  *  restrict in_splitInfo,
         a_pdfVert[TabIndex(0, tid, iNumElements)] = v0;
         a_pdfVert[TabIndex(1, tid, iNumElements)] = v1;
         a_pdfVert[TabIndex(2, tid, iNumElements)] = v2;
+
+        disableMMLTMisDueToEnv = (lightType(pLight) == PLAIN_LIGHT_TYPE_SKY_DOME); // special case for environmennt, use PT mis weight in traditional way. 
       }
     }
     else                            // (3.4) connect light and camera vertices (bidir connection)
@@ -1491,7 +1511,8 @@ __kernel void MMLTConnect(__global const int2  *  restrict in_splitInfo,
   #ifdef SBDPT_DEBUG_SPLIT
   misWeight = 1.0f;
   #else
-  sampleColor *= misWeight;
+  if(!disableMMLTMisDueToEnv)
+    sampleColor *= misWeight;
   sampleColor *= a_scaleTable[d];
   #endif
 

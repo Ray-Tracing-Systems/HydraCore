@@ -287,8 +287,15 @@ static float3 ConnectShadowP(__private const PathVertex* a_cv, const int a_camDe
   if(a_camDepth > 1)
     v2->pdfFwd = (pdfFwdAt1W == 0.0f) ? -1.0f*a_cv->lastGTerm : (pdfFwdAt1W / cosThetaPrev)*a_cv->lastGTerm;
   
+  float envMisMult = 1.0f;
+  if(lightType(a_pLight) == PLAIN_LIGHT_TYPE_SKY_DOME) // special case for env light, we will ignore MMLT MIS weight later, in connect kernel
+  {
+    float lgtPdf = a_explicitSam.pdf*a_lightPickProb;
+    envMisMult   = misWeightHeuristic(lgtPdf, evalData.pdfFwd); // (lgtPdf*lgtPdf) / (lgtPdf*lgtPdf + bsdfPdf*bsdfPdf);
+  }
+
   const float explicitPdfW = fmax(a_explicitSam.pdf, DEPSILON2);
-  return bsdfClamping((1.0f/a_lightPickProb)*a_explicitSam.color*brdfVal / explicitPdfW);
+  return bsdfClamping((1.0f/a_lightPickProb)*(a_explicitSam.color*envMisMult)*brdfVal / explicitPdfW);
 }
 
 /**
