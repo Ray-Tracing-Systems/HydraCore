@@ -718,12 +718,13 @@ __kernel void MMLTCameraPathBounce(__global   float4*        restrict a_rpos,
   if (dot(emission, emission) > 1e-3f)
   {    
     if (a_currDepth == a_targetDepth && a_haveToHitLightSource)
-    {
-      const LightPdfFwd lPdfFwd = lightPdfFwd(pLight, ray_dir, cosHere, a_globals, in_texStorage1, in_pdfStorage);
-      const float pdfLightWP    = lPdfFwd.pdfW         / fmax(cosHere, DEPSILON);
-      const float pdfMatRevWP   = misPrev.matSamplePdf / fmax(cosPrev, DEPSILON);
-      
+    {    
+      if(pLight != 0)
       {
+        const LightPdfFwd lPdfFwd = lightPdfFwd(pLight, ray_dir, cosHere, a_globals, in_texStorage1, in_pdfStorage);
+        const float pdfLightWP    = lPdfFwd.pdfW         / fmax(cosHere, DEPSILON);
+        const float pdfMatRevWP   = misPrev.matSamplePdf / fmax(cosPrev, DEPSILON);
+
         PdfVertex v0,v1;
 
         v0.pdfFwd = lPdfFwd.pdfA / ((float)a_globals->lightsNum);
@@ -731,6 +732,19 @@ __kernel void MMLTCameraPathBounce(__global   float4*        restrict a_rpos,
 
         v1.pdfFwd = pdfLightWP*GTerm;
         v1.pdfRev = misPrev.isSpecular ? -1.0f*GTerm : pdfMatRevWP*GTerm;
+
+        a_pdfVert[TabIndex(0, tid, iNumElements)] = v0;
+        a_pdfVert[TabIndex(1, tid, iNumElements)] = v1;
+      } 
+      else
+      {
+        PdfVertex v0,v1;
+
+        v0.pdfFwd = 0.0f;
+        v0.pdfRev = 1.0f;
+
+        v1.pdfFwd = 0.0f;
+        v1.pdfRev = 1.0f;
 
         a_pdfVert[TabIndex(0, tid, iNumElements)] = v0;
         a_pdfVert[TabIndex(1, tid, iNumElements)] = v1;
