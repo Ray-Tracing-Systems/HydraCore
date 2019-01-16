@@ -337,9 +337,16 @@ __kernel void HitEnvOrLightKernel(__global const float4*    restrict in_rpos,
     const int screenX     = (packedXY & 0x0000FFFF);
     const int screenY     = (packedXY & 0xFFFF0000) >> 16;
     
-    const float3 envColor = environmentColorExtended(ray_pos, ray_dir, misPrev, flags, screenX, screenY,
+          float3 envColor = environmentColorExtended(ray_pos, ray_dir, misPrev, flags, screenX, screenY,
                                                      a_globals, in_mtlStorage, in_pdfStorage, in_texStorage1);
     
+    ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////// Direct Light for MMLT
+    const uint rayBounceNum         = unpackBounceNum(flags);
+    const bool evalDirectLightOnly  = ((a_globals->g_flags & HRT_DIRECT_LIGHT_MODE) !=0); // if we compute Direct Light only
+    if(evalDirectLightOnly && !flagsHaveOnlySpecular(flags) && rayBounceNum > 1)
+      envColor = make_float3(0,0,0);
+    ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////// Direct Light for MMLT
+
     const float3 pathThroughput = to_float3(a_thoroughput[tid]);
     const float3 nextPathColor  = to_float3(a_color[tid]) + pathThroughput * envColor;
 
@@ -891,16 +898,16 @@ __kernel void NextBounce(__global   float4*        restrict a_rpos,
   ///////////////////////////////////////////////// 
   flags = flagsNextBounce(flags, brdfSample, a_globals);
   
-  ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////// Specular DL for MMLT
-  const bool evalSpecularOnly  = ((a_globals->g_flags & HRT_DIRECT_LIGHT_MODE) !=0);
-  if(evalSpecularOnly && !flagsHaveOnlySpecular(flags) && rayBounceNum > 1)
+  ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////// Direct Light for MMLT
+  const bool evalDirectLightOnly  = ((a_globals->g_flags & HRT_DIRECT_LIGHT_MODE) !=0);
+  if(evalDirectLightOnly && !flagsHaveOnlySpecular(flags) && rayBounceNum > 1)
   {
     outPathThroughput = make_float3(0,0,0);
     newPathThroughput = make_float3(0,0,0);
     oldPathThroughput = make_float3(0,0,0);
     flags = packRayFlags(flags, unpackRayFlags(flags) | RAY_IS_DEAD);
   }
-   ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////// Specular DL for MMLT
+  ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////// Direct Light for MMLT
 
   float4 nextPathColor;
   if (a_globals->g_flags & HRT_ENABLE_MMLT)
