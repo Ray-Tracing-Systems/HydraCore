@@ -2951,9 +2951,12 @@ static inline float3 decompressShadow(ushort4 shadowCompressed)
   return invNormCoeff*make_float3((float)shadowCompressed.x, (float)shadowCompressed.y, (float)shadowCompressed.z);
 }
 
-#define SPLIT_DL_BY_GRAMMAR false
+#define SPLIT_DL_BY_GRAMMAR true
 
 //#define SBDPT_DEBUG_SPLIT 1
 //#define SBDPT_DEBUG_DEPTH 3
+
+//#define SBDPT_CHECK_BOUNCE 4
+//#define SBDPT_INDIRECT_ONLY (void)
 
 #endif

@@ -1200,11 +1200,20 @@ void GPUOCLLayer::BeginTracingPass()
 
   if((m_vars.m_flags & HRT_ENABLE_SBPT) != 0)
   {
-    SBDPT_Pass(1, maxBounce, NUM_MMLT_PASS);
+    #ifdef SBDPT_INDIRECT_ONLY
+    const int sbptBounceBeg = 3;
+    #else
+    const int sbptBounceBeg = 1;
+    #endif
+    SBDPT_Pass(sbptBounceBeg, maxBounce, NUM_MMLT_PASS);
   }
   else if (m_vars.m_flags & HRT_ENABLE_MMLT)                 // SBDPT or MMLT pass
   { 
+    #ifndef SBDPT_CHECK_BOUNCE
+    #ifndef SBDPT_INDIRECT_ONLY
     DL_Pass(maxBounce, NUM_MMLT_PASS/2);  //#NOTE: strange bug, DL contribute to IL if reverse order
+    #endif 
+    #endif
     MMLT_Pass(NUM_MMLT_PASS, minBounce, maxBounce, BURN_ITERS);   
   }
   else if((m_vars.m_flags & HRT_PRODUCTION_IMAGE_SAMPLING) != 0 && (m_vars.m_flags & HRT_UNIFIED_IMAGE_SAMPLING) != 0)
