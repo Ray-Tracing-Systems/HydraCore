@@ -1236,13 +1236,18 @@ void GPUOCLLayer::BeginTracingPass()
     }
     else                                             // PT
     {
-      // Make Sample in Primary Sample Space
+      const int maxBounce = m_vars.m_varsI[HRT_TRACE_DEPTH];
 
+      if(m_mlt.xVector == nullptr)
+        MLT_Alloc_For_PT_QMC(maxBounce);
+
+      // Make Sample in Primary Sample Space \\ 
+      
       m_raysWasSorted = false;
       runKernel_MakeEyeRays(m_rays.rayPos, m_rays.rayDir, m_rays.samZindex, m_rays.MEGABLOCKSIZE, m_passNumberForQMC);
       runKernel_ClearAllInternalTempBuffers(m_rays.MEGABLOCKSIZE);
 
-      trace1D(m_vars.m_varsI[HRT_TRACE_DEPTH], m_rays.rayPos, m_rays.rayDir, m_rays.MEGABLOCKSIZE,
+      trace1D(maxBounce, m_rays.rayPos, m_rays.rayDir, m_rays.MEGABLOCKSIZE,
               m_rays.pathAccColor);
 
       AddContributionToScreen(m_rays.pathAccColor, m_rays.samZindex);

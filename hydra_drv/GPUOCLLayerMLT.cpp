@@ -60,6 +60,28 @@ bool GPUOCLLayer::MLT_IsAllocated() const
   return (m_mlt.rstateForAcceptReject != 0);
 }
 
+size_t GPUOCLLayer::MLT_Alloc_For_PT_QMC(int a_maxBounce)
+{
+  m_mlt.free();
+
+  cl_int ciErr1 = CL_SUCCESS;
+
+  const int MLT_RAND_NUMBERS_PER_BOUNCE = KMLT_HEAD_SIZE + \
+                                          KMLT_COMPRESSED_F_PER_LIGHT*KMLT_BOUNCES_LGT + \
+                                          KMLT_COMPRESSED_F_PER_MATERIAL*KMLT_BOUNCES_MAT;
+
+  // init big buffers for path space state // (MLT_RAND_NUMBERS_PER_BOUNCE / MLT_PROPOSALS)
+  //
+  m_mlt.xVector = clCreateBuffer(m_globals.ctx, CL_MEM_READ_WRITE, MLT_RAND_NUMBERS_PER_BOUNCE*sizeof(float)*m_rays.MEGABLOCKSIZE, NULL, &ciErr1);
+
+  if (ciErr1 != CL_SUCCESS)
+    RUN_TIME_ERROR("[cl_core]: Failed to create PT.m_mlt.xVector ");
+
+  m_mlt.memTaken = (MLT_RAND_NUMBERS_PER_BOUNCE*sizeof(float))*m_rays.MEGABLOCKSIZE;
+  
+  return m_mlt.memTaken;
+}
+
 size_t GPUOCLLayer::MLT_Alloc(int a_maxBounce)
 {
   m_mlt.free();

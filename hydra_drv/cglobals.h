@@ -116,6 +116,22 @@
 #define MMLT_FLOATS_PER_BOUNCE (MMLT_FLOATS_PER_SAMPLE + MMLT_FLOATS_PER_MLAYER)
 #define MMLT_COMPRESSED_F_PERB 6
 
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+#define KMLT_HEAD_SIZE 4
+
+#define KMLT_DIM_SCR_X 0 
+#define KMLT_DIM_SCR_Y 1 
+#define KMLT_DIM_DOF_X 2 
+#define KMLT_DIM_DOF_Y 3
+
+#define KMLT_COMPRESSED_F_PER_LIGHT    4
+#define KMLT_COMPRESSED_F_PER_MATERIAL 6
+
+#define KMLT_BOUNCES_LGT 0
+#define KMLT_BOUNCES_MAT 0
+
+
 enum MEGATEX_USAGE{ MEGATEX_SHADING      = 1, 
                     MEGATEX_SHADING_HDR  = 2, 
                     MEGATEX_NORMAL       = 3, 
