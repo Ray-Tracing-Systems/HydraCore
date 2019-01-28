@@ -96,7 +96,7 @@ public:
   bool StoreCPUData() const { return m_globals.cpuTrace; }
 
   bool   MLT_IsAllocated() const;                           ///< return true if internal MLT data is allocated
-  size_t MLT_Alloc(int width, int height, int a_maxBounce); ///< alloc internal MLT data
+  size_t MLT_Alloc(int a_maxBounce); ///< alloc internal MLT data
   void   MLT_Free();                                        ///< free internal MLT DATA
 
   void RecompileProcTexShaders(const std::string& a_shaderPath) override;

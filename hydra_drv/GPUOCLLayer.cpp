@@ -1223,31 +1223,30 @@ void GPUOCLLayer::BeginTracingPass()
   }
   else if (m_vars.m_flags & HRT_UNIFIED_IMAGE_SAMPLING) // PT or LT pass
   {
-    // (1) Generate random rays and generate multiple references via Z-index
-    //
-    if (m_vars.m_flags & HRT_FORWARD_TRACING)
+    
+    if ((m_vars.m_flags & HRT_FORWARD_TRACING) != 0) // LT
     {
       runKernel_MakeLightRays(m_rays.rayPos, m_rays.rayDir, m_rays.pathAccColor, m_rays.MEGABLOCKSIZE);
 
       //if ((m_vars.m_flags & HRT_DRAW_LIGHT_LT) ) //#NOTE: broken after surface hit refactoring !!!!
         //ConnectEyePass(m_rays.rayFlags, m_rays.lsam1, m_rays.hitNormUncompressed, nullptr, m_rays.pathAccColor, -1, m_rays.MEGABLOCKSIZE);
+
+      trace1D(m_vars.m_varsI[HRT_TRACE_DEPTH], m_rays.rayPos, m_rays.rayDir, m_rays.MEGABLOCKSIZE,
+              m_rays.pathAccColor);
     }
-    else
+    else                                             // PT
     {
+      // Make Sample in Primary Sample Space
+
       m_raysWasSorted = false;
       runKernel_MakeEyeRays(m_rays.rayPos, m_rays.rayDir, m_rays.samZindex, m_rays.MEGABLOCKSIZE, m_passNumberForQMC);
       runKernel_ClearAllInternalTempBuffers(m_rays.MEGABLOCKSIZE);
-    }
 
-    // (2) Compute sample colors
-    //
-    trace1D(m_vars.m_varsI[HRT_TRACE_DEPTH], m_rays.rayPos, m_rays.rayDir, m_rays.MEGABLOCKSIZE,
-            m_rays.pathAccColor);
+      trace1D(m_vars.m_varsI[HRT_TRACE_DEPTH], m_rays.rayPos, m_rays.rayDir, m_rays.MEGABLOCKSIZE,
+              m_rays.pathAccColor);
 
-    // (3) accumulate colors
-    //
-    if ((m_vars.m_flags & HRT_FORWARD_TRACING) == 0)
       AddContributionToScreen(m_rays.pathAccColor, m_rays.samZindex);
+    }
     
   }
   else if(!m_screen.m_cpuFrameBuffer)

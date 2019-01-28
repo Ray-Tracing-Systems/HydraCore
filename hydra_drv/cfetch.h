@@ -633,7 +633,7 @@ static inline float3 sample2DExt(int a_samplerOffset, float2 texCoord,
 
 // we do need two different functions -- sample2D and sample2DUI2 to call ReadSamplerUI2 inside
 // this is due to pointer cast from uint2 to uint4 or float4 break aligned read on Nvidia;
-
+//
 static inline float3 sample2DUI2(int a_samplerOffset, float2 texCoord, __global const uint2* a_samStorage, __global const int4* a_texStorage, __global const EngineGlobals* a_globals)
 {
   if (a_samplerOffset == INVALID_TEXTURE)

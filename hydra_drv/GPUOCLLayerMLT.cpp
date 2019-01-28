@@ -60,7 +60,7 @@ bool GPUOCLLayer::MLT_IsAllocated() const
   return (m_mlt.rstateForAcceptReject != 0);
 }
 
-size_t GPUOCLLayer::MLT_Alloc(int a_width, int a_height, int a_maxBounce)
+size_t GPUOCLLayer::MLT_Alloc(int a_maxBounce)
 {
   m_mlt.free();
 
@@ -145,7 +145,7 @@ size_t GPUOCLLayer::MLT_Alloc(int a_width, int a_height, int a_maxBounce)
   if (ciErr1 != CL_SUCCESS) 
     RUN_TIME_ERROR("Error in clCreateBuffer");
 
-  if(!scan_alloc_internal(a_width*a_height, m_globals.ctx))
+  if(!scan_alloc_internal(m_rays.MEGABLOCKSIZE, m_globals.ctx))
     RUN_TIME_ERROR("Error in scan_alloc_internal");
 
   m_mlt.pathAuxColor     = clCreateBuffer(m_globals.ctx, CL_MEM_READ_WRITE,                         4 * sizeof(cl_float)*m_rays.MEGABLOCKSIZE, NULL, &ciErr1);

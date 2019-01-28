@@ -54,7 +54,7 @@ void GPUOCLLayer::runKernel_MakeEyeRays(cl_mem a_rpos, cl_mem a_rdir, cl_mem a_z
     sortArgs.dev          = m_globals.device;
     
     bitonic_sort_gpu(a_zindex, int(a_size), sortArgs);
-    m_raysWasSorted = a_setSortedFlag;                 // don't sort again when contribute to screen if 'a_setSortedFlag' is set.
+    m_raysWasSorted = true;                             // don't sort again when contribute to screen if 'a_setSortedFlag' is set.
   }
   
   // (3) generate rays

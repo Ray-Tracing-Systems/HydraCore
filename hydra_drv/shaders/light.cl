@@ -179,8 +179,7 @@ __kernel void LightSample(__global const float4*  restrict in_rpos,
   const float3 ray_pos = to_float3(in_rpos[tid]);
   const float3 ray_dir = to_float3(in_rdir[tid]);
 
-  RandomGen gen        = out_gens[tid];
-
+  RandomGen gen = out_gens[tid];
 
   const int currDepth       = unpackBounceNum(flags);
   const unsigned int qmcPos = reverseBits(tid, iNumElements) + a_passNumberForQmc * iNumElements;
