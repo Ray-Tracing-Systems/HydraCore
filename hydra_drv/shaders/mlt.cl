@@ -599,28 +599,6 @@ __kernel void MMLTCameraPathBounce(__global   float4*        restrict a_rpos,
 
   uint flags = a_flags[tid]; // #NOTE: what if ray miss object just recently .. don't we need to do soem thing in MMLT? See original code.
 
-  // (0) Ray is outside of scene, hit environment
-  //
-  if (unpackRayFlags(flags) & RAY_GRAMMAR_OUT_OF_SCENE) // #TODO: read environment! 
-  {
-    float3 envColor = make_float3(0,0,0);
-    
-    PathVertex resVertex;
-    resVertex.ray_dir     = to_float3(a_rdir[tid]);
-    resVertex.accColor    = make_float3(0,0,0); // envColor*to_float3(a_color[tid]);   
-    resVertex.valid       = false; //(a_currDepth == a_targetDepth);     // #TODO: dunno if this is correct ... 
-    resVertex.hitLight    = true;
-    resVertex.wasSpecOnly = SPLIT_DL_BY_GRAMMAR ? flagsHaveOnlySpecular(flags) : false;
-    WritePathVertexSupplement(&resVertex, tid, iNumElements, 
-                              a_vertexSup);
-    
-    flags        = packRayFlags(0, RAY_IS_DEAD);
-    a_flags[tid] = flags;
-  } 
-
-  if (!rayIsActiveU(flags)) 
-    return;
-
   // (0) Read "IntegratorMMLT::CameraPath" arguments and calc ray hit
   //
   const int2 splitData = in_splitInfo[tid];
@@ -633,6 +611,52 @@ __kernel void MMLTCameraPathBounce(__global   float4*        restrict a_rpos,
   const int  a_targetDepth          = t;
   const int  a_currDepth            = unpackBounceNum(flags); // #NOTE: first bounce must be equal to 1                           
   const int  prevVertexId           = a_fullPathDepth - a_currDepth + 1; 
+
+  // (0) Ray is outside of scene, hit environment
+  //
+  if (unpackRayFlags(flags) & RAY_GRAMMAR_OUT_OF_SCENE) // #TODO: read environment! 
+  { 
+    const float3 ray_pos  = to_float3(a_rpos[tid]);
+    const float3 ray_dir  = to_float3(a_rdir[tid]);
+    MisData misPrev       = a_misDataPrev[tid];
+    //misPrev.isSpecular    = 1;               // disable mis weight applied to env. 
+    //                                         // we will apply MIS weight in the end, when ConnectEndPoints kernel is called.
+
+    //float3 envColor = make_float3(1,1,1);
+    float3 envColor = environmentColorExtended(ray_pos, ray_dir, misPrev, flags, 0, 0,
+                                               a_globals, in_mtlStorage, in_pdfStorage, in_texStorage1);
+    
+    PathVertex resVertex;
+    resVertex.ray_dir     = to_float3(a_rdir[tid]);
+    resVertex.accColor    = envColor*to_float3(a_color[tid]);   
+    resVertex.valid       = (a_currDepth == a_targetDepth);     // #TODO: dunno if this is correct ... 
+    resVertex.hitLight    = true;
+    resVertex.wasSpecOnly = SPLIT_DL_BY_GRAMMAR ? flagsHaveOnlySpecular(flags) : false;
+    WritePathVertexSupplement(&resVertex, tid, iNumElements, 
+                              a_vertexSup);
+    
+    flags        = packRayFlags(0, RAY_IS_DEAD);
+    a_flags[tid] = flags;
+    
+    // Adjust per vertex pdfA. Note that we treat environment as spetial case and use pdfWP instead of pdfA.
+    //
+    //const float pdfMatRevWP = 1.0f; // misPrev.matSamplePdf / fmax(misPrev.cosThetaPrev, DEPSILON);      
+    {
+      misPrev = a_misDataPrev[tid];
+      PdfVertex v0,v1;
+      v0.pdfFwd = 0.0f;
+      v0.pdfRev = 1.0f;
+      v1.pdfFwd = 0.0f;
+      v1.pdfRev = misPrev.isSpecular ? -1.0f : 1.0f;
+      a_pdfVert[TabIndex(0, tid, iNumElements)] = v0;
+      a_pdfVert[TabIndex(1, tid, iNumElements)] = v1;
+    } 
+
+    return;
+  } 
+
+  if (!rayIsActiveU(flags)) 
+    return;
 
   if(a_currDepth > t)
     return;
@@ -647,14 +671,14 @@ __kernel void MMLTCameraPathBounce(__global   float4*        restrict a_rpos,
   if(pHitMaterial == 0)
     return;
 
-  const float3 ray_pos    = to_float3(a_rpos[tid]);
-  const float3 ray_dir    = to_float3(a_rdir[tid]);
-  const MisData a_misPrev = a_misDataPrev[tid];
+  const float3 ray_pos  = to_float3(a_rpos[tid]);
+  const float3 ray_dir  = to_float3(a_rdir[tid]);
+  const MisData misPrev = a_misDataPrev[tid];
   
   // (1)
   //
   const float cosHere = fabs(dot(ray_dir, surfElem.normal));
-  const float cosPrev = fabs(a_misPrev.cosThetaPrev); // fabs(dot(ray_dir, a_prevNormal));
+  const float cosPrev = fabs(misPrev.cosThetaPrev); // fabs(dot(ray_dir, a_prevNormal));
  
   float GTerm = 1.0f;
   if (a_currDepth == 1)
@@ -687,26 +711,40 @@ __kernel void MMLTCameraPathBounce(__global   float4*        restrict a_rpos,
   const int lightOffset   = (a_globals->lightsNum == 0 || liteHit.instId < 0) ? -1 : in_instLightInstId[liteHit.instId]; // #TODO: refactor this into function!
   __global const PlainLight* pLight = lightAt(a_globals, lightOffset);
 
-  float3 emission = emissionEval(ray_pos, ray_dir, &surfElem, flags, (a_misPrev.isSpecular == 1), pLight,
+  float3 emission = emissionEval(ray_pos, ray_dir, &surfElem, flags, (misPrev.isSpecular == 1), pLight,
                                  pHitMaterial, in_texStorage1, in_pdfStorage, a_globals, &ptl);
   
   
   if (dot(emission, emission) > 1e-3f)
   {    
     if (a_currDepth == a_targetDepth && a_haveToHitLightSource)
-    {
-      const LightPdfFwd lPdfFwd = lightPdfFwd(pLight, ray_dir, cosHere, a_globals, in_texStorage1, in_pdfStorage);
-      const float pdfLightWP    = lPdfFwd.pdfW           / fmax(cosHere, DEPSILON);
-      const float pdfMatRevWP   = a_misPrev.matSamplePdf / fmax(cosPrev, DEPSILON);
-      
+    {    
+      if(pLight != 0)
       {
+        const LightPdfFwd lPdfFwd = lightPdfFwd(pLight, ray_dir, cosHere, a_globals, in_texStorage1, in_pdfStorage);
+        const float pdfLightWP    = lPdfFwd.pdfW         / fmax(cosHere, DEPSILON);
+        const float pdfMatRevWP   = misPrev.matSamplePdf / fmax(cosPrev, DEPSILON);
+
         PdfVertex v0,v1;
 
         v0.pdfFwd = lPdfFwd.pdfA / ((float)a_globals->lightsNum);
         v0.pdfRev = 1.0f;
 
         v1.pdfFwd = pdfLightWP*GTerm;
-        v1.pdfRev = a_misPrev.isSpecular ? -1.0f*GTerm : pdfMatRevWP*GTerm;
+        v1.pdfRev = misPrev.isSpecular ? -1.0f*GTerm : pdfMatRevWP*GTerm;
+
+        a_pdfVert[TabIndex(0, tid, iNumElements)] = v0;
+        a_pdfVert[TabIndex(1, tid, iNumElements)] = v1;
+      } 
+      else
+      {
+        PdfVertex v0,v1;
+
+        v0.pdfFwd = 0.0f;
+        v0.pdfRev = 1.0f;
+
+        v1.pdfFwd = 0.0f;
+        v1.pdfRev = 1.0f;
 
         a_pdfVert[TabIndex(0, tid, iNumElements)] = v0;
         a_pdfVert[TabIndex(1, tid, iNumElements)] = v1;
@@ -754,12 +792,12 @@ __kernel void MMLTCameraPathBounce(__global   float4*        restrict a_rpos,
  
     if (a_targetDepth != 1)
     {
-      const float lastPdfWP = a_misPrev.matSamplePdf / fmax(cosPrev, DEPSILON); // we store them to calculate fwd and rev pdf later when we connect end points
+      const float lastPdfWP = misPrev.matSamplePdf / fmax(cosPrev, DEPSILON); // we store them to calculate fwd and rev pdf later when we connect end points
       resVertex.lastGTerm   = GTerm;                                            // because right now we can not do this until we don't know the light vertex
      
       PdfVertex vcurr;
       vcurr.pdfFwd = 1.0f; // write it later, inside ConnectShadow or ConnectEndPoints
-      vcurr.pdfRev = a_misPrev.isSpecular ? -1.0f*GTerm : GTerm*lastPdfWP;
+      vcurr.pdfRev = misPrev.isSpecular ? -1.0f*GTerm : GTerm*lastPdfWP;
       a_pdfVert[TabIndex(prevVertexId, tid, iNumElements)] = vcurr;
     }
     else
@@ -826,8 +864,8 @@ __kernel void MMLTCameraPathBounce(__global   float4*        restrict a_rpos,
     else
       prevVert.pdfFwd = -1.0f*GTerm;
 
-    const float pdfCamPrevWP = a_misPrev.matSamplePdf / fmax(cosPrev, DEPSILON);
-    prevVert.pdfRev = a_misPrev.isSpecular ? -1.0f*GTerm : pdfCamPrevWP*GTerm;
+    const float pdfCamPrevWP = misPrev.matSamplePdf / fmax(cosPrev, DEPSILON);
+    prevVert.pdfRev = misPrev.isSpecular ? -1.0f*GTerm : pdfCamPrevWP*GTerm;
     
     a_pdfVert[TabIndex(prevVertexId, tid, iNumElements)] = prevVert;
   }
@@ -1327,10 +1365,12 @@ __kernel void MMLTConnect(__global const int2  *  restrict in_splitInfo,
                       &ptl);
 
 
-  float3 sampleColor = make_float3(0,0,0);  
+  float3 sampleColor = make_float3(0,0,0);
+  bool   disableMMLTMisDueToEnv = false;
+
   const int zid2     = out_zind[tid].x;
-  int x = ExtractXFromZIndex (zid2); // #TODO: in don;t like this but may be its ok ... 
-  int y = ExtractYFromZIndex (zid2); // #TODO: in don;t like this but may be its ok ... 
+  int x = ExtractXFromZIndex (zid2); // #TODO: in don't like this but may be its ok ... 
+  int y = ExtractYFromZIndex (zid2); // #TODO: in don't like this but may be its ok ... 
 
   const float fixImplicit = 1.0f; // (1.0f - a_globals->varsF[HRT_MMLT_IMPLICIT_FIXED_PROB]);
   const float fixOther    = 1.0f; // 1.0f/(1.0f - a_globals->varsF[HRT_MMLT_IMPLICIT_FIXED_PROB]);
@@ -1391,6 +1431,8 @@ __kernel void MMLTConnect(__global const int2  *  restrict in_splitInfo,
         a_pdfVert[TabIndex(0, tid, iNumElements)] = v0;
         a_pdfVert[TabIndex(1, tid, iNumElements)] = v1;
         a_pdfVert[TabIndex(2, tid, iNumElements)] = v2;
+
+        disableMMLTMisDueToEnv = (lightType(pLight) == PLAIN_LIGHT_TYPE_SKY_DOME); // special case for environmennt, use PT mis weight in traditional way. 
       }
     }
     else                            // (3.4) connect light and camera vertices (bidir connection)
@@ -1483,7 +1525,8 @@ __kernel void MMLTConnect(__global const int2  *  restrict in_splitInfo,
   #ifdef SBDPT_DEBUG_SPLIT
   misWeight = 1.0f;
   #else
-  sampleColor *= misWeight;
+  if(!disableMMLTMisDueToEnv)
+    sampleColor *= misWeight;
   sampleColor *= a_scaleTable[d];
   #endif
 

@@ -287,8 +287,15 @@ static float3 ConnectShadowP(__private const PathVertex* a_cv, const int a_camDe
   if(a_camDepth > 1)
     v2->pdfFwd = (pdfFwdAt1W == 0.0f) ? -1.0f*a_cv->lastGTerm : (pdfFwdAt1W / cosThetaPrev)*a_cv->lastGTerm;
   
+  float envMisMult = 1.0f;
+  if(lightType(a_pLight) == PLAIN_LIGHT_TYPE_SKY_DOME) // special case for env light, we will ignore MMLT MIS weight later, in connect kernel
+  {
+    float lgtPdf = a_explicitSam.pdf*a_lightPickProb;
+    envMisMult   = misWeightHeuristic(lgtPdf, evalData.pdfFwd); // (lgtPdf*lgtPdf) / (lgtPdf*lgtPdf + bsdfPdf*bsdfPdf);
+  }
+
   const float explicitPdfW = fmax(a_explicitSam.pdf, DEPSILON2);
-  return bsdfClamping((1.0f/a_lightPickProb)*a_explicitSam.color*brdfVal / explicitPdfW);
+  return bsdfClamping((1.0f/a_lightPickProb)*(a_explicitSam.color*envMisMult)*brdfVal / explicitPdfW);
 }
 
 /**
@@ -478,6 +485,72 @@ static inline float3 environmentColor(float3 rayDir, MisData misPrev, unsigned i
   }
 
   // \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
+
+  return envColor;
+}
+
+
+/**
+\brief  Add Perez Sun and Camera mapped texture to function "environmentColor".
+\param  ray_pos          - input origin of ray (needed for Direct Light cylinder-attenuation if enabled).
+\param  ray_dir          - input direction of ray that is going to hit environment (i.e. it miss all surfaces and got outside the scene)
+\param  misPrev          - previous bounce MIS info
+\param  flags            - ray flags
+\param  screenX          - input screen ray X for caera mapped textures
+\param  screenY          - input screen ray Y for caera mapped textures
+\param  a_globals        - engine globals
+\param  in_mtlStorage    - material storage (needed to get previous bounce material info)
+\param  in_pdfStorage    - pdf storage
+\param  in_texStorage1   - standart texture storage
+
+\return environment color considering PT mis
+
+ Although this function was designed for PT only, it can be used for 3Way and MMLT due to env lights don't have forward sampler in our renderer
+
+*/
+
+static inline float3 environmentColorExtended(float3 ray_pos, float3 ray_dir, MisData misPrev, unsigned int flags, int screenX, int screenY,
+                                              __global const EngineGlobals* a_globals, 
+                                              __global const float4*        in_mtlStorage, 
+                                              __global const float4*        in_pdfStorage, 
+                                              texture2d_t                   in_texStorage1)
+{
+  const int hitId = hitDirectLight(ray_dir, a_globals); 
+  
+  float3 envColor = make_float3(0, 0, 0);
+  if (hitId >= 0) // hit any sun light
+  {
+    __global const PlainLight* pLight = a_globals->suns + hitId;
+    envColor = lightBaseColor(pLight)*directLightAttenuation(pLight, ray_pos);
+    const float pdfW = directLightEvalPDF(pLight, ray_dir);
+    ///////////////////////////////////////////////////////////////////////////////////////////////////////////
+    if ((unpackBounceNum(flags) > 0 && !(a_globals->g_flags & HRT_STUPID_PT_MODE) && (misPrev.isSpecular == 0))) //#TODO: check this for bug with 2 hdr env light (test 335)
+      envColor = make_float3(0, 0, 0);
+    else if (((misPrev.isSpecular == 1) && (a_globals->g_flags & HRT_ENABLE_PT_CAUSTICS)) || (a_globals->g_flags & HRT_STUPID_PT_MODE))
+      envColor *= (1.0f / pdfW);
+    if ((a_globals->g_flags & HRT_3WAY_MIS_WEIGHTS) != 0) //#TODO: fix IBPT (???)
+      envColor = make_float3(0, 0, 0); 
+  }
+  else
+  {
+    envColor = environmentColor(ray_dir, misPrev, flags, a_globals, in_mtlStorage, in_pdfStorage, in_texStorage1);
+    const uint rayBounce     = unpackBounceNum(flags);
+    unsigned int otherFlags  = unpackRayFlags(flags);
+    const int backTextureId  = a_globals->varsI[HRT_SHADOW_MATTE_BACK];
+    const bool transparent   = (rayBounce == 1 && (otherFlags & RAY_EVENT_T) != 0);
+    
+    if (backTextureId != INVALID_TEXTURE && (rayBounce == 0 || transparent))
+    {
+      const float texCoordX = (float)screenX / a_globals->varsF[HRT_WIDTH_F];
+      const float texCoordY = (float)screenY / a_globals->varsF[HRT_HEIGHT_F];
+      const float gammaInv = a_globals->varsF[HRT_BACK_TEXINPUT_GAMMA];
+      const int offset = textureHeaderOffset(a_globals, backTextureId);
+      envColor = to_float3(read_imagef_sw4(in_texStorage1 + offset, make_float2(texCoordX, texCoordY), TEX_CLAMP_U | TEX_CLAMP_V));
+      envColor.x = pow(envColor.x, gammaInv);
+      envColor.y = pow(envColor.y, gammaInv);
+      envColor.z = pow(envColor.z, gammaInv);
+    }
+  }
 
   return envColor;
 }

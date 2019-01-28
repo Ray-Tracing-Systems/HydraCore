@@ -329,68 +329,26 @@ __kernel void HitEnvOrLightKernel(__global const float4*    restrict in_rpos,
   //
   if (unpackRayFlags(flags) & RAY_GRAMMAR_OUT_OF_SCENE)
   {
-    const float3 ray_pos = to_float3(in_rpos[tid]);
-    const float3 ray_dir = to_float3(in_rdir[tid]);
+    const float3 ray_pos  = to_float3(in_rpos[tid]);
+    const float3 ray_dir  = to_float3(in_rdir[tid]);
+    const MisData misPrev = a_misDataPrev[tid];
+    
+    const int packedXY    = in_packXY[tid];
+    const int screenX     = (packedXY & 0x0000FFFF);
+    const int screenY     = (packedXY & 0xFFFF0000) >> 16;
+    
+          float3 envColor = environmentColorExtended(ray_pos, ray_dir, misPrev, flags, screenX, screenY,
+                                                     a_globals, in_mtlStorage, in_pdfStorage, in_texStorage1);
+    
+    ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////// Direct Light for MMLT
+    const uint rayBounceNum         = unpackBounceNum(flags);
+    const bool evalDirectLightOnly  = ((a_globals->g_flags & HRT_DIRECT_LIGHT_MODE) !=0); // if we compute Direct Light only
+    if(evalDirectLightOnly && !flagsHaveOnlySpecular(flags) && rayBounceNum > 1)
+      envColor = make_float3(0,0,0);
+    ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////// Direct Light for MMLT
 
-    const int  hitId         = hitDirectLight(ray_dir, a_globals);
-    float3     nextPathColor = make_float3(0, 0, 0);
-
-    if (hitId >= 0) // hit any sun light
-    {
-      __global const PlainLight* pLight = a_globals->suns + hitId;
-      float3 lightColor = lightBaseColor(pLight)*directLightAttenuation(pLight, ray_pos);
-
-      const float pdfW = directLightEvalPDF(pLight, ray_dir);
-
-      ///////////////////////////////////////////////////////////////////////////////////////////////////////////
-      MisData misPrev = a_misDataPrev[tid];
-
-      if ((unpackBounceNum(flags) > 0 && !(a_globals->g_flags & HRT_STUPID_PT_MODE) && (misPrev.isSpecular == 0))) //#TODO: check this for bug with 2 hdr env light (test 335)
-      {
-        lightColor = make_float3(0, 0, 0);
-      }
-      else if (((misPrev.isSpecular == 1) && (a_globals->g_flags & HRT_ENABLE_PT_CAUSTICS)) || (a_globals->g_flags & HRT_STUPID_PT_MODE))
-        lightColor *= (1.0f / pdfW);
-
-      if ((a_globals->g_flags & HRT_3WAY_MIS_WEIGHTS) != 0) //#TODO: fix IBPT
-        lightColor = make_float3(0, 0, 0); 
-
-      ///////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-      const float3 pathThroughput = to_float3(a_thoroughput[tid]);
-      nextPathColor = to_float3(a_color[tid]) + pathThroughput * lightColor;
-    }
-    else
-    {
-      float3 envColor       = environmentColor(ray_dir, a_misDataPrev[tid], flags, a_globals, in_mtlStorage, in_pdfStorage, in_texStorage1);
-      float3 pathThroughput = to_float3(a_thoroughput[tid]);
-
-      const uint rayBounce     = unpackBounceNum(flags);
-      unsigned int otherFlags  = unpackRayFlags(flags);
-      const int backTextureId  = a_globals->varsI[HRT_SHADOW_MATTE_BACK];
-      const bool transparent   = (rayBounce == 1 && (otherFlags & RAY_EVENT_T) != 0);
-      
-      if (backTextureId != INVALID_TEXTURE && (rayBounce == 0 || transparent))
-      {
-        const int packedXY = in_packXY[tid];
-        const int screenX  = (packedXY & 0x0000FFFF);
-        const int screenY  = (packedXY & 0xFFFF0000) >> 16;
-
-        const float texCoordX = (float)screenX / a_globals->varsF[HRT_WIDTH_F];
-        const float texCoordY = (float)screenY / a_globals->varsF[HRT_HEIGHT_F];
-
-        const float gammaInv = a_globals->varsF[HRT_BACK_TEXINPUT_GAMMA];
-
-        const int offset = textureHeaderOffset(a_globals, backTextureId);
-        envColor = to_float3(read_imagef_sw4(in_texStorage1 + offset, make_float2(texCoordX, texCoordY), TEX_CLAMP_U | TEX_CLAMP_V));
-
-        envColor.x = pow(envColor.x, gammaInv);
-        envColor.y = pow(envColor.y, gammaInv);
-        envColor.z = pow(envColor.z, gammaInv);
-      }
-
-      nextPathColor = to_float3(a_color[tid]) + pathThroughput * envColor;
-    }
+    const float3 pathThroughput = to_float3(a_thoroughput[tid]);
+    const float3 nextPathColor  = to_float3(a_color[tid]) + pathThroughput * envColor;
 
     uint otherFlags    = unpackRayFlags(flags);
     a_flags      [tid] = packRayFlags(flags, RAY_IS_DEAD | (otherFlags & (~RAY_GRAMMAR_OUT_OF_SCENE)));
@@ -940,16 +898,16 @@ __kernel void NextBounce(__global   float4*        restrict a_rpos,
   ///////////////////////////////////////////////// 
   flags = flagsNextBounce(flags, brdfSample, a_globals);
   
-  ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////// Specular DL for MMLT
-  const bool evalSpecularOnly  = ((a_globals->g_flags & HRT_DIRECT_LIGHT_MODE) !=0);
-  if(evalSpecularOnly && !flagsHaveOnlySpecular(flags) && rayBounceNum > 1)
+  ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////// Direct Light for MMLT
+  const bool evalDirectLightOnly  = ((a_globals->g_flags & HRT_DIRECT_LIGHT_MODE) !=0);
+  if(evalDirectLightOnly && !flagsHaveOnlySpecular(flags) && rayBounceNum > 1)
   {
     outPathThroughput = make_float3(0,0,0);
     newPathThroughput = make_float3(0,0,0);
     oldPathThroughput = make_float3(0,0,0);
     flags = packRayFlags(flags, unpackRayFlags(flags) | RAY_IS_DEAD);
   }
-   ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////// Specular DL for MMLT
+  ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////// Direct Light for MMLT
 
   float4 nextPathColor;
   if (a_globals->g_flags & HRT_ENABLE_MMLT)

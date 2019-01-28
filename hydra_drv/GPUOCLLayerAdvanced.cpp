@@ -93,16 +93,24 @@ void GPUOCLLayer::DL_Pass(int a_maxBounce, int a_itersNum)
 
 void GPUOCLLayer::MMLT_Pass(int a_passNumber, int minBounce, int maxBounce, int BURN_ITERS)
 {
+
+  if(m_rays.pathAuxColor == nullptr || !m_screen.m_cpuFrameBuffer)
+  {
+    std::cerr << "GPUOCLLayer::MMLT_Pass: Error! Please use CPU frame buffer for MLT" << std::endl;
+    exit(0);
+  }
+
   if(!MLT_IsAllocated())
   {
     size_t mltMem = MLT_Alloc(m_width, m_height, maxBounce + 1); // #TODO: maxBounce works too !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     std::cout << "[AllocAll]: MEM(MLT)    = " << mltMem / size_t(1024*1024) << "\tMB" << std::endl;  
-    runKernel_ClearAllInternalTempBuffers(m_rays.MEGABLOCKSIZE);
-    memsetf4(m_rays.pathAuxColor,      float4(0,0,0,0), m_rays.MEGABLOCKSIZE, 0);
-    memsetf4(m_mlt.pathAuxColor,       float4(0,0,0,0), m_rays.MEGABLOCKSIZE, 0);
-    memsetf4(m_mlt.pathAuxColor2,      float4(0,0,0,0), m_rays.MEGABLOCKSIZE, 0);
-    memsetf4(m_mlt.yMultAlpha,         float4(0,0,0,0), m_rays.MEGABLOCKSIZE, 0);
-    memsetf4(m_mlt.xMultOneMinusAlpha, float4(0,0,0,0), m_rays.MEGABLOCKSIZE, 0);
+    runKernel_ClearAllInternalTempBuffers(m_rays.MEGABLOCKSIZE);                  waitIfDebug(__FILE__, __LINE__);
+
+    memsetf4(m_rays.pathAuxColor,      float4(0,0,0,0), m_rays.MEGABLOCKSIZE, 0); waitIfDebug(__FILE__, __LINE__);
+    memsetf4(m_mlt.pathAuxColor,       float4(0,0,0,0), m_rays.MEGABLOCKSIZE, 0); waitIfDebug(__FILE__, __LINE__);
+    memsetf4(m_mlt.pathAuxColor2,      float4(0,0,0,0), m_rays.MEGABLOCKSIZE, 0); waitIfDebug(__FILE__, __LINE__);
+    memsetf4(m_mlt.yMultAlpha,         float4(0,0,0,0), m_rays.MEGABLOCKSIZE, 0); waitIfDebug(__FILE__, __LINE__);
+    memsetf4(m_mlt.xMultOneMinusAlpha, float4(0,0,0,0), m_rays.MEGABLOCKSIZE, 0); waitIfDebug(__FILE__, __LINE__);
   } 
   
   if(m_spp < 1e-5f) // run init stage and burning in
@@ -173,6 +181,24 @@ void GPUOCLLayer::MMLT_Pass(int a_passNumber, int minBounce, int maxBounce, int 
 
 }
 
+std::vector<float> CalcSBPTScaleTable(int bounceBeg, int bounceEnd)
+{
+  const int bouncesIntoAccount = bounceEnd - bounceBeg + 1;
+
+  std::vector<float> scale(bounceEnd+1);
+  for(size_t i=bounceBeg;i<scale.size();i++)
+  {
+    float& selectorInvPdf = scale[i]; 
+    const int d    = i;
+    selectorInvPdf = float((d+1)*bouncesIntoAccount);  
+    #ifdef SBDPT_DEBUG_SPLIT
+    selectorInvPdf = 1.0f;
+    #endif
+  }
+  
+  return scale;
+}
+
 size_t GPUOCLLayer::MMLTInitSplitDataUniform(int bounceBeg, int a_maxDepth, size_t a_size,
                                              cl_mem a_splitData, cl_mem a_scaleTable, std::vector<int>& activeThreads)
 {
@@ -225,16 +251,20 @@ size_t GPUOCLLayer::MMLTInitSplitDataUniform(int bounceBeg, int a_maxDepth, size
   //    std::cout << "[d = " << i << ",\tN = " << testThreadsPerBounce[i] << "]" << std::endl;
   //}
 
-  std::vector<float> scale(a_maxDepth+1);
-  for(size_t i=bounceBeg;i<scale.size();i++)
+  std::vector<float> scale = CalcSBPTScaleTable(bounceBeg, a_maxDepth);
+
+  // test some concrete bounce
+  //
+  #ifdef SBDPT_CHECK_BOUNCE
   {
-    float& selectorInvPdf = scale[i]; 
-    const int d    = i;
-    selectorInvPdf = float((d+1)*bouncesIntoAccount);  
-    #ifdef SBDPT_DEBUG_SPLIT
-    selectorInvPdf = 1.0f;
-    #endif
+    int concreteBounce = SBDPT_CHECK_BOUNCE;
+    for(size_t i=0;i<splitDataCPU.size();i++)
+      splitDataCPU[i] = make_int2(concreteBounce, concreteBounce);
+
+    for(int i=0;i<=bounceBeg;i++)
+      activeThreads[i] = int(finalThreadsNum);
   }
+  #endif
 
   CHECK_CL(clEnqueueWriteBuffer(m_globals.cmdQueue, a_splitData,  CL_TRUE, 0, splitDataCPU.size()*sizeof(int2), (void*)splitDataCPU.data(), 0, NULL, NULL));
   CHECK_CL(clEnqueueWriteBuffer(m_globals.cmdQueue, a_scaleTable, CL_TRUE, 0, scale.size()*sizeof(float),       (void*)scale.data(), 0, NULL, NULL));

@@ -1325,20 +1325,24 @@ static inline bool isEyeRay(uint a_flags)
   // return (unpackBounceNum(a_flags) == 0);
 }
 
+/**
+\brief This structure is used as transit to pass MIS-weights-important-data from previouce bounce to current (or from current to next).
+
+*/
 typedef struct MisDataT
 {
-  float matSamplePdf;
-  float cosThetaPrev;
-  int   prevMaterialOffset;
-  int   isSpecular;
+  float matSamplePdf;         ///< previous angle pdf  (pdfW) that were used for sampling material.  
+  float cosThetaPrev;         ///< previous angle cos; it allow to compute projected angle pdf (pdfWP = pdfW/cosThetaPrev);
+  int   prevMaterialOffset;   ///< offset in material buffer to material leaf (elemental brdf) that were sampled on prev bounce; it is needed to disable caustics;
+  int   isSpecular;           ///< indicate if bounce was pure specular;
 
 } MisData;
 
 static inline MisData makeInitialMisData()
 {
   MisData data;
-  data.matSamplePdf = 1.0f;
-  data.cosThetaPrev = 1.0f;
+  data.matSamplePdf       = 1.0f;
+  data.cosThetaPrev       = 1.0f;
   data.prevMaterialOffset = -1;
   data.isSpecular         = 1;
   return data;
@@ -2947,9 +2951,12 @@ static inline float3 decompressShadow(ushort4 shadowCompressed)
   return invNormCoeff*make_float3((float)shadowCompressed.x, (float)shadowCompressed.y, (float)shadowCompressed.z);
 }
 
-#define SPLIT_DL_BY_GRAMMAR false
+#define SPLIT_DL_BY_GRAMMAR true
 
-// #define SBDPT_DEBUG_SPLIT 3
-// #define SBDPT_DEBUG_DEPTH 3
+//#define SBDPT_DEBUG_SPLIT 1
+//#define SBDPT_DEBUG_DEPTH 3
+
+//#define SBDPT_CHECK_BOUNCE 4
+//#define SBDPT_INDIRECT_ONLY (void)
 
 #endif
