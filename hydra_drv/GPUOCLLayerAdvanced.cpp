@@ -350,19 +350,54 @@ float GPUOCLLayer::MMLT_BurningIn(int minBounce, int maxBounce, int BURN_ITERS,
                                // #NOTE: do you allocate enough memory for this buffer? --> seems yes (see inPlaceScanAnySize1f impl).
                                // #NOTE: current search will not work !!! It need size+1 array !!!  
                                // #NOTE: you can just set last element to size-2, not size-1. So it will work in this way.
-  double avgBrightness = 0.0f;
+  double avgBrightness = 0.0;
+
+  double avgTimeMk     = 0.0;
+  double avgTimeEv     = 0.0;
+  double avgTimeCt     = 0.0;
+  double avgTimeSel    = 0.0;
+  Timer timer(false);
+
+  const bool measureTime = false;
 
   std::cout << std::endl;
   for(int iter=0; iter<BURN_ITERS;iter++)
   {
+    if(measureTime)
+    {
+      clFinish(m_globals.cmdQueue);
+      timer.start();
+    }
+
     runKernel_MMLTMakeProposal(m_mlt.rstateCurr, nullptr, 1, maxBounce, m_rays.MEGABLOCKSIZE,
                                m_mlt.rstateNew,  m_mlt.xVector);
+
+    if(measureTime)
+    {
+      clFinish(m_globals.cmdQueue);
+      avgTimeMk += timer.getElapsed();
+      timer.start();
+    }
 
     EvalSBDPT(m_mlt.xVector, minBounce, maxBounce, m_rays.MEGABLOCKSIZE,
               m_rays.pathAccColor);
 
+    if(measureTime)
+    {
+      clFinish(m_globals.cmdQueue);
+      avgTimeEv += timer.getElapsed();
+      timer.start();
+    }
+
     runKernel_MLTEvalContribFunc(m_rays.pathAccColor, 0, m_rays.MEGABLOCKSIZE,
                                  temp_f1);
+
+    if(measureTime)
+    {
+      clFinish(m_globals.cmdQueue);
+      avgTimeCt += timer.getElapsed();
+      timer.start();
+    }                                 
     
     avgBrightness += reduce_avg1f(temp_f1, m_rays.MEGABLOCKSIZE)*(1.0/double(BURN_ITERS));
 
@@ -382,6 +417,12 @@ float GPUOCLLayer::MMLT_BurningIn(int minBounce, int maxBounce, int BURN_ITERS,
     }
 
     clFinish(m_globals.cmdQueue);
+
+    if(measureTime)
+    {
+      avgTimeSel += timer.getElapsed();
+      timer.start();
+    }     
     
     if(iter%16 == 0)
     {
@@ -392,6 +433,16 @@ float GPUOCLLayer::MMLT_BurningIn(int minBounce, int maxBounce, int BURN_ITERS,
     //AddContributionToScreen(m_rays.pathAccColor, nullptr);
   }
   std::cout << std::endl;
+  
+  if(measureTime)
+  {
+    std::cout.flush();
+    std::cout << "[MakeProposal]: avgTime = " <<  avgTimeMk *1000.0/double(BURN_ITERS) << "\t ms" << std::endl;
+    std::cout << "[EvalSBDPT   ]: avgTime = " <<  avgTimeEv *1000.0/double(BURN_ITERS) << "\t ms" << std::endl;
+    std::cout << "[ContribFunc ]: avgTime = " <<  avgTimeCt *1000.0/double(BURN_ITERS) << "\t ms" << std::endl;
+    std::cout << "[SelectSampls]: avgTime = " <<  avgTimeSel*1000.0/double(BURN_ITERS) << "\t ms" << std::endl;
+    std::cout.flush();
+  }
 
   // sort all selected pairs of (m_mlt.rstateOld, dOld) by d and screen (x,y) => (out_rstate, out_dsplit)
   //
