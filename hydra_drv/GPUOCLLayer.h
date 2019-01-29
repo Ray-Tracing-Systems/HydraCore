@@ -64,6 +64,9 @@ public:
 
   void EvalSBDPT(cl_mem in_xVector, int minBounce, int maxBounce, size_t a_size,
                  cl_mem a_outColor);
+  
+  void EvalPT(cl_mem in_xVector, int minBounce, int maxBounce, size_t a_size,
+              cl_mem a_outColor);
 
   void FinishAll() override;
 
@@ -97,7 +100,7 @@ public:
 
   bool   MLT_IsAllocated() const;               ///< return true if internal MLT data is allocated
   size_t MLT_Alloc(int a_maxBounce);            ///< alloc internal MLT data
-  size_t MLT_Alloc_For_PT_QMC(int a_maxBounce); ///< alloc xVector for PT with QMC
+  size_t MLT_Alloc_For_PT_QMC(int a_maxBounce, cl_mem& a_vecQmc); ///< alloc xVector for PT with QMC
   void   MLT_Free();                            ///< free internal MLT DATA
 
   void RecompileProcTexShaders(const std::string& a_shaderPath) override;
@@ -198,7 +201,7 @@ protected:
   struct CL_MLT_DATA
   {
     CL_MLT_DATA() : rstateForAcceptReject(0), rstateCurr(0), rstateOld(0), rstateNew(0), dNew(0), dOld(0),
-                    xVector(0), yVector(0), currVec(0), xColor(0), yColor(0), lightVertexSup(0), cameraVertexSup(0), cameraVertexHit(0), 
+                    xVector(0), yVector(0), currVec(0), xVectorQMC(0), xColor(0), yColor(0), lightVertexSup(0), cameraVertexSup(0), cameraVertexHit(0), 
                     pdfArray(0), pathAuxColor(0), pathAuxColorCPU(0), pathAuxColor2(0), pathAuxColorCPU2(0), yMultAlpha(0), xMultOneMinusAlpha(0), 
                     splitData(0), scaleTable(0), scaleTable2(0), memTaken(0), mppDone(0.0), currBounceThreadsNum(0), lastBurnIters(0) {}
 
@@ -213,6 +216,8 @@ protected:
     cl_mem xVector;               ///< current vector that store unit hipercube floats
     cl_mem yVector;               ///< next vector that store unit hipercube floats; it should be 0 when MCMC_LAZY is defined; 
     cl_mem currVec;               ///< points to some real vec (xVector|yVector); does not consume memory
+    cl_mem xVectorQMC;            ///< vector that used for PT/QMC only
+   
 
     cl_mem xColor;
     cl_mem yColor;
@@ -408,7 +413,7 @@ protected:
 
   } m_progs;
 
-  enum BIG_MEM_OBJECTS {   // try to account allocated memory, because OpenCL have no such functionality
+  enum BIG_MEM_OBJECTS {       // try to account allocated memory, because OpenCL have no such functionality
     MEM_TAKEN_GEOMETRY    = 0,
     MEM_TAKEN_TEXTURES    = 1,
     MEM_TAKEN_BVH         = 2,

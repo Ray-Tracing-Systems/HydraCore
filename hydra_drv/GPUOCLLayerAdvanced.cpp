@@ -630,6 +630,24 @@ void GPUOCLLayer::MMLTUpdateAverageBrightnessConstants(int minBounce, cl_mem in_
   m_mlt.avgBrightnessSamples++; 
 }
 
+void GPUOCLLayer::EvalPT(cl_mem in_xVector, int minBounce, int maxBounce, size_t a_size,
+                         cl_mem a_outColor)
+{
+  m_raysWasSorted = false;
+  runKernel_MakeRaysFromEyeSam(m_rays.samZindex, in_xVector, m_rays.MEGABLOCKSIZE, m_passNumberForQMC,
+                               m_rays.rayPos, m_rays.rayDir);
+
+  runKernel_ClearAllInternalTempBuffers(m_rays.MEGABLOCKSIZE);
+   
+  auto temp = m_mlt.currVec; // save
+  m_mlt.currVec = in_xVector;
+
+  trace1D(maxBounce, m_rays.rayPos, m_rays.rayDir, m_rays.MEGABLOCKSIZE,
+          a_outColor);
+
+  m_mlt.currVec = temp;      // restore
+}
+
 void GPUOCLLayer::EvalSBDPT(cl_mem in_xVector, int minBounce, int maxBounce, size_t a_size,
                             cl_mem a_outColor)
 {

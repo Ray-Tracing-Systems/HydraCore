@@ -897,6 +897,8 @@ void GPUOCLLayer::ResizeScreen(int width, int height, int a_flags)
 
   m_memoryTaken[MEM_TAKEN_RAYS] = m_rays.resize(m_globals.ctx, m_globals.cmdQueue, MEGABLOCK_SIZE, m_globals.cpuTrace, m_screen.m_cpuFrameBuffer);
 
+  MLT_Alloc_For_PT_QMC(0, m_mlt.xVectorQMC); // Allocate memory for testing QMC/KMLT F(xVec,bounceNum)
+
   memsetf4(m_rays.rayPos, float4(0, 0, 0, 0), m_rays.MEGABLOCKSIZE);
   memsetf4(m_rays.rayDir, float4(0, 0, 0, 0), m_rays.MEGABLOCKSIZE);
   CHECK_CL(clFinish(m_globals.cmdQueue)); 
@@ -1224,7 +1226,7 @@ void GPUOCLLayer::BeginTracingPass()
   else if (m_vars.m_flags & HRT_UNIFIED_IMAGE_SAMPLING) // PT or LT pass
   {
     
-    if ((m_vars.m_flags & HRT_FORWARD_TRACING) != 0) // LT
+    if ((m_vars.m_flags & HRT_FORWARD_TRACING) != 0)    // LT (not that it assume HRT_FORWARD_TRACING flag is set)
     {
       runKernel_MakeLightRays(m_rays.rayPos, m_rays.rayDir, m_rays.pathAccColor, m_rays.MEGABLOCKSIZE);
 
@@ -1234,21 +1236,14 @@ void GPUOCLLayer::BeginTracingPass()
       trace1D(m_vars.m_varsI[HRT_TRACE_DEPTH], m_rays.rayPos, m_rays.rayDir, m_rays.MEGABLOCKSIZE,
               m_rays.pathAccColor);
     }
-    else                                             // PT
+    else                                                // PT (not that it assume HRT_FORWARD_TRACING flag is not set)
     {
       const int maxBounce = m_vars.m_varsI[HRT_TRACE_DEPTH];
 
-      if(m_mlt.xVector == nullptr)
-        MLT_Alloc_For_PT_QMC(maxBounce);
-
-      // Make Sample in Primary Sample Space \\ 
+      runKernel_MakeEyeSamplesOnly(m_rays.samZindex, m_mlt.xVectorQMC, m_rays.MEGABLOCKSIZE, m_passNumberForQMC);
       
-      m_raysWasSorted = false;
-      runKernel_MakeEyeRays(m_rays.rayPos, m_rays.rayDir, m_rays.samZindex, m_rays.MEGABLOCKSIZE, m_passNumberForQMC);
-      runKernel_ClearAllInternalTempBuffers(m_rays.MEGABLOCKSIZE);
-
-      trace1D(maxBounce, m_rays.rayPos, m_rays.rayDir, m_rays.MEGABLOCKSIZE,
-              m_rays.pathAccColor);
+      EvalPT(m_mlt.xVectorQMC, 1, maxBounce, m_rays.MEGABLOCKSIZE,
+             m_rays.pathAccColor);
 
       AddContributionToScreen(m_rays.pathAccColor, m_rays.samZindex);
     }

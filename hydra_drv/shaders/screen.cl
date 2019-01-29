@@ -175,7 +175,7 @@ __kernel void MakeEyeRaysUnifiedSampling(__global float4*              restrict 
   int tid = GLOBAL_ID_X;
   if (tid >= a_size)
     return;
-
+  
   // (1) generate 4 random floats
   //
   const int2 sortedIndex = in_zind[tid];

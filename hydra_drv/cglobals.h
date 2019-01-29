@@ -120,16 +120,11 @@
 
 #define KMLT_HEAD_SIZE 4
 
-#define KMLT_DIM_SCR_X 0 
-#define KMLT_DIM_SCR_Y 1 
-#define KMLT_DIM_DOF_X 2 
-#define KMLT_DIM_DOF_Y 3
+//#define KMLT_COMPRESSED_F_PER_LIGHT    4
+//#define KMLT_COMPRESSED_F_PER_MATERIAL 4
 
-#define KMLT_COMPRESSED_F_PER_LIGHT    4
-#define KMLT_COMPRESSED_F_PER_MATERIAL 6
-
-#define KMLT_BOUNCES_LGT 0
-#define KMLT_BOUNCES_MAT 0
+//#define KMLT_BOUNCES_LGT 0
+//#define KMLT_BOUNCES_MAT 0
 
 
 enum MEGATEX_USAGE{ MEGATEX_SHADING      = 1, 
@@ -469,6 +464,9 @@ enum VARIABLE_NAMES { // int vars
                       HRT_MAX_SAMPLES_PER_PIXEL    = 36,
                       HRT_CONTRIB_SAMPLES          = 37,
                       HRT_BOX_MODE_ON              = 38,
+
+                      HRT_KMLT_OR_QMC_LGT_BOUNCES  = 39,
+                      HRT_KMLT_OR_QMC_MAT_BOUNCES  = 40,
 };
 
 enum VARIABLE_FLOAT_NAMES{ // float vars
@@ -2946,8 +2944,6 @@ static inline int remapMaterialId(int a_mId, int a_instId,
 
 
 #define AO_RAYS_PACKED 4
-
-
 
 static inline ushort4 compressShadow(float3 shadow)
 {
