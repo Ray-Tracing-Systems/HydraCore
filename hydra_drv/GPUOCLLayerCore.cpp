@@ -125,7 +125,7 @@ void GPUOCLLayer::trace1D_Rev(int a_maxBounce, cl_mem a_rpos, cl_mem a_rdir, siz
 }
 
 
-void GPUOCLLayer::trace1D_Fwd(int a_maxBounce, cl_mem a_rpos, cl_mem a_rdir, size_t a_size,
+void GPUOCLLayer::trace1D_Fwd(int a_minBounce, int a_maxBounce, cl_mem a_rpos, cl_mem a_rdir, size_t a_size,
                               cl_mem a_outColor)
 {
   
@@ -152,12 +152,10 @@ void GPUOCLLayer::trace1D_Fwd(int a_maxBounce, cl_mem a_rpos, cl_mem a_rdir, siz
   float timeForHitStart = 0.0f;
   float timeForHit      = 0.0f;
 
-  int measureBounce = m_vars.m_varsI[HRT_MEASURE_RAYS_TYPE];
+  //int measureBounce = m_vars.m_varsI[HRT_MEASURE_RAYS_TYPE];
 
   for (int bounce = 0; bounce < a_maxBounce - 1; bounce++)
   {
-    const bool measureThisBounce = (bounce == measureBounce);
-
     runKernel_Trace(a_rpos, a_rdir, a_size,
                     m_rays.hits);
 
@@ -167,14 +165,20 @@ void GPUOCLLayer::trace1D_Fwd(int a_maxBounce, cl_mem a_rpos, cl_mem a_rdir, siz
     // postpone 'ConnectEyePass' call to the end of bounce;
     // ConnectEyePass(m_rays.rayFlags, m_rays.hitPosNorm, m_rays.hitNormUncompressed, a_rdir, a_outColor, bounce, a_size);
     //
-    CopyForConnectEye(m_rays.rayFlags, a_rdir,             a_outColor,
-                      m_rays.oldFlags, m_rays.oldRayDir,   m_rays.oldColor, a_size);
+    if(bounce >= a_minBounce - 2)
+    {
+      CopyForConnectEye(m_rays.rayFlags, a_rdir,             a_outColor,
+                        m_rays.oldFlags, m_rays.oldRayDir,   m_rays.oldColor, a_size);
+    }
 
     runKernel_NextBounce(m_rays.rayFlags, a_rpos, a_rdir, a_outColor, a_size);
    
-    ConnectEyePass(m_rays.oldFlags, m_rays.oldRayDir, m_rays.oldColor, bounce, a_size);
-    if (m_vars.m_flags & HRT_3WAY_MIS_WEIGHTS)
-      runKernel_UpdateForwardPdfFor3Way(m_rays.oldFlags, m_rays.oldRayDir, m_rays.rayDir, m_rays.accPdf, a_size);
+    if(bounce >= a_minBounce - 2)
+    {
+      ConnectEyePass(m_rays.oldFlags, m_rays.oldRayDir, m_rays.oldColor, bounce, a_size);
+      if (m_vars.m_flags & HRT_3WAY_MIS_WEIGHTS)
+        runKernel_UpdateForwardPdfFor3Way(m_rays.oldFlags, m_rays.oldRayDir, m_rays.rayDir, m_rays.accPdf, a_size);
+    }
   }
 
 
@@ -213,6 +217,24 @@ void GPUOCLLayer::EvalPT(cl_mem in_xVector, int minBounce, int maxBounce, size_t
   m_mlt.currVec = temp;         // restore
 }
 
+void GPUOCLLayer::EvalLT(cl_mem in_xVector, int minBounce, int maxBounce, size_t a_size,
+                         cl_mem a_outColor)
+{
+  assert(in_xVector == nullptr); // #NOTE: This is not implemeneted yet!!!
+
+  runKernel_MakeLightRays(m_rays.rayPos, m_rays.rayDir, a_outColor, m_rays.MEGABLOCKSIZE);
+
+  if ((m_vars.m_flags & HRT_DRAW_LIGHT_LT) && minBounce <= 1 ) 
+  {
+    runKernel_CopyLightSampleToSurfaceHit(m_rays.rayPos, m_rays.MEGABLOCKSIZE,
+                                          m_rays.hitSurfaceAll);
+
+    ConnectEyePass(m_rays.rayFlags, nullptr, a_outColor, -1, m_rays.MEGABLOCKSIZE);
+  }
+
+  trace1D_Fwd(minBounce, maxBounce, m_rays.rayPos, m_rays.rayDir, m_rays.MEGABLOCKSIZE,
+              a_outColor);
+}
 
 int GPUOCLLayer::CountNumActiveThreads(cl_mem a_rayFlags, size_t a_size)
 {

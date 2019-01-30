@@ -1225,29 +1225,19 @@ void GPUOCLLayer::BeginTracingPass()
   }
   else if (m_vars.m_flags & HRT_UNIFIED_IMAGE_SAMPLING) // PT or LT pass
   {
+    const int maxBounce = m_vars.m_varsI[HRT_TRACE_DEPTH];
+    const int minBounce = 1;
     
     if ((m_vars.m_flags & HRT_FORWARD_TRACING) != 0)    // LT (not that it assume HRT_FORWARD_TRACING flag is set)
     {
-      runKernel_MakeLightRays(m_rays.rayPos, m_rays.rayDir, m_rays.pathAccColor, m_rays.MEGABLOCKSIZE);
-
-      if ((m_vars.m_flags & HRT_DRAW_LIGHT_LT) ) //#NOTE: broken after surface hit refactoring !!!!
-      {
-        runKernel_CopyLightSampleToSurfaceHit(m_rays.rayPos, m_rays.MEGABLOCKSIZE,
-                                              m_rays.hitSurfaceAll);
-
-        ConnectEyePass(m_rays.rayFlags, nullptr, m_rays.pathAccColor, -1, m_rays.MEGABLOCKSIZE);
-      }
-
-      trace1D_Fwd(m_vars.m_varsI[HRT_TRACE_DEPTH], m_rays.rayPos, m_rays.rayDir, m_rays.MEGABLOCKSIZE,
-                  m_rays.pathAccColor);
+      EvalLT(nullptr, minBounce, maxBounce, m_rays.MEGABLOCKSIZE, 
+             m_rays.pathAccColor);
     }
     else                                                // PT (not that it assume HRT_FORWARD_TRACING flag is not set)
     {
-      const int maxBounce = m_vars.m_varsI[HRT_TRACE_DEPTH];
-
       runKernel_MakeEyeSamplesOnly(m_rays.samZindex, m_mlt.xVectorQMC, m_rays.MEGABLOCKSIZE, m_passNumberForQMC);
       
-      EvalPT(m_mlt.xVectorQMC, 1, maxBounce, m_rays.MEGABLOCKSIZE,
+      EvalPT(m_mlt.xVectorQMC, minBounce, maxBounce, m_rays.MEGABLOCKSIZE,
              m_rays.pathAccColor);
 
       AddContributionToScreen(m_rays.pathAccColor, m_rays.samZindex);

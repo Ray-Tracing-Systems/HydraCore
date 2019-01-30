@@ -68,6 +68,9 @@ public:
   void EvalPT(cl_mem in_xVector, int minBounce, int maxBounce, size_t a_size,
               cl_mem a_outColor);
 
+  void EvalLT(cl_mem in_xVector, int minBounce, int maxBounce, size_t a_size,
+              cl_mem a_outColor);
+
   void FinishAll() override;
 
   void InitPathTracing(int seed);
@@ -129,7 +132,7 @@ protected:
   void trace1D_Rev(int a_maxBounce, cl_mem a_rpos, cl_mem a_rdir, size_t a_size,
                    cl_mem a_outColor);
 
-  void trace1D_Fwd(int a_maxBounce, cl_mem a_rpos, cl_mem a_rdir, size_t a_size,
+  void trace1D_Fwd(int a_minBounce, int a_maxBounce, cl_mem a_rpos, cl_mem a_rdir, size_t a_size,
                    cl_mem a_outColor);
 
   void DrawNormals();
