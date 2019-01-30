@@ -114,7 +114,7 @@ __kernel void LightSampleForwardKernel(__global float4*        restrict out_rpos
   const float isPoint = sample.isPoint ? 1.0f : -1.0f;
   
   out_lsam2[tid] = sample.pdfA;
-  out_rpos [tid] = to_float4(sample.pos, 0.0f);
+  out_rpos [tid] = to_float4(sample.pos, as_float(encodeNormal(sample.norm)));
   out_rdir [tid] = to_float4(sample.dir, 0.0f);
 
   out_lightId[tid] = lightId;
@@ -215,6 +215,28 @@ __kernel void LightSample(__global const float4*  restrict in_rpos,
 
   out_srpos[tid] = to_float4(shadowRayPos, maxDist);
   out_srdir[tid] = to_float4(shadowRayDir, as_float(-1)); 
+}
+
+
+__kernel void CopyLightSampleToSurfaceHit(__global const float4* restrict in_raypos, 
+                                          __global       float4* restrict out_hits,
+                                          int iNumElements)
+{
+  int tid = GLOBAL_ID_X;
+  if (tid >= iNumElements)
+    return;
+
+  SurfaceHit surfHitWS;
+
+  const float4 data    = in_raypos[tid];
+
+  surfHitWS.pos        = to_float3(data);
+  surfHitWS.normal     = decodeNormal(as_int(data.w));
+  surfHitWS.matId      = -1;
+
+  WriteSurfaceHit(&surfHitWS, tid, iNumElements, 
+                  out_hits);
+  
 }
 
 __kernel void CopyAndPackForConnectEye(__global const uint*    restrict in_flags,

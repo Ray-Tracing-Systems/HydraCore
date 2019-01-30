@@ -154,7 +154,7 @@ void GPUOCLLayer::trace1D_Fwd(int a_maxBounce, cl_mem a_rpos, cl_mem a_rdir, siz
 
   int measureBounce = m_vars.m_varsI[HRT_MEASURE_RAYS_TYPE];
 
-  for (int bounce = 0; bounce < a_maxBounce; bounce++)
+  for (int bounce = 0; bounce < a_maxBounce - 1; bounce++)
   {
     const bool measureThisBounce = (bounce == measureBounce);
 
