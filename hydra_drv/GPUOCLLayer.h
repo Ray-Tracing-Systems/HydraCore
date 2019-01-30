@@ -125,8 +125,12 @@ protected:
   double reduce_avg1f(cl_mem a_buff, size_t a_size);
 
   void trace1DPrimaryOnly(cl_mem a_rpos, cl_mem a_rdir, cl_mem a_outColor, size_t a_size, size_t a_offset);
-  void trace1D(int a_maxBounce, cl_mem a_rpos, cl_mem a_rdir, size_t a_size,
-               cl_mem a_outColor);
+  
+  void trace1D_Rev(int a_maxBounce, cl_mem a_rpos, cl_mem a_rdir, size_t a_size,
+                   cl_mem a_outColor);
+
+  void trace1D_Fwd(int a_maxBounce, cl_mem a_rpos, cl_mem a_rdir, size_t a_size,
+                   cl_mem a_outColor);
 
   void DrawNormals();
   void CopyShadowTo(cl_mem a_color, size_t a_size);

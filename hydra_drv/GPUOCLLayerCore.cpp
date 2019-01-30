@@ -6,9 +6,11 @@
 #undef min
 #undef max
 
-void GPUOCLLayer::trace1D(int a_maxBounce, cl_mem a_rpos, cl_mem a_rdir, size_t a_size,
-                          cl_mem a_outColor)
+void GPUOCLLayer::trace1D_Rev(int a_maxBounce, cl_mem a_rpos, cl_mem a_rdir, size_t a_size,
+                              cl_mem a_outColor)
 {
+  runKernel_ClearAllInternalTempBuffers(a_size);
+
   // trace rays
   //
   if (m_vars.m_varsI[HRT_ENABLE_MRAYS_COUNTERS])
@@ -55,8 +57,7 @@ void GPUOCLLayer::trace1D(int a_maxBounce, cl_mem a_rpos, cl_mem a_rdir, size_t 
     runKernel_ComputeHit(a_rpos, a_rdir, m_rays.hits, a_size, a_size,
                          m_rays.hitSurfaceAll, m_rays.hitProcTexData);
 
-    if ((m_vars.m_flags & HRT_FORWARD_TRACING) == 0)
-      runKernel_HitEnvOrLight(m_rays.rayFlags, a_rpos, a_rdir, a_outColor, bounce, a_size);
+    runKernel_HitEnvOrLight(m_rays.rayFlags, a_rpos, a_rdir, a_outColor, bounce, a_size);
 
     if (FORCE_DRAW_SHADOW && bounce == 1)
     {
@@ -77,15 +78,7 @@ void GPUOCLLayer::trace1D(int a_maxBounce, cl_mem a_rpos, cl_mem a_rdir, size_t 
       timeForHit       = timeBeforeShadow - timeForHitStart;
     }
 
-    if (m_vars.m_flags & HRT_FORWARD_TRACING)
-    {
-      // postpone 'ConnectEyePass' call to the end of bounce;
-      // ConnectEyePass(m_rays.rayFlags, m_rays.hitPosNorm, m_rays.hitNormUncompressed, a_rdir, a_outColor, bounce, a_size);
-      //
-      CopyForConnectEye(m_rays.rayFlags, a_rdir,             a_outColor,
-                        m_rays.oldFlags, m_rays.oldRayDir,   m_rays.oldColor, a_size);
-    }
-    else if (m_vars.shadePassEnable(bounce, a_maxBounce))
+    if (m_vars.shadePassEnable(bounce, a_maxBounce))
     {
       ShadePass(a_rpos, a_rdir, m_rays.pathShadeColor, a_size, measureThisBounce);
     }
@@ -109,14 +102,6 @@ void GPUOCLLayer::trace1D(int a_maxBounce, cl_mem a_rpos, cl_mem a_rdir, size_t 
       timeForBounce     = (m_timer.getElapsed() - timeStart);
       timeForNextBounce = (m_timer.getElapsed() - timeNextBounceStart);
     }
-
-    if (m_vars.m_flags & HRT_FORWARD_TRACING)
-    {
-      ConnectEyePass(m_rays.oldFlags, m_rays.oldRayDir, m_rays.oldColor, bounce, a_size);
-      if (m_vars.m_flags & HRT_3WAY_MIS_WEIGHTS)
-        runKernel_UpdateForwardPdfFor3Way(m_rays.oldFlags, m_rays.oldRayDir, m_rays.rayDir, m_rays.accPdf, a_size);
-    }
-
   }
 
 
@@ -137,6 +122,95 @@ void GPUOCLLayer::trace1D(int a_maxBounce, cl_mem a_rpos, cl_mem a_rdir, size_t 
   m_stat.samplesPerSec    = float(a_size) / timeForSample;
   m_stat.traceTimePerCent = int( ((timeForTrace + timeForShadow) / timeForBounce)*100.0f );
   //std::cout << "measureBounce = " << measureBounce << std::endl;
+}
+
+
+void GPUOCLLayer::trace1D_Fwd(int a_maxBounce, cl_mem a_rpos, cl_mem a_rdir, size_t a_size,
+                              cl_mem a_outColor)
+{
+  
+  // runKernel_ClearAllInternalTempBuffers(a_size); // called when light is sampled
+
+  // trace rays
+  //
+  if (m_vars.m_varsI[HRT_ENABLE_MRAYS_COUNTERS])
+  {
+    clFinish(m_globals.cmdQueue);
+    m_timer.start();
+  }
+
+  float timeForSample    = 0.0f;
+  float timeForBounce    = 0.0f;
+  float timeForTrace     = 0.0f;
+  float timeBeforeShadow = 0.0f;
+  float timeForShadow    = 0.0f;
+  float timeStart        = 0.0f;
+
+  float timeNextBounceStart = 0.0f;
+  float timeForNextBounce   = 0.0f;
+
+  float timeForHitStart = 0.0f;
+  float timeForHit      = 0.0f;
+
+  int measureBounce = m_vars.m_varsI[HRT_MEASURE_RAYS_TYPE];
+
+  for (int bounce = 0; bounce < a_maxBounce; bounce++)
+  {
+    const bool measureThisBounce = (bounce == measureBounce);
+
+    runKernel_Trace(a_rpos, a_rdir, a_size,
+                    m_rays.hits);
+
+    runKernel_ComputeHit(a_rpos, a_rdir, m_rays.hits, a_size, a_size,
+                         m_rays.hitSurfaceAll, m_rays.hitProcTexData);
+                         
+    // postpone 'ConnectEyePass' call to the end of bounce;
+    // ConnectEyePass(m_rays.rayFlags, m_rays.hitPosNorm, m_rays.hitNormUncompressed, a_rdir, a_outColor, bounce, a_size);
+    //
+    CopyForConnectEye(m_rays.rayFlags, a_rdir,             a_outColor,
+                      m_rays.oldFlags, m_rays.oldRayDir,   m_rays.oldColor, a_size);
+
+    runKernel_NextBounce(m_rays.rayFlags, a_rpos, a_rdir, a_outColor, a_size);
+   
+    ConnectEyePass(m_rays.oldFlags, m_rays.oldRayDir, m_rays.oldColor, bounce, a_size);
+    if (m_vars.m_flags & HRT_3WAY_MIS_WEIGHTS)
+      runKernel_UpdateForwardPdfFor3Way(m_rays.oldFlags, m_rays.oldRayDir, m_rays.rayDir, m_rays.accPdf, a_size);
+  }
+
+
+  if (m_vars.m_varsI[HRT_ENABLE_MRAYS_COUNTERS])
+  {
+    clFinish(m_globals.cmdQueue);
+    timeForSample = m_timer.getElapsed();
+  }
+
+  m_stat.raysPerSec      = float(a_size) / timeForTrace;
+  m_stat.traversalTimeMs = timeForTrace*1000.0f;
+  m_stat.sampleTimeMS    = timeForSample*1000.0f;
+  m_stat.bounceTimeMS    = timeForBounce*1000.0f;
+  //m_stat.shadowTimeMs    = timeForShadow*1000.0f;
+  m_stat.evalHitMs       = timeForHit*1000.0f;
+  m_stat.nextBounceMs    = timeForNextBounce*1000.0f;
+
+  m_stat.samplesPerSec    = float(a_size) / timeForSample;
+  m_stat.traceTimePerCent = int( ((timeForTrace + timeForShadow) / timeForBounce)*100.0f );
+  //std::cout << "measureBounce = " << measureBounce << std::endl;
+}
+
+void GPUOCLLayer::EvalPT(cl_mem in_xVector, int minBounce, int maxBounce, size_t a_size,
+                         cl_mem a_outColor)
+{
+  m_raysWasSorted = false;
+  runKernel_MakeRaysFromEyeSam(m_rays.samZindex, in_xVector, m_rays.MEGABLOCKSIZE, m_passNumberForQMC,
+                               m_rays.rayPos, m_rays.rayDir);
+   
+  auto temp     = m_mlt.currVec; // save
+  m_mlt.currVec = in_xVector;
+
+  trace1D_Rev(maxBounce, m_rays.rayPos, m_rays.rayDir, m_rays.MEGABLOCKSIZE,
+              a_outColor);
+
+  m_mlt.currVec = temp;         // restore
 }
 
 
