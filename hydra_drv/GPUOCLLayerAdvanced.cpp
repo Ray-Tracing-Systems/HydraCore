@@ -69,7 +69,7 @@ void GPUOCLLayer::DL_Pass(int a_maxBounce, int a_itersNum)
     m_raysWasSorted = false;
     runKernel_MakeEyeRays(m_rays.rayPos, m_rays.rayDir, m_rays.samZindex, m_rays.MEGABLOCKSIZE, m_passNumberForQMC);
   
-    trace1D_Rev(a_maxBounce, m_rays.rayPos, m_rays.rayDir, m_rays.MEGABLOCKSIZE,
+    trace1D_Rev(1, a_maxBounce, m_rays.rayPos, m_rays.rayDir, m_rays.MEGABLOCKSIZE,
                 m_rays.pathAccColor);
     
     AddContributionToScreen(m_rays.pathAccColor, m_rays.samZindex, false, 1); 

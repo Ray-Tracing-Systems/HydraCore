@@ -129,7 +129,7 @@ protected:
 
   void trace1DPrimaryOnly(cl_mem a_rpos, cl_mem a_rdir, cl_mem a_outColor, size_t a_size, size_t a_offset);
 
-  void trace1D_Rev(int a_maxBounce, cl_mem a_rpos, cl_mem a_rdir, size_t a_size,
+  void trace1D_Rev(int a_minBounce, int a_maxBounce, cl_mem a_rpos, cl_mem a_rdir, size_t a_size,
                    cl_mem a_outColor);
 
   void trace1D_Fwd(int a_minBounce, int a_maxBounce, cl_mem a_rpos, cl_mem a_rdir, size_t a_size,
@@ -457,7 +457,7 @@ protected:
   void runKernel_ComputeHit(cl_mem a_rpos, cl_mem a_rdir, cl_mem a_hits, size_t a_size, size_t a_sizeRun,
                             cl_mem a_outSurfaceHit, cl_mem a_outProcTexData);
 
-  void runKernel_HitEnvOrLight(cl_mem a_rayFlags, cl_mem a_rpos, cl_mem a_rdir, cl_mem a_outColor, int a_currBounce, size_t a_size);
+  void runKernel_HitEnvOrLight(cl_mem a_rayFlags, cl_mem a_rpos, cl_mem a_rdir, cl_mem a_outColor, int a_currBounce, int a_minBounce, size_t a_size);
 
   void runKernel_ComputeAO(cl_mem outCompressedAO, size_t a_size);
   void runKernel_ComputeAO2(cl_mem outCompressedAO, size_t a_size, int aoId);

@@ -483,7 +483,7 @@ void GPUOCLLayer::RunProductionSamplingMode()
 
     // (4) trace rays/paths
     //
-    trace1D_Rev(m_vars.m_varsI[HRT_TRACE_DEPTH], m_rays.rayPos, m_rays.rayDir, finalSize,
+    trace1D_Rev(1, m_vars.m_varsI[HRT_TRACE_DEPTH], m_rays.rayPos, m_rays.rayDir, finalSize,
                 m_rays.pathAccColor);
 
     runKernel_GetShadowToAlpha(m_rays.pathAccColor, m_rays.pathShadow8B, finalSize);

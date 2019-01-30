@@ -6,7 +6,7 @@
 #undef min
 #undef max
 
-void GPUOCLLayer::trace1D_Rev(int a_maxBounce, cl_mem a_rpos, cl_mem a_rdir, size_t a_size,
+void GPUOCLLayer::trace1D_Rev(int a_minBounce, int a_maxBounce, cl_mem a_rpos, cl_mem a_rdir, size_t a_size,
                               cl_mem a_outColor)
 {
   runKernel_ClearAllInternalTempBuffers(a_size);
@@ -57,7 +57,7 @@ void GPUOCLLayer::trace1D_Rev(int a_maxBounce, cl_mem a_rpos, cl_mem a_rdir, siz
     runKernel_ComputeHit(a_rpos, a_rdir, m_rays.hits, a_size, a_size,
                          m_rays.hitSurfaceAll, m_rays.hitProcTexData);
 
-    runKernel_HitEnvOrLight(m_rays.rayFlags, a_rpos, a_rdir, a_outColor, bounce, a_size);
+    runKernel_HitEnvOrLight(m_rays.rayFlags, a_rpos, a_rdir, a_outColor, bounce, a_minBounce, a_size);
 
     if (FORCE_DRAW_SHADOW && bounce == 1)
     {
@@ -78,7 +78,7 @@ void GPUOCLLayer::trace1D_Rev(int a_maxBounce, cl_mem a_rpos, cl_mem a_rdir, siz
       timeForHit       = timeBeforeShadow - timeForHitStart;
     }
 
-    if (m_vars.shadePassEnable(bounce, a_maxBounce))
+    if (m_vars.shadePassEnable(bounce, a_minBounce, a_maxBounce))
     {
       ShadePass(a_rpos, a_rdir, m_rays.pathShadeColor, a_size, measureThisBounce);
     }
@@ -211,7 +211,7 @@ void GPUOCLLayer::EvalPT(cl_mem in_xVector, int minBounce, int maxBounce, size_t
   auto temp     = m_mlt.currVec; // save
   m_mlt.currVec = in_xVector;
 
-  trace1D_Rev(maxBounce, m_rays.rayPos, m_rays.rayDir, m_rays.MEGABLOCKSIZE,
+  trace1D_Rev(minBounce, maxBounce, m_rays.rayPos, m_rays.rayDir, m_rays.MEGABLOCKSIZE,
               a_outColor);
 
   m_mlt.currVec = temp;         // restore
