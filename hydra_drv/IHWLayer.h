@@ -41,7 +41,7 @@ struct AllRenderVarialbes
   void SetVariableF(int a_name, float a_val);
   void SetFlags(unsigned int bits, unsigned int a_value);
 
-  bool shadePassEnable(int a_bounceNumNoRegenerate);
+  bool shadePassEnable(int a_bounce, int a_maxBounce);
 };
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 

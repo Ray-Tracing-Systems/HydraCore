@@ -84,10 +84,15 @@ void GPUOCLLayer::trace1D(int a_maxBounce, cl_mem a_rpos, cl_mem a_rdir, size_t 
       CopyForConnectEye(m_rays.rayFlags, a_rdir,             a_outColor,
                         m_rays.oldFlags, m_rays.oldRayDir,   m_rays.oldColor, a_size);
     }
-    else if (m_vars.shadePassEnable(bounce))
+    else if (m_vars.shadePassEnable(bounce,a_maxBounce))
     {
       ShadePass(a_rpos, a_rdir, m_rays.pathShadeColor, a_size, measureThisBounce);
     }
+    else
+    {
+      memsetf4(m_rays.pathShadeColor, float4(0,0,0,0), a_size);
+    }
+    
 
     if (m_vars.m_varsI[HRT_ENABLE_MRAYS_COUNTERS] && measureThisBounce)
     {
