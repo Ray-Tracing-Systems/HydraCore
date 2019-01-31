@@ -948,7 +948,7 @@ __kernel void NextBounce(__global   float4*        restrict a_rpos,
       const int a_currDepth = rayBounceNum;
       PerRayAcc accPdf      = a_pdfAcc[tid];          // #TODO: refactor code inside brackets; try to make procedure call
       {
-        if (!isPureSpecular(brdfSample))
+        if (!isPureSpecular(brdfSample) && !(isGlossy(brdfSample) && isTransparent(brdfSample))) // process glossy glass same way as pure mirrors
         {
           const float cosHere = fabs(dot(oldRayDir, surfHit.normal));
           const float cosNext = fabs(dot(brdfSample.direction, surfHit.normal));
@@ -977,7 +977,8 @@ __kernel void NextBounce(__global   float4*        restrict a_rpos,
         else
         {
           accPdf.pdfCameraWP *= 1.0f; // in the case of specular bounce pdfFwd = pdfRev = 1.0f;
-          accPdf.pdfLightWP *= 1.0f;  //
+          accPdf.pdfLightWP  *= 1.0f; //
+
           if (a_currDepth == 0)
             accPdf.pdfLightWP = 0.0f;
         }

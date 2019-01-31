@@ -444,7 +444,7 @@ float3  IntegratorThreeWay::PathTraceAcc(float3 ray_pos, float3 ray_dir, const f
   //  m_debugFirstBounceDiffuse = true;
 
   ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-  if (!isPureSpecular(matSam))
+  if (!isPureSpecular(matSam) && !(isGlossy(matSam) && isTransparent(matSam))) // process glossy glass same way as pure mirrors
   {
     a_accData->pdfCameraWP *= (matSam.pdf / fmax(cosNext, DEPSILON));
 
