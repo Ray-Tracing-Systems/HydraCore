@@ -406,8 +406,8 @@ float3  IntegratorThreeWay::PathTraceAcc(float3 ray_pos, float3 ray_dir, const f
     const float  cosAtLight   = fmax(explicitSam.cosAtLight, 0.0f);             
                               
     const float3 brdfVal      = evalData.brdf*cosThetaOut1 + evalData.btdf*cosThetaOut2;
-    const float  bsdfRevWP    = (evalData.pdfFwd == 0.0f) ? 1.0f : evalData.pdfFwd / fmax(cosThetaOut, DEPSILON);
-    const float  bsdfFwdWP    = (evalData.pdfRev == 0.0f) ? 1.0f : evalData.pdfRev / fmax(cosHere, DEPSILON);
+    const float  bsdfRevWP    = (evalData.pdfFwd == 0.0f) ? 1.0f : evalData.pdfFwd / fmax(cosThetaOut, DEPSILON); // ??? why 1 ?
+    const float  bsdfFwdWP    = (evalData.pdfRev == 0.0f) ? 1.0f : evalData.pdfRev / fmax(cosHere, DEPSILON);     // ??? why 1 ?
     const float shadowDist    = length(surfElem.pos - explicitSam.pos);
     const float GTermShadow   = cosThetaOut*cosAtLight / fmax(shadowDist*shadowDist, DEPSILON); 
     
@@ -425,7 +425,7 @@ float3  IntegratorThreeWay::PathTraceAcc(float3 ray_pos, float3 ray_dir, const f
     if (explicitSam.isPoint)
       pdfAccRevA = 0.0f;
     
-    const float misWeight  = misWeightHeuristic3(pdfAccExpA, pdfAccRevA, pdfAccFwdA);
+    const float misWeight = misWeightHeuristic3(pdfAccExpA, pdfAccRevA, pdfAccFwdA);
     
     const float explicitPdfW = fmax(explicitSam.pdf, DEPSILON);
     
@@ -464,6 +464,10 @@ float3  IntegratorThreeWay::PathTraceAcc(float3 ray_pos, float3 ray_dir, const f
 
       a_accData->pdfLightWP *= (pdfFwdW / fmax(cosHere, DEPSILON));
     }
+    //  ow ... we don't want to sample glossy glass with light tracing.
+    //
+    //else if(a_currDepth == 0 && (matSam.flags & RAY_EVENT_T) != 0 && (matSam.flags & RAY_EVENT_G) != 0 )
+      //a_accData->pdfLightWP = 0.0f;
   }
   else
   {

@@ -316,7 +316,8 @@ __kernel void HitEnvOrLightKernel(__global const float4*    restrict in_rpos,
                                   
                                   __global const int*       restrict in_instLightInstId,
                                   __global const Lite_Hit*  restrict in_liteHit,
-                                  float a_mLightSubPathCount, int a_currDepth, int iNumElements)
+                                  float a_mLightSubPathCount, int a_currDepth, int a_minDepth, 
+                                  int iNumElements)
                                   //__global float4*          restrict a_debugf4)
 {
   int tid = GLOBAL_ID_X;
@@ -346,6 +347,9 @@ __kernel void HitEnvOrLightKernel(__global const float4*    restrict in_rpos,
     if(evalDirectLightOnly && !flagsHaveOnlySpecular(flags) && rayBounceNum > 1)
       envColor = make_float3(0,0,0);
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////// Direct Light for MMLT
+
+    if(a_currDepth + 1 < a_minDepth)
+      envColor = make_float3(0,0,0);
 
     const float3 pathThroughput = to_float3(a_thoroughput[tid]);
     const float3 nextPathColor  = to_float3(a_color[tid]) + pathThroughput * envColor;
@@ -520,6 +524,9 @@ __kernel void HitEnvOrLightKernel(__global const float4*    restrict in_rpos,
           
         }
       }
+
+      if(a_currDepth + 1 < a_minDepth)
+        emissColor = make_float3(0,0,0);
       
       const int packedIsLight = hitLightSource ? 1 : 0;
       out_emission[tid]       = to_float4(emissColor, as_float(packedIsLight));

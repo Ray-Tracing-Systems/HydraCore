@@ -1224,10 +1224,10 @@ void GPUOCLLayer::BeginTracingPass()
     RunProductionSamplingMode();
   }
   else if (m_vars.m_flags & HRT_UNIFIED_IMAGE_SAMPLING) // PT or LT pass
-  {
-    const int maxBounce = m_vars.m_varsI[HRT_TRACE_DEPTH];
+  { 
     const int minBounce = 1;
-    
+    const int maxBounce = m_vars.m_varsI[HRT_TRACE_DEPTH];
+
     if ((m_vars.m_flags & HRT_FORWARD_TRACING) != 0)    // LT (not that it assume HRT_FORWARD_TRACING flag is set)
     {
       EvalLT(nullptr, minBounce, maxBounce, m_rays.MEGABLOCKSIZE, 

@@ -723,8 +723,12 @@ static inline float misWeightHeuristic(float a, float b)
 
 static inline float misWeightHeuristic3(float a, float b, float c)
 {
-  const float w = misHeuristicPower2(a) / fmax(misHeuristicPower2(a) + misHeuristicPower2(b) + misHeuristicPower2(c), DEPSILON2);
-  return isfinite(w) ? w : 0.0f;
+  const float w = fabs(a) / fmax(misHeuristicPower1(a) + misHeuristicPower1(b) + misHeuristicPower1(c), DEPSILON2);
+  
+  if(!isfinite(a))
+    return 1.0f;
+  else
+    return isfinite(w) ? w : 0.0f;
 }
 
 /**
