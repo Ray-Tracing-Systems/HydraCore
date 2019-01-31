@@ -249,10 +249,10 @@ __kernel void ConnectToEyeKernel(__global const uint*          restrict a_flags,
     const float cameraPdfA = imageToSurfaceFactor / mLightSubPathCount;
     const float lightPdfA  = in_lsam2[tid]; //PerThread().pdfLightA0; // remember that we packed it in lsam2 inside 'LightSampleForwardKernel'
 
-    const float pdfAccFwdA = 1.0f*accData.pdfLightWP*accData.pdfGTerm*(lightPdfA*lightPickProbFwd);
-    const float pdfAccRevA = cameraPdfA * (pdfRevWP*accData.pdfCameraWP)*accData.pdfGTerm; // see pdfRevWP? this is just because on the first bounce a_pAccData->pdfCameraWP == 1.
+    const float pdfAccFwdA = 1.0f*accData.pdfLightWP*(lightPdfA*lightPickProbFwd);
+    const float pdfAccRevA = cameraPdfA * (pdfRevWP*accData.pdfCameraWP); // see pdfRevWP? this is just because on the first bounce a_pAccData->pdfCameraWP == 1.
                                                                                            // we didn't eval reverse pdf yet. Imagine light ray hit surface and we immediately connect.
-    const float pdfAccExpA = cameraPdfA * (pdfRevWP*accData.pdfCameraWP)*accData.pdfGTerm*(cancelImplicitLightHitPdf*(lightPdfA*lightPickProbRev));
+    const float pdfAccExpA = cameraPdfA * (pdfRevWP*accData.pdfCameraWP)*(cancelImplicitLightHitPdf*(lightPdfA*lightPickProbRev));
 
     misWeight = misWeightHeuristic3(pdfAccFwdA, pdfAccRevA, pdfAccExpA);
     if (!isfinite(misWeight))
@@ -467,9 +467,9 @@ __kernel void HitEnvOrLightKernel(__global const float4*    restrict in_rpos,
             const float cancelPrev = (misPrev.matSamplePdf / fmax(cosPrev, DEPSILON))*GTerm; // calcel previous pdfA 
             const float cameraPdfA = a_pdfCamA[tid];
 
-            float pdfAccFwdA = 1.0f       * (accData.pdfLightWP *accData.pdfGTerm) * lightPdfA*lPdfFwd.pickProb;
-            float pdfAccRevA = cameraPdfA * (accData.pdfCameraWP*accData.pdfGTerm);
-            float pdfAccExpA = cameraPdfA * (accData.pdfCameraWP*accData.pdfGTerm)*(lightPdfA*lightPdfSelectRev(pLight) / fmax(cancelPrev, DEPSILON));
+            float pdfAccFwdA = 1.0f       * (accData.pdfLightWP ) * lightPdfA*lPdfFwd.pickProb;
+            float pdfAccRevA = cameraPdfA * (accData.pdfCameraWP);
+            float pdfAccExpA = cameraPdfA * (accData.pdfCameraWP)*(lightPdfA*lightPdfSelectRev(pLight) / fmax(cancelPrev, DEPSILON));
 
             if (a_currDepth == 0)
             {
@@ -696,9 +696,9 @@ __kernel void Shade(__global const float4*    restrict a_rpos,
      
     const float cameraPdfA = in_pdfCamA[tid];
      
-    float pdfAccFwdA = pdfFwdWP1  * (prevData.pdfLightWP *prevData.pdfGTerm)*((lPdfFwd.pdfW / fmax(cosAtLight, DEPSILON))*GTermShadow)*(lPdfFwd.pdfA*lPdfFwd.pickProb);
-    float pdfAccRevA = cameraPdfA * (prevData.pdfCameraWP*prevData.pdfGTerm)*bsdfRevWP*GTermShadow;
-    float pdfAccExpA = cameraPdfA * (prevData.pdfCameraWP*prevData.pdfGTerm)*(lPdfFwd.pdfA*lightPickProb);
+    float pdfAccFwdA = pdfFwdWP1  * (prevData.pdfLightWP )*((lPdfFwd.pdfW / fmax(cosAtLight, DEPSILON))*GTermShadow)*(lPdfFwd.pdfA*lPdfFwd.pickProb);
+    float pdfAccRevA = cameraPdfA * (prevData.pdfCameraWP)*bsdfRevWP*GTermShadow;
+    float pdfAccExpA = cameraPdfA * (prevData.pdfCameraWP)*(lPdfFwd.pdfA*lightPickProb);
     if (explicitSam.isPoint)
       pdfAccRevA = 0.0f;
 

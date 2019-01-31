@@ -241,10 +241,10 @@ void IntegratorThreeWay::ConnectEye(SurfaceHit a_hit, float3 ray_pos, float3 ray
   const float cameraPdfA = imageToSurfaceFactor / mLightSubPathCount;
   const float lightPdfA  = PerThread().pdfLightA0;
 
-  const float pdfAccFwdA = 1.0f*a_pAccData->pdfLightWP*a_pAccData->pdfGTerm*(lightPdfA*lightPickProbFwd);
-  const float pdfAccRevA = cameraPdfA*(pdfRevWP*a_pAccData->pdfCameraWP)*a_pAccData->pdfGTerm; // see pdfRevWP? this is just because on the first bounce a_pAccData->pdfCameraWP == 1.
-                                                                                               // we didn't eval reverse pdf yet. Imagine light ray hit surface and we immediately connect.
-  const float pdfAccExpA = cameraPdfA*(pdfRevWP*a_pAccData->pdfCameraWP)*a_pAccData->pdfGTerm*(cancelImplicitLightHitPdf*(lightPdfA*lightPickProbRev));
+  const float pdfAccFwdA = 1.0f*a_pAccData->pdfLightWP*(lightPdfA*lightPickProbFwd);                                                                                  // a_pAccData->pdfGTerm
+  const float pdfAccRevA = cameraPdfA*(pdfRevWP*a_pAccData->pdfCameraWP); // see pdfRevWP? this is just because on the first bounce a_pAccData->pdfCameraWP == 1.     // a_pAccData->pdfGTerm
+                                                                          // we didn't eval reverse pdf yet. Imagine light ray hit surface and we immediately connect.
+  const float pdfAccExpA = cameraPdfA*(pdfRevWP*a_pAccData->pdfCameraWP)*(cancelImplicitLightHitPdf*(lightPdfA*lightPickProbRev));                                     // a_pAccData->pdfGTerm
 
   const float misWeight  = misWeightHeuristic3(pdfAccFwdA, pdfAccRevA, pdfAccExpA);
 
@@ -339,9 +339,9 @@ float3  IntegratorThreeWay::PathTraceAcc(float3 ray_pos, float3 ray_dir, const f
     const float cancelPrev = (misPrev.matSamplePdf / fmax(cosPrev, DEPSILON))*GTerm; // calcel previous pdfA 
     const float cameraPdfA = (*a_pdfCamA);
 
-    float pdfAccFwdA = 1.0f       * (a_accData->pdfLightWP*a_accData->pdfGTerm) * lightPdfA*lPdfFwd.pickProb;
-    float pdfAccRevA = cameraPdfA * (a_accData->pdfCameraWP*a_accData->pdfGTerm);
-    float pdfAccExpA = cameraPdfA * (a_accData->pdfCameraWP*a_accData->pdfGTerm)*(lightPdfA*lightPdfSelectRev(pLight) / fmax(cancelPrev, DEPSILON));
+    float pdfAccFwdA = 1.0f       * (a_accData->pdfLightWP ) * lightPdfA*lPdfFwd.pickProb;                                       // a_accData->pdfGTerm
+    float pdfAccRevA = cameraPdfA * (a_accData->pdfCameraWP);                                                                    // a_accData->pdfGTerm
+    float pdfAccExpA = cameraPdfA * (a_accData->pdfCameraWP)*(lightPdfA*lightPdfSelectRev(pLight) / fmax(cancelPrev, DEPSILON)); // a_accData->pdfGTerm
 
     if (a_currDepth == 0)
     {
@@ -419,9 +419,9 @@ float3  IntegratorThreeWay::PathTraceAcc(float3 ray_pos, float3 ray_dir, const f
     
     const float cameraPdfA = (*a_pdfCamA);
 
-    float pdfAccFwdA = pdfFwdWP1  * (prevData.pdfLightWP *prevData.pdfGTerm)*((lPdfFwd.pdfW / fmax(cosAtLight, DEPSILON))*GTermShadow)*(lPdfFwd.pdfA*lPdfFwd.pickProb);
-    float pdfAccRevA = cameraPdfA * (prevData.pdfCameraWP*prevData.pdfGTerm)*bsdfRevWP*GTermShadow;
-    float pdfAccExpA = cameraPdfA * (prevData.pdfCameraWP*prevData.pdfGTerm)*(lPdfFwd.pdfA*lightPickProb);
+    float pdfAccFwdA = pdfFwdWP1  * (prevData.pdfLightWP )*((lPdfFwd.pdfW / fmax(cosAtLight, DEPSILON))*GTermShadow)*(lPdfFwd.pdfA*lPdfFwd.pickProb); // *prevData.pdfGTerm                       
+    float pdfAccRevA = cameraPdfA * (prevData.pdfCameraWP)*bsdfRevWP*GTermShadow;                                                                     // *prevData.pdfGTerm            
+    float pdfAccExpA = cameraPdfA * (prevData.pdfCameraWP)*(lPdfFwd.pdfA*lightPickProb);                                                              // *prevData.pdfGTerm
     if (explicitSam.isPoint)
       pdfAccRevA = 0.0f;
     
@@ -459,15 +459,10 @@ float3  IntegratorThreeWay::PathTraceAcc(float3 ray_pos, float3 ray_dir, const f
       sc.tg = surfElem.tangent;
       sc.bn = surfElem.biTangent;
       sc.tc = surfElem.texCoord;
-
+      
       const float pdfFwdW = materialEval(pHitMaterial, &sc, (EVAL_FLAG_DEFAULT), /* global data --> */ m_pGlobals, m_texStorage, m_texStorage, &m_ptlDummy).pdfFwd;
-
       a_accData->pdfLightWP *= (pdfFwdW / fmax(cosHere, DEPSILON));
     }
-    //  ow ... we don't want to sample glossy glass with light tracing.
-    //
-    //else if(a_currDepth == 0 && (matSam.flags & RAY_EVENT_T) != 0 && (matSam.flags & RAY_EVENT_G) != 0 )
-      //a_accData->pdfLightWP = 0.0f;
   }
   else
   {

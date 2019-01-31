@@ -37,6 +37,7 @@ Input::Input()
   //inLibraryPath   = "/media/frol/6E0467C0046789C3/[Hydra]/pluginFiles/scenelib";
   //inLibraryPath = "D:/temp/scenelib/"; 
   //inLibraryPath = "/home/frol/PROG/HydraAPI/main/tests/test_76";
+  //inLibraryPath = "/home/frol/temp/scenelib";
 
   inDevelopment = true;  ///< recompile shaders each time; note that nvidia have their own shader cache!
   inDeviceId    = 0;     ///< opencl device id
