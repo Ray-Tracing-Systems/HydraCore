@@ -602,9 +602,9 @@ __kernel void MMLTCameraPathBounce(__global   float4*        restrict a_rpos,
   // (0) Read "IntegratorMMLT::CameraPath" arguments and calc ray hit
   //
   const int2 splitData = in_splitInfo[tid];
-  const int  d = splitData.x;
-  const int  s = splitData.y;
-  const int  t = d - s;               // note that s=2 means 1 light bounce and one connection!!!
+  const int  d         = splitData.x;
+  const int  s         = splitData.y;
+  const int  t         = d - s;               // note that s=2 means 1 light bounce and one connection!!!
 
   const bool a_haveToHitLightSource = (s == 0); // when s == 0, use only camera strategy, so have to hit light at some depth level   
   const int  a_fullPathDepth        = d;       
@@ -809,7 +809,6 @@ __kernel void MMLTCameraPathBounce(__global   float4*        restrict a_rpos,
     a_flags[tid] = packRayFlags(flags, unpackRayFlags(flags) | RAY_IS_DEAD);
     return;
   }
-  
 
   // (3) sample material, eval reverse and forward pdfs
   //  
@@ -906,7 +905,7 @@ __kernel void MMLTCameraPathBounce(__global   float4*        restrict a_rpos,
 
   MisData misNext            = makeInitialMisData(); 
   misNext.matSamplePdf       = matSam.pdf;
-  misNext.isSpecular         = (int)isPureSpecular(matSam);
+  misNext.isSpecular         = (int)(isPureSpecular(matSam) || (isGlossy(matSam) && isTransparent(matSam)) );
   misNext.prevMaterialOffset = matOffset;
   misNext.cosThetaPrev       = fabs(+dot(nextRay_dir, surfElem.normal)); 
   a_misDataPrev[tid]         = misNext;
