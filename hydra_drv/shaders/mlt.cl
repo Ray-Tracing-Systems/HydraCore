@@ -832,7 +832,7 @@ __kernel void MMLTCameraPathBounce(__global   float4*        restrict a_rpos,
 
   if (a_currDepth == 1)
   {
-    if (isPureSpecular(matSam))  //  ow ... but if we met specular reflection when tracing from camera, we must put 0 because this path cannot be sample by light strategy at all.
+    if (isPureSpecular(matSam) || (isGlossy(matSam) && isTransparent(matSam) ))  //  ow ... but if we met specular reflection when tracing from camera, we must put 0 because this path cannot be sample by light strategy at all.
     {                            //  a_perThread->pdfArray[a_fullPathDepth].pdfFwd = 0.0f;
       PdfVertex vertLast = a_pdfVert[TabIndex(a_fullPathDepth, tid, iNumElements)];
       vertLast.pdfFwd    = 0.0f;
@@ -843,7 +843,7 @@ __kernel void MMLTCameraPathBounce(__global   float4*        restrict a_rpos,
   {
     PdfVertex prevVert;
 
-    if (!isPureSpecular(matSam))
+    if (!isPureSpecular(matSam) && !(isGlossy(matSam) && isTransparent(matSam)))
     {
       ShadeContext sc;
       sc.wp = surfElem.pos;
@@ -1123,7 +1123,7 @@ __kernel void MMLTLightPathBounce (__global   float4*        restrict a_rpos,
   //
   PdfVertex vCurr = a_pdfVert[TabIndex(a_currDepth, tid, iNumElements)];
 
-  if (!isPureSpecular(matSam))
+  if (!isPureSpecular(matSam) && !(isGlossy(matSam) && isTransparent(matSam)))
   {
     ShadeContext sc;
     sc.wp = surfElem.pos;
@@ -1225,6 +1225,8 @@ __kernel void MMLTMakeShadowRay(__global const int2  *  restrict in_splitInfo,
   ReadPathVertexSupplement(in_cv_sup, tid, iNumElements, 
                            &cv);
 
+   const bool wasSpecularOnly = cv.wasSpecOnly && (d >= 3); // exclude direct reflections of lights from sbpt/mmlt
+
   if (lightTraceDepth == -1)        // (3.1) -1 means we have full camera path, no conection is needed
   {
 
@@ -1264,7 +1266,7 @@ __kernel void MMLTMakeShadowRay(__global const int2  *  restrict in_splitInfo,
       lightSelector.group2.y = in_numbers[ TabIndex(MMLT_DIM_LGT_Y1,tid, iNumElements) ];
       lightSelector.group2.z = in_numbers[ TabIndex(MMLT_DIM_LGT_N, tid, iNumElements) ]; 
 
-      if (cv.valid && !cv.wasSpecOnly) // cv.wasSpecOnly exclude direct light actually
+      if (cv.valid && !wasSpecularOnly) // cv.wasSpecOnly exclude direct light actually
       {
         float lightPickProb = 1.0f;
         int lightOffset = SelectRandomLightRev(lightSelector.group2.z, cv.hit.pos, a_globals,
@@ -1364,6 +1366,8 @@ __kernel void MMLTConnect(__global const int2  *  restrict in_splitInfo,
   ReadProcTextureList(in_procTexData, tid, iNumElements, 
                       &ptl);
 
+  
+  const bool wasSpecularOnly = cv.wasSpecOnly && (d >= 3); // exclude direct reflections of lights from sbpt/mmlt 
 
   float3 sampleColor = make_float3(0,0,0);
   bool   disableMMLTMisDueToEnv = false;
@@ -1414,7 +1418,7 @@ __kernel void MMLTConnect(__global const int2  *  restrict in_splitInfo,
     }
     else if (lightTraceDepth == 0)  // (3.3) connect camera vertex to light (shadow ray)
     {
-      if (cv.valid && !cv.wasSpecOnly) // cv.wasSpecOnly exclude direct light actually
+      if (cv.valid && !wasSpecularOnly) // cv.wasSpecOnly exclude direct light actually
       {
         ShadowSample explicitSam; float lightPickProb; int lightOffset;
         ReadShadowSample(in_lssam, tid, iNumElements,
@@ -1427,7 +1431,9 @@ __kernel void MMLTConnect(__global const int2  *  restrict in_splitInfo,
         sampleColor  = cv.accColor*ConnectShadowP(&cv, t, pLight, explicitSam, lightPickProb,
                                                   a_globals, in_mtlStorage, in_texStorage1, in_texStorage2, in_pdfStorage, &ptl,
                                                   &v0, &v1, &v2)*fixOther;
-        //sampleColor = make_float3(0,0,0);
+        
+        // recompile me at 01.02.2019 : 15:52
+
         a_pdfVert[TabIndex(0, tid, iNumElements)] = v0;
         a_pdfVert[TabIndex(1, tid, iNumElements)] = v1;
         a_pdfVert[TabIndex(2, tid, iNumElements)] = v2;
@@ -1437,7 +1443,7 @@ __kernel void MMLTConnect(__global const int2  *  restrict in_splitInfo,
     }
     else                            // (3.4) connect light and camera vertices (bidir connection)
     {
-      if (cv.valid && !cv.wasSpecOnly && lv.valid)
+      if (cv.valid && !wasSpecularOnly && lv.valid)
       {
         const float3 diff = cv.hit.pos - lv.hit.pos;
         const float dist2 = fmax(dot(diff, diff), DEPSILON2);

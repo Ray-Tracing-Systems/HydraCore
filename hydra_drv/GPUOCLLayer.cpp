@@ -1208,6 +1208,7 @@ void GPUOCLLayer::BeginTracingPass()
     const int sbptBounceBeg = 1;
     #endif
     SBDPT_Pass(sbptBounceBeg, maxBounce, NUM_MMLT_PASS);
+    //SBDPT_Pass(1, 2, NUM_MMLT_PASS);
   }
   else if (m_vars.m_flags & HRT_ENABLE_MMLT)                 // SBDPT or MMLT pass
   { 
