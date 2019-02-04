@@ -819,7 +819,7 @@ __kernel void MMLTCameraPathBounce(__global   float4*        restrict a_rpos,
   int matOffset = materialOffset(a_globals, surfElem.matId);
 
   MatSample matSam; int localOffset = 0; 
-  MaterialSampleAndEvalBxDF(pHitMaterial, allRands, &surfElem, ray_dir, make_float3(1,1,1), flags,
+  MaterialSampleAndEvalBxDF(pHitMaterial, allRands, &surfElem, ray_dir, make_float3(1,1,1), flags, false,
                             a_globals, in_texStorage1, in_texStorage2, &ptl, 
                             &matSam, &localOffset);
   
@@ -1101,7 +1101,7 @@ __kernel void MMLTLightPathBounce (__global   float4*        restrict a_rpos,
   int matOffset = materialOffset(a_globals, surfElem.matId);
   
   MatSample matSam; int localOffset = 0; 
-  MaterialSampleAndEvalBxDF(pHitMaterial, allRands, &surfElem, ray_dir, make_float3(1,1,1), flags,
+  MaterialSampleAndEvalBxDF(pHitMaterial, allRands, &surfElem, ray_dir, make_float3(1,1,1), flags, true,
                             a_globals, in_texStorage1, in_texStorage2, &ptl, 
                             &matSam, &localOffset);
 

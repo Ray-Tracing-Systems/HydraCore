@@ -831,7 +831,7 @@ __kernel void NextBounce(__global   float4*        restrict a_rpos,
   const float3 shadowVal = decompressShadow(in_shadow[tid]);
 
   MatSample brdfSample; int localOffset = 0; 
-  MaterialSampleAndEvalBxDF(pHitMaterial, allRands, &surfHit, ray_dir, shadowVal, flags,
+  MaterialSampleAndEvalBxDF(pHitMaterial, allRands, &surfHit, ray_dir, shadowVal, flags, ((a_globals->g_flags & HRT_FORWARD_TRACING) != 0),
                             a_globals, in_texStorage1, in_texStorage2, &ptl, 
                             &brdfSample, &localOffset);
                             

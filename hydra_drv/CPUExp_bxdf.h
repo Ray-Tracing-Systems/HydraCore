@@ -323,7 +323,7 @@ std::tuple<MatSample, int, float3> IntegratorShadowPTSSS::sampleAndEvalGGXBxDF(f
 		return std::make_tuple(res, 0, float3(1, 1, 1));
 	}
 	else
-		return IntegratorCommon::sampleAndEvalBxDF(ray_dir, surfElem, flags, shadow);
+		return IntegratorCommon::sampleAndEvalBxDF(ray_dir, surfElem, flags, false, shadow);
 }
 
 

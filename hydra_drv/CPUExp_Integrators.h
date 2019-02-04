@@ -250,7 +250,7 @@ protected:
   virtual std::tuple<float3, float3> makeEyeRay3(float4 lensOffs);
 
   float3 emissionEval(float3 ray_pos, float3 ray_dir, const SurfaceHit& surfElem, uint flags, const MisData misPrev, const int a_instId);
-  virtual std::tuple<MatSample, int, float3> sampleAndEvalBxDF(float3 ray_dir, const SurfaceHit& surfElem, uint flags = 0, float3 shadow = float3(0,0,0), bool mmltMode = false);
+  virtual std::tuple<MatSample, int, float3> sampleAndEvalBxDF(float3 ray_dir, const SurfaceHit& surfElem, uint flags = 0, bool a_fwdDir = false, float3 shadow = float3(0,0,0), bool mmltMode = false);
 
   GBufferAll     gbufferSample(float3 ray_pos, float3 ray_dir);
 

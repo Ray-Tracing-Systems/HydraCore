@@ -490,6 +490,7 @@ typedef struct RefractResultT
 
   float3 ray_dir;
   bool   success;
+  float  eta;
 
 }RefractResult;
 
@@ -522,11 +523,15 @@ static inline RefractResult myrefract(float3 ray_dir, float3 a_normal, float a_m
   RefractResult res;
   res.ray_dir = ray_dir;
   res.success = refrSuccess;
+  if (refrSuccess)
+    res.eta = eta;
+  else
+    res.eta = 1.0f;
   return res;
 }
 
-static inline void GlassSampleAndEvalBRDF(__global const PlainMaterial* a_pMat, const float3 rands, const float3 ray_dir, float3 a_normal, const float2 a_texCoord, const bool a_hitFromInside,
-                                          __global const EngineGlobals* a_globals, texture2d_t a_tex, __private const ProcTextureList* a_ptList,
+static inline void GlassSampleAndEvalBRDF(__global const PlainMaterial* a_pMat, const float3 rands, const float3 ray_dir, float3 a_normal, const float2 a_texCoord, const bool a_hitFromInside, 
+                                          __global const EngineGlobals* a_globals, texture2d_t a_tex, __private const ProcTextureList* a_ptList, const bool a_isFwdDir,
                                           __private MatSample* a_out)
 {
   const float3 normal2 = a_hitFromInside ? (-1.0f)*a_normal : a_normal;
@@ -555,10 +560,13 @@ static inline void GlassSampleAndEvalBRDF(__global const PlainMaterial* a_pMat, 
 
   const float cosThetaOut = dot(refractData.ray_dir, a_normal);
   const float cosMult     = 1.0f / fmax(fabs(cosThetaOut), 1e-6f);
+                                                                                     // only camera paths are multiplied by this factor, and etas
+                                                                                     // are swapped because radiance flows in the opposite direction
+  const float adjointBsdfMult = a_isFwdDir ? 1.0f : refractData.eta*refractData.eta; // see SmallVCM and or Veach adjoint bsdf
 
   a_out->direction    = refractData.ray_dir;
   a_out->pdf          = pdf;
-  a_out->color        = refractData.success ? fVal*clamp(glassGetColor(a_pMat)*texColor, 0.0f, 1.0f)*cosMult : make_float3(1.0f, 1.0f, 1.0f)*cosMult;
+  a_out->color        = refractData.success ? fVal*clamp(glassGetColor(a_pMat)*texColor, 0.0f, 1.0f)*cosMult*adjointBsdfMult : make_float3(1.0f, 1.0f, 1.0f)*cosMult;
 
   if(spec)
     a_out->flags = (RAY_EVENT_S | RAY_EVENT_T);
@@ -1304,7 +1312,7 @@ static inline float3 BumpMapping(const float3 tangent, const float3 bitangent, c
   return  normalize(mul3x3x3(inverse(tangentTransform), normalTS));
 }
 
-static inline void MaterialLeafSampleAndEvalBRDF(__global const PlainMaterial* pMat, __private const SurfaceHit* pSurfHit, const float3 ray_dir, const float3 rands, const float3 a_shadow, 
+static inline void MaterialLeafSampleAndEvalBRDF(__global const PlainMaterial* pMat, __private const SurfaceHit* pSurfHit, const float3 ray_dir, const float3 rands, const float3 a_shadow, const bool a_isFwdDir, 
                                                  __global const EngineGlobals* a_globals, texture2d_t a_tex, texture2d_t a_texNormal, __private const ProcTextureList* a_ptList,
                                                  __private MatSample* a_out)
 {
@@ -1348,7 +1356,7 @@ static inline void MaterialLeafSampleAndEvalBRDF(__global const PlainMaterial* p
                                a_out);
     break;
   case PLAIN_MAT_CLASS_GLASS: 
-    GlassSampleAndEvalBRDF(pMat, rands, ray_dir, hitNorm, pSurfHit->texCoord, pSurfHit->hfi, a_globals, a_tex, a_ptList,
+    GlassSampleAndEvalBRDF(pMat, rands, ray_dir, hitNorm, pSurfHit->texCoord, pSurfHit->hfi, a_globals, a_tex, a_ptList, a_isFwdDir,
                            a_out);
     break;
 
@@ -1399,7 +1407,7 @@ Sample and eval layered material (with blends). Store result in a_out.
 
 */
 static inline void MaterialSampleAndEvalBxDF(__global const PlainMaterial* pMat, __private float a_rands[MMLT_FLOATS_PER_BOUNCE], 
-                                             __private const SurfaceHit* pSurfHit, const float3 a_rayDir, const float3 a_shadow, const uint rayFlags,
+                                             __private const SurfaceHit* pSurfHit, const float3 a_rayDir, const float3 a_shadow, const uint rayFlags, const bool a_isFwdDir,
                                              __global const EngineGlobals* a_globals, texture2d_t a_tex, texture2d_t a_texNormal, __private const ProcTextureList* a_ptList,
                                              __private MatSample* a_out, __private int* pLocalOffset)
 {
@@ -1413,7 +1421,7 @@ static inline void MaterialSampleAndEvalBxDF(__global const PlainMaterial* pMat,
   __global const PlainMaterial* pMatLeaf = pMat + mixSelector.localOffs;
   (*pLocalOffset)                        = mixSelector.localOffs;
   
-  MaterialLeafSampleAndEvalBRDF(pMatLeaf, pSurfHit, a_rayDir, make_float3(a_rands[0], a_rands[1], a_rands[2]), a_shadow, 
+  MaterialLeafSampleAndEvalBRDF(pMatLeaf, pSurfHit, a_rayDir, make_float3(a_rands[0], a_rands[1], a_rands[2]), a_shadow, a_isFwdDir,
                                 a_globals, a_tex, a_texNormal, a_ptList,
                                 a_out);
 

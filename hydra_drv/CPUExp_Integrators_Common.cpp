@@ -532,7 +532,7 @@ RandomGen& IntegratorCommon::randomGen()
   return m_perThread[omp_get_thread_num()].gen;
 }
 
-std::tuple<MatSample, int, float3> IntegratorCommon::sampleAndEvalBxDF(float3 ray_dir, const SurfaceHit& surfElem, uint flags, float3 shadow, bool a_mmltMode)
+std::tuple<MatSample, int, float3> IntegratorCommon::sampleAndEvalBxDF(float3 ray_dir, const SurfaceHit& surfElem, uint flags, bool a_fwdDir, float3 shadow, bool a_mmltMode)
 {
   const PlainMaterial* pHitMaterial = materialAt(m_pGlobals, m_matStorage, surfElem.matId);
   auto& gen = randomGen();
@@ -552,7 +552,7 @@ std::tuple<MatSample, int, float3> IntegratorCommon::sampleAndEvalBxDF(float3 ra
             allRands);
 
   MatSample brdfSample; int matOffset;
-  MaterialSampleAndEvalBxDF(pHitMaterial, allRands, &surfElem, ray_dir, shadow, flags,
+  MaterialSampleAndEvalBxDF(pHitMaterial, allRands, &surfElem, ray_dir, shadow, flags, a_fwdDir,
                             m_pGlobals, m_texStorage, m_texStorageAux, &m_ptlDummy, 
                             &brdfSample, &matOffset);
 

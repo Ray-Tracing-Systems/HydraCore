@@ -103,7 +103,7 @@ std::tuple<MatSample, int, float3> IntegratorStupidPTSSS::sampleAndEvalBxDF(floa
 		return std::make_tuple(res, 0, float3(1, 1, 1));
 	}
 	else
-		return IntegratorCommon::sampleAndEvalBxDF(ray_dir, surfElem, flags, shadow);
+		return IntegratorCommon::sampleAndEvalBxDF(ray_dir, surfElem, flags, false, shadow);
 }
 
 float3 SampleHenyeyGreenstein(const float g, const float e1, const float e2)
@@ -303,7 +303,7 @@ std::tuple<MatSample, int, float3> IntegratorShadowPTSSS::sampleAndEvalBxDF(floa
 		return std::make_tuple(res, 0, float3(1, 1, 1));
 	}
 	else
-		return IntegratorCommon::sampleAndEvalBxDF(ray_dir, surfElem, flags, shadow);
+		return IntegratorCommon::sampleAndEvalBxDF(ray_dir, surfElem, flags, false, shadow);
 }
 
 
@@ -537,7 +537,7 @@ std::tuple<MatSample, int, float3> IntegratorShadowPTSSS::sampleAndEvalBxDF(floa
 		return std::make_tuple(res, 0, float3(1, 1, 1));
 	}
 	else
-		return IntegratorCommon::sampleAndEvalBxDF(ray_dir, surfElem, flags, shadow);
+		return IntegratorCommon::sampleAndEvalBxDF(ray_dir, surfElem, flags, false, shadow);
 }
 
 float3  IntegratorShadowPTSSS::PathTrace(float3 ray_pos, float3 ray_dir, MisData misPrev, int a_currDepth, uint flags)

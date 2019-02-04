@@ -703,7 +703,7 @@ void IntegratorMMLT::TraceLightPath(float3 ray_pos, float3 ray_dir, int a_currDe
     a_perThread->pdfArray[a_currDepth].pdfFwd = -1.0f*GTermPrev;
 
   const PlainMaterial* pHitMaterial = materialAt(m_pGlobals, m_matStorage, surfElem.matId);
-  const MatSample      matSam       = std::get<0>(sampleAndEvalBxDF(ray_dir, surfElem, packBounceNum(0, a_currDepth - 1), float3(0, 0, 0), true));
+  const MatSample      matSam       = std::get<0>(sampleAndEvalBxDF(ray_dir, surfElem, packBounceNum(0, a_currDepth - 1), true, float3(0, 0, 0), true));
 
   // calc new ray
   //
@@ -869,7 +869,7 @@ PathVertex IntegratorMMLT::CameraPath(float3 ray_pos, float3 ray_dir, MisData a_
   // (3) eval reverse and forward pdfs
   //
   const PlainMaterial* pHitMaterial = materialAt(m_pGlobals, m_matStorage, surfElem.matId);
-  const MatSample matSam = std::get<0>(sampleAndEvalBxDF(ray_dir, surfElem, packBounceNum(0, a_currDepth - 1), float3(0, 0, 0), true));
+  const MatSample matSam = std::get<0>(sampleAndEvalBxDF(ray_dir, surfElem, packBounceNum(0, a_currDepth - 1), false, float3(0, 0, 0), true));
   const float3 bxdfVal   = matSam.color; // *(1.0f / fmaxf(matSam.pdf, 1e-20f));
   const float cosNext    = fabs(dot(matSam.direction, surfElem.normal));
 
