@@ -11,7 +11,7 @@ Input::Input()
   g_hydraApiDisableSceneLoadInfo = true;
   
   //noWindow      = false;         ///< run 'console_main', else run 'window_main'
-  //inLibraryPath = "tests/test_42"; ///< cornell box with teapot
+  inLibraryPath = "tests/test_42"; ///< cornell box with teapot
   //inLibraryPath = "tests/test_223_small"; ///< cornell box with sphere
   //inLibraryPath = "tests/test_224_sphere";
   //inLibraryPath = "tests/test_224_sphere_microfacet";
@@ -31,7 +31,7 @@ Input::Input()
   //inLibraryPath = "D:/[archive]/2017/HydraAPP/hydra_app/tests/hydra_benchmark_07";
   //inLibraryPath = "D:/[archive]/2017/HydraOldRepo/HydraAPP/home/frol/hydra/rendered_images/a_3602.png/hydra_app/tests/hydra_benchmark_07";
   //inLibraryPath = "/home/frol/PROG/HydraAPI/main/tests/test_77";
-  inLibraryPath = "/home/frol/PROG/HydraAPI/main/tests_f/test_403";
+  //inLibraryPath = "/home/frol/PROG/HydraAPI/main/tests_f/test_403";
 
   //inLibraryPath = "C:/[Hydra]/pluginFiles/scenelib";
   //inLibraryPath   = "/media/frol/6E0467C0046789C3/[Hydra]/pluginFiles/scenelib";
@@ -41,7 +41,7 @@ Input::Input()
   //inLibraryPath = "/home/frol/temp/scenelib_thinSphere";
   //inLibraryPath = "/home/frol/PROG/HydraCore/hydra_app/tests/test_pool";
 
-  inDevelopment = true;  ///< recompile shaders each time; note that nvidia have their own shader cache!
+  inDevelopment = false;  ///< recompile shaders each time; note that nvidia have their own shader cache!
   inDeviceId    = 0;     ///< opencl device id
   cpuFB         = true;  ///< store frame buffer on CPU. Automaticly enabled if
   enableMLT     = false; ///< if use MMLT, you MUST enable it early, when render process just started (here or via command line).
