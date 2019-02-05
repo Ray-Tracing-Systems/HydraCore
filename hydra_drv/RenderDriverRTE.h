@@ -327,9 +327,10 @@ protected:
 
       half1 = m_data.data();
       half2 = m_data.data() + w*h*4;
+      return true;
     }
 
-    bool Attach(const char* name, char errMsg[256]) override {}
+    bool Attach(const char* name, char errMsg[256]) override { return false; }
     void Clear()                                    override { memset(m_data.data(), 0, m_data.size()*sizeof(float)); }
                  
     bool Lock(int a_miliseconds)    override { return true; }
