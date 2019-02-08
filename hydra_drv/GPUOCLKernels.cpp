@@ -41,6 +41,35 @@ void GPUOCLLayer::runKernel_MakeEyeSamplesOnly(size_t a_size, int a_passNumber,
   m_globals.m_passNumberQMC = a_passNumber; 
 }
 
+
+void GPUOCLLayer::runKernel_MakeEyeRaysQMC(size_t a_size, int a_passNumber,
+                                           cl_mem a_zindex, cl_mem a_samples)
+{
+  cl_mem pssVector       = a_samples;
+
+  size_t localWorkSize   = CMP_RESULTS_BLOCK_SIZE;
+  int iSize              = int(a_size);
+  a_size                 = roundBlocks(a_size, int(localWorkSize));
+
+  cl_kernel makeSamples  = m_progs.screen.kernel("MakeEyeRaysQMC");
+
+  CHECK_CL(clSetKernelArg(makeSamples, 0, sizeof(cl_mem), (void*)&m_rays.randGenState));
+  CHECK_CL(clSetKernelArg(makeSamples, 1, sizeof(cl_mem), (void*)&pssVector));   
+  CHECK_CL(clSetKernelArg(makeSamples, 2, sizeof(cl_mem), (void*)&a_zindex));
+  CHECK_CL(clSetKernelArg(makeSamples, 3, sizeof(cl_mem), (void*)&m_scene.allGlobsData));
+  CHECK_CL(clSetKernelArg(makeSamples, 4, sizeof(cl_mem), (void*)&m_globals.cMortonTable));
+  CHECK_CL(clSetKernelArg(makeSamples, 5, sizeof(cl_mem), (void*)&m_globals.qmcTable));
+  CHECK_CL(clSetKernelArg(makeSamples, 6, sizeof(cl_int), (void*)&a_passNumber));
+  CHECK_CL(clSetKernelArg(makeSamples, 7, sizeof(cl_int), (void*)&m_width));
+  CHECK_CL(clSetKernelArg(makeSamples, 8, sizeof(cl_int), (void*)&m_height));
+  CHECK_CL(clSetKernelArg(makeSamples, 9, sizeof(cl_int), (void*)&iSize));
+
+  CHECK_CL(clEnqueueNDRangeKernel(m_globals.cmdQueue, makeSamples, 1, NULL, &a_size, &localWorkSize, 0, NULL, NULL));
+  waitIfDebug(__FILE__, __LINE__);
+
+  m_globals.m_passNumberQMC = a_passNumber; 
+}
+
 void GPUOCLLayer::runKernel_MakeRaysFromEyeSam(cl_mem a_zindex, cl_mem a_samples, size_t a_size, int a_passNumber,
                                                cl_mem a_rpos, cl_mem a_rdir)
 {

@@ -438,6 +438,9 @@ protected:
 
   void runKernel_MakeEyeSamplesOnly(size_t a_size, int a_passNumber,
                                     cl_mem a_zindex, cl_mem a_samples);
+
+  void runKernel_MakeEyeRaysQMC(size_t a_size, int a_passNumber,
+                                cl_mem a_zindex, cl_mem a_samples);
                                     
   void runKernel_MakeRaysFromEyeSam(cl_mem a_zindex, cl_mem a_samples, size_t a_size, int a_passNumber,
                                     cl_mem a_rpos, cl_mem a_rdir);

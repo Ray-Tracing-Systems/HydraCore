@@ -1235,9 +1235,14 @@ void GPUOCLLayer::BeginTracingPass()
              m_rays.pathAccColor);
     }
     else                                                // PT (not that it assume HRT_FORWARD_TRACING flag is not set)
-    {
-      runKernel_MakeEyeSamplesOnly(m_rays.MEGABLOCKSIZE, m_passNumberForQMC,
-                                   m_rays.samZindex, m_mlt.xVectorQMC);
+    { 
+
+      if(m_vars.m_varsI[HRT_KMLT_OR_QMC_MAT_BOUNCES] != 0) 
+        runKernel_MakeEyeRaysQMC(m_rays.MEGABLOCKSIZE, m_passNumberForQMC,
+                                 m_rays.samZindex, m_mlt.xVectorQMC);
+      else
+        runKernel_MakeEyeSamplesOnly(m_rays.MEGABLOCKSIZE, m_passNumberForQMC,
+                                     m_rays.samZindex, m_mlt.xVectorQMC);
       
       EvalPT(m_mlt.xVectorQMC, minBounce, maxBounce, m_rays.MEGABLOCKSIZE,
              m_rays.pathAccColor);
