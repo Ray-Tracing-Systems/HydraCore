@@ -137,7 +137,10 @@ __kernel void LightSampleForwardKernel(__global float4*        restrict out_rpos
   out_fog        [tid] = make_float4(0.0f, 0.0f, 0.0f, 0.0f);
 }
 
-__kernel void LightSample(__global const float4*  restrict in_rpos,
+__kernel void LightSample(__global const int2*    restrict in_zind,
+                          __global const float4*  restrict in_xvector,
+  
+                          __global const float4*  restrict in_rpos,
                           __global const float4*  restrict in_rdir,
 
                           __global const uint*    restrict in_flags,
@@ -152,12 +155,9 @@ __kernel void LightSample(__global const float4*  restrict in_rpos,
                           __global const float4*  restrict a_texStorage1,  //
                           __global const float4*  restrict a_texStorage2,  //
                           __global const float4*  restrict a_pdfStorage,   //
-  
-                          __constant unsigned int*  restrict a_qmcTable,
-                          int a_passNumberForQmc,
                           
-                          int iNumElements,
-                          __global const EngineGlobals* restrict a_globals)
+                          __global const EngineGlobals* restrict a_globals,
+                          int iNumElements)
 {
 
   int tid = GLOBAL_ID_X;
@@ -179,29 +179,38 @@ __kernel void LightSample(__global const float4*  restrict in_rpos,
   const float3 ray_pos = to_float3(in_rpos[tid]);
   const float3 ray_dir = to_float3(in_rdir[tid]);
 
-  RandomGen gen = out_gens[tid];
-
-  const int currDepth       = unpackBounceNum(flags);
-  const unsigned int qmcPos = reverseBits(tid, iNumElements) + a_passNumberForQmc * iNumElements;
-  const float3 rands3       = to_float3(rndLight(&gen, currDepth,
-                                                 a_globals->rmQMC, qmcPos, a_qmcTable));
-  float rands2 = rndFloat1_Pseudo(&gen);
-
-  if(currDepth == 0 && a_globals->rmQMC[QMC_VAR_LGT_N] != -1) // if qmc is enabled for light selector
-    rands2 = rands3.z;
-
-  out_gens[tid] = gen;
+  // read (QMC/KMLT) or generate (PT) rands
+  //
+  float4 rands;
+  {
+    RandomGen gen = out_gens[tid];
+    
+    const int depth = unpackBounceNum(flags);
+    
+    if(depth+1 <= a_globals->varsI[HRT_KMLT_OR_QMC_LGT_BOUNCES])
+    {
+      const int2 sortedIndex = in_zind[tid];
+      rands                  = in_xvector[KMLT_HEAD_SIZE + depth*KMLT_PER_LIGHT + sortedIndex.y]; // ???????????
+      //rands = rndFloat4_Pseudo(&gen);      
+    }
+    else
+    {
+      rands = rndFloat4_Pseudo(&gen);
+    }
+  
+    out_gens[tid] = gen;
+  }
 
   // (1) generate light sample
   //
   float lightPickProb   = 1.0f;
-  const int lightOffset = SelectRandomLightRev(rands2, sHit.pos, a_globals,
+  const int lightOffset = SelectRandomLightRev(rands.w, sHit.pos, a_globals,
                                                &lightPickProb);
 
   __global const PlainLight* pLight = lightAt(a_globals, lightOffset); // in_plainData1 + visiableLightsOffsets[lightOffset];
 
   ShadowSample explicitSam;
-  LightSampleRev(pLight, rands3, sHit.pos, a_globals, a_pdfStorage, a_texStorage1,
+  LightSampleRev(pLight, to_float3(rands), sHit.pos, a_globals, a_pdfStorage, a_texStorage1,
                  &explicitSam);
 
   WriteShadowSample(&explicitSam, lightPickProb, lightOffset, tid, iNumElements,

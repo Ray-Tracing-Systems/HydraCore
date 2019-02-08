@@ -897,7 +897,7 @@ void GPUOCLLayer::ResizeScreen(int width, int height, int a_flags)
 
   m_memoryTaken[MEM_TAKEN_RAYS] = m_rays.resize(m_globals.ctx, m_globals.cmdQueue, MEGABLOCK_SIZE, m_globals.cpuTrace, m_screen.m_cpuFrameBuffer);
 
-  MLT_Alloc_For_PT_QMC(0, m_mlt.xVectorQMC); // Allocate memory for testing QMC/KMLT F(xVec,bounceNum)
+  MLT_Alloc_For_PT_QMC(0, m_mlt.xVectorQMC); // Allocate memory for testing QMC/KMLT F(xVec,bounceNum); THIS IS IMPORTANT CALL! It sets internal KMLT variables
 
   memsetf4(m_rays.rayPos, float4(0, 0, 0, 0), m_rays.MEGABLOCKSIZE);
   memsetf4(m_rays.rayDir, float4(0, 0, 0, 0), m_rays.MEGABLOCKSIZE);
@@ -1236,7 +1236,8 @@ void GPUOCLLayer::BeginTracingPass()
     }
     else                                                // PT (not that it assume HRT_FORWARD_TRACING flag is not set)
     {
-      runKernel_MakeEyeSamplesOnly(m_rays.samZindex, m_mlt.xVectorQMC, m_rays.MEGABLOCKSIZE, m_passNumberForQMC);
+      runKernel_MakeEyeSamplesOnly(m_rays.MEGABLOCKSIZE, m_passNumberForQMC,
+                                   m_rays.samZindex, m_mlt.xVectorQMC);
       
       EvalPT(m_mlt.xVectorQMC, minBounce, maxBounce, m_rays.MEGABLOCKSIZE,
              m_rays.pathAccColor);
