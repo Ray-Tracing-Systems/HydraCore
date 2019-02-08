@@ -750,7 +750,7 @@ __kernel void Shade(__global const float4*    restrict a_rpos,
 }
 
 __kernel void NextBounce(__global const int2*      restrict in_zind,
-                         __global const float4*    restrict in_xvector,
+                         __global const float*     restrict in_xvector,
 
                          __global   float4*        restrict a_rpos,
                          __global   float4*        restrict a_rdir,
@@ -815,32 +815,26 @@ __kernel void NextBounce(__global const int2*      restrict in_zind,
   float rrChoice = 0.0f, pabsorb  = 0.0f;
   if(rayBounceNum+1 <= a_globals->varsI[HRT_KMLT_OR_QMC_MAT_BOUNCES])
   {
-    //const int2 sortedIndex = in_zind[tid];
-    //const int offset       = KMLT_HEAD_SIZE + a_globals->varsI[HRT_KMLT_OR_QMC_LGT_BOUNCES]*KMLT_PER_LIGHT + rayBounceNum*KMLT_PER_MATERIAL + sortedIndex.y;
-    //rands                  = in_xvector[]; // ???????????
+    const int2 sortedIndex = in_zind[tid];
+    const int  vecSize     = KMLT_HEAD_SIZE + a_globals->varsI[HRT_KMLT_OR_QMC_LGT_BOUNCES]*KMLT_PER_LIGHT + a_globals->varsI[HRT_KMLT_OR_QMC_MAT_BOUNCES]*KMLT_PER_MATERIAL;
+    const int  matsOffset  = vecSize*sortedIndex.y + KMLT_HEAD_SIZE + a_globals->varsI[HRT_KMLT_OR_QMC_LGT_BOUNCES]*KMLT_PER_LIGHT + rayBounceNum*KMLT_PER_MATERIAL;
+    
+    __global const float* pData = (in_xvector + matsOffset); 
 
     // todo: decompress randoms
-
-    RandomGen gen = out_gens[tid];
     
-    const float4 gr1 = rndFloat4_Pseudo(&gen);
-    const float4 gr2 = rndFloat4_Pseudo(&gen);
-    const float2 gr3 = rndFloat2_Pseudo(&gen);
-    
-    allRands[0] = gr1.x;
-    allRands[1] = gr1.y;
-    allRands[2] = gr1.z;
-    allRands[3] = gr1.w;
+    allRands[0] = pData[0];
+    allRands[1] = pData[1];
+    allRands[2] = pData[2];
+    allRands[3] = pData[3];
 
-    allRands[4] = gr2.x;
-    allRands[5] = gr2.y;
-    allRands[6] = gr2.z;
-    allRands[7] = gr2.w;
+    allRands[4] = pData[4];
+    allRands[5] = pData[5];
+    allRands[6] = 0.0f;
+    allRands[7] = 0.0f;
     
-    allRands[8] = gr3.x;
-    allRands[9] = gr3.y;
-
-    out_gens[tid] = gen;
+    allRands[8] = 0.0f;
+    allRands[9] = 0.0f;
   }
   else
   {

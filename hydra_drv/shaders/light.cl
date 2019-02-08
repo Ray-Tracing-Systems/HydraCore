@@ -138,7 +138,7 @@ __kernel void LightSampleForwardKernel(__global float4*        restrict out_rpos
 }
 
 __kernel void LightSample(__global const int2*    restrict in_zind,
-                          __global const float4*  restrict in_xvector,
+                          __global const float*   restrict in_xvector,
   
                           __global const float4*  restrict in_rpos,
                           __global const float4*  restrict in_rdir,
@@ -190,8 +190,12 @@ __kernel void LightSample(__global const int2*    restrict in_zind,
     if(depth+1 <= a_globals->varsI[HRT_KMLT_OR_QMC_LGT_BOUNCES])
     {
       const int2 sortedIndex = in_zind[tid];
-      rands                  = in_xvector[KMLT_HEAD_SIZE + depth*KMLT_PER_LIGHT + sortedIndex.y]; // ???????????
-      //rands = rndFloat4_Pseudo(&gen);      
+      const int  vecSize     = KMLT_HEAD_SIZE + a_globals->varsI[HRT_KMLT_OR_QMC_LGT_BOUNCES]*KMLT_PER_LIGHT + a_globals->varsI[HRT_KMLT_OR_QMC_MAT_BOUNCES]*KMLT_PER_MATERIAL;
+      const int lightsOffset = vecSize*sortedIndex.y + KMLT_HEAD_SIZE + depth*KMLT_PER_LIGHT;
+      
+      // ASSERT (lightsOffset % 4 == 0) OF
+      __global const float4* pData = (__global const float4*)(in_xvector + lightsOffset); 
+      rands = (*pData); 
     }
     else
     {
