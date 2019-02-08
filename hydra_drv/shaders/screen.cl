@@ -165,8 +165,16 @@ __kernel void MakeEyeRaysQMC(__global RandomGen*           restrict out_gens,
     out_samples[vecSize*tid + 2] = lensOffs.z;
     out_samples[vecSize*tid + 3] = lensOffs.w;
     
-    int top = 4;
-    for(int lightB=0; lightB < a_globals->varsI[HRT_KMLT_OR_QMC_LGT_BOUNCES]; lightB += 4)
+    if(a_globals->varsI[HRT_KMLT_OR_QMC_LGT_BOUNCES] > 0)
+    {
+      out_samples[vecSize*tid + 4] = rndQmcTab(&gen, a_globals->rmQMC, qmcPos, QMC_VAR_LGT_0, a_qmcTable);
+      out_samples[vecSize*tid + 5] = rndQmcTab(&gen, a_globals->rmQMC, qmcPos, QMC_VAR_LGT_1, a_qmcTable);
+      out_samples[vecSize*tid + 6] = rndQmcTab(&gen, a_globals->rmQMC, qmcPos, QMC_VAR_LGT_2, a_qmcTable);
+      out_samples[vecSize*tid + 7] = rndQmcTab(&gen, a_globals->rmQMC, qmcPos, QMC_VAR_LGT_N, a_qmcTable);
+    }
+
+    int top = 8;
+    for(int lightB=1; lightB < a_globals->varsI[HRT_KMLT_OR_QMC_LGT_BOUNCES]; lightB += 4)
     {
       const float4 data = rndFloat4_Pseudo(&gen);
       out_samples[vecSize*tid + top + 0] = data.x;
@@ -175,8 +183,22 @@ __kernel void MakeEyeRaysQMC(__global RandomGen*           restrict out_gens,
       out_samples[vecSize*tid + top + 3] = data.w;
       top += 4;
     }
+    
+    if(a_globals->varsI[HRT_KMLT_OR_QMC_MAT_BOUNCES] > 0)
+    {
+      const float4 data1 = rndFloat4_Pseudo(&gen);
+      const float2 data2 = rndFloat2_Pseudo(&gen);
+      
+      out_samples[vecSize*tid + top + 0] = rndQmcTab(&gen, a_globals->rmQMC, qmcPos, QMC_VAR_MAT_0, a_qmcTable);
+      out_samples[vecSize*tid + top + 1] = rndQmcTab(&gen, a_globals->rmQMC, qmcPos, QMC_VAR_MAT_1, a_qmcTable);
+      out_samples[vecSize*tid + top + 2] = rndQmcTab(&gen, a_globals->rmQMC, qmcPos, QMC_VAR_MAT_L, a_qmcTable);
+      out_samples[vecSize*tid + top + 3] = data1.x;
+      out_samples[vecSize*tid + top + 4] = data1.y;
+      out_samples[vecSize*tid + top + 5] = data1.z;
+      top += 6;
+    }
 
-    for(int matB=0; matB < a_globals->varsI[HRT_KMLT_OR_QMC_MAT_BOUNCES]; matB += 6)
+    for(int matB=1; matB < a_globals->varsI[HRT_KMLT_OR_QMC_MAT_BOUNCES]; matB += 6)
     {
       const float4 data1 = rndFloat4_Pseudo(&gen);
       const float2 data2 = rndFloat2_Pseudo(&gen);

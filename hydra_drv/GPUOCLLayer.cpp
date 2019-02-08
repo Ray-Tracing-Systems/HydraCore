@@ -897,7 +897,7 @@ void GPUOCLLayer::ResizeScreen(int width, int height, int a_flags)
 
   m_memoryTaken[MEM_TAKEN_RAYS] = m_rays.resize(m_globals.ctx, m_globals.cmdQueue, MEGABLOCK_SIZE, m_globals.cpuTrace, m_screen.m_cpuFrameBuffer);
 
-  MLT_Alloc_For_PT_QMC(0, m_mlt.xVectorQMC); // Allocate memory for testing QMC/KMLT F(xVec,bounceNum); THIS IS IMPORTANT CALL! It sets internal KMLT variables
+  MLT_Alloc_For_PT_QMC(1, m_mlt.xVectorQMC); // Allocate memory for testing QMC/KMLT F(xVec,bounceNum); THIS IS IMPORTANT CALL! It sets internal KMLT variables
 
   memsetf4(m_rays.rayPos, float4(0, 0, 0, 0), m_rays.MEGABLOCKSIZE);
   memsetf4(m_rays.rayDir, float4(0, 0, 0, 0), m_rays.MEGABLOCKSIZE);
