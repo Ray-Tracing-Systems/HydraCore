@@ -247,7 +247,7 @@ __kernel void MakeEyeRaysUnifiedSampling(__global float4*              restrict 
                                          int w, int h, int a_size,
                                          __global const EngineGlobals* restrict a_globals, 
                                          __global const int2*          restrict in_zind,
-                                         __global const float4*        restrict in_samples,
+                                         __global const float*         restrict in_samples,
                                          __constant ushort*            restrict a_mortonTable256,
                                          __constant unsigned int*      restrict a_qmcTable, 
                                          int a_passNumberForQmc, int a_packIndexForCPU)
@@ -261,7 +261,14 @@ __kernel void MakeEyeRaysUnifiedSampling(__global float4*              restrict 
   //
   const int2 sortedIndex = in_zind[tid];
   const int  vecSize     = KMLT_HEAD_SIZE + a_globals->varsI[HRT_KMLT_OR_QMC_LGT_BOUNCES]*KMLT_PER_LIGHT + a_globals->varsI[HRT_KMLT_OR_QMC_MAT_BOUNCES]*KMLT_PER_MATERIAL;
-  const float4 lensOffs  = in_samples[(vecSize*sortedIndex.y)/4]; 
+  //const float4 lensOffs  = in_samples[(vecSize*sortedIndex.y)/4]; 
+
+  float4 lensOffs;
+  __global const float* pData = (in_samples + vecSize*sortedIndex.y); 
+  lensOffs.x = pData[0];
+  lensOffs.y = pData[1];
+  lensOffs.z = pData[2];
+  lensOffs.w = pData[3];
 
   // (2) generate random camera sample
   //
