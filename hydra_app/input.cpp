@@ -24,7 +24,7 @@ Input::Input()
   //inLibraryPath = "/home/frol/PROG/HydraAPI/main/tests/test_86";
   //inLibraryPath = "/home/frol/temp/hydra_debug_scene";
   //inLibraryPath = "/home/frol/PROG/HydraAPI/main/tests_f/test_202";
-  //inLibraryPath = "/home/frol/PROG/HydraAPI/main/tests_f/test_224"; 
+  //inLibraryPath = "/home/frol/PROG/HydraAPI/main/tests/test_44"; 
   //inLibraryPath = "/home/frol/yandexdisk/samsungdata/HeadlampLights/SimpleLightModel/scenelib_sphere";
   //inLibraryPath = "/home/frol/yandexdisk/samsungdata/HeadlampLights/SimpleLightModel/scenelib_rectangle"; 
   
@@ -34,7 +34,7 @@ Input::Input()
   //inLibraryPath = "/home/frol/PROG/HydraAPI/main/tests_f/test_403";
 
   //inLibraryPath = "C:/[Hydra]/pluginFiles/scenelib";
-  //inLibraryPath   = "/media/frol/6E0467C0046789C3/[Hydra]/pluginFiles/scenelib";
+  //inLibraryPath = "/media/frol/6E0467C0046789C3/[Hydra]/pluginFiles/scenelib";
   //inLibraryPath = "D:/temp/scenelib/"; 
   //inLibraryPath = "/home/frol/PROG/HydraAPI/main/tests/test_76";
   //inLibraryPath = "/home/frol/temp/scenelib";
@@ -43,7 +43,7 @@ Input::Input()
 
   inDevelopment = true;  ///< recompile shaders each time; note that nvidia have their own shader cache!
   inDeviceId    = 0;     ///< opencl device id
-  cpuFB         = true;  ///< store frame buffer on CPU. Automaticly enabled if
+  cpuFB         = false;  ///< store frame buffer on CPU. Automaticly enabled if
   enableMLT     = false; ///< if use MMLT, you MUST enable it early, when render process just started (here or via command line).
   boxMode       = false; ///< special 'in the box' mode when render don't react to any commands
 

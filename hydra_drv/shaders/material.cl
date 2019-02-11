@@ -819,22 +819,33 @@ __kernel void NextBounce(__global const int2*      restrict in_zind,
     const int  vecSize     = KMLT_HEAD_SIZE + a_globals->varsI[HRT_KMLT_OR_QMC_LGT_BOUNCES]*KMLT_PER_LIGHT + a_globals->varsI[HRT_KMLT_OR_QMC_MAT_BOUNCES]*KMLT_PER_MATERIAL;
     const int  matsOffset  = vecSize*sortedIndex.y + KMLT_HEAD_SIZE + a_globals->varsI[HRT_KMLT_OR_QMC_LGT_BOUNCES]*KMLT_PER_LIGHT + rayBounceNum*KMLT_PER_MATERIAL;
     
-    __global const float* pData = (in_xvector + matsOffset); 
+    __global const uint* pData = (__global const uint*)(in_xvector + matsOffset); 
 
-    // todo: decompress randoms
+    // decompress randoms
+    //
+    uint4 gr1; uint2 gr2;
+    gr1.x = as_int( pData[0] );
+    gr1.y = as_int( pData[1] );
+    gr1.z = as_int( pData[2] );
+    gr1.w = as_int( pData[3] );
+    gr2.x = as_int( pData[4] );
+    gr2.y = as_int( pData[5] );
     
-    allRands[0] = pData[0];
-    allRands[1] = pData[1];
-    allRands[2] = pData[2];
-    allRands[3] = pData[3];
+    const float6_gr gr1f = unpackBounceGroup(gr1);
+    const float4    gr2f = unpackBounceGroup2(gr2);
+    
+    allRands[0] = gr1f.group24.x;
+    allRands[1] = gr1f.group24.y;
+    allRands[2] = gr1f.group24.z;
+    allRands[3] = gr1f.group24.w;
 
-    allRands[4] = pData[4];
-    allRands[5] = pData[5];
-    allRands[6] = 0.0f;
-    allRands[7] = 0.0f;
+    allRands[4] = gr1f.group16.x;
+    allRands[5] = gr1f.group16.y;
     
-    allRands[8] = 0.0f;
-    allRands[9] = 0.0f;
+    allRands[6] = gr2f.x;
+    allRands[7] = gr2f.y;
+    allRands[8] = gr2f.z;
+    allRands[9] = gr2f.w;
   }
   else
   {

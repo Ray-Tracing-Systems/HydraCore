@@ -186,28 +186,43 @@ __kernel void MakeEyeRaysQMC(__global RandomGen*           restrict out_gens,
     
     if(a_globals->varsI[HRT_KMLT_OR_QMC_MAT_BOUNCES] > 0)
     {
-      const float4 data1 = rndFloat4_Pseudo(&gen);
-      const float2 data2 = rndFloat2_Pseudo(&gen);
-      
-      out_samples[vecSize*tid + top + 0] = rndQmcTab(&gen, a_globals->rmQMC, qmcPos, QMC_VAR_MAT_0, a_qmcTable);
-      out_samples[vecSize*tid + top + 1] = rndQmcTab(&gen, a_globals->rmQMC, qmcPos, QMC_VAR_MAT_1, a_qmcTable);
-      out_samples[vecSize*tid + top + 2] = rndQmcTab(&gen, a_globals->rmQMC, qmcPos, QMC_VAR_MAT_L, a_qmcTable);
-      out_samples[vecSize*tid + top + 3] = data1.x;
-      out_samples[vecSize*tid + top + 4] = data1.y;
-      out_samples[vecSize*tid + top + 5] = data1.z;
+      float6_gr gr1f;
+      gr1f.group24 = rndFloat4_Pseudo(&gen);
+      gr1f.group16 = rndFloat2_Pseudo(&gen);
+      float4  gr2f = rndFloat4_Pseudo(&gen);
+
+      gr1f.group24.x  = rndQmcTab(&gen, a_globals->rmQMC, qmcPos, QMC_VAR_MAT_0, a_qmcTable);
+      gr1f.group24.y  = rndQmcTab(&gen, a_globals->rmQMC, qmcPos, QMC_VAR_MAT_1, a_qmcTable);
+      gr1f.group24.w  = rndQmcTab(&gen, a_globals->rmQMC, qmcPos, QMC_VAR_MAT_L, a_qmcTable); // #LOOK_AT: MMLT_FLOATS_PER_MLAYER
+
+      const uint4 gr1 = packBounceGroup(gr1f);
+      const uint2 gr2 = packBounceGroup2(gr2f);
+
+      out_samples[vecSize*tid + top + 0] = as_float( gr1.x );
+      out_samples[vecSize*tid + top + 1] = as_float( gr1.y );
+      out_samples[vecSize*tid + top + 2] = as_float( gr1.z );
+      out_samples[vecSize*tid + top + 3] = as_float( gr1.w );
+      out_samples[vecSize*tid + top + 4] = as_float( gr2.x );
+      out_samples[vecSize*tid + top + 5] = as_float( gr2.y );
       top += 6;
     }
 
     for(int matB=1; matB < a_globals->varsI[HRT_KMLT_OR_QMC_MAT_BOUNCES]; matB += 6)
-    {
-      const float4 data1 = rndFloat4_Pseudo(&gen);
-      const float2 data2 = rndFloat2_Pseudo(&gen);
-      out_samples[vecSize*tid + top + 0] = data1.x;
-      out_samples[vecSize*tid + top + 1] = data1.y;
-      out_samples[vecSize*tid + top + 2] = data1.z;
-      out_samples[vecSize*tid + top + 3] = data1.w;
-      out_samples[vecSize*tid + top + 4] = data2.x;
-      out_samples[vecSize*tid + top + 5] = data2.y;
+    { 
+      float6_gr gr1f;
+      gr1f.group24 = rndFloat4_Pseudo(&gen);
+      gr1f.group16 = rndFloat2_Pseudo(&gen);
+      float4  gr2f = rndFloat4_Pseudo(&gen);
+
+      uint4 gr1 = packBounceGroup(gr1f);
+      uint2 gr2 = packBounceGroup2(gr2f);
+
+      out_samples[vecSize*tid + top + 0] = as_float( gr1.x );
+      out_samples[vecSize*tid + top + 1] = as_float( gr1.y );
+      out_samples[vecSize*tid + top + 2] = as_float( gr1.z );
+      out_samples[vecSize*tid + top + 3] = as_float( gr1.w );
+      out_samples[vecSize*tid + top + 4] = as_float( gr2.x );
+      out_samples[vecSize*tid + top + 5] = as_float( gr2.y );
       top += 6;
     }
   } 
