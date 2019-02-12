@@ -749,7 +749,10 @@ __kernel void Shade(__global const float4*    restrict a_rpos,
   out_color [tid] = to_float4(shadeColor, lightPickProb);
 }
 
-__kernel void NextBounce(__global   float4*        restrict a_rpos,
+__kernel void NextBounce(__global const int2*      restrict in_zind,
+                         __global const float*     restrict in_xvector,
+
+                         __global   float4*        restrict a_rpos,
                          __global   float4*        restrict a_rdir,
                          __global   uint*          restrict a_flags,
                          __global RandomGen*       restrict out_gens,
@@ -771,19 +774,13 @@ __kernel void NextBounce(__global   float4*        restrict a_rpos,
                          __global const float4*    restrict in_texStorage2,
                          __global const float4*    restrict in_mtlStorage,
                          __global const float4*    restrict in_pdfStorage,   //
-
-
-                         __constant unsigned int*  restrict a_qmcTable,
-                         int a_passNumberForQmc,
-                         
-                         int iNumElements,
-                         __global const EngineGlobals*  restrict a_globals)
+ 
+                         __global const EngineGlobals*  restrict a_globals,
+                        int iNumElements)
 {
   int tid = GLOBAL_ID_X;
   if (tid >= iNumElements)
     return;
-
-  const unsigned int qmcPos = reverseBits(tid, iNumElements) + a_passNumberForQmc * iNumElements;
   
   uint flags = a_flags[tid];
   if (!rayIsActiveU(flags))
@@ -813,20 +810,71 @@ __kernel void NextBounce(__global   float4*        restrict a_rpos,
   
   const int rayBounceNum = unpackBounceNum(flags);
 
-
+  //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   float allRands[MMLT_FLOATS_PER_BOUNCE];
   float rrChoice = 0.0f, pabsorb  = 0.0f;
+  if(rayBounceNum+1 <= a_globals->varsI[HRT_KMLT_OR_QMC_MAT_BOUNCES])
   {
-    RandomGen gen  = out_gens[tid];
-   
-    RndMatAll(&gen, 0, rayBounceNum, a_globals->rmQMC, qmcPos, a_qmcTable,
-              allRands);
+    const int2 sortedIndex = in_zind[tid];
+    const int  vecSize     = KMLT_HEAD_SIZE + a_globals->varsI[HRT_KMLT_OR_QMC_LGT_BOUNCES]*KMLT_PER_LIGHT + a_globals->varsI[HRT_KMLT_OR_QMC_MAT_BOUNCES]*KMLT_PER_MATERIAL;
+    const int  matsOffset  = vecSize*sortedIndex.y + KMLT_HEAD_SIZE + a_globals->varsI[HRT_KMLT_OR_QMC_LGT_BOUNCES]*KMLT_PER_LIGHT + rayBounceNum*KMLT_PER_MATERIAL;
+    
+    __global const uint* pData = (__global const uint*)(in_xvector + matsOffset); 
+
+    // decompress randoms
+    //
+    uint4 gr1; uint2 gr2;
+    gr1.x = as_int( pData[0] );
+    gr1.y = as_int( pData[1] );
+    gr1.z = as_int( pData[2] );
+    gr1.w = as_int( pData[3] );
+    gr2.x = as_int( pData[4] );
+    gr2.y = as_int( pData[5] );
+    
+    const float6_gr gr1f = unpackBounceGroup(gr1);
+    const float4    gr2f = unpackBounceGroup2(gr2);
+    
+    allRands[0] = gr1f.group24.x;
+    allRands[1] = gr1f.group24.y;
+    allRands[2] = gr1f.group24.z;
+    allRands[3] = gr1f.group24.w;
+
+    allRands[4] = gr1f.group16.x;
+    allRands[5] = gr1f.group16.y;
+    
+    allRands[6] = gr2f.x;
+    allRands[7] = gr2f.y;
+    allRands[8] = gr2f.z;
+    allRands[9] = gr2f.w;
+  }
+  else
+  {
+    RandomGen gen = out_gens[tid];
+    
+    const float4 gr1 = rndFloat4_Pseudo(&gen);
+    const float4 gr2 = rndFloat4_Pseudo(&gen);
+    const float2 gr3 = rndFloat2_Pseudo(&gen);
+    
+    allRands[0] = gr1.x;
+    allRands[1] = gr1.y;
+    allRands[2] = gr1.z;
+    allRands[3] = gr1.w;
+
+    allRands[4] = gr2.x;
+    allRands[5] = gr2.y;
+    allRands[6] = gr2.z;
+    allRands[7] = gr2.w;
+    
+    allRands[8] = gr3.x;
+    allRands[9] = gr3.y;
 
     pabsorb = probabilityAbsorbRR(flags, a_globals->g_flags);
     if (pabsorb > 0.0f)
       rrChoice = rndFloat1_Pseudo(&gen);
+
     out_gens[tid] = gen;
   }
+  //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   
   const float3 shadowVal = decompressShadow(in_shadow[tid]);
 

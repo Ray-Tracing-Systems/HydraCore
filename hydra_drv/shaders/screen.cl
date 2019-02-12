@@ -116,6 +116,123 @@ __kernel void MakeEyeRaysSPPPixels(__global float4*              restrict out_po
   out_XY  [tid] = packXY1616(x,y);
 }
 
+// make multidim sample for QMC/KMLT test
+//
+__kernel void MakeEyeRaysQMC(__global RandomGen*           restrict out_gens,
+                             __global float*               restrict out_samples,
+                             __global int2*                restrict out_zind,
+                             __global const EngineGlobals* restrict a_globals,
+                             __constant ushort*            restrict a_mortonTable256,
+                             __constant unsigned int*      restrict a_qmcTable,
+                             int a_passNumberForQmc, int w, int h, int a_size)
+{
+  int tid = GLOBAL_ID_X;
+  if (tid >= a_size)
+    return;
+
+  RandomGen gen             = out_gens[tid];
+  const float2 mutateScale  = make_float2(a_globals->varsF[HRT_MLT_SCREEN_SCALE_X], a_globals->varsF[HRT_MLT_SCREEN_SCALE_Y]);
+  const unsigned int qmcPos = reverseBits(tid, a_size) + a_passNumberForQmc * a_size; // we use reverseBits due to neighbour thread number put in to sobol random generator are too far from each other 
+  const float4 lensOffs     = rndLens(&gen, 0, mutateScale, 
+                                      a_globals->rmQMC, qmcPos, a_qmcTable);
+
+  const float fwidth        = a_globals->varsF[HRT_WIDTH_F];
+  const float fheight       = a_globals->varsF[HRT_HEIGHT_F];
+
+  ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////// related to MakeEyeRayFromF4Rnd
+
+  unsigned short x = (unsigned short)(lensOffs.x*fwidth);
+  unsigned short y = (unsigned short)(lensOffs.y*fheight);
+
+  if (x >= w) x = w - 1;
+  if (y >= h) y = h - 1;
+
+  if (x < 0)  x = 0;
+  if (y < 0)  y = 0;
+
+  ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////// related to MakeEyeRayFromF4Rnd
+
+  int2 indexToSort;
+  indexToSort.x = ZIndex(x,y, a_mortonTable256);
+  indexToSort.y = tid;
+  
+  ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////// QMC/KMLT memory layout
+  {
+    const int vecSize  = KMLT_HEAD_SIZE + a_globals->varsI[HRT_KMLT_OR_QMC_LGT_BOUNCES]*KMLT_PER_LIGHT + a_globals->varsI[HRT_KMLT_OR_QMC_MAT_BOUNCES]*KMLT_PER_MATERIAL;
+    
+    out_samples[vecSize*tid + 0] = lensOffs.x;
+    out_samples[vecSize*tid + 1] = lensOffs.y;
+    out_samples[vecSize*tid + 2] = lensOffs.z;
+    out_samples[vecSize*tid + 3] = lensOffs.w;
+    
+    if(a_globals->varsI[HRT_KMLT_OR_QMC_LGT_BOUNCES] > 0)
+    {
+      out_samples[vecSize*tid + 4] = rndQmcTab(&gen, a_globals->rmQMC, qmcPos, QMC_VAR_LGT_0, a_qmcTable);
+      out_samples[vecSize*tid + 5] = rndQmcTab(&gen, a_globals->rmQMC, qmcPos, QMC_VAR_LGT_1, a_qmcTable);
+      out_samples[vecSize*tid + 6] = rndQmcTab(&gen, a_globals->rmQMC, qmcPos, QMC_VAR_LGT_2, a_qmcTable);
+      out_samples[vecSize*tid + 7] = rndQmcTab(&gen, a_globals->rmQMC, qmcPos, QMC_VAR_LGT_N, a_qmcTable);
+    }
+
+    int top = 8;
+    for(int lightB=1; lightB < a_globals->varsI[HRT_KMLT_OR_QMC_LGT_BOUNCES]; lightB += 4)
+    {
+      const float4 data = rndFloat4_Pseudo(&gen);
+      out_samples[vecSize*tid + top + 0] = data.x;
+      out_samples[vecSize*tid + top + 1] = data.y;
+      out_samples[vecSize*tid + top + 2] = data.z;
+      out_samples[vecSize*tid + top + 3] = data.w;
+      top += 4;
+    }
+    
+    if(a_globals->varsI[HRT_KMLT_OR_QMC_MAT_BOUNCES] > 0)
+    {
+      float6_gr gr1f;
+      gr1f.group24 = rndFloat4_Pseudo(&gen);
+      gr1f.group16 = rndFloat2_Pseudo(&gen);
+      float4  gr2f = rndFloat4_Pseudo(&gen);
+
+      gr1f.group24.x  = rndQmcTab(&gen, a_globals->rmQMC, qmcPos, QMC_VAR_MAT_0, a_qmcTable);
+      gr1f.group24.y  = rndQmcTab(&gen, a_globals->rmQMC, qmcPos, QMC_VAR_MAT_1, a_qmcTable);
+      gr1f.group24.w  = rndQmcTab(&gen, a_globals->rmQMC, qmcPos, QMC_VAR_MAT_L, a_qmcTable); // #LOOK_AT: MMLT_FLOATS_PER_MLAYER
+
+      const uint4 gr1 = packBounceGroup(gr1f);
+      const uint2 gr2 = packBounceGroup2(gr2f);
+
+      out_samples[vecSize*tid + top + 0] = as_float( gr1.x );
+      out_samples[vecSize*tid + top + 1] = as_float( gr1.y );
+      out_samples[vecSize*tid + top + 2] = as_float( gr1.z );
+      out_samples[vecSize*tid + top + 3] = as_float( gr1.w );
+      out_samples[vecSize*tid + top + 4] = as_float( gr2.x );
+      out_samples[vecSize*tid + top + 5] = as_float( gr2.y );
+      top += 6;
+    }
+
+    for(int matB=1; matB < a_globals->varsI[HRT_KMLT_OR_QMC_MAT_BOUNCES]; matB += 6)
+    { 
+      float6_gr gr1f;
+      gr1f.group24 = rndFloat4_Pseudo(&gen);
+      gr1f.group16 = rndFloat2_Pseudo(&gen);
+      float4  gr2f = rndFloat4_Pseudo(&gen);
+
+      uint4 gr1 = packBounceGroup(gr1f);
+      uint2 gr2 = packBounceGroup2(gr2f);
+
+      out_samples[vecSize*tid + top + 0] = as_float( gr1.x );
+      out_samples[vecSize*tid + top + 1] = as_float( gr1.y );
+      out_samples[vecSize*tid + top + 2] = as_float( gr1.z );
+      out_samples[vecSize*tid + top + 3] = as_float( gr1.w );
+      out_samples[vecSize*tid + top + 4] = as_float( gr2.x );
+      out_samples[vecSize*tid + top + 5] = as_float( gr2.y );
+      top += 6;
+    }
+  } 
+  ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////// QMC/KMLT memory layout 
+
+  out_zind[tid] = indexToSort;
+  out_gens[tid] = gen;
+}
+
+
 __kernel void MakeEyeRaysSamplesOnly(__global RandomGen*           restrict out_gens,
                                      __global float4*              restrict out_samples,
                                      __global int2*                restrict out_zind,
@@ -167,7 +284,7 @@ __kernel void MakeEyeRaysUnifiedSampling(__global float4*              restrict 
                                          int w, int h, int a_size,
                                          __global const EngineGlobals* restrict a_globals, 
                                          __global const int2*          restrict in_zind,
-                                         __global const float4*        restrict in_samples,
+                                         __global const float*         restrict in_samples,
                                          __constant ushort*            restrict a_mortonTable256,
                                          __constant unsigned int*      restrict a_qmcTable, 
                                          int a_passNumberForQmc, int a_packIndexForCPU)
@@ -177,9 +294,18 @@ __kernel void MakeEyeRaysUnifiedSampling(__global float4*              restrict 
     return;
   
   // (1) generate 4 random floats
+  // we pack lensOffs in this buffer in 'MakeEyeRaysSamplesOnly' kernel (or other)
   //
   const int2 sortedIndex = in_zind[tid];
-  const float4 lensOffs  = in_samples[sortedIndex.y]; // we pack lensOffs in this buffer in 'MakeEyeRaysSamplesOnly' kernel
+  const int  vecSize     = KMLT_HEAD_SIZE + a_globals->varsI[HRT_KMLT_OR_QMC_LGT_BOUNCES]*KMLT_PER_LIGHT + a_globals->varsI[HRT_KMLT_OR_QMC_MAT_BOUNCES]*KMLT_PER_MATERIAL;
+  //const float4 lensOffs  = in_samples[(vecSize*sortedIndex.y)/4]; 
+
+  float4 lensOffs;
+  __global const float* pData = (in_samples + vecSize*sortedIndex.y); 
+  lensOffs.x = pData[0];
+  lensOffs.y = pData[1];
+  lensOffs.z = pData[2];
+  lensOffs.w = pData[3];
 
   // (2) generate random camera sample
   //
