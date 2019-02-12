@@ -187,7 +187,7 @@ __kernel void LightSample(__global const int2*    restrict in_zind,
     
     const int depth = unpackBounceNum(flags);
     
-    if(depth+1 <= a_globals->varsI[HRT_KMLT_OR_QMC_LGT_BOUNCES])
+    if(depth+1 <= a_globals->varsI[HRT_KMLT_OR_QMC_LGT_BOUNCES] && in_zind != 0 && in_xvector != 0)
     {
       const int2 sortedIndex = in_zind[tid];
       const int  vecSize     = KMLT_HEAD_SIZE + a_globals->varsI[HRT_KMLT_OR_QMC_LGT_BOUNCES]*KMLT_PER_LIGHT + a_globals->varsI[HRT_KMLT_OR_QMC_MAT_BOUNCES]*KMLT_PER_MATERIAL;

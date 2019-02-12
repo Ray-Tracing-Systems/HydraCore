@@ -30,7 +30,7 @@ void AllRenderVarialbes::SetFlags(unsigned int bits, unsigned int a_value)
 
 bool AllRenderVarialbes::shadePassEnable(int a_bounce, int a_minBounce, int a_maxBounce)
 {
-  if ((m_flags & HRT_MARK_SURFACES_FG)  || (m_flags & HRT_DISABLE_SHADING) || (m_flags & HRT_STUPID_PT_MODE))
+  if ( (m_flags & HRT_DISABLE_SHADING) || (m_flags & HRT_STUPID_PT_MODE))
     return false;
 
   if (m_varsI[HRT_RENDER_LAYER] == LAYER_POSITIONS || m_varsI[HRT_RENDER_LAYER] == LAYER_NORMALS || m_varsI[HRT_RENDER_LAYER] == LAYER_TEXCOORD || m_varsI[HRT_RENDER_LAYER] == LAYER_TEXCOLOR_AND_MATERIAL)
@@ -46,6 +46,9 @@ bool AllRenderVarialbes::shadePassEnable(int a_bounce, int a_minBounce, int a_ma
   }
 
   if((m_flags & HRT_DIRECT_LIGHT_MODE)!=0 && a_bounce > 0)
+    return false;
+
+  if((m_flags & HRT_INDIRECT_LIGHT_MODE)!=0 && a_bounce == 0)
     return false;
 
   if(a_bounce == a_maxBounce-1)  // do not evaluate shadow ray for last bounce due to this will actually add one bounce more

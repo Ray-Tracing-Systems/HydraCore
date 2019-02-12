@@ -341,12 +341,16 @@ __kernel void HitEnvOrLightKernel(__global const float4*    restrict in_rpos,
           float3 envColor = environmentColorExtended(ray_pos, ray_dir, misPrev, flags, screenX, screenY,
                                                      a_globals, in_mtlStorage, in_pdfStorage, in_texStorage1);
     
-    ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////// Direct Light for MMLT
-    const uint rayBounceNum         = unpackBounceNum(flags);
-    const bool evalDirectLightOnly  = ((a_globals->g_flags & HRT_DIRECT_LIGHT_MODE) !=0); // if we compute Direct Light only
-    if(evalDirectLightOnly && !flagsHaveOnlySpecular(flags) && rayBounceNum > 1)
+    ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////// Direct/Indirect Light for MMLT/KMLT
+    const uint rayBounceNum          = unpackBounceNum(flags);
+    const bool evalDirectLightOnly   = ((a_globals->g_flags & HRT_DIRECT_LIGHT_MODE)   !=0 ); // if we compute Direct Light only
+    const bool evalIndirectLightOnly = ((a_globals->g_flags & HRT_INDIRECT_LIGHT_MODE) !=0 ); // if we compute Indirect Light only
+
+    if(evalDirectLightOnly && !flagsHaveOnlySpecular(flags) && rayBounceNum > 1)              // exclude indirect light
       envColor = make_float3(0,0,0);
-    ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////// Direct Light for MMLT
+    else if(evalIndirectLightOnly && (rayBounceNum == 1 || flagsHaveOnlySpecular(flags)))     // exclude direct light and pure reflections
+      envColor = make_float3(0,0,0);
+    ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////// Direct/Indirect Light for MMLT/KMLT
 
     if(a_currDepth + 1 < a_minDepth)
       envColor = make_float3(0,0,0);
@@ -813,7 +817,7 @@ __kernel void NextBounce(__global const int2*      restrict in_zind,
   //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   float allRands[MMLT_FLOATS_PER_BOUNCE];
   float rrChoice = 0.0f, pabsorb  = 0.0f;
-  if(rayBounceNum+1 <= a_globals->varsI[HRT_KMLT_OR_QMC_MAT_BOUNCES])
+  if(rayBounceNum+1 <= a_globals->varsI[HRT_KMLT_OR_QMC_MAT_BOUNCES] && in_zind != 0 && in_xvector != 0)
   {
     const int2 sortedIndex = in_zind[tid];
     const int  vecSize     = KMLT_HEAD_SIZE + a_globals->varsI[HRT_KMLT_OR_QMC_LGT_BOUNCES]*KMLT_PER_LIGHT + a_globals->varsI[HRT_KMLT_OR_QMC_MAT_BOUNCES]*KMLT_PER_MATERIAL;
@@ -935,7 +939,10 @@ __kernel void NextBounce(__global const int2*      restrict in_zind,
 	const float3 fogAtten  = attenuationStep(pHitMaterial, dist2, gotOutside, a_fog + tid);
   /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-  const bool killShade    = (a_globals->g_flags & HRT_STUPID_PT_MODE) || ((a_globals->g_flags & HRT_DIRECT_LIGHT_MODE)!=0 && rayBounceNum > 0);  
+  const bool killDueToDirectLight   = ((a_globals->g_flags & HRT_DIRECT_LIGHT_MODE)  !=0 && rayBounceNum > 0);
+  const bool killDueToIndirectLight = ((a_globals->g_flags & HRT_INDIRECT_LIGHT_MODE)!=0 && rayBounceNum == 0);
+
+  const bool killShade    = (a_globals->g_flags & HRT_STUPID_PT_MODE) || killDueToDirectLight || killDueToIndirectLight;  
   const float3 shadeColor = killShade ? make_float3(0,0,0) : to_float3(in_shadeColor[tid]);
   oldPathThroughput       = to_float3(a_thoroughput[tid])*fogAtten;
   newPathThroughput       = oldPathThroughput*outPathThroughput;
@@ -953,7 +960,7 @@ __kernel void NextBounce(__global const int2*      restrict in_zind,
   ///////////////////////////////////////////////// 
   flags = flagsNextBounce(flags, brdfSample, a_globals);
   
-  ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////// Direct Light for MMLT
+  ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////// Direct Light for MMLT/KMLT
   const bool evalDirectLightOnly  = ((a_globals->g_flags & HRT_DIRECT_LIGHT_MODE) !=0);
   if(evalDirectLightOnly && !flagsHaveOnlySpecular(flags) && rayBounceNum > 1)
   {
@@ -962,7 +969,7 @@ __kernel void NextBounce(__global const int2*      restrict in_zind,
     oldPathThroughput = make_float3(0,0,0);
     flags = packRayFlags(flags, unpackRayFlags(flags) | RAY_IS_DEAD);
   }
-  ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////// Direct Light for MMLT
+  ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////// Direct Light for MMLT/KMLT
 
   float4 nextPathColor;
   if (a_globals->g_flags & HRT_ENABLE_MMLT)

@@ -410,14 +410,14 @@ enum FLAG_BITS{HRT_COMPUTE_SHADOWS                 = 1,
                HRT_STORE_RAY_SAMPLES               = 8192,
                HRT_ENABLE_MMLT                     = 16384,
                HRT_ENABLE_SBPT                     = 32768,
-               
-               HRT_DUMMY4                          = 65536*4,
+        
+               HRT_INDIRECT_LIGHT_MODE             = 65536,
                HRT_STUPID_PT_MODE                  = 65536*8,
                HRT_NO_RANDOM_LIGHTS_SELECT         = 65536*16,
-               HRT_MARK_SURFACES_FG                = 65536*32, // 
-               HRT_DUMMY5                          = 65536*64, // tracing photons to form spetial photonmap to speed-up direct light sampling
-               HRT_DEBUG_DRAW_LIGHT_PHOTONS        = 65536*128,
-               HRT_PHOTONS_STORE_MULTIPLY_COLORS   = 65536*256,
+               HRT_DUMMY5                          = 65536*32, // 
+               HRT_DUMMY6                          = 65536*64, // tracing photons to form spetial photonmap to speed-up direct light sampling
+               HRT_DUMMY7                          = 65536*128,
+               HRT_DUMMY8                          = 65536*256,
              
                HRT_ENABLE_PT_CAUSTICS              = 65536*2048,
                HRT_USE_BOTH_PHOTON_MAPS            = 65536*4096,
