@@ -55,6 +55,16 @@ void GPUOCLLayer::CL_MLT_DATA::free()
 void GPUOCLLayer::CL_KMLT_DATA::free()
 {
   if (xVectorQMC) { clReleaseMemObject(xVectorQMC); xVectorQMC = 0; }
+
+  if(xVector) { clReleaseMemObject(xVector); xVector = nullptr; }
+  if(yVector) { clReleaseMemObject(yVector); yVector = nullptr; }
+  if(xZindex) { clReleaseMemObject(xZindex); xZindex = nullptr; }
+  if(yZindex) { clReleaseMemObject(yZindex); yZindex = nullptr; }
+  if(xColor ) { clReleaseMemObject(xColor ); xColor  = nullptr; }
+  if(yColor ) { clReleaseMemObject(yColor ); yColor  = nullptr; }
+
+  
+
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -67,16 +77,21 @@ bool GPUOCLLayer::MLT_IsAllocated() const
 
 size_t GPUOCLLayer::MLT_Alloc_For_PT_QMC(int a_maxBounce, cl_mem& a_vecQmc)
 {
-  kmlt.free();
+  if(a_vecQmc != nullptr)
+  {
+    clReleaseMemObject(a_vecQmc); 
+    a_vecQmc = nullptr;
+  }
   
   cl_int ciErr1 = CL_SUCCESS;
 
   m_vars.m_varsI[HRT_KMLT_OR_QMC_LGT_BOUNCES] = a_maxBounce;
   m_vars.m_varsI[HRT_KMLT_OR_QMC_MAT_BOUNCES] = a_maxBounce;
+  kmlt.maxBounceQMC                           = a_maxBounce;
 
   const int MLT_RAND_NUMBERS_PER_BOUNCE = KMLT_HEAD_SIZE + \
-                                          KMLT_PER_LIGHT*m_vars.m_varsI[HRT_KMLT_OR_QMC_LGT_BOUNCES] + \
-                                          KMLT_PER_MATERIAL*m_vars.m_varsI[HRT_KMLT_OR_QMC_MAT_BOUNCES];
+                                          KMLT_PER_LIGHT*kmlt.maxBounceQMC + \
+                                          KMLT_PER_MATERIAL*kmlt.maxBounceQMC;
 
   // init big buffers for path space state // (MLT_RAND_NUMBERS_PER_BOUNCE / MLT_PROPOSALS)
   //

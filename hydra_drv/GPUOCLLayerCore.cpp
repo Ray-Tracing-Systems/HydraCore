@@ -208,8 +208,8 @@ void GPUOCLLayer::EvalPT(cl_mem in_xVector, cl_mem in_zind, int minBounce, int m
   runKernel_MakeRaysFromEyeSam(in_zind, in_xVector, m_rays.MEGABLOCKSIZE, m_passNumberForQMC,
                                m_rays.rayPos, m_rays.rayDir);
    
-  auto temp      = kmlt.currVec;  // save
-  auto temp2     = kmlt.currZind; // save 
+  auto temp     = kmlt.currVec;  // save
+  auto temp2    = kmlt.currZind; // save 
 
   kmlt.currVec  = in_xVector;
   kmlt.currZind = in_zind;
@@ -224,7 +224,7 @@ void GPUOCLLayer::EvalPT(cl_mem in_xVector, cl_mem in_zind, int minBounce, int m
 void GPUOCLLayer::EvalLT(cl_mem in_xVector, int minBounce, int maxBounce, size_t a_size,
                          cl_mem a_outColor)
 {
-  assert(in_xVector == nullptr); // #NOTE: This is not implemeneted yet!!!
+  assert(in_xVector == nullptr);  // #NOTE: This is not implemeneted yet!!! (and actually will not be implemnented, no reason why we should do that)
 
   auto temp      = kmlt.currVec;  // save
   auto temp2     = kmlt.currZind; // save 

@@ -267,11 +267,25 @@ protected:
   
   struct CL_KMLT_DATA
   {
-    CL_KMLT_DATA() : currVec(nullptr), xVectorQMC(nullptr), currZind(nullptr)  {}
+    CL_KMLT_DATA() : xVectorQMC(nullptr), currVec(nullptr), currZind(nullptr),
+                     xVector(nullptr), yVector(nullptr), 
+                     xZindex(nullptr), yZindex(nullptr),
+                     xColor(nullptr),  yColor(nullptr),
+                     maxBounceQMC(0), maxBonceKMLT(0) { }
 
-    cl_mem currVec;     ///< points to some real vec (xVector|yVector); does not consume memory
     cl_mem xVectorQMC;  ///< vector that used for PT-QMC only
+    cl_mem currVec;     ///< points to some real vec (xVector|yVector); does not consume memory
     cl_mem currZind;    ///< current sort zindex (for PT-QMC/KMLT)
+
+    cl_mem xVector;
+    cl_mem yVector;
+    cl_mem xZindex;
+    cl_mem yZindex;
+    cl_mem xColor;
+    cl_mem yColor;
+
+    int maxBounceQMC;
+    int maxBonceKMLT;
 
     void free();
 

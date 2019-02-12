@@ -1230,23 +1230,35 @@ void GPUOCLLayer::BeginTracingPass()
     const int minBounce = 1;
     const int maxBounce = m_vars.m_varsI[HRT_TRACE_DEPTH];
 
-    if ((m_vars.m_flags & HRT_FORWARD_TRACING) != 0)    // LT (not that it assume HRT_FORWARD_TRACING flag is set)
+    if ((m_vars.m_flags & HRT_FORWARD_TRACING) != 0)    // LT 
     {
       EvalLT(nullptr, minBounce, maxBounce, m_rays.MEGABLOCKSIZE, 
              m_rays.pathAccColor);
     }
-    else                                                // PT (not that it assume HRT_FORWARD_TRACING flag is not set)
+    else                                                // PT 
     { 
       //m_vars.m_flags |= HRT_INDIRECT_LIGHT_MODE; // for test
       //m_vars.m_flags |= HRT_DIRECT_LIGHT_MODE;   // for test
       //UpdateVarsOnGPU();
 
       if(m_vars.m_varsI[HRT_KMLT_OR_QMC_MAT_BOUNCES] != 0) 
+      {
+        m_vars.m_varsI[HRT_KMLT_OR_QMC_LGT_BOUNCES] = kmlt.maxBounceQMC;
+        m_vars.m_varsI[HRT_KMLT_OR_QMC_MAT_BOUNCES] = kmlt.maxBounceQMC;
+        UpdateVarsOnGPU();
+
         runKernel_MakeEyeRaysQMC(m_rays.MEGABLOCKSIZE, m_passNumberForQMC,
                                  m_rays.samZindex, kmlt.xVectorQMC);
+      }
       else
+      {
+        m_vars.m_varsI[HRT_KMLT_OR_QMC_LGT_BOUNCES] = 0;
+        m_vars.m_varsI[HRT_KMLT_OR_QMC_MAT_BOUNCES] = 0;
+        UpdateVarsOnGPU();
+
         runKernel_MakeEyeSamplesOnly(m_rays.MEGABLOCKSIZE, m_passNumberForQMC,
                                      m_rays.samZindex, kmlt.xVectorQMC);
+      }
       
       EvalPT(kmlt.xVectorQMC, m_rays.samZindex, minBounce, maxBounce, m_rays.MEGABLOCKSIZE,
              m_rays.pathAccColor);
