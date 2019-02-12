@@ -759,7 +759,7 @@ void GPUOCLLayer::runKernel_NextBounce(cl_mem a_rayFlags, cl_mem a_rpos, cl_mem 
 
   if (true)
   {
-    CHECK_CL(clSetKernelArg(kernX, 0, sizeof(cl_mem), (void*)&m_rays.samZindex));
+    CHECK_CL(clSetKernelArg(kernX, 0, sizeof(cl_mem), (void*)&m_mlt.currZind));
     CHECK_CL(clSetKernelArg(kernX, 1, sizeof(cl_mem), (void*)&m_mlt.currVec));
 
     CHECK_CL(clSetKernelArg(kernX, 2, sizeof(cl_mem), (void*)&a_rpos));
@@ -969,7 +969,7 @@ void GPUOCLLayer::ShadePass(cl_mem a_rpos, cl_mem a_rdir, cl_mem a_outColor, siz
   
   if (true)
   {
-    CHECK_CL(clSetKernelArg(kernX, 0, sizeof(cl_mem), (void*)&m_rays.samZindex));
+    CHECK_CL(clSetKernelArg(kernX, 0, sizeof(cl_mem), (void*)&m_mlt.currZind));
     CHECK_CL(clSetKernelArg(kernX, 1, sizeof(cl_mem), (void*)&m_mlt.currVec));
 
     CHECK_CL(clSetKernelArg(kernX, 2, sizeof(cl_mem), (void*)&a_rpos));

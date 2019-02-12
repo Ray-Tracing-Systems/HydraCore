@@ -1244,7 +1244,7 @@ void GPUOCLLayer::BeginTracingPass()
         runKernel_MakeEyeSamplesOnly(m_rays.MEGABLOCKSIZE, m_passNumberForQMC,
                                      m_rays.samZindex, m_mlt.xVectorQMC);
       
-      EvalPT(m_mlt.xVectorQMC, minBounce, maxBounce, m_rays.MEGABLOCKSIZE,
+      EvalPT(m_mlt.xVectorQMC, m_rays.samZindex, minBounce, maxBounce, m_rays.MEGABLOCKSIZE,
              m_rays.pathAccColor);
 
       AddContributionToScreen(m_rays.pathAccColor, m_rays.samZindex);
