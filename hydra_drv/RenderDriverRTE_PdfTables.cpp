@@ -399,11 +399,20 @@ int2 AddIesTexTableToStorage(const std::wstring pathW, IMemoryStorage* a_storage
     
     iesTexId         = a_storage->GetMaxObjectId() + 1;
     sphericalTexture = CreateSphericalTextureFromIES(pathA1, &w, &h);
- 
+    
+    if(sphericalTexture.size() == 1)
+      return int2(-1,-1);
+
     //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////// 
     float maxVal = 0.0f;
     for (auto i = 0; i < sphericalTexture.size(); i++)
       maxVal = fmax(maxVal, sphericalTexture[i]);
+
+    if(maxVal == 0.0f)
+    {
+      std::cerr << "[ERROR]: broken IES file (maxVal = 0.0): " << pathA1.c_str() << std::endl;
+      return int2(-1, -1);
+    }
 
     float invMax = 1.0f / maxVal;
     for (auto i = 0; i < sphericalTexture.size(); i++)

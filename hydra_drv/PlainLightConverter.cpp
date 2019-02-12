@@ -1,4 +1,4 @@
-// © Copyright 2017 Vladimir Frolov, MSU Grapics & Media Lab
+// ï¿½ Copyright 2017 Vladimir Frolov, MSU Grapics & Media Lab
 //
 #include "AbstractMaterial.h"
 #include "IMemoryStorage.h"
@@ -176,9 +176,13 @@ public:
     {
       int2 texids = AddIesTexTableToStorage(a_node.child(L"ies").attribute(L"loc").as_string(), a_storage, 
                                             a_iesCache, a_libPath);
-      iesTexId     = texids.x;
-      iesPdfId     = texids.y;
-      hasIESSPhere = true;
+
+      if(texids.x >= 0 && texids.y >= 0)
+      {
+        iesTexId     = texids.x;
+        iesPdfId     = texids.y;
+        hasIESSPhere = true;
+      }
     }
 
     /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -672,13 +676,16 @@ public:
     {
       int2 texids  = AddIesTexTableToStorage(a_node.child(L"ies").attribute(L"loc").as_string(), a_storage,
                                              a_iesCache, a_libPath);
-
-      ((int*)m_plain.data)[IES_SPHERE_TEX_ID] = texids.x;
-      ((int*)m_plain.data)[IES_SPHERE_PDF_ID] = texids.y;
-
-      ((int*)m_plain.data)[PLIGHT_FLAGS] |= LIGHT_HAS_IES;
-
-      ::PutSubMatrix3x3(m_plain, IES_LIGHT_MATRIX_E00, iesMatrix);
+      
+      if(texids.x >= 0 && texids.y >= 0)
+      {
+        ((int*)m_plain.data)[IES_SPHERE_TEX_ID] = texids.x;
+        ((int*)m_plain.data)[IES_SPHERE_PDF_ID] = texids.y;
+        
+        ((int*)m_plain.data)[PLIGHT_FLAGS] |= LIGHT_HAS_IES;
+        
+        ::PutSubMatrix3x3(m_plain, IES_LIGHT_MATRIX_E00, iesMatrix);
+      }
     }
     else
     {
