@@ -757,8 +757,9 @@ void GPUOCLLayer::FinishAll()
 GPUOCLLayer::~GPUOCLLayer()
 {
   FinishAll();
-
+  
   MLT_Free();
+  kmlt.free();
   m_rays.free();
   m_screen.free();
   m_scene.free();
@@ -897,7 +898,7 @@ void GPUOCLLayer::ResizeScreen(int width, int height, int a_flags)
 
   m_memoryTaken[MEM_TAKEN_RAYS] = m_rays.resize(m_globals.ctx, m_globals.cmdQueue, MEGABLOCK_SIZE, m_globals.cpuTrace, m_screen.m_cpuFrameBuffer);
 
-  MLT_Alloc_For_PT_QMC(1, m_mlt.xVectorQMC); // Allocate memory for testing QMC/KMLT F(xVec,bounceNum); THIS IS IMPORTANT CALL! It sets internal KMLT variables
+  MLT_Alloc_For_PT_QMC(0, kmlt.xVectorQMC); // Allocate memory for testing QMC/KMLT F(xVec,bounceNum); THIS IS IMPORTANT CALL! It sets internal KMLT variables
 
   memsetf4(m_rays.rayPos, float4(0, 0, 0, 0), m_rays.MEGABLOCKSIZE);
   memsetf4(m_rays.rayDir, float4(0, 0, 0, 0), m_rays.MEGABLOCKSIZE);
@@ -1236,15 +1237,18 @@ void GPUOCLLayer::BeginTracingPass()
     }
     else                                                // PT (not that it assume HRT_FORWARD_TRACING flag is not set)
     { 
+      //m_vars.m_flags |= HRT_INDIRECT_LIGHT_MODE; // for test
+      //m_vars.m_flags |= HRT_DIRECT_LIGHT_MODE;   // for test
+      //UpdateVarsOnGPU();
 
       if(m_vars.m_varsI[HRT_KMLT_OR_QMC_MAT_BOUNCES] != 0) 
         runKernel_MakeEyeRaysQMC(m_rays.MEGABLOCKSIZE, m_passNumberForQMC,
-                                 m_rays.samZindex, m_mlt.xVectorQMC);
+                                 m_rays.samZindex, kmlt.xVectorQMC);
       else
         runKernel_MakeEyeSamplesOnly(m_rays.MEGABLOCKSIZE, m_passNumberForQMC,
-                                     m_rays.samZindex, m_mlt.xVectorQMC);
+                                     m_rays.samZindex, kmlt.xVectorQMC);
       
-      EvalPT(m_mlt.xVectorQMC, m_rays.samZindex, minBounce, maxBounce, m_rays.MEGABLOCKSIZE,
+      EvalPT(kmlt.xVectorQMC, m_rays.samZindex, minBounce, maxBounce, m_rays.MEGABLOCKSIZE,
              m_rays.pathAccColor);
 
       AddContributionToScreen(m_rays.pathAccColor, m_rays.samZindex);

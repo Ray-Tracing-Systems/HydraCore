@@ -26,7 +26,6 @@ void GPUOCLLayer::CL_MLT_DATA::free()
 
   if (xVector)               { clReleaseMemObject(xVector);    xVector    = 0; }
   if (yVector)               { clReleaseMemObject(yVector);    yVector    = 0; }
-  if (xVectorQMC)            { clReleaseMemObject(xVectorQMC); xVectorQMC = 0; }
                              
   if (xColor)                { clReleaseMemObject(xColor); xColor = 0; }
   if (yColor)                { clReleaseMemObject(yColor); yColor = 0; }
@@ -53,6 +52,11 @@ void GPUOCLLayer::CL_MLT_DATA::free()
   currVec    = 0;
 }
 
+void GPUOCLLayer::CL_KMLT_DATA::free()
+{
+  if (xVectorQMC) { clReleaseMemObject(xVectorQMC); xVectorQMC = 0; }
+}
+
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -63,7 +67,7 @@ bool GPUOCLLayer::MLT_IsAllocated() const
 
 size_t GPUOCLLayer::MLT_Alloc_For_PT_QMC(int a_maxBounce, cl_mem& a_vecQmc)
 {
-  m_mlt.free();
+  kmlt.free();
   
   cl_int ciErr1 = CL_SUCCESS;
 

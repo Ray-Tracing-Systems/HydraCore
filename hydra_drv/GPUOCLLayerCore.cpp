@@ -208,17 +208,17 @@ void GPUOCLLayer::EvalPT(cl_mem in_xVector, cl_mem in_zind, int minBounce, int m
   runKernel_MakeRaysFromEyeSam(in_zind, in_xVector, m_rays.MEGABLOCKSIZE, m_passNumberForQMC,
                                m_rays.rayPos, m_rays.rayDir);
    
-  auto temp      = m_mlt.currVec;  // save
-  auto temp2     = m_mlt.currZind; // save 
+  auto temp      = kmlt.currVec;  // save
+  auto temp2     = kmlt.currZind; // save 
 
-  m_mlt.currVec  = in_xVector;
-  m_mlt.currZind = in_zind;
+  kmlt.currVec  = in_xVector;
+  kmlt.currZind = in_zind;
 
   trace1D_Rev(minBounce, maxBounce, m_rays.rayPos, m_rays.rayDir, m_rays.MEGABLOCKSIZE,
               a_outColor);
 
-  m_mlt.currVec  = temp;  // restore
-  m_mlt.currZind = temp2; // restore
+  kmlt.currVec  = temp;  // restore
+  kmlt.currZind = temp2; // restore
 }
 
 void GPUOCLLayer::EvalLT(cl_mem in_xVector, int minBounce, int maxBounce, size_t a_size,
@@ -226,11 +226,11 @@ void GPUOCLLayer::EvalLT(cl_mem in_xVector, int minBounce, int maxBounce, size_t
 {
   assert(in_xVector == nullptr); // #NOTE: This is not implemeneted yet!!!
 
-  auto temp      = m_mlt.currVec;  // save
-  auto temp2     = m_mlt.currZind; // save 
+  auto temp      = kmlt.currVec;  // save
+  auto temp2     = kmlt.currZind; // save 
 
-  m_mlt.currVec  = nullptr;
-  m_mlt.currZind = nullptr;
+  kmlt.currVec  = nullptr;
+  kmlt.currZind = nullptr;
   
   /////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -249,8 +249,8 @@ void GPUOCLLayer::EvalLT(cl_mem in_xVector, int minBounce, int maxBounce, size_t
 
   /////////////////////////////////////////////////////////////////////////////////////////////////
 
-  m_mlt.currVec  = temp;  // restore
-  m_mlt.currZind = temp2; // restore
+  kmlt.currVec  = temp;  // restore
+  kmlt.currZind = temp2; // restore
 }
 
 int GPUOCLLayer::CountNumActiveThreads(cl_mem a_rayFlags, size_t a_size)
