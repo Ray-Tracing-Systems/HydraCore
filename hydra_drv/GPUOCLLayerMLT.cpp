@@ -85,9 +85,7 @@ size_t GPUOCLLayer::MLT_Alloc_For_PT_QMC(int a_maxBounce, cl_mem& a_vecQmc)
   
   cl_int ciErr1 = CL_SUCCESS;
 
-  m_vars.m_varsI[HRT_KMLT_OR_QMC_LGT_BOUNCES] = a_maxBounce;
-  m_vars.m_varsI[HRT_KMLT_OR_QMC_MAT_BOUNCES] = a_maxBounce;
-  kmlt.maxBounceQMC                           = a_maxBounce;
+  kmlt.maxBounceQMC = a_maxBounce;
 
   const int MLT_RAND_NUMBERS_PER_BOUNCE = KMLT_HEAD_SIZE + \
                                           KMLT_PER_LIGHT*kmlt.maxBounceQMC + \

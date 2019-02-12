@@ -67,24 +67,20 @@ void GPUOCLLayer::DL_Pass(int a_maxBounce, int a_itersNum)
   for(int iter = 0; iter < a_itersNum; iter++)
   {
     assert(kmlt.xVectorQMC != nullptr);
+    
+    m_vars.m_varsI[HRT_KMLT_OR_QMC_LGT_BOUNCES] = kmlt.maxBounceQMC;
+    m_vars.m_varsI[HRT_KMLT_OR_QMC_MAT_BOUNCES] = kmlt.maxBounceQMC;
+    UpdateVarsOnGPU();
 
-    if(m_vars.m_varsI[HRT_KMLT_OR_QMC_MAT_BOUNCES] != 0) 
+    if(kmlt.maxBounceQMC != 0) 
     {
-      m_vars.m_varsI[HRT_KMLT_OR_QMC_LGT_BOUNCES] = kmlt.maxBounceQMC;
-      m_vars.m_varsI[HRT_KMLT_OR_QMC_MAT_BOUNCES] = kmlt.maxBounceQMC;
-      UpdateVarsOnGPU();
-
       runKernel_MakeEyeRaysQMC(m_rays.MEGABLOCKSIZE, m_passNumberForQMC,
                               m_rays.samZindex, kmlt.xVectorQMC);
     }
     else
     {
       runKernel_MakeEyeSamplesOnly(m_rays.MEGABLOCKSIZE, m_passNumberForQMC,
-                                   m_rays.samZindex, kmlt.xVectorQMC);
-
-      m_vars.m_varsI[HRT_KMLT_OR_QMC_LGT_BOUNCES] = 0;
-      m_vars.m_varsI[HRT_KMLT_OR_QMC_MAT_BOUNCES] = 0;
-      UpdateVarsOnGPU();                             
+                                   m_rays.samZindex, kmlt.xVectorQMC);          
     } 
     
     EvalPT(kmlt.xVectorQMC, m_rays.samZindex, 1, a_maxBounce, m_rays.MEGABLOCKSIZE,
@@ -102,7 +98,9 @@ void GPUOCLLayer::DL_Pass(int a_maxBounce, int a_itersNum)
     AddContributionToScreen(m_rays.pathAccColor, m_rays.samZindex, false, 1); 
   }
 
-  m_vars.m_flags = oldFlags;
+  m_vars.m_varsI[HRT_KMLT_OR_QMC_LGT_BOUNCES] = 0;
+  m_vars.m_varsI[HRT_KMLT_OR_QMC_MAT_BOUNCES] = 0;
+  m_vars.m_flags                              = oldFlags;
   UpdateVarsOnGPU();
 
   m_sppDL += float(a_itersNum*m_rays.MEGABLOCKSIZE)/float(m_width*m_height);

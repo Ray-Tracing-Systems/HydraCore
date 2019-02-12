@@ -1232,6 +1232,10 @@ void GPUOCLLayer::BeginTracingPass()
 
     if ((m_vars.m_flags & HRT_FORWARD_TRACING) != 0)    // LT 
     {
+      m_vars.m_varsI[HRT_KMLT_OR_QMC_LGT_BOUNCES] = 0;  // explicit disable reading random numbers from buffer
+      m_vars.m_varsI[HRT_KMLT_OR_QMC_MAT_BOUNCES] = 0;
+      UpdateVarsOnGPU();
+
       EvalLT(nullptr, minBounce, maxBounce, m_rays.MEGABLOCKSIZE, 
              m_rays.pathAccColor);
     }
@@ -1239,23 +1243,18 @@ void GPUOCLLayer::BeginTracingPass()
     { 
       //m_vars.m_flags |= HRT_INDIRECT_LIGHT_MODE; // for test
       //m_vars.m_flags |= HRT_DIRECT_LIGHT_MODE;   // for test
-      //UpdateVarsOnGPU();
+     
+      m_vars.m_varsI[HRT_KMLT_OR_QMC_LGT_BOUNCES] = kmlt.maxBounceQMC;
+      m_vars.m_varsI[HRT_KMLT_OR_QMC_MAT_BOUNCES] = kmlt.maxBounceQMC;
+      UpdateVarsOnGPU();
 
-      if(m_vars.m_varsI[HRT_KMLT_OR_QMC_MAT_BOUNCES] != 0) 
+      if(kmlt.maxBounceQMC != 0) 
       {
-        m_vars.m_varsI[HRT_KMLT_OR_QMC_LGT_BOUNCES] = kmlt.maxBounceQMC;
-        m_vars.m_varsI[HRT_KMLT_OR_QMC_MAT_BOUNCES] = kmlt.maxBounceQMC;
-        UpdateVarsOnGPU();
-
         runKernel_MakeEyeRaysQMC(m_rays.MEGABLOCKSIZE, m_passNumberForQMC,
                                  m_rays.samZindex, kmlt.xVectorQMC);
       }
       else
       {
-        m_vars.m_varsI[HRT_KMLT_OR_QMC_LGT_BOUNCES] = 0;
-        m_vars.m_varsI[HRT_KMLT_OR_QMC_MAT_BOUNCES] = 0;
-        UpdateVarsOnGPU();
-
         runKernel_MakeEyeSamplesOnly(m_rays.MEGABLOCKSIZE, m_passNumberForQMC,
                                      m_rays.samZindex, kmlt.xVectorQMC);
       }

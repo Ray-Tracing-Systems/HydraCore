@@ -38,7 +38,7 @@
             "type": "cppdbg",
             "request": "launch",
             "program": "${workspaceFolder}/cmake-build-debug/hydra_app/hydra",
-            "args": ["-nowindow", "1",
+            "args": ["-nowindow", "0",
                      "-saveinterval", "300",
                      "-enable_mlt", "0"],
             "stopAtEntry": false,
