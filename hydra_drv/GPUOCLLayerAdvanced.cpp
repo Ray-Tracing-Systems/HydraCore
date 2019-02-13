@@ -147,18 +147,20 @@ float GPUOCLLayer::KMLT_BurningIn(int minBounce, int maxBounce, int BURN_ITERS,
       timer.start();
     }
   
-    runKernel_KMLTMakeProposal(kmlt.rndState1, nullptr, 1, m_rays.MEGABLOCKSIZE,
-                               kmlt.rndState3, kmlt.xVector);                      // kmlt.rndState1 => kmlt.xVector; kmlt.rndState1 should not change.
-                                                                                   // new random generator state is written to kmlt.rndState3
+    //runKernel_KMLTMakeProposal(kmlt.rndState1, nullptr, 1, m_rays.MEGABLOCKSIZE,
+    //                           kmlt.rndState3, kmlt.xVector);                      // kmlt.rndState1 => kmlt.xVector; kmlt.rndState1 should not change.
+    //                                                                               // new random generator state is written to kmlt.rndState3
 
+    assert(kmlt.maxBounceQMC != 0); 
+    runKernel_MakeEyeRaysQMC(m_rays.MEGABLOCKSIZE, m_passNumberForQMC,
+                             kmlt.xZindex, kmlt.xVector);
+      
     if(measureTime)
     {
       clFinish(m_globals.cmdQueue);
       avgTimeMk += timer.getElapsed();
       timer.start();
     }
-    
-    m_raysWasSorted = false;
 
     EvalPT(kmlt.xVector, kmlt.xZindex, minBounce, maxBounce, m_rays.MEGABLOCKSIZE,
            kmlt.xMultOneMinusAlpha);
@@ -170,6 +172,8 @@ float GPUOCLLayer::KMLT_BurningIn(int minBounce, int maxBounce, int BURN_ITERS,
       timer.start();
     }
     
+    /*
+
     // #TODO: instead of unsort colors you may get random generator state by index;
     //
     runKernel_UnsortColors(kmlt.xMultOneMinusAlpha, kmlt.xZindex, m_rays.MEGABLOCKSIZE, // both unsort and pack (x|y) to color.w
@@ -194,6 +198,7 @@ float GPUOCLLayer::KMLT_BurningIn(int minBounce, int maxBounce, int BURN_ITERS,
     runKernel_MLTSelectSampleProportionalToContrib(kmlt.rndState1, nullptr, temp_f1, m_rays.MEGABLOCKSIZE, kmlt.rndState3, BURN_PORTION,
                                                    BURN_PORTION*iter, out_rstate, nullptr);                                        
     
+    */
 
     clFinish(m_globals.cmdQueue);
 
@@ -205,21 +210,27 @@ float GPUOCLLayer::KMLT_BurningIn(int minBounce, int maxBounce, int BURN_ITERS,
     
     if(iter%16 == 0)
     {
-      std::cout << "MMLT Burning in, progress = " << 100.0f*float(iter)/float(BURN_ITERS) << "% \r";
+      std::cout << "KMLT Burning in, progress = " << 100.0f*float(iter)/float(BURN_ITERS) << "% \r";
       std::cout.flush();
     }
 
     //AddContributionToScreen(kmlt.xColor, nullptr);
-    
+    AddContributionToScreen(kmlt.xMultOneMinusAlpha, kmlt.xZindex);
+
     // swap curr and new random generator states
     {
       cl_mem temp    = kmlt.rndState1;
       kmlt.rndState1 = kmlt.rndState3;
       kmlt.rndState3 = temp;
     }
+
+    break;
   }
 
-  return 0.0f;
+  std::cout << std::endl;
+  std::cout.flush();
+
+  return avgBrightness;
 }
 
 void GPUOCLLayer::KMLT_Pass(int a_passNumber, int minBounce, int maxBounce, int BURN_ITERS)
@@ -242,8 +253,8 @@ void GPUOCLLayer::KMLT_Pass(int a_passNumber, int minBounce, int maxBounce, int 
   m_vars.m_varsI[HRT_KMLT_OR_QMC_MAT_BOUNCES] = kmlt.maxBounceQMC;
   UpdateVarsOnGPU();
 
-  if(m_spp < 1e-5f) // run init stage and burning in
-  { 
+  //if(m_spp < 1e-5f) // run init stage and burning in
+  //{ 
     m_avgBrightness = KMLT_BurningIn(minBounce, maxBounce, BURN_ITERS,
                                      kmlt.rndState2);
     
@@ -253,7 +264,7 @@ void GPUOCLLayer::KMLT_Pass(int a_passNumber, int minBounce, int maxBounce, int 
 
     memsetf4(kmlt.yMultAlpha,         float4(0,0,0,0), m_rays.MEGABLOCKSIZE, 0); waitIfDebug(__FILE__, __LINE__); // because we can use tham inside KMLT_BurningIn
     memsetf4(kmlt.xMultOneMinusAlpha, float4(0,0,0,0), m_rays.MEGABLOCKSIZE, 0); waitIfDebug(__FILE__, __LINE__); // because we can use tham inside KMLT_BurningIn
-  }
+  //}
 
   for(int pass = 0; pass < a_passNumber; pass++)
   {

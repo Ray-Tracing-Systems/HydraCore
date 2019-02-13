@@ -326,6 +326,10 @@ __kernel void HitEnvOrLightKernel(__global const float4*    restrict in_rpos,
 
   const uint flags = a_flags[tid];
 
+  const uint rayBounceNum          = unpackBounceNum(flags);
+  const bool evalDirectLightOnly   = ((a_globals->g_flags & HRT_DIRECT_LIGHT_MODE)   !=0 ); // if we compute Direct Light only
+  const bool evalIndirectLightOnly = ((a_globals->g_flags & HRT_INDIRECT_LIGHT_MODE) !=0 ); // if we compute Indirect Light only
+  
   // if hit environment
   //
   if (unpackRayFlags(flags) & RAY_GRAMMAR_OUT_OF_SCENE)
@@ -342,13 +346,9 @@ __kernel void HitEnvOrLightKernel(__global const float4*    restrict in_rpos,
                                                      a_globals, in_mtlStorage, in_pdfStorage, in_texStorage1);
     
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////// Direct/Indirect Light for MMLT/KMLT
-    const uint rayBounceNum          = unpackBounceNum(flags);
-    const bool evalDirectLightOnly   = ((a_globals->g_flags & HRT_DIRECT_LIGHT_MODE)   !=0 ); // if we compute Direct Light only
-    const bool evalIndirectLightOnly = ((a_globals->g_flags & HRT_INDIRECT_LIGHT_MODE) !=0 ); // if we compute Indirect Light only
-
     if(evalDirectLightOnly && !flagsHaveOnlySpecular(flags) && rayBounceNum > 1)              // exclude indirect light
       envColor = make_float3(0,0,0);
-    else if(evalIndirectLightOnly && (rayBounceNum == 1 || flagsHaveOnlySpecular(flags)))     // exclude direct light and pure reflections
+    else if(evalIndirectLightOnly && (rayBounceNum <= 1 || flagsHaveOnlySpecular(flags)))     // exclude direct light and pure reflections
       envColor = make_float3(0,0,0);
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////// Direct/Indirect Light for MMLT/KMLT
 
@@ -411,10 +411,9 @@ __kernel void HitEnvOrLightKernel(__global const float4*    restrict in_rpos,
 
     bool reflectProjectedBack = false;
     {
-      const uint rayBounce    = unpackBounceNum(flags);
       unsigned int otherFlags = unpackRayFlags(flags);
       const int backTextureId = a_globals->varsI[HRT_SHADOW_MATTE_BACK];
-      const bool reflected    = (rayBounce >= 1 && (otherFlags & RAY_EVENT_T) == 0 &&
+      const bool reflected    = (rayBounceNum >= 1 && (otherFlags & RAY_EVENT_T) == 0 &&
                                  ((otherFlags & RAY_EVENT_S) != 0 || (otherFlags & RAY_EVENT_D) != 0 || (otherFlags & RAY_EVENT_G) != 0)
                                 );
 
@@ -529,9 +528,12 @@ __kernel void HitEnvOrLightKernel(__global const float4*    restrict in_rpos,
         }
       }
 
-      if(a_currDepth + 1 < a_minDepth)
+      if(a_currDepth + 1 < a_minDepth )
         emissColor = make_float3(0,0,0);
       
+      if(evalIndirectLightOnly && (rayBounceNum <= 1 || flagsHaveOnlySpecular(flags)))     // exclude direct light and pure reflections
+        emissColor = make_float3(0,0,0);
+
       const int packedIsLight = hitLightSource ? 1 : 0;
       out_emission[tid]       = to_float4(emissColor, as_float(packedIsLight));
 
