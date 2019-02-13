@@ -480,6 +480,90 @@ __kernel void MMLTMakeProposal(__global int2*            restrict a_split,
     out_gens[tid] = gen;
 }
 
+
+__kernel void KMLTMakeProposal(__global const RandomGen* restrict in_gens,
+                               __global       RandomGen* restrict out_gens,     // save new random gen state here if it is not null
+                               __global const float*     restrict in_samples,
+                               __global       float*     restrict out_samples,  // save random numbers here if it is not null
+                               __global const EngineGlobals* restrict a_globals,
+                               int a_forceLargeStep,
+                               int iNumElements)
+{
+  int tid = GLOBAL_ID_X;
+  if (tid >= iNumElements)
+    return;
+
+  RandomGen gen = in_gens[tid];
+
+  const int blobSize = KMLT_HEAD_SIZE + a_globals->varsI[HRT_KMLT_OR_QMC_LGT_BOUNCES]*KMLT_PER_LIGHT + a_globals->varsI[HRT_KMLT_OR_QMC_MAT_BOUNCES]*KMLT_PER_MATERIAL;
+  
+  float4 lensOffs = rndFloat4_Pseudo(&gen);
+
+  if(in_samples != 0)
+  {
+    // float4 lensMutate  = lensOffs;
+    // float4 oldLensOffs;
+    // ... read lensOffs from in_samples
+    // lensOffs = mutate(lensOffs, lensMutate)
+  }
+
+  out_samples[blobSize*tid + 0] = lensOffs.x;
+  out_samples[blobSize*tid + 1] = lensOffs.y;
+  out_samples[blobSize*tid + 2] = lensOffs.z;
+  out_samples[blobSize*tid + 3] = lensOffs.w;
+
+  int top = 4;
+  for(int lightB=0; lightB < a_globals->varsI[HRT_KMLT_OR_QMC_LGT_BOUNCES]; lightB += 4)
+  {
+    float4 data = rndFloat4_Pseudo(&gen);
+
+    if(in_samples != 0)
+    {
+      // float4 mutate  = data;
+      // float4 oldData;
+      // ... read oldData from in_samples
+      // data = mutate(oldData, mutate)
+    }
+
+    out_samples[blobSize*tid + top + 0] = data.x;
+    out_samples[blobSize*tid + top + 1] = data.y;
+    out_samples[blobSize*tid + top + 2] = data.z;
+    out_samples[blobSize*tid + top + 3] = data.w;
+    top += 4;
+  }
+
+  for(int matB=0; matB < a_globals->varsI[HRT_KMLT_OR_QMC_MAT_BOUNCES]; matB += 6)
+  { 
+    float6_gr gr1f;
+    gr1f.group24 = rndFloat4_Pseudo(&gen);
+    gr1f.group16 = rndFloat2_Pseudo(&gen);
+    float4  gr2f = rndFloat4_Pseudo(&gen);
+
+    if(in_samples != 0)
+    {
+      // mutate (gr1f.group24, gr1f.group16, gr2f)
+      //
+    }
+
+    uint4 gr1    = packBounceGroup(gr1f);
+    uint2 gr2    = packBounceGroup2(gr2f);
+
+    out_samples[blobSize*tid + top + 0] = as_float( gr1.x );
+    out_samples[blobSize*tid + top + 1] = as_float( gr1.y );
+    out_samples[blobSize*tid + top + 2] = as_float( gr1.z );
+    out_samples[blobSize*tid + top + 3] = as_float( gr1.w );
+    out_samples[blobSize*tid + top + 4] = as_float( gr2.x );
+    out_samples[blobSize*tid + top + 5] = as_float( gr2.y );
+    top += 6;
+  }
+
+  if(out_gens != 0)
+    out_gens[tid] = gen;
+}
+
+
+
+
 static inline MMLTReadMaterialBounceRands(__global const float* restrict in_numbers, int bounce, int tid, int iNumElements,
                                           __private float a_out[MMLT_FLOATS_PER_BOUNCE])
 {

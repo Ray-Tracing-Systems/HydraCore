@@ -494,6 +494,28 @@ void GPUOCLLayer::runKernel_MMLTMakeProposal(cl_mem in_rgen, cl_mem in_vec, cl_i
   waitIfDebug(__FILE__, __LINE__);
 }
 
+void GPUOCLLayer::runKernel_KMLTMakeProposal(cl_mem in_rgen, cl_mem in_vec, int a_largeStep, size_t a_size,
+                                             cl_mem out_rgen, cl_mem out_vec)
+{
+  cl_kernel kernX      = m_progs.mlt.kernel("KMLTMakeProposal");
+
+  size_t localWorkSize = 256;
+  int            isize = int(a_size);
+  a_size               = roundBlocks(a_size, int(localWorkSize));
+
+  CHECK_CL(clSetKernelArg(kernX, 0, sizeof(cl_mem), (void*)&in_rgen));
+  CHECK_CL(clSetKernelArg(kernX, 1, sizeof(cl_mem), (void*)&out_rgen));
+  CHECK_CL(clSetKernelArg(kernX, 2, sizeof(cl_mem), (void*)&in_vec));
+  CHECK_CL(clSetKernelArg(kernX, 3, sizeof(cl_mem), (void*)&out_vec));
+  CHECK_CL(clSetKernelArg(kernX, 4, sizeof(cl_mem), (void*)&m_scene.allGlobsData));
+  CHECK_CL(clSetKernelArg(kernX, 5, sizeof(cl_int), (void*)&a_largeStep));
+  CHECK_CL(clSetKernelArg(kernX, 6, sizeof(cl_int), (void*)&isize));
+
+  CHECK_CL(clEnqueueNDRangeKernel(m_globals.cmdQueue, kernX, 1, NULL, &a_size, &localWorkSize, 0, NULL, NULL));
+  waitIfDebug(__FILE__, __LINE__);
+  
+}                               
+
 void GPUOCLLayer::runKernel_MMLTMakeEyeRays(size_t a_size,
                                             cl_mem a_rpos, cl_mem a_rdir, cl_mem a_zindex)
 {
