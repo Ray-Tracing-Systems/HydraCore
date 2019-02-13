@@ -63,7 +63,11 @@ void GPUOCLLayer::CL_KMLT_DATA::free()
   if(xColor ) { clReleaseMemObject(xColor ); xColor  = nullptr; }
   if(yColor ) { clReleaseMemObject(yColor ); yColor  = nullptr; }
 
-  
+  if(rndState1) { clReleaseMemObject(rndState1 ); rndState1 = nullptr; }
+  if(rndState2) { clReleaseMemObject(rndState2 ); rndState2 = nullptr; }
+
+  if(xMultOneMinusAlpha) { clReleaseMemObject(xMultOneMinusAlpha); xMultOneMinusAlpha = nullptr; } 
+  if(yMultAlpha        ) { clReleaseMemObject(yMultAlpha);         yMultAlpha         = nullptr; }
 
 }
 
@@ -101,6 +105,49 @@ size_t GPUOCLLayer::MLT_Alloc_For_PT_QMC(int a_maxBounce, cl_mem& a_vecQmc)
   return (MLT_RAND_NUMBERS_PER_BOUNCE*sizeof(float))*m_rays.MEGABLOCKSIZE;
 }
 
+size_t GPUOCLLayer::KMLT_Alloc(int a_maxBounce)
+{
+  const int MLT_RAND_NUMBERS_PER_BOUNCE = KMLT_HEAD_SIZE + \
+                                          KMLT_PER_LIGHT*kmlt.maxBounceQMC + \
+                                          KMLT_PER_MATERIAL*kmlt.maxBounceQMC;
+  
+  const size_t randsBuffSize = (MLT_RAND_NUMBERS_PER_BOUNCE*sizeof(float))*m_rays.MEGABLOCKSIZE;
+
+  cl_int ciErr1 = CL_SUCCESS;
+
+  kmlt.xVector = clCreateBuffer(m_globals.ctx, CL_MEM_READ_WRITE, randsBuffSize, NULL, &ciErr1);
+  kmlt.yVector = clCreateBuffer(m_globals.ctx, CL_MEM_READ_WRITE, randsBuffSize, NULL, &ciErr1);
+  
+  if (ciErr1 != CL_SUCCESS)
+    RUN_TIME_ERROR("[cl_core]: Failed to create kmlt.xVector/kmlt.yVector ");
+
+  kmlt.xZindex = clCreateBuffer(m_globals.ctx, CL_MEM_READ_WRITE, sizeof(int2)*m_rays.MEGABLOCKSIZE, NULL, &ciErr1);
+  kmlt.yZindex = clCreateBuffer(m_globals.ctx, CL_MEM_READ_WRITE, sizeof(int2)*m_rays.MEGABLOCKSIZE, NULL, &ciErr1);
+
+  if (ciErr1 != CL_SUCCESS)
+    RUN_TIME_ERROR("[cl_core]: Failed to create kmlt.xZindex/kmlt.yZindex ");
+
+  kmlt.xColor  = clCreateBuffer(m_globals.ctx, CL_MEM_READ_WRITE, sizeof(float4)*m_rays.MEGABLOCKSIZE, NULL, &ciErr1);
+  kmlt.yColor  = clCreateBuffer(m_globals.ctx, CL_MEM_READ_WRITE, sizeof(float4)*m_rays.MEGABLOCKSIZE, NULL, &ciErr1);
+
+  if (ciErr1 != CL_SUCCESS)
+    RUN_TIME_ERROR("[cl_core]: Failed to create kmlt.xColor/kmlt.yColor ");
+
+  kmlt.rndState1 = clCreateBuffer(m_globals.ctx, CL_MEM_READ_WRITE, sizeof(RandomGen)*m_rays.MEGABLOCKSIZE, NULL, &ciErr1);
+  kmlt.rndState2 = clCreateBuffer(m_globals.ctx, CL_MEM_READ_WRITE, sizeof(RandomGen)*m_rays.MEGABLOCKSIZE, NULL, &ciErr1);
+
+  if (ciErr1 != CL_SUCCESS)
+    RUN_TIME_ERROR("[cl_core]: Failed to create kmlt.rndState1/kmlt.rndState2 ");
+
+  kmlt.xMultOneMinusAlpha  = clCreateBuffer(m_globals.ctx, CL_MEM_READ_WRITE, sizeof(float4)*m_rays.MEGABLOCKSIZE, NULL, &ciErr1);
+  kmlt.yMultAlpha          = clCreateBuffer(m_globals.ctx, CL_MEM_READ_WRITE, sizeof(float4)*m_rays.MEGABLOCKSIZE, NULL, &ciErr1);
+
+  if (ciErr1 != CL_SUCCESS)
+    RUN_TIME_ERROR("[cl_core]: Failed to create kmlt.xMultOneMinusAlpha/kmlt.yMultAlpha ");
+
+  return 2*(randsBuffSize + m_rays.MEGABLOCKSIZE*( sizeof(int2) + 2*sizeof(float4) + sizeof(RandomGen) ) );
+}
+
 size_t GPUOCLLayer::MLT_Alloc(int a_maxBounce)
 {
   m_mlt.free();
@@ -115,7 +162,7 @@ size_t GPUOCLLayer::MLT_Alloc(int a_maxBounce)
   m_mlt.rstateNew             = clCreateBuffer(m_globals.ctx, CL_MEM_READ_WRITE, 1 * sizeof(RandomGen)*m_rays.MEGABLOCKSIZE, NULL, &ciErr1);
   m_mlt.dOld                  = clCreateBuffer(m_globals.ctx, CL_MEM_READ_WRITE, 1 * sizeof(int)*m_rays.MEGABLOCKSIZE, NULL, &ciErr1);
   m_mlt.dNew                  = clCreateBuffer(m_globals.ctx, CL_MEM_READ_WRITE, 1 * sizeof(int)*m_rays.MEGABLOCKSIZE, NULL, &ciErr1);
-  m_mlt.memTaken = (3 * sizeof(RandomGen) + sizeof(int)*2)*m_rays.MEGABLOCKSIZE; // rstateForAcceptReject, rstateOld, rstateNew 
+  m_mlt.memTaken              = (3 * sizeof(RandomGen) + sizeof(int)*2)*m_rays.MEGABLOCKSIZE; // rstateForAcceptReject, rstateOld, rstateNew 
 
   if (ciErr1 != CL_SUCCESS)
     RUN_TIME_ERROR("[cl_core]: Failed to create rstateForAcceptReject ");

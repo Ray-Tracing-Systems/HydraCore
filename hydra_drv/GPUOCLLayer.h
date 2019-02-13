@@ -103,7 +103,8 @@ public:
 
   bool   MLT_IsAllocated() const;               ///< return true if internal MLT data is allocated
   size_t MLT_Alloc(int a_maxBounce);            ///< alloc internal MLT data
-  size_t MLT_Alloc_For_PT_QMC(int a_maxBounce, cl_mem& a_vecQmc); ///< alloc xVector for PT with QMC
+  size_t MLT_Alloc_For_PT_QMC(int a_maxBounce, cl_mem& a_vecQmc); ///< alloc xVectorQMC for PT with QMC
+  size_t KMLT_Alloc(int a_maxBounce);           ///< alloc all for KMLT
   void   MLT_Free();                            ///< free internal MLT DATA
 
   void RecompileProcTexShaders(const std::string& a_shaderPath) override;
@@ -271,7 +272,8 @@ protected:
                      xVector(nullptr), yVector(nullptr), 
                      xZindex(nullptr), yZindex(nullptr),
                      xColor(nullptr),  yColor(nullptr),
-                     maxBounceQMC(0), maxBonceKMLT(0) { }
+                     maxBounceQMC(0), maxBonceKMLT(0),
+                    yMultAlpha(nullptr), xMultOneMinusAlpha(nullptr) { }
 
     cl_mem xVectorQMC;  ///< vector that used for PT-QMC only
     cl_mem currVec;     ///< points to some real vec (xVector|yVector); does not consume memory
@@ -283,6 +285,12 @@ protected:
     cl_mem yZindex;
     cl_mem xColor;
     cl_mem yColor;
+
+    cl_mem rndState1;
+    cl_mem rndState2;
+
+    cl_mem yMultAlpha;
+    cl_mem xMultOneMinusAlpha;
 
     int maxBounceQMC;
     int maxBonceKMLT;
@@ -530,6 +538,8 @@ protected:
   
   void  DL_Pass(int a_maxBounce, int a_itersNum);
   void  MMLT_Pass(int a_passNumber, int minBounce, int maxBounce, int BURN_ITERS);
+  void  KMLT_Pass(int a_passNumber, int minBounce, int maxBounce, int BURN_ITERS);
+
   void  SBDPT_Pass(int minBounce, int maxBounce, int ITERS);
   float MMLT_BurningIn(int minBounce, int maxBounce, int BURN_ITERS,
                        cl_mem out_rstate, cl_mem out_dsplit, cl_mem out_split2, cl_mem out_normC, std::vector<int>& out_activeThreads);

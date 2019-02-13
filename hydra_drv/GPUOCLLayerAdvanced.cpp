@@ -106,6 +106,32 @@ void GPUOCLLayer::DL_Pass(int a_maxBounce, int a_itersNum)
   m_sppDL += float(a_itersNum*m_rays.MEGABLOCKSIZE)/float(m_width*m_height);
 }
 
+void GPUOCLLayer::KMLT_Pass(int a_passNumber, int minBounce, int maxBounce, int BURN_ITERS)
+{
+  if(kmlt.xVector == nullptr)
+  {
+    size_t mltMem = KMLT_Alloc(maxBounce);
+
+    std::cout << "[AllocAll]: MEM(KMLT)   = " << mltMem / size_t(1024*1024) << "\tMB" << std::endl;  
+    runKernel_ClearAllInternalTempBuffers(m_rays.MEGABLOCKSIZE);                  waitIfDebug(__FILE__, __LINE__);
+
+    // memsetf4(kmlt.yMultAlpha,         float4(0,0,0,0), m_rays.MEGABLOCKSIZE, 0); waitIfDebug(__FILE__, __LINE__); // #TODO (!!!)
+    // memsetf4(kmlt.xMultOneMinusAlpha, float4(0,0,0,0), m_rays.MEGABLOCKSIZE, 0); waitIfDebug(__FILE__, __LINE__); // #TODO (!!!)
+
+    runKernel_InitRandomGen(kmlt.rndState1, m_rays.MEGABLOCKSIZE, 12345);
+    runKernel_InitRandomGen(kmlt.rndState2, m_rays.MEGABLOCKSIZE, 56789);
+  }
+   
+  if(m_spp < 1e-5f) // run init stage and burning in
+  {
+    // m_avgBrightness = KMLT_BurningIn(minBounce, maxBounce, BURN_ITERS ... );
+
+    
+
+  }
+
+}
+
 void GPUOCLLayer::MMLT_Pass(int a_passNumber, int minBounce, int maxBounce, int BURN_ITERS)
 {
 
