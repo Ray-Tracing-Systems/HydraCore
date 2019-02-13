@@ -157,10 +157,11 @@ float GPUOCLLayer::KMLT_BurningIn(int minBounce, int maxBounce, int BURN_ITERS,
       avgTimeMk += timer.getElapsed();
       timer.start();
     }
+    
+    m_raysWasSorted = false;
 
-    /*
-    EvalPT(kmlt.xVector, minBounce, maxBounce, m_rays.MEGABLOCKSIZE,
-           kmlt.xMultOneMinusAlpha); 
+    EvalPT(kmlt.xVector, kmlt.xZindex, minBounce, maxBounce, m_rays.MEGABLOCKSIZE,
+           kmlt.xMultOneMinusAlpha);
 
     if(measureTime)
     {
@@ -168,8 +169,11 @@ float GPUOCLLayer::KMLT_BurningIn(int minBounce, int maxBounce, int BURN_ITERS,
       avgTimeEv += timer.getElapsed();
       timer.start();
     }
-
-    // #TODO: unsort colors (!!!), thet are sorted ... // kmlt.xMultOneMinusAlpha {unsort} => kmlt.xColor
+    
+    // #TODO: instead of unsort colors you may get random generator state by index;
+    //
+    runKernel_UnsortColors(kmlt.xMultOneMinusAlpha, kmlt.xZindex, m_rays.MEGABLOCKSIZE, // both unsort and pack (x|y) to color.w
+                           kmlt.xColor);                                                                        
 
     runKernel_MLTEvalContribFunc(kmlt.xColor, 0, m_rays.MEGABLOCKSIZE,
                                  temp_f1);
@@ -190,7 +194,6 @@ float GPUOCLLayer::KMLT_BurningIn(int minBounce, int maxBounce, int BURN_ITERS,
     runKernel_MLTSelectSampleProportionalToContrib(kmlt.rndState1, nullptr, temp_f1, m_rays.MEGABLOCKSIZE, kmlt.rndState3, BURN_PORTION,
                                                    BURN_PORTION*iter, out_rstate, nullptr);                                        
     
-    */
 
     clFinish(m_globals.cmdQueue);
 
@@ -206,7 +209,7 @@ float GPUOCLLayer::KMLT_BurningIn(int minBounce, int maxBounce, int BURN_ITERS,
       std::cout.flush();
     }
 
-    //AddContributionToScreen(m_rays.pathAccColor, nullptr);
+    //AddContributionToScreen(kmlt.xColor, nullptr);
     
     // swap curr and new random generator states
     {
@@ -215,8 +218,6 @@ float GPUOCLLayer::KMLT_BurningIn(int minBounce, int maxBounce, int BURN_ITERS,
       kmlt.rndState3 = temp;
     }
   }
-
-  
 
   return 0.0f;
 }

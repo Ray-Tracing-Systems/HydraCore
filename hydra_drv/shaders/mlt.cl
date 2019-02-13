@@ -97,8 +97,10 @@ __kernel void MMLTSelectSampleProportionalToContrib(__global RandomGen*       re
   float pdf = 1.0f;
   const int foundIndex = SelectIndexPropToOpt(r0, in_samplesLum, arraySize-1, &pdf);
 
-  out_gens [offset + tid] = in_gens [foundIndex];
-  out_depth[offset + tid] = in_split[foundIndex].x;
+  out_gens[offset + tid] = in_gens[foundIndex];
+
+  if(in_split != 0 && out_depth != 0)
+    out_depth[offset + tid] = in_split[foundIndex].x;
 }
 
 
@@ -140,6 +142,28 @@ __kernel void MMLTMoveStatesByIndex(__global const int2*      restrict in_index,
     out_split[tid] = make_int2(d,d);
 }
 
+// #NOTE: Unsort operation is somewhat different to MoveSomethingByIndex (they are reverse)
+//
+__kernel void UnsortColors(__global const int2  * restrict in_index,  
+                           __global const float4* restrict in_color,
+                           __global       float4* restrict out_color,
+                           const int iNumElements)
+{
+  const int tid = GLOBAL_ID_X;
+  if (tid >= iNumElements)
+    return;
+  
+  const int2 index = in_index[tid];
+  
+  const int x = ExtractXFromZIndex (index.x); //  
+  const int y = ExtractYFromZIndex (index.x); // 
+  const int w = (y << 16) | x;
+
+  float4 color = in_color[tid]; 
+  color.w      = as_float(w);
+
+  out_color[index.y] = color;
+}
 
 inline int TabIndex(const int vertId, const int tid, const int iNumElements)
 {

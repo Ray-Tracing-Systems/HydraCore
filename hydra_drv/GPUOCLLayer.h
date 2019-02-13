@@ -593,6 +593,9 @@ protected:
   void runKernel_KMLTMakeProposal(cl_mem new_rndState, cl_mem in_vector, int in_forceLargeStep, size_t a_size,
                                   cl_mem old_rndState, cl_mem out_vector);
 
+  void runKernel_UnsortColors(cl_mem in_color, cl_mem in_zindex, size_t a_size,
+                              cl_mem out_color);                                  
+
   void MMLTUpdateAverageBrightnessConstants(int minBounce, cl_mem in_color, size_t a_size);
 
   void MMLTCheatThirdBounceContrib(cl_mem in_split, float a_multValue, size_t a_size,
