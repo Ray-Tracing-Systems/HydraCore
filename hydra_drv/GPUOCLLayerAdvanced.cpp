@@ -147,13 +147,13 @@ float GPUOCLLayer::KMLT_BurningIn(int minBounce, int maxBounce, int BURN_ITERS,
       timer.start();
     }
   
-    //runKernel_KMLTMakeProposal(kmlt.rndState1, nullptr, 1, m_rays.MEGABLOCKSIZE,
-    //                           kmlt.rndState3, kmlt.xVector);                      // kmlt.rndState1 => kmlt.xVector; kmlt.rndState1 should not change.
-    //                                                                               // new random generator state is written to kmlt.rndState3
+    runKernel_KMLTMakeProposal(kmlt.rndState1, nullptr, 1, m_rays.MEGABLOCKSIZE,
+                               kmlt.rndState3, kmlt.xVector, kmlt.xZindex);        // kmlt.rndState1 => kmlt.xVector; kmlt.rndState1 should not change.
+                                                                                   // new random generator state is written to kmlt.rndState3
 
-    assert(kmlt.maxBounceQMC != 0); 
-    runKernel_MakeEyeRaysQMC(m_rays.MEGABLOCKSIZE, m_passNumberForQMC,
-                             kmlt.xZindex, kmlt.xVector);
+    //assert(kmlt.maxBounceQMC != 0); 
+    //runKernel_MakeEyeRaysQMC(m_rays.MEGABLOCKSIZE, m_passNumberForQMC,
+    //                         kmlt.xZindex, kmlt.xVector);
       
     if(measureTime)
     {
@@ -235,9 +235,12 @@ float GPUOCLLayer::KMLT_BurningIn(int minBounce, int maxBounce, int BURN_ITERS,
 
 void GPUOCLLayer::KMLT_Pass(int a_passNumber, int minBounce, int maxBounce, int BURN_ITERS)
 {
+  auto oldFlagAndVars = m_vars;  // save all variables and flags
+
   if(kmlt.xVector == nullptr)
   {
     size_t mltMem = KMLT_Alloc(maxBounce);
+    kmlt.maxBonceKMLT = maxBounce;
 
     std::cout << "[AllocAll]: MEM(KMLT)   = " << mltMem / size_t(1024*1024) << "\tMB" << std::endl;  
     runKernel_ClearAllInternalTempBuffers(m_rays.MEGABLOCKSIZE);                  waitIfDebug(__FILE__, __LINE__);
@@ -249,8 +252,9 @@ void GPUOCLLayer::KMLT_Pass(int a_passNumber, int minBounce, int maxBounce, int 
     runKernel_InitRandomGen(kmlt.rndState2, m_rays.MEGABLOCKSIZE, 56789*GetTickCount());
   }
 
-  m_vars.m_varsI[HRT_KMLT_OR_QMC_LGT_BOUNCES] = kmlt.maxBounceQMC;
-  m_vars.m_varsI[HRT_KMLT_OR_QMC_MAT_BOUNCES] = kmlt.maxBounceQMC;
+  m_vars.m_flags |= HRT_INDIRECT_LIGHT_MODE; //
+  m_vars.m_varsI[HRT_KMLT_OR_QMC_LGT_BOUNCES] = 1; // # (!!!) HERE WE NEED TO SET CORRECT DEPTH !!!!
+  m_vars.m_varsI[HRT_KMLT_OR_QMC_MAT_BOUNCES] = 1; // # (!!!) HERE WE NEED TO SET CORRECT DEPTH !!!!
   UpdateVarsOnGPU();
 
   //if(m_spp < 1e-5f) // run init stage and burning in
@@ -285,6 +289,7 @@ void GPUOCLLayer::KMLT_Pass(int a_passNumber, int minBounce, int maxBounce, int 
   }
 
 
+  m_vars = oldFlagAndVars;
 }
 
 void GPUOCLLayer::MMLT_Pass(int a_passNumber, int minBounce, int maxBounce, int BURN_ITERS)

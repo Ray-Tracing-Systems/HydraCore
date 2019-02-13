@@ -92,6 +92,8 @@ void GPUOCLLayer::runKernel_MakeRaysFromEyeSam(cl_mem a_zindex, cl_mem a_samples
     m_raysWasSorted = true;                             // don't sort again when contribute to screen if 'a_setSortedFlag' is set.
   }
 
+  waitIfDebug(__FILE__, __LINE__);
+
   cl_kernel makeRaysKern = m_progs.screen.kernel("MakeEyeRaysUnifiedSampling");
 
   int packIndexForCPU    = m_screen.m_cpuFrameBuffer ? 1 : 0;

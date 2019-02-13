@@ -504,12 +504,13 @@ __kernel void MMLTMakeProposal(__global int2*            restrict a_split,
     out_gens[tid] = gen;
 }
 
-
 __kernel void KMLTMakeProposal(__global const RandomGen* restrict in_gens,
                                __global       RandomGen* restrict out_gens,     // save new random gen state here if it is not null
                                __global const float*     restrict in_samples,
                                __global       float*     restrict out_samples,  // save random numbers here if it is not null
+                               __global       int2*      restrict out_zindex,
                                __global const EngineGlobals* restrict a_globals,
+                               __constant ushort*            restrict a_mortonTable256,
                                int a_forceLargeStep,
                                int iNumElements)
 {
@@ -581,12 +582,35 @@ __kernel void KMLTMakeProposal(__global const RandomGen* restrict in_gens,
     top += 6;
   }
 
+  ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////// KMLT sample must also save coordinates
+  {
+    const float fwidth  = a_globals->varsF[HRT_WIDTH_F];
+    const float fheight = a_globals->varsF[HRT_HEIGHT_F];
+    
+    const int   w       = (int)fwidth;
+    const int   h       = (int)fheight;
+  
+    unsigned short x = (unsigned short)(lensOffs.x*fwidth);
+    unsigned short y = (unsigned short)(lensOffs.y*fheight);
+  
+    if (x >= w) x = w - 1;
+    if (y >= h) y = h - 1;
+  
+    if (x < 0)  x = 0;
+    if (y < 0)  y = 0;
+  
+    int2 indexToSort;
+    indexToSort.x = ZIndex(x, y, a_mortonTable256);
+    indexToSort.y = tid;
+  
+    out_zindex[tid] = indexToSort;
+  }
+  ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////// KMLT sample must also save coordinates
+
   if(out_gens != 0)
     out_gens[tid] = gen;
+
 }
-
-
-
 
 static inline MMLTReadMaterialBounceRands(__global const float* restrict in_numbers, int bounce, int tid, int iNumElements,
                                           __private float a_out[MMLT_FLOATS_PER_BOUNCE])

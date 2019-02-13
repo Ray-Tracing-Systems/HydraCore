@@ -591,7 +591,7 @@ protected:
 
 
   void runKernel_KMLTMakeProposal(cl_mem new_rndState, cl_mem in_vector, int in_forceLargeStep, size_t a_size,
-                                  cl_mem old_rndState, cl_mem out_vector);
+                                  cl_mem old_rndState, cl_mem out_vector, cl_mem out_zindex);
 
   void runKernel_UnsortColors(cl_mem in_color, cl_mem in_zindex, size_t a_size,
                               cl_mem out_color);                                  
