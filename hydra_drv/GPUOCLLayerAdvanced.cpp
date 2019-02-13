@@ -106,6 +106,111 @@ void GPUOCLLayer::DL_Pass(int a_maxBounce, int a_itersNum)
   m_sppDL += float(a_itersNum*m_rays.MEGABLOCKSIZE)/float(m_width*m_height);
 }
 
+
+float GPUOCLLayer::KMLT_BurningIn(int minBounce, int maxBounce, int BURN_ITERS,
+                                  cl_mem out_rstate)
+{
+  
+  if(kmlt.rndState1 == out_rstate)
+  {
+    std::cerr << "KMLT_BurningIn, wrong output buffer! Select (kmlt.rndState2) instead!" << std::endl;
+    std::cout << "KMLT_BurningIn, wrong output buffer! Select (kmlt.rndState2) instead!" << std::endl;
+    return 1.0f;
+  }
+  
+  // zero out_normC table because we are going to increment it via simulated floating points atomics ... 
+  cl_int ciErr1 = CL_SUCCESS;
+
+  const int BURN_PORTION = m_rays.MEGABLOCKSIZE/BURN_ITERS;
+
+  cl_mem temp_f1 = kmlt.yMultAlpha;  // #NOTE: well, that's not ok in general, but due to sizeof(int) < sizeof(float4) we can use this buffer temporary
+                                     // #NOTE: do you allocate enough memory for this buffer? --> seems yes (see inPlaceScanAnySize1f impl).
+                                     // #NOTE: current search will not work !!! It need size+1 array !!!  
+                                     // #NOTE: you can just set last element to size-2, not size-1. So it will work in this way.
+  double avgBrightness = 0.0;
+
+  double avgTimeMk     = 0.0;
+  double avgTimeEv     = 0.0;
+  double avgTimeCt     = 0.0;
+  double avgTimeSel    = 0.0;
+  Timer timer(false);
+  
+  const bool measureTime = false; 
+  
+  /*
+
+  std::cout << std::endl;
+  for(int iter=0; iter<BURN_ITERS;iter++)
+  {
+    if(measureTime)
+    {
+      clFinish(m_globals.cmdQueue);
+      timer.start();
+    }
+  
+    runKernel_KMLTMakeProposal(kmlt.rndState1, nullptr, 1, maxBounce, m_rays.MEGABLOCKSIZE,
+                               kmlt.rndState3, kmlt.xVector);
+
+    if(measureTime)
+    {
+      clFinish(m_globals.cmdQueue);
+      avgTimeMk += timer.getElapsed();
+      timer.start();
+    }
+
+    EvalPT(kmlt.xVector, minBounce, maxBounce, m_rays.MEGABLOCKSIZE,
+           kmlt.xColor);
+    
+    // (#TODO: unsort colors (!!!), thet are sorted ... ) // kmlt.xColor {unsort} => kmlt.xColor 
+
+    if(measureTime)
+    {
+      clFinish(m_globals.cmdQueue);
+      avgTimeEv += timer.getElapsed();
+      timer.start();
+    }
+
+    runKernel_MLTEvalContribFunc(kmlt.xColor, 0, m_rays.MEGABLOCKSIZE,
+                                 temp_f1);
+
+    if(measureTime)
+    {
+      clFinish(m_globals.cmdQueue);
+      avgTimeCt += timer.getElapsed();
+      timer.start();
+    }                                 
+    
+    avgBrightness += reduce_avg1f(temp_f1, m_rays.MEGABLOCKSIZE)*(1.0/double(BURN_ITERS));
+
+    inPlaceScanAnySize1f(temp_f1, m_rays.MEGABLOCKSIZE);
+
+    // select BURN_PORTION (rnd state) from (kmlt.rndState3) => out_rstate
+    // 
+    runKernel_MLTSelectSampleProportionalToContrib(kmlt.rndState3, nullptr, temp_f1, m_rays.MEGABLOCKSIZE, kmlt.rndState1, BURN_PORTION,
+                                                   BURN_PORTION*iter, m_mlt.rstateOld, nullptr);
+ 
+    clFinish(m_globals.cmdQueue);
+
+    if(measureTime)
+    {
+      avgTimeSel += timer.getElapsed();
+      timer.start();
+    }     
+    
+    if(iter%16 == 0)
+    {
+      std::cout << "MMLT Burning in, progress = " << 100.0f*float(iter)/float(BURN_ITERS) << "% \r";
+      std::cout.flush();
+    }
+
+    //AddContributionToScreen(m_rays.pathAccColor, nullptr);
+  }
+
+  */
+
+  return 0.0f;
+}
+
 void GPUOCLLayer::KMLT_Pass(int a_passNumber, int minBounce, int maxBounce, int BURN_ITERS)
 {
   if(kmlt.xVector == nullptr)
@@ -115,20 +220,48 @@ void GPUOCLLayer::KMLT_Pass(int a_passNumber, int minBounce, int maxBounce, int 
     std::cout << "[AllocAll]: MEM(KMLT)   = " << mltMem / size_t(1024*1024) << "\tMB" << std::endl;  
     runKernel_ClearAllInternalTempBuffers(m_rays.MEGABLOCKSIZE);                  waitIfDebug(__FILE__, __LINE__);
 
-    // memsetf4(kmlt.yMultAlpha,         float4(0,0,0,0), m_rays.MEGABLOCKSIZE, 0); waitIfDebug(__FILE__, __LINE__); // #TODO (!!!)
-    // memsetf4(kmlt.xMultOneMinusAlpha, float4(0,0,0,0), m_rays.MEGABLOCKSIZE, 0); waitIfDebug(__FILE__, __LINE__); // #TODO (!!!)
+    memsetf4(kmlt.yMultAlpha,         float4(0,0,0,0), m_rays.MEGABLOCKSIZE, 0); waitIfDebug(__FILE__, __LINE__); 
+    memsetf4(kmlt.xMultOneMinusAlpha, float4(0,0,0,0), m_rays.MEGABLOCKSIZE, 0); waitIfDebug(__FILE__, __LINE__); 
 
-    runKernel_InitRandomGen(kmlt.rndState1, m_rays.MEGABLOCKSIZE, 12345);
-    runKernel_InitRandomGen(kmlt.rndState2, m_rays.MEGABLOCKSIZE, 56789);
+    runKernel_InitRandomGen(kmlt.rndState1, m_rays.MEGABLOCKSIZE, 12345*GetTickCount());
+    runKernel_InitRandomGen(kmlt.rndState2, m_rays.MEGABLOCKSIZE, 56789*GetTickCount());
   }
-   
+
+  m_vars.m_varsI[HRT_KMLT_OR_QMC_LGT_BOUNCES] = kmlt.maxBounceQMC;
+  m_vars.m_varsI[HRT_KMLT_OR_QMC_MAT_BOUNCES] = kmlt.maxBounceQMC;
+  UpdateVarsOnGPU();
+
   if(m_spp < 1e-5f) // run init stage and burning in
-  {
-    // m_avgBrightness = KMLT_BurningIn(minBounce, maxBounce, BURN_ITERS ... );
-
+  { 
+    m_avgBrightness = KMLT_BurningIn(minBounce, maxBounce, BURN_ITERS,
+                                     kmlt.rndState2);
     
+    // MakeProposal(kmlt.rndState2)       => (kmlt.xVector, kmlt.xZindex) 
 
+    // EvalPT(kmlt.xVector, kmlt.xZindex) => kmlt.xColor
+
+    memsetf4(kmlt.yMultAlpha,         float4(0,0,0,0), m_rays.MEGABLOCKSIZE, 0); waitIfDebug(__FILE__, __LINE__); // because we can use tham inside KMLT_BurningIn
+    memsetf4(kmlt.xMultOneMinusAlpha, float4(0,0,0,0), m_rays.MEGABLOCKSIZE, 0); waitIfDebug(__FILE__, __LINE__); // because we can use tham inside KMLT_BurningIn
   }
+
+  for(int pass = 0; pass < a_passNumber; pass++)
+  {
+    // MakeProposal(kmlt.rndState1, kmlt.xVector, kmlt.xZindex) => (kmlt.yVector, kmlt.yZindex)  
+
+    // EvalPT(kmlt.yVector, kmlt.yZindex) => kmlt.yColor
+
+    // KMLT_AcceptReject(kmlt.xColor, kmlt.xZindex, kmlt.yColor, kmlt.yZindex, kmlt.rndState2, ... ) => (kmlt.xMultOneMinusAlpha, kmlt.yMultAlpha)
+
+    // if(m_screen.m_cpuFrameBuffer)
+    // {
+    //   int width, height;
+    //   float4* resultPtr = const_cast<float4*>(GetCPUScreenBuffer(0, width, height));
+    //  
+    //   AddContributionToScreenCPU2(kmlt.yMultAlpha, kmlt.xMultOneMinusAlpha, int(m_rays.MEGABLOCKSIZE), width, height,
+    //                               resultPtr);
+    // }
+  }
+
 
 }
 

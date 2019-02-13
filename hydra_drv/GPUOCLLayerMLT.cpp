@@ -65,6 +65,7 @@ void GPUOCLLayer::CL_KMLT_DATA::free()
 
   if(rndState1) { clReleaseMemObject(rndState1 ); rndState1 = nullptr; }
   if(rndState2) { clReleaseMemObject(rndState2 ); rndState2 = nullptr; }
+  //if(rndState3) { clReleaseMemObject(rndState3 ); rndState3 = nullptr; } // DO NOT FREE IT, this is same buffer as m_rays.randGenState!
 
   if(xMultOneMinusAlpha) { clReleaseMemObject(xMultOneMinusAlpha); xMultOneMinusAlpha = nullptr; } 
   if(yMultAlpha        ) { clReleaseMemObject(yMultAlpha);         yMultAlpha         = nullptr; }
@@ -135,6 +136,7 @@ size_t GPUOCLLayer::KMLT_Alloc(int a_maxBounce)
 
   kmlt.rndState1 = clCreateBuffer(m_globals.ctx, CL_MEM_READ_WRITE, sizeof(RandomGen)*m_rays.MEGABLOCKSIZE, NULL, &ciErr1);
   kmlt.rndState2 = clCreateBuffer(m_globals.ctx, CL_MEM_READ_WRITE, sizeof(RandomGen)*m_rays.MEGABLOCKSIZE, NULL, &ciErr1);
+  kmlt.rndState3 = m_rays.randGenState;
 
   if (ciErr1 != CL_SUCCESS)
     RUN_TIME_ERROR("[cl_core]: Failed to create kmlt.rndState1/kmlt.rndState2 ");
@@ -169,10 +171,10 @@ size_t GPUOCLLayer::MLT_Alloc(int a_maxBounce)
 
   srand(GetTickCount()); // #TODO: use some more precise system timer !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-  runKernel_InitRandomGen(m_mlt.rstateForAcceptReject, m_rays.MEGABLOCKSIZE, rand());
-  runKernel_InitRandomGen(m_mlt.rstateCurr,            m_rays.MEGABLOCKSIZE, rand());
-  runKernel_InitRandomGen(m_mlt.rstateOld,             m_rays.MEGABLOCKSIZE, rand());
-  runKernel_InitRandomGen(m_mlt.rstateNew,             m_rays.MEGABLOCKSIZE, rand());
+  runKernel_InitRandomGen(m_mlt.rstateForAcceptReject, m_rays.MEGABLOCKSIZE, rand()*GetTickCount());
+  runKernel_InitRandomGen(m_mlt.rstateCurr,            m_rays.MEGABLOCKSIZE, rand()*GetTickCount());
+  runKernel_InitRandomGen(m_mlt.rstateOld,             m_rays.MEGABLOCKSIZE, rand()*GetTickCount());
+  runKernel_InitRandomGen(m_mlt.rstateNew,             m_rays.MEGABLOCKSIZE, rand()*GetTickCount());
 
   const int MLT_RAND_NUMBERS_PER_BOUNCE = MMLT_HEAD_TOTAL_SIZE + MMLT_COMPRESSED_F_PERB*a_maxBounce; //randArraySizeOfDepthMMLT(a_maxBounce);
   m_vars.m_varsI[HRT_MLT_MAX_NUMBERS]   = MLT_RAND_NUMBERS_PER_BOUNCE;

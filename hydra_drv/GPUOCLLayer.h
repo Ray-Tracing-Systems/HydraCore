@@ -272,8 +272,9 @@ protected:
                      xVector(nullptr), yVector(nullptr), 
                      xZindex(nullptr), yZindex(nullptr),
                      xColor(nullptr),  yColor(nullptr),
+                     rndState1(nullptr), rndState2(nullptr), rndState3(nullptr),
                      maxBounceQMC(0), maxBonceKMLT(0),
-                    yMultAlpha(nullptr), xMultOneMinusAlpha(nullptr) { }
+                     yMultAlpha(nullptr), xMultOneMinusAlpha(nullptr) { }
 
     cl_mem xVectorQMC;  ///< vector that used for PT-QMC only
     cl_mem currVec;     ///< points to some real vec (xVector|yVector); does not consume memory
@@ -288,6 +289,7 @@ protected:
 
     cl_mem rndState1;
     cl_mem rndState2;
+    cl_mem rndState3;
 
     cl_mem yMultAlpha;
     cl_mem xMultOneMinusAlpha;
@@ -541,6 +543,10 @@ protected:
   void  KMLT_Pass(int a_passNumber, int minBounce, int maxBounce, int BURN_ITERS);
 
   void  SBDPT_Pass(int minBounce, int maxBounce, int ITERS);
+
+  float KMLT_BurningIn(int minBounce, int maxBounce, int BURN_ITERS,
+                       cl_mem out_rstate);
+
   float MMLT_BurningIn(int minBounce, int maxBounce, int BURN_ITERS,
                        cl_mem out_rstate, cl_mem out_dsplit, cl_mem out_split2, cl_mem out_normC, std::vector<int>& out_activeThreads);
 
