@@ -277,11 +277,11 @@ void GPUOCLLayer::SetAllInstIdToRemapId(const int* a_allInstId, int a_instNum)
     RUN_TIME_ERROR("GPUOCLLayer::SetAllInstLightInstId: Error in clCreateBuffer / clEnqueueWriteBuffer");
 }
 
-void GPUOCLLayer::UpdateVarsOnGPU()
+void GPUOCLLayer::UpdateVarsOnGPU(const AllRenderVarialbes& a_inVars)
 {
-  memcpy(m_globsBuffHeader.varsI, m_vars.m_varsI, sizeof(int)*GMAXVARS);
-  memcpy(m_globsBuffHeader.varsF, m_vars.m_varsF, sizeof(float)*GMAXVARS);
-  m_globsBuffHeader.g_flags = m_vars.m_flags;
+  memcpy(m_globsBuffHeader.varsI, a_inVars.m_varsI, sizeof(int)*GMAXVARS);
+  memcpy(m_globsBuffHeader.varsF, a_inVars.m_varsF, sizeof(float)*GMAXVARS);
+  m_globsBuffHeader.g_flags     = a_inVars.m_flags;
   CHECK_CL(clEnqueueWriteBuffer(m_globals.cmdQueue, m_scene.allGlobsData, CL_TRUE, 0, sizeof(EngineGlobals), &m_globsBuffHeader, 0, NULL, NULL));  // put m_globsBuffHeader to the beggining of the buffer
 }
 

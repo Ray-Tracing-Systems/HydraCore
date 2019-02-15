@@ -62,7 +62,7 @@ void GPUOCLLayer::DL_Pass(int a_maxBounce, int a_itersNum)
 
   m_vars.m_flags &= (~HRT_ENABLE_MMLT);
   m_vars.m_flags |= (HRT_UNIFIED_IMAGE_SAMPLING | HRT_DIRECT_LIGHT_MODE);  // #TODO: add QMC mode if enabled (experimental, only for 1 GPU !!!)
-  UpdateVarsOnGPU();
+  UpdateVarsOnGPU(m_vars);
 
   for(int iter = 0; iter < a_itersNum; iter++)
   {
@@ -70,7 +70,7 @@ void GPUOCLLayer::DL_Pass(int a_maxBounce, int a_itersNum)
     
     m_vars.m_varsI[HRT_KMLT_OR_QMC_LGT_BOUNCES] = kmlt.maxBounceQMC;
     m_vars.m_varsI[HRT_KMLT_OR_QMC_MAT_BOUNCES] = kmlt.maxBounceQMC;
-    UpdateVarsOnGPU();
+    UpdateVarsOnGPU(m_vars);
 
     if(kmlt.maxBounceQMC != 0) 
     {
@@ -101,7 +101,7 @@ void GPUOCLLayer::DL_Pass(int a_maxBounce, int a_itersNum)
   m_vars.m_varsI[HRT_KMLT_OR_QMC_LGT_BOUNCES] = 0;
   m_vars.m_varsI[HRT_KMLT_OR_QMC_MAT_BOUNCES] = 0;
   m_vars.m_flags                              = oldFlags;
-  UpdateVarsOnGPU();
+  UpdateVarsOnGPU(m_vars);
 
   m_sppDL += float(a_itersNum*m_rays.MEGABLOCKSIZE)/float(m_width*m_height);
 }
@@ -239,7 +239,7 @@ void GPUOCLLayer::KMLT_Pass(int a_passNumber, int minBounce, int maxBounce, int 
 
   if(kmlt.xVector == nullptr)
   {
-    size_t mltMem = KMLT_Alloc(maxBounce);
+    size_t mltMem     = KMLT_Alloc(maxBounce);
     kmlt.maxBonceKMLT = maxBounce;
 
     std::cout << "[AllocAll]: MEM(KMLT)   = " << mltMem / size_t(1024*1024) << "\tMB" << std::endl;  
@@ -255,9 +255,9 @@ void GPUOCLLayer::KMLT_Pass(int a_passNumber, int minBounce, int maxBounce, int 
   // this is essential for KMLT/PT pass to properly work
   //
   m_vars.m_flags |= HRT_INDIRECT_LIGHT_MODE;                       // evaluate indirect light only
-  m_vars.m_varsI[HRT_KMLT_OR_QMC_LGT_BOUNCES] = kmlt.maxBonceKMLT; // get random numbers from input vector with until this bounce; other are random uniform;
-  m_vars.m_varsI[HRT_KMLT_OR_QMC_MAT_BOUNCES] = kmlt.maxBonceKMLT; // get random numbers from input vector with until this bounce; other are random uniform;
-  UpdateVarsOnGPU();
+  m_vars.m_varsI[HRT_KMLT_OR_QMC_LGT_BOUNCES] = kmlt.maxBonceKMLT; // get random numbers from input vector until this bounce; other are pseudo random;
+  m_vars.m_varsI[HRT_KMLT_OR_QMC_MAT_BOUNCES] = kmlt.maxBonceKMLT; // get random numbers from input vector until this bounce; other are pseudo random;
+  UpdateVarsOnGPU(m_vars);
 
   //if(m_spp < 1e-5f) // run init stage and burning in
   //{ 

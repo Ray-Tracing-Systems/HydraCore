@@ -1234,23 +1234,23 @@ void GPUOCLLayer::BeginTracingPass()
     {
       m_vars.m_varsI[HRT_KMLT_OR_QMC_LGT_BOUNCES] = 0;  // explicit disable reading random numbers from buffer
       m_vars.m_varsI[HRT_KMLT_OR_QMC_MAT_BOUNCES] = 0;
-      UpdateVarsOnGPU();
+      UpdateVarsOnGPU(m_vars);
 
       EvalLT(nullptr, minBounce, maxBounce, m_rays.MEGABLOCKSIZE, 
              m_rays.pathAccColor);
     }
-    //else
-    //{ 
-    //  KMLT_Pass(NUM_MMLT_PASS, minBounce, maxBounce, BURN_ITERS);
-    //}
-    else                                                // PT 
+    else
+    { 
+      KMLT_Pass(NUM_MMLT_PASS, minBounce, maxBounce, BURN_ITERS);
+    }
+    /*else                                                // PT 
     { 
       //m_vars.m_flags |= HRT_INDIRECT_LIGHT_MODE; // for test
       //m_vars.m_flags |= HRT_DIRECT_LIGHT_MODE;   // for test
      
       m_vars.m_varsI[HRT_KMLT_OR_QMC_LGT_BOUNCES] = kmlt.maxBounceQMC;
       m_vars.m_varsI[HRT_KMLT_OR_QMC_MAT_BOUNCES] = kmlt.maxBounceQMC;
-      UpdateVarsOnGPU();
+      UpdateVarsOnGPU(m_vars);
 
       if(kmlt.maxBounceQMC != 0) 
       {
@@ -1267,7 +1267,7 @@ void GPUOCLLayer::BeginTracingPass()
              m_rays.pathAccColor);
 
       AddContributionToScreen(m_rays.pathAccColor, m_rays.samZindex);
-    }
+    }*/
     
   }
   else if(!m_screen.m_cpuFrameBuffer)
