@@ -203,7 +203,14 @@ void GPUOCLLayer::trace1D_Fwd(int a_minBounce, int a_maxBounce, cl_mem a_rpos, c
 
 void GPUOCLLayer::EvalPT(cl_mem in_xVector, cl_mem in_zind, int minBounce, int maxBounce, size_t a_size,
                          cl_mem a_outColor)
-{
+{ 
+  // This is important fix due to dead threads on last state (black env) could contrib old values (!!!)
+  // Thus, you have to clear 'kmlt.xMultOneMinusAlpha' as trace1D_Rev result because trace1D_Rev _always_ do "+=" operation on result buffer.
+  // 
+  memsetf4(a_outColor, float4(0,0,0,0), m_rays.MEGABLOCKSIZE, 0); 
+  
+  // create rays from 'in_xVector' samples
+  //
   runKernel_MakeRaysFromEyeSam(in_zind, in_xVector, m_rays.MEGABLOCKSIZE, m_passNumberForQMC,
                                m_rays.rayPos, m_rays.rayDir);
    

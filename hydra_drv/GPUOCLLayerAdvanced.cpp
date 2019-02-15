@@ -160,11 +160,6 @@ float GPUOCLLayer::KMLT_BurningIn(int minBounce, int maxBounce, int BURN_ITERS,
       timer.start();
     }
     
-    // This is important fix due to dead threads on last state (black env) could contrib old values (!!!)
-    // Thus, you have to clear 'kmlt.xMultOneMinusAlpha' as EvalPT result because EvalPT _always_ do "+=" operation on result buffer. #TODO: move clear inside ??? 
-    // 
-    memsetf4(kmlt.xMultOneMinusAlpha, float4(0,0,0,0), m_rays.MEGABLOCKSIZE, 0); 
-
     EvalPT(kmlt.xVector, kmlt.xZindex, minBounce, maxBounce, m_rays.MEGABLOCKSIZE,
            kmlt.xMultOneMinusAlpha);
 
