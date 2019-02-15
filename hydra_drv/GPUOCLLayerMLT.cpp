@@ -304,6 +304,26 @@ void GPUOCLLayer::runKernel_MLTEvalContribFunc(cl_mem in_buff, size_t a_offset, 
   waitIfDebug(__FILE__, __LINE__);
 }
 
+void GPUOCLLayer::runKernel_MLTEvalContribIndexedFunc(cl_mem in_buff, cl_mem in_indexBuff, size_t a_offset, size_t a_size,
+                                                      cl_mem out_buff)
+{
+  cl_kernel kernX      = m_progs.mlt.kernel("MMLTEvalContribIndexedFunc");
+
+  size_t localWorkSize = 256;
+  int            isize = int(a_size);
+  int            ioffs = int(a_offset);
+  a_size               = roundBlocks(a_size, int(localWorkSize));
+  
+  CHECK_CL(clSetKernelArg(kernX, 0, sizeof(cl_mem), (void*)&in_buff));
+  CHECK_CL(clSetKernelArg(kernX, 1, sizeof(cl_mem), (void*)&in_indexBuff));
+  CHECK_CL(clSetKernelArg(kernX, 2, sizeof(cl_mem), (void*)&out_buff));
+  CHECK_CL(clSetKernelArg(kernX, 3, sizeof(cl_int), (void*)&ioffs));
+  CHECK_CL(clSetKernelArg(kernX, 4, sizeof(cl_int), (void*)&isize));
+
+  CHECK_CL(clEnqueueNDRangeKernel(m_globals.cmdQueue, kernX, 1, NULL, &a_size, &localWorkSize, 0, NULL, NULL));
+  waitIfDebug(__FILE__, __LINE__);
+}
+
 void GPUOCLLayer::MMLTCheatThirdBounceContrib(cl_mem in_split, float a_multValue, size_t a_size,
                                               cl_mem a_contrib1f)
 {
