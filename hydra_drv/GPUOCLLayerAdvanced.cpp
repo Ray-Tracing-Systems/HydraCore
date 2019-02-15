@@ -251,10 +251,12 @@ void GPUOCLLayer::KMLT_Pass(int a_passNumber, int minBounce, int maxBounce, int 
     runKernel_InitRandomGen(kmlt.rndState1, m_rays.MEGABLOCKSIZE, 12345*GetTickCount()*rand());
     runKernel_InitRandomGen(kmlt.rndState2, m_rays.MEGABLOCKSIZE, 56789*GetTickCount()*rand());
   }
-
-  m_vars.m_flags |= HRT_INDIRECT_LIGHT_MODE;       // evaluate indirect light only
-  m_vars.m_varsI[HRT_KMLT_OR_QMC_LGT_BOUNCES] = 1; // # (!!!) HERE WE NEED TO SET CORRECT DEPTH !!!!
-  m_vars.m_varsI[HRT_KMLT_OR_QMC_MAT_BOUNCES] = 1; // # (!!!) HERE WE NEED TO SET CORRECT DEPTH !!!!
+  
+  // this is essential for KMLT/PT pass to properly work
+  //
+  m_vars.m_flags |= HRT_INDIRECT_LIGHT_MODE;                       // evaluate indirect light only
+  m_vars.m_varsI[HRT_KMLT_OR_QMC_LGT_BOUNCES] = kmlt.maxBonceKMLT; // get random numbers from input vector with until this bounce; other are random uniform;
+  m_vars.m_varsI[HRT_KMLT_OR_QMC_MAT_BOUNCES] = kmlt.maxBonceKMLT; // get random numbers from input vector with until this bounce; other are random uniform;
   UpdateVarsOnGPU();
 
   //if(m_spp < 1e-5f) // run init stage and burning in

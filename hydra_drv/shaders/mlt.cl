@@ -539,7 +539,7 @@ __kernel void KMLTMakeProposal(__global const RandomGen* restrict in_gens,
   out_samples[blobOffset + 3] = lensOffs.w;
 
   int top = 4;
-  for(int lightB=0; lightB < a_globals->varsI[HRT_KMLT_OR_QMC_LGT_BOUNCES]; lightB += 4)
+  for(int lightB=0; lightB < a_globals->varsI[HRT_KMLT_OR_QMC_LGT_BOUNCES]; lightB++)
   {
     float4 data = rndFloat4_Pseudo(&gen);
 
@@ -558,7 +558,7 @@ __kernel void KMLTMakeProposal(__global const RandomGen* restrict in_gens,
     top += 4;
   }
 
-  for(int matB=0; matB < a_globals->varsI[HRT_KMLT_OR_QMC_MAT_BOUNCES]; matB += 6)
+  for(int matB=0; matB < a_globals->varsI[HRT_KMLT_OR_QMC_MAT_BOUNCES]; matB++)
   { 
     float6_gr gr1f;
     gr1f.group24 = rndFloat4_Pseudo(&gen);
