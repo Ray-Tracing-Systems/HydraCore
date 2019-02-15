@@ -150,10 +150,6 @@ float GPUOCLLayer::KMLT_BurningIn(int minBounce, int maxBounce, int BURN_ITERS,
     runKernel_KMLTMakeProposal(kmlt.rndState1, nullptr, 1, m_rays.MEGABLOCKSIZE,
                                kmlt.rndState3, kmlt.xVector, kmlt.xZindex);        // kmlt.rndState1 => kmlt.xVector; kmlt.rndState1 should not change.
                                                                                    // new random generator state is written to kmlt.rndState3
-
-    //assert(kmlt.maxBounceQMC != 0); 
-    //runKernel_MakeEyeRaysQMC(m_rays.MEGABLOCKSIZE, m_passNumberForQMC,
-    //                         kmlt.xZindex, kmlt.xVector);
       
     if(measureTime)
     {
@@ -172,13 +168,13 @@ float GPUOCLLayer::KMLT_BurningIn(int minBounce, int maxBounce, int BURN_ITERS,
       timer.start();
     }
     
-    /*
-
     // #TODO: instead of unsort colors you may get random generator state by index;
     //
+
     runKernel_UnsortColors(kmlt.xMultOneMinusAlpha, kmlt.xZindex, m_rays.MEGABLOCKSIZE, // both unsort and pack (x|y) to color.w
                            kmlt.xColor);                                                                        
 
+    /*
     runKernel_MLTEvalContribFunc(kmlt.xColor, 0, m_rays.MEGABLOCKSIZE,
                                  temp_f1);
 
@@ -214,8 +210,8 @@ float GPUOCLLayer::KMLT_BurningIn(int minBounce, int maxBounce, int BURN_ITERS,
       std::cout.flush();
     }
 
-    //AddContributionToScreen(kmlt.xColor, nullptr);
-    AddContributionToScreen(kmlt.xMultOneMinusAlpha, kmlt.xZindex);
+    AddContributionToScreen(kmlt.xColor, nullptr, false, 0, false);
+    //AddContributionToScreen(kmlt.xMultOneMinusAlpha, kmlt.xZindex);
 
     // swap curr and new random generator states
     {
@@ -244,9 +240,6 @@ void GPUOCLLayer::KMLT_Pass(int a_passNumber, int minBounce, int maxBounce, int 
 
     std::cout << "[AllocAll]: MEM(KMLT)   = " << mltMem / size_t(1024*1024) << "\tMB" << std::endl;  
     runKernel_ClearAllInternalTempBuffers(m_rays.MEGABLOCKSIZE);                  waitIfDebug(__FILE__, __LINE__);
-
-    memsetf4(kmlt.yMultAlpha,         float4(0,0,0,0), m_rays.MEGABLOCKSIZE, 0); waitIfDebug(__FILE__, __LINE__); 
-    memsetf4(kmlt.xMultOneMinusAlpha, float4(0,0,0,0), m_rays.MEGABLOCKSIZE, 0); waitIfDebug(__FILE__, __LINE__); 
 
     runKernel_InitRandomGen(kmlt.rndState1, m_rays.MEGABLOCKSIZE, 12345*GetTickCount()*rand());
     runKernel_InitRandomGen(kmlt.rndState2, m_rays.MEGABLOCKSIZE, 56789*GetTickCount()*rand());

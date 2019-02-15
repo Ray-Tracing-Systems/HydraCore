@@ -8,7 +8,7 @@
 
 #include "../../HydraAPI/hydra_api/ssemath.h"
 
-void GPUOCLLayer::AddContributionToScreen(cl_mem& in_color, cl_mem in_indices, bool a_copyToLDRNow, int a_layerId)
+void GPUOCLLayer::AddContributionToScreen(cl_mem& in_color, cl_mem in_indices, bool a_copyToLDRNow, int a_layerId, bool a_repackIndex)
 {
   if (m_screen.m_cpuFrameBuffer)
   { 
@@ -18,7 +18,7 @@ void GPUOCLLayer::AddContributionToScreen(cl_mem& in_color, cl_mem in_indices, b
     assert(resultPtr != nullptr);
 
     AddContributionToScreenCPU(in_color, int(m_rays.MEGABLOCKSIZE), width, height,
-                               resultPtr);
+                               resultPtr, a_repackIndex);
   }
   else
   {
@@ -164,7 +164,7 @@ void GPUOCLLayer::AddContributionToScreenCPU2(cl_mem& in_color, cl_mem& in_color
   m_passNumber++;
 }
 
-void GPUOCLLayer::AddContributionToScreenCPU(cl_mem& in_color, int a_size, int a_width, int a_height, float4* out_color)
+void GPUOCLLayer::AddContributionToScreenCPU(cl_mem& in_color, int a_size, int a_width, int a_height, float4* out_color, bool repackIndex)
 {
   // (1) compute compressed index in color.w; use runKernel_MakeEyeRaysAndClearUnified for that task if CPU FB is enabled!!!
   //
@@ -172,8 +172,8 @@ void GPUOCLLayer::AddContributionToScreenCPU(cl_mem& in_color, int a_size, int a
   cl_int iNumElements    = cl_int(a_size);
   size_t size            = roundBlocks(size_t(a_size), int(szLocalWorkSize));
 
-  if ((m_vars.m_flags & HRT_FORWARD_TRACING) == 0 && 
-      (m_vars.m_flags & HRT_ENABLE_MMLT)     == 0) // lt/mmlt already pack index to color, so, don't do that again!!!
+  if (repackIndex && (m_vars.m_flags & HRT_FORWARD_TRACING) == 0 && 
+                     (m_vars.m_flags & HRT_ENABLE_MMLT)     == 0) // lt/mmlt already pack index to color, so, don't do that again!!!
   {
     cl_kernel kern = m_progs.screen.kernel("PackIndexToColorW");
 

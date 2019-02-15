@@ -47,7 +47,7 @@ public:
   void PrepareEngineGlobals();
   void PrepareEngineTables();
   
-  void UpdateVarsOnGPU();
+  void UpdateVarsOnGPU(const AllRenderVarialbes& a_inVars);
 
 
   void GetLDRImage(uint* data, int width, int height) const;
@@ -141,18 +141,19 @@ protected:
   void AddContributionToScreenGPU(cl_mem in_color, cl_mem in_indices, int a_size, int a_width, int a_height, int a_spp, bool a_copyToLDRNow,
                                   cl_mem out_colorHDR, cl_mem out_colorLDR);
 
-  void AddContributionToScreenCPU(cl_mem& in_color, int a_size, int a_width, int a_height, float4* out_color);
+  void AddContributionToScreenCPU(cl_mem& in_color, int a_size, int a_width, int a_height, float4* out_color, bool repackIndex = true);
   void AddContributionToScreenCPU2(cl_mem& in_color, cl_mem& in_color2, int a_size, int a_width, int a_height, float4* out_color);
 
   float EstimateMLTNormConst(const float4* data, int width, int height) const;
  
   /** \brief implements "add" contribution from in_color to screen buffer (just add values!!!) 
   * 
-  * \param in_color   - in float4 buffer; in_color[i].xyz - color; as_int(in_color[i].w) - packed (x,y) where to contribute (accounted only if in_indices is nullptr or CPU fra,ebuffer is ised)
-  * \param in_indices - in int2 (zindex, oldIndex) coord; may be nullptr; in this case coord will ba taken from as_int(in_color[i].w) - packed (x,y) where to contribute
+  * \param in_color       - in float4 buffer; in_color[i].xyz - color; as_int(in_color[i].w) - packed (x,y) where to contribute (accounted only if in_indices is nullptr or CPU fra,ebuffer is ised)
+  * \param in_indices     - in int2 (zindex, oldIndex) coord; may be nullptr; in this case coord will ba taken from as_int(in_color[i].w) - packed (x,y) where to contribute
   * \param a_copyToLDRNow - in flag for update LDR image on GPU in current pass (current AddContributionToScreen call)
+  * \param a_repackIndex  - in flag for pack (y << 16|x) to color.w again inside this function.
   */
-  void AddContributionToScreen   (cl_mem& in_color, cl_mem in_indices, bool a_copyToLDRNow = true, int a_layerId = 0);
+  void AddContributionToScreen (cl_mem& in_color, cl_mem in_indices, bool a_copyToLDRNow = true, int a_layerId = 0, bool a_repackIndex = true);
 
   std::vector<uchar4> NormalMapFromDisplacement(int w, int h, const uchar4* a_data, float bumpAmt, bool invHeight, float smoothLvl);
   void Denoise(cl_mem textureIn, cl_mem textureOut, int w, int h, float smoothLvl);
