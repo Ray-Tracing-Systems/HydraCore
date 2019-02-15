@@ -109,8 +109,8 @@ size_t GPUOCLLayer::MLT_Alloc_For_PT_QMC(int a_maxBounce, cl_mem& a_vecQmc)
 size_t GPUOCLLayer::KMLT_Alloc(int a_maxBounce)
 {
   const int MLT_RAND_NUMBERS_PER_BOUNCE = KMLT_HEAD_SIZE + \
-                                          KMLT_PER_LIGHT*kmlt.maxBounceQMC + \
-                                          KMLT_PER_MATERIAL*kmlt.maxBounceQMC;
+                                          KMLT_PER_LIGHT*a_maxBounce + \
+                                          KMLT_PER_MATERIAL*a_maxBounce;
   
   const size_t randsBuffSize = (MLT_RAND_NUMBERS_PER_BOUNCE*sizeof(float))*m_rays.MEGABLOCKSIZE;
 
@@ -141,11 +141,14 @@ size_t GPUOCLLayer::KMLT_Alloc(int a_maxBounce)
   if (ciErr1 != CL_SUCCESS)
     RUN_TIME_ERROR("[cl_core]: Failed to create kmlt.rndState1/kmlt.rndState2 ");
 
-  kmlt.xMultOneMinusAlpha  = clCreateBuffer(m_globals.ctx, CL_MEM_READ_WRITE, sizeof(float4)*m_rays.MEGABLOCKSIZE, NULL, &ciErr1);
-  kmlt.yMultAlpha          = clCreateBuffer(m_globals.ctx, CL_MEM_READ_WRITE, sizeof(float4)*m_rays.MEGABLOCKSIZE, NULL, &ciErr1);
+  kmlt.xMultOneMinusAlpha = clCreateBuffer(m_globals.ctx, CL_MEM_READ_WRITE, sizeof(float4)*m_rays.MEGABLOCKSIZE, NULL, &ciErr1);
+  kmlt.yMultAlpha         = clCreateBuffer(m_globals.ctx, CL_MEM_READ_WRITE, sizeof(float4)*m_rays.MEGABLOCKSIZE, NULL, &ciErr1);
 
   if (ciErr1 != CL_SUCCESS)
     RUN_TIME_ERROR("[cl_core]: Failed to create kmlt.xMultOneMinusAlpha/kmlt.yMultAlpha ");
+  
+  if(!scan_alloc_internal(m_rays.MEGABLOCKSIZE, m_globals.ctx))
+    RUN_TIME_ERROR("Error in scan_alloc_internal");
 
   return 2*(randsBuffSize + m_rays.MEGABLOCKSIZE*( sizeof(int2) + 2*sizeof(float4) + sizeof(RandomGen) ) );
 }
@@ -252,7 +255,8 @@ size_t GPUOCLLayer::MLT_Alloc(int a_maxBounce)
     RUN_TIME_ERROR("Error in clCreateBuffer");
   m_mlt.memTaken += 4*sizeof(float)*m_rays.MEGABLOCKSIZE; 
 
-  return m_mlt.memTaken;
+  return m_mlt.memTaken;if(!scan_alloc_internal(m_rays.MEGABLOCKSIZE, m_globals.ctx))
+    RUN_TIME_ERROR("Error in scan_alloc_internal");
 }
 
 void GPUOCLLayer::MLT_Free()
@@ -495,7 +499,7 @@ void GPUOCLLayer::runKernel_MMLTMakeProposal(cl_mem in_rgen, cl_mem in_vec, cl_i
 }
 
 void GPUOCLLayer::runKernel_KMLTMakeProposal(cl_mem in_rgen, cl_mem in_vec, int a_largeStep, size_t a_size,
-                                             cl_mem out_rgen, cl_mem out_vec)
+                                             cl_mem out_rgen, cl_mem out_vec, cl_mem out_zindex)
 {
   cl_kernel kernX      = m_progs.mlt.kernel("KMLTMakeProposal");
 
@@ -507,14 +511,34 @@ void GPUOCLLayer::runKernel_KMLTMakeProposal(cl_mem in_rgen, cl_mem in_vec, int 
   CHECK_CL(clSetKernelArg(kernX, 1, sizeof(cl_mem), (void*)&out_rgen));
   CHECK_CL(clSetKernelArg(kernX, 2, sizeof(cl_mem), (void*)&in_vec));
   CHECK_CL(clSetKernelArg(kernX, 3, sizeof(cl_mem), (void*)&out_vec));
-  CHECK_CL(clSetKernelArg(kernX, 4, sizeof(cl_mem), (void*)&m_scene.allGlobsData));
-  CHECK_CL(clSetKernelArg(kernX, 5, sizeof(cl_int), (void*)&a_largeStep));
-  CHECK_CL(clSetKernelArg(kernX, 6, sizeof(cl_int), (void*)&isize));
+  CHECK_CL(clSetKernelArg(kernX, 4, sizeof(cl_mem), (void*)&out_zindex));
+  CHECK_CL(clSetKernelArg(kernX, 5, sizeof(cl_mem), (void*)&m_scene.allGlobsData));
+  CHECK_CL(clSetKernelArg(kernX, 6, sizeof(cl_mem), (void*)&m_globals.cMortonTable));
+  CHECK_CL(clSetKernelArg(kernX, 7, sizeof(cl_int), (void*)&a_largeStep));
+  CHECK_CL(clSetKernelArg(kernX, 8, sizeof(cl_int), (void*)&isize));
 
   CHECK_CL(clEnqueueNDRangeKernel(m_globals.cmdQueue, kernX, 1, NULL, &a_size, &localWorkSize, 0, NULL, NULL));
   waitIfDebug(__FILE__, __LINE__);
   
-}                               
+}     
+
+void GPUOCLLayer::runKernel_UnsortColors(cl_mem in_color, cl_mem in_zindex, size_t a_size,
+                                         cl_mem out_color)
+{
+  cl_kernel kernX      = m_progs.mlt.kernel("UnsortColors");
+
+  size_t localWorkSize = 256;
+  int            isize = int(a_size);
+  a_size               = roundBlocks(a_size, int(localWorkSize));
+ 
+  CHECK_CL(clSetKernelArg(kernX, 0, sizeof(cl_mem), (void*)&in_zindex));
+  CHECK_CL(clSetKernelArg(kernX, 1, sizeof(cl_mem), (void*)&in_color));
+  CHECK_CL(clSetKernelArg(kernX, 2, sizeof(cl_mem), (void*)&out_color));
+  CHECK_CL(clSetKernelArg(kernX, 3, sizeof(cl_int), (void*)&isize));
+
+  CHECK_CL(clEnqueueNDRangeKernel(m_globals.cmdQueue, kernX, 1, NULL, &a_size, &localWorkSize, 0, NULL, NULL));
+  waitIfDebug(__FILE__, __LINE__);
+}
 
 void GPUOCLLayer::runKernel_MMLTMakeEyeRays(size_t a_size,
                                             cl_mem a_rpos, cl_mem a_rdir, cl_mem a_zindex)

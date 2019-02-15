@@ -248,11 +248,11 @@ void GPUOCLLayer::KMLT_Pass(int a_passNumber, int minBounce, int maxBounce, int 
     memsetf4(kmlt.yMultAlpha,         float4(0,0,0,0), m_rays.MEGABLOCKSIZE, 0); waitIfDebug(__FILE__, __LINE__); 
     memsetf4(kmlt.xMultOneMinusAlpha, float4(0,0,0,0), m_rays.MEGABLOCKSIZE, 0); waitIfDebug(__FILE__, __LINE__); 
 
-    runKernel_InitRandomGen(kmlt.rndState1, m_rays.MEGABLOCKSIZE, 12345*GetTickCount());
-    runKernel_InitRandomGen(kmlt.rndState2, m_rays.MEGABLOCKSIZE, 56789*GetTickCount());
+    runKernel_InitRandomGen(kmlt.rndState1, m_rays.MEGABLOCKSIZE, 12345*GetTickCount()*rand());
+    runKernel_InitRandomGen(kmlt.rndState2, m_rays.MEGABLOCKSIZE, 56789*GetTickCount()*rand());
   }
 
-  m_vars.m_flags |= HRT_INDIRECT_LIGHT_MODE; //
+  m_vars.m_flags |= HRT_INDIRECT_LIGHT_MODE;       // evaluate indirect light only
   m_vars.m_varsI[HRT_KMLT_OR_QMC_LGT_BOUNCES] = 1; // # (!!!) HERE WE NEED TO SET CORRECT DEPTH !!!!
   m_vars.m_varsI[HRT_KMLT_OR_QMC_MAT_BOUNCES] = 1; // # (!!!) HERE WE NEED TO SET CORRECT DEPTH !!!!
   UpdateVarsOnGPU();
