@@ -89,7 +89,6 @@ void GPUOCLLayer::runKernel_MakeRaysFromEyeSam(cl_mem a_zindex, cl_mem a_samples
     sortArgs.dev          = m_globals.device;
     
     bitonic_sort_gpu(a_zindex, int(a_size), sortArgs);
-    m_raysWasSorted = true;                             // don't sort again when contribute to screen if 'a_setSortedFlag' is set.
   }
 
   waitIfDebug(__FILE__, __LINE__);
@@ -294,7 +293,6 @@ void GPUOCLLayer::AddContributionToScreenGPU(cl_mem in_color,     cl_mem in_indi
 {
   // (3) sort references
   //
-  if (!m_raysWasSorted)
   {
     BitonicCLArgs sortArgs;
     sortArgs.bitonicPassK = m_progs.sort.kernel("bitonic_pass_kernel");
@@ -307,7 +305,7 @@ void GPUOCLLayer::AddContributionToScreenGPU(cl_mem in_color,     cl_mem in_indi
     bitonic_sort_gpu(in_indices, int(m_rays.MEGABLOCKSIZE), sortArgs);
   }
 
-  int alreadySorted = m_raysWasSorted ? 1 : 0;
+  int alreadySorted = 0;
 
   // (4) run contrib kernel
   //
@@ -335,8 +333,6 @@ void GPUOCLLayer::AddContributionToScreenGPU(cl_mem in_color,     cl_mem in_indi
 
   CHECK_CL(clEnqueueNDRangeKernel(m_globals.cmdQueue, contribKern, 2, NULL, global_item_size, local_item_size, 0, NULL, NULL));
   waitIfDebug(__FILE__, __LINE__);
-
-  m_raysWasSorted = false;
   
   // recalculate LDR image rely on normalisation constants
   // 

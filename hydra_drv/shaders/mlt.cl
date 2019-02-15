@@ -519,9 +519,8 @@ __kernel void KMLTMakeProposal(__global const RandomGen* restrict in_gens,
     return;
 
   RandomGen gen = in_gens[tid];
-
-  const int blobSize   = kmltBlobSize(a_globals);
-  const int blobOffset = blobSize*tid;
+  
+  const int blobOffset = kmltBlobSize(a_globals)*tid;
   
   float4 lensOffs = rndFloat4_Pseudo(&gen);
 
@@ -588,8 +587,8 @@ __kernel void KMLTMakeProposal(__global const RandomGen* restrict in_gens,
     const float fwidth  = a_globals->varsF[HRT_WIDTH_F];
     const float fheight = a_globals->varsF[HRT_HEIGHT_F];
     
-    const int   w       = (int)fwidth;
-    const int   h       = (int)fheight;
+    const int   w    = (int)fwidth;
+    const int   h    = (int)fheight;
   
     unsigned short x = (unsigned short)(lensOffs.x*fwidth);
     unsigned short y = (unsigned short)(lensOffs.y*fheight);

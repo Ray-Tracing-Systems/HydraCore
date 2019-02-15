@@ -715,7 +715,6 @@ GPUOCLLayer::GPUOCLLayer(int w, int h, int a_flags, int a_deviceId) : Base(w, h,
 
   waitIfDebug(__FILE__, __LINE__);
 
-  m_raysWasSorted = false;
   m_spp           = 0.0f;
   m_sppDL         = 0.0f;
   m_sppDone       = 0.0f;
@@ -1241,7 +1240,7 @@ void GPUOCLLayer::BeginTracingPass()
     }
     else
     { 
-      KMLT_Pass(NUM_MMLT_PASS, minBounce, maxBounce, BURN_ITERS);
+      KMLT_Pass(NUM_MMLT_PASS, minBounce, maxBounce, 256); // BURN_ITERS
     }
     /*else                                                // PT 
     { 

@@ -181,7 +181,6 @@ protected:
   float m_sppDone;
   float m_sppContrib;
   float m_avgBrightness;
-  bool  m_raysWasSorted;
 
   struct CL_SCREEN_BUFFERS
   {
