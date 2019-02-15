@@ -93,8 +93,8 @@ size_t GPUOCLLayer::MLT_Alloc_For_PT_QMC(int a_maxBounce, cl_mem& a_vecQmc)
   kmlt.maxBounceQMC = a_maxBounce;
 
   const int MLT_RAND_NUMBERS_PER_BOUNCE = KMLT_HEAD_SIZE + \
-                                          KMLT_PER_LIGHT*kmlt.maxBounceQMC + \
-                                          KMLT_PER_MATERIAL*kmlt.maxBounceQMC;
+                                          KMLT_PER_LIGHT*a_maxBounce + \
+                                          KMLT_PER_MATERIAL*a_maxBounce;
 
   // init big buffers for path space state // (MLT_RAND_NUMBERS_PER_BOUNCE / MLT_PROPOSALS)
   //

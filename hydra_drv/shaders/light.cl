@@ -190,8 +190,7 @@ __kernel void LightSample(__global const int2*    restrict in_zind,
     if(depth+1 <= a_globals->varsI[HRT_KMLT_OR_QMC_LGT_BOUNCES] && in_zind != 0 && in_xvector != 0)
     {
       const int2 sortedIndex = in_zind[tid];
-      const int  vecSize     = KMLT_HEAD_SIZE + a_globals->varsI[HRT_KMLT_OR_QMC_LGT_BOUNCES]*KMLT_PER_LIGHT + a_globals->varsI[HRT_KMLT_OR_QMC_MAT_BOUNCES]*KMLT_PER_MATERIAL;
-      const int lightsOffset = vecSize*sortedIndex.y + KMLT_HEAD_SIZE + depth*KMLT_PER_LIGHT;
+      const int lightsOffset = kmltBlobSize(a_globals)*sortedIndex.y + kmltLightOffset(depth);
       
       __global const float* pData = (in_xvector + lightsOffset); 
       rands.x = pData[0];

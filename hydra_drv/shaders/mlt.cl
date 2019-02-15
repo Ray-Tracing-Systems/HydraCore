@@ -520,7 +520,8 @@ __kernel void KMLTMakeProposal(__global const RandomGen* restrict in_gens,
 
   RandomGen gen = in_gens[tid];
 
-  const int blobSize = KMLT_HEAD_SIZE + a_globals->varsI[HRT_KMLT_OR_QMC_LGT_BOUNCES]*KMLT_PER_LIGHT + a_globals->varsI[HRT_KMLT_OR_QMC_MAT_BOUNCES]*KMLT_PER_MATERIAL;
+  const int blobSize   = kmltBlobSize(a_globals);
+  const int blobOffset = blobSize*tid;
   
   float4 lensOffs = rndFloat4_Pseudo(&gen);
 
@@ -532,10 +533,10 @@ __kernel void KMLTMakeProposal(__global const RandomGen* restrict in_gens,
     // lensOffs = mutate(lensOffs, lensMutate)
   }
 
-  out_samples[blobSize*tid + 0] = lensOffs.x;
-  out_samples[blobSize*tid + 1] = lensOffs.y;
-  out_samples[blobSize*tid + 2] = lensOffs.z;
-  out_samples[blobSize*tid + 3] = lensOffs.w;
+  out_samples[blobOffset + 0] = lensOffs.x;
+  out_samples[blobOffset + 1] = lensOffs.y;
+  out_samples[blobOffset + 2] = lensOffs.z;
+  out_samples[blobOffset + 3] = lensOffs.w;
 
   int top = 4;
   for(int lightB=0; lightB < a_globals->varsI[HRT_KMLT_OR_QMC_LGT_BOUNCES]; lightB += 4)
@@ -550,10 +551,10 @@ __kernel void KMLTMakeProposal(__global const RandomGen* restrict in_gens,
       // data = mutate(oldData, mutate)
     }
 
-    out_samples[blobSize*tid + top + 0] = data.x;
-    out_samples[blobSize*tid + top + 1] = data.y;
-    out_samples[blobSize*tid + top + 2] = data.z;
-    out_samples[blobSize*tid + top + 3] = data.w;
+    out_samples[blobOffset + top + 0] = data.x;
+    out_samples[blobOffset + top + 1] = data.y;
+    out_samples[blobOffset + top + 2] = data.z;
+    out_samples[blobOffset + top + 3] = data.w;
     top += 4;
   }
 
@@ -573,12 +574,12 @@ __kernel void KMLTMakeProposal(__global const RandomGen* restrict in_gens,
     uint4 gr1    = packBounceGroup(gr1f);
     uint2 gr2    = packBounceGroup2(gr2f);
 
-    out_samples[blobSize*tid + top + 0] = as_float( gr1.x );
-    out_samples[blobSize*tid + top + 1] = as_float( gr1.y );
-    out_samples[blobSize*tid + top + 2] = as_float( gr1.z );
-    out_samples[blobSize*tid + top + 3] = as_float( gr1.w );
-    out_samples[blobSize*tid + top + 4] = as_float( gr2.x );
-    out_samples[blobSize*tid + top + 5] = as_float( gr2.y );
+    out_samples[blobOffset + top + 0] = as_float( gr1.x );
+    out_samples[blobOffset + top + 1] = as_float( gr1.y );
+    out_samples[blobOffset + top + 2] = as_float( gr1.z );
+    out_samples[blobOffset + top + 3] = as_float( gr1.w );
+    out_samples[blobOffset + top + 4] = as_float( gr2.x );
+    out_samples[blobOffset + top + 5] = as_float( gr2.y );
     top += 6;
   }
 

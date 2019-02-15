@@ -297,11 +297,9 @@ __kernel void MakeEyeRaysUnifiedSampling(__global float4*              restrict 
   // we pack lensOffs in this buffer in 'MakeEyeRaysSamplesOnly' kernel (or other)
   //
   const int2 sortedIndex = in_zind[tid];
-  const int  vecSize     = KMLT_HEAD_SIZE + a_globals->varsI[HRT_KMLT_OR_QMC_LGT_BOUNCES]*KMLT_PER_LIGHT + a_globals->varsI[HRT_KMLT_OR_QMC_MAT_BOUNCES]*KMLT_PER_MATERIAL;
-  //const float4 lensOffs  = in_samples[(vecSize*sortedIndex.y)/4]; 
 
   float4 lensOffs;
-  __global const float* pData = (in_samples + vecSize*sortedIndex.y); 
+  __global const float* pData = (in_samples + kmltBlobSize(a_globals)*sortedIndex.y); 
   lensOffs.x = pData[0];
   lensOffs.y = pData[1];
   lensOffs.z = pData[2];

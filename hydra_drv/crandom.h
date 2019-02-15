@@ -236,8 +236,6 @@ static inline float rndQmcSobolN(unsigned int pos, int dim, __constant unsigned 
   return (float)(result + 1) * INT_SCALE;
 }
 
-
-
 /**
 \brief get qmc number for target qmc var (see defines up)
 \param pGen      - inout pseudo random generator
@@ -258,7 +256,6 @@ static inline float rndQmcTab(__private RandomGen* pGen, __global const int* a_t
   else
     return rndQmcSobolN(pos, dim, c_Table);
 }
-
 
 static inline int rndMatOffsetMMLT(const int a_bounceId) { return a_bounceId*MMLT_FLOATS_PER_BOUNCE; }                          // relative offset, dont add MMLT_HEAD_TOTAL_SIZE!
 

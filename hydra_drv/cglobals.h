@@ -122,12 +122,6 @@
 #define KMLT_PER_LIGHT    4
 #define KMLT_PER_MATERIAL 6
 
-//#define KMLT_COMPRESSED_F_PER_LIGHT    4
-//#define KMLT_COMPRESSED_F_PER_MATERIAL 4
-
-//#define KMLT_BOUNCES_LGT 0
-//#define KMLT_BOUNCES_MAT 0
-
 
 enum MEGATEX_USAGE{ MEGATEX_SHADING      = 1, 
                     MEGATEX_SHADING_HDR  = 2, 
