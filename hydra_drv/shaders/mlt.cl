@@ -13,7 +13,7 @@
 #include "cbidir.h"
 
 /**
-\brief Evaluate contib function and average brightess per bounce.
+\brief Evaluate contib function.
 \param in_color   - input color
 \param out_colors - output contrib value
 \param offset     - offset to out buffer
@@ -31,6 +31,29 @@ __kernel void MMLTEvalContribFunc(__global const float4* restrict in_color,
   float val = contribFunc(to_float3(in_color[tid]));
   out_colors[offset + tid] = val;
 }
+
+/**
+\brief Evaluate contib function .
+\param in_color   - input color
+\param out_colors - output contrib value
+\param offset     - offset to out buffer
+
+*/
+__kernel void MMLTEvalContribIndexedFunc(__global const float4* restrict in_color,
+                                         __global const int2*   restrict in_zind,
+                                         __global float*        restrict out_colors,
+                                         int offset,
+                                         int iNumElements)
+{
+  int tid = GLOBAL_ID_X;
+  if (tid >= iNumElements)
+    return;
+  
+  const int2 index = in_zind[tid];
+  const float val  = contribFunc(to_float3(in_color[index.y]));
+  out_colors[offset + tid] = val;
+}
+
 
 __kernel void MMLTCheatThirdBounceContrib(__global const int2* restrict in_split,
                                           __global float*      restrict a_contrib1f,

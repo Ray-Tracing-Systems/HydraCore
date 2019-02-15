@@ -111,7 +111,7 @@ float GPUOCLLayer::KMLT_BurningIn(int minBounce, int maxBounce, int BURN_ITERS,
                                   cl_mem out_rstate)
 {
   
-  if(kmlt.rndState1 == out_rstate)
+  if(kmlt.rndState1 == out_rstate || kmlt.rndState3 == out_rstate)
   {
     std::cerr << "KMLT_BurningIn, wrong output buffer! Select (kmlt.rndState2) instead!" << std::endl;
     std::cout << "KMLT_BurningIn, wrong output buffer! Select (kmlt.rndState2) instead!" << std::endl;
@@ -138,8 +138,6 @@ float GPUOCLLayer::KMLT_BurningIn(int minBounce, int maxBounce, int BURN_ITERS,
   
   const bool measureTime = false; 
 
-  //memsetf4(kmlt.xColor, float4(0,0,0,0), m_rays.MEGABLOCKSIZE, 0); waitIfDebug(__FILE__, __LINE__);
-  
   std::cout << std::endl;
   for(int iter=0; iter<BURN_ITERS;iter++)
   { 
@@ -170,13 +168,8 @@ float GPUOCLLayer::KMLT_BurningIn(int minBounce, int maxBounce, int BURN_ITERS,
       timer.start();
     }
     
-    // #TODO: instead of unsort colors you may get random generator state (and write to 'temp_f1') by index; 
-    //
-    runKernel_UnsortColors(kmlt.xMultOneMinusAlpha, kmlt.xZindex, m_rays.MEGABLOCKSIZE, // both unsort and pack (x|y) to color.w
-                           kmlt.xColor);                                                                        
-
-    runKernel_MLTEvalContribFunc(kmlt.xColor, 0, m_rays.MEGABLOCKSIZE,
-                                 temp_f1);
+    runKernel_MLTEvalContribIndexedFunc(kmlt.xMultOneMinusAlpha, kmlt.xZindex, 0, m_rays.MEGABLOCKSIZE,
+                                        temp_f1);
 
     if(measureTime)
     {

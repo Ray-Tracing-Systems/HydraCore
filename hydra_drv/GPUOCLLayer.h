@@ -538,6 +538,9 @@ protected:
   void runKernel_MLTEvalContribFunc(cl_mem in_buff, size_t a_offset, size_t a_size,
                                     cl_mem out_buff);
   
+  void runKernel_MLTEvalContribIndexedFunc(cl_mem in_buff, cl_mem in_indexBuff, size_t a_offset, size_t a_size,
+                                           cl_mem out_buff);
+
   void  DL_Pass(int a_maxBounce, int a_itersNum);
   void  MMLT_Pass(int a_passNumber, int minBounce, int maxBounce, int BURN_ITERS);
   void  KMLT_Pass(int a_passNumber, int minBounce, int maxBounce, int BURN_ITERS);

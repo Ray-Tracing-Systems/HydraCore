@@ -1238,11 +1238,11 @@ void GPUOCLLayer::BeginTracingPass()
       EvalLT(nullptr, minBounce, maxBounce, m_rays.MEGABLOCKSIZE, 
              m_rays.pathAccColor);
     }
-    else
-    { 
-      KMLT_Pass(NUM_MMLT_PASS, minBounce, maxBounce, 256); // BURN_ITERS
-    }
-    /*else                                                // PT 
+    //else
+    //{ 
+    //  KMLT_Pass(NUM_MMLT_PASS, minBounce, maxBounce, 256); // BURN_ITERS
+    //}
+    else                                                // PT 
     { 
       //m_vars.m_flags |= HRT_INDIRECT_LIGHT_MODE; // for test
       //m_vars.m_flags |= HRT_DIRECT_LIGHT_MODE;   // for test
@@ -1266,7 +1266,7 @@ void GPUOCLLayer::BeginTracingPass()
              m_rays.pathAccColor);
 
       AddContributionToScreen(m_rays.pathAccColor, m_rays.samZindex);
-    }*/
+    }
     
   }
   else if(!m_screen.m_cpuFrameBuffer)
