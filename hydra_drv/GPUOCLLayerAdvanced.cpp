@@ -160,6 +160,11 @@ float GPUOCLLayer::KMLT_BurningIn(int minBounce, int maxBounce, int BURN_ITERS,
       timer.start();
     }
     
+    // This is important fix due to dead threads on last state (black env) could contrib old values (!!!)
+    // Thus, you have to clear 'kmlt.xMultOneMinusAlpha' as EvalPT result because EvalPT _always_ do "+=" operation on result buffer. #TODO: move clear inside ??? 
+    // 
+    memsetf4(kmlt.xMultOneMinusAlpha, float4(0,0,0,0), m_rays.MEGABLOCKSIZE, 0); 
+
     EvalPT(kmlt.xVector, kmlt.xZindex, minBounce, maxBounce, m_rays.MEGABLOCKSIZE,
            kmlt.xMultOneMinusAlpha);
 
@@ -170,13 +175,11 @@ float GPUOCLLayer::KMLT_BurningIn(int minBounce, int maxBounce, int BURN_ITERS,
       timer.start();
     }
     
-    // #TODO: instead of unsort colors you may get random generator state by index;
+    // #TODO: instead of unsort colors you may get random generator state (and write to 'temp_f1') by index; 
     //
-
     runKernel_UnsortColors(kmlt.xMultOneMinusAlpha, kmlt.xZindex, m_rays.MEGABLOCKSIZE, // both unsort and pack (x|y) to color.w
                            kmlt.xColor);                                                                        
 
-    /*
     runKernel_MLTEvalContribFunc(kmlt.xColor, 0, m_rays.MEGABLOCKSIZE,
                                  temp_f1);
 
@@ -196,10 +199,6 @@ float GPUOCLLayer::KMLT_BurningIn(int minBounce, int maxBounce, int BURN_ITERS,
     runKernel_MLTSelectSampleProportionalToContrib(kmlt.rndState1, nullptr, temp_f1, m_rays.MEGABLOCKSIZE, kmlt.rndState3, BURN_PORTION,
                                                    BURN_PORTION*iter, out_rstate, nullptr); 
 
-    */                                                                                          
-
-    clFinish(m_globals.cmdQueue);
-
     if(measureTime)
     {
       avgTimeSel += timer.getElapsed();
@@ -212,7 +211,7 @@ float GPUOCLLayer::KMLT_BurningIn(int minBounce, int maxBounce, int BURN_ITERS,
       std::cout.flush();
     }
 
-    AddContributionToScreen(kmlt.xColor, nullptr, false, 0, false);
+    //AddContributionToScreen(kmlt.xColor, nullptr, false, 0, false);
     //AddContributionToScreen(kmlt.xMultOneMinusAlpha, kmlt.xZindex);
 
     //swap curr and new random generator states
@@ -222,12 +221,9 @@ float GPUOCLLayer::KMLT_BurningIn(int minBounce, int maxBounce, int BURN_ITERS,
       kmlt.rndState1 = kmlt.rndState3;
       kmlt.rndState3 = temp;
     }
-    
-    memsetf4(kmlt.yMultAlpha,         float4(0,0,0,0), m_rays.MEGABLOCKSIZE, 0);
-    memsetf4(kmlt.xMultOneMinusAlpha, float4(0,0,0,0), m_rays.MEGABLOCKSIZE, 0);
-
+  
     //if(iter >= 1)
-    break; 
+    //break; 
   }
 
   std::cout << std::endl;
@@ -266,21 +262,21 @@ void GPUOCLLayer::KMLT_Pass(int a_passNumber, int minBounce, int maxBounce, int 
     m_avgBrightness = KMLT_BurningIn(minBounce, maxBounce, BURN_ITERS,
                                      kmlt.rndState2);
     
-    // // MakeProposal(kmlt.rndState2)       => (kmlt.xVector, kmlt.xZindex) 
-    // //
-    // runKernel_KMLTMakeProposal(kmlt.rndState2, nullptr, 1, m_rays.MEGABLOCKSIZE,
-    //                            kmlt.rndState2, kmlt.xVector, kmlt.xZindex);
-    // 
-    // // EvalPT(kmlt.xVector, kmlt.xZindex) => kmlt.xColor
-    // //
-    // EvalPT(kmlt.xVector, kmlt.xZindex, minBounce, maxBounce, m_rays.MEGABLOCKSIZE,
-    //        kmlt.xColor);
+    // MakeProposal(kmlt.rndState2) => (kmlt.xVector, kmlt.xZindex) 
+    //
+    runKernel_KMLTMakeProposal(kmlt.rndState2, nullptr, 1, m_rays.MEGABLOCKSIZE,
+                               kmlt.rndState2, kmlt.xVector, kmlt.xZindex);
+    
+    // EvalPT(kmlt.xVector, kmlt.xZindex) => kmlt.xColor
+    //
+    EvalPT(kmlt.xVector, kmlt.xZindex, minBounce, maxBounce, m_rays.MEGABLOCKSIZE,
+           kmlt.xColor);
 
     memsetf4(kmlt.yMultAlpha,         float4(0,0,0,0), m_rays.MEGABLOCKSIZE, 0); waitIfDebug(__FILE__, __LINE__); // because we can use tham inside KMLT_BurningIn
     memsetf4(kmlt.xMultOneMinusAlpha, float4(0,0,0,0), m_rays.MEGABLOCKSIZE, 0); waitIfDebug(__FILE__, __LINE__); // because we can use tham inside KMLT_BurningIn
   //}
 
-  //AddContributionToScreen(kmlt.xColor, kmlt.xZindex);
+  AddContributionToScreen(kmlt.xColor, kmlt.xZindex);
 
   for(int pass = 0; pass < a_passNumber; pass++)
   {

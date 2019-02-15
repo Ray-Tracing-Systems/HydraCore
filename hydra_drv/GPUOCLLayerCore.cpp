@@ -204,7 +204,6 @@ void GPUOCLLayer::trace1D_Fwd(int a_minBounce, int a_maxBounce, cl_mem a_rpos, c
 void GPUOCLLayer::EvalPT(cl_mem in_xVector, cl_mem in_zind, int minBounce, int maxBounce, size_t a_size,
                          cl_mem a_outColor)
 {
-  m_raysWasSorted = false;
   runKernel_MakeRaysFromEyeSam(in_zind, in_xVector, m_rays.MEGABLOCKSIZE, m_passNumberForQMC,
                                m_rays.rayPos, m_rays.rayDir);
    
