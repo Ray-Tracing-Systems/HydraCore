@@ -134,6 +134,68 @@ void _DebugPrintContribAndIndices(cl_command_queue cmdQueue, const std::string& 
   }
 }
 
+void _CPU_MMLTSelectSampleProportionalToContrib(RandomGen*       out_gens,
+                                                int*             out_depth, 
+                                                int offset, 
+                                                const RandomGen* in_gens,
+                                                const int2*      in_split,
+                                                      RandomGen* a_gens_select,  
+                                                const float*     in_samplesLum, 
+                                                int arraySize,
+                                                int iNumElements)
+{
+for(int tid = 0; tid < iNumElements; tid++) 
+{
+  RandomGen gen      = a_gens_select[tid];
+  const float r0     = rndFloat1_Pseudo(&gen);
+  a_gens_select[tid] = gen;
+
+  float pdf = 1.0f;
+  const int foundIndex = SelectIndexPropToOpt(r0, in_samplesLum, arraySize, &pdf) + 1;
+
+  out_gens[offset + tid] = in_gens[foundIndex];
+
+  if(in_split != 0 && out_depth != 0)
+    out_depth[offset + tid] = in_split[foundIndex].x;
+}
+}                                                    
+
+void debugTest_MLTSelectSampleProportionalToContrib(cl_command_queue cmdQueue,  cl_mem old_array, cl_mem in_rndState1, cl_mem in_tid2, cl_mem temp_f1, size_t a_MEGABLOCKSIZE, cl_mem a_rndState3, int a_BURN_PORTION)
+{
+  std::vector<RandomGen> in_rndState1_cpu(a_MEGABLOCKSIZE); // done
+  std::vector<RandomGen> in_rndState3_cpu(a_MEGABLOCKSIZE); // done
+
+  std::vector<int2>      in_tid2_cpu     (a_MEGABLOCKSIZE); // done
+  std::vector<float>     in_array        (a_MEGABLOCKSIZE); // done
+  std::vector<float>     old_array_cpu   (a_MEGABLOCKSIZE);
+
+  std::vector<int>       selected_ids(a_BURN_PORTION);
+  std::vector<RandomGen> selected_randoms(a_BURN_PORTION);
+
+  clEnqueueReadBuffer(cmdQueue, temp_f1, CL_TRUE, 0, in_array.size()*sizeof(float),   in_array.data(),    0, NULL, NULL);
+  clEnqueueReadBuffer(cmdQueue, old_array, CL_TRUE, 0, old_array_cpu.size()*sizeof(float),   old_array_cpu.data(),    0, NULL, NULL);
+  clEnqueueReadBuffer(cmdQueue, in_tid2, CL_TRUE, 0, in_tid2_cpu.size()*sizeof(int2), in_tid2_cpu.data(), 0, NULL, NULL);
+ 
+  clEnqueueReadBuffer(cmdQueue, in_rndState1, CL_TRUE, 0, in_rndState1_cpu.size()*sizeof(RandomGen), in_rndState1_cpu.data(), 0, NULL, NULL);
+  clEnqueueReadBuffer(cmdQueue, a_rndState3, CL_TRUE, 0, in_rndState3_cpu.size()*sizeof(RandomGen), in_rndState3_cpu.data(), 0, NULL, NULL);
+
+  _CPU_MMLTSelectSampleProportionalToContrib(selected_randoms.data(),
+                                             selected_ids.data(),
+                                             0,
+                                             in_rndState1_cpu.data(),
+                                             in_tid2_cpu.data(),
+                                             in_rndState3_cpu.data(),
+                                             in_array.data(),
+                                             a_MEGABLOCKSIZE,
+                                             a_BURN_PORTION);
+  
+  std::ofstream fout2("zz_selected_cpu.txt");
+  for(size_t i=0;i<selected_ids.size();i++)
+  {
+    const int index = selected_ids[i];
+    fout2 << index << "\t: " << old_array_cpu[index] << std::endl;
+  }
+}
 
 float GPUOCLLayer::KMLT_BurningIn(int minBounce, int maxBounce, int BURN_ITERS,
                                   cl_mem out_rstate)
@@ -213,18 +275,20 @@ float GPUOCLLayer::KMLT_BurningIn(int minBounce, int maxBounce, int BURN_ITERS,
 
     memcpyu32(debugBuffer1f, 0, temp_f1, 0, m_rays.MEGABLOCKSIZE);                                                     // debugBuffer1f[i] := temp_f1[i]
     runKernel_DebugClearInt2WithTID(debugBuffer2i, m_rays.MEGABLOCKSIZE);                                              // debugBuffer2i[i] := int2(i,i);
-    //_DebugPrintContribAndIndices(m_globals.cmdQueue, "zz_contrib_old.txt", temp_f1, m_rays.MEGABLOCKSIZE, nullptr, 0); // 
     
     avgBrightness += reduce_avg1f(temp_f1, m_rays.MEGABLOCKSIZE)*(1.0/double(BURN_ITERS));
 
     inPlaceScanAnySize1f(temp_f1, m_rays.MEGABLOCKSIZE);
+
+    //debugTest_MLTSelectSampleProportionalToContrib(m_globals.cmdQueue, debugBuffer1f, 
+    //                                               kmlt.rndState1, debugBuffer2i, temp_f1, m_rays.MEGABLOCKSIZE, kmlt.rndState3, BURN_PORTION);
 
     // select BURN_PORTION (rnd state) from (kmlt.rndState1) => out_rstate; use kmlt.rndState3 as aux generator
     // 
     runKernel_MLTSelectSampleProportionalToContrib(kmlt.rndState1, debugBuffer2i, temp_f1, m_rays.MEGABLOCKSIZE, kmlt.rndState3, BURN_PORTION,
                                                    BURN_PORTION*iter, out_rstate, temp_i1); 
 
-    _DebugPrintContribAndIndices(m_globals.cmdQueue, "zz_contrib_new.txt", debugBuffer1f, m_rays.MEGABLOCKSIZE, temp_i1, BURN_PORTION);
+    //_DebugPrintContribAndIndices(m_globals.cmdQueue, "zz_contrib_new.txt", debugBuffer1f, m_rays.MEGABLOCKSIZE, temp_i1, BURN_PORTION);
 
     if(measureTime)
     {

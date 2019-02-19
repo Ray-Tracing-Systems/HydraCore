@@ -117,7 +117,7 @@ __kernel void MMLTSelectSampleProportionalToContrib(__global RandomGen*       re
   a_gens_select[tid] = gen;
 
   float pdf = 1.0f;
-  const int foundIndex = SelectIndexPropToOpt(r0, in_samplesLum, arraySize, &pdf);
+  const int foundIndex = SelectIndexPropToOpt(r0, in_samplesLum, arraySize, &pdf) + 1;
 
   out_gens[offset + tid] = in_gens[foundIndex];
 

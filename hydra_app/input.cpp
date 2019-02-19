@@ -11,14 +11,14 @@ Input::Input()
   g_hydraApiDisableSceneLoadInfo = true;
   
   //noWindow      = false;         ///< run 'console_main', else run 'window_main'
-  inLibraryPath = "tests/test_42"; ///< cornell box with teapot
+  //inLibraryPath = "tests/test_42"; ///< cornell box with teapot
   //inLibraryPath = "tests/test_223_small"; ///< cornell box with sphere
   //inLibraryPath = "tests/test_224_sphere";
   //inLibraryPath = "tests/test_224_sphere_microfacet";
   //inLibraryPath = "/media/frol/886234F06234E49A/scenes/benchmark4"; ///< cornell box with mirror glossy back wall
   //inLibraryPath = "/media/frol/886234F06234E49A/scenes/phong_test/torspar1";
   //inLibraryPath = "/media/frol/886234F06234E49A/scenes/cornell_water";
-  //inLibraryPath = "tests/test_pool";
+  inLibraryPath = "tests/test_pool";
   //inLibraryPath = "/home/frol/temp/suncg1_scenelib/statex_00003.xml";
 
   //inLibraryPath = "/home/frol/PROG/HydraAPI/main/tests/test_86";
