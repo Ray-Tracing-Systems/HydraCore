@@ -120,7 +120,7 @@ protected:
 
   void memsetu32(cl_mem buff, uint a_val, size_t a_size);
   void memsetf4 (cl_mem buff, float4 a_val, size_t a_size, size_t a_offset = 0);
-  void memcpyu32(cl_mem buff1, uint a_offset1, cl_mem buff2, uint a_offset2, size_t a_size);
+  void memcpyu32(cl_mem in_buff, uint a_offset1, cl_mem out_buff, uint a_offset2, size_t a_size);
 
   void float2half(cl_mem buffIn, cl_mem buffOut, size_t a_size);
   void float2half(const std::vector<float>& a_in, std::vector<cl_half>& a_out);
@@ -593,11 +593,13 @@ protected:
                              cl_mem a_outColor, cl_mem a_outZIndex);
 
 
-  void runKernel_KMLTMakeProposal(cl_mem new_rndState, cl_mem in_vector, int in_forceLargeStep, size_t a_size,
-                                  cl_mem old_rndState, cl_mem out_vector, cl_mem out_zindex);
+  void runKernel_KMLTMakeProposal(cl_mem in_rgen, cl_mem in_vec, int a_largeStep, size_t a_size,
+                                  cl_mem out_rgen, cl_mem out_vec, cl_mem out_zindex);
 
   void runKernel_UnsortColors(cl_mem in_color, cl_mem in_zindex, size_t a_size,
                               cl_mem out_color);                                  
+
+  void runKernel_DebugClearInt2WithTID(cl_mem index, size_t a_size);
 
   void MMLTUpdateAverageBrightnessConstants(int minBounce, cl_mem in_color, size_t a_size);
 

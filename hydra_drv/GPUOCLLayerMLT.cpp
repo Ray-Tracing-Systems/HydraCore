@@ -560,6 +560,22 @@ void GPUOCLLayer::runKernel_UnsortColors(cl_mem in_color, cl_mem in_zindex, size
   waitIfDebug(__FILE__, __LINE__);
 }
 
+void GPUOCLLayer::runKernel_DebugClearInt2WithTID(cl_mem index, size_t a_size)
+{
+
+  cl_kernel kernX      = m_progs.mlt.kernel("DebugClearInt2WithTID");
+
+  size_t localWorkSize = 256;
+  int            isize = int(a_size);
+  a_size               = roundBlocks(a_size, int(localWorkSize));
+ 
+  CHECK_CL(clSetKernelArg(kernX, 0, sizeof(cl_mem), (void*)&index));
+  CHECK_CL(clSetKernelArg(kernX, 1, sizeof(cl_int), (void*)&isize));
+
+  CHECK_CL(clEnqueueNDRangeKernel(m_globals.cmdQueue, kernX, 1, NULL, &a_size, &localWorkSize, 0, NULL, NULL));
+  waitIfDebug(__FILE__, __LINE__);
+}
+
 void GPUOCLLayer::runKernel_MMLTMakeEyeRays(size_t a_size,
                                             cl_mem a_rpos, cl_mem a_rdir, cl_mem a_zindex)
 {

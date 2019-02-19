@@ -1240,7 +1240,7 @@ void GPUOCLLayer::BeginTracingPass()
     }
     //else
     //{ 
-    //  KMLT_Pass(NUM_MMLT_PASS, minBounce, maxBounce, 256); // BURN_ITERS
+    //  KMLT_Pass(NUM_MMLT_PASS, minBounce, maxBounce, 128); // BURN_ITERS
     //}
     else                                                // PT 
     { 

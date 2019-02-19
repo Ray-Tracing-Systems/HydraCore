@@ -102,7 +102,6 @@ __kernel void MMLTSelectSampleProportionalToContrib(__global RandomGen*       re
                                                     int offset, 
                                                     __global const RandomGen* restrict in_gens,
                                                     __global const int2*      restrict in_split,
-                                                    
                                                     __global       RandomGen* restrict a_gens_select,  
                                                     __global const float*     restrict in_samplesLum, 
                                                     int arraySize,
@@ -118,7 +117,7 @@ __kernel void MMLTSelectSampleProportionalToContrib(__global RandomGen*       re
   a_gens_select[tid] = gen;
 
   float pdf = 1.0f;
-  const int foundIndex = SelectIndexPropToOpt(r0, in_samplesLum, arraySize-1, &pdf);
+  const int foundIndex = SelectIndexPropToOpt(r0, in_samplesLum, arraySize, &pdf);
 
   out_gens[offset + tid] = in_gens[foundIndex];
 
@@ -141,6 +140,15 @@ __kernel void MMLTMakeStatesIndexToSort(__global const RandomGen* restrict in_ge
   
   //#TODO: add lense (x,y) to the index
   out_index[tid] = make_int2(-d, tid);
+}
+
+__kernel void DebugClearInt2WithTID(__global int2* restrict out_index, const int iNumElements)
+{
+  const int tid = GLOBAL_ID_X;
+  if (tid >= iNumElements)
+    return;
+
+  out_index[tid] = make_int2(tid, tid);
 }
 
 __kernel void MMLTMoveStatesByIndex(__global const int2*      restrict in_index,

@@ -107,6 +107,34 @@ void GPUOCLLayer::DL_Pass(int a_maxBounce, int a_itersNum)
 }
 
 
+void _DebugPrintContribAndIndices(cl_command_queue cmdQueue, const std::string& a_fileName, cl_mem in_contrib1f, size_t a_size1, cl_mem in_indices, size_t a_size2)
+{
+  std::vector<float> data1(a_size1);
+
+  if(in_contrib1f != nullptr)
+  {
+    clEnqueueReadBuffer(cmdQueue, in_contrib1f, CL_TRUE, 0, data1.size()*sizeof(float), data1.data(), 0, NULL, NULL);
+  
+    std::ofstream fout(a_fileName.c_str());
+    for(size_t i=0;i<data1.size();i++)
+      fout << i << "\t: " << data1[i] << std::endl;
+  }
+
+  if(in_indices != nullptr)
+  {
+    std::vector<int> data2(a_size2);
+    clEnqueueReadBuffer(cmdQueue, in_indices, CL_TRUE, 0, data2.size()*sizeof(float), data2.data(), 0, NULL, NULL);
+  
+    std::ofstream fout2("zz_selected.txt");
+    for(size_t i=0;i<data2.size();i++)
+    {
+      const int index = data2[i];
+      fout2 << index << "\t: " << data1[index] << std::endl;
+    }
+  }
+}
+
+
 float GPUOCLLayer::KMLT_BurningIn(int minBounce, int maxBounce, int BURN_ITERS,
                                   cl_mem out_rstate)
 {
@@ -128,6 +156,8 @@ float GPUOCLLayer::KMLT_BurningIn(int minBounce, int maxBounce, int BURN_ITERS,
                                      // #NOTE: current search will not work !!! It need size+1 array !!!  
                                      // #NOTE: you can just set last element to size-2, not size-1. So it will work in this way.
 
+  cl_mem temp_i1 = kmlt.xMultOneMinusAlpha;
+
   double avgBrightness = 0.0;
 
   double avgTimeMk     = 0.0;
@@ -137,6 +167,9 @@ float GPUOCLLayer::KMLT_BurningIn(int minBounce, int maxBounce, int BURN_ITERS,
   Timer timer(false);
   
   const bool measureTime = false; 
+
+  cl_mem debugBuffer2i = clCreateBuffer(m_globals.ctx, CL_MEM_READ_WRITE, sizeof(int2)*m_rays.MEGABLOCKSIZE, NULL, &ciErr1);
+  cl_mem debugBuffer1f = clCreateBuffer(m_globals.ctx, CL_MEM_READ_WRITE, sizeof(float)*m_rays.MEGABLOCKSIZE, NULL, &ciErr1);
 
   std::cout << std::endl;
   for(int iter=0; iter<BURN_ITERS;iter++)
@@ -159,7 +192,7 @@ float GPUOCLLayer::KMLT_BurningIn(int minBounce, int maxBounce, int BURN_ITERS,
     }
     
     EvalPT(kmlt.xVector, kmlt.xZindex, minBounce, maxBounce, m_rays.MEGABLOCKSIZE,
-           kmlt.xMultOneMinusAlpha);
+           kmlt.xColor);
 
     if(measureTime)
     {
@@ -168,7 +201,7 @@ float GPUOCLLayer::KMLT_BurningIn(int minBounce, int maxBounce, int BURN_ITERS,
       timer.start();
     }
     
-    runKernel_MLTEvalContribIndexedFunc(kmlt.xMultOneMinusAlpha, kmlt.xZindex, 0, m_rays.MEGABLOCKSIZE,
+    runKernel_MLTEvalContribIndexedFunc(kmlt.xColor, kmlt.xZindex, 0, m_rays.MEGABLOCKSIZE,
                                         temp_f1);
 
     if(measureTime)
@@ -177,6 +210,10 @@ float GPUOCLLayer::KMLT_BurningIn(int minBounce, int maxBounce, int BURN_ITERS,
       avgTimeCt += timer.getElapsed();
       timer.start();
     }                                 
+
+    memcpyu32(debugBuffer1f, 0, temp_f1, 0, m_rays.MEGABLOCKSIZE);                                                     // debugBuffer1f[i] := temp_f1[i]
+    runKernel_DebugClearInt2WithTID(debugBuffer2i, m_rays.MEGABLOCKSIZE);                                              // debugBuffer2i[i] := int2(i,i);
+    //_DebugPrintContribAndIndices(m_globals.cmdQueue, "zz_contrib_old.txt", temp_f1, m_rays.MEGABLOCKSIZE, nullptr, 0); // 
     
     avgBrightness += reduce_avg1f(temp_f1, m_rays.MEGABLOCKSIZE)*(1.0/double(BURN_ITERS));
 
@@ -184,8 +221,10 @@ float GPUOCLLayer::KMLT_BurningIn(int minBounce, int maxBounce, int BURN_ITERS,
 
     // select BURN_PORTION (rnd state) from (kmlt.rndState1) => out_rstate; use kmlt.rndState3 as aux generator
     // 
-    runKernel_MLTSelectSampleProportionalToContrib(kmlt.rndState1, nullptr, temp_f1, m_rays.MEGABLOCKSIZE, kmlt.rndState3, BURN_PORTION,
-                                                   BURN_PORTION*iter, out_rstate, nullptr); 
+    runKernel_MLTSelectSampleProportionalToContrib(kmlt.rndState1, debugBuffer2i, temp_f1, m_rays.MEGABLOCKSIZE, kmlt.rndState3, BURN_PORTION,
+                                                   BURN_PORTION*iter, out_rstate, temp_i1); 
+
+    _DebugPrintContribAndIndices(m_globals.cmdQueue, "zz_contrib_new.txt", debugBuffer1f, m_rays.MEGABLOCKSIZE, temp_i1, BURN_PORTION);
 
     if(measureTime)
     {
@@ -199,11 +238,9 @@ float GPUOCLLayer::KMLT_BurningIn(int minBounce, int maxBounce, int BURN_ITERS,
       std::cout.flush();
     }
 
-    //AddContributionToScreen(kmlt.xColor, nullptr, false, 0, false);
-    //AddContributionToScreen(kmlt.xMultOneMinusAlpha, kmlt.xZindex);
+    //AddContributionToScreen(kmlt.xColor, kmlt.xZindex);
 
     //swap curr and new random generator states
-    //memcpyu32(kmlt.rndState1, 0, kmlt.rndState3, 0, m_rays.MEGABLOCKSIZE*(sizeof(RandomGen)/sizeof(int)));
     {
       cl_mem temp    = kmlt.rndState1;
       kmlt.rndState1 = kmlt.rndState3;
@@ -216,6 +253,9 @@ float GPUOCLLayer::KMLT_BurningIn(int minBounce, int maxBounce, int BURN_ITERS,
 
   std::cout << std::endl;
   std::cout.flush();
+
+  clReleaseMemObject(debugBuffer2i); debugBuffer2i = nullptr; // #TODO: remove this, it is only for debug purpose
+  clReleaseMemObject(debugBuffer1f); debugBuffer1f = nullptr;
 
   return avgBrightness;
 }
@@ -234,6 +274,7 @@ void GPUOCLLayer::KMLT_Pass(int a_passNumber, int minBounce, int maxBounce, int 
 
     runKernel_InitRandomGen(kmlt.rndState1, m_rays.MEGABLOCKSIZE, 12345*GetTickCount()*rand());
     runKernel_InitRandomGen(kmlt.rndState2, m_rays.MEGABLOCKSIZE, 56789*GetTickCount()*rand());
+    runKernel_InitRandomGen(kmlt.rndState3, m_rays.MEGABLOCKSIZE, 37561*GetTickCount()*rand());
   }
   
   // this is essential for KMLT/PT pass to properly work
