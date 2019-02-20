@@ -221,7 +221,7 @@ static inline float MutateKelemen(float valueX, float2 rands, float p2, float p1
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-#define QRNG_DIMENSIONS 11
+#define QRNG_DIMENSIONS 4
 #define QRNG_RESOLUTION 31
 #define INT_SCALE (1.0f / (float)0x80000001U)
 
