@@ -174,6 +174,7 @@ static std::string ReadStringCmd(const std::unordered_map<std::string, std::stri
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+void hr_setrenderpath(const std::string& a_rhs);
 
 void Input::ParseCommandLineParams(const std::unordered_map<std::string, std::string>& a_params)
 {
@@ -216,6 +217,10 @@ void Input::ParseCommandLineParams(const std::unordered_map<std::string, std::st
   
   if(inTargetState != "")
     inLibraryPath = inLibraryPath + "/" + inTargetState;
+ 
+  const auto p = a_params.find("-hydradir");
+  if (p != a_params.end())
+    hr_setrenderpath(p->second + "/");
 
   //std::cout << "Input::ParseCommandLineParams, inLibraryPath = " << inLibraryPath.c_str() << std::endl;
   //std::cout << "Input::ParseCommandLineParams, boxMode       = " << boxMode               << std::endl;

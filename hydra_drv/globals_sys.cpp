@@ -1,10 +1,22 @@
 #include "globals_sys.h"
 
+#ifdef WIN32
+constexpr int HYDRAPATHSIZE = 1024;
+char g_hydraInstallPath[HYDRAPATHSIZE] = "C:/[Hydra]/bin2/";
+
+void hr_setrenderpath(const std::string& a_rhs)
+{
+  memset(g_hydraInstallPath, 0, HYDRAPATHSIZE);
+  strncpy(g_hydraInstallPath, a_rhs.c_str(), HYDRAPATHSIZE);
+}
+#else
+void hr_setrenderpath(const std::string& a_rhs) { }
+#endif
 
 std::string HydraInstallPath()
 {
 #ifdef WIN32
-  return "C:/[Hydra]/bin2/";
+  return std::string(g_hydraInstallPath);
 #else
   //const std::string installPath2 = "./";
   char user_name[L_cuserid];
