@@ -37,7 +37,7 @@ Or to install the renderer core on Linux:
 2. Build HydraAPI with Cmake.
 3. Clone HydraCore repo in the same folder (to form 'myfolder/HydraCore').
 4. Use the following command to build and install HydraCore (for example from 'myfolder/HydraCore/build')   
-cmake -DCMAKE_INSTALL_PREFIX=/home/YourUserName .. && make all install -j 4
+**cmake -DCMAKE_INSTALL_PREFIX=/home/YourUserName .. && make all install -j 4**
 
 # Command line by examples
 
