@@ -1,0 +1,1653 @@
+<?xml version="1.0"?>
+<textures_lib total_chunks="93">
+  <texture id="0" name="Map#0" loc="data/chunk_00000.image4ub" offset="8" bytesize="16" width="2" height="2" dl="0" />
+</textures_lib>
+<materials_lib>
+  <material id="0" name="grayOverrideMat" type="hydra_material">
+    <diffuse brdf_type="lambert">
+      <color val="0.5 0.5 0.5" />
+    </diffuse>
+  </material>
+  <material id="1" name="grayOverrideMat" type="hydra_material">
+    <diffuse brdf_type="lambert">
+      <color val="0.5 0.5 0.5" />
+    </diffuse>
+  </material>
+  <material id="2" name="hydra_placeholder_material" type="hydra_material">
+    <diffuse brdf_type="lambert">
+      <color>0.078 0.0 0.156</color>
+    </diffuse>
+  </material>
+  <material id="3" name="glass_windows" type="hydra_material">
+    <emission>
+      <color val="1 1 1" />
+      <cast_gi val="1" />
+      <multiplier val="0" />
+    </emission>
+    <diffuse brdf_type="lambert">
+      <color val="0 0 0" />
+      <roughness val="0" />
+    </diffuse>
+    <reflectivity brdf_type="phong">
+      <extrusion val="luminance" />
+      <color val="1 1 1" />
+      <glossiness val="1" />
+      <fresnel val="1" />
+      <fresnel_ior val="1.5" />
+    </reflectivity>
+    <transparency brdf_type="phong">
+      <color val="1 1 1" />
+      <glossiness val="1" />
+      <thin_walled val="1" />
+      <fog_color val="1 1 1" />
+      <fog_multiplier val="0" />
+      <ior val="1.5" />
+    </transparency>
+    <opacity smooth="0">
+      <skip_shadow val="1" />
+    </opacity>
+    <translucency>
+      <color val="0 0 0" />
+      <multiplier val="0" />
+    </translucency>
+  </material>
+  <material id="4" name="Wall" type="hydra_material">
+    <emission>
+      <color val="1 1 1" />
+      <cast_gi val="1" />
+      <multiplier val="0" />
+    </emission>
+    <diffuse brdf_type="lambert">
+      <color val="0.351373 0.351373 0.351373" />
+      <roughness val="0" />
+    </diffuse>
+    <reflectivity brdf_type="phong">
+      <extrusion val="maxcolor" />
+      <color val="0.3 0.3 0.3" />
+      <glossiness val="0.5" />
+      <fresnel val="1" />
+      <fresnel_ior val="1.5" />
+    </reflectivity>
+    <transparency brdf_type="phong">
+      <color val="0 0 0" />
+      <glossiness val="1" />
+      <thin_walled val="0" />
+      <fog_color val="1 1 1" />
+      <fog_multiplier val="0" />
+      <ior val="1.5" />
+    </transparency>
+    <opacity smooth="0">
+      <skip_shadow val="0" />
+    </opacity>
+    <translucency>
+      <color val="0 0 0" />
+      <multiplier val="0" />
+    </translucency>
+  </material>
+  <material id="5" name="White" type="hydra_material">
+    <emission>
+      <color val="1 1 1" />
+      <cast_gi val="1" />
+      <multiplier val="0" />
+    </emission>
+    <diffuse brdf_type="lambert">
+      <color val="0.7 0.7 0.7" />
+      <roughness val="0" />
+    </diffuse>
+    <reflectivity brdf_type="phong">
+      <extrusion val="maxcolor" />
+      <color val="0.5 0.5 0.5" />
+      <glossiness val="0.75" />
+      <fresnel val="1" />
+      <fresnel_ior val="1.5" />
+    </reflectivity>
+    <transparency brdf_type="phong">
+      <color val="0 0 0" />
+      <glossiness val="1" />
+      <thin_walled val="0" />
+      <fog_color val="1 1 1" />
+      <fog_multiplier val="0" />
+      <ior val="1.5" />
+    </transparency>
+    <opacity smooth="0">
+      <skip_shadow val="0" />
+    </opacity>
+    <translucency>
+      <color val="0 0 0" />
+      <multiplier val="0" />
+    </translucency>
+  </material>
+  <material id="6" name="03 - Default" type="hydra_material">
+    <emission>
+      <color val="1 1 1" />
+      <cast_gi val="1" />
+      <multiplier val="0" />
+    </emission>
+    <diffuse brdf_type="lambert">
+      <color val="0 0 0" />
+      <roughness val="0" />
+    </diffuse>
+    <reflectivity brdf_type="phong">
+      <extrusion val="luminance" />
+      <color val="0 0 0" />
+      <glossiness val="1" />
+      <fresnel val="1" />
+      <fresnel_ior val="1.5" />
+    </reflectivity>
+    <transparency brdf_type="phong">
+      <color val="0 0 0" />
+      <glossiness val="1" />
+      <thin_walled val="0" />
+      <fog_color val="1 1 1" />
+      <fog_multiplier val="0" />
+      <ior val="1.5" />
+    </transparency>
+    <opacity smooth="0">
+      <skip_shadow val="1" />
+    </opacity>
+    <translucency>
+      <color val="0 0 0" />
+      <multiplier val="0" />
+    </translucency>
+  </material>
+  <material id="7" name="AM134_14_plate" type="hydra_material">
+    <emission>
+      <color val="1 1 1" />
+      <cast_gi val="1" />
+      <multiplier val="0" />
+    </emission>
+    <diffuse brdf_type="lambert">
+      <color val="0.6 0.569412 0.538824" />
+      <roughness val="0" />
+    </diffuse>
+    <reflectivity brdf_type="phong">
+      <extrusion val="luminance" />
+      <color val="0.9 0.9 0.9" />
+      <glossiness val="0.899999976" />
+      <fresnel val="1" />
+      <fresnel_ior val="1.5" />
+    </reflectivity>
+    <transparency brdf_type="phong">
+      <color val="0 0 0" />
+      <glossiness val="1" />
+      <thin_walled val="0" />
+      <fog_color val="1 1 1" />
+      <fog_multiplier val="0" />
+      <ior val="1.5" />
+    </transparency>
+    <opacity smooth="0">
+      <skip_shadow val="0" />
+    </opacity>
+    <translucency>
+      <color val="0 0 0" />
+      <multiplier val="0" />
+    </translucency>
+  </material>
+  <material id="8" name="Carpet" type="hydra_material">
+    <emission>
+      <color val="1 1 1" />
+      <cast_gi val="1" />
+      <multiplier val="0" />
+    </emission>
+    <diffuse brdf_type="orennayar">
+      <color val="0.301176 0.301176 0.301176" />
+      <roughness val="0.5" />
+    </diffuse>
+    <reflectivity brdf_type="phong">
+      <extrusion val="luminance" />
+      <color val="0 0 0" />
+      <glossiness val="1" />
+      <fresnel val="1" />
+      <fresnel_ior val="1.5" />
+    </reflectivity>
+    <transparency brdf_type="phong">
+      <color val="0 0 0" />
+      <glossiness val="1" />
+      <thin_walled val="0" />
+      <fog_color val="1 1 1" />
+      <fog_multiplier val="0" />
+      <ior val="1.5" />
+    </transparency>
+    <opacity smooth="0">
+      <skip_shadow val="0" />
+    </opacity>
+    <translucency>
+      <color val="0 0 0" />
+      <multiplier val="0" />
+    </translucency>
+  </material>
+  <material id="9" name="Mirror" type="hydra_material">
+    <emission>
+      <color val="1 1 1" />
+      <cast_gi val="1" />
+      <multiplier val="0" />
+    </emission>
+    <diffuse brdf_type="lambert">
+      <color val="0 0 0" />
+      <roughness val="0" />
+    </diffuse>
+    <reflectivity brdf_type="phong">
+      <extrusion val="maxcolor" />
+      <color val="0.95 0.95 0.95" />
+      <glossiness val="1" />
+      <fresnel val="0" />
+      <fresnel_ior val="1.5" />
+    </reflectivity>
+    <transparency brdf_type="phong">
+      <color val="0 0 0" />
+      <glossiness val="1" />
+      <thin_walled val="0" />
+      <fog_color val="1 1 1" />
+      <fog_multiplier val="0" />
+      <ior val="1.5" />
+    </transparency>
+    <opacity smooth="0">
+      <skip_shadow val="0" />
+    </opacity>
+    <translucency>
+      <color val="0 0 0" />
+      <multiplier val="0" />
+    </translucency>
+  </material>
+  <material id="10" name="Floor" type="hydra_material">
+    <emission>
+      <color val="1 1 1" />
+      <cast_gi val="1" />
+      <multiplier val="0" />
+    </emission>
+    <diffuse brdf_type="lambert">
+      <color val="0.175686 0.175686 0.175686" />
+      <roughness val="0" />
+    </diffuse>
+    <reflectivity brdf_type="phong">
+      <extrusion val="maxcolor" />
+      <color val="0.5 0.5 0.5" />
+      <glossiness val="0.899999976" />
+      <fresnel val="1" />
+      <fresnel_ior val="1.5" />
+    </reflectivity>
+    <transparency brdf_type="phong">
+      <color val="0 0 0" />
+      <glossiness val="1" />
+      <thin_walled val="0" />
+      <fog_color val="1 1 1" />
+      <fog_multiplier val="0" />
+      <ior val="1.5" />
+    </transparency>
+    <opacity smooth="0">
+      <skip_shadow val="0" />
+    </opacity>
+    <translucency>
+      <color val="0 0 0" />
+      <multiplier val="0" />
+    </translucency>
+  </material>
+  <material id="11" name="Steel" type="hydra_material">
+    <emission>
+      <color val="1 1 1" />
+      <cast_gi val="1" />
+      <multiplier val="0" />
+    </emission>
+    <diffuse brdf_type="lambert">
+      <color val="0 0 0" />
+      <roughness val="0" />
+    </diffuse>
+    <reflectivity brdf_type="torranse_sparrow">
+      <extrusion val="maxcolor" />
+      <color val="0.8 0.8 0.8" />
+      <glossiness val="0.800000012" />
+      <fresnel val="0" />
+      <fresnel_ior val="50" />
+    </reflectivity>
+    <transparency brdf_type="phong">
+      <color val="0 0 0" />
+      <glossiness val="1" />
+      <thin_walled val="0" />
+      <fog_color val="1 1 1" />
+      <fog_multiplier val="0" />
+      <ior val="1.5" />
+    </transparency>
+    <opacity smooth="0">
+      <skip_shadow val="0" />
+    </opacity>
+    <translucency>
+      <color val="0 0 0" />
+      <multiplier val="0" />
+    </translucency>
+  </material>
+  <material id="12" name="glass" type="hydra_material">
+    <emission>
+      <color val="1 1 1" />
+      <cast_gi val="1" />
+      <multiplier val="0" />
+    </emission>
+    <diffuse brdf_type="lambert">
+      <color val="0 0 0" />
+      <roughness val="0" />
+    </diffuse>
+    <reflectivity brdf_type="phong">
+      <extrusion val="maxcolor" />
+      <color val="1 1 1" />
+      <glossiness val="1" />
+      <fresnel val="1" />
+      <fresnel_ior val="1.5" />
+    </reflectivity>
+    <transparency brdf_type="phong">
+      <color val="1 1 1" />
+      <glossiness val="1" />
+      <thin_walled val="0" />
+      <fog_color val="0.713726 0.996078 1" />
+      <fog_multiplier val="1" />
+      <ior val="1.5" />
+    </transparency>
+    <opacity smooth="0">
+      <skip_shadow val="0" />
+    </opacity>
+    <translucency>
+      <color val="0 0 0" />
+      <multiplier val="0" />
+    </translucency>
+  </material>
+  <material id="13" name="Photo_glass" type="hydra_material">
+    <emission>
+      <color val="1 1 1" />
+      <cast_gi val="1" />
+      <multiplier val="0" />
+    </emission>
+    <diffuse brdf_type="lambert">
+      <color val="0.7 0.7 0.7" />
+      <roughness val="0" />
+    </diffuse>
+    <reflectivity brdf_type="phong">
+      <extrusion val="maxcolor" />
+      <color val="1 1 1" />
+      <glossiness val="1" />
+      <fresnel val="1" />
+      <fresnel_ior val="1.5" />
+    </reflectivity>
+    <transparency brdf_type="phong">
+      <color val="0 0 0" />
+      <glossiness val="1" />
+      <thin_walled val="0" />
+      <fog_color val="1 1 1" />
+      <fog_multiplier val="0" />
+      <ior val="1.5" />
+    </transparency>
+    <opacity smooth="0">
+      <skip_shadow val="0" />
+    </opacity>
+    <translucency>
+      <color val="0 0 0" />
+      <multiplier val="0" />
+    </translucency>
+  </material>
+  <material id="14" name="AM134_14_olive" type="hydra_material">
+    <emission>
+      <color val="1 1 1" />
+      <cast_gi val="1" />
+      <multiplier val="0" />
+    </emission>
+    <diffuse brdf_type="lambert">
+      <color val="0.0560784 0.0588235 0.012549" />
+      <roughness val="0" />
+    </diffuse>
+    <reflectivity brdf_type="phong">
+      <extrusion val="luminance" />
+      <color val="0.978353 0.99 0.792" />
+      <glossiness val="0.99000001" />
+      <fresnel val="1" />
+      <fresnel_ior val="1.29999995" />
+    </reflectivity>
+    <transparency brdf_type="phong">
+      <color val="0.560784 0.588235 0.12549" />
+      <glossiness val="0.99000001" />
+      <thin_walled val="0" />
+      <fog_color val="0.560784 0.588235 0.12549" />
+      <fog_multiplier val="1" />
+      <ior val="1.29999995" />
+    </transparency>
+    <opacity smooth="0">
+      <skip_shadow val="0" />
+    </opacity>
+    <translucency>
+      <color val="0.0560784 0.0588235 0.012549" />
+      <multiplier val="0.100000001" />
+    </translucency>
+  </material>
+  <material id="15" name="torsher" type="hydra_material">
+    <emission>
+      <color val="1 1 1" />
+      <cast_gi val="1" />
+      <multiplier val="0" />
+    </emission>
+    <diffuse brdf_type="lambert">
+      <color val="0.7 0.7 0.7" />
+      <roughness val="0" />
+    </diffuse>
+    <reflectivity brdf_type="phong">
+      <extrusion val="maxcolor" />
+      <color val="0 0 0" />
+      <glossiness val="1" />
+      <fresnel val="1" />
+      <fresnel_ior val="1.5" />
+    </reflectivity>
+    <transparency brdf_type="phong">
+      <color val="0 0 0" />
+      <glossiness val="1" />
+      <thin_walled val="0" />
+      <fog_color val="1 1 1" />
+      <fog_multiplier val="0" />
+      <ior val="1.5" />
+    </transparency>
+    <opacity smooth="0">
+      <skip_shadow val="0" />
+    </opacity>
+    <translucency>
+      <color val="0.5 0.5 0.5" />
+      <multiplier val="0.5" />
+    </translucency>
+  </material>
+  <material id="16" name="Glass_bottle" type="hydra_material">
+    <emission>
+      <color val="1 1 1" />
+      <cast_gi val="1" />
+      <multiplier val="0" />
+    </emission>
+    <diffuse brdf_type="lambert">
+      <color val="0.1 0.1 0.1" />
+      <roughness val="0" />
+    </diffuse>
+    <reflectivity brdf_type="phong">
+      <extrusion val="luminance" />
+      <color val="0.99 0.99 0.99" />
+      <glossiness val="0.99000001" />
+      <fresnel val="1" />
+      <fresnel_ior val="1.5" />
+    </reflectivity>
+    <transparency brdf_type="phong">
+      <color val="0.99 0.99 0.99" />
+      <glossiness val="0.99000001" />
+      <thin_walled val="0" />
+      <fog_color val="1 1 1" />
+      <fog_multiplier val="0" />
+      <ior val="1.5" />
+    </transparency>
+    <opacity smooth="0">
+      <skip_shadow val="0" />
+    </opacity>
+    <translucency>
+      <color val="0.1 0.1 0.1" />
+      <multiplier val="0.100000001" />
+    </translucency>
+  </material>
+  <material id="17" name="AM134_14_Paint" type="hydra_material">
+    <emission>
+      <color val="1 1 1" />
+      <cast_gi val="1" />
+      <multiplier val="0" />
+    </emission>
+    <diffuse brdf_type="lambert">
+      <color val="0.0164706 0.0282353 0.00705882" />
+      <roughness val="0" />
+    </diffuse>
+    <reflectivity brdf_type="phong">
+      <extrusion val="luminance" />
+      <color val="0.48 0.6 0.364706" />
+      <glossiness val="0.899999976" />
+      <fresnel val="1" />
+      <fresnel_ior val="1.5" />
+    </reflectivity>
+    <transparency brdf_type="phong">
+      <color val="0 0 0" />
+      <glossiness val="1" />
+      <thin_walled val="0" />
+      <fog_color val="1 1 1" />
+      <fog_multiplier val="0" />
+      <ior val="1.5" />
+    </transparency>
+    <opacity smooth="0">
+      <skip_shadow val="0" />
+    </opacity>
+    <translucency>
+      <color val="0 0 0" />
+      <multiplier val="0" />
+    </translucency>
+  </material>
+  <material id="18" name="AM134_14_Wire" type="hydra_material">
+    <emission>
+      <color val="1 1 1" />
+      <cast_gi val="1" />
+      <multiplier val="0" />
+    </emission>
+    <diffuse brdf_type="orennayar">
+      <color val="0.543529 0.447059 0.310588" />
+      <roughness val="0.200000003" />
+    </diffuse>
+    <reflectivity brdf_type="phong">
+      <extrusion val="luminance" />
+      <color val="0 0 0" />
+      <glossiness val="1" />
+      <fresnel val="1" />
+      <fresnel_ior val="1.5" />
+    </reflectivity>
+    <transparency brdf_type="phong">
+      <color val="0 0 0" />
+      <glossiness val="1" />
+      <thin_walled val="0" />
+      <fog_color val="1 1 1" />
+      <fog_multiplier val="0" />
+      <ior val="1.5" />
+    </transparency>
+    <opacity smooth="0">
+      <skip_shadow val="0" />
+    </opacity>
+    <translucency>
+      <color val="0 0 0" />
+      <multiplier val="0" />
+    </translucency>
+  </material>
+  <material id="19" name="AM134_14_Cover" type="hydra_material">
+    <emission>
+      <color val="1 1 1" />
+      <cast_gi val="1" />
+      <multiplier val="0" />
+    </emission>
+    <diffuse brdf_type="lambert">
+      <color val="0.7 0.7 0.7" />
+      <roughness val="0" />
+    </diffuse>
+    <reflectivity brdf_type="phong">
+      <extrusion val="luminance" />
+      <color val="0.5 0.5 0.5" />
+      <glossiness val="0.800000012" />
+      <fresnel val="1" />
+      <fresnel_ior val="1.5" />
+    </reflectivity>
+    <transparency brdf_type="phong">
+      <color val="0 0 0" />
+      <glossiness val="1" />
+      <thin_walled val="0" />
+      <fog_color val="1 1 1" />
+      <fog_multiplier val="0" />
+      <ior val="1.5" />
+    </transparency>
+    <opacity smooth="0">
+      <skip_shadow val="0" />
+    </opacity>
+    <translucency>
+      <color val="0 0 0" />
+      <multiplier val="0" />
+    </translucency>
+  </material>
+  <material id="20" name="AM134_14_bottle_glass" type="hydra_material">
+    <emission>
+      <color val="1 1 1" />
+      <cast_gi val="1" />
+      <multiplier val="0" />
+    </emission>
+    <diffuse brdf_type="lambert">
+      <color val="0.1 0.1 0.1" />
+      <roughness val="0" />
+    </diffuse>
+    <reflectivity brdf_type="phong">
+      <extrusion val="luminance" />
+      <color val="0.99 0.99 0.99" />
+      <glossiness val="0.99000001" />
+      <fresnel val="1" />
+      <fresnel_ior val="1.5" />
+    </reflectivity>
+    <transparency brdf_type="phong">
+      <color val="0.99 0.99 0.99" />
+      <glossiness val="0.99000001" />
+      <thin_walled val="0" />
+      <fog_color val="0.780392 0.996078 1" />
+      <fog_multiplier val="1" />
+      <ior val="1.5" />
+    </transparency>
+    <opacity smooth="0">
+      <skip_shadow val="0" />
+    </opacity>
+    <translucency>
+      <color val="0.1 0.1 0.1" />
+      <multiplier val="0.100000001" />
+    </translucency>
+  </material>
+  <material id="21" name="AM134_14_065_honey" type="hydra_material">
+    <emission>
+      <color val="1 1 1" />
+      <cast_gi val="1" />
+      <multiplier val="0" />
+    </emission>
+    <diffuse brdf_type="lambert">
+      <color val="0.235294 0.14 0.00470588" />
+      <roughness val="0" />
+    </diffuse>
+    <reflectivity brdf_type="phong">
+      <extrusion val="luminance" />
+      <color val="0.9 0.776471 0.511765" />
+      <glossiness val="0.899999976" />
+      <fresnel val="1" />
+      <fresnel_ior val="1.39999998" />
+    </reflectivity>
+    <transparency brdf_type="phong">
+      <color val="0.705882 0.635294 0.532941" />
+      <glossiness val="0.800000012" />
+      <thin_walled val="0" />
+      <fog_color val="0.784314 0.466667 0.0156863" />
+      <fog_multiplier val="1" />
+      <ior val="1.39999998" />
+    </transparency>
+    <opacity smooth="0">
+      <skip_shadow val="0" />
+    </opacity>
+    <translucency>
+      <color val="0.235294 0.14 0.00470588" />
+      <multiplier val="0.300000012" />
+    </translucency>
+  </material>
+  <material id="22" name="AM134_14_065_Cover" type="hydra_material">
+    <emission>
+      <color val="1 1 1" />
+      <cast_gi val="1" />
+      <multiplier val="0" />
+    </emission>
+    <diffuse brdf_type="lambert">
+      <color val="0.0752941 0.0470588 0.00705882" />
+      <roughness val="0" />
+    </diffuse>
+    <reflectivity brdf_type="torranse_sparrow">
+      <extrusion val="luminance" />
+      <color val="0.8 0.592941 0.298039" />
+      <glossiness val="0.75" />
+      <fresnel val="1" />
+      <fresnel_ior val="50" />
+    </reflectivity>
+    <transparency brdf_type="phong">
+      <color val="0 0 0" />
+      <glossiness val="1" />
+      <thin_walled val="0" />
+      <fog_color val="1 1 1" />
+      <fog_multiplier val="0" />
+      <ior val="1.5" />
+    </transparency>
+    <opacity smooth="0">
+      <skip_shadow val="0" />
+    </opacity>
+    <translucency>
+      <color val="0 0 0" />
+      <multiplier val="0" />
+    </translucency>
+  </material>
+  <material id="23" name="AM134_14_065_Label" type="hydra_material">
+    <emission>
+      <color val="1 1 1" />
+      <cast_gi val="1" />
+      <multiplier val="0" />
+    </emission>
+    <diffuse brdf_type="lambert">
+      <color val="0.8 0.8 0.8" />
+      <roughness val="0" />
+    </diffuse>
+    <reflectivity brdf_type="phong">
+      <extrusion val="luminance" />
+      <color val="0.5 0.5 0.5" />
+      <glossiness val="0.699999988" />
+      <fresnel val="1" />
+      <fresnel_ior val="1.5" />
+    </reflectivity>
+    <transparency brdf_type="phong">
+      <color val="0 0 0" />
+      <glossiness val="1" />
+      <thin_walled val="0" />
+      <fog_color val="1 1 1" />
+      <fog_multiplier val="0" />
+      <ior val="1.5" />
+    </transparency>
+    <opacity smooth="0">
+      <skip_shadow val="0" />
+    </opacity>
+    <translucency>
+      <color val="0 0 0" />
+      <multiplier val="0" />
+    </translucency>
+  </material>
+  <material id="24" name="AM134_14_chrome" type="hydra_material">
+    <emission>
+      <color val="1 1 1" />
+      <cast_gi val="1" />
+      <multiplier val="0" />
+    </emission>
+    <diffuse brdf_type="lambert">
+      <color val="0 0 0" />
+      <roughness val="0" />
+    </diffuse>
+    <reflectivity brdf_type="torranse_sparrow">
+      <extrusion val="luminance" />
+      <color val="0.8 0.8 0.8" />
+      <glossiness val="0.98999989" />
+      <fresnel val="0" />
+      <fresnel_ior val="50" />
+    </reflectivity>
+    <transparency brdf_type="phong">
+      <color val="0 0 0" />
+      <glossiness val="1" />
+      <thin_walled val="0" />
+      <fog_color val="1 1 1" />
+      <fog_multiplier val="0" />
+      <ior val="1.5" />
+    </transparency>
+    <opacity smooth="0">
+      <skip_shadow val="0" />
+    </opacity>
+    <translucency>
+      <color val="0 0 0" />
+      <multiplier val="0" />
+    </translucency>
+  </material>
+  <material id="25" name="environment_material" type="hydra_material" light_id="0" visible="1">
+    <emission>
+      <color val="0 0 0" />
+    </emission>
+  </material>
+  <material id="26" name="PhotometricLight001_material" type="hydra_material" light_id="1" visible="1">
+    <emission>
+      <color val="9.53306 9.53306 9.53306" />
+    </emission>
+  </material>
+</materials_lib>
+<lights_lib>
+  <light id="0" name="environment" type="sky" shape="point" distribution="uniform" visible="1" mat_id="25">
+    <intensity>
+      <color val="0 0 0" />
+      <multiplier val="1" />
+    </intensity>
+  </light>
+  <light id="1" name="PhotometricLight001" type="area" shape="rect" distribution="diffuse" visible="1" mat_id="26" mesh_id="91">
+    <intensity>
+      <multiplier val="9.53306484" />
+      <color val="1 1 1" />
+    </intensity>
+    <size radius="1.09028029" half_length="0.673484027" half_width="1.09028029" />
+  </light>
+</lights_lib>
+<cam_lib>
+  <camera id="0" name="Camera001" type="uvn">
+    <fov>45.428833</fov>
+    <nearClipPlane>0.00999999978</nearClipPlane>
+    <farClipPlane>100</farClipPlane>
+    <up>0 1 0</up>
+    <position>-3.26329 0.86389 3.87814</position>
+    <look_at>1.77271 0.86389 -1.11857</look_at>
+    <tiltRotX>0</tiltRotX>
+    <tiltRotY>0</tiltRotY>
+    <tiltShiftX>0</tiltShiftX>
+    <tiltShiftY>0</tiltShiftY>
+    <enable_dof>0</enable_dof>
+  </camera>
+</cam_lib>
+<geometry_lib total_chunks="93">
+  <mesh id="0" name="Box009" type="vsgf" bytesize="792" loc="data/chunk_00001.vsgf" offset="0" vertNum="12" triNum="6" dl="0" path="" bbox="3.40282e+38 -3.40282e+38 3.40282e+38 -3.40282e+38 3.40282e+38 -3.40282e+38">
+    <positions type="array4f" bytesize="192" offset="24" apply="vertex" />
+    <normals type="array4f" bytesize="192" offset="216" apply="vertex" />
+    <tangents type="array4f" bytesize="192" offset="408" apply="vertex" />
+    <texcoords type="array2f" bytesize="96" offset="600" apply="vertex" />
+    <indices type="array1i" bytesize="72" offset="696" apply="tlist" />
+    <matindices type="array1i" bytesize="24" offset="768" apply="primitive" />
+  </mesh>
+  <mesh id="1" name="Text001" type="vsgf" bytesize="326496" loc="data/chunk_00002.vsgf" offset="0" vertNum="5197" triNum="2215" dl="0" path="" bbox="3.40282e+38 -3.40282e+38 3.40282e+38 -3.40282e+38 3.40282e+38 -3.40282e+38">
+    <positions type="array4f" bytesize="83152" offset="24" apply="vertex" />
+    <normals type="array4f" bytesize="83152" offset="83176" apply="vertex" />
+    <tangents type="array4f" bytesize="83152" offset="166328" apply="vertex" />
+    <texcoords type="array2f" bytesize="41576" offset="249480" apply="vertex" />
+    <indices type="array1i" bytesize="26580" offset="291056" apply="tlist" />
+    <matindices type="array1i" bytesize="8860" offset="317636" apply="primitive" />
+  </mesh>
+  <mesh id="2" name="Object001" type="vsgf" bytesize="6360" loc="data/chunk_00003.vsgf" offset="0" vertNum="96" triNum="60" dl="0" path="" bbox="3.40282e+38 -3.40282e+38 3.40282e+38 -3.40282e+38 3.40282e+38 -3.40282e+38">
+    <positions type="array4f" bytesize="1536" offset="24" apply="vertex" />
+    <normals type="array4f" bytesize="1536" offset="1560" apply="vertex" />
+    <tangents type="array4f" bytesize="1536" offset="3096" apply="vertex" />
+    <texcoords type="array2f" bytesize="768" offset="4632" apply="vertex" />
+    <indices type="array1i" bytesize="720" offset="5400" apply="tlist" />
+    <matindices type="array1i" bytesize="240" offset="6120" apply="primitive" />
+  </mesh>
+  <mesh id="3" name="Object002" type="vsgf" bytesize="280" loc="data/chunk_00004.vsgf" offset="0" vertNum="4" triNum="2" dl="0" path="" bbox="3.40282e+38 -3.40282e+38 3.40282e+38 -3.40282e+38 3.40282e+38 -3.40282e+38">
+    <positions type="array4f" bytesize="64" offset="24" apply="vertex" />
+    <normals type="array4f" bytesize="64" offset="88" apply="vertex" />
+    <tangents type="array4f" bytesize="64" offset="152" apply="vertex" />
+    <texcoords type="array2f" bytesize="32" offset="216" apply="vertex" />
+    <indices type="array1i" bytesize="24" offset="248" apply="tlist" />
+    <matindices type="array1i" bytesize="8" offset="272" apply="primitive" />
+  </mesh>
+  <mesh id="4" name="Object003" type="vsgf" bytesize="1272" loc="data/chunk_00005.vsgf" offset="0" vertNum="20" triNum="8" dl="0" path="" bbox="3.40282e+38 -3.40282e+38 3.40282e+38 -3.40282e+38 3.40282e+38 -3.40282e+38">
+    <positions type="array4f" bytesize="320" offset="24" apply="vertex" />
+    <normals type="array4f" bytesize="320" offset="344" apply="vertex" />
+    <tangents type="array4f" bytesize="320" offset="664" apply="vertex" />
+    <texcoords type="array2f" bytesize="160" offset="984" apply="vertex" />
+    <indices type="array1i" bytesize="96" offset="1144" apply="tlist" />
+    <matindices type="array1i" bytesize="32" offset="1240" apply="primitive" />
+  </mesh>
+  <mesh id="5" name="Rectangle001" type="vsgf" bytesize="229152" loc="data/chunk_00006.vsgf" offset="0" vertNum="3635" triNum="1598" dl="0" path="" bbox="3.40282e+38 -3.40282e+38 3.40282e+38 -3.40282e+38 3.40282e+38 -3.40282e+38">
+    <positions type="array4f" bytesize="58160" offset="24" apply="vertex" />
+    <normals type="array4f" bytesize="58160" offset="58184" apply="vertex" />
+    <tangents type="array4f" bytesize="58160" offset="116344" apply="vertex" />
+    <texcoords type="array2f" bytesize="29080" offset="174504" apply="vertex" />
+    <indices type="array1i" bytesize="19176" offset="203584" apply="tlist" />
+    <matindices type="array1i" bytesize="6392" offset="222760" apply="primitive" />
+  </mesh>
+  <mesh id="6" name="Plane001" type="vsgf" bytesize="32408" loc="data/chunk_00007.vsgf" offset="0" vertNum="512" triNum="232" dl="0" path="" bbox="3.40282e+38 -3.40282e+38 3.40282e+38 -3.40282e+38 3.40282e+38 -3.40282e+38">
+    <positions type="array4f" bytesize="8192" offset="24" apply="vertex" />
+    <normals type="array4f" bytesize="8192" offset="8216" apply="vertex" />
+    <tangents type="array4f" bytesize="8192" offset="16408" apply="vertex" />
+    <texcoords type="array2f" bytesize="4096" offset="24600" apply="vertex" />
+    <indices type="array1i" bytesize="2784" offset="28696" apply="tlist" />
+    <matindices type="array1i" bytesize="928" offset="31480" apply="primitive" />
+  </mesh>
+  <mesh id="7" name="Plane002" type="vsgf" bytesize="82360" loc="data/chunk_00008.vsgf" offset="0" vertNum="1280" triNum="666" dl="0" path="" bbox="3.40282e+38 -3.40282e+38 3.40282e+38 -3.40282e+38 3.40282e+38 -3.40282e+38">
+    <positions type="array4f" bytesize="20480" offset="24" apply="vertex" />
+    <normals type="array4f" bytesize="20480" offset="20504" apply="vertex" />
+    <tangents type="array4f" bytesize="20480" offset="40984" apply="vertex" />
+    <texcoords type="array2f" bytesize="10240" offset="61464" apply="vertex" />
+    <indices type="array1i" bytesize="7992" offset="71704" apply="tlist" />
+    <matindices type="array1i" bytesize="2664" offset="79696" apply="primitive" />
+  </mesh>
+  <mesh id="8" name="Object004" type="vsgf" bytesize="50368" loc="data/chunk_00009.vsgf" offset="0" vertNum="819" triNum="280" dl="0" path="" bbox="3.40282e+38 -3.40282e+38 3.40282e+38 -3.40282e+38 3.40282e+38 -3.40282e+38">
+    <positions type="array4f" bytesize="13104" offset="24" apply="vertex" />
+    <normals type="array4f" bytesize="13104" offset="13128" apply="vertex" />
+    <tangents type="array4f" bytesize="13104" offset="26232" apply="vertex" />
+    <texcoords type="array2f" bytesize="6552" offset="39336" apply="vertex" />
+    <indices type="array1i" bytesize="3360" offset="45888" apply="tlist" />
+    <matindices type="array1i" bytesize="1120" offset="49248" apply="primitive" />
+  </mesh>
+  <mesh id="9" name="Box010" type="vsgf" bytesize="25872" loc="data/chunk_00010.vsgf" offset="0" vertNum="413" triNum="170" dl="0" path="" bbox="3.40282e+38 -3.40282e+38 3.40282e+38 -3.40282e+38 3.40282e+38 -3.40282e+38">
+    <positions type="array4f" bytesize="6608" offset="24" apply="vertex" />
+    <normals type="array4f" bytesize="6608" offset="6632" apply="vertex" />
+    <tangents type="array4f" bytesize="6608" offset="13240" apply="vertex" />
+    <texcoords type="array2f" bytesize="3304" offset="19848" apply="vertex" />
+    <indices type="array1i" bytesize="2040" offset="23152" apply="tlist" />
+    <matindices type="array1i" bytesize="680" offset="25192" apply="primitive" />
+  </mesh>
+  <mesh id="10" name="Rectangle003" type="vsgf" bytesize="21784" loc="data/chunk_00011.vsgf" offset="0" vertNum="320" triNum="240" dl="0" path="" bbox="3.40282e+38 -3.40282e+38 3.40282e+38 -3.40282e+38 3.40282e+38 -3.40282e+38">
+    <positions type="array4f" bytesize="5120" offset="24" apply="vertex" />
+    <normals type="array4f" bytesize="5120" offset="5144" apply="vertex" />
+    <tangents type="array4f" bytesize="5120" offset="10264" apply="vertex" />
+    <texcoords type="array2f" bytesize="2560" offset="15384" apply="vertex" />
+    <indices type="array1i" bytesize="2880" offset="17944" apply="tlist" />
+    <matindices type="array1i" bytesize="960" offset="20824" apply="primitive" />
+  </mesh>
+  <mesh id="11" name="Box011" type="vsgf" bytesize="2192584" loc="data/chunk_00012.vsgf" offset="0" vertNum="33274" triNum="20576" dl="0" path="" bbox="3.40282e+38 -3.40282e+38 3.40282e+38 -3.40282e+38 3.40282e+38 -3.40282e+38">
+    <positions type="array4f" bytesize="532384" offset="24" apply="vertex" />
+    <normals type="array4f" bytesize="532384" offset="532408" apply="vertex" />
+    <tangents type="array4f" bytesize="532384" offset="1064792" apply="vertex" />
+    <texcoords type="array2f" bytesize="266192" offset="1597176" apply="vertex" />
+    <indices type="array1i" bytesize="246912" offset="1863368" apply="tlist" />
+    <matindices type="array1i" bytesize="82304" offset="2110280" apply="primitive" />
+  </mesh>
+  <mesh id="12" name="Object005" type="vsgf" bytesize="1110448" loc="data/chunk_00013.vsgf" offset="0" vertNum="17981" triNum="6468" dl="0" path="" bbox="3.40282e+38 -3.40282e+38 3.40282e+38 -3.40282e+38 3.40282e+38 -3.40282e+38">
+    <positions type="array4f" bytesize="287696" offset="24" apply="vertex" />
+    <normals type="array4f" bytesize="287696" offset="287720" apply="vertex" />
+    <tangents type="array4f" bytesize="287696" offset="575416" apply="vertex" />
+    <texcoords type="array2f" bytesize="143848" offset="863112" apply="vertex" />
+    <indices type="array1i" bytesize="77616" offset="1006960" apply="tlist" />
+    <matindices type="array1i" bytesize="25872" offset="1084576" apply="primitive" />
+  </mesh>
+  <mesh id="13" name="Line008" type="vsgf" bytesize="809456" loc="data/chunk_00014.vsgf" offset="0" vertNum="13117" triNum="4680" dl="0" path="" bbox="3.40282e+38 -3.40282e+38 3.40282e+38 -3.40282e+38 3.40282e+38 -3.40282e+38">
+    <positions type="array4f" bytesize="209872" offset="24" apply="vertex" />
+    <normals type="array4f" bytesize="209872" offset="209896" apply="vertex" />
+    <tangents type="array4f" bytesize="209872" offset="419768" apply="vertex" />
+    <texcoords type="array2f" bytesize="104936" offset="629640" apply="vertex" />
+    <indices type="array1i" bytesize="56160" offset="734576" apply="tlist" />
+    <matindices type="array1i" bytesize="18720" offset="790736" apply="primitive" />
+  </mesh>
+  <mesh id="14" name="Line009" type="vsgf" bytesize="1323600" loc="data/chunk_00015.vsgf" offset="0" vertNum="21305" triNum="8156" dl="0" path="" bbox="3.40282e+38 -3.40282e+38 3.40282e+38 -3.40282e+38 3.40282e+38 -3.40282e+38">
+    <positions type="array4f" bytesize="340880" offset="24" apply="vertex" />
+    <normals type="array4f" bytesize="340880" offset="340904" apply="vertex" />
+    <tangents type="array4f" bytesize="340880" offset="681784" apply="vertex" />
+    <texcoords type="array2f" bytesize="170440" offset="1022664" apply="vertex" />
+    <indices type="array1i" bytesize="97872" offset="1193104" apply="tlist" />
+    <matindices type="array1i" bytesize="32624" offset="1290976" apply="primitive" />
+  </mesh>
+  <mesh id="15" name="Line010" type="vsgf" bytesize="1323600" loc="data/chunk_00016.vsgf" offset="0" vertNum="21305" triNum="8156" dl="0" path="" bbox="3.40282e+38 -3.40282e+38 3.40282e+38 -3.40282e+38 3.40282e+38 -3.40282e+38">
+    <positions type="array4f" bytesize="340880" offset="24" apply="vertex" />
+    <normals type="array4f" bytesize="340880" offset="340904" apply="vertex" />
+    <tangents type="array4f" bytesize="340880" offset="681784" apply="vertex" />
+    <texcoords type="array2f" bytesize="170440" offset="1022664" apply="vertex" />
+    <indices type="array1i" bytesize="97872" offset="1193104" apply="tlist" />
+    <matindices type="array1i" bytesize="32624" offset="1290976" apply="primitive" />
+  </mesh>
+  <mesh id="16" name="Line011" type="vsgf" bytesize="1323600" loc="data/chunk_00017.vsgf" offset="0" vertNum="21305" triNum="8156" dl="0" path="" bbox="3.40282e+38 -3.40282e+38 3.40282e+38 -3.40282e+38 3.40282e+38 -3.40282e+38">
+    <positions type="array4f" bytesize="340880" offset="24" apply="vertex" />
+    <normals type="array4f" bytesize="340880" offset="340904" apply="vertex" />
+    <tangents type="array4f" bytesize="340880" offset="681784" apply="vertex" />
+    <texcoords type="array2f" bytesize="170440" offset="1022664" apply="vertex" />
+    <indices type="array1i" bytesize="97872" offset="1193104" apply="tlist" />
+    <matindices type="array1i" bytesize="32624" offset="1290976" apply="primitive" />
+  </mesh>
+  <mesh id="17" name="Rectangle06" type="vsgf" bytesize="10520" loc="data/chunk_00018.vsgf" offset="0" vertNum="168" triNum="68" dl="0" path="" bbox="3.40282e+38 -3.40282e+38 3.40282e+38 -3.40282e+38 3.40282e+38 -3.40282e+38">
+    <positions type="array4f" bytesize="2688" offset="24" apply="vertex" />
+    <normals type="array4f" bytesize="2688" offset="2712" apply="vertex" />
+    <tangents type="array4f" bytesize="2688" offset="5400" apply="vertex" />
+    <texcoords type="array2f" bytesize="1344" offset="8088" apply="vertex" />
+    <indices type="array1i" bytesize="816" offset="9432" apply="tlist" />
+    <matindices type="array1i" bytesize="272" offset="10248" apply="primitive" />
+  </mesh>
+  <mesh id="18" name="Archinteriors13_007_645" type="vsgf" bytesize="8224" loc="data/chunk_00019.vsgf" offset="0" vertNum="127" triNum="68" dl="0" path="" bbox="3.40282e+38 -3.40282e+38 3.40282e+38 -3.40282e+38 3.40282e+38 -3.40282e+38">
+    <positions type="array4f" bytesize="2032" offset="24" apply="vertex" />
+    <normals type="array4f" bytesize="2032" offset="2056" apply="vertex" />
+    <tangents type="array4f" bytesize="2032" offset="4088" apply="vertex" />
+    <texcoords type="array2f" bytesize="1016" offset="6120" apply="vertex" />
+    <indices type="array1i" bytesize="816" offset="7136" apply="tlist" />
+    <matindices type="array1i" bytesize="272" offset="7952" apply="primitive" />
+  </mesh>
+  <mesh id="19" name="Archinteriors13_007_649" type="vsgf" bytesize="8952" loc="data/chunk_00020.vsgf" offset="0" vertNum="140" triNum="68" dl="0" path="" bbox="3.40282e+38 -3.40282e+38 3.40282e+38 -3.40282e+38 3.40282e+38 -3.40282e+38">
+    <positions type="array4f" bytesize="2240" offset="24" apply="vertex" />
+    <normals type="array4f" bytesize="2240" offset="2264" apply="vertex" />
+    <tangents type="array4f" bytesize="2240" offset="4504" apply="vertex" />
+    <texcoords type="array2f" bytesize="1120" offset="6744" apply="vertex" />
+    <indices type="array1i" bytesize="816" offset="7864" apply="tlist" />
+    <matindices type="array1i" bytesize="272" offset="8680" apply="primitive" />
+  </mesh>
+  <mesh id="20" name="Archinteriors13_007_636" type="vsgf" bytesize="9120" loc="data/chunk_00021.vsgf" offset="0" vertNum="143" triNum="68" dl="0" path="" bbox="3.40282e+38 -3.40282e+38 3.40282e+38 -3.40282e+38 3.40282e+38 -3.40282e+38">
+    <positions type="array4f" bytesize="2288" offset="24" apply="vertex" />
+    <normals type="array4f" bytesize="2288" offset="2312" apply="vertex" />
+    <tangents type="array4f" bytesize="2288" offset="4600" apply="vertex" />
+    <texcoords type="array2f" bytesize="1144" offset="6888" apply="vertex" />
+    <indices type="array1i" bytesize="816" offset="8032" apply="tlist" />
+    <matindices type="array1i" bytesize="272" offset="8848" apply="primitive" />
+  </mesh>
+  <mesh id="21" name="Archinteriors13_007_643" type="vsgf" bytesize="8952" loc="data/chunk_00022.vsgf" offset="0" vertNum="140" triNum="68" dl="0" path="" bbox="3.40282e+38 -3.40282e+38 3.40282e+38 -3.40282e+38 3.40282e+38 -3.40282e+38">
+    <positions type="array4f" bytesize="2240" offset="24" apply="vertex" />
+    <normals type="array4f" bytesize="2240" offset="2264" apply="vertex" />
+    <tangents type="array4f" bytesize="2240" offset="4504" apply="vertex" />
+    <texcoords type="array2f" bytesize="1120" offset="6744" apply="vertex" />
+    <indices type="array1i" bytesize="816" offset="7864" apply="tlist" />
+    <matindices type="array1i" bytesize="272" offset="8680" apply="primitive" />
+  </mesh>
+  <mesh id="22" name="Archinteriors13_007_654" type="vsgf" bytesize="9680" loc="data/chunk_00023.vsgf" offset="0" vertNum="153" triNum="68" dl="0" path="" bbox="3.40282e+38 -3.40282e+38 3.40282e+38 -3.40282e+38 3.40282e+38 -3.40282e+38">
+    <positions type="array4f" bytesize="2448" offset="24" apply="vertex" />
+    <normals type="array4f" bytesize="2448" offset="2472" apply="vertex" />
+    <tangents type="array4f" bytesize="2448" offset="4920" apply="vertex" />
+    <texcoords type="array2f" bytesize="1224" offset="7368" apply="vertex" />
+    <indices type="array1i" bytesize="816" offset="8592" apply="tlist" />
+    <matindices type="array1i" bytesize="272" offset="9408" apply="primitive" />
+  </mesh>
+  <mesh id="23" name="Archinteriors13_007_653" type="vsgf" bytesize="9232" loc="data/chunk_00024.vsgf" offset="0" vertNum="145" triNum="68" dl="0" path="" bbox="3.40282e+38 -3.40282e+38 3.40282e+38 -3.40282e+38 3.40282e+38 -3.40282e+38">
+    <positions type="array4f" bytesize="2320" offset="24" apply="vertex" />
+    <normals type="array4f" bytesize="2320" offset="2344" apply="vertex" />
+    <tangents type="array4f" bytesize="2320" offset="4664" apply="vertex" />
+    <texcoords type="array2f" bytesize="1160" offset="6984" apply="vertex" />
+    <indices type="array1i" bytesize="816" offset="8144" apply="tlist" />
+    <matindices type="array1i" bytesize="272" offset="8960" apply="primitive" />
+  </mesh>
+  <mesh id="24" name="Archinteriors13_007_658" type="vsgf" bytesize="9120" loc="data/chunk_00025.vsgf" offset="0" vertNum="143" triNum="68" dl="0" path="" bbox="3.40282e+38 -3.40282e+38 3.40282e+38 -3.40282e+38 3.40282e+38 -3.40282e+38">
+    <positions type="array4f" bytesize="2288" offset="24" apply="vertex" />
+    <normals type="array4f" bytesize="2288" offset="2312" apply="vertex" />
+    <tangents type="array4f" bytesize="2288" offset="4600" apply="vertex" />
+    <texcoords type="array2f" bytesize="1144" offset="6888" apply="vertex" />
+    <indices type="array1i" bytesize="816" offset="8032" apply="tlist" />
+    <matindices type="array1i" bytesize="272" offset="8848" apply="primitive" />
+  </mesh>
+  <mesh id="25" name="Archinteriors13_007_659" type="vsgf" bytesize="9680" loc="data/chunk_00026.vsgf" offset="0" vertNum="153" triNum="68" dl="0" path="" bbox="3.40282e+38 -3.40282e+38 3.40282e+38 -3.40282e+38 3.40282e+38 -3.40282e+38">
+    <positions type="array4f" bytesize="2448" offset="24" apply="vertex" />
+    <normals type="array4f" bytesize="2448" offset="2472" apply="vertex" />
+    <tangents type="array4f" bytesize="2448" offset="4920" apply="vertex" />
+    <texcoords type="array2f" bytesize="1224" offset="7368" apply="vertex" />
+    <indices type="array1i" bytesize="816" offset="8592" apply="tlist" />
+    <matindices type="array1i" bytesize="272" offset="9408" apply="primitive" />
+  </mesh>
+  <mesh id="26" name="Archinteriors13_007_660" type="vsgf" bytesize="9232" loc="data/chunk_00027.vsgf" offset="0" vertNum="145" triNum="68" dl="0" path="" bbox="3.40282e+38 -3.40282e+38 3.40282e+38 -3.40282e+38 3.40282e+38 -3.40282e+38">
+    <positions type="array4f" bytesize="2320" offset="24" apply="vertex" />
+    <normals type="array4f" bytesize="2320" offset="2344" apply="vertex" />
+    <tangents type="array4f" bytesize="2320" offset="4664" apply="vertex" />
+    <texcoords type="array2f" bytesize="1160" offset="6984" apply="vertex" />
+    <indices type="array1i" bytesize="816" offset="8144" apply="tlist" />
+    <matindices type="array1i" bytesize="272" offset="8960" apply="primitive" />
+  </mesh>
+  <mesh id="27" name="Archinteriors13_007_657" type="vsgf" bytesize="8952" loc="data/chunk_00028.vsgf" offset="0" vertNum="140" triNum="68" dl="0" path="" bbox="3.40282e+38 -3.40282e+38 3.40282e+38 -3.40282e+38 3.40282e+38 -3.40282e+38">
+    <positions type="array4f" bytesize="2240" offset="24" apply="vertex" />
+    <normals type="array4f" bytesize="2240" offset="2264" apply="vertex" />
+    <tangents type="array4f" bytesize="2240" offset="4504" apply="vertex" />
+    <texcoords type="array2f" bytesize="1120" offset="6744" apply="vertex" />
+    <indices type="array1i" bytesize="816" offset="7864" apply="tlist" />
+    <matindices type="array1i" bytesize="272" offset="8680" apply="primitive" />
+  </mesh>
+  <mesh id="28" name="AM134_15_book_14" type="vsgf" bytesize="229712" loc="data/chunk_00029.vsgf" offset="0" vertNum="3497" triNum="2116" dl="0" path="" bbox="3.40282e+38 -3.40282e+38 3.40282e+38 -3.40282e+38 3.40282e+38 -3.40282e+38">
+    <positions type="array4f" bytesize="55952" offset="24" apply="vertex" />
+    <normals type="array4f" bytesize="55952" offset="55976" apply="vertex" />
+    <tangents type="array4f" bytesize="55952" offset="111928" apply="vertex" />
+    <texcoords type="array2f" bytesize="27976" offset="167880" apply="vertex" />
+    <indices type="array1i" bytesize="25392" offset="195856" apply="tlist" />
+    <matindices type="array1i" bytesize="8464" offset="221248" apply="primitive" />
+  </mesh>
+  <mesh id="29" name="AM134_15_book_12" type="vsgf" bytesize="230104" loc="data/chunk_00030.vsgf" offset="0" vertNum="3504" triNum="2116" dl="0" path="" bbox="3.40282e+38 -3.40282e+38 3.40282e+38 -3.40282e+38 3.40282e+38 -3.40282e+38">
+    <positions type="array4f" bytesize="56064" offset="24" apply="vertex" />
+    <normals type="array4f" bytesize="56064" offset="56088" apply="vertex" />
+    <tangents type="array4f" bytesize="56064" offset="112152" apply="vertex" />
+    <texcoords type="array2f" bytesize="28032" offset="168216" apply="vertex" />
+    <indices type="array1i" bytesize="25392" offset="196248" apply="tlist" />
+    <matindices type="array1i" bytesize="8464" offset="221640" apply="primitive" />
+  </mesh>
+  <mesh id="30" name="AM134_15_book_11" type="vsgf" bytesize="221872" loc="data/chunk_00031.vsgf" offset="0" vertNum="3357" triNum="2116" dl="0" path="" bbox="3.40282e+38 -3.40282e+38 3.40282e+38 -3.40282e+38 3.40282e+38 -3.40282e+38">
+    <positions type="array4f" bytesize="53712" offset="24" apply="vertex" />
+    <normals type="array4f" bytesize="53712" offset="53736" apply="vertex" />
+    <tangents type="array4f" bytesize="53712" offset="107448" apply="vertex" />
+    <texcoords type="array2f" bytesize="26856" offset="161160" apply="vertex" />
+    <indices type="array1i" bytesize="25392" offset="188016" apply="tlist" />
+    <matindices type="array1i" bytesize="8464" offset="213408" apply="primitive" />
+  </mesh>
+  <mesh id="31" name="AM134_15_book_13" type="vsgf" bytesize="236040" loc="data/chunk_00032.vsgf" offset="0" vertNum="3610" triNum="2116" dl="0" path="" bbox="3.40282e+38 -3.40282e+38 3.40282e+38 -3.40282e+38 3.40282e+38 -3.40282e+38">
+    <positions type="array4f" bytesize="57760" offset="24" apply="vertex" />
+    <normals type="array4f" bytesize="57760" offset="57784" apply="vertex" />
+    <tangents type="array4f" bytesize="57760" offset="115544" apply="vertex" />
+    <texcoords type="array2f" bytesize="28880" offset="173304" apply="vertex" />
+    <indices type="array1i" bytesize="25392" offset="202184" apply="tlist" />
+    <matindices type="array1i" bytesize="8464" offset="227576" apply="primitive" />
+  </mesh>
+  <mesh id="32" name="AM134_24_watch_01" type="vsgf" bytesize="954512" loc="data/chunk_00033.vsgf" offset="0" vertNum="15417" triNum="5696" dl="0" path="" bbox="3.40282e+38 -3.40282e+38 3.40282e+38 -3.40282e+38 3.40282e+38 -3.40282e+38">
+    <positions type="array4f" bytesize="246672" offset="24" apply="vertex" />
+    <normals type="array4f" bytesize="246672" offset="246696" apply="vertex" />
+    <tangents type="array4f" bytesize="246672" offset="493368" apply="vertex" />
+    <texcoords type="array2f" bytesize="123336" offset="740040" apply="vertex" />
+    <indices type="array1i" bytesize="68352" offset="863376" apply="tlist" />
+    <matindices type="array1i" bytesize="22784" offset="931728" apply="primitive" />
+  </mesh>
+  <mesh id="33" name="AM134_24_watch_03" type="vsgf" bytesize="183328" loc="data/chunk_00034.vsgf" offset="0" vertNum="2967" triNum="1072" dl="0" path="" bbox="3.40282e+38 -3.40282e+38 3.40282e+38 -3.40282e+38 3.40282e+38 -3.40282e+38">
+    <positions type="array4f" bytesize="47472" offset="24" apply="vertex" />
+    <normals type="array4f" bytesize="47472" offset="47496" apply="vertex" />
+    <tangents type="array4f" bytesize="47472" offset="94968" apply="vertex" />
+    <texcoords type="array2f" bytesize="23736" offset="142440" apply="vertex" />
+    <indices type="array1i" bytesize="12864" offset="166176" apply="tlist" />
+    <matindices type="array1i" bytesize="4288" offset="179040" apply="primitive" />
+  </mesh>
+  <mesh id="34" name="AM134_24_watch_glass" type="vsgf" bytesize="14984" loc="data/chunk_00035.vsgf" offset="0" vertNum="194" triNum="256" dl="0" path="" bbox="3.40282e+38 -3.40282e+38 3.40282e+38 -3.40282e+38 3.40282e+38 -3.40282e+38">
+    <positions type="array4f" bytesize="3104" offset="24" apply="vertex" />
+    <normals type="array4f" bytesize="3104" offset="3128" apply="vertex" />
+    <tangents type="array4f" bytesize="3104" offset="6232" apply="vertex" />
+    <texcoords type="array2f" bytesize="1552" offset="9336" apply="vertex" />
+    <indices type="array1i" bytesize="3072" offset="10888" apply="tlist" />
+    <matindices type="array1i" bytesize="1024" offset="13960" apply="primitive" />
+  </mesh>
+  <mesh id="35" name="AM134_24_watch_arms" type="vsgf" bytesize="1852984" loc="data/chunk_00036.vsgf" offset="0" vertNum="30204" triNum="10096" dl="0" path="" bbox="3.40282e+38 -3.40282e+38 3.40282e+38 -3.40282e+38 3.40282e+38 -3.40282e+38">
+    <positions type="array4f" bytesize="483264" offset="24" apply="vertex" />
+    <normals type="array4f" bytesize="483264" offset="483288" apply="vertex" />
+    <tangents type="array4f" bytesize="483264" offset="966552" apply="vertex" />
+    <texcoords type="array2f" bytesize="241632" offset="1449816" apply="vertex" />
+    <indices type="array1i" bytesize="121152" offset="1691448" apply="tlist" />
+    <matindices type="array1i" bytesize="40384" offset="1812600" apply="primitive" />
+  </mesh>
+  <mesh id="36" name="AM134_24_watch_face" type="vsgf" bytesize="5800" loc="data/chunk_00037.vsgf" offset="0" vertNum="94" triNum="32" dl="0" path="" bbox="3.40282e+38 -3.40282e+38 3.40282e+38 -3.40282e+38 3.40282e+38 -3.40282e+38">
+    <positions type="array4f" bytesize="1504" offset="24" apply="vertex" />
+    <normals type="array4f" bytesize="1504" offset="1528" apply="vertex" />
+    <tangents type="array4f" bytesize="1504" offset="3032" apply="vertex" />
+    <texcoords type="array2f" bytesize="752" offset="4536" apply="vertex" />
+    <indices type="array1i" bytesize="384" offset="5288" apply="tlist" />
+    <matindices type="array1i" bytesize="128" offset="5672" apply="primitive" />
+  </mesh>
+  <mesh id="37" name="AM134_24_watch_02" type="vsgf" bytesize="871392" loc="data/chunk_00038.vsgf" offset="0" vertNum="14207" triNum="4736" dl="0" path="" bbox="3.40282e+38 -3.40282e+38 3.40282e+38 -3.40282e+38 3.40282e+38 -3.40282e+38">
+    <positions type="array4f" bytesize="227312" offset="24" apply="vertex" />
+    <normals type="array4f" bytesize="227312" offset="227336" apply="vertex" />
+    <tangents type="array4f" bytesize="227312" offset="454648" apply="vertex" />
+    <texcoords type="array2f" bytesize="113656" offset="681960" apply="vertex" />
+    <indices type="array1i" bytesize="56832" offset="795616" apply="tlist" />
+    <matindices type="array1i" bytesize="18944" offset="852448" apply="primitive" />
+  </mesh>
+  <mesh id="38" name="AM134_24_watch_04" type="vsgf" bytesize="163664" loc="data/chunk_00039.vsgf" offset="0" vertNum="2649" triNum="956" dl="0" path="" bbox="3.40282e+38 -3.40282e+38 3.40282e+38 -3.40282e+38 3.40282e+38 -3.40282e+38">
+    <positions type="array4f" bytesize="42384" offset="24" apply="vertex" />
+    <normals type="array4f" bytesize="42384" offset="42408" apply="vertex" />
+    <tangents type="array4f" bytesize="42384" offset="84792" apply="vertex" />
+    <texcoords type="array2f" bytesize="21192" offset="127176" apply="vertex" />
+    <indices type="array1i" bytesize="11472" offset="148368" apply="tlist" />
+    <matindices type="array1i" bytesize="3824" offset="159840" apply="primitive" />
+  </mesh>
+  <mesh id="39" name="AM134_24_watch_detail" type="vsgf" bytesize="2743688" loc="data/chunk_00040.vsgf" offset="0" vertNum="44578" triNum="15456" dl="0" path="" bbox="3.40282e+38 -3.40282e+38 3.40282e+38 -3.40282e+38 3.40282e+38 -3.40282e+38">
+    <positions type="array4f" bytesize="713248" offset="24" apply="vertex" />
+    <normals type="array4f" bytesize="713248" offset="713272" apply="vertex" />
+    <tangents type="array4f" bytesize="713248" offset="1426520" apply="vertex" />
+    <texcoords type="array2f" bytesize="356624" offset="2139768" apply="vertex" />
+    <indices type="array1i" bytesize="185472" offset="2496392" apply="tlist" />
+    <matindices type="array1i" bytesize="61824" offset="2681864" apply="primitive" />
+  </mesh>
+  <mesh id="40" name="AM134_24_chain" type="vsgf" bytesize="16553008" loc="data/chunk_00041.vsgf" offset="0" vertNum="267749" triNum="97440" dl="0" path="" bbox="3.40282e+38 -3.40282e+38 3.40282e+38 -3.40282e+38 3.40282e+38 -3.40282e+38">
+    <positions type="array4f" bytesize="4283984" offset="24" apply="vertex" />
+    <normals type="array4f" bytesize="4283984" offset="4284008" apply="vertex" />
+    <tangents type="array4f" bytesize="4283984" offset="8567992" apply="vertex" />
+    <texcoords type="array2f" bytesize="2141992" offset="12851976" apply="vertex" />
+    <indices type="array1i" bytesize="1169280" offset="14993968" apply="tlist" />
+    <matindices type="array1i" bytesize="389760" offset="16163248" apply="primitive" />
+  </mesh>
+  <mesh id="41" name="AM134_24_hand" type="vsgf" bytesize="3048480" loc="data/chunk_00042.vsgf" offset="0" vertNum="49703" triNum="16568" dl="0" path="" bbox="3.40282e+38 -3.40282e+38 3.40282e+38 -3.40282e+38 3.40282e+38 -3.40282e+38">
+    <positions type="array4f" bytesize="795248" offset="24" apply="vertex" />
+    <normals type="array4f" bytesize="795248" offset="795272" apply="vertex" />
+    <tangents type="array4f" bytesize="795248" offset="1590520" apply="vertex" />
+    <texcoords type="array2f" bytesize="397624" offset="2385768" apply="vertex" />
+    <indices type="array1i" bytesize="198816" offset="2783392" apply="tlist" />
+    <matindices type="array1i" bytesize="66272" offset="2982208" apply="primitive" />
+  </mesh>
+  <mesh id="42" name="AM134_24_binoculars_05" type="vsgf" bytesize="851768" loc="data/chunk_00043.vsgf" offset="0" vertNum="13484" triNum="6040" dl="0" path="" bbox="3.40282e+38 -3.40282e+38 3.40282e+38 -3.40282e+38 3.40282e+38 -3.40282e+38">
+    <positions type="array4f" bytesize="215744" offset="24" apply="vertex" />
+    <normals type="array4f" bytesize="215744" offset="215768" apply="vertex" />
+    <tangents type="array4f" bytesize="215744" offset="431512" apply="vertex" />
+    <texcoords type="array2f" bytesize="107872" offset="647256" apply="vertex" />
+    <indices type="array1i" bytesize="72480" offset="755128" apply="tlist" />
+    <matindices type="array1i" bytesize="24160" offset="827608" apply="primitive" />
+  </mesh>
+  <mesh id="43" name="AM134_24_binoculars_02" type="vsgf" bytesize="1102960" loc="data/chunk_00044.vsgf" offset="0" vertNum="17821" triNum="6560" dl="0" path="" bbox="3.40282e+38 -3.40282e+38 3.40282e+38 -3.40282e+38 3.40282e+38 -3.40282e+38">
+    <positions type="array4f" bytesize="285136" offset="24" apply="vertex" />
+    <normals type="array4f" bytesize="285136" offset="285160" apply="vertex" />
+    <tangents type="array4f" bytesize="285136" offset="570296" apply="vertex" />
+    <texcoords type="array2f" bytesize="142568" offset="855432" apply="vertex" />
+    <indices type="array1i" bytesize="78720" offset="998000" apply="tlist" />
+    <matindices type="array1i" bytesize="26240" offset="1076720" apply="primitive" />
+  </mesh>
+  <mesh id="44" name="AM134_24_binoculars_04" type="vsgf" bytesize="473896" loc="data/chunk_00045.vsgf" offset="0" vertNum="7726" triNum="2576" dl="0" path="" bbox="3.40282e+38 -3.40282e+38 3.40282e+38 -3.40282e+38 3.40282e+38 -3.40282e+38">
+    <positions type="array4f" bytesize="123616" offset="24" apply="vertex" />
+    <normals type="array4f" bytesize="123616" offset="123640" apply="vertex" />
+    <tangents type="array4f" bytesize="123616" offset="247256" apply="vertex" />
+    <texcoords type="array2f" bytesize="61808" offset="370872" apply="vertex" />
+    <indices type="array1i" bytesize="30912" offset="432680" apply="tlist" />
+    <matindices type="array1i" bytesize="10304" offset="463592" apply="primitive" />
+  </mesh>
+  <mesh id="45" name="AM134_24_binoculars_06" type="vsgf" bytesize="512664" loc="data/chunk_00046.vsgf" offset="0" vertNum="7920" triNum="4320" dl="0" path="" bbox="3.40282e+38 -3.40282e+38 3.40282e+38 -3.40282e+38 3.40282e+38 -3.40282e+38">
+    <positions type="array4f" bytesize="126720" offset="24" apply="vertex" />
+    <normals type="array4f" bytesize="126720" offset="126744" apply="vertex" />
+    <tangents type="array4f" bytesize="126720" offset="253464" apply="vertex" />
+    <texcoords type="array2f" bytesize="63360" offset="380184" apply="vertex" />
+    <indices type="array1i" bytesize="51840" offset="443544" apply="tlist" />
+    <matindices type="array1i" bytesize="17280" offset="495384" apply="primitive" />
+  </mesh>
+  <mesh id="46" name="AM134_24_binoculars_03" type="vsgf" bytesize="1077208" loc="data/chunk_00047.vsgf" offset="0" vertNum="17184" triNum="7180" dl="0" path="" bbox="3.40282e+38 -3.40282e+38 3.40282e+38 -3.40282e+38 3.40282e+38 -3.40282e+38">
+    <positions type="array4f" bytesize="274944" offset="24" apply="vertex" />
+    <normals type="array4f" bytesize="274944" offset="274968" apply="vertex" />
+    <tangents type="array4f" bytesize="274944" offset="549912" apply="vertex" />
+    <texcoords type="array2f" bytesize="137472" offset="824856" apply="vertex" />
+    <indices type="array1i" bytesize="86160" offset="962328" apply="tlist" />
+    <matindices type="array1i" bytesize="28720" offset="1048488" apply="primitive" />
+  </mesh>
+  <mesh id="47" name="AM134_24_binoculars_glass" type="vsgf" bytesize="465720" loc="data/chunk_00048.vsgf" offset="0" vertNum="7500" triNum="2856" dl="0" path="" bbox="3.40282e+38 -3.40282e+38 3.40282e+38 -3.40282e+38 3.40282e+38 -3.40282e+38">
+    <positions type="array4f" bytesize="120000" offset="24" apply="vertex" />
+    <normals type="array4f" bytesize="120000" offset="120024" apply="vertex" />
+    <tangents type="array4f" bytesize="120000" offset="240024" apply="vertex" />
+    <texcoords type="array2f" bytesize="60000" offset="360024" apply="vertex" />
+    <indices type="array1i" bytesize="34272" offset="420024" apply="tlist" />
+    <matindices type="array1i" bytesize="11424" offset="454296" apply="primitive" />
+  </mesh>
+  <mesh id="48" name="AM134_24_binoculars_01" type="vsgf" bytesize="1726488" loc="data/chunk_00049.vsgf" offset="0" vertNum="27584" triNum="11360" dl="0" path="" bbox="3.40282e+38 -3.40282e+38 3.40282e+38 -3.40282e+38 3.40282e+38 -3.40282e+38">
+    <positions type="array4f" bytesize="441344" offset="24" apply="vertex" />
+    <normals type="array4f" bytesize="441344" offset="441368" apply="vertex" />
+    <tangents type="array4f" bytesize="441344" offset="882712" apply="vertex" />
+    <texcoords type="array2f" bytesize="220672" offset="1324056" apply="vertex" />
+    <indices type="array1i" bytesize="136320" offset="1544728" apply="tlist" />
+    <matindices type="array1i" bytesize="45440" offset="1681048" apply="primitive" />
+  </mesh>
+  <mesh id="49" name="Box012" type="vsgf" bytesize="207824" loc="data/chunk_00050.vsgf" offset="0" vertNum="3369" triNum="1196" dl="0" path="" bbox="3.40282e+38 -3.40282e+38 3.40282e+38 -3.40282e+38 3.40282e+38 -3.40282e+38">
+    <positions type="array4f" bytesize="53904" offset="24" apply="vertex" />
+    <normals type="array4f" bytesize="53904" offset="53928" apply="vertex" />
+    <tangents type="array4f" bytesize="53904" offset="107832" apply="vertex" />
+    <texcoords type="array2f" bytesize="26952" offset="161736" apply="vertex" />
+    <indices type="array1i" bytesize="14352" offset="188688" apply="tlist" />
+    <matindices type="array1i" bytesize="4784" offset="203040" apply="primitive" />
+  </mesh>
+  <mesh id="50" name="Box014" type="vsgf" bytesize="59568" loc="data/chunk_00051.vsgf" offset="0" vertNum="965" triNum="344" dl="0" path="" bbox="3.40282e+38 -3.40282e+38 3.40282e+38 -3.40282e+38 3.40282e+38 -3.40282e+38">
+    <positions type="array4f" bytesize="15440" offset="24" apply="vertex" />
+    <normals type="array4f" bytesize="15440" offset="15464" apply="vertex" />
+    <tangents type="array4f" bytesize="15440" offset="30904" apply="vertex" />
+    <texcoords type="array2f" bytesize="7720" offset="46344" apply="vertex" />
+    <indices type="array1i" bytesize="4128" offset="54064" apply="tlist" />
+    <matindices type="array1i" bytesize="1376" offset="58192" apply="primitive" />
+  </mesh>
+  <mesh id="51" name="Box015" type="vsgf" bytesize="59568" loc="data/chunk_00052.vsgf" offset="0" vertNum="965" triNum="344" dl="0" path="" bbox="3.40282e+38 -3.40282e+38 3.40282e+38 -3.40282e+38 3.40282e+38 -3.40282e+38">
+    <positions type="array4f" bytesize="15440" offset="24" apply="vertex" />
+    <normals type="array4f" bytesize="15440" offset="15464" apply="vertex" />
+    <tangents type="array4f" bytesize="15440" offset="30904" apply="vertex" />
+    <texcoords type="array2f" bytesize="7720" offset="46344" apply="vertex" />
+    <indices type="array1i" bytesize="4128" offset="54064" apply="tlist" />
+    <matindices type="array1i" bytesize="1376" offset="58192" apply="primitive" />
+  </mesh>
+  <mesh id="52" name="Box013" type="vsgf" bytesize="59568" loc="data/chunk_00053.vsgf" offset="0" vertNum="965" triNum="344" dl="0" path="" bbox="3.40282e+38 -3.40282e+38 3.40282e+38 -3.40282e+38 3.40282e+38 -3.40282e+38">
+    <positions type="array4f" bytesize="15440" offset="24" apply="vertex" />
+    <normals type="array4f" bytesize="15440" offset="15464" apply="vertex" />
+    <tangents type="array4f" bytesize="15440" offset="30904" apply="vertex" />
+    <texcoords type="array2f" bytesize="7720" offset="46344" apply="vertex" />
+    <indices type="array1i" bytesize="4128" offset="54064" apply="tlist" />
+    <matindices type="array1i" bytesize="1376" offset="58192" apply="primitive" />
+  </mesh>
+  <mesh id="53" name="AM134_15_book_015" type="vsgf" bytesize="221872" loc="data/chunk_00054.vsgf" offset="0" vertNum="3357" triNum="2116" dl="0" path="" bbox="3.40282e+38 -3.40282e+38 3.40282e+38 -3.40282e+38 3.40282e+38 -3.40282e+38">
+    <positions type="array4f" bytesize="53712" offset="24" apply="vertex" />
+    <normals type="array4f" bytesize="53712" offset="53736" apply="vertex" />
+    <tangents type="array4f" bytesize="53712" offset="107448" apply="vertex" />
+    <texcoords type="array2f" bytesize="26856" offset="161160" apply="vertex" />
+    <indices type="array1i" bytesize="25392" offset="188016" apply="tlist" />
+    <matindices type="array1i" bytesize="8464" offset="213408" apply="primitive" />
+  </mesh>
+  <mesh id="54" name="AM134_15_book_016" type="vsgf" bytesize="229712" loc="data/chunk_00055.vsgf" offset="0" vertNum="3497" triNum="2116" dl="0" path="" bbox="3.40282e+38 -3.40282e+38 3.40282e+38 -3.40282e+38 3.40282e+38 -3.40282e+38">
+    <positions type="array4f" bytesize="55952" offset="24" apply="vertex" />
+    <normals type="array4f" bytesize="55952" offset="55976" apply="vertex" />
+    <tangents type="array4f" bytesize="55952" offset="111928" apply="vertex" />
+    <texcoords type="array2f" bytesize="27976" offset="167880" apply="vertex" />
+    <indices type="array1i" bytesize="25392" offset="195856" apply="tlist" />
+    <matindices type="array1i" bytesize="8464" offset="221248" apply="primitive" />
+  </mesh>
+  <mesh id="55" name="AM134_15_book_017" type="vsgf" bytesize="230104" loc="data/chunk_00056.vsgf" offset="0" vertNum="3504" triNum="2116" dl="0" path="" bbox="3.40282e+38 -3.40282e+38 3.40282e+38 -3.40282e+38 3.40282e+38 -3.40282e+38">
+    <positions type="array4f" bytesize="56064" offset="24" apply="vertex" />
+    <normals type="array4f" bytesize="56064" offset="56088" apply="vertex" />
+    <tangents type="array4f" bytesize="56064" offset="112152" apply="vertex" />
+    <texcoords type="array2f" bytesize="28032" offset="168216" apply="vertex" />
+    <indices type="array1i" bytesize="25392" offset="196248" apply="tlist" />
+    <matindices type="array1i" bytesize="8464" offset="221640" apply="primitive" />
+  </mesh>
+  <mesh id="56" name="AM134_15_book_018" type="vsgf" bytesize="236040" loc="data/chunk_00057.vsgf" offset="0" vertNum="3610" triNum="2116" dl="0" path="" bbox="3.40282e+38 -3.40282e+38 3.40282e+38 -3.40282e+38 3.40282e+38 -3.40282e+38">
+    <positions type="array4f" bytesize="57760" offset="24" apply="vertex" />
+    <normals type="array4f" bytesize="57760" offset="57784" apply="vertex" />
+    <tangents type="array4f" bytesize="57760" offset="115544" apply="vertex" />
+    <texcoords type="array2f" bytesize="28880" offset="173304" apply="vertex" />
+    <indices type="array1i" bytesize="25392" offset="202184" apply="tlist" />
+    <matindices type="array1i" bytesize="8464" offset="227576" apply="primitive" />
+  </mesh>
+  <mesh id="57" name="Box016" type="vsgf" bytesize="207824" loc="data/chunk_00058.vsgf" offset="0" vertNum="3369" triNum="1196" dl="0" path="" bbox="3.40282e+38 -3.40282e+38 3.40282e+38 -3.40282e+38 3.40282e+38 -3.40282e+38">
+    <positions type="array4f" bytesize="53904" offset="24" apply="vertex" />
+    <normals type="array4f" bytesize="53904" offset="53928" apply="vertex" />
+    <tangents type="array4f" bytesize="53904" offset="107832" apply="vertex" />
+    <texcoords type="array2f" bytesize="26952" offset="161736" apply="vertex" />
+    <indices type="array1i" bytesize="14352" offset="188688" apply="tlist" />
+    <matindices type="array1i" bytesize="4784" offset="203040" apply="primitive" />
+  </mesh>
+  <mesh id="58" name="Cylinder003" type="vsgf" bytesize="123552" loc="data/chunk_00059.vsgf" offset="0" vertNum="1967" triNum="836" dl="0" path="" bbox="3.40282e+38 -3.40282e+38 3.40282e+38 -3.40282e+38 3.40282e+38 -3.40282e+38">
+    <positions type="array4f" bytesize="31472" offset="24" apply="vertex" />
+    <normals type="array4f" bytesize="31472" offset="31496" apply="vertex" />
+    <tangents type="array4f" bytesize="31472" offset="62968" apply="vertex" />
+    <texcoords type="array2f" bytesize="15736" offset="94440" apply="vertex" />
+    <indices type="array1i" bytesize="10032" offset="110176" apply="tlist" />
+    <matindices type="array1i" bytesize="3344" offset="120208" apply="primitive" />
+  </mesh>
+  <mesh id="59" name="Line006" type="vsgf" bytesize="1343768" loc="data/chunk_00060.vsgf" offset="0" vertNum="21688" triNum="8076" dl="0" path="" bbox="3.40282e+38 -3.40282e+38 3.40282e+38 -3.40282e+38 3.40282e+38 -3.40282e+38">
+    <positions type="array4f" bytesize="347008" offset="24" apply="vertex" />
+    <normals type="array4f" bytesize="347008" offset="347032" apply="vertex" />
+    <tangents type="array4f" bytesize="347008" offset="694040" apply="vertex" />
+    <texcoords type="array2f" bytesize="173504" offset="1041048" apply="vertex" />
+    <indices type="array1i" bytesize="96912" offset="1214552" apply="tlist" />
+    <matindices type="array1i" bytesize="32304" offset="1311464" apply="primitive" />
+  </mesh>
+  <mesh id="60" name="Cylinder001" type="vsgf" bytesize="1406768" loc="data/chunk_00061.vsgf" offset="0" vertNum="22789" triNum="8160" dl="0" path="" bbox="3.40282e+38 -3.40282e+38 3.40282e+38 -3.40282e+38 3.40282e+38 -3.40282e+38">
+    <positions type="array4f" bytesize="364624" offset="24" apply="vertex" />
+    <normals type="array4f" bytesize="364624" offset="364648" apply="vertex" />
+    <tangents type="array4f" bytesize="364624" offset="729272" apply="vertex" />
+    <texcoords type="array2f" bytesize="182312" offset="1093896" apply="vertex" />
+    <indices type="array1i" bytesize="97920" offset="1276208" apply="tlist" />
+    <matindices type="array1i" bytesize="32640" offset="1374128" apply="primitive" />
+  </mesh>
+  <mesh id="61" name="Cylinder004" type="vsgf" bytesize="127584" loc="data/chunk_00062.vsgf" offset="0" vertNum="2039" triNum="836" dl="0" path="" bbox="3.40282e+38 -3.40282e+38 3.40282e+38 -3.40282e+38 3.40282e+38 -3.40282e+38">
+    <positions type="array4f" bytesize="32624" offset="24" apply="vertex" />
+    <normals type="array4f" bytesize="32624" offset="32648" apply="vertex" />
+    <tangents type="array4f" bytesize="32624" offset="65272" apply="vertex" />
+    <texcoords type="array2f" bytesize="16312" offset="97896" apply="vertex" />
+    <indices type="array1i" bytesize="10032" offset="114208" apply="tlist" />
+    <matindices type="array1i" bytesize="3344" offset="124240" apply="primitive" />
+  </mesh>
+  <mesh id="62" name="Shape008" type="vsgf" bytesize="410304" loc="data/chunk_00063.vsgf" offset="0" vertNum="6659" triNum="2336" dl="0" path="" bbox="3.40282e+38 -3.40282e+38 3.40282e+38 -3.40282e+38 3.40282e+38 -3.40282e+38">
+    <positions type="array4f" bytesize="106544" offset="24" apply="vertex" />
+    <normals type="array4f" bytesize="106544" offset="106568" apply="vertex" />
+    <tangents type="array4f" bytesize="106544" offset="213112" apply="vertex" />
+    <texcoords type="array2f" bytesize="53272" offset="319656" apply="vertex" />
+    <indices type="array1i" bytesize="28032" offset="372928" apply="tlist" />
+    <matindices type="array1i" bytesize="9344" offset="400960" apply="primitive" />
+  </mesh>
+  <mesh id="63" name="Cylinder005" type="vsgf" bytesize="123552" loc="data/chunk_00064.vsgf" offset="0" vertNum="1967" triNum="836" dl="0" path="" bbox="3.40282e+38 -3.40282e+38 3.40282e+38 -3.40282e+38 3.40282e+38 -3.40282e+38">
+    <positions type="array4f" bytesize="31472" offset="24" apply="vertex" />
+    <normals type="array4f" bytesize="31472" offset="31496" apply="vertex" />
+    <tangents type="array4f" bytesize="31472" offset="62968" apply="vertex" />
+    <texcoords type="array2f" bytesize="15736" offset="94440" apply="vertex" />
+    <indices type="array1i" bytesize="10032" offset="110176" apply="tlist" />
+    <matindices type="array1i" bytesize="3344" offset="120208" apply="primitive" />
+  </mesh>
+  <mesh id="64" name="Line012" type="vsgf" bytesize="1343768" loc="data/chunk_00065.vsgf" offset="0" vertNum="21688" triNum="8076" dl="0" path="" bbox="3.40282e+38 -3.40282e+38 3.40282e+38 -3.40282e+38 3.40282e+38 -3.40282e+38">
+    <positions type="array4f" bytesize="347008" offset="24" apply="vertex" />
+    <normals type="array4f" bytesize="347008" offset="347032" apply="vertex" />
+    <tangents type="array4f" bytesize="347008" offset="694040" apply="vertex" />
+    <texcoords type="array2f" bytesize="173504" offset="1041048" apply="vertex" />
+    <indices type="array1i" bytesize="96912" offset="1214552" apply="tlist" />
+    <matindices type="array1i" bytesize="32304" offset="1311464" apply="primitive" />
+  </mesh>
+  <mesh id="65" name="Cylinder006" type="vsgf" bytesize="1406768" loc="data/chunk_00066.vsgf" offset="0" vertNum="22789" triNum="8160" dl="0" path="" bbox="3.40282e+38 -3.40282e+38 3.40282e+38 -3.40282e+38 3.40282e+38 -3.40282e+38">
+    <positions type="array4f" bytesize="364624" offset="24" apply="vertex" />
+    <normals type="array4f" bytesize="364624" offset="364648" apply="vertex" />
+    <tangents type="array4f" bytesize="364624" offset="729272" apply="vertex" />
+    <texcoords type="array2f" bytesize="182312" offset="1093896" apply="vertex" />
+    <indices type="array1i" bytesize="97920" offset="1276208" apply="tlist" />
+    <matindices type="array1i" bytesize="32640" offset="1374128" apply="primitive" />
+  </mesh>
+  <mesh id="66" name="Cylinder007" type="vsgf" bytesize="127584" loc="data/chunk_00067.vsgf" offset="0" vertNum="2039" triNum="836" dl="0" path="" bbox="3.40282e+38 -3.40282e+38 3.40282e+38 -3.40282e+38 3.40282e+38 -3.40282e+38">
+    <positions type="array4f" bytesize="32624" offset="24" apply="vertex" />
+    <normals type="array4f" bytesize="32624" offset="32648" apply="vertex" />
+    <tangents type="array4f" bytesize="32624" offset="65272" apply="vertex" />
+    <texcoords type="array2f" bytesize="16312" offset="97896" apply="vertex" />
+    <indices type="array1i" bytesize="10032" offset="114208" apply="tlist" />
+    <matindices type="array1i" bytesize="3344" offset="124240" apply="primitive" />
+  </mesh>
+  <mesh id="67" name="Shape009" type="vsgf" bytesize="410304" loc="data/chunk_00068.vsgf" offset="0" vertNum="6659" triNum="2336" dl="0" path="" bbox="3.40282e+38 -3.40282e+38 3.40282e+38 -3.40282e+38 3.40282e+38 -3.40282e+38">
+    <positions type="array4f" bytesize="106544" offset="24" apply="vertex" />
+    <normals type="array4f" bytesize="106544" offset="106568" apply="vertex" />
+    <tangents type="array4f" bytesize="106544" offset="213112" apply="vertex" />
+    <texcoords type="array2f" bytesize="53272" offset="319656" apply="vertex" />
+    <indices type="array1i" bytesize="28032" offset="372928" apply="tlist" />
+    <matindices type="array1i" bytesize="9344" offset="400960" apply="primitive" />
+  </mesh>
+  <mesh id="68" name="005" type="vsgf" bytesize="1201632" loc="data/chunk_00069.vsgf" offset="0" vertNum="19415" triNum="7148" dl="0" path="" bbox="3.40282e+38 -3.40282e+38 3.40282e+38 -3.40282e+38 3.40282e+38 -3.40282e+38">
+    <positions type="array4f" bytesize="310640" offset="24" apply="vertex" />
+    <normals type="array4f" bytesize="310640" offset="310664" apply="vertex" />
+    <tangents type="array4f" bytesize="310640" offset="621304" apply="vertex" />
+    <texcoords type="array2f" bytesize="155320" offset="931944" apply="vertex" />
+    <indices type="array1i" bytesize="85776" offset="1087264" apply="tlist" />
+    <matindices type="array1i" bytesize="28592" offset="1173040" apply="primitive" />
+  </mesh>
+  <mesh id="69" name="006" type="vsgf" bytesize="1201632" loc="data/chunk_00070.vsgf" offset="0" vertNum="19415" triNum="7148" dl="0" path="" bbox="3.40282e+38 -3.40282e+38 3.40282e+38 -3.40282e+38 3.40282e+38 -3.40282e+38">
+    <positions type="array4f" bytesize="310640" offset="24" apply="vertex" />
+    <normals type="array4f" bytesize="310640" offset="310664" apply="vertex" />
+    <tangents type="array4f" bytesize="310640" offset="621304" apply="vertex" />
+    <texcoords type="array2f" bytesize="155320" offset="931944" apply="vertex" />
+    <indices type="array1i" bytesize="85776" offset="1087264" apply="tlist" />
+    <matindices type="array1i" bytesize="28592" offset="1173040" apply="primitive" />
+  </mesh>
+  <mesh id="70" name="007" type="vsgf" bytesize="1019160" loc="data/chunk_00071.vsgf" offset="0" vertNum="16616" triNum="5540" dl="0" path="" bbox="3.40282e+38 -3.40282e+38 3.40282e+38 -3.40282e+38 3.40282e+38 -3.40282e+38">
+    <positions type="array4f" bytesize="265856" offset="24" apply="vertex" />
+    <normals type="array4f" bytesize="265856" offset="265880" apply="vertex" />
+    <tangents type="array4f" bytesize="265856" offset="531736" apply="vertex" />
+    <texcoords type="array2f" bytesize="132928" offset="797592" apply="vertex" />
+    <indices type="array1i" bytesize="66480" offset="930520" apply="tlist" />
+    <matindices type="array1i" bytesize="22160" offset="997000" apply="primitive" />
+  </mesh>
+  <mesh id="71" name="Box008" type="vsgf" bytesize="90184" loc="data/chunk_00072.vsgf" offset="0" vertNum="1450" triNum="560" dl="0" path="" bbox="3.40282e+38 -3.40282e+38 3.40282e+38 -3.40282e+38 3.40282e+38 -3.40282e+38">
+    <positions type="array4f" bytesize="23200" offset="24" apply="vertex" />
+    <normals type="array4f" bytesize="23200" offset="23224" apply="vertex" />
+    <tangents type="array4f" bytesize="23200" offset="46424" apply="vertex" />
+    <texcoords type="array2f" bytesize="11600" offset="69624" apply="vertex" />
+    <indices type="array1i" bytesize="6720" offset="81224" apply="tlist" />
+    <matindices type="array1i" bytesize="2240" offset="87944" apply="primitive" />
+  </mesh>
+  <mesh id="72" name="Box007" type="vsgf" bytesize="4524304" loc="data/chunk_00073.vsgf" offset="0" vertNum="73657" triNum="24968" dl="0" path="" bbox="3.40282e+38 -3.40282e+38 3.40282e+38 -3.40282e+38 3.40282e+38 -3.40282e+38">
+    <positions type="array4f" bytesize="1178512" offset="24" apply="vertex" />
+    <normals type="array4f" bytesize="1178512" offset="1178536" apply="vertex" />
+    <tangents type="array4f" bytesize="1178512" offset="2357048" apply="vertex" />
+    <texcoords type="array2f" bytesize="589256" offset="3535560" apply="vertex" />
+    <indices type="array1i" bytesize="299616" offset="4124816" apply="tlist" />
+    <matindices type="array1i" bytesize="99872" offset="4424432" apply="primitive" />
+  </mesh>
+  <mesh id="73" name="Sphere001" type="vsgf" bytesize="8422672" loc="data/chunk_00074.vsgf" offset="0" vertNum="135493" triNum="52190" dl="0" path="" bbox="3.40282e+38 -3.40282e+38 3.40282e+38 -3.40282e+38 3.40282e+38 -3.40282e+38">
+    <positions type="array4f" bytesize="2167888" offset="24" apply="vertex" />
+    <normals type="array4f" bytesize="2167888" offset="2167912" apply="vertex" />
+    <tangents type="array4f" bytesize="2167888" offset="4335800" apply="vertex" />
+    <texcoords type="array2f" bytesize="1083944" offset="6503688" apply="vertex" />
+    <indices type="array1i" bytesize="626280" offset="7587632" apply="tlist" />
+    <matindices type="array1i" bytesize="208760" offset="8213912" apply="primitive" />
+  </mesh>
+  <mesh id="74" name="Box001" type="vsgf" bytesize="24066800" loc="data/chunk_00075.vsgf" offset="0" vertNum="391309" triNum="134592" dl="0" path="" bbox="3.40282e+38 -3.40282e+38 3.40282e+38 -3.40282e+38 3.40282e+38 -3.40282e+38">
+    <positions type="array4f" bytesize="6260944" offset="24" apply="vertex" />
+    <normals type="array4f" bytesize="6260944" offset="6260968" apply="vertex" />
+    <tangents type="array4f" bytesize="6260944" offset="12521912" apply="vertex" />
+    <texcoords type="array2f" bytesize="3130472" offset="18782856" apply="vertex" />
+    <indices type="array1i" bytesize="1615104" offset="21913328" apply="tlist" />
+    <matindices type="array1i" bytesize="538368" offset="23528432" apply="primitive" />
+  </mesh>
+  <mesh id="75" name="003" type="vsgf" bytesize="1019104" loc="data/chunk_00076.vsgf" offset="0" vertNum="16615" triNum="5540" dl="0" path="" bbox="3.40282e+38 -3.40282e+38 3.40282e+38 -3.40282e+38 3.40282e+38 -3.40282e+38">
+    <positions type="array4f" bytesize="265840" offset="24" apply="vertex" />
+    <normals type="array4f" bytesize="265840" offset="265864" apply="vertex" />
+    <tangents type="array4f" bytesize="265840" offset="531704" apply="vertex" />
+    <texcoords type="array2f" bytesize="132920" offset="797544" apply="vertex" />
+    <indices type="array1i" bytesize="66480" offset="930464" apply="tlist" />
+    <matindices type="array1i" bytesize="22160" offset="996944" apply="primitive" />
+  </mesh>
+  <mesh id="76" name="Plane003" type="vsgf" bytesize="280" loc="data/chunk_00077.vsgf" offset="0" vertNum="4" triNum="2" dl="0" path="" bbox="3.40282e+38 -3.40282e+38 3.40282e+38 -3.40282e+38 3.40282e+38 -3.40282e+38">
+    <positions type="array4f" bytesize="64" offset="24" apply="vertex" />
+    <normals type="array4f" bytesize="64" offset="88" apply="vertex" />
+    <tangents type="array4f" bytesize="64" offset="152" apply="vertex" />
+    <texcoords type="array2f" bytesize="32" offset="216" apply="vertex" />
+    <indices type="array1i" bytesize="24" offset="248" apply="tlist" />
+    <matindices type="array1i" bytesize="8" offset="272" apply="primitive" />
+  </mesh>
+  <mesh id="77" name="AM134_14_bowl_01" type="vsgf" bytesize="823696" loc="data/chunk_00078.vsgf" offset="0" vertNum="12857" triNum="6480" dl="0" path="" bbox="3.40282e+38 -3.40282e+38 3.40282e+38 -3.40282e+38 3.40282e+38 -3.40282e+38">
+    <positions type="array4f" bytesize="205712" offset="24" apply="vertex" />
+    <normals type="array4f" bytesize="205712" offset="205736" apply="vertex" />
+    <tangents type="array4f" bytesize="205712" offset="411448" apply="vertex" />
+    <texcoords type="array2f" bytesize="102856" offset="617160" apply="vertex" />
+    <indices type="array1i" bytesize="77760" offset="720016" apply="tlist" />
+    <matindices type="array1i" bytesize="25920" offset="797776" apply="primitive" />
+  </mesh>
+  <mesh id="78" name="AM134_14_wooden_spoon_02" type="vsgf" bytesize="964840" loc="data/chunk_00079.vsgf" offset="0" vertNum="15670" triNum="5456" dl="0" path="" bbox="3.40282e+38 -3.40282e+38 3.40282e+38 -3.40282e+38 3.40282e+38 -3.40282e+38">
+    <positions type="array4f" bytesize="250720" offset="24" apply="vertex" />
+    <normals type="array4f" bytesize="250720" offset="250744" apply="vertex" />
+    <tangents type="array4f" bytesize="250720" offset="501464" apply="vertex" />
+    <texcoords type="array2f" bytesize="125360" offset="752184" apply="vertex" />
+    <indices type="array1i" bytesize="65472" offset="877544" apply="tlist" />
+    <matindices type="array1i" bytesize="21824" offset="943016" apply="primitive" />
+  </mesh>
+  <mesh id="79" name="AM134_14_olive_02" type="vsgf" bytesize="2471096" loc="data/chunk_00080.vsgf" offset="0" vertNum="40028" triNum="14344" dl="0" path="" bbox="3.40282e+38 -3.40282e+38 3.40282e+38 -3.40282e+38 3.40282e+38 -3.40282e+38">
+    <positions type="array4f" bytesize="640448" offset="24" apply="vertex" />
+    <normals type="array4f" bytesize="640448" offset="640472" apply="vertex" />
+    <tangents type="array4f" bytesize="640448" offset="1280920" apply="vertex" />
+    <texcoords type="array2f" bytesize="320224" offset="1921368" apply="vertex" />
+    <indices type="array1i" bytesize="172128" offset="2241592" apply="tlist" />
+    <matindices type="array1i" bytesize="57376" offset="2413720" apply="primitive" />
+  </mesh>
+  <mesh id="80" name="AM134_14_olive_01" type="vsgf" bytesize="2285920" loc="data/chunk_00081.vsgf" offset="0" vertNum="37023" triNum="13288" dl="0" path="" bbox="3.40282e+38 -3.40282e+38 3.40282e+38 -3.40282e+38 3.40282e+38 -3.40282e+38">
+    <positions type="array4f" bytesize="592368" offset="24" apply="vertex" />
+    <normals type="array4f" bytesize="592368" offset="592392" apply="vertex" />
+    <tangents type="array4f" bytesize="592368" offset="1184760" apply="vertex" />
+    <texcoords type="array2f" bytesize="296184" offset="1777128" apply="vertex" />
+    <indices type="array1i" bytesize="159456" offset="2073312" apply="tlist" />
+    <matindices type="array1i" bytesize="53152" offset="2232768" apply="primitive" />
+  </mesh>
+  <mesh id="81" name="AM134_14_honey_jar" type="vsgf" bytesize="4994416" loc="data/chunk_00082.vsgf" offset="0" vertNum="80717" triNum="29640" dl="0" path="" bbox="3.40282e+38 -3.40282e+38 3.40282e+38 -3.40282e+38 3.40282e+38 -3.40282e+38">
+    <positions type="array4f" bytesize="1291472" offset="24" apply="vertex" />
+    <normals type="array4f" bytesize="1291472" offset="1291496" apply="vertex" />
+    <tangents type="array4f" bytesize="1291472" offset="2582968" apply="vertex" />
+    <texcoords type="array2f" bytesize="645736" offset="3874440" apply="vertex" />
+    <indices type="array1i" bytesize="355680" offset="4520176" apply="tlist" />
+    <matindices type="array1i" bytesize="118560" offset="4875856" apply="primitive" />
+  </mesh>
+  <mesh id="82" name="AM134_14_salt_cellar_metal" type="vsgf" bytesize="494872" loc="data/chunk_00083.vsgf" offset="0" vertNum="7312" triNum="5336" dl="0" path="" bbox="3.40282e+38 -3.40282e+38 3.40282e+38 -3.40282e+38 3.40282e+38 -3.40282e+38">
+    <positions type="array4f" bytesize="116992" offset="24" apply="vertex" />
+    <normals type="array4f" bytesize="116992" offset="117016" apply="vertex" />
+    <tangents type="array4f" bytesize="116992" offset="234008" apply="vertex" />
+    <texcoords type="array2f" bytesize="58496" offset="351000" apply="vertex" />
+    <indices type="array1i" bytesize="64032" offset="409496" apply="tlist" />
+    <matindices type="array1i" bytesize="21344" offset="473528" apply="primitive" />
+  </mesh>
+  <mesh id="83" name="AM134_14_salt_cellar" type="vsgf" bytesize="203568" loc="data/chunk_00084.vsgf" offset="0" vertNum="2869" triNum="2680" dl="0" path="" bbox="3.40282e+38 -3.40282e+38 3.40282e+38 -3.40282e+38 3.40282e+38 -3.40282e+38">
+    <positions type="array4f" bytesize="45904" offset="24" apply="vertex" />
+    <normals type="array4f" bytesize="45904" offset="45928" apply="vertex" />
+    <tangents type="array4f" bytesize="45904" offset="91832" apply="vertex" />
+    <texcoords type="array2f" bytesize="22952" offset="137736" apply="vertex" />
+    <indices type="array1i" bytesize="32160" offset="160688" apply="tlist" />
+    <matindices type="array1i" bytesize="10720" offset="192848" apply="primitive" />
+  </mesh>
+  <mesh id="84" name="AM134_14_spice_container_glass_01" type="vsgf" bytesize="675608" loc="data/chunk_00085.vsgf" offset="0" vertNum="8384" triNum="12880" dl="0" path="" bbox="3.40282e+38 -3.40282e+38 3.40282e+38 -3.40282e+38 3.40282e+38 -3.40282e+38">
+    <positions type="array4f" bytesize="134144" offset="24" apply="vertex" />
+    <normals type="array4f" bytesize="134144" offset="134168" apply="vertex" />
+    <tangents type="array4f" bytesize="134144" offset="268312" apply="vertex" />
+    <texcoords type="array2f" bytesize="67072" offset="402456" apply="vertex" />
+    <indices type="array1i" bytesize="154560" offset="469528" apply="tlist" />
+    <matindices type="array1i" bytesize="51520" offset="624088" apply="primitive" />
+  </mesh>
+  <mesh id="85" name="AM134_14_spice_container_chrome_01" type="vsgf" bytesize="209728" loc="data/chunk_00086.vsgf" offset="0" vertNum="2419" triNum="4640" dl="0" path="" bbox="3.40282e+38 -3.40282e+38 3.40282e+38 -3.40282e+38 3.40282e+38 -3.40282e+38">
+    <positions type="array4f" bytesize="38704" offset="24" apply="vertex" />
+    <normals type="array4f" bytesize="38704" offset="38728" apply="vertex" />
+    <tangents type="array4f" bytesize="38704" offset="77432" apply="vertex" />
+    <texcoords type="array2f" bytesize="19352" offset="116136" apply="vertex" />
+    <indices type="array1i" bytesize="55680" offset="135488" apply="tlist" />
+    <matindices type="array1i" bytesize="18560" offset="191168" apply="primitive" />
+  </mesh>
+  <mesh id="86" name="AM134_14_spice_container_glass_02" type="vsgf" bytesize="675608" loc="data/chunk_00087.vsgf" offset="0" vertNum="8384" triNum="12880" dl="0" path="" bbox="3.40282e+38 -3.40282e+38 3.40282e+38 -3.40282e+38 3.40282e+38 -3.40282e+38">
+    <positions type="array4f" bytesize="134144" offset="24" apply="vertex" />
+    <normals type="array4f" bytesize="134144" offset="134168" apply="vertex" />
+    <tangents type="array4f" bytesize="134144" offset="268312" apply="vertex" />
+    <texcoords type="array2f" bytesize="67072" offset="402456" apply="vertex" />
+    <indices type="array1i" bytesize="154560" offset="469528" apply="tlist" />
+    <matindices type="array1i" bytesize="51520" offset="624088" apply="primitive" />
+  </mesh>
+  <mesh id="87" name="AM134_14_spice_container_chrome_02" type="vsgf" bytesize="209728" loc="data/chunk_00088.vsgf" offset="0" vertNum="2419" triNum="4640" dl="0" path="" bbox="3.40282e+38 -3.40282e+38 3.40282e+38 -3.40282e+38 3.40282e+38 -3.40282e+38">
+    <positions type="array4f" bytesize="38704" offset="24" apply="vertex" />
+    <normals type="array4f" bytesize="38704" offset="38728" apply="vertex" />
+    <tangents type="array4f" bytesize="38704" offset="77432" apply="vertex" />
+    <texcoords type="array2f" bytesize="19352" offset="116136" apply="vertex" />
+    <indices type="array1i" bytesize="55680" offset="135488" apply="tlist" />
+    <matindices type="array1i" bytesize="18560" offset="191168" apply="primitive" />
+  </mesh>
+  <mesh id="88" name="AM134_14_wooden_spoon_03" type="vsgf" bytesize="964840" loc="data/chunk_00089.vsgf" offset="0" vertNum="15670" triNum="5456" dl="0" path="" bbox="3.40282e+38 -3.40282e+38 3.40282e+38 -3.40282e+38 3.40282e+38 -3.40282e+38">
+    <positions type="array4f" bytesize="250720" offset="24" apply="vertex" />
+    <normals type="array4f" bytesize="250720" offset="250744" apply="vertex" />
+    <tangents type="array4f" bytesize="250720" offset="501464" apply="vertex" />
+    <texcoords type="array2f" bytesize="125360" offset="752184" apply="vertex" />
+    <indices type="array1i" bytesize="65472" offset="877544" apply="tlist" />
+    <matindices type="array1i" bytesize="21824" offset="943016" apply="primitive" />
+  </mesh>
+  <mesh id="89" name="AM134_14_tray" type="vsgf" bytesize="154200" loc="data/chunk_00090.vsgf" offset="0" vertNum="2272" triNum="1684" dl="0" path="" bbox="3.40282e+38 -3.40282e+38 3.40282e+38 -3.40282e+38 3.40282e+38 -3.40282e+38">
+    <positions type="array4f" bytesize="36352" offset="24" apply="vertex" />
+    <normals type="array4f" bytesize="36352" offset="36376" apply="vertex" />
+    <tangents type="array4f" bytesize="36352" offset="72728" apply="vertex" />
+    <texcoords type="array2f" bytesize="18176" offset="109080" apply="vertex" />
+    <indices type="array1i" bytesize="20208" offset="127256" apply="tlist" />
+    <matindices type="array1i" bytesize="6736" offset="147464" apply="primitive" />
+  </mesh>
+  <mesh id="90" name="Line001" type="vsgf" bytesize="809456" loc="data/chunk_00091.vsgf" offset="0" vertNum="13117" triNum="4680" dl="0" path="" bbox="3.40282e+38 -3.40282e+38 3.40282e+38 -3.40282e+38 3.40282e+38 -3.40282e+38">
+    <positions type="array4f" bytesize="209872" offset="24" apply="vertex" />
+    <normals type="array4f" bytesize="209872" offset="209896" apply="vertex" />
+    <tangents type="array4f" bytesize="209872" offset="419768" apply="vertex" />
+    <texcoords type="array2f" bytesize="104936" offset="629640" apply="vertex" />
+    <indices type="array1i" bytesize="56160" offset="734576" apply="tlist" />
+    <matindices type="array1i" bytesize="18720" offset="790736" apply="primitive" />
+  </mesh>
+  <mesh id="91" name="PhotometricLight001_lightmesh" type="vsgf" bytesize="280" loc="data/chunk_00092.vsgf" offset="0" vertNum="4" triNum="2" dl="0" path="" light_id="1" bbox="3.40282e+38 -3.40282e+38 3.40282e+38 -3.40282e+38 3.40282e+38 -3.40282e+38">
+    <positions type="array4f" bytesize="64" offset="24" apply="vertex" />
+    <normals type="array4f" bytesize="64" offset="88" apply="vertex" />
+    <tangents type="array4f" bytesize="64" offset="152" apply="vertex" />
+    <texcoords type="array2f" bytesize="32" offset="216" apply="vertex" />
+    <indices type="array1i" bytesize="24" offset="248" apply="tlist" />
+    <matindices type="array1i" bytesize="8" offset="272" apply="primitive" />
+  </mesh>
+</geometry_lib>
+<render_lib>
+  <render_settings type="HydraModern" id="0">
+    <width>512</width>
+    <height>512</height>
+    <method_primary>pathtracing</method_primary>
+    <method_secondary>pathtracing</method_secondary>
+    <method_tertiary>pathtracing</method_tertiary>
+    <method_caustic>none</method_caustic>
+    <shadows>1</shadows>
+    <trace_depth>8</trace_depth>
+    <diff_trace_depth>4</diff_trace_depth>
+    <pt_error>2.5</pt_error>
+    <minRaysPerPixel>256</minRaysPerPixel>
+    <maxRaysPerPixel>40000</maxRaysPerPixel>
+    <mmlt_sds_fixed_prob>0</mmlt_sds_fixed_prob>
+    <mmlt_burn_iters>4064</mmlt_burn_iters>
+    <mmlt_threads>262144</mmlt_threads>
+    <envclamp>5</envclamp>
+    <bsdfclamp>1000000</bsdfclamp>
+    <separate_swap>0</separate_swap>
+    <forceGPUFrameBuffer>0</forceGPUFrameBuffer>
+    <evalgbuffer>0</evalgbuffer>
+    <dont_run>0</dont_run>
+    <scenePrepass>0</scenePrepass>
+    <offline_pt>0</offline_pt>
+    <resources_path>C:/[Hydra]/bin2/shaders</resources_path>
+    <tmGamma>2.20000005</tmGamma>
+    <outputRedirect>0</outputRedirect>
+  </render_settings>
+</render_lib>
+<scenes>
+  <scene id="0" name="my scene" discard="1" bbox="3.40282e+38 -3.40282e+38 3.40282e+38 -3.40282e+38 3.40282e+38 -3.40282e+38">
+    <instance id="0" mesh_id="0" rmap_id="-1" scn_id="0" scn_sid="0" matrix="1 0 0 0.579289 0 1 0 0 0 0 1 2.37915 0 0 0 1 " />
+    <instance id="1" mesh_id="1" rmap_id="-1" scn_id="0" scn_sid="0" matrix="0.704332 -0.709871 1.15653e-07 -2.92099 0 -1.62921e-07 -1 0.715309 0.709871 0.704332 -1.1475e-07 3.70703 0 0 0 1 " />
+    <instance id="2" mesh_id="2" rmap_id="-1" scn_id="0" scn_sid="0" matrix="1 0 0 0.579289 0 1 0 0 0 0 1 2.37915 0 0 0 1 " />
+    <instance id="3" mesh_id="3" rmap_id="-1" scn_id="0" scn_sid="0" matrix="1 0 0 0.579289 0 1 0 0 0 0 1 2.37915 0 0 0 1 " />
+    <instance id="4" mesh_id="4" rmap_id="-1" scn_id="0" scn_sid="0" matrix="1 0 0 0.579289 0 1 0 0 0 0 1 2.37915 0 0 0 1 " />
+    <instance id="5" mesh_id="5" rmap_id="-1" scn_id="0" scn_sid="0" matrix="-1.62921e-07 -1 4.37114e-08 3.42241 0 -4.37114e-08 -1 1.23341 1 -1.62921e-07 7.12149e-15 1.06537 0 0 0 1 " />
+    <instance id="6" mesh_id="6" rmap_id="-1" scn_id="0" scn_sid="0" matrix="1 0 0 2.08121 0 -4.37114e-08 -1 1.36314 0 1 -4.37114e-08 -0.520951 0 0 0 1 " />
+    <instance id="7" mesh_id="7" rmap_id="-1" scn_id="0" scn_sid="0" matrix="1 0 0 2.08092 0 -4.37114e-08 -1 1.36364 0 1 -4.37114e-08 -0.617155 0 0 0 1 " />
+    <instance id="8" mesh_id="8" rmap_id="-1" scn_id="0" scn_sid="0" matrix="1 0 0 -0.377685 0 0.173648 -0.984808 0.982017 0 0.984808 0.173648 -0.353422 0 0 0 1 " />
+    <instance id="9" mesh_id="9" rmap_id="-1" scn_id="0" scn_sid="0" matrix="1 0 0 -0.377685 0 0.173648 -0.984808 0.982017 0 0.984808 0.173648 -0.353422 0 0 0 1 " />
+    <instance id="10" mesh_id="10" rmap_id="-1" scn_id="0" scn_sid="0" matrix="1 0 0 -0.851094 0 1 0 0 0 0 1 2.15979 0 0 0 1 " />
+    <instance id="11" mesh_id="11" rmap_id="-1" scn_id="0" scn_sid="0" matrix="1 0 0 0.0542975 0 1 0 0 0 0 1 1.76576 0 0 0 1 " />
+    <instance id="12" mesh_id="12" rmap_id="-1" scn_id="0" scn_sid="0" matrix="0.95 0 0 -1.76914 0 -5.06615e-08 -0.95 0.177167 0 1.159 -4.15258e-08 0.692965 0 0 0 1 " />
+    <instance id="13" mesh_id="13" rmap_id="-1" scn_id="0" scn_sid="0" matrix="0.95 0 0 1.69271 0 -4.15258e-08 -0.95 0.177167 0 0.95 -4.15258e-08 0.847049 0 0 0 1 " />
+    <instance id="14" mesh_id="14" rmap_id="-1" scn_id="0" scn_sid="0" matrix="-6.35391e-08 -0.39 1.70474e-08 3.55648 0 -1.70474e-08 -0.39 1.33761 0.39 -6.35391e-08 2.77738e-15 0.641721 0 0 0 1 " />
+    <instance id="15" mesh_id="15" rmap_id="-1" scn_id="0" scn_sid="0" matrix="-6.35391e-08 -0.39 1.70474e-08 3.55648 0 -1.70474e-08 -0.39 1.33761 0.39 -6.35391e-08 2.77738e-15 0.821702 0 0 0 1 " />
+    <instance id="16" mesh_id="16" rmap_id="-1" scn_id="0" scn_sid="0" matrix="-6.35391e-08 -0.39 1.70474e-08 3.55648 0 -1.70474e-08 -0.39 1.33761 0.39 -6.35391e-08 2.77738e-15 1.00168 0 0 0 1 " />
+    <instance id="17" mesh_id="17" rmap_id="-1" scn_id="0" scn_sid="0" matrix="-4.37114e-08 -1 4.37114e-08 3.43182 0 -4.37114e-08 -1 1.85673 1 -4.37114e-08 1.91069e-15 -0.0271968 0 0 0 1 " />
+    <instance id="18" mesh_id="18" rmap_id="-1" scn_id="0" scn_sid="0" matrix="-1.58672e-08 1.2549e-07 -0.363 3.61046 1.58672e-08 0.363 1.2549e-07 1.5868 0.363 -1.58672e-08 -1.58672e-08 0.624173 0 0 0 1 " />
+    <instance id="19" mesh_id="19" rmap_id="-1" scn_id="0" scn_sid="0" matrix="-1.58672e-08 1.2549e-07 -0.363 3.61046 1.58672e-08 0.363 1.2549e-07 1.5868 0.363 -1.58672e-08 -1.58672e-08 0.591768 0 0 0 1 " />
+    <instance id="20" mesh_id="20" rmap_id="-1" scn_id="0" scn_sid="0" matrix="-6.8557e-09 1.2549e-07 -0.363 3.61046 6.8557e-09 0.363 1.2549e-07 1.5868 0.15684 -1.58672e-08 -1.58672e-08 0.545924 0 0 0 1 " />
+    <instance id="21" mesh_id="21" rmap_id="-1" scn_id="0" scn_sid="0" matrix="-1.93435e-08 1.2549e-07 -0.363 3.61046 1.93435e-08 0.363 1.2549e-07 1.5868 0.442528 -1.58672e-08 -1.58672e-08 0.659409 0 0 0 1 " />
+    <instance id="22" mesh_id="22" rmap_id="-1" scn_id="0" scn_sid="0" matrix="-1.17196e-08 1.2549e-07 -0.363 3.61046 1.17196e-08 0.363 1.2549e-07 1.5868 0.268114 -1.58672e-08 -1.58672e-08 0.564356 0 0 0 1 " />
+    <instance id="23" mesh_id="23" rmap_id="-1" scn_id="0" scn_sid="0" matrix="-1.58672e-08 1.2549e-07 -0.363 3.61046 1.58672e-08 0.363 1.2549e-07 1.5868 0.363 -1.58672e-08 -1.58672e-08 0.519796 0 0 0 1 " />
+    <instance id="24" mesh_id="24" rmap_id="-1" scn_id="0" scn_sid="0" matrix="-8.37293e-09 1.08182e-08 -0.363 3.61046 0.15684 1.93788e-08 -1.93788e-08 1.62444 -8.37293e-09 0.363 1.08182e-08 0.68499 0 0 0 1 " />
+    <instance id="25" mesh_id="25" rmap_id="-1" scn_id="0" scn_sid="0" matrix="-1.43133e-08 1.08182e-08 -0.363 3.61046 0.268114 1.93788e-08 -1.93788e-08 1.64287 -1.43133e-08 0.363 1.08182e-08 0.68499 0 0 0 1 " />
+    <instance id="26" mesh_id="26" rmap_id="-1" scn_id="0" scn_sid="0" matrix="-8.0576e-08 -1.08183e-08 -0.363 3.61046 0.363 4.47035e-08 -8.0576e-08 1.59831 -1.04308e-07 0.363 -1.08182e-08 0.68499 0 0 0 1 " />
+    <instance id="27" mesh_id="27" rmap_id="-1" scn_id="0" scn_sid="0" matrix="-8.0576e-08 -1.08183e-08 -0.363 3.61046 0.363 4.47035e-08 -8.0576e-08 1.67029 -1.04308e-07 0.363 -1.08182e-08 0.68499 0 0 0 1 " />
+    <instance id="28" mesh_id="28" rmap_id="-1" scn_id="0" scn_sid="0" matrix="1.56387e-07 0.794662 -0.258201 -0.0741228 -0.714151 1.38966e-07 -4.85279e-09 0.143699 4.48431e-08 0.258201 0.794662 2.13818 0 0 0 1 " />
+    <instance id="29" mesh_id="29" rmap_id="-1" scn_id="0" scn_sid="0" matrix="2.52134e-07 0.803189 -0.230311 -0.0719121 -0.714151 2.24184e-07 0 0.197177 7.22983e-08 0.230311 0.803189 2.14396 0 0 0 1 " />
+    <instance id="30" mesh_id="30" rmap_id="-1" scn_id="0" scn_sid="0" matrix="1.56387e-07 0.794662 -0.258201 -0.0947405 -0.714151 1.38966e-07 -4.85279e-09 0.219502 4.48431e-08 0.258201 0.794662 2.1337 0 0 0 1 " />
+    <instance id="31" mesh_id="31" rmap_id="-1" scn_id="0" scn_sid="0" matrix="1.56387e-07 0.810737 -0.20214 -0.0665215 -0.714151 1.38966e-07 4.85276e-09 0.175166 4.48431e-08 0.20214 0.810737 2.13803 0 0 0 1 " />
+    <instance id="32" mesh_id="32" rmap_id="-1" scn_id="0" scn_sid="0" matrix="-1.47095 -0.753337 -0.0550872 3.59315 -0.695711 1.39817 -0.543457 2.12083 0.29417 -0.460264 -1.56073 0.629215 0 0 0 1 " />
+    <instance id="33" mesh_id="33" rmap_id="-1" scn_id="0" scn_sid="0" matrix="-0.707787 -0.230742 -1.34364 3.59315 0.111282 0.373945 -1.00732 2.12083 1.6061 -0.127595 -0.522332 0.629215 0 0 0 1 " />
+    <instance id="34" mesh_id="34" rmap_id="-1" scn_id="0" scn_sid="0" matrix="-0.717466 -0.236343 -1.36202 3.59272 0.112804 0.383023 -1.02109 2.12152 1.62806 -0.130692 -0.529475 0.628981 0 0 0 1 " />
+    <instance id="35" mesh_id="35" rmap_id="-1" scn_id="0" scn_sid="0" matrix="-0.707788 -0.230742 -1.34364 3.59315 0.111282 0.373945 -1.00732 2.12083 1.6061 -0.127595 -0.522332 0.629215 0 0 0 1 " />
+    <instance id="36" mesh_id="36" rmap_id="-1" scn_id="0" scn_sid="0" matrix="-0.707788 -0.230742 -1.34364 3.59315 0.111282 0.373945 -1.00732 2.12083 1.6061 -0.127595 -0.522332 0.629215 0 0 0 1 " />
+    <instance id="37" mesh_id="37" rmap_id="-1" scn_id="0" scn_sid="0" matrix="-1.47095 -0.753336 -0.0550859 3.59315 -0.695712 1.39817 -0.543457 2.12083 0.29417 -0.460265 -1.56073 0.629215 0 0 0 1 " />
+    <instance id="38" mesh_id="38" rmap_id="-1" scn_id="0" scn_sid="0" matrix="-1.37925 0.337798 -2.8501 3.55934 2.93559 -0.142911 -1.67085 2.111 -1.09139 -0.81129 -0.892377 0.733666 0 0 0 1 " />
+    <instance id="39" mesh_id="39" rmap_id="-1" scn_id="0" scn_sid="0" matrix="-0.665485 -0.833873 -1.26334 3.56959 0.104631 1.3514 -0.947112 2.10094 1.51011 -0.461112 -0.491115 0.620189 0 0 0 1 " />
+    <instance id="40" mesh_id="40" rmap_id="-1" scn_id="0" scn_sid="0" matrix="0.762983 -0.529468 -0.312298 3.55329 0.453253 0.820829 -0.284274 2.14429 -0.415244 -0.0768993 -0.88412 0.714886 0 0 0 1 " />
+    <instance id="41" mesh_id="41" rmap_id="-1" scn_id="0" scn_sid="0" matrix="-0.0495572 2.48129e-07 -1.41913 3.56835 0 1.42 2.48281e-07 2.08784 1.41913 8.66486e-09 -0.0495572 0.635184 0 0 0 1 " />
+    <instance id="42" mesh_id="42" rmap_id="-1" scn_id="0" scn_sid="0" matrix="0.928633 0 1.36048 3.6338 0 1.6472 0 2.1479 -1.36048 0 0.928633 0.83844 0 0 0 1 " />
+    <instance id="43" mesh_id="43" rmap_id="-1" scn_id="0" scn_sid="0" matrix="0.928633 1.62182e-07 1.36048 3.57406 0 1.6472 -1.96362e-07 1.9704 -1.36048 1.10702e-07 0.928633 0.926106 0 0 0 1 " />
+    <instance id="44" mesh_id="44" rmap_id="-1" scn_id="0" scn_sid="0" matrix="-1.27481 0 -1.04313 3.60497 0 1.6472 0 2.15119 1.04313 0 -1.27481 0.873096 0 0 0 1 " />
+    <instance id="45" mesh_id="45" rmap_id="-1" scn_id="0" scn_sid="0" matrix="0.928633 0 1.36048 3.6338 0 1.6472 0 2.1479 -1.36048 0 0.928633 0.83844 0 0 0 1 " />
+    <instance id="46" mesh_id="46" rmap_id="-1" scn_id="0" scn_sid="0" matrix="0.928633 0 1.36048 3.6338 0 1.6472 0 2.1479 -1.36048 0 0.928633 0.83844 0 0 0 1 " />
+    <instance id="47" mesh_id="47" rmap_id="-1" scn_id="0" scn_sid="0" matrix="0.928633 1.62182e-07 1.36048 3.63388 0 1.6472 -1.96362e-07 1.96129 -1.36048 1.10702e-07 0.928633 0.838472 0 0 0 1 " />
+    <instance id="48" mesh_id="48" rmap_id="-1" scn_id="0" scn_sid="0" matrix="0.928633 1.62182e-07 1.36048 3.57406 0 1.6472 -1.96362e-07 1.9704 -1.36048 1.10702e-07 0.928633 0.926106 0 0 0 1 " />
+    <instance id="49" mesh_id="49" rmap_id="-1" scn_id="0" scn_sid="0" matrix="0.886985 0 0.692989 -1.81905 0 1.1256 0 0.573291 -0.692989 0 0.886985 0.933014 0 0 0 1 " />
+    <instance id="50" mesh_id="50" rmap_id="-1" scn_id="0" scn_sid="0" matrix="0.464132 -0.648365 -0.137814 1.64511 1.49012e-08 0.16824 -0.791507 0.664591 0.66285 0.45399 0.0964985 0.961172 0 0 0 1 " />
+    <instance id="51" mesh_id="51" rmap_id="-1" scn_id="0" scn_sid="0" matrix="0.742402 -0.653854 -0.138981 1.78991 0 0.207704 -0.977169 0.688546 0.668461 0.726179 0.154354 0.980416 0 0 0 1 " />
+    <instance id="52" mesh_id="52" rmap_id="-1" scn_id="0" scn_sid="0" matrix="0.693493 0.246895 0.0524792 -1.56617 -1.0815e-07 0.153439 -0.721873 0.657357 -0.252411 0.678339 0.144185 0.976939 0 0 0 1 " />
+    <instance id="53" mesh_id="53" rmap_id="-1" scn_id="0" scn_sid="0" matrix="-2.83933e-09 0.0145824 0.83543 3.71403 -0.714151 1.38966e-07 -4.85279e-09 0.871077 1.62664e-07 0.83543 -0.0145824 0.774844 0 0 0 1 " />
+    <instance id="54" mesh_id="54" rmap_id="-1" scn_id="0" scn_sid="0" matrix="-2.83933e-09 0.0145824 0.83543 3.71229 -0.714151 1.38966e-07 -4.85279e-09 0.795274 1.62664e-07 0.83543 -0.0145824 0.795871 0 0 0 1 " />
+    <instance id="55" mesh_id="55" rmap_id="-1" scn_id="0" scn_sid="0" matrix="-4.5777e-09 -0.0145826 0.83543 3.71717 -0.714151 2.24184e-07 0 0.848752 2.62255e-07 0.83543 0.0145826 0.799676 0 0 0 1 " />
+    <instance id="56" mesh_id="56" rmap_id="-1" scn_id="0" scn_sid="0" matrix="-2.83933e-09 -0.0437296 0.834412 3.70992 -0.714151 1.38966e-07 4.85276e-09 0.826741 1.62664e-07 0.834412 0.0437296 0.803096 0 0 0 1 " />
+    <instance id="57" mesh_id="57" rmap_id="-1" scn_id="0" scn_sid="0" matrix="1.38112 0 0.096577 3.60354 0 1.38449 0 0.80006 -0.096577 0 1.38112 0.945931 0 0 0 1 " />
+    <instance id="58" mesh_id="58" rmap_id="-1" scn_id="0" scn_sid="0" matrix="1 0 0 -1.66186 0 1 0 0.838585 0 0 1 0.851049 0 0 0 1 " />
+    <instance id="59" mesh_id="59" rmap_id="-1" scn_id="0" scn_sid="0" matrix="-0.5 0.866025 -8.92494e-07 -1.65242 -1.49012e-07 -1.11659e-06 -1 1.01548 -0.866025 -0.5 6.87345e-07 0.866979 0 0 0 1 " />
+    <instance id="60" mesh_id="60" rmap_id="-1" scn_id="0" scn_sid="0" matrix="1.89091 0 0 -1.66189 0 1.89091 0 1.00246 0 0 1.89091 0.847562 0 0 0 1 " />
+    <instance id="61" mesh_id="61" rmap_id="-1" scn_id="0" scn_sid="0" matrix="1 0 0 -1.66186 0 1 0 0.650993 0 0 1 0.851049 0 0 0 1 " />
+    <instance id="62" mesh_id="62" rmap_id="-1" scn_id="0" scn_sid="0" matrix="0.295803 0 1.86763 -1.65874 0 1.89091 0 1.00246 -1.86763 0 0.295803 0.844409 0 0 0 1 " />
+    <instance id="63" mesh_id="63" rmap_id="-1" scn_id="0" scn_sid="0" matrix="1 0 0 1.7722 0 1 0 0.838585 0 0 1 0.851049 0 0 0 1 " />
+    <instance id="64" mesh_id="64" rmap_id="-1" scn_id="0" scn_sid="0" matrix="-0.5 0.866025 -8.92494e-07 1.78163 -1.49012e-07 -1.11659e-06 -1 1.01548 -0.866025 -0.5 6.87345e-07 0.866979 0 0 0 1 " />
+    <instance id="65" mesh_id="65" rmap_id="-1" scn_id="0" scn_sid="0" matrix="1.89091 0 0 1.77216 0 1.89091 0 1.00246 0 0 1.89091 0.847562 0 0 0 1 " />
+    <instance id="66" mesh_id="66" rmap_id="-1" scn_id="0" scn_sid="0" matrix="1 0 0 1.7722 0 1 0 0.650993 0 0 1 0.851049 0 0 0 1 " />
+    <instance id="67" mesh_id="67" rmap_id="-1" scn_id="0" scn_sid="0" matrix="0.295803 0 1.86763 1.77532 0 1.89091 0 1.00246 -1.86763 0 0.295803 0.844409 0 0 0 1 " />
+    <instance id="68" mesh_id="68" rmap_id="-1" scn_id="0" scn_sid="0" matrix="-0.967965 0.41912 0.0660906 -0.857198 5.66304e-08 0.156384 -0.991723 0.61449 0.451369 0.898806 0.141732 0.835472 0 0 0 1 " />
+    <instance id="69" mesh_id="69" rmap_id="-1" scn_id="0" scn_sid="0" matrix="0.967965 -0.41912 -0.0660907 0.82047 3.2889e-09 0.156384 -0.991723 0.623266 0.451369 0.898807 0.141732 0.835472 0 0 0 1 " />
+    <instance id="70" mesh_id="70" rmap_id="-1" scn_id="0" scn_sid="0" matrix="-0.78749 -0.635529 -0.00521522 0.384251 -0.0555456 0.068794 -0.971829 0.601537 -0.673813 0.737076 0.0862077 0.788772 0 0 0 1 " />
+    <instance id="71" mesh_id="71" rmap_id="-1" scn_id="0" scn_sid="0" matrix="0.766576 0 0 -1.19212 0 1.02902 0 0.00134177 0 0 0.849882 1.26152 0 0 0 1 " />
+    <instance id="72" mesh_id="72" rmap_id="-1" scn_id="0" scn_sid="0" matrix="-1.02902 1.7992e-07 -2.14553e-15 0.597508 0 -1.2271e-08 -1.02902 0.332082 1.7992e-07 1.02902 -1.2271e-08 0.552624 0 0 0 1 " />
+    <instance id="73" mesh_id="73" rmap_id="-1" scn_id="0" scn_sid="0" matrix="0.775015 0 0 -1.10282 0 -0.0507929 -0.770769 0.133769 0 0.483262 -0.0810112 1.29683 0 0 0 1 " />
+    <instance id="74" mesh_id="74" rmap_id="-1" scn_id="0" scn_sid="0" matrix="1.02902 0 0 -0.0231983 0 1.02902 0 0.117619 0 0 1.02902 0.832937 0 0 0 1 " />
+    <instance id="75" mesh_id="75" rmap_id="-1" scn_id="0" scn_sid="0" matrix="0.787489 0.63553 0.00521519 -0.49227 -0.0555456 0.0687939 -0.971829 0.592761 -0.673813 0.737076 0.0862076 0.794061 0 0 0 1 " />
+    <instance id="76" mesh_id="76" rmap_id="-1" scn_id="0" scn_sid="0" matrix="1 0 0 2.08092 0 -1.62921e-07 -1 1.36364 0 1 -1.62921e-07 -0.628887 0 0 0 1 " />
+    <instance id="77" mesh_id="77" rmap_id="-1" scn_id="0" scn_sid="0" matrix="1 0 0 0.0216648 0 1 -1.19209e-07 0.410994 0 1.19209e-07 1 1.95916 0 0 0 1 " />
+    <instance id="78" mesh_id="78" rmap_id="-1" scn_id="0" scn_sid="0" matrix="-0.633551 -0.447989 0.447989 -0.0019942 -5.96046e-08 0.633551 0.633552 0.450724 -0.633552 0.447988 -0.447988 1.97517 0 0 0 1 " />
+    <instance id="79" mesh_id="79" rmap_id="-1" scn_id="0" scn_sid="0" matrix="0.139173 0 -0.990268 -0.126086 0 1 0 0.383574 0.990268 0 0.139173 1.87864 0 0 0 1 " />
+    <instance id="80" mesh_id="80" rmap_id="-1" scn_id="0" scn_sid="0" matrix="0.139173 0 -0.990268 -0.196051 0 1 0 0.383574 0.990268 0 0.139173 1.88114 0 0 0 1 " />
+    <instance id="81" mesh_id="81" rmap_id="-1" scn_id="0" scn_sid="0" matrix="-0.319874 0 -0.149161 -0.119574 0 0.409572 0 0.41234 0.149161 0 -0.319874 2.03978 0 0 0 1 " />
+    <instance id="82" mesh_id="82" rmap_id="-1" scn_id="0" scn_sid="0" matrix="0.707685 0 0 -0.219328 0 0.707685 0 0.493295 0 0 0.707685 2.04995 0 0 0 1 " />
+    <instance id="83" mesh_id="83" rmap_id="-1" scn_id="0" scn_sid="0" matrix="0.786056 0 0 -0.219326 0 0.786056 0 0.41266 0 0 0.786056 2.04994 0 0 0 1 " />
+    <instance id="84" mesh_id="84" rmap_id="-1" scn_id="0" scn_sid="0" matrix="1 0 0 -0.209467 0 1 -1.19209e-07 0.412704 0 1.19209e-07 1 1.94705 0 0 0 1 " />
+    <instance id="85" mesh_id="85" rmap_id="-1" scn_id="0" scn_sid="0" matrix="1 0 0 -0.209467 0 1 -1.19209e-07 0.412704 0 1.19209e-07 1 1.94705 0 0 0 1 " />
+    <instance id="86" mesh_id="86" rmap_id="-1" scn_id="0" scn_sid="0" matrix="1 0 0 -0.180717 0 1 -1.19209e-07 0.412704 0 1.19209e-07 1 2.00576 0 0 0 1 " />
+    <instance id="87" mesh_id="87" rmap_id="-1" scn_id="0" scn_sid="0" matrix="1 0 0 -0.180717 0 1 -1.19209e-07 0.412704 0 1.19209e-07 1 2.00576 0 0 0 1 " />
+    <instance id="88" mesh_id="88" rmap_id="-1" scn_id="0" scn_sid="0" matrix="0.795579 -0.208892 0.355239 0.033701 -0.411729 -0.435876 0.665783 0.452362 0.0175938 -0.754422 -0.483026 1.98446 0 0 0 1 " />
+    <instance id="89" mesh_id="89" rmap_id="-1" scn_id="0" scn_sid="0" matrix="1 0 0 -0.169905 0 1 0 0.412002 0 0 1 1.95576 0 0 0 1 " />
+    <instance id="90" mesh_id="90" rmap_id="-1" scn_id="0" scn_sid="0" matrix="0.95 0 0 -1.73992 0 -1.54775e-07 -0.95 0.177167 0 0.95 -1.54775e-07 0.847049 0 0 0 1 " />
+    <instance_light id="0" light_id="0" matrix="1 0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 " lgroup_id="-1" />
+    <instance_light id="1" light_id="1" matrix="-1 -1.50996e-07 2.46003e-14 2.08121 0 -1.62921e-07 -1 1.36314 1.50996e-07 -1 1.62921e-07 -0.745538 0 0 0 1 " lgroup_id="-1" />
+    <instance id="91" mesh_id="91" rmap_id="-1" matrix="-1 -1.50996e-07 2.46003e-14 2.08121 0 -1.62921e-07 -1 1.36314 1.50996e-07 -1 1.62921e-07 -0.745538 0 0 0 1 " light_id="1" linst_id="1" />
+  </scene>
+</scenes>
