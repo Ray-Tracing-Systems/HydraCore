@@ -92,11 +92,11 @@ void GPUOCLLayer::DL_Pass(int a_maxBounce, int a_itersNum)
       m_passNumberForQMC++;
   }  
 
-  if(m_screen.m_cpuFrameBuffer) ////////////////////////////////////////// #NOTE: strange bug with pointer swap. direct light contributes to indirect!
-  {                                
-    memsetf4(m_rays.pathAccColor, float4(0, 0, 0, as_float(0xFFFFFFFF)), m_rays.MEGABLOCKSIZE, 0);
-    AddContributionToScreen(m_rays.pathAccColor, m_rays.samZindex, false, 1); 
-  }
+  //if(m_screen.m_cpuFrameBuffer) ////////////////////////////////////////// #NOTE: strange bug with pointer swap. direct light contributes to indirect!
+  //{                                
+  //  memsetf4(m_rays.pathAccColor, float4(0, 0, 0, as_float(0xFFFFFFFF)), m_rays.MEGABLOCKSIZE, 0);
+  //  AddContributionToScreen(m_rays.pathAccColor, m_rays.samZindex, false, 1); 
+  //}
 
   m_vars.m_varsI[HRT_KMLT_OR_QMC_LGT_BOUNCES] = 0;
   m_vars.m_varsI[HRT_KMLT_OR_QMC_MAT_BOUNCES] = 0;

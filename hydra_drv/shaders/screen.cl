@@ -158,7 +158,7 @@ __kernel void MakeEyeRaysQMC(__global RandomGen*           restrict out_gens,
   
   ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////// QMC/KMLT memory layout
   {
-    const int vecSize  = KMLT_HEAD_SIZE + a_globals->varsI[HRT_KMLT_OR_QMC_LGT_BOUNCES]*KMLT_PER_LIGHT + a_globals->varsI[HRT_KMLT_OR_QMC_MAT_BOUNCES]*KMLT_PER_MATERIAL;
+    const int vecSize = kmltBlobSize(a_globals);
     
     out_samples[vecSize*tid + 0] = lensOffs.x;
     out_samples[vecSize*tid + 1] = lensOffs.y;
