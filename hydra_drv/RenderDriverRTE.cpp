@@ -10,6 +10,8 @@
 #include "../../HydraAPI/hydra_api/HydraXMLHelpers.h"
 #include "../../HydraAPI/hydra_api/HydraInternal.h"
 
+#include "../../HydraAPI/hydra_api/vfloat4_x64.h"
+
 #ifdef WIN32
 #undef min
 #undef max
@@ -922,6 +924,33 @@ float NormalDiff(float3 n1, float3 n2)
 
 std::vector<float> CalcAuxShadowRaysOffsets(const HRMeshDriverInput& a_input)
 {
+  // (1) find box size
+  //
+  cvex::vfloat4 bBoxMin = {+1e30f,+1e30f,+1e30f,0.0f};
+  cvex::vfloat4 bBoxMax = {-1e30f,-1e30f,-1e30f,0.0f};
+
+  for (int triId = 0; triId < a_input.triNum; triId++) // #TODO: can opt if vectorize by vertex ... 
+  {
+    const int iA = a_input.indices[triId * 3 + 0];
+    const int iB = a_input.indices[triId * 3 + 1];
+    const int iC = a_input.indices[triId * 3 + 2];
+
+    const cvex::vfloat4 A = cvex::load_u(a_input.pos4f + iA * 4);
+    const cvex::vfloat4 B = cvex::load_u(a_input.pos4f + iB * 4);
+    const cvex::vfloat4 C = cvex::load_u(a_input.pos4f + iC * 4);
+
+    bBoxMin = cvex::min( cvex::min(bBoxMin, A), cvex::min(B, C));
+    bBoxMax = cvex::max( cvex::max(bBoxMax, A), cvex::max(B, C));
+  }
+  
+  float boxMax[4] = {0,0,0,0};
+  cvex::store_u(boxMax, (bBoxMax - bBoxMin));
+
+  const float boxMaxAtSomeAxis    = fmax(boxMax[0], fmax(boxMax[1], boxMax[2]));
+  const float meshMaxShadowOffset = 1.0e-4f*boxMaxAtSomeAxis; //  0.0045f
+
+  // (2) calc shadow offsets
+  //
   std::vector<float> shadowOffsets(a_input.triNum);
 
   for (int triId = 0; triId < a_input.triNum; triId++)
@@ -945,7 +974,7 @@ std::vector<float> CalcAuxShadowRaysOffsets(const HRMeshDriverInput& a_input)
     const float normDiff = NormalDiff(fN, nA) + NormalDiff(fN, nB) + NormalDiff(fN, nC);
 	
     if (normDiff > 0.001f)
-      shadowOffsets[triId] = fmin(0.05f*sqrtf(length(crpd*0.5f)), 0.0045f);
+      shadowOffsets[triId] = fmin(0.05f*sqrtf(length(crpd*0.5f)), meshMaxShadowOffset);
     else
       shadowOffsets[triId] = 0.0f;
     
