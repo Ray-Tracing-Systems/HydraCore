@@ -52,7 +52,7 @@ void IntegratorMISPT_QMC::DoPass(std::vector<uint>& a_imageLDR)
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-bool HR_SaveHDRImageToFileHDR_WithFreeImage(const wchar_t* a_fileName, int w, int h, const float* a_data, const float a_scale = 1.0f);
+//bool HR_SaveHDRImageToFileHDR_WithFreeImage(const wchar_t* a_fileName, int w, int h, const float* a_data, const float a_scale = 1.0f);
 
 std::vector<float> PrefixSumm(const std::vector<float>& a_vec);
 
@@ -194,8 +194,8 @@ void IntegratorMISPT_AQMC::DoPass(std::vector<uint>& a_imageLDR)
     //for(size_t i=0;i<errorMap1f.size();i++)
     //  fout << errorMap1f[i] << "\t" << m_errorTable[i] << std::endl;
 
-    HR_SaveHDRImageToFileHDR_WithFreeImage(L"/home/frol/hydra/rendered_images/error.hdr", testImage.width(), testImage.height(), testImage.data());
-    HR_SaveHDRImageToFileHDR_WithFreeImage(L"/home/frol/hydra/rendered_images/error2.hdr", m_errorMap.width(), m_errorMap.height(), m_errorMap.data());
+    //HR_SaveHDRImageToFileHDR_WithFreeImage(L"/home/frol/hydra/rendered_images/error.hdr", testImage.width(), testImage.height(), testImage.data());
+    //HR_SaveHDRImageToFileHDR_WithFreeImage(L"/home/frol/hydra/rendered_images/error2.hdr", m_errorMap.width(), m_errorMap.height(), m_errorMap.data());
     std::cout << "error image saves" << std::endl;
 
     //static bool firstTime = true;

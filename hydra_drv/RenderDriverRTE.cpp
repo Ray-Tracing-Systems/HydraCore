@@ -1096,8 +1096,8 @@ bool RenderDriverRTE::UpdateCamera(pugi::xml_node a_camNode)
   {
     const wchar_t* camPosStr = a_camNode.child(L"position").text().as_string();
     const wchar_t* camLAtStr = a_camNode.child(L"look_at").text().as_string();
-    const wchar_t* camUpStr = a_camNode.child(L"up").text().as_string();
-    const wchar_t* testStr = a_camNode.child(L"test").text().as_string();
+    const wchar_t* camUpStr  = a_camNode.child(L"up").text().as_string();
+    const wchar_t* testStr   = a_camNode.child(L"test").text().as_string();
 
     if (!a_camNode.child(L"fov").text().empty())
       m_camera.fov = a_camNode.child(L"fov").text().as_float();
