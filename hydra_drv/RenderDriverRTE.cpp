@@ -938,15 +938,23 @@ std::vector<float> CalcAuxShadowRaysOffsets(const HRMeshDriverInput& a_input)
     const float3 nB = float3(a_input.norm4f[iB * 4 + 0], a_input.norm4f[iB * 4 + 1], a_input.norm4f[iB * 4 + 2]);
     const float3 nC = float3(a_input.norm4f[iC * 4 + 0], a_input.norm4f[iC * 4 + 1], a_input.norm4f[iC * 4 + 2]);
 
-    const float3 fN = normalize(cross(A-B, A-C));
+
+    const float3 crpd = cross(A-B, A-C);
+    const float3 fN   = normalize(crpd);
 
     const float normDiff = NormalDiff(fN, nA) + NormalDiff(fN, nB) + NormalDiff(fN, nC);
-    const float polySize = fmax(length(A - B), fmax(length(A - C), length(B - C) ));
 
     if (normDiff > 0.001f)
-      shadowOffsets[triId] = 0.15f*fmin(normDiff, 0.15f)*polySize;
+      shadowOffsets[triId] = 0.15f*sqrtf(length(crpd*0.5f));
     else
       shadowOffsets[triId] = 0.0f;
+    
+    //const float polySize = fmax(length(A - B), fmax(length(A - C), length(B - C) ));
+
+    //if (normDiff > 0.001f)
+    //  shadowOffsets[triId] = 0.15f*fmin(normDiff, 0.15f)*polySize;
+    //else
+    //  shadowOffsets[triId] = 0.0f;
   }
 
   return shadowOffsets;
