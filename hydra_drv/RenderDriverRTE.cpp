@@ -12,6 +12,11 @@
 
 #include "../../HydraAPI/hydra_api/vfloat4_x64.h"
 
+using cvex::operator-;
+using cvex::operator+;
+using cvex::operator*;
+using cvex::operator/;
+
 #ifdef WIN32
 #undef min
 #undef max
@@ -929,7 +934,7 @@ std::vector<float> CalcAuxShadowRaysOffsets(const HRMeshDriverInput& a_input)
   cvex::vfloat4 bBoxMin = {+1e30f,+1e30f,+1e30f,0.0f};
   cvex::vfloat4 bBoxMax = {-1e30f,-1e30f,-1e30f,0.0f};
 
-  for (int triId = 0; triId < a_input.triNum; triId++) // #TODO: can opt if vectorize by vertex ... 
+  for (int triId = 0; triId < a_input.triNum; triId++) // #TODO: can opt if vectorize by vertex ... and move this function to HydraAPI. It can be faster if no indices used ... 
   {
     const int iA = a_input.indices[triId * 3 + 0];
     const int iB = a_input.indices[triId * 3 + 1];
@@ -947,7 +952,7 @@ std::vector<float> CalcAuxShadowRaysOffsets(const HRMeshDriverInput& a_input)
   cvex::store_u(boxMax, (bBoxMax - bBoxMin));
 
   const float boxMaxAtSomeAxis    = fmax(boxMax[0], fmax(boxMax[1], boxMax[2]));
-  const float meshMaxShadowOffset = 1.0e-4f*boxMaxAtSomeAxis; //  0.0045f
+  const float meshMaxShadowOffset = 0.0040f*boxMaxAtSomeAxis; //  0.0045f
 
   // (2) calc shadow offsets
   //
