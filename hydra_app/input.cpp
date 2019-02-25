@@ -25,7 +25,7 @@ Input::Input()
 
   //inLibraryPath = "C:/[Hydra]/pluginFiles/scenelib";
   //inLibraryPath = "/home/frol/PROG/HydraAPI/main/tests/test_76";
-  inLibraryPath = "/home/frol/temp/LeakLight/scenelib";
+  inLibraryPath = "/home/frol/temp/LeakLight/scenelib";              // ff ?
   //inLibraryPath = "/home/frol/PROG/HydraAPI/main/tests_f/test_208";
   //inLibraryPath = "/home/frol/PROG/HydraCore/hydra_app/tests/test_pool";
 
