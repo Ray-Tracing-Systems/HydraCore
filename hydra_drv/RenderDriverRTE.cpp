@@ -12,12 +12,12 @@
 
 #include "../../HydraAPI/hydra_api/vfloat4_x64.h"
 
+#ifdef WIN32
 using cvex::operator-;
 using cvex::operator+;
 using cvex::operator*;
 using cvex::operator/;
 
-#ifdef WIN32
 #undef min
 #undef max
 #endif
