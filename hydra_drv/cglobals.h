@@ -422,7 +422,7 @@ enum FLAG_BITS{HRT_COMPUTE_SHADOWS                 = 1,
 enum VARIABLE_NAMES { // int vars
                       //
                       HRT_ENABLE_DOF               = 0,
-                      HRT_VAR_INT_DUMMY1           = 1,
+                      HRT_QMC_VARIANT              = 1,
                       HRT_FIRST_BOUNCE_STORE_CACHE = 2,
                       HRT_ENABLE_MRAYS_COUNTERS    = 3,
                       HRT_DEBUG_OUTPUT             = 4,

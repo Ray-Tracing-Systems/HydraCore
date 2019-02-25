@@ -125,6 +125,30 @@ static inline float2 worldPosToScreenSpace(float3 a_wpos, __global const EngineG
   return posScreenSpace;
 }
 
+static inline float2 worldPosToScreenSpaceWithDOF(float3 a_wpos, __global const EngineGlobals* a_globals, float2 in_randOffsets)
+{
+  const float2 offsets        = 2.0f*(in_randOffsets - make_float2(0.5f, 0.5f));
+
+  const float4 posWorldSpace  = to_float4(a_wpos, 1.0f);
+  const float4 posCamSpace    = mul4x4x4(make_float4x4(a_globals->mWorldView), posWorldSpace);
+
+  // @{GPU Gems Chapter 23. Depth of Field: A Survey of Techniques}
+  //
+
+  const float A = 1.0f; // ?
+  const float F = 1.0f; // ?
+  // P = camera target distance
+  // D = posCamSpace.z;
+  //
+  // C := A*( F*(P-D) )/( D*(P-F) ); 
+
+ 
+  const float4 posNDC         = mul4x4x4(make_float4x4(a_globals->mProj), posCamSpace); // + C*make_float4(offsets.x, offsets.y, 0.0f, 0.0f)
+  const float4 posClipSpace   = posNDC*(1.0f / fmax(posNDC.w, DEPSILON));
+  const float2 posScreenSpace = clipSpaceToScreenSpace(posClipSpace, a_globals->varsF[HRT_WIDTH_F], a_globals->varsF[HRT_HEIGHT_F]);
+  return posScreenSpace;
+}
+
 /**
 \brief  Light Tracing "connect vertex to eye" stage. Don't trace ray and don't compute shadow. You must compute shadow outside this procedure.
 \param  a_lv                 - light path vertex
