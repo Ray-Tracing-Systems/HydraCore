@@ -952,7 +952,7 @@ std::vector<float> CalcAuxShadowRaysOffsets(const HRMeshDriverInput& a_input)
   cvex::store_u(boxMax, (bBoxMax - bBoxMin));
 
   const float boxMaxAtSomeAxis    = fmax(boxMax[0], fmax(boxMax[1], boxMax[2]));
-  const float meshMaxShadowOffset = 0.0005f*boxMaxAtSomeAxis; //  0.0045f
+  const float meshMaxShadowOffset = 0.00025f*boxMaxAtSomeAxis; //  0.0045f
 
   // (2) calc shadow offsets
   //
