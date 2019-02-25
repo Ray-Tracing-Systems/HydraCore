@@ -943,9 +943,9 @@ std::vector<float> CalcAuxShadowRaysOffsets(const HRMeshDriverInput& a_input)
     const float3 fN   = normalize(crpd);
 
     const float normDiff = NormalDiff(fN, nA) + NormalDiff(fN, nB) + NormalDiff(fN, nC);
-
-    if (normDiff > 0.001f)
-      shadowOffsets[triId] = 0.15f*sqrtf(length(crpd*0.5f));
+	
+	if (normDiff > 0.001f)
+	  shadowOffsets[triId] = 0.05f*sqrtf(length(crpd*0.5f));
     else
       shadowOffsets[triId] = 0.0f;
     
