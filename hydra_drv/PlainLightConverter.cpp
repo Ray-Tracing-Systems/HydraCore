@@ -18,6 +18,7 @@ SWTexSampler DummySampler();
 const pugi::xml_node SamplerNode(const pugi::xml_node a_node);
 SWTexSampler SamplerFromTexref(const pugi::xml_node a_node, bool aAllowAlphaToRGB = false);
 
+std::string ws2s(const std::wstring& s);
 
 static bool UpHemisphereIsBlack(const std::vector<float>& sphericalTexture, int w, int h)
 {
@@ -169,10 +170,10 @@ public:
 		if (ROTATE_IES_90_DEG)
 		{
 			float4x4 mrot = HydraLiteMath::rotate_Y_4x4(DEG_TO_RAD*90.0f);
-			iesMatrix = mul(mrot, iesMatrix);
+			iesMatrix     = mul(mrot, iesMatrix);
 		}
 
-    if (a_node.child(L"ies").attribute(L"loc") != nullptr)
+    if (a_node.child(L"ies").attribute(L"loc") != nullptr && distr == L"ies")
     {
       int2 texids = AddIesTexTableToStorage(a_node.child(L"ies").attribute(L"loc").as_string(), a_storage, 
                                             a_iesCache, a_libPath);
@@ -183,6 +184,12 @@ public:
         iesPdfId     = texids.y;
         hasIESSPhere = true;
       }
+    }
+    else if (a_node.child(L"ies").attribute(L"loc") != nullptr && distr != L"ies")
+    {
+      const std::string ldistr2 = ws2s(distr); 
+      std::cerr << "[WARNING]: AreaDiffuseLight have 'ies' node, but light distribution is '" << ldistr2.c_str() << "'" << std::endl;
+      std::cout << "[WARNING]: AreaDiffuseLight have 'ies' node, but light distribution is '" << ldistr2.c_str() << "'" << std::endl;
     }
 
     /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -636,8 +643,6 @@ protected:
 
 };
 
-
-
 class PointLight : public ILight
 {
 public:
@@ -647,8 +652,10 @@ public:
     float3 pos(0, 0, 0);
     float3 intensity = OLD_PHOTOMETRIC_SCALE*HydraXMLHelpers::ReadLightIntensity(a_node);
     float4x4 iesMatrix;
+    
+    const std::wstring ldistr = a_node.attribute(L"distribution").as_string();
 
-    if (a_node.child(L"ies").attribute(L"matrix") != nullptr)
+    if (a_node.child(L"ies").attribute(L"matrix") != nullptr && ldistr == L"ies")
     {
       HydraXMLHelpers::ReadMatrix4x4(a_node.child(L"ies"), L"matrix", iesMatrix.L());
       if (ROTATE_IES_90_DEG)
@@ -657,8 +664,14 @@ public:
         iesMatrix = mul(mrot, iesMatrix);
       }
     }
-    else if(a_node.child(L"honio").attribute(L"matrix") != nullptr)
+    else if(a_node.child(L"honio").attribute(L"matrix") != nullptr)                        // dont know wtf
       HydraXMLHelpers::ReadMatrix4x4(a_node.child(L"honio"), L"matrix", iesMatrix.L());
+    else if(a_node.child(L"ies").attribute(L"matrix") != nullptr && ldistr != L"ies")
+    {
+      const std::string ldistr2 = ws2s(ldistr); 
+      std::cerr << "[WARNING]: PointLight have 'ies' node, but light distribution is '" << ldistr2.c_str() << "'" << std::endl;
+      std::cout << "[WARNING]: PointLight have 'ies' node, but light distribution is '" << ldistr2.c_str() << "'" << std::endl;
+    }
 
     m_plain.data[PLIGHT_POS_X]   = pos.x;
     m_plain.data[PLIGHT_POS_Y]   = pos.y;
@@ -672,7 +685,7 @@ public:
     ((int*)m_plain.data)[PLIGHT_TYPE]  = PLAIN_LIGHT_TYPE_POINT_OMNI;
     ((int*)m_plain.data)[PLIGHT_FLAGS] = 0;
 
-    if (a_node.child(L"ies").attribute(L"loc") != nullptr)
+    if (a_node.child(L"ies").attribute(L"loc") != nullptr && ldistr == L"ies")
     {
       int2 texids  = AddIesTexTableToStorage(a_node.child(L"ies").attribute(L"loc").as_string(), a_storage,
                                              a_iesCache, a_libPath);
