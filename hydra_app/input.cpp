@@ -23,7 +23,7 @@ Input::Input()
 
   //inLibraryPath = "/home/frol/PROG/HydraAPI/main/tests/test_86";
   //inLibraryPath = "/home/frol/temp/hydra_debug_scene";
-  //inLibraryPath = "/home/frol/PROG/HydraAPI/main/tests_f/test_202";
+  //inLibraryPath = "/home/frol/PROG/HydraAPI/main/tests_f/test_20    2";
   //inLibraryPath = "/home/frol/PROG/HydraAPI/main/tests/test_44"; 
   //inLibraryPath = "/home/frol/yandexdisk/samsungdata/HeadlampLights/SimpleLightModel/scenelib_sphere";
   //inLibraryPath = "/home/frol/yandexdisk/samsungdata/HeadlampLights/SimpleLightModel/scenelib_rectangle"; 
@@ -38,11 +38,11 @@ Input::Input()
   //inLibraryPath = "D:/temp/scenelib/"; 
   //inLibraryPath = "/home/frol/PROG/HydraAPI/main/tests/test_76";
   //inLibraryPath = "/home/frol/temp/scenelib";
-  //inLibraryPath = "/home/frol/temp/scenelib_thinSphere";
+  //inLibraryPath = "/home/frol/temp/Plane_Sphere_MMLT_bug_scenelib";
   //inLibraryPath = "/home/frol/PROG/HydraCore/hydra_app/tests/test_pool";
 
-  inDevelopment = true; ///< recompile shaders each time; note that nvidia have their own shader cache!
-  inDeviceId    = 1;     ///< opencl device id
+  inDevelopment = true;  ///< recompile shaders each time; note that nvidia have their own shader cache!
+  inDeviceId    = 0;     ///< opencl device id
   cpuFB         = true;  ///< store frame buffer on CPU. Automaticly enabled if
   enableMLT     = false; ///< if use MMLT, you MUST enable it early, when render process just started (here or via command line).
   boxMode       = false; ///< special 'in the box' mode when render don't react to any commands

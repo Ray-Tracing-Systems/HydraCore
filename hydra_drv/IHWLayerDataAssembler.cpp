@@ -196,7 +196,8 @@ static void SetQMCVarRemapTable(EngineGlobals *a_globals)
   for(int i=0;i<QMC_VARS_NUM;i++)
     a_globals->rmQMC[i] = -1;
   
-  const int tableVariant = 3; // (0,3,7,5)
+
+  const int tableVariant = a_globals->varsI[HRT_QMC_VARIANT]; // (0,3,5, ... 7,4)
   
   // variant 0 (default); screen xy and dof only;
   //
@@ -207,26 +208,6 @@ static void SetQMCVarRemapTable(EngineGlobals *a_globals)
       a_globals->rmQMC[QMC_VAR_SCR_Y] = 1;
       a_globals->rmQMC[QMC_VAR_DOF_X] = 2;
       a_globals->rmQMC[QMC_VAR_DOF_Y] = 3;
-    break;
-  
-    case 1:
-      a_globals->rmQMC[QMC_VAR_SCR_X] = 0; // screen xy, dof and adaptive sampling;
-      a_globals->rmQMC[QMC_VAR_SCR_Y] = 1;
-      a_globals->rmQMC[QMC_VAR_DOF_X] = 2;
-      a_globals->rmQMC[QMC_VAR_DOF_Y] = 3;
-      a_globals->rmQMC[QMC_VAR_SRC_A] = 4;
-    break;
-  
-    case 2:
-      a_globals->rmQMC[QMC_VAR_SCR_X] = 0; // screen xy, dof and adaptive sampling;
-      a_globals->rmQMC[QMC_VAR_SCR_Y] = 1;
-      a_globals->rmQMC[QMC_VAR_DOF_X] = 2;
-      a_globals->rmQMC[QMC_VAR_DOF_Y] = 3;
-      a_globals->rmQMC[QMC_VAR_SRC_A] = 4;
-      a_globals->rmQMC[QMC_VAR_LGT_N] = 5;
-      a_globals->rmQMC[QMC_VAR_LGT_0] = 6;
-      a_globals->rmQMC[QMC_VAR_LGT_1] = 7;
-      a_globals->rmQMC[QMC_VAR_LGT_2] = 8;
     break;
   
     case 3:
@@ -270,23 +251,6 @@ static void SetQMCVarRemapTable(EngineGlobals *a_globals)
       
     break;
   
-    case 6:
-      a_globals->rmQMC[QMC_VAR_SCR_X] = 0; // all of them
-      a_globals->rmQMC[QMC_VAR_SCR_Y] = 1;
-    
-      a_globals->rmQMC[QMC_VAR_MAT_L] = 2;
-      a_globals->rmQMC[QMC_VAR_MAT_0] = 3;
-      a_globals->rmQMC[QMC_VAR_MAT_1] = 4;
-    
-      a_globals->rmQMC[QMC_VAR_LGT_N] = 5;
-      a_globals->rmQMC[QMC_VAR_LGT_0] = 6;
-      a_globals->rmQMC[QMC_VAR_LGT_1] = 7;
-      a_globals->rmQMC[QMC_VAR_LGT_2] = 8;
-    
-      a_globals->rmQMC[QMC_VAR_DOF_X] = 9;
-      a_globals->rmQMC[QMC_VAR_DOF_Y] = 10;
-    break;
-  
     case 7:
       a_globals->rmQMC[QMC_VAR_SCR_X] = 0; // exclude material sampling
       a_globals->rmQMC[QMC_VAR_SCR_Y] = 1;
@@ -298,46 +262,6 @@ static void SetQMCVarRemapTable(EngineGlobals *a_globals)
       a_globals->rmQMC[QMC_VAR_LGT_0] = 6;
       a_globals->rmQMC[QMC_VAR_LGT_1] = 7;
       a_globals->rmQMC[QMC_VAR_LGT_2] = 8;
-    break;
-  
-    case 8:
-      a_globals->rmQMC[QMC_VAR_SCR_X] = 0; // all of them
-      a_globals->rmQMC[QMC_VAR_SCR_Y] = 1;
-      a_globals->rmQMC[QMC_VAR_DOF_X] = 2;
-      a_globals->rmQMC[QMC_VAR_DOF_Y] = 3;
-      a_globals->rmQMC[QMC_VAR_MAT_L] = 4;
-    
-      a_globals->rmQMC[QMC_VAR_LGT_N] = 5;
-      a_globals->rmQMC[QMC_VAR_LGT_0] = 6;
-      a_globals->rmQMC[QMC_VAR_LGT_1] = 7;
-      a_globals->rmQMC[QMC_VAR_LGT_2] = 8;
-    
-      a_globals->rmQMC[QMC_VAR_MAT_0] = 9;
-      a_globals->rmQMC[QMC_VAR_MAT_1] = 10;
-    break;
-  
-    case 9:
-      a_globals->rmQMC[QMC_VAR_SCR_X] = 0; // all of them
-      a_globals->rmQMC[QMC_VAR_SCR_Y] = 1;
-      a_globals->rmQMC[QMC_VAR_MAT_L] = 2;
-    
-      a_globals->rmQMC[QMC_VAR_LGT_N] = 3;
-      a_globals->rmQMC[QMC_VAR_LGT_0] = 4;
-      a_globals->rmQMC[QMC_VAR_LGT_1] = 5;
-      a_globals->rmQMC[QMC_VAR_LGT_2] = 6;
-    
-      a_globals->rmQMC[QMC_VAR_MAT_0] = 7;
-      a_globals->rmQMC[QMC_VAR_MAT_1] = 8;
-    break;
-  
-    case 10:
-      a_globals->rmQMC[QMC_VAR_SCR_X] = 0; // all of them
-      a_globals->rmQMC[QMC_VAR_SCR_Y] = 1;
-      a_globals->rmQMC[QMC_VAR_DOF_X] = 2;
-      a_globals->rmQMC[QMC_VAR_DOF_Y] = 3;
-      a_globals->rmQMC[QMC_VAR_MAT_L] = 5;
-      a_globals->rmQMC[QMC_VAR_LGT_N] = 6;
-      
     break;
     
     default:

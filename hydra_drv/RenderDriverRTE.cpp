@@ -342,6 +342,11 @@ bool RenderDriverRTE::UpdateSettings(pugi::xml_node a_settingsNode)
     vars.m_varsI[HRT_CONTRIB_SAMPLES] = 1000000;
   }
 
+  if(a_settingsNode.child(L"qmc_variant") != nullptr)
+    vars.m_varsI[HRT_QMC_VARIANT] = a_settingsNode.child(L"qmc_variant").text().as_int();
+  else  
+    vars.m_varsI[HRT_QMC_VARIANT] = 0;
+
   m_pHWLayer->SetAllFlagsAndVars(vars);
 
   return true;
