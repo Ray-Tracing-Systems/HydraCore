@@ -24,6 +24,7 @@ struct InternalData
 
 } g_data;
 
+size_t scan_get_size() { return g_data.maxSize; }
 
 bool scan_alloc_internal(size_t a_size, cl_context ctx)
 {

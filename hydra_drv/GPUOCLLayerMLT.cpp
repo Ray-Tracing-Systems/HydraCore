@@ -274,7 +274,7 @@ void GPUOCLLayer::MLT_Free()
 
 void GPUOCLLayer::inPlaceScanAnySize1f(cl_mem a_inBuff, size_t a_size)
 {
-  if (a_size > m_width*m_height)
+  if (a_size > scan_get_size())
     RUN_TIME_ERROR("inPlaceScanAnySize1f : too big input size");
 
   ScanCLArgs args;

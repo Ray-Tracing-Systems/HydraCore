@@ -13,8 +13,9 @@ struct ScanCLArgs
   cl_command_queue cmdQueue;
 };
 
-bool scan_alloc_internal(size_t a_size, cl_context ctx);
-void scan_free_internal();
+bool   scan_alloc_internal(size_t a_size, cl_context ctx);
+void   scan_free_internal();
+size_t scan_get_size();
 
 void scan1f_gpu(cl_mem a_data, size_t a_size, ScanCLArgs args);
 
