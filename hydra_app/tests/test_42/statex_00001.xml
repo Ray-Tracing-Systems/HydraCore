@@ -148,6 +148,7 @@
     <diff_trace_depth>3</diff_trace_depth>
     <maxRaysPerPixel>4096</maxRaysPerPixel>
     <draw_tiles>0</draw_tiles>
+    <qmc_variant>0</qmc_variant>
   </render_settings>
 </render_lib>
 <scenes>
