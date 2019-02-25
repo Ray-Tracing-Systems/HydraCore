@@ -291,21 +291,21 @@ void RoundBlocks2D(size_t global_item_size[2], size_t local_item_size[2])
 void GPUOCLLayer::AddContributionToScreenGPU(cl_mem in_color,     cl_mem in_indices, int a_size, int a_width, int a_height, int a_spp, bool a_copyToLDRNow,
                                              cl_mem out_colorHDR, cl_mem out_colorLDR)
 {
-  // (3) sort references
+  //// (3) sort references
+  ////
+  //{
+  //  BitonicCLArgs sortArgs;
+  //  sortArgs.bitonicPassK = m_progs.sort.kernel("bitonic_pass_kernel");
+  //  sortArgs.bitonic512   = m_progs.sort.kernel("bitonic_512");
+  //  sortArgs.bitonic1024  = m_progs.sort.kernel("bitonic_1024");
+  //  sortArgs.bitonic2048  = m_progs.sort.kernel("bitonic_2048");
+  //  sortArgs.cmdQueue     = m_globals.cmdQueue;
+  //  sortArgs.dev          = m_globals.device;
   //
-  {
-    BitonicCLArgs sortArgs;
-    sortArgs.bitonicPassK = m_progs.sort.kernel("bitonic_pass_kernel");
-    sortArgs.bitonic512   = m_progs.sort.kernel("bitonic_512");
-    sortArgs.bitonic1024  = m_progs.sort.kernel("bitonic_1024");
-    sortArgs.bitonic2048  = m_progs.sort.kernel("bitonic_2048");
-    sortArgs.cmdQueue     = m_globals.cmdQueue;
-    sortArgs.dev          = m_globals.device;
+  //  bitonic_sort_gpu(in_indices, int(m_rays.MEGABLOCKSIZE), sortArgs);
+  //}
 
-    bitonic_sort_gpu(in_indices, int(m_rays.MEGABLOCKSIZE), sortArgs);
-  }
-
-  int alreadySorted = 0;
+  int alreadySorted = 1;
 
   // (4) run contrib kernel
   //
