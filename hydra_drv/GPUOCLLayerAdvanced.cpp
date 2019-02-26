@@ -62,16 +62,15 @@ void GPUOCLLayer::DL_Pass(int a_maxBounce, int a_itersNum)
 
   m_vars.m_flags &= (~HRT_ENABLE_MMLT);
   m_vars.m_flags |= (HRT_UNIFIED_IMAGE_SAMPLING | HRT_DIRECT_LIGHT_MODE);  // #TODO: add QMC mode if enabled (experimental, only for 1 GPU !!!)
+
+  assert(kmlt.xVectorQMC != nullptr);
+    
+  m_vars.m_varsI[HRT_KMLT_OR_QMC_LGT_BOUNCES] = kmlt.maxBounceQMC;
+  m_vars.m_varsI[HRT_KMLT_OR_QMC_MAT_BOUNCES] = kmlt.maxBounceQMC;
   UpdateVarsOnGPU(m_vars);
 
   for(int iter = 0; iter < a_itersNum; iter++)
   {
-    assert(kmlt.xVectorQMC != nullptr);
-    
-    m_vars.m_varsI[HRT_KMLT_OR_QMC_LGT_BOUNCES] = kmlt.maxBounceQMC;
-    m_vars.m_varsI[HRT_KMLT_OR_QMC_MAT_BOUNCES] = kmlt.maxBounceQMC;
-    UpdateVarsOnGPU(m_vars);
-
     if(kmlt.maxBounceQMC != 0) 
     {
       runKernel_MakeEyeRaysQMC(m_rays.MEGABLOCKSIZE, m_passNumberForQMC,
