@@ -190,6 +190,9 @@ void memcpyu32_cpu(int* buff1, uint a_offset1, int* buff2, uint a_offset2, size_
   memcpy(dst, src, a_size*sizeof(int));
 }
 
+#define QMC_DOF_FLAG 1
+#define QMC_MTL_FLAG 2
+#define QMC_LGT_FLAG 4
 
 static void SetQMCVarRemapTable(EngineGlobals *a_globals)
 {
@@ -197,21 +200,74 @@ static void SetQMCVarRemapTable(EngineGlobals *a_globals)
     a_globals->rmQMC[i] = -1;
   
 
-  const int tableVariant = a_globals->varsI[HRT_QMC_VARIANT]; // (0,3,5, ... 7,4)
+  int tableVariant = a_globals->varsI[HRT_QMC_VARIANT]; // (0,1,2, ... 7)
   
+  if (a_globals->varsI[HRT_ENABLE_DOF] != 1) // if we don't use DOF, exclude it from QMC; reset lowest bit;
+  {
+    if(tableVariant & QMC_DOF_FLAG != 0)
+      tableVariant--;
+  }
+
   // variant 0 (default); screen xy and dof only;
   //
   switch(tableVariant)
   {
-    case 0:
+    //case 0:
+    //  a_globals->rmQMC[QMC_VAR_SCR_X] = 0; // screen xy and dof only;
+    //  a_globals->rmQMC[QMC_VAR_SCR_Y] = 1;
+    //break;
+    
+    case 0:                                // well, this is spetial case when we don't want to disable dof; 
+    case 1:
       a_globals->rmQMC[QMC_VAR_SCR_X] = 0; // screen xy and dof only;
       a_globals->rmQMC[QMC_VAR_SCR_Y] = 1;
       a_globals->rmQMC[QMC_VAR_DOF_X] = 2;
       a_globals->rmQMC[QMC_VAR_DOF_Y] = 3;
     break;
+
+    case 2:
+      a_globals->rmQMC[QMC_VAR_SCR_X] = 0; // screen xy and material;
+      a_globals->rmQMC[QMC_VAR_SCR_Y] = 1;
+      a_globals->rmQMC[QMC_VAR_MAT_L] = 2;
+      a_globals->rmQMC[QMC_VAR_MAT_0] = 3;
+      a_globals->rmQMC[QMC_VAR_MAT_1] = 4;
+    break;
   
-    case 3:
-      a_globals->rmQMC[QMC_VAR_SCR_X] = 0; // screen xy, material and light
+    case 3:                                
+      a_globals->rmQMC[QMC_VAR_SCR_X] = 0; // 3 = 2 + 1; screen xy, DOF, MTL
+      a_globals->rmQMC[QMC_VAR_SCR_Y] = 1;
+      a_globals->rmQMC[QMC_VAR_DOF_X] = 2;
+      a_globals->rmQMC[QMC_VAR_DOF_Y] = 3;
+
+      a_globals->rmQMC[QMC_VAR_MAT_L] = 4;
+      a_globals->rmQMC[QMC_VAR_MAT_0] = 5;
+      a_globals->rmQMC[QMC_VAR_MAT_1] = 6;
+    break;
+
+    case 4:                                
+      a_globals->rmQMC[QMC_VAR_SCR_X] = 0; // 4; screen xy and light
+      a_globals->rmQMC[QMC_VAR_SCR_Y] = 1;
+      
+      a_globals->rmQMC[QMC_VAR_LGT_N] = 2;
+      a_globals->rmQMC[QMC_VAR_LGT_0] = 3;
+      a_globals->rmQMC[QMC_VAR_LGT_1] = 4;
+      a_globals->rmQMC[QMC_VAR_LGT_2] = 5;
+    break;
+
+    case 5:                                
+      a_globals->rmQMC[QMC_VAR_SCR_X] = 0; // 4; screen xy, DOF and light
+      a_globals->rmQMC[QMC_VAR_SCR_Y] = 1;
+      a_globals->rmQMC[QMC_VAR_DOF_X] = 2;
+      a_globals->rmQMC[QMC_VAR_DOF_Y] = 3;
+      
+      a_globals->rmQMC[QMC_VAR_LGT_N] = 4;
+      a_globals->rmQMC[QMC_VAR_LGT_0] = 5;
+      a_globals->rmQMC[QMC_VAR_LGT_1] = 6;
+      a_globals->rmQMC[QMC_VAR_LGT_2] = 7;
+    break;
+   
+    case 6:
+      a_globals->rmQMC[QMC_VAR_SCR_X] = 0; // 6 = 4 + 2; screen xy, material and light
       a_globals->rmQMC[QMC_VAR_SCR_Y] = 1;
     
       a_globals->rmQMC[QMC_VAR_MAT_L] = 2;
@@ -224,17 +280,7 @@ static void SetQMCVarRemapTable(EngineGlobals *a_globals)
       a_globals->rmQMC[QMC_VAR_LGT_2] = 8;
     break;
     
-    case 4:
-      a_globals->rmQMC[QMC_VAR_SCR_X] = 0; // screen xy and light
-      a_globals->rmQMC[QMC_VAR_SCR_Y] = 1;
-      
-      a_globals->rmQMC[QMC_VAR_LGT_N] = 2;
-      a_globals->rmQMC[QMC_VAR_LGT_0] = 3;
-      a_globals->rmQMC[QMC_VAR_LGT_1] = 4;
-      a_globals->rmQMC[QMC_VAR_LGT_2] = 5;
-    break;
-  
-    case 5:
+    case 7:
       a_globals->rmQMC[QMC_VAR_SCR_X] = 0; // all of them
       a_globals->rmQMC[QMC_VAR_SCR_Y] = 1;
       a_globals->rmQMC[QMC_VAR_DOF_X] = 2;
@@ -248,20 +294,6 @@ static void SetQMCVarRemapTable(EngineGlobals *a_globals)
       a_globals->rmQMC[QMC_VAR_LGT_0] = 8;
       a_globals->rmQMC[QMC_VAR_LGT_1] = 9;
       a_globals->rmQMC[QMC_VAR_LGT_2] = 10;
-      
-    break;
-  
-    case 7:
-      a_globals->rmQMC[QMC_VAR_SCR_X] = 0; // exclude material sampling
-      a_globals->rmQMC[QMC_VAR_SCR_Y] = 1;
-      a_globals->rmQMC[QMC_VAR_DOF_X] = 2;
-      a_globals->rmQMC[QMC_VAR_DOF_Y] = 3;
-      a_globals->rmQMC[QMC_VAR_MAT_L] = 4;
-    
-      a_globals->rmQMC[QMC_VAR_LGT_N] = 5;
-      a_globals->rmQMC[QMC_VAR_LGT_0] = 6;
-      a_globals->rmQMC[QMC_VAR_LGT_1] = 7;
-      a_globals->rmQMC[QMC_VAR_LGT_2] = 8;
     break;
     
     default:
