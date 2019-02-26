@@ -45,8 +45,8 @@ bool AllRenderVarialbes::shadePassEnable(int a_bounce, int a_minBounce, int a_ma
       return false;
   }
 
-  if((m_flags & HRT_DIRECT_LIGHT_MODE)!=0 && a_bounce > 0)
-    return false;
+  //if((m_flags & HRT_DIRECT_LIGHT_MODE)!=0 && a_bounce > 0)
+  //  return false;
 
   if((m_flags & HRT_INDIRECT_LIGHT_MODE)!=0 && a_bounce == 0)
     return false;
