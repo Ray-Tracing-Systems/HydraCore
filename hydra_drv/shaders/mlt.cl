@@ -785,8 +785,9 @@ __kernel void MMLTCameraPathBounce(__global   float4*        restrict a_rpos,
     //misPrev.isSpecular    = 1;               // disable mis weight applied to env. 
     //                                         // we will apply MIS weight in the end, when ConnectEndPoints kernel is called.
 
-    //float3 envColor = make_float3(1,1,1);
-    float3 envColor = environmentColorExtended(ray_pos, ray_dir, misPrev, flags, 0, 0,
+    const uint flagsFixForEnv = packBounceNum(flags, a_currDepth-1); //#NOTE: this is due to PT have different bounce count agreement for current.
+
+    float3 envColor = environmentColorExtended(ray_pos, ray_dir, misPrev, flagsFixForEnv, 0, 0,
                                                a_globals, in_mtlStorage, in_pdfStorage, in_texStorage1);
     
     PathVertex resVertex;
@@ -802,8 +803,7 @@ __kernel void MMLTCameraPathBounce(__global   float4*        restrict a_rpos,
     a_flags[tid] = flags;
     
     // Adjust per vertex pdfA. Note that we treat environment as spetial case and use pdfWP instead of pdfA.
-    //
-    //const float pdfMatRevWP = 1.0f; // misPrev.matSamplePdf / fmax(misPrev.cosThetaPrev, DEPSILON);      
+    //     
     {
       misPrev = a_misDataPrev[tid];
       PdfVertex v0,v1;
@@ -1534,17 +1534,14 @@ __kernel void MMLTConnect(__global const int2  *  restrict in_splitInfo,
   float3 sampleColor = make_float3(0,0,0);
   bool   disableMMLTMisDueToEnv = false;
 
-  const int zid2     = out_zind[tid].x;
+  const int zid2 = out_zind[tid].x;
   int x = ExtractXFromZIndex (zid2); // #TODO: in don't like this but may be its ok ... 
   int y = ExtractYFromZIndex (zid2); // #TODO: in don't like this but may be its ok ... 
-
-  const float fixImplicit = 1.0f; // (1.0f - a_globals->varsF[HRT_MMLT_IMPLICIT_FIXED_PROB]);
-  const float fixOther    = 1.0f; // 1.0f/(1.0f - a_globals->varsF[HRT_MMLT_IMPLICIT_FIXED_PROB]);
 
   if (lightTraceDepth == -1)        // (3.1) -1 means we have full camera path, no conection is needed
   {
     if(cv.valid)
-      sampleColor = cv.accColor * fixImplicit;
+      sampleColor = cv.accColor;
   }
   else
   {
@@ -1569,7 +1566,7 @@ __kernel void MMLTConnect(__global const int2  *  restrict in_splitInfo,
 
         sampleColor = ConnectEyeP(&lv, mLightSubPathCount, camDir, imageToSurfaceFactor,
                                   a_globals, in_mtlStorage, in_texStorage1, in_texStorage2, &ptl,
-                                  &v0, &v1, &x, &y)*fixOther;
+                                  &v0, &v1, &x, &y);
        
         if (imageToSurfaceFactor <= 0.0f)
           sampleColor = make_float3(0, 0, 0);
@@ -1592,7 +1589,7 @@ __kernel void MMLTConnect(__global const int2  *  restrict in_splitInfo,
         PdfVertex v2 = a_pdfVert[TabIndex(2, tid, iNumElements)];
         sampleColor  = cv.accColor*ConnectShadowP(&cv, t, pLight, explicitSam, lightPickProb,
                                                   a_globals, in_mtlStorage, in_texStorage1, in_texStorage2, in_pdfStorage, &ptl,
-                                                  &v0, &v1, &v2)*fixOther;
+                                                  &v0, &v1, &v2);
         
         // recompile me at 01.02.2019 : 15:52
 
@@ -1627,7 +1624,7 @@ __kernel void MMLTConnect(__global const int2  *  restrict in_splitInfo,
       
           sampleColor = cv.accColor*lv.accColor*ConnectEndPointsP(&lv, &cv, d,
                                                                   a_globals, in_mtlStorage, in_texStorage1, in_texStorage2, &ptl,
-                                                                  &vSplitBefore, &vSplit, &vSplitAfter)*fixOther;
+                                                                  &vSplitBefore, &vSplit, &vSplitAfter);
 
           a_pdfVert[TabIndex(s-1, tid, iNumElements)] = vSplitBefore;
           a_pdfVert[TabIndex(s+0, tid, iNumElements)] = vSplit;
