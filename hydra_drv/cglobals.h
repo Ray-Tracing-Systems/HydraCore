@@ -2965,8 +2965,8 @@ static inline float3 decompressShadow(ushort4 shadowCompressed)
 
 #define SPLIT_DL_BY_GRAMMAR true
 
-//#define SBDPT_DEBUG_SPLIT 1
-//#define SBDPT_DEBUG_DEPTH 3
+//#define SBDPT_DEBUG_SPLIT 0
+//#define SBDPT_DEBUG_DEPTH 4
 
 //#define SBDPT_CHECK_BOUNCE 4
 //#define SBDPT_INDIRECT_ONLY (void)
