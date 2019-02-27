@@ -14,7 +14,7 @@ Windows:
 1. Clone HydraAPI repo is some folder (for example "myfolder/HydraAPI"). 
 2. Build HydraAPI with visual studio 2015 or later under windows.
 3. Clone HydraCore repo in the same folder (to form "myfolder/HydraCore").
-4. Set "inDevelopment = false" inside "input.cpp". 
+4. Set **"inDevelopment = false"** inside "input.cpp". 
 5. Build HydraCore with visual studio 2015 or later under windows.
 6. Run shadepack (set it as a startup ptoject and then press Ctr+F5).
 7. Move all ".xx" files from "HydraCore/hydra_drv/shaders" to "C:/[Hydra]/bin2/shaders/".
@@ -27,7 +27,7 @@ Linux:
 1. Clone HydraAPI repo in some folder (for example "myfolder/HydraAPI"). 
 2. Build HydraAPI with Cmake.
 3. Clone HydraCore repo in the same folder (to form "myfolder/HydraCore").
-4. Set "inDevelopment = false" inside "input.cpp". 
+4. Set **"inDevelopment = false"** inside "input.cpp". 
 5. Use the following command to build and install HydraCore (for example from "myfolder/HydraCore/build")   
 **cmake -DCMAKE_INSTALL_PREFIX=/home/YourUserName .. && make all install -j 4**
 
