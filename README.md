@@ -11,24 +11,24 @@ This repo contain the last one.
 # Build and install
 
 Windows:
-1. Clone HydraAPI repo is some folder (for example 'myfolder/HydraAPI'). 
+1. Clone HydraAPI repo is some folder (for example "myfolder/HydraAPI"). 
 2. Build HydraAPI with visual studio 2015 or later under windows.
-3. Clone HydraCore repo in the same folder (to form 'myfolder/HydraCore').
-4. Set 'inDevelopment = false' inside 'input.cpp'. 
+3. Clone HydraCore repo in the same folder (to form "myfolder/HydraCore").
+4. Set "inDevelopment = false" inside "input.cpp". 
 5. Build HydraCore with visual studio 2015 or later under windows.
 6. Run shadepack (set it as atsrtup ptoject and then press Ctr+F5).
-7. Move all '.xx' files from 'HydraCore/hydra_drv/shaders' to 'C:/[Hydra]/bin2/shaders/'.
-8. Copy file 'texproc.cl' from 'HydraCore/hydra_drv/shaders' to 'C:/[Hydra]/bin2/shaders/'.
-9. Copy files 'cfetch.h' and 'cglobals.h' from 'HydraCore/hydra_drv' to 'C:/[Hydra]/bin2/shaders/'
-10. Copy hydra.exe from 'HydraCore/hydra_app/x64/Release' to 'C:/[Hydra]/bin2'
+7. Move all ".xx" files from "HydraCore/hydra_drv/shaders" to "C:/[Hydra]/bin2/shaders/".
+8. Copy file "texproc.cl" from "HydraCore/hydra_drv/shaders" to "C:/[Hydra]/bin2/shaders/".
+9. Copy files "cfetch.h" and "cglobals.h" from "HydraCore/hydra_drv" to "C:/[Hydra]/bin2/shaders/"
+10. Copy hydra.exe from "HydraCore/hydra_app/x64/Release" to "C:/[Hydra]/bin2"
 
 
 Linux:
-1. Clone HydraAPI repo in some folder (for example 'myfolder/HydraAPI'). 
+1. Clone HydraAPI repo in some folder (for example "myfolder/HydraAPI"). 
 2. Build HydraAPI with Cmake.
-3. Clone HydraCore repo in the same folder (to form 'myfolder/HydraCore').
-4. Set 'inDevelopment = false' inside 'input.cpp'. 
-5. Use the following command to build and install HydraCore (for example from 'myfolder/HydraCore/build')   
+3. Clone HydraCore repo in the same folder (to form "myfolder/HydraCore").
+4. Set "inDevelopment = false" inside "input.cpp". 
+5. Use the following command to build and install HydraCore (for example from "myfolder/HydraCore/build")   
 **cmake -DCMAKE_INSTALL_PREFIX=/home/YourUserName .. && make all install -j 4**
 
 # Command line by examples
