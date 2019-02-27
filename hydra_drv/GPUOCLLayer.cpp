@@ -1200,6 +1200,9 @@ void GPUOCLLayer::BeginTracingPass()
   const int maxBounce  = m_vars.m_varsI[HRT_TRACE_DEPTH];
   const int BURN_ITERS = m_vars.m_varsI[HRT_MMLT_BURN_ITERS];
 
+  //m_vars.m_flags |= HRT_ENABLE_PT_CAUSTICS;
+  //UpdateVarsOnGPU(m_vars);
+
   if((m_vars.m_flags & HRT_ENABLE_SBPT) != 0)
   {
     #ifdef SBDPT_INDIRECT_ONLY

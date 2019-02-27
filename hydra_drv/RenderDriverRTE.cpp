@@ -194,6 +194,7 @@ bool RenderDriverRTE::UpdateSettings(pugi::xml_node a_settingsNode)
   if ((m_initFlags & GPU_ALLOC_FOR_COMPACT_MLT) || (m_initFlags & GPU_MLT_ENABLED_AT_START))
   {
     vars.m_flags |= HRT_ENABLE_MMLT;
+    vars.m_flags |= HRT_ENABLE_PT_CAUSTICS;
     m_renderMethod = RENDER_METHOD_MMLT;
   }
   else if(std::wstring(a_settingsNode.child(L"method_secondary").text().as_string()) == L"mmlt" || 
@@ -1618,16 +1619,17 @@ void RenderDriverRTE::Draw()
       //
       m_pHWLayer->InitPathTracing(m_legacy.m_lastSeed);
       m_ptInitDone = true;
-
+      
       auto flagsAndVars = m_pHWLayer->GetAllFlagsAndVars();
       flagsAndVars.m_flags |= HRT_UNIFIED_IMAGE_SAMPLING;
       flagsAndVars.m_flags |= HRT_ENABLE_MMLT;
-
+      flagsAndVars.m_flags |= HRT_ENABLE_PT_CAUSTICS;
+      
       flagsAndVars.m_flags &= (~HRT_3WAY_MIS_WEIGHTS);
       flagsAndVars.m_flags &= (~HRT_FORWARD_TRACING);
       flagsAndVars.m_flags &= (~HRT_DRAW_LIGHT_LT);
       flagsAndVars.m_flags &= (~HRT_ENABLE_SBPT);
-
+      
       m_pHWLayer->SetAllFlagsAndVars(flagsAndVars);
       m_drawPassNumber = 0;
     }
