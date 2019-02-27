@@ -16,7 +16,7 @@ Windows:
 3. Clone HydraCore repo in the same folder (to form "myfolder/HydraCore").
 4. Set "inDevelopment = false" inside "input.cpp". 
 5. Build HydraCore with visual studio 2015 or later under windows.
-6. Run shadepack (set it as atsrtup ptoject and then press Ctr+F5).
+6. Run shadepack (set it as a startup ptoject and then press Ctr+F5).
 7. Move all ".xx" files from "HydraCore/hydra_drv/shaders" to "C:/[Hydra]/bin2/shaders/".
 8. Copy file "texproc.cl" from "HydraCore/hydra_drv/shaders" to "C:/[Hydra]/bin2/shaders/".
 9. Copy files "cfetch.h" and "cglobals.h" from "HydraCore/hydra_drv" to "C:/[Hydra]/bin2/shaders/"
