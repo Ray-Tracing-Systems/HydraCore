@@ -8,35 +8,27 @@ The Hydra Renderer consists of 3 heads:
 
 This repo contain the last one.
 
-# Usage
+# Build and install
 
 Windows:
 1. Clone HydraAPI repo is some folder (for example 'myfolder/HydraAPI'). 
 2. Build HydraAPI with visual studio 2015 or later under windows.
 3. Clone HydraCore repo in the same folder (to form 'myfolder/HydraCore').
-4. Build HydraCore with visual studio 2015 or later under windows.
-5. Set 'inLibraryPath = "tests/test_42";' inside input.cpp; 
-6. Set 'inDeviceId = 0' (or other, depends on your OpenCL HW);
-7. Set 'inDevelopment = true' inside 'GPUOCLLayer.cpp' to disable internal shader cache (note that nvidia use its' own shader cache!). 
-8. If you want to fly around scene set 'm_screen.m_cpuFrameBuffer = false;' to enable gpu frame buffer.
-9. Press 'P' for Path Tracing, 'L' for light tracing and 'B' for IBPT.
+4. Set 'inDevelopment = false' inside 'input.cpp'. 
+5. Build HydraCore with visual studio 2015 or later under windows.
+6. Run shadepack (set it as atsrtup ptoject and then press Ctr+F5).
+7. Move all '.xx' files from 'HydraCore/hydra_drv/shaders' to 'C:/[Hydra]/bin2/shaders/'.
+8. Copy file 'texproc.cl' from 'HydraCore/hydra_drv/shaders' to 'C:/[Hydra]/bin2/shaders/'.
+9. Copy files 'cfetch.h' and 'cglobals.h' from 'HydraCore/hydra_drv' to 'C:/[Hydra]/bin2/shaders/'
+10. Copy hydra.exe from 'HydraCore/hydra_app/x64/Release' to 'C:/[Hydra]/bin2'
+
 
 Linux:
-1. Clone HydraAPI repo is some folder (for example 'myfolder/HydraAPI'). 
+1. Clone HydraAPI repo in some folder (for example 'myfolder/HydraAPI'). 
 2. Build HydraAPI with Cmake.
 3. Clone HydraCore repo in the same folder (to form 'myfolder/HydraCore').
-4. Build HydraCore with Cmake.
-5. Set 'Input::inLibraryPath = "tests/test_42";' inside input.cpp; 
-6. Set 'Input::inDeviceId    = 0' (or other, depends on your OpenCL HW); 
-7. Set 'inDevelopment = true' inside 'GPUOCLLayer.cpp' to disable internal shader cache (note that nvidia use its' own shader cache!).
-8. If you want to fly around scene set 'm_screen.m_cpuFrameBuffer = false;' to enable gpu frame buffer.
-9. Press 'P' for Path Tracing, 'L' for light tracing and 'B' for IBPT.
-
-Or to install the renderer core on Linux:
-1. Clone HydraAPI repo is some folder (for example 'myfolder/HydraAPI'). 
-2. Build HydraAPI with Cmake.
-3. Clone HydraCore repo in the same folder (to form 'myfolder/HydraCore').
-4. Use the following command to build and install HydraCore (for example from 'myfolder/HydraCore/build')   
+4. Set 'inDevelopment = false' inside 'input.cpp'. 
+5. Use the following command to build and install HydraCore (for example from 'myfolder/HydraCore/build')   
 **cmake -DCMAKE_INSTALL_PREFIX=/home/YourUserName .. && make all install -j 4**
 
 # Command line by examples
