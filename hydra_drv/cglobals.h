@@ -1317,6 +1317,7 @@ enum {
   RAY_IS_DEAD                      = 4096,  // set when ray had account environment or died on the surface
   RAY_SHADE_FROM_OTHER_SIDE        = 8192,
   RAY_SHADE_FROM_SKY_LIGHT         = 16384,
+  RAY_WILL_DIE_NEXT_BOUNCE         = 32768, // set when ray had account only light on next bounce and then immediately die
 };
 
 static inline uint unpackRayFlags(uint a_flags)                       { return ((a_flags & 0xFFFF0000) >> 16); } 

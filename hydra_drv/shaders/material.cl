@@ -609,7 +609,7 @@ __kernel void Shade(__global const float4*    restrict a_rpos,
   const uint flags        = a_flags[tid];
   const uint rayBounceNum = unpackBounceNum(flags);
 
-  if (!rayIsActiveU(flags))
+  if (!rayIsActiveU(flags) || (unpackRayFlags(flags) & RAY_WILL_DIE_NEXT_BOUNCE) != 0)
   {
     if(out_shadow != 0 && rayBounceNum == 0)
       out_shadow[tid] = 0;
@@ -961,15 +961,15 @@ __kernel void NextBounce(__global const int2*      restrict in_zind,
   ///////////////////////////////////////////////// 
   
   ///////////////////////////////////////////////// Direct Light for MMLT/KMLT
-  const bool evalDirectLightOnly    = ((a_globals->g_flags & HRT_DIRECT_LIGHT_MODE) !=0 );
-  const bool firstBounceNonSpecular = (!isPureSpecular(brdfSample)   && rayBounceNum == 0);
-  const bool prevNonSpecular        = (!flagsHaveOnlySpecular(flags) && rayBounceNum >  1);
-  if(evalDirectLightOnly && (prevNonSpecular || firstBounceNonSpecular))   // check old flags (and old rayBounceNum) here due to implicit hit must be accounted     
   {
-    outPathThroughput = make_float3(0,0,0);
-    newPathThroughput = make_float3(0,0,0);
-    flags             = packRayFlags(flags, unpackRayFlags(flags) | RAY_IS_DEAD);
-  }
+    const bool evalDirectLightOnly    = ((a_globals->g_flags & HRT_DIRECT_LIGHT_MODE) !=0 );
+    const bool firstBounceNonSpecular = (!isPureSpecular(brdfSample)   && rayBounceNum == 0);
+    const bool prevNonSpecular        = (!flagsHaveOnlySpecular(flags) && rayBounceNum >  1);
+    if((unpackRayFlags(flags) & RAY_WILL_DIE_NEXT_BOUNCE) != 0 )
+      flags = packRayFlags(flags, unpackRayFlags(flags) | RAY_IS_DEAD);
+    else if(evalDirectLightOnly && (prevNonSpecular || firstBounceNonSpecular))                 // check old flags (and old rayBounceNum) here due to implicit hit must be accounted     
+      flags = packRayFlags(flags, unpackRayFlags(flags) | RAY_WILL_DIE_NEXT_BOUNCE);            //
+  }    
   ///////////////////////////////////////////////// Direct Light for MMLT/KMLT
 
   flags = flagsNextBounce(flags, brdfSample, a_globals);

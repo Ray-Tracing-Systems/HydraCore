@@ -1,5 +1,5 @@
 <?xml version="1.0"?>
-<textures_lib>
+<textures_lib total_chunks="10">
   <texture id="0" name="Map#0" loc="data/chunk_00000.image4ub" offset="8" bytesize="16" width="2" height="2" dl="0" />
   <texture id="1" name="data/textures/chess_red.bmp" path="data/textures/chess_red.bmp" width="64" height="64" bytesize="16384" dl="1" />
   <texture id="2" name="data/textures/texture1.bmp" path="data/textures/texture1.bmp" loc="data/chunk_00001.image4ub" offset="8" bytesize="262144" width="256" height="256" dl="0" />
@@ -17,9 +17,9 @@
     <diffuse brdf_type="lambert">
       <color val="0.207843 0.188235 0" />
     </diffuse>
-    <reflectivity brdf_type="phong">
+    <reflectivity brdf_type="torranse_sparrow">
       <color val="0.367059 0.345882 0" />
-      <glossiness val="0.5" />
+      <glossiness val="0.65" />
     </reflectivity>
   </material>
   <material id="2" name="mysimplemat3" type="hydra_material">
@@ -64,9 +64,9 @@
     <diffuse brdf_type="lambert">
       <color val="0.0 0.0 0" />
     </diffuse>
-    <reflectivity brdf_type="phong">
+    <reflectivity brdf_type="torranse_sparrow">
       <color val="0.4 0.4 0.4" />
-      <glossiness val="0.85" />
+      <glossiness val="0.9" />
     </reflectivity>
   </material>
   <material id="10" name="my_area_light_material" type="hydra_material" light_id="0" visible="1">
@@ -106,7 +106,7 @@
     <look_at>0 0 0</look_at>
   </camera>
 </cam_lib>
-<geometry_lib>
+<geometry_lib total_chunks="10">
   <mesh id="0" name="data/meshes/teapot.vsgf" type="vsgf" bytesize="3373088" loc="data/chunk_00003.vsgf" offset="0" vertNum="52919" triNum="25600" dl="0" path="" bbox="-0.952394 1.09017 -0.405052 0.595073 -0.634929 0.634929">
     <positions type="array4f" bytesize="846704" offset="24" apply="vertex" />
     <normals type="array4f" bytesize="846704" offset="846728" apply="vertex" />
@@ -166,8 +166,8 @@
 </geometry_lib>
 <render_lib>
   <render_settings type="HydraModern" id="0">
-    <width>512</width>
-    <height>512</height>
+    <width>1024</width>
+    <height>1024</height>
     <method_primary>IBPT</method_primary>
     <method_secondary>IBPT</method_secondary>
     <method_tertiary>IBPT</method_tertiary>
@@ -188,4 +188,3 @@
     <instance id="3" mesh_id="5" rmap_id="-1" matrix="1 0 0 3.75 0 1 0 3.95 0 0 1 -3.5 0 0 0 1 " light_id="0" linst_id="1" />
   </scene>
 </scenes>
-<trash />
