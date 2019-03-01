@@ -963,12 +963,12 @@ __kernel void NextBounce(__global const int2*      restrict in_zind,
   ///////////////////////////////////////////////// Direct Light for MMLT/KMLT
   {
     const bool evalDirectLightOnly    = ((a_globals->g_flags & HRT_DIRECT_LIGHT_MODE) !=0 );
-    const bool firstBounceNonSpecular = (!isPureSpecular(brdfSample)   && rayBounceNum == 0);
+    const bool bounceNonSpecular      = (!isPureSpecular(brdfSample));
     const bool prevNonSpecular        = (!flagsHaveOnlySpecular(flags) && rayBounceNum >  1);
     if((unpackRayFlags(flags) & RAY_WILL_DIE_NEXT_BOUNCE) != 0 )
       flags = packRayFlags(flags, unpackRayFlags(flags) | RAY_IS_DEAD);
-    else if(evalDirectLightOnly && (prevNonSpecular || firstBounceNonSpecular))                 // check old flags (and old rayBounceNum) here due to implicit hit must be accounted     
-      flags = packRayFlags(flags, unpackRayFlags(flags) | RAY_WILL_DIE_NEXT_BOUNCE);            //
+    else if(evalDirectLightOnly && (prevNonSpecular || bounceNonSpecular))                 // check old flags (and old rayBounceNum) here due to implicit hit must be accounted     
+      flags = packRayFlags(flags, unpackRayFlags(flags) | RAY_WILL_DIE_NEXT_BOUNCE);       //
   }    
   ///////////////////////////////////////////////// Direct Light for MMLT/KMLT
 
