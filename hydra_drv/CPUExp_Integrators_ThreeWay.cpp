@@ -178,8 +178,8 @@ void IntegratorThreeWay::TraceLightPath(float3 ray_pos, float3 ray_dir, int a_cu
   {
     a_pAccData->pdfCameraWP *= 1.0f;
     a_pAccData->pdfLightWP  *= 1.0f;
-    //if (a_currDepth == 1)
-      //a_pAccData->pdfCameraWP = 0.0f;
+    if (a_currDepth == 1)                                      // see "tests/test_42_with_mirror"
+      a_pAccData->pdfGTerm  *= -1.0f;                          //
   }
 
   a_color *= matSam.color*cosNext* (1.0f / fmax(matSam.pdf, DEPSILON));
@@ -241,10 +241,12 @@ void IntegratorThreeWay::ConnectEye(SurfaceHit a_hit, float3 ray_pos, float3 ray
   const float cameraPdfA = imageToSurfaceFactor / mLightSubPathCount;
   const float lightPdfA  = PerThread().pdfLightA0;
 
-  const float pdfAccFwdA = 1.0f*a_pAccData->pdfLightWP*(lightPdfA*lightPickProbFwd);                                                                                  // a_pAccData->pdfGTerm
-  const float pdfAccRevA = cameraPdfA*(pdfRevWP*a_pAccData->pdfCameraWP); // see pdfRevWP? this is just because on the first bounce a_pAccData->pdfCameraWP == 1.     // a_pAccData->pdfGTerm
+  const float pdfAccFwdA = 1.0f*a_pAccData->pdfLightWP*(lightPdfA*lightPickProbFwd);                                                                                  // fabs(a_pAccData->pdfGTerm)
+  const float pdfAccRevA = cameraPdfA*(pdfRevWP*a_pAccData->pdfCameraWP); // see pdfRevWP? this is just because on the first bounce a_pAccData->pdfCameraWP == 1.     // fabs(a_pAccData->pdfGTerm)
                                                                           // we didn't eval reverse pdf yet. Imagine light ray hit surface and we immediately connect.
-  const float pdfAccExpA = cameraPdfA*(pdfRevWP*a_pAccData->pdfCameraWP)*(cancelImplicitLightHitPdf*(lightPdfA*lightPickProbRev));                                     // a_pAccData->pdfGTerm
+
+  const float cancelExp  = (a_pAccData->pdfGTerm >= 0.0f) ? 1.0f : 0.0f;                                                                          
+  const float pdfAccExpA = cameraPdfA*(pdfRevWP*a_pAccData->pdfCameraWP)*(cancelImplicitLightHitPdf*(lightPdfA*lightPickProbRev))*cancelExp;                          // fabs(a_pAccData->pdfGTerm)
 
   const float misWeight  = misWeightHeuristic3(pdfAccFwdA, pdfAccRevA, pdfAccExpA);
 

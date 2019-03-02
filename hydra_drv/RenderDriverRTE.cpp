@@ -1718,7 +1718,7 @@ void RenderDriverRTE::Draw()
         flagsAndVars.m_flags &= (~HRT_DRAW_LIGHT_LT);
         flagsAndVars.m_flags |= HRT_UNIFIED_IMAGE_SAMPLING;
         flagsAndVars.m_flags |= HRT_3WAY_MIS_WEIGHTS;
-
+        
         m_pHWLayer->SetAllFlagsAndVars(flagsAndVars);
         m_pHWLayer->BeginTracingPass();
         m_pHWLayer->EndTracingPass();

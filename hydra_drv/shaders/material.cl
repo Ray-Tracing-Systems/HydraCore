@@ -134,10 +134,10 @@ __kernel void UpdateForwardPdfFor3Way(__global const uint*          restrict a_f
   }
   else
   {
-    accData.pdfCameraWP *= 1.0f;
-    accData.pdfLightWP  *= 1.0f;
-    //if (a_currDepth == 1)
-    //  accData.pdfCameraWP = 0.0f;
+    //accData.pdfCameraWP *= 1.0f;
+    //accData.pdfLightWP  *= 1.0f;
+    if (a_currDepth == 1)                                 // see "tests/test_42_with_mirror". 
+      accData.pdfGTerm *= -1.0f;                          // we need to store special flag that first bounce from light direction was specular!
   }
 
   a_pdfAcc[tid] = accData;
@@ -251,8 +251,10 @@ __kernel void ConnectToEyeKernel(__global const uint*          restrict a_flags,
 
     const float pdfAccFwdA = 1.0f*accData.pdfLightWP*(lightPdfA*lightPickProbFwd);
     const float pdfAccRevA = cameraPdfA * (pdfRevWP*accData.pdfCameraWP); // see pdfRevWP? this is just because on the first bounce a_pAccData->pdfCameraWP == 1.
-                                                                                           // we didn't eval reverse pdf yet. Imagine light ray hit surface and we immediately connect.
-    const float pdfAccExpA = cameraPdfA * (pdfRevWP*accData.pdfCameraWP)*(cancelImplicitLightHitPdf*(lightPdfA*lightPickProbRev));
+                                                                          // we didn't eval reverse pdf yet. Imagine light ray hit surface and we immediately connect.
+
+    const float wasSpecFst = (accData.pdfGTerm >= 0.0f) ? 1.0f : 0.0f;    // if first bounce was specular, disable explicit strategy.                                                                     
+    const float pdfAccExpA = cameraPdfA * (pdfRevWP*accData.pdfCameraWP)*(cancelImplicitLightHitPdf*(lightPdfA*lightPickProbRev))*wasSpecFst;
 
     misWeight = misWeightHeuristic3(pdfAccFwdA, pdfAccRevA, pdfAccExpA);
     if (!isfinite(misWeight))

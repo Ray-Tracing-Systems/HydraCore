@@ -2458,7 +2458,7 @@ static inline void ReadShadowSample(const __global float4* a_in, int a_tid, int 
 */
 typedef struct ALIGN_S(16) PerRayAccT
 {
-  float  pdfGTerm;    ///< accumulated G term equal to product of G(x1,x2,x3) for all bounces
+  float  pdfGTerm;    ///< accumulated G term equal to product of G(x1,x2,x3) for all bounces; for 3-Way we aqctually don't need it and mult it with "-1" to store first bounce specular flag from light direcction. 
   float  pdfLightWP;  ///< accumulated probability per projected solid angle for light path
   float  pdfCameraWP; ///< accumulated probability per projected solid angle for camera path
   float  pdfCamA0;    ///< equal to pdfWP[0]*G[0] (if [0] means light)
