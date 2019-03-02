@@ -495,7 +495,7 @@ void GPUOCLLayer::runKernel_MMLTInitSplitAndCamV(cl_mem a_flags, cl_mem a_color,
   waitIfDebug(__FILE__, __LINE__);
 }
 
-void GPUOCLLayer::runKernel_MMLTMakeProposal(cl_mem in_rgen, cl_mem in_vec, cl_int a_largeStep, cl_int a_maxBounce, size_t a_size,
+void GPUOCLLayer::runKernel_MMLTMakeProposal(cl_mem in_rgen, cl_mem in_vec, cl_int a_mutationType, cl_int a_maxBounce, size_t a_size,
                                              cl_mem out_rgen, cl_mem out_vec)
 {
   cl_kernel kernX      = m_progs.mlt.kernel("MMLTMakeProposal");
@@ -509,7 +509,7 @@ void GPUOCLLayer::runKernel_MMLTMakeProposal(cl_mem in_rgen, cl_mem in_vec, cl_i
   CHECK_CL(clSetKernelArg(kernX, 2, sizeof(cl_mem), (void*)&out_rgen));
   CHECK_CL(clSetKernelArg(kernX, 3, sizeof(cl_mem), (void*)&in_vec));
   CHECK_CL(clSetKernelArg(kernX, 4, sizeof(cl_mem), (void*)&out_vec));
-  CHECK_CL(clSetKernelArg(kernX, 5, sizeof(cl_int), (void*)&a_largeStep));
+  CHECK_CL(clSetKernelArg(kernX, 5, sizeof(cl_int), (void*)&a_mutationType));
   CHECK_CL(clSetKernelArg(kernX, 6, sizeof(cl_int), (void*)&a_maxBounce));
   CHECK_CL(clSetKernelArg(kernX, 7, sizeof(cl_mem), (void*)&m_scene.allGlobsData));
   CHECK_CL(clSetKernelArg(kernX, 8, sizeof(cl_int), (void*)&isize));

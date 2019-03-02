@@ -423,7 +423,7 @@ void GPUOCLLayer::MMLT_Pass(int a_passNumber, int minBounce, int maxBounce, int 
       m_pExternalImage->Header()->avgImageB = m_avgBrightness;
 
     //#NOTE: force large step = 1 to generate numbers from current state
-    runKernel_MMLTMakeProposal(m_mlt.rstateNew, nullptr, 1, maxBounce, m_rays.MEGABLOCKSIZE, 
+    runKernel_MMLTMakeProposal(m_mlt.rstateNew, nullptr, MUTATE_LARGE, maxBounce, m_rays.MEGABLOCKSIZE, 
                                m_mlt.rstateNew, m_mlt.xVector);
 
     // swap (m_mlt.rstateNew, m_mlt.dNew) and (m_mlt.rstateOld, m_mlt.dOld)
@@ -444,7 +444,21 @@ void GPUOCLLayer::MMLT_Pass(int a_passNumber, int minBounce, int maxBounce, int 
     // (1) make poposal / gen rands
     //
     const int largeStep = (pass + 1) % 3 == 0 ? 1 : 0;
-    runKernel_MMLTMakeProposal(m_mlt.rstateOld, m_mlt.xVector, largeStep, maxBounce, m_rays.MEGABLOCKSIZE,
+
+    int smallStepType = 0;
+    {
+      const float p = HydraLiteMath::rnd(0.0f, 1.0f);
+      if(p <= 0.333f)
+        smallStepType = MUTATE_LIGHT;
+      else if (0.333f < p && p <= 0.667f)
+        smallStepType = MUTATE_LIGHT | MUTATE_CAMERA;
+      else
+        smallStepType = MUTATE_CAMERA;
+    }
+
+    const int proposalType = (pass + 1) % 3 == 0 ? MUTATE_LARGE : smallStepType;
+
+    runKernel_MMLTMakeProposal(m_mlt.rstateOld, m_mlt.xVector, proposalType, maxBounce, m_rays.MEGABLOCKSIZE,
                                m_mlt.rstateOld, m_mlt.yVector);
     
     // (2) trace; 
@@ -599,7 +613,7 @@ void GPUOCLLayer::SBDPT_Pass(int minBounce, int maxBounce, int ITERS)
 
   for(int iter = 0; iter < ITERS; iter++)
   {
-    runKernel_MMLTMakeProposal(m_mlt.rstateCurr, m_mlt.xVector, 1, maxBounce, m_rays.MEGABLOCKSIZE,
+    runKernel_MMLTMakeProposal(m_mlt.rstateCurr, m_mlt.xVector, MUTATE_LARGE, maxBounce, m_rays.MEGABLOCKSIZE,
                                m_mlt.rstateCurr, m_mlt.xVector);
     
     EvalSBDPT(m_mlt.xVector, minBounce, maxBounce, m_rays.MEGABLOCKSIZE,
@@ -669,7 +683,7 @@ float GPUOCLLayer::MMLT_BurningIn(int minBounce, int maxBounce, int BURN_ITERS,
       timer.start();
     }
 
-    runKernel_MMLTMakeProposal(m_mlt.rstateCurr, nullptr, 1, maxBounce, m_rays.MEGABLOCKSIZE,
+    runKernel_MMLTMakeProposal(m_mlt.rstateCurr, nullptr, MUTATE_LARGE, maxBounce, m_rays.MEGABLOCKSIZE,
                                m_mlt.rstateNew,  m_mlt.xVector);
 
     if(measureTime)
@@ -938,13 +952,15 @@ void GPUOCLLayer::EvalSBDPT(cl_mem in_xVector, int minBounce, int maxBounce, siz
   cl_mem a_rdir = m_rays.rayDir;
   cl_mem a_zind = m_rays.samZindex;
   
-  // (1) init and camera pass 
+  // (0) init and camera pass 
   //
   runKernel_MMLTMakeEyeRays(a_size,
                             m_rays.rayPos, m_rays.rayDir, a_zind);
   
   runKernel_MMLTInitSplitAndCamV(m_rays.rayFlags, a_outColor, m_mlt.splitData, m_mlt.cameraVertexSup, a_size);
-
+  
+  // (1) camera pass
+  //
   m_mlt.currBounceThreadsNum = a_size;
   for (int bounce = 1; bounce <= maxBounce; bounce++)
   {

@@ -11,7 +11,7 @@
             "program": "${workspaceFolder}/cmake-build-release/hydra_app/hydra",
             "args"   : ["-nowindow", "0", 
                         "-saveinterval", "300",
-                        "-enable_mlt", "0",
+                        "-enable_mlt", "1",
                         "-mmltthreads", "262144"],
                         // "-out",    "/home/frol/temp/test_out/image.png",
                         // "-outall", "/home/frol/temp/test_out/gbuff",

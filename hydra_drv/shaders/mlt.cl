@@ -340,7 +340,7 @@ __kernel void MMLTMakeProposal(__global int2*            restrict a_split,
                                __global       RandomGen* restrict out_gens,     // save new random gen state here if it is not null
                                __global const float*     restrict in_numbers,
                                __global       float*     restrict out_numbers,  // save random numbers here if it is not null
-                               int a_forceLargeStep, int a_maxBounce,
+                               int a_mutationType, int a_maxBounce,
                                __global const EngineGlobals* restrict a_globals,
                                int iNumElements)
 {
@@ -353,20 +353,10 @@ __kernel void MMLTMakeProposal(__global int2*            restrict a_split,
   bool largeStep    = false; 
   int smallStepType = 0;
   
-  if(a_forceLargeStep != 1)
-  {
-    const float p = rndFloat1_Pseudo(&gen);
-    if(p <= 0.333f)
-      smallStepType = MUTATE_LIGHT;
-    else if (0.333f < p && p <= 0.667f)
-      smallStepType = MUTATE_LIGHT | MUTATE_CAMERA;
-    else
-      smallStepType = MUTATE_CAMERA;
-  }
+  if((a_mutationType & MUTATE_LARGE) == 0)
+    smallStepType = a_mutationType;
   else
     largeStep = true;
-  
-  // enum MUTATION_TYPE { MUTATE_LIGHT = 1, MUTATE_CAMERA = 2 };
 
   // gen head first
   //
