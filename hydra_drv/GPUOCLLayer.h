@@ -63,7 +63,7 @@ public:
   void RunProductionSamplingMode();
 
   void EvalSBDPT(cl_mem in_xVector, int minBounce, int maxBounce, size_t a_size,
-                 cl_mem a_outColor);
+                 cl_mem a_outColor, int a_recomputeType = MUTATE_LARGE);
   
   void EvalPT(cl_mem in_xVector, cl_mem in_zind, int minBounce, int maxBounce, size_t a_size,
               cl_mem a_outColor);

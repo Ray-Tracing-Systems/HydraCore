@@ -258,6 +258,20 @@ bool RenderDriverRTE::UpdateSettings(pugi::xml_node a_settingsNode)
   vars.m_varsF[HRT_MMLT_STEP_SIZE_COEFF] = 1.0f;    // (1.0f, 1.5f, 2.0f) -- 1.0f is normal step, 2.0f is small
   vars.m_varsI[HRT_MMLT_FIRST_BOUNCE]    = 3; 
 
+  if(a_settingsNode.child(L"mmlt_step_power") != nullptr)
+  {
+    std::wstring step = a_settingsNode.child(L"mmlt_step_power").text().as_string();
+    if(step == L"large")
+      vars.m_varsF[HRT_MMLT_STEP_SIZE_POWER] = 512.0f;
+    else if(step == L"small") 
+      vars.m_varsF[HRT_MMLT_STEP_SIZE_POWER] = 2048.0f;
+    else
+      vars.m_varsF[HRT_MMLT_STEP_SIZE_POWER] = 1024.0f;
+  }
+
+  if(a_settingsNode.child(L"mmlt_step_size") != nullptr)
+    vars.m_varsF[HRT_MMLT_STEP_SIZE_COEFF] = a_settingsNode.child(L"mmlt_step_size").text().as_float();
+
   // override default settings from scene settings
   //
   if (a_settingsNode.child(L"method_primary") != nullptr)

@@ -463,8 +463,10 @@ void GPUOCLLayer::MMLT_Pass(int a_passNumber, int minBounce, int maxBounce, int 
     
     // (2) trace; 
     //
+    const int proposalTypeRecompute = (pass == 0) ? MUTATE_LARGE : proposalType;
+
     EvalSBDPT(m_mlt.yVector, minBounce, maxBounce, m_rays.MEGABLOCKSIZE,
-              m_mlt.yColor);
+              m_mlt.yColor, proposalTypeRecompute);
     
     // if(largeStep)
     //   MMLTUpdateAverageBrightnessConstants(minBounce, m_mlt.yColor, m_rays.MEGABLOCKSIZE);
@@ -945,7 +947,7 @@ void GPUOCLLayer::MMLTUpdateAverageBrightnessConstants(int minBounce, cl_mem in_
 }
 
 void GPUOCLLayer::EvalSBDPT(cl_mem in_xVector, int minBounce, int maxBounce, size_t a_size,
-                            cl_mem a_outColor)
+                            cl_mem a_outColor, int a_recomputeType)
 {
   m_mlt.currVec = in_xVector;
   cl_mem a_rpos = m_rays.rayPos;
@@ -961,45 +963,51 @@ void GPUOCLLayer::EvalSBDPT(cl_mem in_xVector, int minBounce, int maxBounce, siz
   
   // (1) camera pass
   //
-  m_mlt.currBounceThreadsNum = a_size;
-  for (int bounce = 1; bounce <= maxBounce; bounce++)
-  {
-    if(bounce >= minBounce)
-      m_mlt.currBounceThreadsNum = m_mlt.perBounceActiveThreads[bounce]; 
-
-    runKernel_Trace(a_rpos, a_rdir, m_mlt.currBounceThreadsNum,
-                    m_rays.hits);
+  if(a_recomputeType != MUTATE_LIGHT) 
+  { 
+    m_mlt.currBounceThreadsNum = a_size;
+    for (int bounce = 1; bounce <= maxBounce; bounce++)
+    {
+      if(bounce >= minBounce)
+        m_mlt.currBounceThreadsNum = m_mlt.perBounceActiveThreads[bounce]; 
   
-    runKernel_ComputeHit(a_rpos, a_rdir, m_rays.hits, a_size, m_mlt.currBounceThreadsNum, 
-                         m_mlt.cameraVertexHit, m_rays.hitProcTexData);
-  
-    runKernel_MMLTCameraPathBounce(m_rays.rayFlags, a_rpos, a_rdir, a_outColor, m_mlt.splitData, a_size,  //#NOTE: m_mlt.rstateCurr used inside
-                                   m_mlt.cameraVertexHit, m_mlt.cameraVertexSup);
+      runKernel_Trace(a_rpos, a_rdir, m_mlt.currBounceThreadsNum,
+                      m_rays.hits);
+    
+      runKernel_ComputeHit(a_rpos, a_rdir, m_rays.hits, a_size, m_mlt.currBounceThreadsNum, 
+                           m_mlt.cameraVertexHit, m_rays.hitProcTexData);
+    
+      runKernel_MMLTCameraPathBounce(m_rays.rayFlags, a_rpos, a_rdir, a_outColor, m_mlt.splitData, a_size,  //#NOTE: m_mlt.rstateCurr used inside
+                                     m_mlt.cameraVertexHit, m_mlt.cameraVertexSup);
+    }
   }
 
   // (2) light pass
   //
   cl_mem lightVertexHit = m_rays.hitSurfaceAll;
   cl_mem lightVertexSup = m_mlt.lightVertexSup;
-
-  runKernel_MMLTLightSampleForward(m_rays.rayFlags, a_rpos, a_rdir, a_outColor, lightVertexSup, a_size);
   
-  m_mlt.currBounceThreadsNum = a_size;
-  for (int bounce = 1; bounce <= (maxBounce-1); bounce++) // last bounce is always a connect stage
+  if(a_recomputeType != MUTATE_CAMERA) 
   {
-    if(bounce >= minBounce)
-      m_mlt.currBounceThreadsNum = m_mlt.perBounceActiveThreads[bounce]; 
-
-    runKernel_Trace(a_rpos, a_rdir, m_mlt.currBounceThreadsNum,
-                    m_rays.hits);
-
-    runKernel_ComputeHit(a_rpos, a_rdir, m_rays.hits, a_size, m_mlt.currBounceThreadsNum,
-                         lightVertexHit, m_rays.hitProcTexData);
-
-    runKernel_MMLTLightPathBounce(m_rays.rayFlags, a_rpos, a_rdir, a_outColor, m_mlt.splitData, a_size,  //#NOTE: m_mlt.rstateCurr used inside
-                                  lightVertexHit, lightVertexSup);
+    runKernel_MMLTLightSampleForward(m_rays.rayFlags, a_rpos, a_rdir, a_outColor, lightVertexSup, a_size);
+    
+    m_mlt.currBounceThreadsNum = a_size;
+    for (int bounce = 1; bounce <= (maxBounce-1); bounce++) // last bounce is always a connect stage
+    {
+      if(bounce >= minBounce)
+        m_mlt.currBounceThreadsNum = m_mlt.perBounceActiveThreads[bounce]; 
+      
+      runKernel_Trace(a_rpos, a_rdir, m_mlt.currBounceThreadsNum,
+                      m_rays.hits);
+      
+      runKernel_ComputeHit(a_rpos, a_rdir, m_rays.hits, a_size, m_mlt.currBounceThreadsNum,
+                           lightVertexHit, m_rays.hitProcTexData);
+      
+      runKernel_MMLTLightPathBounce(m_rays.rayFlags, a_rpos, a_rdir, a_outColor, m_mlt.splitData, a_size,  //#NOTE: m_mlt.rstateCurr used inside
+                                    lightVertexHit, lightVertexSup);
+    }
   }
- 
+
   // (3) ConnectEye, ConnectShadow and ConnectEndPoinst
   //
   runkernel_MMLTMakeShadowRay(m_mlt.splitData, m_mlt.cameraVertexHit, m_mlt.cameraVertexSup, lightVertexHit, lightVertexSup, a_size, 
