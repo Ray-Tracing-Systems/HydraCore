@@ -348,10 +348,13 @@ __kernel void HitEnvOrLightKernel(__global const float4*    restrict in_rpos,
                                                      a_globals, in_mtlStorage, in_pdfStorage, in_texStorage1);
     
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////// Direct/Indirect Light for MMLT/KMLT
-    if(evalDirectLightOnly && !flagsHaveOnlySpecular(flags) && rayBounceNum > 1)              // exclude indirect light
-      envColor = make_float3(0,0,0);
-    else if(evalIndirectLightOnly && (rayBounceNum <= 1 || flagsHaveOnlySpecular(flags)))     // exclude direct light and pure reflections
-      envColor = make_float3(0,0,0);
+    {
+      const uint otherFlags = unpackRayFlags(flags);
+      if(evalDirectLightOnly && !flagsHaveOnlySpecular(flags) && rayBounceNum > 1 && ((otherFlags & RAY_WILL_DIE_NEXT_BOUNCE) == 0)) // exclude indirect light
+        envColor = make_float3(0,0,0);
+      else if(evalIndirectLightOnly && (rayBounceNum <= 1 || flagsHaveOnlySpecular(flags)))     // exclude direct light and pure reflections
+        envColor = make_float3(0,0,0);
+    }
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////// Direct/Indirect Light for MMLT/KMLT
 
     if(a_currDepth + 1 < a_minDepth)
