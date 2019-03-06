@@ -83,6 +83,8 @@
     <up>0 1 0</up>
     <position>0 0 15</position>
     <look_at>0 0 0</look_at>
+    <enable_dof>1</enable_dof> 
+    <dof_lens_radius>0.25f</dof_lens_radius>
   </camera>
 </cam_lib>
 <geometry_lib total_chunks="9">
