@@ -151,19 +151,20 @@ void IntegratorLT::ConnectEye(SurfaceHit a_hit, float3 ray_dir, float3 a_accColo
     {
       const float2 posScreenSpace = worldPosToScreenSpace(a_hit.pos, m_pGlobals);
 
-      const float aperture       = 2.0f*m_pGlobals->varsF[HRT_DOF_LENS_RADIUS];
+      const float aperture       = 1.0f*m_pGlobals->varsF[HRT_DOF_LENS_RADIUS];
       const float tanHalfAngle   = tanf(0.5f*m_pGlobals->varsF[HRT_FOV_X]);
       const float focallength    = 1.0f / (2.f * tanHalfAngle);
       const float objectdistance = zDepth;
       const float planeinfocus   = m_pGlobals->varsF[HRT_DOF_FOCAL_PLANE_DIST];  
       
-      const float CoC   = fabs(aperture * (focallength * fabs(objectdistance - planeinfocus)) / (objectdistance * fabs(planeinfocus - focallength))); // see GPU GEMS
+      const float CoC    = fabs(aperture * (focallength * fabs(objectdistance - planeinfocus)) / (objectdistance * fabs(planeinfocus - focallength))); // see GPU GEMS
       
-      auto& rgen        = randomGen();
-      const float2 offs = rndFloat2_Pseudo(&rgen) - make_float2(0.5f, 0.5f);
+      auto& rgen         = randomGen();
+      const float2 offs  = 2.0f*(rndFloat2_Pseudo(&rgen) - make_float2(0.5f, 0.5f));
+      const float2 discS = MapSamplesToDisc(offs);
 
-      const int x = int(posScreenSpace.x + 0.5f + CoC*offs.x*m_pGlobals->varsF[HRT_WIDTH_F]);
-      const int y = int(posScreenSpace.y + 0.5f + CoC*offs.y*m_pGlobals->varsF[HRT_HEIGHT_F]);
+      const int x = int(posScreenSpace.x + 0.5f + CoC*discS.x*m_pGlobals->varsF[HRT_WIDTH_F]);
+      const int y = int(posScreenSpace.y + 0.5f + CoC*discS.y*m_pGlobals->varsF[HRT_HEIGHT_F]);
 
       if(x >=0 && x <= m_width-1 && y >=0 && y <= m_height-1)
       { 
