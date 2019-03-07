@@ -95,6 +95,8 @@ void IntegratorLT::TraceLightPath(float3 ray_pos, float3 ray_dir, int a_currDept
   TraceLightPath(nextRay_pos, nextRay_dir, a_currDepth + 1, cosLightNext*matSam.color*a_accColor*(1.0f / fmax(matSam.pdf, DEPSILON)));
 }
 
+
+
 void IntegratorLT::ConnectEye(SurfaceHit a_hit, float3 ray_dir, float3 a_accColor, int a_currBounce)
 {
   // We put the virtual image plane at such a distance from the camera origin
@@ -143,56 +145,18 @@ void IntegratorLT::ConnectEye(SurfaceHit a_hit, float3 ray_dir, float3 a_accColo
 
   if (dot(sampleColor, sampleColor) > 1e-20f) // add final result to image
   {
-    //const float3 shadowRayPos = a_hit.pos + epsilonOfPos(a_hit.pos)*signOfNormal*a_hit.normal;
+    const float3 shadowRayPos = a_hit.pos + epsilonOfPos(a_hit.pos)*signOfNormal*a_hit.normal;
 
-    //auto hit = rayTrace(shadowRayPos, camDir);
-    //if (!HitSome(hit) || hit.t > zDepth)
+    auto hit = rayTrace(shadowRayPos, camDir);
+
+    if (!HitSome(hit) || hit.t > zDepth)
     {
       const float2 posScreenSpace = worldPosToScreenSpace(a_hit.pos, m_pGlobals);
 
-      const float aperture       = 1.0f*m_pGlobals->varsF[HRT_DOF_LENS_RADIUS];
-      const float tanHalfAngle   = tanf(0.5f*m_pGlobals->varsF[HRT_FOV_X]);
-      const float focallength    = 1.0f / (2.f * tanHalfAngle);
-      const float objectdistance = zDepth;
-      const float planeinfocus   = m_pGlobals->varsF[HRT_DOF_FOCAL_PLANE_DIST];  
-      
-      const float CoC    = fabs(aperture * (focallength * fabs(objectdistance - planeinfocus)) / (objectdistance * fabs(planeinfocus - focallength))); // see GPU GEMS
-      
-      auto& rgen         = randomGen();
-      const float2 offs  = 2.0f*(rndFloat2_Pseudo(&rgen) - make_float2(0.5f, 0.5f));
-      const float2 discS = MapSamplesToDisc(offs);
+      const int x = int(posScreenSpace.x + 0.5f);
+      const int y = int(posScreenSpace.y + 0.5f);
 
-      const float rayXf = posScreenSpace.x + CoC*discS.x*m_pGlobals->varsF[HRT_WIDTH_F];
-      const float rayYf = posScreenSpace.y + CoC*discS.y*m_pGlobals->varsF[HRT_HEIGHT_F];
-
-      // create actual ray and calc shadow
-      //
-      bool inShadow = false;
-      { 
-        const float4x4 mWorldViewInv = make_float4x4(m_pGlobals->mWorldViewInverse);
-        const float4x4 mViewProjInv  = make_float4x4(m_pGlobals->mProjInverse);
-
-        float3 camPos2 = make_float3(0, 0, 0);
-        float3 camDir2 = EyeRayDir(rayXf, rayYf, m_pGlobals->varsF[HRT_WIDTH_F], m_pGlobals->varsF[HRT_HEIGHT_F], mViewProjInv);
-        
-        //ray_dir = tiltCorrection(ray_pos, ray_dir, a_globals);
-
-        matrix4x4f_mult_ray3(mWorldViewInv, &camPos2, &camDir2);
-
-        const float3   diff           = camPos2 - a_hit.pos;
-        const float    zDepth2        = length(diff);
-        const float3   shadowRayDir   = (1.0f/fmax(zDepth2,1e-20f))*diff;
-        
-        const float3 shadowRayPos     = a_hit.pos + epsilonOfPos(a_hit.pos)*signOfNormal*a_hit.normal;
-
-        auto hit2 = rayTrace(shadowRayPos, shadowRayDir);
-        inShadow  = (HitSome(hit2) && hit2.t < zDepth2);
-      }
-
-      const int x = int(rayXf + 0.5f); // do we really need 0.5 here ???
-      const int y = int(rayYf + 0.5f); // do we really need 0.5 here ???
-
-      if(x >=0 && x <= m_width-1 && y >=0 && y <= m_height-1 && !inShadow)
+      if(x >=0 && x <= m_width-1 && y >=0 && y <= m_height-1)
       { 
         const int offset = y*m_width + x;
 
