@@ -57,7 +57,7 @@ Unix:
 2. install cmake curces (ccmake).
 3. mkdir build
 4. ccmake ..
-5. set EMBREE_MAX_ISA to SSE2 #NOTE: this is important! Other will not work due to different BVH layout.
+5. set EMBREE_MAX_ISA to SSE2 **#NOTE:** this is important! Other will not work due to different BVH layout.
 6. set EMBREE_TASKING_SYSTEM to INTERNAL
 7. set EMBREE_STATIC_LIB to ON
 8. build embree. Press 'c', then 'g' and quit from ccmake. Then exec "make -j 4".
