@@ -53,7 +53,7 @@ hydra -nowindow 1 -inputlib "tests/test_42" -width 1024 -height 768 -cpu_fb 0 -s
 
 Unix:
 
-1. Clone embree2 (we used 2.17 last time). #NOTE: do not use embree3, it will not work.
+1. Clone embree2 (we used 2.17 last time). **#NOTE:** do not use embree3, it will not work.
 2. install cmake curces (ccmake).
 3. mkdir build
 4. ccmake ..
