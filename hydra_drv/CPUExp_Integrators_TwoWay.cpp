@@ -125,7 +125,7 @@ void IntegratorTwoWay::TraceLightPath(float3 ray_pos, float3 ray_dir, int a_curr
     sc.bn = surfElem.biTangent;
     sc.tc = surfElem.texCoord;
 
-    const float pdfW = materialEval(pHitMaterial, &sc, (EVAL_FLAG_DEFAULT), /* global data --> */ m_pGlobals, m_texStorage, m_texStorage, &m_ptlDummy).pdfFwd;
+    const float pdfW = materialEval(pHitMaterial, &sc, (EVAL_FLAG_DEFAULT), /* global data --> */ m_pGlobals, m_texStorage, m_texStorageAux, &m_ptlDummy).pdfFwd;
 
     a_pAccData->pdfLightWP  *= (matSam.pdf/fmax(cosNext, DEPSILON2));
     a_pAccData->pdfCameraWP *= (pdfW/fmax(cosCurr, DEPSILON2));
@@ -167,7 +167,7 @@ void IntegratorTwoWay::ConnectEye(SurfaceHit a_hit, float3 ray_pos, float3 ray_d
     sc.bn = a_hit.biTangent;
     sc.tc = a_hit.texCoord;
 
-    auto colorAndPdf = materialEval(pHitMaterial, &sc, (EVAL_FLAG_DEFAULT), /* global data --> */ m_pGlobals, m_texStorage, m_texStorage, &m_ptlDummy);
+    auto colorAndPdf = materialEval(pHitMaterial, &sc, (EVAL_FLAG_DEFAULT), /* global data --> */ m_pGlobals, m_texStorage, m_texStorageAux, &m_ptlDummy);
     colorConnect     = colorAndPdf.brdf;
     pdfRevW          = colorAndPdf.pdfRev;
   }
@@ -296,7 +296,7 @@ float3 IntegratorTwoWay::PathTraceAcc(float3 ray_pos, float3 ray_dir, const Surf
       sc.bn = surfElem.biTangent;
       sc.tc = surfElem.texCoord;
 
-      const float pdfFwdW = materialEval(pHitMaterial, &sc, (EVAL_FLAG_DEFAULT), /* global data --> */ m_pGlobals, m_texStorage, m_texStorage, &m_ptlDummy).pdfFwd;
+      const float pdfFwdW = materialEval(pHitMaterial, &sc, (EVAL_FLAG_DEFAULT), /* global data --> */ m_pGlobals, m_texStorage, m_texStorageAux, &m_ptlDummy).pdfFwd;
 
       a_accData->pdfLightWP *= (pdfFwdW / fmax(cosHere, DEPSILON));
     }

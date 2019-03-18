@@ -20,6 +20,7 @@ Input::Input()
   //inLibraryPath = "/home/frol/temp/suncg1_scenelib/statex_00003.xml";
   //inLibraryPath = "/home/frol/PROG/HydraAPI/main/tests_f/test_204";
   //inLibraryPath = "/home/frol/PROG/HydraAPI/main/tests_a/test_406";
+  //inLibraryPath = "C:/[Hydra]/pluginFiles/scenelib";
 
   inDevelopment = false; ///< recompile shaders each time; note that nvidia have their own shader cache!
   inDeviceId    = 0;     ///< opencl device id

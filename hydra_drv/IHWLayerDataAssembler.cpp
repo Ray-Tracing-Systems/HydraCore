@@ -204,7 +204,7 @@ static void SetQMCVarRemapTable(EngineGlobals *a_globals)
   
   if (a_globals->varsI[HRT_ENABLE_DOF] != 1) // if we don't use DOF, exclude it from QMC; reset lowest bit;
   {
-    if(tableVariant & QMC_DOF_FLAG != 0)
+    if((tableVariant & QMC_DOF_FLAG) != 0)
       tableVariant--;
   }
 
@@ -559,17 +559,13 @@ void CPUSharedData::PrepareEngineGlobals()
 
   if (m_pIntegrator == nullptr && this->StoreCPUData())
   {
-    //m_pIntegrator = new IntegratorStupidPT(m_width, m_height, (EngineGlobals*)&m_cdataPrepared[0]);
-    //m_pIntegrator = new IntegratorShadowPT(m_width, m_height, (EngineGlobals*)&m_cdataPrepared[0]);
-		//m_pIntegrator = new IntegratorShadowPTSSS(m_width, m_height, (EngineGlobals*)&m_cdataPrepared[0]);
-    
-    //m_pIntegrator = new IntegratorMISPT(m_width, m_height, (EngineGlobals*)&m_cdataPrepared[0], 0);     //#TODO: where m_createFlags gone ???
+    m_pIntegrator = new IntegratorMISPT(m_width, m_height, (EngineGlobals*)&m_cdataPrepared[0], 0);     //#TODO: where m_createFlags gone ???
     //m_pIntegrator = new IntegratorMISPT_QMC(m_width, m_height, (EngineGlobals*)&m_cdataPrepared[0], 0);
     //m_pIntegrator = new IntegratorMISPT_AQMC(m_width, m_height, (EngineGlobals*)&m_cdataPrepared[0], 0);
    
     //m_pIntegrator = new IntegratorLT(m_width, m_height, (EngineGlobals*)&m_cdataPrepared[0]);
     //m_pIntegrator = new IntegratorTwoWay(m_width, m_height, (EngineGlobals*)&m_cdataPrepared[0]);
-    m_pIntegrator = new IntegratorThreeWay(m_width, m_height, (EngineGlobals*)&m_cdataPrepared[0]);
+    //m_pIntegrator = new IntegratorThreeWay(m_width, m_height, (EngineGlobals*)&m_cdataPrepared[0]);  
 
     //m_pIntegrator = new IntegratorSBDPT(m_width, m_height, (EngineGlobals*)&m_cdataPrepared[0]);
     //m_pIntegrator = new IntegratorMMLT(m_width, m_height, (EngineGlobals*)&m_cdataPrepared[0]);
