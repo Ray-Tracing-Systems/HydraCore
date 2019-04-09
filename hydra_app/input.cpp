@@ -20,9 +20,10 @@ Input::Input()
   //inLibraryPath = "/home/frol/temp/suncg1_scenelib/statex_00003.xml";
   //inLibraryPath = "/home/frol/PROG/HydraAPI/main/tests_f/test_004";
   //inLibraryPath = "/home/frol/PROG/HydraAPI/main/tests_a/test_406";
+  //inLibraryPath = "/home/frol/PROG/HydraAPI/main/tests/test_49";
 
-  inDevelopment = true;  ///< recompile shaders each time; note that nvidia have their own shader cache!
-  inDeviceId    = -1;    ///< opencl device id
+  inDevelopment = false; ///< recompile shaders each time; note that nvidia have their own shader cache!
+  inDeviceId    = 0;     ///< opencl device id
   cpuFB         = true;  ///< store frame buffer on CPU. Automaticly enabled if
   enableMLT     = false; ///< if use MMLT, you MUST enable it early, when render process just started (here or via command line).
   boxMode       = false; ///< special 'in the box' mode when render don't react to any commands
