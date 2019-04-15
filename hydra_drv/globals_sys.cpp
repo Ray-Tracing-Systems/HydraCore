@@ -1,5 +1,9 @@
 #include "globals_sys.h"
 
+#include <unistd.h>
+#include <sys/types.h>
+#include <pwd.h>
+
 #ifdef WIN32
 constexpr int HYDRAPATHSIZE = 1024;
 char g_hydraInstallPath[HYDRAPATHSIZE] = "C:/[Hydra]/bin2/";
@@ -19,10 +23,13 @@ std::string HydraInstallPath()
   return std::string(g_hydraInstallPath);
 #else
   //const std::string installPath2 = "./";
-  char user_name[L_cuserid];
-  cuserid(user_name);
+  ///char user_name[L_cuserid];
+  //cuserid(user_name);
+  //std::stringstream ss;
+  //ss << "/home/" << user_name << "/hydra/";
+  auto username = getpwuid(geteuid());
   std::stringstream ss;
-  ss << "/home/" << user_name << "/hydra/";
+  ss << username->pw_dir << "/hydra/";
   return ss.str();
 #endif
 }
