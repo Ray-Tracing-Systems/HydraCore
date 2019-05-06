@@ -2184,23 +2184,23 @@ static inline float gbuffDiffObj(GBufferAll s1, GBufferAll s2, const float a_fov
 }
 
 
-static inline int reverseBits(int a_input, int a_maxSize)
-{
-  int maxBit = 0;
-  while (a_maxSize >>= 1)
-    ++maxBit;
-  
-  int result = 0;
-  
-  for (int i = 0; i < maxBit; i++)
-  {
-    const int j = maxBit - i - 1;
-    const int inputMask = (0x00000001 << j);
-    result |= ((a_input & inputMask) >> j) << i;
-  }
-  
-  return result;
-}
+// static inline int reverseBits(int a_input, int a_maxSize)
+// {
+//   int maxBit = 0;
+//   while (a_maxSize >>= 1)
+//     ++maxBit;
+//
+//   int result = 0;
+//
+//   for (int i = 0; i < maxBit; i++)
+//   {
+//     const int j = maxBit - i - 1;
+//     const int inputMask = (0x00000001 << j);
+//     result |= ((a_input & inputMask) >> j) << i;
+//   }
+//
+//   return result;
+// }
 
 
 enum PLAIN_LIGHT_TYPES {
