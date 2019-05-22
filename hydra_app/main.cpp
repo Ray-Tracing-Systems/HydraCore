@@ -57,7 +57,7 @@ BOOL WINAPI HandlerExit(_In_ DWORD fdwControl)
     return TRUE;
 
   //std::wcout << L"[main]: HandlerExit()" << std::endl;
-  hrDestroy();
+  hrSceneLibraryClose();
   g_pDriver->~IHRRenderDriver();
   g_pDriver = nullptr;
   
@@ -84,7 +84,7 @@ void sig_handler(int signo)
     default     : std::cerr << "\n[hydra], SIG_UNKNOWN"; break;
       break;
   }
-  std::cerr << " --> hrDestroy()" << std::endl;
+  std::cerr << "[hydra]: hrSceneLibraryClose()" << std::endl;
   hrSceneLibraryClose();
   
   delete g_pExternalImage;
