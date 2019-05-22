@@ -1,8 +1,10 @@
 #include "globals_sys.h"
 
+#ifndef WIN32
 #include <unistd.h>
 #include <sys/types.h>
 #include <pwd.h>
+#endif
 
 #ifdef WIN32
 constexpr int HYDRAPATHSIZE = 1024;
