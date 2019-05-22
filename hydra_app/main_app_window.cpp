@@ -56,16 +56,18 @@ static void Init(std::shared_ptr<IHRRenderDriver> pDriverImpl)
 
   std::wstring libraryPath = s2ws(g_input.inLibraryPath);
 
-  int32_t stateId = hrSceneLibraryOpen(libraryPath.c_str(), HR_OPEN_EXISTING);
+  HRInitInfo initInfo;
+  initInfo.vbSize                    = 1024; // do not allocate vb.
+  initInfo.computeMeshBBoxes         = false;
+  initInfo.sortMaterialIndices       = false;
+  initInfo.copyTexturesToLocalFolder = false;
+  initInfo.localDataPath             = true;
+
+  int32_t stateId = hrSceneLibraryOpen(libraryPath.c_str(), HR_OPEN_EXISTING, initInfo);
   if (stateId < 0)
     exit(0);
 
   HRSceneLibraryInfo scnInfo = hrSceneLibraryInfo();
-
-  if (scnInfo.renderDriversNum == 0) // create some default render driver
-  {
-
-  }
 
   if (scnInfo.camerasNum == 0) // create some default camera
     camRef = hrCameraCreate(L"defaultCam");
