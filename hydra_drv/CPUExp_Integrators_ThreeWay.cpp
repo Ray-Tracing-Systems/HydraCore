@@ -166,7 +166,7 @@ void IntegratorThreeWay::TraceLightPath(float3 ray_pos, float3 ray_dir, int a_cu
     sc.bn = surfElem.biTangent;
     sc.tc = surfElem.texCoord;
 
-    const float pdfW = materialEval(pHitMaterial, &sc, (EVAL_FLAG_DEFAULT), /* global data --> */ m_pGlobals, m_texStorage, m_texStorage, &m_ptlDummy).pdfFwd;
+    const float pdfW = materialEval(pHitMaterial, &sc, (EVAL_FLAG_DEFAULT), /* global data --> */ m_pGlobals, m_texStorage, m_texStorageAux, &m_ptlDummy).pdfFwd;
 
     a_pAccData->pdfCameraWP *= (pdfW/fmax(cosCurr, DEPSILON));
     a_pAccData->pdfLightWP  *= (matSam.pdf / fmax(cosNext, DEPSILON));
@@ -215,7 +215,7 @@ void IntegratorThreeWay::ConnectEye(SurfaceHit a_hit, float3 ray_pos, float3 ray
     sc.bn = a_hit.biTangent;
     sc.tc = a_hit.texCoord;
 
-    auto colorAndPdf = materialEval(pHitMaterial, &sc, (EVAL_FLAG_FWD_DIR), /* global data --> */ m_pGlobals, m_texStorage, m_texStorage, &m_ptlDummy);
+    auto colorAndPdf = materialEval(pHitMaterial, &sc, (EVAL_FLAG_FWD_DIR), /* global data --> */ m_pGlobals, m_texStorage, m_texStorageAux, &m_ptlDummy);
     colorConnect     = colorAndPdf.brdf + colorAndPdf.btdf;
     pdfRevW          = colorAndPdf.pdfRev;
   }
@@ -399,7 +399,7 @@ float3  IntegratorThreeWay::PathTraceAcc(float3 ray_pos, float3 ray_dir, const f
     sc.bn = surfElem.biTangent;
     sc.tc = surfElem.texCoord;
     
-    const auto evalData = materialEval(pHitMaterial, &sc, (EVAL_FLAG_DEFAULT), /* global data --> */ m_pGlobals, m_texStorage, m_texStorage, &m_ptlDummy);
+    const auto evalData = materialEval(pHitMaterial, &sc, (EVAL_FLAG_DEFAULT), /* global data --> */ m_pGlobals, m_texStorage, m_texStorageAux, &m_ptlDummy);
     
     const float  cosThetaOut1 = fmax(+dot(shadowRayDir, surfElem.normal), 0.0f);
     const float  cosThetaOut2 = fmax(-dot(shadowRayDir, surfElem.normal), 0.0f);
@@ -462,7 +462,7 @@ float3  IntegratorThreeWay::PathTraceAcc(float3 ray_pos, float3 ray_dir, const f
       sc.bn = surfElem.biTangent;
       sc.tc = surfElem.texCoord;
       
-      const float pdfFwdW = materialEval(pHitMaterial, &sc, (EVAL_FLAG_DEFAULT), /* global data --> */ m_pGlobals, m_texStorage, m_texStorage, &m_ptlDummy).pdfFwd;
+      const float pdfFwdW = materialEval(pHitMaterial, &sc, (EVAL_FLAG_DEFAULT), /* global data --> */ m_pGlobals, m_texStorage, m_texStorageAux, &m_ptlDummy).pdfFwd;
       a_accData->pdfLightWP *= (pdfFwdW / fmax(cosHere, DEPSILON));
     }
   }
