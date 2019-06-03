@@ -55,6 +55,7 @@ else()
             hydra_api
             ies_parser
             mikktspace
+            corto
             Threads::Threads
             dl rt stdc++fs
             glfw

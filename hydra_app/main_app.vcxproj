@@ -22,7 +22,7 @@
     <ProjectGuid>{ACF3BDA6-E228-4015-A8C6-4450AFACDE39}</ProjectGuid>
     <Keyword>Win32Proj</Keyword>
     <RootNamespace>main_app</RootNamespace>
-    <WindowsTargetPlatformVersion>10.0.17134.0</WindowsTargetPlatformVersion>
+    <WindowsTargetPlatformVersion>8.1</WindowsTargetPlatformVersion>
     <ProjectName>hydra</ProjectName>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
@@ -35,7 +35,7 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
-    <PlatformToolset>v141</PlatformToolset>
+    <PlatformToolset>v140</PlatformToolset>
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
@@ -48,7 +48,7 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
-    <PlatformToolset>v141</PlatformToolset>
+    <PlatformToolset>v140</PlatformToolset>
     <WholeProgramOptimization>true</WholeProgramOptimization>
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
@@ -168,6 +168,9 @@
   <ItemGroup>
     <ProjectReference Include="..\..\HydraAPI\clew\clew.vcxproj">
       <Project>{5f13e40f-c0f1-4ef4-a775-ab8bc703de88}</Project>
+    </ProjectReference>
+    <ProjectReference Include="..\..\HydraAPI\corto\corto.vcxproj">
+      <Project>{43666dca-d7ff-411f-823f-d04cfc49669c}</Project>
     </ProjectReference>
     <ProjectReference Include="..\..\HydraAPI\hydra_api\HydraNewAPI1.vcxproj">
       <Project>{c05ff9ea-3d61-48b7-abea-4353253691dc}</Project>

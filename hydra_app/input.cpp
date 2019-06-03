@@ -18,8 +18,9 @@ Input::Input()
   //inLibraryPath = "tests/test_224_sphere_microfacet";
   //inLibraryPath = "tests/test_pool";
   //inLibraryPath = "/home/frol/temp/suncg1_scenelib/statex_00003.xml";
-  //inLibraryPath = "/home/frol/PROG/HydraAPI/main/tests_f/test_204";
+  //inLibraryPath = "/home/frol/PROG/HydraAPI/main/tests_f/test_004";
   //inLibraryPath = "/home/frol/PROG/HydraAPI/main/tests_a/test_406";
+  //inLibraryPath = "/home/frol/PROG/HydraAPI/main/tests/test_49";
 
   inDevelopment = false; ///< recompile shaders each time; note that nvidia have their own shader cache!
   inDeviceId    = 0;     ///< opencl device id

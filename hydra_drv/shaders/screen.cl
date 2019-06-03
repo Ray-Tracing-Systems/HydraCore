@@ -132,7 +132,7 @@ __kernel void MakeEyeRaysQMC(__global RandomGen*           restrict out_gens,
 
   RandomGen gen             = out_gens[tid];
   const float2 mutateScale  = make_float2(a_globals->varsF[HRT_MLT_SCREEN_SCALE_X], a_globals->varsF[HRT_MLT_SCREEN_SCALE_Y]);
-  const unsigned int qmcPos = reverseBits(tid, a_size) + a_passNumberForQmc * a_size; // we use reverseBits due to neighbour thread number put in to sobol random generator are too far from each other 
+  const unsigned int qmcPos = tid + a_passNumberForQmc * a_size;
   const float4 lensOffs     = rndLens(&gen, 0, mutateScale, 
                                       a_globals->rmQMC, qmcPos, a_qmcTable);
 
@@ -247,7 +247,7 @@ __kernel void MakeEyeRaysSamplesOnly(__global RandomGen*           restrict out_
 
   RandomGen gen             = out_gens[tid];
   const float2 mutateScale  = make_float2(a_globals->varsF[HRT_MLT_SCREEN_SCALE_X], a_globals->varsF[HRT_MLT_SCREEN_SCALE_Y]);
-  const unsigned int qmcPos = reverseBits(tid, a_size) + a_passNumberForQmc * a_size; // we use reverseBits due to neighbour thread number put in to sobol random generator are too far from each other 
+  const unsigned int qmcPos = tid + a_passNumberForQmc * a_size;
   const float4 lensOffs     = rndLens(&gen, 0, mutateScale, 
                                       a_globals->rmQMC, qmcPos, a_qmcTable);
   out_gens[tid]             = gen;

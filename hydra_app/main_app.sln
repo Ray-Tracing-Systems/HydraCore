@@ -28,6 +28,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "shaderpack", "..\shaderpack
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "mikktspace", "..\..\HydraAPI\mikktspace\mikktspace.vcxproj", "{7844C04D-F5D4-4C90-B080-6744A10C3332}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "corto", "..\..\HydraAPI\corto\corto.vcxproj", "{43666DCA-D7FF-411F-823F-D04CFC49669C}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
@@ -133,6 +135,18 @@ Global
 		{7844C04D-F5D4-4C90-B080-6744A10C3332}.RelWithDebInfo|x64.Build.0 = Release|x64
 		{7844C04D-F5D4-4C90-B080-6744A10C3332}.RelWithDebInfo|x86.ActiveCfg = Release|Win32
 		{7844C04D-F5D4-4C90-B080-6744A10C3332}.RelWithDebInfo|x86.Build.0 = Release|Win32
+		{43666DCA-D7FF-411F-823F-D04CFC49669C}.Debug|x64.ActiveCfg = Debug|x64
+		{43666DCA-D7FF-411F-823F-D04CFC49669C}.Debug|x64.Build.0 = Debug|x64
+		{43666DCA-D7FF-411F-823F-D04CFC49669C}.Debug|x86.ActiveCfg = Debug|Win32
+		{43666DCA-D7FF-411F-823F-D04CFC49669C}.Debug|x86.Build.0 = Debug|Win32
+		{43666DCA-D7FF-411F-823F-D04CFC49669C}.Release|x64.ActiveCfg = Release|x64
+		{43666DCA-D7FF-411F-823F-D04CFC49669C}.Release|x64.Build.0 = Release|x64
+		{43666DCA-D7FF-411F-823F-D04CFC49669C}.Release|x86.ActiveCfg = Release|Win32
+		{43666DCA-D7FF-411F-823F-D04CFC49669C}.Release|x86.Build.0 = Release|Win32
+		{43666DCA-D7FF-411F-823F-D04CFC49669C}.RelWithDebInfo|x64.ActiveCfg = Release|x64
+		{43666DCA-D7FF-411F-823F-D04CFC49669C}.RelWithDebInfo|x64.Build.0 = Release|x64
+		{43666DCA-D7FF-411F-823F-D04CFC49669C}.RelWithDebInfo|x86.ActiveCfg = Release|Win32
+		{43666DCA-D7FF-411F-823F-D04CFC49669C}.RelWithDebInfo|x86.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

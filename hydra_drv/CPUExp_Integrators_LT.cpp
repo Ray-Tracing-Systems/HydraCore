@@ -95,6 +95,8 @@ void IntegratorLT::TraceLightPath(float3 ray_pos, float3 ray_dir, int a_currDept
   TraceLightPath(nextRay_pos, nextRay_dir, a_currDepth + 1, cosLightNext*matSam.color*a_accColor*(1.0f / fmax(matSam.pdf, DEPSILON)));
 }
 
+
+
 void IntegratorLT::ConnectEye(SurfaceHit a_hit, float3 ray_dir, float3 a_accColor, int a_currBounce)
 {
   // We put the virtual image plane at such a distance from the camera origin

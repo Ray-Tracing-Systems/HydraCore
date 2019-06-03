@@ -1611,6 +1611,34 @@ void RenderDriverRTE::BuildSkyPortalsDependencyDummyInstances()
 
 void RenderDriverRTE::Draw()
 {
+  // DOF LT experiments
+  //if(false)
+  //{
+  //  static int iterCount = 0;
+  //  static float3 originalCamPos = m_camera.pos;
+  //
+  //  if(iterCount != 0)
+  //  {
+  //    auto flagsAndVars    = m_pHWLayer->GetAllFlagsAndVars();
+  //
+  //    const float3 camFwd  = normalize(m_camera.pos - m_camera.lookAt);
+  //    const float3 camLeft = normalize(cross(camFwd, m_camera.up));
+  //
+  //    const float offsetX  = HydraLiteMath::rnd(-1.0f, 1.0f);
+  //    const float offsetY  = HydraLiteMath::rnd(-1.0f, 1.0f);
+  //    
+  //    //const float2 offs    = MapSamplesToDisc(make_float2(offsetX, offsetY))*flagsAndVars.m_varsF[HRT_DOF_LENS_RADIUS];
+  //    const float2 offs    = make_float2(offsetX, offsetY)*flagsAndVars.m_varsF[HRT_DOF_LENS_RADIUS];
+  //    
+  //    m_camera.pos         = originalCamPos + m_camera.up*offs.y + camLeft*offs.x; 
+  //  }
+  //  else
+  //    originalCamPos = m_camera.pos;
+  //
+  //  iterCount++;
+  //}
+ 
+
   // (1) set camera
   //
   float4x4 mWorldView, mProj;

@@ -40,7 +40,7 @@ void destroy()
     return;
 
   std::wcout << L"[main]: destroy()" << std::endl;
-  hrDestroy();
+  hrSceneLibraryClose();
 
   delete g_pExternalImage; 
   g_pExternalImage = nullptr;
@@ -57,7 +57,7 @@ BOOL WINAPI HandlerExit(_In_ DWORD fdwControl)
     return TRUE;
 
   //std::wcout << L"[main]: HandlerExit()" << std::endl;
-  hrDestroy();
+  hrSceneLibraryClose();
   g_pDriver->~IHRRenderDriver();
   g_pDriver = nullptr;
   
@@ -84,8 +84,8 @@ void sig_handler(int signo)
     default     : std::cerr << "\n[hydra], SIG_UNKNOWN"; break;
       break;
   }
-  std::cerr << " --> hrDestroy()" << std::endl;
-  hrDestroy();
+  std::cerr << "[hydra]: hrSceneLibraryClose()" << std::endl;
+  hrSceneLibraryClose();
   
   delete g_pExternalImage;
   g_pExternalImage = nullptr;
@@ -125,8 +125,6 @@ int main(int argc, const char** argv)
     std::cout << "[main]: curr_dir = " << cwd << std::endl;
   #endif
   ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-  hrInit(L"-emptyvirtualbuffer 1");
 
   hrInfoCallback(&InfoCallBack);
   hrErrorCallerPlace(L"main");  // for debug needs only
@@ -323,7 +321,7 @@ int main(int argc, const char** argv)
   }
 
   hrErrorCallerPlace(L"main"); // for debug needs only
-  hrDestroy();
+  hrSceneLibraryClose();
   
   g_pDriver = nullptr;
   

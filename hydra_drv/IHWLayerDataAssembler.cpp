@@ -567,9 +567,9 @@ void CPUSharedData::PrepareEngineGlobals()
     //m_pIntegrator = new IntegratorMISPT_QMC(m_width, m_height, (EngineGlobals*)&m_cdataPrepared[0], 0);
     //m_pIntegrator = new IntegratorMISPT_AQMC(m_width, m_height, (EngineGlobals*)&m_cdataPrepared[0], 0);
    
-    //m_pIntegrator = new IntegratorLT(m_width, m_height, (EngineGlobals*)&m_cdataPrepared[0]);
+    m_pIntegrator = new IntegratorLT(m_width, m_height, (EngineGlobals*)&m_cdataPrepared[0]);
     //m_pIntegrator = new IntegratorTwoWay(m_width, m_height, (EngineGlobals*)&m_cdataPrepared[0]);
-    m_pIntegrator = new IntegratorThreeWay(m_width, m_height, (EngineGlobals*)&m_cdataPrepared[0]);
+    //m_pIntegrator = new IntegratorThreeWay(m_width, m_height, (EngineGlobals*)&m_cdataPrepared[0]);
 
     //m_pIntegrator = new IntegratorSBDPT(m_width, m_height, (EngineGlobals*)&m_cdataPrepared[0]);
     //m_pIntegrator = new IntegratorMMLT(m_width, m_height, (EngineGlobals*)&m_cdataPrepared[0]);
