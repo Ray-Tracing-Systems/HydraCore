@@ -81,6 +81,8 @@ void sig_handler(int signo)
     case SIGTERM: std::cerr << "\n[hydra], SIGILL";      break;
     case SIGSEGV: std::cerr << "\n[hydra], SIGSEGV";     break;
     case SIGFPE : std::cerr << "\n[hydra], SIGFPE";      break;
+    case SIGTSTP : std::cerr << "\n[hydra], SIGTSTP";      break;
+
     default     : std::cerr << "\n[hydra], SIG_UNKNOWN"; break;
       break;
   }
@@ -146,6 +148,7 @@ int main(int argc, const char** argv)
     sigaction(SIGTERM, &sigIntHandler, NULL);
     sigaction(SIGSEGV, &sigIntHandler, NULL);
     sigaction(SIGFPE,  &sigIntHandler, NULL);
+    sigaction(SIGTSTP,  &sigIntHandler, NULL);
   }
 #endif
 
