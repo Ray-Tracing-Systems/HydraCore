@@ -1408,6 +1408,32 @@ std::shared_ptr<IMaterial> CreateMaterialFromXmlNode(pugi::xml_node a_node, Rend
       if (enableRefl == 1)
         pResult->AddFlags(PLAIN_MATERIAL_CAMERA_MAPPED_REFL);
     }
+
+    if(length(colorE) > 1e-4f) // emissive shadow catcher
+    {
+       float mult = 1.0f;
+       if (emission.child(L"multiplier").attribute(L"val") != nullptr)
+         mult = emission.child(L"multiplier").attribute(L"val").as_float();
+     
+       int32_t texId = INVALID_TEXTURE;
+     
+       SWTexSampler sampler = DummySampler();
+       if (SamplerNode(emission) != nullptr)
+       {
+         sampler = SamplerFromTexref(SamplerNode(emission));
+         texId   = sampler.texId;
+       }
+       
+       float3 color = colorE*mult;
+    
+       pResult->m_plain.data[EMISSIVE_COLORX_OFFSET] = color.x;
+       pResult->m_plain.data[EMISSIVE_COLORY_OFFSET] = color.y;
+       pResult->m_plain.data[EMISSIVE_COLORZ_OFFSET] = color.z;
+       pResult->SetEmissiveSampler(texId, sampler);
+
+       pResult->AddFlags(PLAIN_MATERIAL_EMISSIVE_SHADOW_CATCHER);
+    }
+
   }
   else if(mtype == L"sky_portal_mtl")
     pResult = CreateSkyPortalMaterial(a_node);

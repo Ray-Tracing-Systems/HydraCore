@@ -344,8 +344,8 @@ __kernel void HitEnvOrLightKernel(__global const float4*    restrict in_rpos,
     const int screenX     = (packedXY & 0x0000FFFF);
     const int screenY     = (packedXY & 0xFFFF0000) >> 16;
     
-          float3 envColor = environmentColorExtended(ray_pos, ray_dir, misPrev, flags, screenX, screenY,
-                                                     a_globals, in_mtlStorage, in_pdfStorage, in_texStorage1);
+    float3 envColor = environmentColorExtended(ray_pos, ray_dir, misPrev, flags, screenX, screenY,
+                                               a_globals, in_mtlStorage, in_pdfStorage, in_texStorage1);
     
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////// Direct/Indirect Light for MMLT/KMLT
     {
@@ -805,14 +805,26 @@ __kernel void NextBounce(__global const int2*      restrict in_zind,
   ReadSurfaceHit(in_surfaceHit, tid, iNumElements, 
                  &surfHit);
 
-  __global const PlainMaterial* pHitMaterial     = materialAt(a_globals, in_mtlStorage, surfHit.matId);
+  __global const PlainMaterial* pHitMaterial = materialAt(a_globals, in_mtlStorage, surfHit.matId);
   if(pHitMaterial == 0)
     return;
 
+  int matOffset       = materialOffset(a_globals, surfHit.matId);
+
   float4 emissData    = (in_emissionColor == 0) ? make_float4(0, 0, 0, 0) : in_emissionColor[tid];
   outPathColor        = to_float3(emissData);
-  int matOffset       = materialOffset(a_globals, surfHit.matId);
   bool hitLightSource = (emissData.w == 1);
+
+  const float3 shadowVal = decompressShadow(in_shadow[tid]);
+
+  //// piece of shit for emissive shadow catchers
+  //
+  if(materialGetFlags(pHitMaterial) & PLAIN_MATERIAL_EMISSIVE_SHADOW_CATCHER) 
+  {
+    outPathColor  *= shadowVal;
+    hitLightSource = true;
+  }
+  //// end piece of shit
 
   ProcTextureList ptl;
   InitProcTextureList(&ptl);
@@ -885,8 +897,6 @@ __kernel void NextBounce(__global const int2*      restrict in_zind,
     out_gens[tid] = gen;
   }
   //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-  
-  const float3 shadowVal = decompressShadow(in_shadow[tid]);
 
   MatSample brdfSample; int localOffset = 0; 
   MaterialSampleAndEvalBxDF(pHitMaterial, allRands, &surfHit, ray_dir, shadowVal, flags, ((a_globals->g_flags & HRT_FORWARD_TRACING) != 0),
