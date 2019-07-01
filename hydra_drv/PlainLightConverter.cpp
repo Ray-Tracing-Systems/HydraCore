@@ -11,7 +11,7 @@
 using RAYTR::ILight;
 
 static const bool  ROTATE_IES_90_DEG      = true;
-static const float OLD_PHOTOMETRIC_SCALE  = M_PI;
+static const float OLD_PHOTOMETRIC_SCALE  = 1.0f; // M_PI;
 
 SWTexSampler DummySampler();
 
