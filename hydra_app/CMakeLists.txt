@@ -47,11 +47,12 @@ if(WIN32)
     #add_definitions(-DNEED_DIR_CHANGE)
     #target_link_libraries(main LINK_PUBLIC ${OPENGL_gl_LIBRARY} hydra_api glfw3dll )
 else()
-    target_compile_options(hydra PRIVATE -fpermissive -Wnarrowing ${OpenMP_CXX_FLAGS})
+    target_compile_options(hydra PRIVATE -fpermissive -Wnarrowing)
     target_link_libraries(hydra LINK_PUBLIC
             hydra_drv
             hydrabvhbuilder embree sys tasking simd lexers
             vsgl3
+            ${OpenMP_CXX_LIBRARIES}
             hydra_api
             ies_parser
             mikktspace
@@ -63,7 +64,6 @@ else()
             ${OPENGL_glu_LIBRARY}
             ${LIBS}
             ${FREEIMAGE_LIBRARIES}
-            ${OpenMP_CXX_FLAGS}
             OpenCL)
 endif()
 
