@@ -117,8 +117,7 @@ namespace RAYTR
   {
   public:
 
-
-    ILight()
+    ILight() : tmpSkyLightBackTexId(INVALID_TEXTURE), tmpSkyLightBackGamma(2.2f)
     {
       memset(m_plain.data, 0, sizeof(m_plain.data));
       m_plain.data[PLIGHT_PROB_MULT] = 1.0f;
@@ -145,6 +144,9 @@ namespace RAYTR
 
     inline int32_t GetType () const { return as_int(m_plain.data[PLIGHT_TYPE]); }
     inline int32_t GetFlags() const { return as_int(m_plain.data[PLIGHT_FLAGS]); }
+
+    int32_t tmpSkyLightBackTexId;
+    float   tmpSkyLightBackGamma;
 
   protected:
 

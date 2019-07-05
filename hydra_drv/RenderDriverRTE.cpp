@@ -921,7 +921,17 @@ bool RenderDriverRTE::UpdateLight(int32_t a_lightId, pugi::xml_node a_lightNode)
     UpdatePdfTablesForLight(a_lightId);
 
   if (ltype == L"sky")
+  {
     m_skyLightsId.insert(a_lightId);
+
+    pugi::xml_node back = a_lightNode.child(L"back");
+    if (back != nullptr)
+    {
+      m_lights[a_lightId]->tmpSkyLightBackTexId = back.child(L"texture").attribute(L"id").as_int();
+      if (back.child(L"texture").attribute(L"input_gamma") != nullptr)
+        m_lights[a_lightId]->tmpSkyLightBackGamma = back.child(L"texture").attribute(L"input_gamma").as_float();
+    }
+  }
   else
   {
     auto p = m_skyLightsId.find(a_lightId);
@@ -1987,6 +1997,12 @@ void RenderDriverRTE::InstanceLights(int32_t a_lightId, const float* a_matrix, p
 
   if (pLight->GetFlags() & AREA_LIGHT_SKY_PORTAL) // this will prevent sky lights from explicit sampling
     m_sceneHaveSkyPortals = true;
+
+  if(pLight->GetType() == PLAIN_LIGHT_TYPE_SKY_DOME)
+  {
+    this->m_shadowMatteBackTexId = pLight->tmpSkyLightBackTexId;
+    this->m_shadowMatteBackGamma = pLight->tmpSkyLightBackGamma;
+  }  
 
 }
 
