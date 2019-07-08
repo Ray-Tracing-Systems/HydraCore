@@ -21,7 +21,7 @@ Input g_input;
 
 bool g_normalExit = false;
 IHRSharedAccumImage* g_pExternalImage = nullptr;
-extern bool g_hydraapipostprocessloaddll;
+//extern bool g_hydraapipostprocessloaddll;
 //extern bool g_hydraApiDisableSceneLoadInfo;
 
 void InfoCallBack(const wchar_t* message, const wchar_t* callerPlace, HR_SEVERITY_LEVEL a_level)
@@ -112,7 +112,7 @@ extern int g_height;
 
 int main(int argc, const char** argv)
 {
-  g_hydraapipostprocessloaddll = false; // don't load post process dll's by HydraAPI
+//  g_hydraapipostprocessloaddll = false; // don't load post process dll's by HydraAPI
 
   ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
   #ifdef WIN32
