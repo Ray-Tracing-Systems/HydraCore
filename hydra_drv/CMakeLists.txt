@@ -73,5 +73,3 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -msse4.1")
 
 ADD_LIBRARY(hydra_drv STATIC ${SOURCE_FILES})
 
-target_link_libraries(hydra_drv PRIVATE ${OpenMP_CXX_LIBRARIES})
-
