@@ -34,6 +34,8 @@ static HRSceneInstRef scnRef;
 static HRRenderRef    renderRef;
 
 
+std::wstring s2ws(const std::string& s);
+
 static void Init(std::shared_ptr<IHRRenderDriver> pDriverImpl)
 {
   hrErrorCallerPlace(L"Init");
