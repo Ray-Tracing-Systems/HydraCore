@@ -1,5 +1,5 @@
 #ifdef WIN32
-#include "../../HydraAPI/clew/clew.h"
+#include "clew/clew.h"
 #else
 #include <CL/cl.h>
 #endif

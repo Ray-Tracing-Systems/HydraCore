@@ -29,7 +29,7 @@ Linux:
 3. Clone HydraCore repo in the same folder (to form "myfolder/HydraCore").
 4. Set **"inDevelopment = false"** inside "input.cpp". 
 5. Use the following command to build and install HydraCore (for example from "myfolder/HydraCore/build")   
-**cmake -DCMAKE_INSTALL_PREFIX=/home/YourUserName .. && make all install -j 4**
+**cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/home/YourUserName .. && make all install -j 4**
 
 # Command line by examples
 

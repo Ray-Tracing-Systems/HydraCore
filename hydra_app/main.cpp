@@ -1,6 +1,6 @@
 #include "main.h"
 
-#include "../../HydraAPI/hydra_api/HydraRenderDriverAPI.h"
+#include "hydra_api/HydraRenderDriverAPI.h"
 #include "../hydra_drv/RenderDriverRTE.h"
 
 
@@ -8,7 +8,7 @@
   #include <windows.h> 
 #else
   #include <unistd.h>
-  #include <signal.h>
+  #include <csignal>
 #endif
 
 //#include <chrono>
@@ -195,6 +195,8 @@ int main(int argc, const char** argv)
     if (r1 == nullptr || r2 == nullptr)
       std::cerr << "[main]: freopen failed!" << std::endl;
   }
+
+
   
 
   try

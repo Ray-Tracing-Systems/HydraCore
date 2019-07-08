@@ -1,8 +1,8 @@
 #include "../hydra_drv/RenderDriverRTE.h"
-#include "../../HydraAPI/hydra_api/HydraLegacyUtils.h"
+#include "hydra_api/HydraLegacyUtils.h"
 
 #include "main.h"
-#include "../../HydraAPI/hydra_api/HR_HDRImageTool.h"
+#include "hydra_api/HR_HDRImageTool.h"
 
 using pugi::xml_node;
 using pugi::xml_attribute;

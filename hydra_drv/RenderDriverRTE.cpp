@@ -7,10 +7,10 @@
 #include <regex>
 #include <chrono>
 
-#include "../../HydraAPI/hydra_api/HydraXMLHelpers.h"
-#include "../../HydraAPI/hydra_api/HydraInternal.h"
+#include "hydra_api/HydraXMLHelpers.h"
+#include "hydra_api/HydraInternal.h"
 
-#include "../../HydraAPI/hydra_api/vfloat4_x64.h"
+#include "hydra_api/vfloat4_x64.h"
 
 #ifdef WIN32
 using cvex::operator-;
@@ -2095,23 +2095,23 @@ void RenderDriverRTE::GetGBufferLine(int32_t a_lineNumber, HRGBufferPixel* a_lin
 
 }
 
-HRDriverInfo RenderDriverRTE::Info()
-{
-  HRDriverInfo info; // very simple render driver implementation, does not support any other/advanced stuff
-
-  info.supportHDRFrameBuffer              = false;
-  info.supportHDRTextures                 = false;
-  info.supportMultiMaterialInstance       = false;
-
-  info.supportImageLoadFromInternalFormat = false;
-  info.supportImageLoadFromExternalFormat = false;
-  info.supportMeshLoadFromInternalFormat  = false;
-  info.supportLighting                    = false;
-  
-  info.memTotal                           = int64_t(8) * int64_t(1024 * 1024 * 1024);
-
-  return info;
-}
+//HRDriverInfo RenderDriverRTE::Info()
+//{
+//  HRDriverInfo info; // very simple render driver implementation, does not support any other/advanced stuff
+//
+//  info.supportHDRFrameBuffer              = false;
+//  info.supportHDRTextures                 = false;
+//  info.supportMultiMaterialInstance       = false;
+//
+//  info.supportImageLoadFromInternalFormat = false;
+//  info.supportImageLoadFromExternalFormat = false;
+//  info.supportMeshLoadFromInternalFormat  = false;
+//  info.supportLighting                    = false;
+//
+//  info.memTotal                           = int64_t(8) * int64_t(1024 * 1024 * 1024);
+//
+//  return info;
+//}
 
 const HRRenderDeviceInfoListElem* RenderDriverRTE::DeviceList() const
 {

@@ -7,8 +7,8 @@
 #include <regex>
 #include <algorithm>
 
-#include "../../HydraAPI/hydra_api/HydraXMLHelpers.h"
-#include "../../HydraAPI/hydra_api/HydraInternal.h"
+#include "hydra_api/HydraXMLHelpers.h"
+#include "hydra_api/HydraInternal.h"
 
 using ProcTexInfo   = RenderDriverRTE::ProcTexInfo;
 using AOProcTexInfo = RenderDriverRTE::AOProcTexInfo;

@@ -1,8 +1,8 @@
-// © Copyright 2017 Vladimir Frolov, Ray Tracing Systems
+// ï¿½ Copyright 2017 Vladimir Frolov, Ray Tracing Systems
 //
 
 #pragma once
-#include "../../HydraAPI/hydra_api/LiteMath.h"
+#include "hydra_api/LiteMath.h"
 using namespace HydraLiteMath;
 
 struct Camera

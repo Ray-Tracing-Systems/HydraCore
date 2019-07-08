@@ -60,6 +60,8 @@ struct RenderDriverRTE : public IHRRenderDriver
   void              ClearAll();
   HRDriverAllocInfo AllocAll(HRDriverAllocInfo a_info);
 
+  void GetRenderDriverName(std::wstring &name) override { name = std::wstring(L"HydraCore");};
+
   void GetLastErrorW(wchar_t a_msg[256]);
   /////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -91,7 +93,7 @@ struct RenderDriverRTE : public IHRRenderDriver
   void EvalGBuffer() override;
   void GetGBufferLine(int32_t a_lineNumber, HRGBufferPixel* a_lineData, int32_t a_startX, int32_t a_endX, const std::unordered_set<int32_t>& a_shadowCatchers) override;
 
-  HRDriverInfo Info();
+//  HRDriverInfo Info();
   const HRRenderDeviceInfoListElem* DeviceList() const override;
   bool EnableDevice(int32_t id, bool a_enable) override;
 

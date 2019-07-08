@@ -6,7 +6,7 @@
 #undef min
 #undef max
 
-#include "../../HydraAPI/hydra_api/ssemath.h"
+#include "hydra_api/ssemath.h"
 
 void GPUOCLLayer::AddContributionToScreen(cl_mem& in_color, cl_mem in_indices, bool a_copyToLDRNow, int a_layerId, bool a_repackIndex)
 {

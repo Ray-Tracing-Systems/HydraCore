@@ -2,8 +2,8 @@
 //
 
 #include "AbstractMaterial.h"
-#include "../../HydraAPI/hydra_api/pugixml.hpp"
-#include "../../HydraAPI/hydra_api/HydraXMLHelpers.h"
+#include "hydra_api/pugixml.hpp"
+#include "hydra_api/HydraXMLHelpers.h"
 
 #include "RenderDriverRTE.h"
 
