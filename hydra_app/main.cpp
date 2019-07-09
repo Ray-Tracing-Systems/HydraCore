@@ -39,11 +39,11 @@ void destroy()
   if (g_normalExit)
     return;
 
+  delete g_pExternalImage;
+  g_pExternalImage = nullptr;
+
   std::wcout << L"[main]: destroy()" << std::endl;
   hrSceneLibraryClose();
-
-  delete g_pExternalImage; 
-  g_pExternalImage = nullptr;
 }
 
 // init and call one of main loops depen on mode
@@ -86,11 +86,12 @@ void sig_handler(int signo)
     default     : std::cerr << "\n[hydra], SIG_UNKNOWN"; break;
       break;
   }
-  std::cerr << "[hydra]: hrSceneLibraryClose()" << std::endl;
-  hrSceneLibraryClose();
-  
+
   delete g_pExternalImage;
   g_pExternalImage = nullptr;
+
+  std::cerr << "[hydra]: hrSceneLibraryClose()" << std::endl;
+  hrSceneLibraryClose();
   
   if(g_pDriver != nullptr)
   {
@@ -325,13 +326,13 @@ int main(int argc, const char** argv)
     std::cout << "unknown exception" << std::endl;
   }
 
+  delete g_pExternalImage;
+  g_pExternalImage = nullptr;
+
   hrErrorCallerPlace(L"main"); // for debug needs only
   hrSceneLibraryClose();
   
   g_pDriver = nullptr;
-  
-  delete g_pExternalImage;
-  g_pExternalImage = nullptr;
   
 #ifdef WIN32
   SetConsoleCtrlHandler(NULL, FALSE);
