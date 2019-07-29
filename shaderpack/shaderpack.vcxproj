@@ -22,11 +22,20 @@
     <ClCompile Include="pack.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\..\HydraAPI\clew\clew.vcxproj">
-      <Project>{5f13e40f-c0f1-4ef4-a775-ab8bc703de88}</Project>
-    </ProjectReference>
     <ProjectReference Include="..\..\HydraAPI\hydra_api\HydraNewAPI1.vcxproj">
       <Project>{c05ff9ea-3d61-48b7-abea-4353253691dc}</Project>
+    </ProjectReference>
+    <ProjectReference Include="..\..\HydraAPI\utils\clew\clew.vcxproj">
+      <Project>{5f13e40f-c0f1-4ef4-a775-ab8bc703de88}</Project>
+    </ProjectReference>
+    <ProjectReference Include="..\..\HydraAPI\utils\corto\corto.vcxproj">
+      <Project>{43666dca-d7ff-411f-823f-d04cfc49669c}</Project>
+    </ProjectReference>
+    <ProjectReference Include="..\..\HydraAPI\utils\ies_parser\ies_parser.vcxproj">
+      <Project>{1d53b494-4b7e-464b-82a1-a2052240f6ef}</Project>
+    </ProjectReference>
+    <ProjectReference Include="..\..\HydraAPI\utils\mikktspace\mikktspace.vcxproj">
+      <Project>{7844c04d-f5d4-4c90-b080-6744a10c3332}</Project>
     </ProjectReference>
     <ProjectReference Include="..\hydra_drv\hydra_drv.vcxproj">
       <Project>{cb095789-f909-46dc-b9d6-9160ba7c508c}</Project>
@@ -40,7 +49,7 @@
     <ProjectGuid>{E0914440-7CB6-4D4F-84FD-49BD580663A3}</ProjectGuid>
     <Keyword>Win32Proj</Keyword>
     <RootNamespace>shaderpack2</RootNamespace>
-    <WindowsTargetPlatformVersion>10.0.17134.0</WindowsTargetPlatformVersion>
+    <WindowsTargetPlatformVersion>8.1</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
@@ -59,13 +68,13 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
-    <PlatformToolset>v141</PlatformToolset>
+    <PlatformToolset>v140</PlatformToolset>
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
-    <PlatformToolset>v141</PlatformToolset>
+    <PlatformToolset>v140</PlatformToolset>
     <WholeProgramOptimization>true</WholeProgramOptimization>
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
@@ -89,12 +98,16 @@
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <LinkIncremental>false</LinkIncremental>
+    <IncludePath>../../HydraAPI;../../HydraAPI/utils;../../HydraAPI/dependencies/include;$(IncludePath);$(VC_IncludePath);$(WindowsSDK_IncludePath);</IncludePath>
+    <LibraryPath>../../HydraAPI/dependencies/lib_x64_win;$(LibraryPath);$(VC_LibraryPath_x64);$(WindowsSDK_LibraryPath_x64);$(NETFXKitsDir)Lib\um\x64</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <LinkIncremental>true</LinkIncremental>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <LinkIncremental>true</LinkIncremental>
+    <IncludePath>../../HydraAPI;../../HydraAPI/utils;../../HydraAPI/dependencies/include;$(IncludePath);$(VC_IncludePath);$(WindowsSDK_IncludePath);</IncludePath>
+    <LibraryPath>../../HydraAPI/dependencies/lib_x64_win;$(LibraryPath);$(VC_LibraryPath_x64);$(WindowsSDK_LibraryPath_x64);$(NETFXKitsDir)Lib\um\x64</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <LinkIncremental>false</LinkIncremental>
