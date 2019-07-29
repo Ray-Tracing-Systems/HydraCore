@@ -22,7 +22,7 @@
     <ProjectGuid>{CB095789-F909-46DC-B9D6-9160BA7C508C}</ProjectGuid>
     <Keyword>Win32Proj</Keyword>
     <RootNamespace>hydra_drv</RootNamespace>
-    <WindowsTargetPlatformVersion>10.0.17134.0</WindowsTargetPlatformVersion>
+    <WindowsTargetPlatformVersion>8.1</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
@@ -47,7 +47,7 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
     <ConfigurationType>StaticLibrary</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
-    <PlatformToolset>v141</PlatformToolset>
+    <PlatformToolset>v140</PlatformToolset>
     <WholeProgramOptimization>true</WholeProgramOptimization>
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
@@ -74,14 +74,14 @@
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <LinkIncremental>true</LinkIncremental>
-    <IncludePath>../LIBRARY/include;../../HydraAPI/LIBRARY/include;$(IncludePath)</IncludePath>
+    <IncludePath>../../HydraAPI;../../HydraAPI/utils;../../HydraAPI/dependencies/include;$(IncludePath)</IncludePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <LinkIncremental>false</LinkIncremental>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <LinkIncremental>false</LinkIncremental>
-    <IncludePath>../LIBRARY/include;../../HydraAPI/LIBRARY/include;$(IncludePath)</IncludePath>
+    <IncludePath>../../HydraAPI;../../HydraAPI/utils;../../HydraAPI/dependencies/include;$(IncludePath)</IncludePath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
@@ -211,14 +211,8 @@
     <ClCompile Include="RenderDriverRTE_ProcTex.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\..\HydraAPI\clew\clew.vcxproj">
-      <Project>{5f13e40f-c0f1-4ef4-a775-ab8bc703de88}</Project>
-    </ProjectReference>
     <ProjectReference Include="..\..\HydraAPI\hydra_api\HydraNewAPI1.vcxproj">
       <Project>{c05ff9ea-3d61-48b7-abea-4353253691dc}</Project>
-    </ProjectReference>
-    <ProjectReference Include="..\..\HydraAPI\ies_parser\ies_parser.vcxproj">
-      <Project>{1d53b494-4b7e-464b-82a1-a2052240f6ef}</Project>
     </ProjectReference>
     <ProjectReference Include="..\vsgl3\vsgl3.vcxproj">
       <Project>{2758dd4a-78f6-452f-bbf5-4e86b46bd2ea}</Project>
