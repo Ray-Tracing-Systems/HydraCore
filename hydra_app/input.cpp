@@ -9,8 +9,8 @@ Input::Input()
   g_hydraApiDisableSceneLoadInfo = true;
   
   //noWindow      = false;         ///< run 'console_main', else run 'window_main'
-  //inLibraryPath = "tests/test_42"; ///< cornell box with teapot
-  inLibraryPath = "/home/frol/temp3/shadow_bug/01_0";
+  inLibraryPath = "tests/test_42"; ///< cornell box with teapot
+  //inLibraryPath = "/home/frol/temp3/shadow_bug/01_0";
   //inLibraryPath = "/home/frol/PROG/HydraRepos/HydraAPI-tests/tests_f/test_162";
   //inLibraryPath = "tests/test_42_with_mirror";
   //inLibraryPath = "tests/test_223_small"; ///< cornell box with sphere
@@ -19,7 +19,7 @@ Input::Input()
   //inLibraryPath = "tests/test_pool";
   //inLibraryPath = "/home/frol/PROG/CLSP_gitlab/database/temp";
 
-  inDevelopment = true;  ///< recompile shaders each time; note that nvidia have their own shader cache!
+  inDevelopment = false;  ///< recompile shaders each time; note that nvidia have their own shader cache!
   inDeviceId    = 0;     ///< opencl device id
   cpuFB         = false; ///< store frame buffer on CPU. Automaticly enabled if
   enableMLT     = false; ///< if use MMLT, you MUST enable it early, when render process just started (here or via command line).
