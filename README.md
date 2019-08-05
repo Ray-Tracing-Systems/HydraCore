@@ -21,7 +21,7 @@ Windows:
 8. Copy file "texproc.cl" from "HydraCore/hydra_drv/shaders" to "C:/[Hydra]/bin2/shaders/".
 9. Copy files "cfetch.h" and "cglobals.h" from "HydraCore/hydra_drv" to "C:/[Hydra]/bin2/shaders/"
 10. Copy hydra.exe from "HydraCore/hydra_app/x64/Release" to "C:/[Hydra]/bin2"
-11. Delete all files inside  "C:/[Hydra]/bin2/shadercache/" if you have them
+11. Delete all files inside  "C:/[Hydra]/bin2/shadercache/" if you have them. This will clear Hydra shader cache.
 
 
 Linux:
