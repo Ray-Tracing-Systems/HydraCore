@@ -71,7 +71,7 @@
   </material>
   <material id="10" name="my_area_light_material" type="hydra_material" light_id="0" visible="1">
     <emission>
-      <color val="50 50 50" />
+      <color val="160 160 160" />
     </emission>
   </material>
 </materials_lib>
@@ -80,7 +80,7 @@
     <size half_length="0.25" half_width="0.5" />
     <intensity>
       <color val="1 1 1" />
-      <multiplier val="50.0" />
+      <multiplier val="160.0" />
     </intensity>
   </light>
 </lights_lib>

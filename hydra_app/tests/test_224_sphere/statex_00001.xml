@@ -71,12 +71,12 @@
   </material>
   <material id="10" name="my_area_light_material" type="hydra_material" light_id="0" visible="1">
     <emission>
-      <color val="50 50 50" />
+      <color val="160 160 160" />
     </emission>
   </material>
   <material id="11" name="sphere1_material" type="hydra_material" light_id="1" visible="1">
     <emission>
-      <color val="8 8 8" />
+      <color val="25 25 25" />
     </emission>
   </material>
 </materials_lib>
@@ -85,13 +85,13 @@
     <size half_length="0.25" half_width="0.5" />
     <intensity>
       <color val="1 1 1" />
-      <multiplier val="50.0" />
+      <multiplier val="160.0" />
     </intensity>
   </light>
   <light id="1" name="sphere1" type="area" shape="sphere" distribution="uniform" visible="1" mat_id="11" mesh_id="6">
     <intensity>
       <color val="1 1 1" />
-      <multiplier val="8.0" />
+      <multiplier val="25.0" />
     </intensity>
     <size radius="0.5" />
   </light>

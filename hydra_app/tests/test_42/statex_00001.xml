@@ -62,7 +62,7 @@
   </material>
   <material id="9" name="my_area_light_material" type="hydra_material" light_id="0" visible="1">
     <emission>
-      <color val="10 10 10" />
+      <color val="31.4 31.4 31.4" />
     </emission>
   </material>
 </materials_lib>
@@ -71,7 +71,7 @@
     <size half_length="1" half_width="1" />
     <intensity>
       <color>1 1 1</color>
-      <multiplier>10.0</multiplier>
+      <multiplier>31.4</multiplier>
     </intensity>
   </light>
 </lights_lib>
@@ -83,7 +83,7 @@
     <up>0 1 0</up>
     <position>0 0 15</position>
     <look_at>0 0 0</look_at>
-    <enable_dof>1</enable_dof> 
+    <enable_dof>0</enable_dof> 
     <dof_lens_radius>0.25f</dof_lens_radius>
   </camera>
 </cam_lib>

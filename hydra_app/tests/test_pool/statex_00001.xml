@@ -127,7 +127,7 @@
   </material>
   <material id="8" name="PhotometricLight001_material" type="hydra_material" light_id="1" visible="1">
     <emission>
-      <color val="224.248 224.248 224.248" />
+      <color val="700 700 700" />
     </emission>
   </material>
 </materials_lib>
@@ -140,7 +140,7 @@
   </light>
   <light id="1" name="PhotometricLight001" type="area" shape="rect" distribution="diffuse" visible="1" mat_id="8" mesh_id="4">
     <intensity>
-      <multiplier val="224.248123" />
+      <multiplier val="700" />
       <color val="1 1 1" />
     </intensity>
     <size radius="0.609600008" half_length="0.609600008" half_width="0.609600008" />
