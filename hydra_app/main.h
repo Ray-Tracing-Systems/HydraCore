@@ -12,7 +12,7 @@
 #include <iostream>
 #include <sstream>
 
-#include "../vsgl3/Timer.h"
+#include "utils/Timer.h"
 
 #if defined(_MSC_VER)
   #include <GLFW/glfw3.h>
@@ -23,8 +23,8 @@
 
 #include "input.h"
 
-#include "../../HydraAPI/hydra_api/HydraAPI.h"
-#include "../../HydraAPI/hydra_api/HydraXMLHelpers.h"
+#include "hydra_api/HydraAPI.h"
+#include "hydra_api/HydraXMLHelpers.h"
 
 #include "Camera.h"
 

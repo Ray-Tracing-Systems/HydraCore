@@ -14,8 +14,8 @@
 #include "IBVHBuilderAPI.h"
 #include "IMemoryStorage.h"
 
-#include "../../HydraAPI/hydra_api/HydraAPI.h"
-#include "../../HydraAPI/hydra_api/HydraInternal.h"
+#include "hydra_api/HydraAPI.h"
+#include "hydra_api/HydraInternal.h"
 
 typedef void(*RTE_PROGRESSBAR_CALLBACK)(const wchar_t* message, float a_progress);
 

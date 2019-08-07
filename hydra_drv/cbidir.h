@@ -567,9 +567,9 @@ static inline float3 environmentColorExtended(float3 ray_pos, float3 ray_dir, Mi
     {
       const float texCoordX = (float)screenX / a_globals->varsF[HRT_WIDTH_F];
       const float texCoordY = (float)screenY / a_globals->varsF[HRT_HEIGHT_F];
-      const float gammaInv = a_globals->varsF[HRT_BACK_TEXINPUT_GAMMA];
-      const int offset = textureHeaderOffset(a_globals, backTextureId);
-      envColor = to_float3(read_imagef_sw4(in_texStorage1 + offset, make_float2(texCoordX, texCoordY), TEX_CLAMP_U | TEX_CLAMP_V));
+      const float gammaInv  = a_globals->varsF[HRT_BACK_TEXINPUT_GAMMA];
+      const int offset      = textureHeaderOffset(a_globals, backTextureId);
+      envColor   = to_float3(read_imagef_sw4(in_texStorage1 + offset, make_float2(texCoordX, texCoordY), TEX_CLAMP_U | TEX_CLAMP_V));
       envColor.x = pow(envColor.x, gammaInv);
       envColor.y = pow(envColor.y, gammaInv);
       envColor.z = pow(envColor.z, gammaInv);

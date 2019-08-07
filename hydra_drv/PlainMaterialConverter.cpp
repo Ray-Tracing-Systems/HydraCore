@@ -2,8 +2,8 @@
 //
 
 #include "AbstractMaterial.h"
-#include "../../HydraAPI/hydra_api/pugixml.hpp"
-#include "../../HydraAPI/hydra_api/HydraXMLHelpers.h"
+#include "hydra_api/pugixml.hpp"
+#include "hydra_api/HydraXMLHelpers.h"
 
 #include "RenderDriverRTE.h"
 
@@ -1407,6 +1407,9 @@ std::shared_ptr<IMaterial> CreateMaterialFromXmlNode(pugi::xml_node a_node, Rend
       int enableRefl = back.attribute(L"reflection").as_int();
       if (enableRefl == 1)
         pResult->AddFlags(PLAIN_MATERIAL_CAMERA_MAPPED_REFL);
+      
+      if(back.attribute(L"fix_black_triangles").as_int() == 1)
+        pResult->AddFlags(PLAIN_MATERIAL_CATCHER_FIX_BLACK_TRIANGLES);
     }
 
     if(length(colorE) > 1e-4f) // emissive shadow catcher

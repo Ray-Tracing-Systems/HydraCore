@@ -1,8 +1,8 @@
 #include "GPUOCLLayer.h"
 #include "crandom.h"
 
-#include "../../HydraAPI/hydra_api/xxhash.h"
-#include "../../HydraAPI/hydra_api/ssemath.h"
+#include "hydra_api/xxhash.h"
+#include "hydra_api/ssemath.h"
 
 #include "cl_scan_gpu.h"
 

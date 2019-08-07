@@ -1,7 +1,7 @@
 #include "main.h"
 #include "Camera.h"
 
-#include "../../HydraAPI/hydra_api/HydraRenderDriverAPI.h"
+#include "hydra_api/HydraRenderDriverAPI.h"
 IHRRenderDriver* CreateDriverRTE(const wchar_t* a_cfg, int w, int h, int a_devId, int a_flags);
 
 #ifndef WIN32

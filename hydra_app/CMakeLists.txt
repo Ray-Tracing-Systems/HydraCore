@@ -9,12 +9,17 @@ set(SOURCE_FILES
         main_app_window.cpp
         main.cpp
         main.h
-        ${CMAKE_SOURCE_DIR}/../HydraAPI/main/Timer.h
-        ${CMAKE_SOURCE_DIR}/../HydraAPI/main/Timer.cpp
     )
+
+
+set(EXTERNAL_SRC
+        ${HYDRA_API_UTILS_SRC_DIR}/Timer.h
+        ${HYDRA_API_UTILS_SRC_DIR}/Timer.cpp)
 
 set(ADDITIONAL_INCLUDE_DIRS
         ../LIBRARY/include)
+
+include_directories(${HYDRA_API_ROOT_DIR})
 
 if (CMAKE_BUILD_TYPE STREQUAL "Debug")
     MESSAGE(WARNING "DEBUG IS ON")
@@ -31,12 +36,9 @@ find_package(Threads REQUIRED)
 find_package(OpenMP REQUIRED)
 
 
-# include_directories(${ADDITIONAL_INCLUDE_DIRS})
-# target_include_directories(main PUBLIC ${OPENGL_INCLUDE_DIR})
-
 link_directories(${CMAKE_SOURCE_DIR}/../HydraAPI/bin/ ${CMAKE_SOURCE_DIR}/LIBRARY/lib_x64_linux/)
 
-add_executable(hydra ${SOURCE_FILES})
+add_executable(hydra ${SOURCE_FILES} ${EXTERNAL_SRC})
 
 #MESSAGE(WARNING "CMAKE_SOURCE_DIR: " ${CMAKE_SOURCE_DIR} )
 #SET (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=address -fsanitize-address-use-after-scope -fno-omit-frame-pointer -fsanitize=leak -fsanitize=undefined -fsanitize=bounds-strict")

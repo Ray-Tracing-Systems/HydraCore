@@ -7,10 +7,10 @@
 #include <regex>
 #include <chrono>
 
-#include "../../HydraAPI/hydra_api/HydraXMLHelpers.h"
-#include "../../HydraAPI/hydra_api/HydraInternal.h"
+#include "hydra_api/HydraXMLHelpers.h"
+#include "hydra_api/HydraInternal.h"
 
-#include "../../HydraAPI/hydra_api/vfloat4_x64.h"
+#include "hydra_api/vfloat4_x64.h"
 
 #ifdef WIN32
 using cvex::operator-;
@@ -921,7 +921,17 @@ bool RenderDriverRTE::UpdateLight(int32_t a_lightId, pugi::xml_node a_lightNode)
     UpdatePdfTablesForLight(a_lightId);
 
   if (ltype == L"sky")
+  {
     m_skyLightsId.insert(a_lightId);
+
+    pugi::xml_node back = a_lightNode.child(L"back");
+    if (back != nullptr)
+    {
+      m_lights[a_lightId]->tmpSkyLightBackTexId = back.child(L"texture").attribute(L"id").as_int();
+      if (back.child(L"texture").attribute(L"input_gamma") != nullptr)
+        m_lights[a_lightId]->tmpSkyLightBackGamma = back.child(L"texture").attribute(L"input_gamma").as_float();
+    }
+  }
   else
   {
     auto p = m_skyLightsId.find(a_lightId);
@@ -1988,6 +1998,12 @@ void RenderDriverRTE::InstanceLights(int32_t a_lightId, const float* a_matrix, p
   if (pLight->GetFlags() & AREA_LIGHT_SKY_PORTAL) // this will prevent sky lights from explicit sampling
     m_sceneHaveSkyPortals = true;
 
+  if(pLight->GetType() == PLAIN_LIGHT_TYPE_SKY_DOME)
+  {
+    this->m_shadowMatteBackTexId = pLight->tmpSkyLightBackTexId;
+    this->m_shadowMatteBackGamma = pLight->tmpSkyLightBackGamma;
+  }  
+
 }
 
 HRRenderUpdateInfo RenderDriverRTE::HaveUpdateNow(int a_maxRaysperPixel)
@@ -2095,23 +2111,23 @@ void RenderDriverRTE::GetGBufferLine(int32_t a_lineNumber, HRGBufferPixel* a_lin
 
 }
 
-HRDriverInfo RenderDriverRTE::Info()
-{
-  HRDriverInfo info; // very simple render driver implementation, does not support any other/advanced stuff
-
-  info.supportHDRFrameBuffer              = false;
-  info.supportHDRTextures                 = false;
-  info.supportMultiMaterialInstance       = false;
-
-  info.supportImageLoadFromInternalFormat = false;
-  info.supportImageLoadFromExternalFormat = false;
-  info.supportMeshLoadFromInternalFormat  = false;
-  info.supportLighting                    = false;
-  
-  info.memTotal                           = int64_t(8) * int64_t(1024 * 1024 * 1024);
-
-  return info;
-}
+//HRDriverInfo RenderDriverRTE::Info()
+//{
+//  HRDriverInfo info; // very simple render driver implementation, does not support any other/advanced stuff
+//
+//  info.supportHDRFrameBuffer              = false;
+//  info.supportHDRTextures                 = false;
+//  info.supportMultiMaterialInstance       = false;
+//
+//  info.supportImageLoadFromInternalFormat = false;
+//  info.supportImageLoadFromExternalFormat = false;
+//  info.supportMeshLoadFromInternalFormat  = false;
+//  info.supportLighting                    = false;
+//
+//  info.memTotal                           = int64_t(8) * int64_t(1024 * 1024 * 1024);
+//
+//  return info;
+//}
 
 const HRRenderDeviceInfoListElem* RenderDriverRTE::DeviceList() const
 {

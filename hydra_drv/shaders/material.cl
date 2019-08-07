@@ -543,7 +543,7 @@ __kernel void HitEnvOrLightKernel(__global const float4*    restrict in_rpos,
       out_emission[tid]       = to_float4(emissColor, as_float(packedIsLight));
 
     } // \\ if light emission is not zero
-    else if (reflectProjectedBack) // fucking shadow catcher (camera mapped reflections)
+    else if (reflectProjectedBack || (materialGetFlags(pHitMaterial) & PLAIN_MATERIAL_CATCHER_FIX_BLACK_TRIANGLES)) // fucking shadow catcher (camera mapped reflections)
     {
       const float3 surfHitPos     = ReadSurfaceHitPos(in_surfaceHit, tid, iNumElements);
       const float2 posScreenSpace = worldPosToScreenSpace(surfHitPos, a_globals);
@@ -819,7 +819,8 @@ __kernel void NextBounce(__global const int2*      restrict in_zind,
 
   //// piece of shit for emissive shadow catchers
   //
-  if(materialGetFlags(pHitMaterial) & PLAIN_MATERIAL_EMISSIVE_SHADOW_CATCHER) 
+  if((materialGetFlags(pHitMaterial) & PLAIN_MATERIAL_EMISSIVE_SHADOW_CATCHER) ||
+     (materialGetFlags(pHitMaterial) & PLAIN_MATERIAL_CATCHER_FIX_BLACK_TRIANGLES) )
   {
     outPathColor  *= shadowVal;
     hitLightSource = true;
