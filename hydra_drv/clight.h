@@ -320,6 +320,9 @@ static inline float evalMap2DPdf(const float2 texCoordT, __global const float* i
   if (pixelX < 0) pixelX += sizeX;
   if (pixelY < 0) pixelY += sizeY;
 
+  if (pixelX < 0 || pixelY < 0)
+    return 1.0f;
+
   const int pixelOffset = pixelY*sizeX + pixelX;
   const int maxSize = sizeX*sizeY;
   const int offset0 = (pixelOffset + 0 < maxSize) ? pixelOffset + 0 : maxSize - 1;

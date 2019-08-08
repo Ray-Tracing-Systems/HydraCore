@@ -558,6 +558,7 @@ static inline float3 environmentColorExtended(float3 ray_pos, float3 ray_dir, Mi
   else
   {
     envColor = environmentColor(ray_dir, misPrev, flags, a_globals, in_mtlStorage, in_pdfStorage, in_texStorage1);
+    
     const uint rayBounce     = unpackBounceNum(flags);
     unsigned int otherFlags  = unpackRayFlags(flags);
     const int backTextureId  = a_globals->varsI[HRT_SHADOW_MATTE_BACK];
