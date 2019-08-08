@@ -539,7 +539,7 @@ GPUOCLLayer::GPUOCLLayer(int w, int h, int a_flags, int a_deviceId) : Base(w, h,
   m_clglSharing = 0;
   int clglIsSupported = clglSharingIsSupported(m_globals.device);
 
-  cl_int ciErr1;
+  cl_int ciErr1 = CL_SUCCESS;
  
   if ((a_flags & GPU_RT_NOWINDOW) || (clglIsSupported == 0))
   {
