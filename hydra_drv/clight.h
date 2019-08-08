@@ -306,10 +306,13 @@ static inline float3 skyLightGetIntensityTexturedENV(__global const PlainLight* 
     return envColor*texColor;
 }
 
-static inline float evalMap2DPdf(const float2 texCoordT, __global const float* intervals, const int sizeX, const int sizeY)
+static inline float evalMap2DPdf(float2 texCoordT, __global const float* intervals, const int sizeX, const int sizeY)
 {
   const float fw = (float)sizeX;
   const float fh = (float)sizeY;
+
+  if (texCoordT.x < 0.0f || texCoordT.x > 1.0f) texCoordT.x -= (float)((int)(texCoordT.x));
+  if (texCoordT.y < 0.0f || texCoordT.x > 1.0f) texCoordT.y -= (float)((int)(texCoordT.y));
 
   int pixelX = (int)(fw*texCoordT.x - 0.5f);
   int pixelY = (int)(fh*texCoordT.y - 0.5f);
@@ -320,8 +323,8 @@ static inline float evalMap2DPdf(const float2 texCoordT, __global const float* i
   if (pixelX < 0) pixelX += sizeX;
   if (pixelY < 0) pixelY += sizeY;
 
-  if (pixelX < 0 || pixelY < 0)
-    return 1.0f;
+  //if (pixelX < 0 || pixelY < 0)
+    //return 1.0f;
 
   const int pixelOffset = pixelY*sizeX + pixelX;
   const int maxSize = sizeX*sizeY;
