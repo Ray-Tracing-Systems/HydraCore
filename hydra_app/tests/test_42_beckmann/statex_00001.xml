@@ -17,10 +17,10 @@
     <diffuse brdf_type="lambert">
       <color>0.207843 0.188235 0</color>
     </diffuse>
-    <reflectivity brdf_type="beckmann">
+    <reflectivity brdf_type="torranse_sparrow">
       <color>0.367059 0.345882 0</color>
       <glossiness val = "0.5" />
-      <anisotropy val = "0" />
+      <anisotropy val = "0.5" />
     </reflectivity>
   </material>
   <material id="2" name="mysimplemat3" type="hydra_material">

@@ -707,6 +707,7 @@ static inline void PhongSampleAndEvalBRDF(__global const PlainMaterial* a_pMat, 
 
 #define BLINN_GLOSINESS_TEXID_OFFSET        17
 #define BLINN_GLOSINESS_TEXMATRIXID_OFFSET  18
+#define BLINN_ANISOTROPY_OFFSET             19 
 
 #define BLINN_SAMPLER0_OFFSET               20 
 #define BLINN_SAMPLER1_OFFSET               32
@@ -877,7 +878,9 @@ static inline void BlinnSampleAndEvalBRDF(__global const PlainMaterial* a_pMat, 
     nz = temp;
   }
 
-  const float3 wo = make_float3(-dot(ray_dir, nx), -dot(ray_dir, ny), -dot(ray_dir, nz));
+  const float3 wo = make_float3(-dot(ray_dir, nx), 
+                                -dot(ray_dir, ny), 
+                                -dot(ray_dir, nz));
   //
   ///////////////////////////////////////////////////////////////////////////// to PBRT coordinate system
 

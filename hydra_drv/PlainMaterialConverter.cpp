@@ -466,14 +466,17 @@ class BlinnTorranceSrappowMaterial : public IMaterial
 public:
 
   BlinnTorranceSrappowMaterial() {}
-  BlinnTorranceSrappowMaterial(float3 color, int texId, SWTexSampler a_samplerColor, float cosPower, int glossTexId, SWTexSampler a_samplerGloss, float a_glosiness)
+  BlinnTorranceSrappowMaterial(float3 color, int texId, SWTexSampler a_samplerColor, float cosPower, int glossTexId, 
+                               SWTexSampler a_samplerGloss, float a_glosiness,
+                               SWTexSampler a_samplerAniso, float a_anisotropy)
   {
     m_plain.data[BLINN_COLORX_OFFSET] = color.x;
     m_plain.data[BLINN_COLORY_OFFSET] = color.y;
     m_plain.data[BLINN_COLORZ_OFFSET] = color.z;
 
-    m_plain.data[BLINN_COSPOWER_OFFSET]  = cosPower;
-    m_plain.data[BLINN_GLOSINESS_OFFSET] = a_glosiness; 
+    m_plain.data[BLINN_COSPOWER_OFFSET]    = cosPower;
+    m_plain.data[BLINN_GLOSINESS_OFFSET]   = a_glosiness; 
+    m_plain.data[BLINN_ANISOTROPY_OFFSET]  = a_anisotropy; 
 
     this->PutSamplerAt(texId,      a_samplerColor, BLINN_TEXID_OFFSET,           BLINN_TEXMATRIXID_OFFSET,           BLINN_SAMPLER0_OFFSET);
     this->PutSamplerAt(glossTexId, a_samplerGloss, BLINN_GLOSINESS_TEXID_OFFSET, BLINN_GLOSINESS_TEXMATRIXID_OFFSET, BLINN_SAMPLER1_OFFSET);
@@ -1001,7 +1004,7 @@ std::shared_ptr<IMaterial> ReflectiveMaterialFromHydraMtl(const pugi::xml_node a
   if (texIdGloss == INVALID_TEXTURE && glossVal >= 0.995f)
     return std::make_shared<MirrorMaterial>(colorS, texId, sampler);
   else if (brfdType == L"torranse_sparrow")
-    return std::make_shared<BlinnTorranceSrappowMaterial>(colorS, texId, sampler, 0.0f, texIdGloss, samplerGloss, glossVal);
+    return std::make_shared<BlinnTorranceSrappowMaterial>(colorS, texId, sampler, 0.0f, texIdGloss, samplerGloss, glossVal, samplerAniso, anisoVal);
   else if (brfdType == L"ggx" || brfdType == L"GGX")
     return std::make_shared<GGXMaterial>                 (colorS, texId, sampler, 0.0f, texIdGloss, samplerGloss, glossVal, samplerAniso, anisoVal);
   else if (brfdType == L"beckmann" || brfdType == L"Beckmann")
