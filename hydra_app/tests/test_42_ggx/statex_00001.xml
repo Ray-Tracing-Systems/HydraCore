@@ -19,7 +19,8 @@
     </diffuse>
     <reflectivity brdf_type="ggx">
       <color>0.367059 0.345882 0</color>
-      <glossiness>0.5</glossiness>
+      <glossiness val = "0.5" />
+      <anisotropy val = "1" />
     </reflectivity>
   </material>
   <material id="2" name="mysimplemat3" type="hydra_material">

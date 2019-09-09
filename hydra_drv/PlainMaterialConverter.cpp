@@ -496,13 +496,66 @@ protected:
 };
 
 
+class BeckmannMaterial : public IMaterial
+{
+
+public:
+
+  BeckmannMaterial() {  }
+  BeckmannMaterial(float3 color, int texId, SWTexSampler a_samplerColor, float cosPower, int glossTexId, 
+                   SWTexSampler a_samplerGloss, float a_glosiness, 
+                   SWTexSampler a_samplerAniso, float a_aniso)
+  {
+    m_plain.data[BECKMANN_COLORX_OFFSET] = color.x;
+    m_plain.data[BECKMANN_COLORY_OFFSET] = color.y;
+    m_plain.data[BECKMANN_COLORZ_OFFSET] = color.z;
+
+    m_plain.data[BECKMANN_COSPOWER_OFFSET]  = cosPower;
+    m_plain.data[BECKMANN_GLOSINESS_OFFSET] = a_glosiness;
+
+    ((int*)(m_plain.data))[BECKMANN_TEXID_OFFSET]           = texId;
+    ((int*)(m_plain.data))[BECKMANN_GLOSINESS_TEXID_OFFSET] = glossTexId;
+
+    //////////////////////////////////////////////////////////////////////////////////////////////////////////////// put samplers right here
+    const int texMatrixId      = (texId == INVALID_TEXTURE)      ? INVALID_TEXTURE : (BECKMANN_SAMPLER0_OFFSET / 4);
+    const int glossTexMatrixId = (glossTexId == INVALID_TEXTURE) ? INVALID_TEXTURE : (BECKMANN_SAMPLER1_OFFSET / 4);
+
+    ((int*)(m_plain.data))[BECKMANN_TEXMATRIXID_OFFSET]           = texMatrixId;
+    ((int*)(m_plain.data))[BECKMANN_GLOSINESS_TEXMATRIXID_OFFSET] = glossTexMatrixId;
+
+    SWTexSampler* pSampler1 = (SWTexSampler*)(m_plain.data + BECKMANN_SAMPLER0_OFFSET);
+    SWTexSampler* pSampler2 = (SWTexSampler*)(m_plain.data + BECKMANN_SAMPLER1_OFFSET);
+    (*pSampler1) = a_samplerColor;
+    (*pSampler2) = a_samplerGloss;
+    //////////////////////////////////////////////////////////////////////////////////////////////////////////////// put samplers right here
+
+    ((int*)(m_plain.data))[PLAIN_MAT_TYPE_OFFSET]  = PLAIN_MAT_CLASS_BECKMANN;
+    ((int*)(m_plain.data))[PLAIN_MAT_FLAGS_OFFSET] = PLAIN_MATERIAL_CAST_CAUSTICS;
+  }
+
+  std::vector<PlainMaterial> ConvertToPlainMaterial() const
+  {
+    std::vector<PlainMaterial> res(1);
+    res[0] = m_plain;
+    return res;
+  }
+
+protected:
+
+
+};
+
+
+
 class GGXMaterial : public IMaterial
 {
 
 public:
 
   GGXMaterial() {  }
-  GGXMaterial(float3 color, int texId, SWTexSampler a_samplerColor, float cosPower, int glossTexId, SWTexSampler a_samplerGloss, float a_glosiness)
+  GGXMaterial(float3 color, int texId, SWTexSampler a_samplerColor, float cosPower, int glossTexId, 
+              SWTexSampler a_samplerGloss, float a_glosiness, 
+              SWTexSampler a_samplerAniso, float a_aniso)
   {
     m_plain.data[GGX_COLORX_OFFSET] = color.x;
     m_plain.data[GGX_COLORY_OFFSET] = color.y;
@@ -908,31 +961,40 @@ std::shared_ptr<IMaterial> ReflectiveMaterialFromHydraMtl(const pugi::xml_node a
 {
   pugi::xml_node reflect = a_node.child(L"reflectivity");
   pugi::xml_node gloss   = reflect.child(L"glossiness");
+  pugi::xml_node aniso   = reflect.child(L"anisotropy");
 
   const float3 colorS   = HydraXMLHelpers::ReadValue3f(reflect.child(L"color"));
   const float  glossVal = HydraXMLHelpers::ReadValue1f(gloss);
+  const float  anisoVal = HydraXMLHelpers::ReadValue1f(aniso);
 
-  int32_t texId = INVALID_TEXTURE;
+  int32_t texId      = INVALID_TEXTURE;
+  int32_t texIdGloss = INVALID_TEXTURE;
+  int32_t texIdAniso = INVALID_TEXTURE;
 
   SWTexSampler sampler      = DummySampler();
   SWTexSampler samplerGloss = DummySampler();
-  if (SamplerNode(reflect) != nullptr)
+  SWTexSampler samplerAniso = DummySampler();
+
+  if(SamplerNode(reflect) != nullptr)
   {
     sampler = SamplerFromTexref(SamplerNode(reflect));
     texId   = sampler.texId;
   }
 
-	a_texId      = texId;
-	a_texSampler = sampler;
-
-  int32_t texIdGloss = INVALID_TEXTURE;
-
-  if (SamplerNode(gloss) != nullptr)
+  if(SamplerNode(gloss) != nullptr)
   {
     samplerGloss = SamplerFromTexref(SamplerNode(gloss));
     texIdGloss   = samplerGloss.texId;
   }
 
+  if(SamplerNode(aniso) != nullptr)
+  {
+    samplerAniso = SamplerFromTexref(SamplerNode(aniso));
+    texIdAniso   = samplerAniso.texId;
+  }
+
+  a_texId      = texId;
+	a_texSampler = sampler;
 
 	const std::wstring brfdType = reflect.attribute(L"brdf_type").as_string();
 
@@ -941,7 +1003,9 @@ std::shared_ptr<IMaterial> ReflectiveMaterialFromHydraMtl(const pugi::xml_node a
   else if (brfdType == L"torranse_sparrow")
     return std::make_shared<BlinnTorranceSrappowMaterial>(colorS, texId, sampler, 0.0f, texIdGloss, samplerGloss, glossVal);
   else if (brfdType == L"ggx" || brfdType == L"GGX")
-    return std::make_shared<GGXMaterial>                 (colorS, texId, sampler, 0.0f, texIdGloss, samplerGloss, glossVal);
+    return std::make_shared<GGXMaterial>                 (colorS, texId, sampler, 0.0f, texIdGloss, samplerGloss, glossVal, samplerAniso, anisoVal);
+  else if (brfdType == L"beckmann" || brfdType == L"Beckmann")
+    return std::make_shared<BeckmannMaterial>            (colorS, texId, sampler, 0.0f, texIdGloss, samplerGloss, glossVal, samplerAniso, anisoVal);
   else
     return std::make_shared<PhongMaterial>               (colorS, texId, sampler, 0.0f, texIdGloss, samplerGloss, glossVal);
 }
