@@ -861,11 +861,6 @@ static inline void BlinnSampleAndEvalBRDF(__global const PlainMaterial* a_pMat, 
                                           __global const EngineGlobals* a_globals, texture2d_t a_tex, __private const ProcTextureList* a_ptList,
                                           __private MatSample* a_out)
 {
-  const float3 texColor = sample2DExt(blinnGetTex(a_pMat).y, a_texCoord, (__global const int4*)a_pMat, a_tex, a_globals, a_ptList);
-  const float3 color    = clamp(blinnGetColor(a_pMat)*texColor, 0.0f, 1.0f);
-  const float  gloss    = blinnGlosiness(a_pMat, a_texCoord, a_globals, a_tex, a_ptList);
-  const float  cosPower = cosPowerFromGlosiness(gloss);
-
   ///////////////////////////////////////////////////////////////////////////// to PBRT coordinate system
   // wo = v = ray_dir
   // wi = l = -newDir
@@ -884,15 +879,29 @@ static inline void BlinnSampleAndEvalBRDF(__global const PlainMaterial* a_pMat, 
   //
   ///////////////////////////////////////////////////////////////////////////// to PBRT coordinate system
 
+  const float u1  = a_r1;
+  const float u2  = a_r2;
+  const float phi = u2 * 2.f * M_PI;
+
+  const float3 texColor  = sample2DExt(blinnGetTex(a_pMat).y, a_texCoord, (__global const int4*)a_pMat, a_tex, a_globals, a_ptList);
+  const float3 color     = clamp(blinnGetColor(a_pMat)*texColor, 0.0f, 1.0f);
+  
+  const float  aniso     = a_pMat->data[BLINN_ANISOTROPY_OFFSET];
+  const float  anisoMult = 1.0f; 
+  //const float  anisoMult = (1.0f - aniso*fabs(sin(phi)));
+  //const float  anisoMult = (1.0f - aniso*cos(phi));
+  
+  const float  gloss     = blinnGlosiness(a_pMat, a_texCoord, a_globals, a_tex, a_ptList)*anisoMult;
+  const float  cosPower  = cosPowerFromGlosiness(gloss);
+
+
   // Compute sampled half-angle vector $\wh$ for Blinn distribution
   //
   const float exponent = cosPower;
-  const float u1       = a_r1;
-  const float u2       = a_r2;
+
 
   const float costheta = pow(u1, 1.f / (exponent + 1.0f));
   const float sintheta = sqrt(fmax(0.f, 1.f - costheta*costheta));
-  const float phi      = u2 * 2.f * M_PI;
   
   float3 wh = SphericalDirection(sintheta, costheta, phi);
   if (!SameHemisphere(wo, wh))
