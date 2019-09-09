@@ -917,6 +917,126 @@ static inline void BlinnSampleAndEvalBRDF(__global const PlainMaterial* a_pMat, 
 }
 
 
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+#define GGX_COLORX_OFFSET       10
+#define GGX_COLORY_OFFSET       11
+#define GGX_COLORZ_OFFSET       12
+
+#define GGX_TEXID_OFFSET        13
+#define GGX_TEXMATRIXID_OFFSET  14
+
+#define GGX_COSPOWER_OFFSET     15
+#define GGX_GLOSINESS_OFFSET    16
+
+#define GGX_GLOSINESS_TEXID_OFFSET        17
+#define GGX_GLOSINESS_TEXMATRIXID_OFFSET  18
+
+#define GGX_SAMPLER0_OFFSET               20
+#define GGX_SMATRIX0_OFFSET               24
+
+#define GGX_SAMPLER1_OFFSET               32
+#define GGX_SMATRIX1_OFFSET               36
+
+static inline float3 ggxGetColor(__global const PlainMaterial* a_pMat) { return make_float3(a_pMat->data[GGX_COLORX_OFFSET], a_pMat->data[GGX_COLORY_OFFSET], a_pMat->data[GGX_COLORZ_OFFSET]); }
+static inline int2   ggxGetTex(__global const PlainMaterial* a_pMat)
+{
+  int2 res;
+  res.x = as_int(a_pMat->data[GGX_TEXID_OFFSET]);
+  res.y = as_int(a_pMat->data[GGX_TEXMATRIXID_OFFSET]);
+  return res;
+}
+
+
+static inline float ggxGlosiness(__global const PlainMaterial* a_pMat, const float2 a_texCoord,
+                                 __global const EngineGlobals* a_globals, texture2d_t a_tex, __private const ProcTextureList* a_ptList)
+{
+  if (as_int(a_pMat->data[GGX_GLOSINESS_TEXID_OFFSET]) != INVALID_TEXTURE)
+  {
+    const int2   texId      = make_int2(as_int(a_pMat->data[GGX_GLOSINESS_TEXID_OFFSET]), as_int(a_pMat->data[GGX_GLOSINESS_TEXMATRIXID_OFFSET]));
+    const float3 glossColor = sample2DExt(texId.y, a_texCoord, (__global const int4*)a_pMat, a_tex, a_globals, a_ptList);
+    const float  glossMult  = a_pMat->data[GGX_GLOSINESS_OFFSET];
+    const float  glosiness  = clamp(glossMult*maxcomp(glossColor), 0.0f, 1.0f);
+    return glosiness; 
+  }
+  else
+    return a_pMat->data[GGX_GLOSINESS_OFFSET];
+}
+
+static inline float ggxEvalPDF(__global const PlainMaterial* a_pMat, const float3 l, const float3 v, const float3 n, const float2 a_texCoord,
+                                 __global const EngineGlobals* a_globals, texture2d_t a_tex, __private const ProcTextureList* a_ptList)
+{
+  const float3 r        = reflect((-1.0)*v, n);
+  const float  cosTheta = clamp(fabs(dot(l, r)), DEPSILON2, M_PI*0.499995f); 
+
+  const float  gloss    = ggxGlosiness(a_pMat, a_texCoord, a_globals, a_tex, a_ptList);
+  const float  cosPower = cosPowerFromGlosiness(gloss);
+
+  return pow(cosTheta, cosPower) * (cosPower + 1.0f) * (0.5f * INV_PI);
+}
+
+static inline float ggxPreDivCosThetaFixMult(const float gloss, const float cosThetaOut)
+{
+  const float t       = sigmoid(20.0f*(gloss - 0.5f));
+  const float lerpVal = 1.0f + t*(1.0f / fmax(cosThetaOut, 1e-5f) - 1.0f); // mylerp { return u + t * (v - u); }
+  return lerpVal;
+}
+
+static inline float3 ggxEvalBxDF(__global const PlainMaterial* a_pMat, const float3 l, const float3 v, const float3 n, const float2 a_texCoord, const int a_evalFlags,
+                                 __global const EngineGlobals* a_globals, texture2d_t a_tex, __private const ProcTextureList* a_ptList)
+{
+  const float3 texColor = sample2DExt(ggxGetTex(a_pMat).y, a_texCoord, (__global const int4*)a_pMat, a_tex, a_globals, a_ptList);
+
+  const float3 color    = clamp(ggxGetColor(a_pMat)*texColor, 0.0f, 1.0f);
+  const float  gloss    = ggxGlosiness(a_pMat, a_texCoord, a_globals, a_tex, a_ptList); 
+  const float  cosPower = cosPowerFromGlosiness(gloss);
+
+  const float3 r        = reflect((-1.0)*v, n);
+  const float  cosAlpha = clamp(dot(l, r), 0.0f, M_PI*0.499995f);
+
+  const float cosThetaFix = fmin(ggxPreDivCosThetaFixMult(gloss, fabs(dot(v, n))), 100.0f);
+  
+  return color*(cosPower + 2.0f)*0.5f*INV_PI*pow(cosAlpha, cosPower-1.0f)*cosThetaFix*make_float3(1,0,0); // RED to mark GGX
+}
+
+static inline void GGXSampleAndEvalBRDF(__global const PlainMaterial* a_pMat, const float a_r1, const float a_r2, const float3 ray_dir, const float3 a_normal, const float2 a_texCoord,
+                                        __global const EngineGlobals* a_globals, texture2d_t a_tex, __private const ProcTextureList* a_ptList,
+                                        __private MatSample* a_out)
+{
+  const float3 texColor = sample2DExt(ggxGetTex(a_pMat).y, a_texCoord, (__global const int4*)a_pMat, a_tex, a_globals, a_ptList);
+
+  const float3 color    = clamp(ggxGetColor(a_pMat)*texColor, 0.0f, 1.0f);
+  const float  gloss    = ggxGlosiness(a_pMat, a_texCoord, a_globals, a_tex, a_ptList);
+  const float  cosPower = cosPowerFromGlosiness(gloss);
+
+  const float3 r        = reflect(ray_dir, a_normal);
+  const float3 newDir   = MapSampleToModifiedCosineDistribution(a_r1, a_r2, r, a_normal, cosPower);
+
+  const float cosAlpha    = clamp(dot(newDir, r), 0.0, M_PI*0.499995f);
+  const float cosThetaOut = dot(newDir, a_normal);
+ 
+  const float cosThetaFix = ggxPreDivCosThetaFixMult(gloss, fabs(cosThetaOut));
+
+  a_out->direction    = newDir;
+  a_out->pdf          = pow(cosAlpha, cosPower) * (cosPower + 1.0f) * (0.5f * INV_PI);
+  a_out->color        = color*((cosPower + 2.0f) * INV_TWOPI * pow(cosAlpha, cosPower))*cosThetaFix*make_float3(1,0,0); // RED to mark GGX
+  if (cosThetaOut <= 1e-6f)  // reflection under surface must be zerowed!
+    a_out->color = make_float3(0, 0, 0);
+
+  a_out->flags = (gloss == 1.0f) ? RAY_EVENT_S : RAY_EVENT_G;
+}
+
+
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+
+
+
+
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+
+
 
 // translucent lambert material
 //
@@ -1345,6 +1465,11 @@ static inline void MaterialLeafSampleAndEvalBRDF(__global const PlainMaterial* p
     BlinnSampleAndEvalBRDF(pMat, rands.x, rands.y, ray_dir, hitNorm, pSurfHit->texCoord, a_globals, a_tex, a_ptList,
                            a_out);
     break;
+  
+  case PLAIN_MAT_CLASS_GGX: 
+    GGXSampleAndEvalBRDF(pMat, rands.x, rands.y, ray_dir, hitNorm, pSurfHit->texCoord, a_globals, a_tex, a_ptList,
+                         a_out);
+    break;
 
   case PLAIN_MAT_CLASS_PERFECT_MIRROR: 
     MirrorSampleAndEvalBRDF(pMat, rands.x, rands.y, ray_dir, hitNorm, pSurfHit->texCoord, a_globals, a_tex, a_ptList,
@@ -1544,6 +1669,11 @@ static inline BxDFResult materialLeafEval(__global const PlainMaterial* pMat, __
     res.pdfFwd  = blinnEvalPDF (pMat, sc->l, sc->v, n, sc->tc, a_globals, a_tex, a_ptList);
     res.pdfRev  = blinnEvalPDF (pMat, sc->v, sc->l, n, sc->tc, a_globals, a_tex, a_ptList);
     break;
+  case PLAIN_MAT_CLASS_GGX:  
+    res.brdf    = ggxEvalBxDF(pMat, sc->l, sc->v, n, sc->tc, a_evalFlags, a_globals, a_tex, a_ptList)*cosMult;
+    res.pdfFwd  = ggxEvalPDF (pMat, sc->l, sc->v, n, sc->tc,              a_globals, a_tex, a_ptList);
+    res.pdfRev  = ggxEvalPDF (pMat, sc->v, sc->l, n, sc->tc,              a_globals, a_tex, a_ptList);
+    break;   
   case PLAIN_MAT_CLASS_PERFECT_MIRROR: 
     res.brdf   = mirrorEvalBxDF(pMat, sc->l, sc->v, n)*cosMult;
     res.pdfFwd = mirrorEvalPDF (pMat, sc->l, sc->v, n);

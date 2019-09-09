@@ -1,4 +1,4 @@
-// � Copyright 2017 Vladimir Frolov, MSU Grapics & Media Lab
+// Copyright 2017 Vladimir Frolov, MSU Grapics & Media Lab
 //
 
 #include "AbstractMaterial.h"
@@ -496,6 +496,56 @@ protected:
 };
 
 
+class GGXMaterial : public IMaterial
+{
+
+public:
+
+  GGXMaterial() {  }
+  GGXMaterial(float3 color, int texId, SWTexSampler a_samplerColor, float cosPower, int glossTexId, SWTexSampler a_samplerGloss, float a_glosiness)
+  {
+    m_plain.data[GGX_COLORX_OFFSET] = color.x;
+    m_plain.data[GGX_COLORY_OFFSET] = color.y;
+    m_plain.data[GGX_COLORZ_OFFSET] = color.z;
+
+    m_plain.data[GGX_COSPOWER_OFFSET]  = cosPower;
+    m_plain.data[GGX_GLOSINESS_OFFSET] = a_glosiness;
+
+    ((int*)(m_plain.data))[GGX_TEXID_OFFSET]           = texId;
+    ((int*)(m_plain.data))[GGX_GLOSINESS_TEXID_OFFSET] = glossTexId;
+
+    //////////////////////////////////////////////////////////////////////////////////////////////////////////////// put samplers right here
+    const int texMatrixId      = (texId == INVALID_TEXTURE)      ? INVALID_TEXTURE : (GGX_SAMPLER0_OFFSET / 4);
+    const int glossTexMatrixId = (glossTexId == INVALID_TEXTURE) ? INVALID_TEXTURE : (GGX_SAMPLER1_OFFSET / 4);
+
+    ((int*)(m_plain.data))[GGX_TEXMATRIXID_OFFSET]           = texMatrixId;
+    ((int*)(m_plain.data))[GGX_GLOSINESS_TEXMATRIXID_OFFSET] = glossTexMatrixId;
+
+    SWTexSampler* pSampler1 = (SWTexSampler*)(m_plain.data + GGX_SAMPLER0_OFFSET);
+    SWTexSampler* pSampler2 = (SWTexSampler*)(m_plain.data + GGX_SAMPLER1_OFFSET);
+    (*pSampler1) = a_samplerColor;
+    (*pSampler2) = a_samplerGloss;
+    //////////////////////////////////////////////////////////////////////////////////////////////////////////////// put samplers right here
+
+    ((int*)(m_plain.data))[PLAIN_MAT_TYPE_OFFSET]  = PLAIN_MAT_CLASS_GGX;
+    ((int*)(m_plain.data))[PLAIN_MAT_FLAGS_OFFSET] = PLAIN_MATERIAL_CAST_CAUSTICS;
+  }
+
+  std::vector<PlainMaterial> ConvertToPlainMaterial() const
+  {
+    std::vector<PlainMaterial> res(1);
+    res[0] = m_plain;
+    return res;
+  }
+
+protected:
+
+
+};
+
+
+
+
 
 class VolumePerlinMaterial : public IMaterial
 {
@@ -890,6 +940,8 @@ std::shared_ptr<IMaterial> ReflectiveMaterialFromHydraMtl(const pugi::xml_node a
     return std::make_shared<MirrorMaterial>(colorS, texId, sampler);
   else if (brfdType == L"torranse_sparrow")
     return std::make_shared<BlinnTorranceSrappowMaterial>(colorS, texId, sampler, 0.0f, texIdGloss, samplerGloss, glossVal);
+  else if (brfdType == L"ggx" || brfdType == L"GGX")
+    return std::make_shared<GGXMaterial>                 (colorS, texId, sampler, 0.0f, texIdGloss, samplerGloss, glossVal);
   else
     return std::make_shared<PhongMaterial>               (colorS, texId, sampler, 0.0f, texIdGloss, samplerGloss, glossVal);
 }

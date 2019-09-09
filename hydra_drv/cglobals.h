@@ -2569,7 +2569,6 @@ static inline float3 ReadSurfaceHitPos(const __global float4* a_in, int a_tid, i
 
 
 enum PLAIN_MAT_TYPES {
-
   PLAIN_MAT_CLASS_PHONG_SPECULAR = 0,
   PLAIN_MAT_CLASS_BLINN_SPECULAR = 1, // Micro Facet Torrance Sparrow model with Blinn distribution
   PLAIN_MAT_CLASS_PERFECT_MIRROR = 2,
@@ -2581,8 +2580,10 @@ enum PLAIN_MAT_TYPES {
   PLAIN_MAT_CLASS_OREN_NAYAR     = 8,
   PLAIN_MAT_CLASS_BLEND_MASK     = 9,
   PLAIN_MAT_CLASS_EMISSIVE       = 10,
-  PLAIN_MAT_CLASS_VOLUME_PERLIN  = 11,
-	PLAIN_MAT_CLASS_SSS            = 12
+  PLAIN_MAT_CLASS_VOLUME_PERLIN  = 11, // incactive currently
+	PLAIN_MAT_CLASS_SSS            = 12, // incactive currently
+  PLAIN_MAT_CLASS_GGX            = 13, // in progress 
+  PLAIN_MAT_CLASS_BECKMANN       = 14  // in progress, anisotropic BRDF
 };
 
 
