@@ -864,19 +864,18 @@ static inline void BlinnSampleAndEvalBRDF(__global const PlainMaterial* a_pMat, 
   ///////////////////////////////////////////////////////////////////////////// to PBRT coordinate system
   // wo = v = ray_dir
   // wi = l = -newDir
-  // wh = n = a_normal
   //
   float3 nx, ny = a_normal, nz, wo;
-  const float aniso = a_pMat->data[BLINN_ANISOTROPY_OFFSET];
+  const float aniso = 0.0f; //a_pMat->data[BLINN_ANISOTROPY_OFFSET];
   
-  if(aniso > 0.0f)
-  {
-    nx = a_tan;
-    nz = a_bitan;
-    wo = make_float3(dot(ray_dir, nx), dot(ray_dir, ny), dot(ray_dir, nz));
-  }
-  else
-  {
+  //if(aniso > 0.0f)
+  //{
+  //  nx = a_tan;
+  //  nz = a_bitan;
+  //  wo = make_float3(dot(ray_dir, nx), dot(ray_dir, ny), dot(ray_dir, nz));
+  //}
+  //else
+  //{
     CoordinateSystem(ny, &nx, &nz);
     {
       float3 temp = ny;
@@ -884,7 +883,7 @@ static inline void BlinnSampleAndEvalBRDF(__global const PlainMaterial* a_pMat, 
       nz = temp;
     }
     wo = make_float3(-dot(ray_dir, nx), -dot(ray_dir, ny), -dot(ray_dir, nz));
-  }
+  //}
   //
   ///////////////////////////////////////////////////////////////////////////// to PBRT coordinate system
 
@@ -895,10 +894,11 @@ static inline void BlinnSampleAndEvalBRDF(__global const PlainMaterial* a_pMat, 
   //
   const float  anisoMult = fabs(dot(ray_dir, a_tan));
   const float  glossOrig = blinnGlosiness(a_pMat, a_texCoord, a_globals, a_tex, a_ptList);              //
-  const float  gloss     = (1.0f - aniso)*glossOrig + aniso*(glossOrig + anisoMult*(1.0f - glossOrig)); // cgange gloss to [gloss, 1.0f] 
+  //const float  gloss     = (1.0f - aniso)*glossOrig + aniso*(glossOrig + anisoMult*(1.0f - glossOrig)); // cgange gloss to [gloss, 1.0f] 
   //const float  gloss     = (1.0f - aniso)*glossOrig + aniso*(0.0f + anisoMult*glossOrig);             // cgange gloss to [0.0f, gloss] 
+  const float  gloss     = glossOrig;
   const float  exponent  = cosPowerFromGlosiness(gloss);                                                //
-
+  
   // Compute sampled half-angle vector $\wh$ for Blinn distribution
   //
   const float phi      = a_r2 * 2.f * M_PI;
@@ -1621,7 +1621,7 @@ static inline void MaterialLeafSampleAndEvalBRDF(__global const PlainMaterial* p
     break;
 
   case PLAIN_MAT_CLASS_BLINN_SPECULAR: 
-    BlinnSampleAndEvalBRDF(pMat, rands.x, rands.y, ray_dir, hitNorm, pSurfHit->texCoord, pSurfHit->tangent, pSurfHit->tangent, a_globals, a_tex, a_ptList,
+    BlinnSampleAndEvalBRDF(pMat, rands.x, rands.y, ray_dir, hitNorm, pSurfHit->texCoord, pSurfHit->tangent, pSurfHit->biTangent, a_globals, a_tex, a_ptList,
                            a_out);
     break;
   
