@@ -864,6 +864,7 @@ static inline void BlinnSampleAndEvalBRDF(__global const PlainMaterial* a_pMat, 
   ///////////////////////////////////////////////////////////////////////////// to PBRT coordinate system
   // wo = v = ray_dir
   // wi = l = -newDir
+  // wh = n = a_normal
   //
   float3 nx, ny = a_normal, nz;
   CoordinateSystem(ny, &nx, &nz);
@@ -887,12 +888,12 @@ static inline void BlinnSampleAndEvalBRDF(__global const PlainMaterial* a_pMat, 
   const float3 color     = clamp(blinnGetColor(a_pMat)*texColor, 0.0f, 1.0f);
   
   const float  aniso     = a_pMat->data[BLINN_ANISOTROPY_OFFSET];
-  const float  anisoMult = 1.0f; 
-  //const float  anisoMult = (1.0f - aniso*fabs(sin(phi)));
-  //const float  anisoMult = (1.0f - aniso*cos(phi));
+  //const float  anisoMult = 1.0f; 
+  const float  anisoMult = fabs(sin(phi));
   
-  const float  gloss     = blinnGlosiness(a_pMat, a_texCoord, a_globals, a_tex, a_ptList)*anisoMult;
-  const float  cosPower  = cosPowerFromGlosiness(gloss);
+  const float  glossOrig = blinnGlosiness(a_pMat, a_texCoord, a_globals, a_tex, a_ptList);               //
+  const float  gloss     = (1.0f - aniso)*glossOrig + aniso*(glossOrig + anisoMult*(1.0f - glossOrig));  // cgange gloss to [gloss, 1.0f] 
+  const float  cosPower  = cosPowerFromGlosiness(gloss);                                                 //
 
 
   // Compute sampled half-angle vector $\wh$ for Blinn distribution
@@ -1623,10 +1624,10 @@ static inline void MaterialLeafSampleAndEvalBRDF(__global const PlainMaterial* p
                            a_out);
     break;
   
-  case PLAIN_MAT_CLASS_BECKMANN: 
-    BeckmannSampleAndEvalBRDF(pMat, rands.x, rands.y, ray_dir, hitNorm, pSurfHit->texCoord, a_globals, a_tex, a_ptList,
-                             a_out);
-    break;
+  //case PLAIN_MAT_CLASS_BECKMANN: 
+  //  BeckmannSampleAndEvalBRDF(pMat, rands.x, rands.y, ray_dir, hitNorm, pSurfHit->texCoord, a_globals, a_tex, a_ptList,
+  //                           a_out);
+  //  break;
 
   //case PLAIN_MAT_CLASS_GGX: 
   //  GGXSampleAndEvalBRDF(pMat, rands.x, rands.y, ray_dir, hitNorm, pSurfHit->texCoord, a_globals, a_tex, a_ptList,
@@ -1831,11 +1832,11 @@ static inline BxDFResult materialLeafEval(__global const PlainMaterial* pMat, __
     res.pdfFwd  = blinnEvalPDF (pMat, sc->l, sc->v, n, sc->tc, a_globals, a_tex, a_ptList);
     res.pdfRev  = blinnEvalPDF (pMat, sc->v, sc->l, n, sc->tc, a_globals, a_tex, a_ptList);
     break;
-  case PLAIN_MAT_CLASS_BECKMANN: 
-    res.brdf    = beckmannEvalBxDF(pMat, sc->l, sc->v, n, sc->tc, a_globals, a_tex, a_ptList)*cosMult;
-    res.pdfFwd  = beckmannEvalPDF (pMat, sc->l, sc->v, n, sc->tc, a_globals, a_tex, a_ptList);
-    res.pdfRev  = beckmannEvalPDF (pMat, sc->v, sc->l, n, sc->tc, a_globals, a_tex, a_ptList);
-    break;
+  //case PLAIN_MAT_CLASS_BECKMANN: 
+  //  res.brdf    = beckmannEvalBxDF(pMat, sc->l, sc->v, n, sc->tc, a_globals, a_tex, a_ptList)*cosMult;
+  //  res.pdfFwd  = beckmannEvalPDF (pMat, sc->l, sc->v, n, sc->tc, a_globals, a_tex, a_ptList);
+  //  res.pdfRev  = beckmannEvalPDF (pMat, sc->v, sc->l, n, sc->tc, a_globals, a_tex, a_ptList);
+  //  break;
   //case PLAIN_MAT_CLASS_GGX:  
   //  res.brdf    = ggxEvalBxDF(pMat, sc->l, sc->v, n, sc->tc, a_evalFlags, a_globals, a_tex, a_ptList)*cosMult;
   //  res.pdfFwd  = ggxEvalPDF (pMat, sc->l, sc->v, n, sc->tc,              a_globals, a_tex, a_ptList);
