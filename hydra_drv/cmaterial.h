@@ -865,27 +865,21 @@ static inline void BlinnSampleAndEvalBRDF(__global const PlainMaterial* a_pMat, 
   // wo = v = ray_dir
   // wi = l = -newDir
   //
-  float3 nx, ny = a_normal, nz, wo;
-  const float aniso = 0.0f; //a_pMat->data[BLINN_ANISOTROPY_OFFSET];
+  float3 nx, ny, nz = a_normal;
+  const float aniso = a_pMat->data[BLINN_ANISOTROPY_OFFSET];
   
-  //if(aniso > 0.0f)
-  //{
-  //  nx = a_tan;
-  //  nz = a_bitan;
-  //  wo = make_float3(dot(ray_dir, nx), dot(ray_dir, ny), dot(ray_dir, nz));
-  //}
-  //else
-  //{
-    CoordinateSystem(ny, &nx, &nz);
-    {
-      float3 temp = ny;
-      ny = nz;
-      nz = temp;
-    }
-    wo = make_float3(-dot(ray_dir, nx), -dot(ray_dir, ny), -dot(ray_dir, nz));
-  //}
-  //
+  if(aniso > 0.0f)
+  {
+    nx = a_tan;
+    ny = a_bitan;
+  }
+  else
+  {
+    CoordinateSystem(nz, &nx, &ny);
+  }
   ///////////////////////////////////////////////////////////////////////////// to PBRT coordinate system
+
+  const float3 wo = make_float3(-dot(ray_dir, nx), -dot(ray_dir, ny), -dot(ray_dir, nz));
 
   const float3 texColor  = sample2DExt(blinnGetTex(a_pMat).y, a_texCoord, (__global const int4*)a_pMat, a_tex, a_globals, a_ptList);
   const float3 color     = clamp(blinnGetColor(a_pMat)*texColor, 0.0f, 1.0f);
@@ -894,9 +888,9 @@ static inline void BlinnSampleAndEvalBRDF(__global const PlainMaterial* a_pMat, 
   //
   const float  anisoMult = fabs(dot(ray_dir, a_tan));
   const float  glossOrig = blinnGlosiness(a_pMat, a_texCoord, a_globals, a_tex, a_ptList);              //
-  //const float  gloss     = (1.0f - aniso)*glossOrig + aniso*(glossOrig + anisoMult*(1.0f - glossOrig)); // cgange gloss to [gloss, 1.0f] 
+  const float  gloss     = (1.0f - aniso)*glossOrig + aniso*(glossOrig + anisoMult*(1.0f - glossOrig)); // cgange gloss to [gloss, 1.0f] 
   //const float  gloss     = (1.0f - aniso)*glossOrig + aniso*(0.0f + anisoMult*glossOrig);             // cgange gloss to [0.0f, gloss] 
-  const float  gloss     = glossOrig;
+  //const float  gloss     = glossOrig;
   const float  exponent  = cosPowerFromGlosiness(gloss);                                                //
   
   // Compute sampled half-angle vector $\wh$ for Blinn distribution
