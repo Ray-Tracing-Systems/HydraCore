@@ -857,7 +857,7 @@ static inline float3 blinnEvalBxDF(__global const PlainMaterial* a_pMat, const f
   return BLINN_COLOR_MULT*color*D*TorranceSparrowGF2(l, v, n);
 }
 
-static inline void BlinnSampleAndEvalBRDF(__global const PlainMaterial* a_pMat, const float a_r1, const float a_r2, const float3 ray_dir, const float3 a_normal, const float2 a_texCoord,
+static inline void BlinnSampleAndEvalBRDF(__global const PlainMaterial* a_pMat, const float a_r1, const float a_r2, const float3 ray_dir, const float3 a_normal, const float2 a_texCoord, const float3 a_tan, const float3 a_bitan,
                                           __global const EngineGlobals* a_globals, texture2d_t a_tex, __private const ProcTextureList* a_ptList,
                                           __private MatSample* a_out)
 {
@@ -866,42 +866,43 @@ static inline void BlinnSampleAndEvalBRDF(__global const PlainMaterial* a_pMat, 
   // wi = l = -newDir
   // wh = n = a_normal
   //
-  float3 nx, ny = a_normal, nz;
-  CoordinateSystem(ny, &nx, &nz);
+  float3 nx, ny = a_normal, nz, wo;
+  const float aniso = a_pMat->data[BLINN_ANISOTROPY_OFFSET];
+  
+  if(aniso > 0.0f)
   {
-    float3 temp = ny;
-    ny = nz;
-    nz = temp;
+    nx = a_tan;
+    nz = a_bitan;
+    wo = make_float3(dot(ray_dir, nx), dot(ray_dir, ny), dot(ray_dir, nz));
   }
-
-  const float3 wo = make_float3(-dot(ray_dir, nx), 
-                                -dot(ray_dir, ny), 
-                                -dot(ray_dir, nz));
+  else
+  {
+    CoordinateSystem(ny, &nx, &nz);
+    {
+      float3 temp = ny;
+      ny = nz;
+      nz = temp;
+    }
+    wo = make_float3(-dot(ray_dir, nx), -dot(ray_dir, ny), -dot(ray_dir, nz));
+  }
   //
   ///////////////////////////////////////////////////////////////////////////// to PBRT coordinate system
-
-  const float u1  = a_r1;
-  const float u2  = a_r2;
-  const float phi = u2 * 2.f * M_PI;
 
   const float3 texColor  = sample2DExt(blinnGetTex(a_pMat).y, a_texCoord, (__global const int4*)a_pMat, a_tex, a_globals, a_ptList);
   const float3 color     = clamp(blinnGetColor(a_pMat)*texColor, 0.0f, 1.0f);
   
-  const float  aniso     = a_pMat->data[BLINN_ANISOTROPY_OFFSET];
-  //const float  anisoMult = 1.0f; 
-  const float  anisoMult = fabs(sin(phi));
-  
-  const float  glossOrig = blinnGlosiness(a_pMat, a_texCoord, a_globals, a_tex, a_ptList);               //
-  const float  gloss     = (1.0f - aniso)*glossOrig + aniso*(glossOrig + anisoMult*(1.0f - glossOrig));  // cgange gloss to [gloss, 1.0f] 
-  const float  cosPower  = cosPowerFromGlosiness(gloss);                                                 //
-
+  //// read anisotropic glosiness
+  //
+  const float  anisoMult = fabs(dot(ray_dir, a_tan));
+  const float  glossOrig = blinnGlosiness(a_pMat, a_texCoord, a_globals, a_tex, a_ptList);              //
+  const float  gloss     = (1.0f - aniso)*glossOrig + aniso*(glossOrig + anisoMult*(1.0f - glossOrig)); // cgange gloss to [gloss, 1.0f] 
+  //const float  gloss     = (1.0f - aniso)*glossOrig + aniso*(0.0f + anisoMult*glossOrig);             // cgange gloss to [0.0f, gloss] 
+  const float  exponent  = cosPowerFromGlosiness(gloss);                                                //
 
   // Compute sampled half-angle vector $\wh$ for Blinn distribution
   //
-  const float exponent = cosPower;
-
-
-  const float costheta = pow(u1, 1.f / (exponent + 1.0f));
+  const float phi      = a_r2 * 2.f * M_PI;
+  const float costheta = pow(a_r1, 1.f / (exponent + 1.0f));
   const float sintheta = sqrt(fmax(0.f, 1.f - costheta*costheta));
   
   float3 wh = SphericalDirection(sintheta, costheta, phi);
@@ -1620,7 +1621,7 @@ static inline void MaterialLeafSampleAndEvalBRDF(__global const PlainMaterial* p
     break;
 
   case PLAIN_MAT_CLASS_BLINN_SPECULAR: 
-    BlinnSampleAndEvalBRDF(pMat, rands.x, rands.y, ray_dir, hitNorm, pSurfHit->texCoord, a_globals, a_tex, a_ptList,
+    BlinnSampleAndEvalBRDF(pMat, rands.x, rands.y, ray_dir, hitNorm, pSurfHit->texCoord, pSurfHit->tangent, pSurfHit->tangent, a_globals, a_tex, a_ptList,
                            a_out);
     break;
   
