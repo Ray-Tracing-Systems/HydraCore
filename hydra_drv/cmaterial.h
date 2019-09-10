@@ -890,7 +890,6 @@ static inline void BlinnSampleAndEvalBRDF(__global const PlainMaterial* a_pMat, 
   const float  glossOrig = blinnGlosiness(a_pMat, a_texCoord, a_globals, a_tex, a_ptList);              //
   const float  gloss     = (1.0f - aniso)*glossOrig + aniso*(glossOrig + anisoMult*(1.0f - glossOrig)); // cgange gloss to [gloss, 1.0f] 
   //const float  gloss     = (1.0f - aniso)*glossOrig + aniso*(0.0f + anisoMult*glossOrig);             // cgange gloss to [0.0f, gloss] 
-  //const float  gloss     = glossOrig;
   const float  exponent  = cosPowerFromGlosiness(gloss);                                                //
   
   // Compute sampled half-angle vector $\wh$ for Blinn distribution
