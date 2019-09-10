@@ -1623,15 +1623,15 @@ static inline void MaterialLeafSampleAndEvalBRDF(__global const PlainMaterial* p
                            a_out);
     break;
   
-case PLAIN_MAT_CLASS_BECKMANN: 
+  case PLAIN_MAT_CLASS_BECKMANN: 
     BeckmannSampleAndEvalBRDF(pMat, rands.x, rands.y, ray_dir, hitNorm, pSurfHit->texCoord, a_globals, a_tex, a_ptList,
                              a_out);
     break;
 
-  case PLAIN_MAT_CLASS_GGX: 
-    GGXSampleAndEvalBRDF(pMat, rands.x, rands.y, ray_dir, hitNorm, pSurfHit->texCoord, a_globals, a_tex, a_ptList,
-                         a_out);
-    break;
+  //case PLAIN_MAT_CLASS_GGX: 
+  //  GGXSampleAndEvalBRDF(pMat, rands.x, rands.y, ray_dir, hitNorm, pSurfHit->texCoord, a_globals, a_tex, a_ptList,
+  //                       a_out);
+  //  break;
 
   case PLAIN_MAT_CLASS_PERFECT_MIRROR: 
     MirrorSampleAndEvalBRDF(pMat, rands.x, rands.y, ray_dir, hitNorm, pSurfHit->texCoord, a_globals, a_tex, a_ptList,
@@ -1836,11 +1836,11 @@ static inline BxDFResult materialLeafEval(__global const PlainMaterial* pMat, __
     res.pdfFwd  = beckmannEvalPDF (pMat, sc->l, sc->v, n, sc->tc, a_globals, a_tex, a_ptList);
     res.pdfRev  = beckmannEvalPDF (pMat, sc->v, sc->l, n, sc->tc, a_globals, a_tex, a_ptList);
     break;
-  case PLAIN_MAT_CLASS_GGX:  
-    res.brdf    = ggxEvalBxDF(pMat, sc->l, sc->v, n, sc->tc, a_evalFlags, a_globals, a_tex, a_ptList)*cosMult;
-    res.pdfFwd  = ggxEvalPDF (pMat, sc->l, sc->v, n, sc->tc,              a_globals, a_tex, a_ptList);
-    res.pdfRev  = ggxEvalPDF (pMat, sc->v, sc->l, n, sc->tc,              a_globals, a_tex, a_ptList);
-    break;   
+  //case PLAIN_MAT_CLASS_GGX:  
+  //  res.brdf    = ggxEvalBxDF(pMat, sc->l, sc->v, n, sc->tc, a_evalFlags, a_globals, a_tex, a_ptList)*cosMult;
+  //  res.pdfFwd  = ggxEvalPDF (pMat, sc->l, sc->v, n, sc->tc,              a_globals, a_tex, a_ptList);
+  //  res.pdfRev  = ggxEvalPDF (pMat, sc->v, sc->l, n, sc->tc,              a_globals, a_tex, a_ptList);
+  //  break;   
   case PLAIN_MAT_CLASS_PERFECT_MIRROR: 
     res.brdf   = mirrorEvalBxDF(pMat, sc->l, sc->v, n)*cosMult;
     res.pdfFwd = mirrorEvalPDF (pMat, sc->l, sc->v, n);
