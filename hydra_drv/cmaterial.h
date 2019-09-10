@@ -886,7 +886,10 @@ static inline void BlinnSampleAndEvalBRDF(__global const PlainMaterial* a_pMat, 
   
   //// read anisotropic glosiness
   //
-  const float  anisoMult = fabs(dot(ray_dir, a_tan));
+  const float phi1 = a_r2 * 2.f * M_PI;
+  const float phi2 = sphereMapToPhiTheta(wo).x;    //atan2(wo.y, wo.x)
+
+  const float  anisoMult = fabs(cos(phi1 - phi2)); //fabs(dot(ray_dir, a_tan));                         // it seems here we need and angle between 2 vectors (l,v) or (wi,wo)
   const float  glossOrig = blinnGlosiness(a_pMat, a_texCoord, a_globals, a_tex, a_ptList);              //
   const float  gloss     = (1.0f - aniso)*glossOrig + aniso*(glossOrig + anisoMult*(1.0f - glossOrig)); // cgange gloss to [gloss, 1.0f] 
   //const float  gloss     = (1.0f - aniso)*glossOrig + aniso*(0.0f + anisoMult*glossOrig);             // cgange gloss to [0.0f, gloss] 
