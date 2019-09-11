@@ -3,6 +3,7 @@
 
 #include "cglobals.h"
 #include "cfetch.h"
+#include "cmatpbrt.h"
 
 static inline float3 materialGetEmission(__global const PlainMaterial* a_pMat) { return make_float3(a_pMat->data[EMISSIVE_COLORX_OFFSET], a_pMat->data[EMISSIVE_COLORY_OFFSET], a_pMat->data[EMISSIVE_COLORZ_OFFSET]); }
 static inline  int2  materialGetEmissionTex(__global const PlainMaterial* a_pMat)
@@ -134,22 +135,6 @@ static inline int2   orennayarGetDiffuseTex  (__global const PlainMaterial* a_pM
 }
 
 
-static inline float CosPhiPBRT(const float3 w, const float sintheta)
-{
-  if (sintheta == 0.f) 
-    return 1.f;
-  else
-    return clamp(w.x / sintheta, -1.f, 1.f);
-}
-
-static inline float SinPhiPBRT(const float3 w, const float sintheta)
-{
-  if (sintheta == 0.f)
-    return 0.f;
-  else
-    return clamp(w.y / sintheta, -1.f, 1.f);
-}
-
 static inline float orennayarFunc(const float3 l, const float3 v, const float3 n, const float A, const float B)
 {
   float cosTheta_wi = dot(l, n);
@@ -162,13 +147,8 @@ static inline float orennayarFunc(const float3 l, const float3 v, const float3 n
   // wo = v = -ray_dir
   // wi = l = newDir
   //
-  float3 nx, ny = n, nz;
-  CoordinateSystem(ny, &nx, &nz);
-  {
-    float3 temp = ny;
-    ny = nz;
-    nz = temp;
-  }
+  float3 nx, ny, nz = n;
+  CoordinateSystem(nz, &nx, &ny);
 
   float3 wo = make_float3(-dot(v, nx), -dot(v, ny), -dot(v, nz));
   float3 wi = make_float3(-dot(l, nx), -dot(l, ny), -dot(l, nz));
@@ -721,13 +701,6 @@ static inline int2   blinnGetTex(__global const PlainMaterial* a_pMat)
   return res;
 }
 
-static inline float3 SphericalDirection(const float sintheta, const float costheta, const float phi) 
-{ 
-  return make_float3(sintheta * cos(phi), sintheta * sin(phi), costheta); 
-}
-
-static inline bool SameHemispherePBRT(float3 w, float3 wp) { return w.z * wp.z > 0.f; }
-
 static inline float FrCond(const float cosi, const float eta, const float k)
 {
   const float tmp    = (eta*eta + k*k) * cosi*cosi;
@@ -736,7 +709,6 @@ static inline float FrCond(const float cosi, const float eta, const float k)
   const float Rperp2 = (tmp_f - (2.f * eta * cosi) + cosi*cosi) / (tmp_f + (2.f * eta * cosi) + cosi*cosi);
   return fabs(Rparl2 + Rperp2) / 2.f;
 }
-
 
 static inline float TorranceSparrowG1(const float3 wo, const float3 wi, const float3 wh) // in PBRT coord system
 {
@@ -907,7 +879,7 @@ static inline void BlinnSampleAndEvalBRDF(__global const PlainMaterial* a_pMat, 
   const float costheta = pow(a_r1, 1.f / (exponent + 1.0f));
   const float sintheta = sqrt(fmax(0.f, 1.f - costheta*costheta));
   
-  float3 wh = SphericalDirection(sintheta, costheta, phi);
+  float3 wh = SphericalDirectionPBRT(sintheta, costheta, phi);
   if (!SameHemispherePBRT(wo, wh))
     wh = wh*(-1.0f);
 
