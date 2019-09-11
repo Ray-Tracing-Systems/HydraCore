@@ -19,7 +19,7 @@
     </diffuse>
     <reflectivity brdf_type="torranse_sparrow">
       <color>0.367059 0.345882 0</color>
-      <glossiness val = "0.5" />
+      <glossiness val = "0.85" />
       <anisotropy val = "0.5" />
     </reflectivity>
   </material>

@@ -901,7 +901,7 @@ static inline void BlinnSampleAndEvalBRDF(__global const PlainMaterial* a_pMat, 
 
   const float3 wo        = make_float3(-dot(ray_dir, nx), -dot(ray_dir, ny), -dot(ray_dir, nz));
   const float  exponent  = cosPowerFromGlosiness(gloss);                                                //
-  
+
   // Compute sampled half-angle vector $\wh$ for Blinn distribution
   //
   const float costheta = pow(a_r1, 1.f / (exponent + 1.0f));
@@ -937,6 +937,7 @@ static inline void BlinnSampleAndEvalBRDF(__global const PlainMaterial* a_pMat, 
 
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+/*
 
 #define GGX_COLORX_OFFSET       10
 #define GGX_COLORY_OFFSET       11
@@ -1044,9 +1045,15 @@ static inline void GGXSampleAndEvalBRDF(__global const PlainMaterial* a_pMat, co
 
   a_out->flags = (gloss == 1.0f) ? RAY_EVENT_S : RAY_EVENT_G;
 }
+*/
 
-
-/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 // microfacet mode, blinn distribution and torrance-sparrow brdf in analogue to pbrt
 //
@@ -1091,115 +1098,50 @@ static inline float beckmannGlosiness(__global const PlainMaterial* a_pMat, cons
     return a_pMat->data[BECKMANN_GLOSINESS_OFFSET];
 }
 
-static inline float beckmannCosPower(__global const PlainMaterial* a_pMat, const float2 a_texCoord, 
-                                  __global const EngineGlobals* a_globals, texture2d_t a_tex, __private const ProcTextureList* a_ptList)
-{
-  return cosPowerFromGlosiness(beckmannGlosiness(a_pMat, a_texCoord, a_globals, a_tex, a_ptList));
-}
-
 
 static inline float beckmannEvalPDF(__global const PlainMaterial* a_pMat, const float3 l, const float3 v, const float3 n, 
                                  const float2 a_texCoord, __global const EngineGlobals* a_globals, texture2d_t a_tex, __private const ProcTextureList* a_ptList)
 {
-  const float  exponent = beckmannCosPower(a_pMat, a_texCoord, a_globals, a_tex, a_ptList); // a_pMat->data[BECKMANN_COSPOWER_OFFSET];
-
-  const float3 wh      = normalize(l + v);
-  const float costheta = fabs(dot(wh,n));
-
-  float beckmann_pdf = ((exponent + 1.0f) * pow(costheta, exponent)) / (2.f * M_PI * 4.f * dot(l, wh));
-
-  // if (dot(l, wh) <= 0.0f) // #TODO: this may cause problems when under-surface hit during PT; light strategy weight becobes zero. Or not? see costheta = fabs(dot(wh,n))
-  //   beckmann_pdf = 0.0f;  // #TODO: this may cause problems when under-surface hit during PT; light strategy weight becobes zero. Or not? see costheta = fabs(dot(wh,n))
-
-  return beckmann_pdf;
+  return fabs(dot(l, n))*INV_PI;
 }
 
-#define BECKMANN_COLOR_MULT 2.25f
-
 static inline float3 beckmannEvalBxDF(__global const PlainMaterial* a_pMat, const float3 l, const float3 v, const float3 n, 
-                                   const float2 a_texCoord, __global const EngineGlobals* a_globals, texture2d_t a_tex, __private const ProcTextureList* a_ptList)
+                                      const float2 a_texCoord, __global const EngineGlobals* a_globals, texture2d_t a_tex, __private const ProcTextureList* a_ptList)
 {
   const float3 texColor = sample2DExt(beckmannGetTex(a_pMat).y, a_texCoord, (__global const int4*)a_pMat, a_tex, a_globals, a_ptList);
-
-  const float3 color    = clamp(beckmannGetColor(a_pMat)*texColor, 0.0f, 1.0f);
-  const float  gloss    = beckmannGlosiness(a_pMat, a_texCoord, a_globals, a_tex, a_ptList);
-  const float  exponent = cosPowerFromGlosiness(gloss); 
-
-  const float3 wh       = normalize(l + v);
-
-  const float costhetah = fabs(dot(wh,n));
-  const float D         = (exponent + 2.0f) * INV_TWOPI * pow(costhetah, exponent);
-  const float cosTheta  = fmax(dot(l, n), 0.0f);
-
-  return BECKMANN_COLOR_MULT*color*D*TorranceSparrowGF2(l, v, n)*make_float3(0,1,0); // GREEN marker for beckmann
+  return clamp(texColor*beckmannGetColor(a_pMat), 0.0f, 1.0f)*INV_PI;
 }
 
 static inline void BeckmannSampleAndEvalBRDF(__global const PlainMaterial* a_pMat, const float a_r1, const float a_r2, const float3 ray_dir, const float3 a_normal, const float2 a_texCoord,
                                              __global const EngineGlobals* a_globals, texture2d_t a_tex, __private const ProcTextureList* a_ptList,
                                              __private MatSample* a_out)
 {
-  const float3 texColor = sample2DExt(beckmannGetTex(a_pMat).y, a_texCoord, (__global const int4*)a_pMat, a_tex, a_globals, a_ptList);
-  const float3 color    = clamp(beckmannGetColor(a_pMat)*texColor, 0.0f, 1.0f);
-  const float  gloss    = beckmannGlosiness(a_pMat, a_texCoord, a_globals, a_tex, a_ptList);
-  const float  cosPower = cosPowerFromGlosiness(gloss);
+  const float3 texColor   = sample2DExt(beckmannGetTex(a_pMat).y, a_texCoord, (__global const int4*)a_pMat, a_tex, a_globals, a_ptList);
+  const float3 kd         = clamp(texColor*beckmannGetColor(a_pMat), 0.0f, 1.0f);
 
-  ///////////////////////////////////////////////////////////////////////////// to PBRT coordinate system
-  // wo = v = ray_dir
-  // wi = l = -newDir
-  //
-  float3 nx, ny = a_normal, nz;
-  CoordinateSystem(ny, &nx, &nz);
-  {
-    float3 temp = ny;
-    ny = nz;
-    nz = temp;
-  }
+  const float3 newDir     = MapSampleToCosineDistribution(a_r1, a_r2, a_normal, a_normal, 1.0f);
+  const float  cosTheta   = dot(newDir, a_normal);
 
-  const float3 wo = make_float3(-dot(ray_dir, nx), -dot(ray_dir, ny), -dot(ray_dir, nz));
-  //
-  ///////////////////////////////////////////////////////////////////////////// to PBRT coordinate system
+  a_out->direction = newDir;
+  a_out->pdf       = cosTheta*INV_PI;
+  a_out->color     = kd*INV_PI;
+  if (cosTheta <= DEPSILON)
+    a_out->color = make_float3(0, 0, 0);
 
-  // Compute sampled half-angle vector $\wh$ for Blinn distribution
-  //
-  const float exponent = cosPower;
-  const float u1       = a_r1;
-  const float u2       = a_r2;
-
-  const float costheta = pow(u1, 1.f / (exponent + 1.0f));
-  const float sintheta = sqrt(fmax(0.f, 1.f - costheta*costheta));
-  const float phi      = u2 * 2.f * M_PI;
-  
-  float3 wh = SphericalDirection(sintheta, costheta, phi);
-  if (!SameHemispherePBRT(wo, wh))
-    wh = wh*(-1.0f);
-
-  const float3 wi = (2.0f * dot(wo, wh) * wh) - wo; // Compute incident direction by reflecting about $\wh$
-
-  const float beckmann_pdf = ((exponent + 1.0f) * pow(costheta, exponent)) / fmax(2.f * M_PI * 4.f * dot(wo, wh), DEPSILON);
-  const float D         = ((exponent + 2.0f) * INV_TWOPI * pow(costheta, exponent));
-
-  const float3 newDir      = wi.x*nx + wi.y*ny + wi.z*nz; // back to normal coordinate system
-  const float  cosThetaOut = dot(newDir, a_normal);
-  const float  GF1         = TorranceSparrowGF1(wo, wi);
-
-  const float estimatedThoroughput = fabs(cosThetaOut)*(D * GF1) / fmax(beckmann_pdf, DEPSILON2);
-  const float brightBordersMult    = fmin(estimatedThoroughput, 0.525f) / fmax(estimatedThoroughput, DEPSILON2);
-
-  a_out->direction = newDir; 
-  a_out->pdf       = beckmann_pdf;
-  a_out->color     = (BECKMANN_COLOR_MULT * color * D * GF1) * brightBordersMult*make_float3(0,1,0); // GREEN marker for Beckmann
-  if(cosThetaOut < 1e-6f)
-    a_out->color   = make_float3(0,0,0);
-
-  a_out->flags     = RAY_EVENT_G;
+  a_out->flags = RAY_EVENT_D;
 }
 
 
-
-
-/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 
 // translucent lambert material
@@ -1630,10 +1572,10 @@ static inline void MaterialLeafSampleAndEvalBRDF(__global const PlainMaterial* p
                            a_out);
     break;
   
-  //case PLAIN_MAT_CLASS_BECKMANN: 
-  //  BeckmannSampleAndEvalBRDF(pMat, rands.x, rands.y, ray_dir, hitNorm, pSurfHit->texCoord, a_globals, a_tex, a_ptList,
-  //                           a_out);
-  //  break;
+  case PLAIN_MAT_CLASS_BECKMANN: 
+    BeckmannSampleAndEvalBRDF(pMat, rands.x, rands.y, ray_dir, hitNorm, pSurfHit->texCoord, a_globals, a_tex, a_ptList,
+                             a_out);
+    break;
 
   //case PLAIN_MAT_CLASS_GGX: 
   //  GGXSampleAndEvalBRDF(pMat, rands.x, rands.y, ray_dir, hitNorm, pSurfHit->texCoord, a_globals, a_tex, a_ptList,
@@ -1838,11 +1780,11 @@ static inline BxDFResult materialLeafEval(__global const PlainMaterial* pMat, __
     res.pdfFwd  = blinnEvalPDF (pMat, sc->l, sc->v, n, sc->tc, a_globals, a_tex, a_ptList);
     res.pdfRev  = blinnEvalPDF (pMat, sc->v, sc->l, n, sc->tc, a_globals, a_tex, a_ptList);
     break;
-  //case PLAIN_MAT_CLASS_BECKMANN: 
-  //  res.brdf    = beckmannEvalBxDF(pMat, sc->l, sc->v, n, sc->tc, a_globals, a_tex, a_ptList)*cosMult;
-  //  res.pdfFwd  = beckmannEvalPDF (pMat, sc->l, sc->v, n, sc->tc, a_globals, a_tex, a_ptList);
-  //  res.pdfRev  = beckmannEvalPDF (pMat, sc->v, sc->l, n, sc->tc, a_globals, a_tex, a_ptList);
-  //  break;
+  case PLAIN_MAT_CLASS_BECKMANN: 
+    res.brdf    = beckmannEvalBxDF(pMat, sc->l, sc->v, n, sc->tc, a_globals, a_tex, a_ptList)*cosMult;
+    res.pdfFwd  = beckmannEvalPDF (pMat, sc->l, sc->v, n, sc->tc, a_globals, a_tex, a_ptList);
+    res.pdfRev  = beckmannEvalPDF (pMat, sc->v, sc->l, n, sc->tc, a_globals, a_tex, a_ptList);
+    break;
   //case PLAIN_MAT_CLASS_GGX:  
   //  res.brdf    = ggxEvalBxDF(pMat, sc->l, sc->v, n, sc->tc, a_evalFlags, a_globals, a_tex, a_ptList)*cosMult;
   //  res.pdfFwd  = ggxEvalPDF (pMat, sc->l, sc->v, n, sc->tc,              a_globals, a_tex, a_ptList);

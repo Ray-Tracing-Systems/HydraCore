@@ -10,7 +10,7 @@ Input::Input()
   
   //noWindow      = false;             ///< run 'console_main', else run 'window_main'
   //inLibraryPath = "tests/test_42_beckmann"; ///< cornell box with teapot
-  inLibraryPath = "/home/frol/temp/scenelib_aniso";
+  inLibraryPath = "/home/frol/temp2/scenelib_aniso2";
   //inLibraryPath = "tests/test_42_with_mirror";
   //inLibraryPath = "tests/test_223_small"; ///< cornell box with sphere
   //inLibraryPath = "tests/test_224";
@@ -20,7 +20,7 @@ Input::Input()
   //inLibraryPath = "C:/[Hydra]/pluginFiles/scenelib/";
 
   inDevelopment = true;  ///< recompile shaders each time; note that nvidia have their own shader cache!
-  inDeviceId    = 0;     ///< opencl device id
+  inDeviceId    = 0;    ///< opencl device id
   cpuFB         = false; ///< store frame buffer on CPU. Automaticly enabled if
   enableMLT     = false; ///< if use MMLT, you MUST enable it early, when render process just started (here or via command line).
   boxMode       = false; ///< special 'in the box' mode when render don't react to any commands
