@@ -1088,11 +1088,11 @@ static inline void BeckmannSampleAndEvalBRDF(__global const PlainMaterial* a_pMa
                                              __global const EngineGlobals* a_globals, texture2d_t a_tex, __private const ProcTextureList* a_ptList,
                                              __private MatSample* a_out)
 {
-  const float3 texColor   = sample2DExt(beckmannGetTex(a_pMat).y, a_texCoord, (__global const int4*)a_pMat, a_tex, a_globals, a_ptList);
-  const float3 kd         = clamp(texColor*beckmannGetColor(a_pMat), 0.0f, 1.0f);
-
   const float3 newDir     = MapSampleToCosineDistribution(a_r1, a_r2, a_normal, a_normal, 1.0f);
   const float  cosTheta   = dot(newDir, a_normal);
+
+  const float3 texColor   = sample2DExt(beckmannGetTex(a_pMat).y, a_texCoord, (__global const int4*)a_pMat, a_tex, a_globals, a_ptList);
+  const float3 kd         = clamp(texColor*beckmannGetColor(a_pMat), 0.0f, 1.0f);
 
   a_out->direction = newDir;
   a_out->pdf       = cosTheta*INV_PI;
