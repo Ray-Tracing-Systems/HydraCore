@@ -726,7 +726,7 @@ static inline float3 SphericalDirection(const float sintheta, const float costhe
   return make_float3(sintheta * cos(phi), sintheta * sin(phi), costheta); 
 }
 
-static inline bool SameHemisphere(float3 w, float3 wp) { return w.z * wp.z > 0.f; }
+static inline bool SameHemispherePBRT(float3 w, float3 wp) { return w.z * wp.z > 0.f; }
 
 static inline float FrCond(const float cosi, const float eta, const float k)
 {
@@ -865,44 +865,50 @@ static inline void BlinnSampleAndEvalBRDF(__global const PlainMaterial* a_pMat, 
   // wo = v = ray_dir
   // wi = l = -newDir
   //
-  float3 nx, ny, nz = a_normal;
-  const float aniso = a_pMat->data[BLINN_ANISOTROPY_OFFSET];
-  
-  if(aniso > 0.0f)
-  {
-    nx = a_tan;
-    ny = a_bitan;
-  }
-  else
-  {
+  float3 nx, ny, nz     = a_normal;
+  const float aniso     = a_pMat->data[BLINN_ANISOTROPY_OFFSET];
+  const float glossOrig = blinnGlosiness(a_pMat, a_texCoord, a_globals, a_tex, a_ptList);
+
+  float phi, gloss;
+
+  //if(aniso > 0.0f)
+  //{
+  //  nx = a_tan;
+  //  ny = a_bitan;
+  //  const float logSample = log(1.0f - a_r2);
+  //  
+  //  const float alphax = 0.01f; // 0.99f;
+  //  const float alphay = 0.99f; // 0.01f;
+  //
+  //  phi = atan2(alphay, alphax * tan(2.0f * M_PI * a_r2 + 0.5f * M_PI));
+  //  if (a_r2 > 0.5f) 
+  //    phi += M_PI;
+  //
+  //  //// read anisotropic glosiness
+  //  //  
+  //  const float3 wo       = make_float3(-dot(ray_dir, nx), -dot(ray_dir, ny), -dot(ray_dir, nz));
+  //  const float phi2      = sphereMapToPhiTheta(wo).x;    // atan2(wo.y, wo.x)
+  //  const float anisoMult = fabs(cos(phi - phi2));        // it seems here we need and angle between 2 vectors (l,v) or (wi,wo)
+  //  gloss = (1.0f - aniso)*glossOrig + aniso*(glossOrig + anisoMult*(1.0f - glossOrig));  // change gloss to [gloss, 1.0f]  
+  //}
+  //else
+  //{
     CoordinateSystem(nz, &nx, &ny);
-  }
+    phi   = a_r2 * 2.f * M_PI;
+    gloss = glossOrig;
+  //}
   ///////////////////////////////////////////////////////////////////////////// to PBRT coordinate system
 
-  const float3 wo = make_float3(-dot(ray_dir, nx), -dot(ray_dir, ny), -dot(ray_dir, nz));
-
-  const float3 texColor  = sample2DExt(blinnGetTex(a_pMat).y, a_texCoord, (__global const int4*)a_pMat, a_tex, a_globals, a_ptList);
-  const float3 color     = clamp(blinnGetColor(a_pMat)*texColor, 0.0f, 1.0f);
-  
-  //// read anisotropic glosiness
-  //
-  const float phi1 = a_r2 * 2.f * M_PI;
-  const float phi2 = sphereMapToPhiTheta(wo).x;    //atan2(wo.y, wo.x)
-
-  const float  anisoMult = fabs(cos(phi1 - phi2)); //fabs(dot(ray_dir, a_tan));                         // it seems here we need and angle between 2 vectors (l,v) or (wi,wo)
-  const float  glossOrig = blinnGlosiness(a_pMat, a_texCoord, a_globals, a_tex, a_ptList);              //
-  const float  gloss     = (1.0f - aniso)*glossOrig + aniso*(glossOrig + anisoMult*(1.0f - glossOrig)); // cgange gloss to [gloss, 1.0f] 
-  //const float  gloss     = (1.0f - aniso)*glossOrig + aniso*(0.0f + anisoMult*glossOrig);             // cgange gloss to [0.0f, gloss] 
+  const float3 wo        = make_float3(-dot(ray_dir, nx), -dot(ray_dir, ny), -dot(ray_dir, nz));
   const float  exponent  = cosPowerFromGlosiness(gloss);                                                //
   
   // Compute sampled half-angle vector $\wh$ for Blinn distribution
   //
-  const float phi      = a_r2 * 2.f * M_PI;
   const float costheta = pow(a_r1, 1.f / (exponent + 1.0f));
   const float sintheta = sqrt(fmax(0.f, 1.f - costheta*costheta));
   
   float3 wh = SphericalDirection(sintheta, costheta, phi);
-  if (!SameHemisphere(wo, wh))
+  if (!SameHemispherePBRT(wo, wh))
     wh = wh*(-1.0f);
 
   const float3 wi = (2.0f * dot(wo, wh) * wh) - wo; // Compute incident direction by reflecting about $\wh$
@@ -916,6 +922,9 @@ static inline void BlinnSampleAndEvalBRDF(__global const PlainMaterial* a_pMat, 
 
   const float estimatedThoroughput = fabs(cosThetaOut)*(D * GF1) / fmax(blinn_pdf, DEPSILON2);
   const float brightBordersMult    = fmin(estimatedThoroughput, 0.525f) / fmax(estimatedThoroughput, DEPSILON2);
+
+  const float3 texColor = sample2DExt(blinnGetTex(a_pMat).y, a_texCoord, (__global const int4*)a_pMat, a_tex, a_globals, a_ptList);
+  const float3 color    = clamp(blinnGetColor(a_pMat)*texColor, 0.0f, 1.0f);
 
   a_out->direction = newDir; 
   a_out->pdf       = blinn_pdf;
@@ -1161,7 +1170,7 @@ static inline void BeckmannSampleAndEvalBRDF(__global const PlainMaterial* a_pMa
   const float phi      = u2 * 2.f * M_PI;
   
   float3 wh = SphericalDirection(sintheta, costheta, phi);
-  if (!SameHemisphere(wo, wh))
+  if (!SameHemispherePBRT(wo, wh))
     wh = wh*(-1.0f);
 
   const float3 wi = (2.0f * dot(wo, wh) * wh) - wo; // Compute incident direction by reflecting about $\wh$
