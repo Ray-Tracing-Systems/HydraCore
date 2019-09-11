@@ -4,7 +4,7 @@
 #include "cglobals.h"
 #include "cfetch.h"
 
-static inline float CosPhiPBRT(const float3 w, const float sintheta)
+static inline float CosPhiPBRT1(const float3 w, const float sintheta)
 {
   if (sintheta == 0.f) 
     return 1.f;
@@ -12,7 +12,7 @@ static inline float CosPhiPBRT(const float3 w, const float sintheta)
     return clamp(w.x / sintheta, -1.f, 1.f);
 }
 
-static inline float SinPhiPBRT(const float3 w, const float sintheta)
+static inline float SinPhiPBRT1(const float3 w, const float sintheta)
 {
   if (sintheta == 0.f)
     return 0.f;
@@ -56,14 +56,67 @@ inline float SinPhiPBRT(float3 w)
 inline float Cos2PhiPBRT(float3 w) { return CosPhiPBRT(w) * CosPhiPBRT(w); }
 inline float Sin2PhiPBRT(float3 w) { return SinPhiPBRT(w) * SinPhiPBRT(w); }
 
+inline float ErfPBRT(float x) 
+{
+  // constants
+  const float a1 = 0.254829592f;
+  const float a2 = -0.284496736f;
+  const float a3 = 1.421413741f;
+  const float a4 = -1.453152027f;
+  const float a5 = 1.061405429f;
+  const float p = 0.3275911f;
+  // Save the sign of x
+  int sign = 1;
+  if (x < 0) 
+    sign = -1;
+  x = fabs(x);
+  // A&S formula 7.1.26
+  const float t = 1 / (1 + p * x);
+  const float y = 1 - (((((a5 * t + a4) * t) + a3) * t + a2) * t + a1) * t * exp(-x * x);
+  return sign * y;
+}
+
+static inline float ErfInvPBRT(float x) 
+{
+  float w, p;
+  x = clamp(x, -0.99999f, 0.99999f);
+  w = -log((1.0f - x) * (1.0f + x));
+  if (w < 5.0f) 
+  {
+    w = w - 2.5f;
+    p = 2.81022636e-08f;
+    p = 3.43273939e-07f + p * w;
+    p = -3.5233877e-06f + p * w;
+    p = -4.39150654e-06f + p * w;
+    p = 0.00021858087f + p * w;
+    p = -0.00125372503f + p * w;
+    p = -0.00417768164f + p * w;
+    p = 0.246640727f + p * w;
+    p = 1.50140941f + p * w;
+  } 
+  else 
+  {
+    w = sqrt(w) - 3;
+    p = -0.000200214257f;
+    p = 0.000100950558f + p * w;
+    p = 0.00134934322f + p * w;
+    p = -0.00367342844f + p * w;
+    p = 0.00573950773f + p * w;
+    p = -0.0076224613f + p * w;
+    p = 0.00943887047f + p * w;
+    p = 1.00167406f + p * w;
+    p = 2.83297682f + p * w;
+  }
+  return p * x;
+}
+
 static inline float BeckmannDistributionD(const float3 wh, float alphax, float alphay)
 {
   float tan2Theta = Tan2ThetaPBRT(wh);
   if (!isfinite(tan2Theta)) 
     return 0.0f;
   float cos4Theta = Cos2ThetaPBRT(wh) * Cos2ThetaPBRT(wh);
-  return std::exp(-tan2Theta * (Cos2PhiPBRT(wh) / (alphax * alphax) +
-                                Sin2PhiPBRT(wh) / (alphay * alphay))) / (M_PI * alphax * alphay * cos4Theta);
+  return exp(-tan2Theta * (Cos2PhiPBRT(wh) / (alphax * alphax) + Sin2PhiPBRT(wh) / (alphay * alphay))) / (M_PI * alphax * alphay * cos4Theta);
 }
 
 static inline float BeckmannDistributionLambda(const float3 w, float alphax, float alphay)
@@ -79,6 +132,107 @@ static inline float BeckmannDistributionLambda(const float3 w, float alphax, flo
   return (1.0f - 1.259f * a + 0.396f * a * a) / (3.535f * a + 2.181f * a * a);
 }
 
+static inline void BeckmannSample11(float cosThetaI, float U1, float U2,
+                                    float *slope_x, float *slope_y) 
+{
+  /* Special case (normal incidence) */
+  if (cosThetaI > 0.9999f) 
+  {
+    const float r      = sqrt(log(1.0f - U1));
+    const float sinPhi = sin(2.0f * M_PI * U2);
+    const float cosPhi = cos(2.0f * M_PI * U2);
+    *slope_x = r * cosPhi;
+    *slope_y = r * sinPhi;
+    return;
+  }
+   
+  // The original inversion routine from the paper contained
+  // discontinuities, which causes issues for QMC integration
+  // and techniques like Kelemen-style MLT. The following code
+  // performs a numerical inversion with better behavior 
+  //
+  const float sinThetaI = sqrt(fmax(0.0f, 1.0f - cosThetaI * cosThetaI));
+  const float tanThetaI = sinThetaI / cosThetaI;
+  const float cotThetaI = 1.0f / tanThetaI;
+  
+  // Search interval -- everything is parameterized
+  // in the Erf() domain 
+  //
+  float a = -1, c = ErfPBRT(cotThetaI);
+  const float sample_x = max(U1, 1e-6f);
+
+  // Start with a good initial guess 
+  // Float b = (1-sample_x) * a + sample_x * c;
+  // We can do better (inverse of an approximation computed in Mathematica)
+  // 
+  const float thetaI = acos(cosThetaI);
+  const float fit    = 1 + thetaI * (-0.876f + thetaI * (0.4265f - 0.0594f * thetaI));
+  float b            = c - (1 + c) * pow(1 - sample_x, fit);
+
+  // Normalization factor for the CDF 
+  //
+  const float SQRT_PI_INV = 1.f / sqrt(M_PI);
+  float normalization = 1.0f / (1.0f + c + SQRT_PI_INV * tanThetaI * exp(-cotThetaI * cotThetaI));
+
+  int it = 0;
+  while (++it < 10) 
+  {
+    // Bisection criterion -- the oddly-looking
+    // Boolean expression are intentional to check
+    // for NaNs at little additional cost 
+    //
+    if (!(b >= a && b <= c)) 
+      b = 0.5f * (a + c);
+    // Evaluate the CDF and its derivative
+    //   (i.e. the density function) 
+    const float invErf     = ErfInvPBRT(b);
+    const float value      = normalization * (1.0f + b + SQRT_PI_INV * tanThetaI * exp(-invErf * invErf)) - sample_x;
+    const float derivative = normalization * (1 - invErf * tanThetaI);
+    if (fabs(value) < 1e-5f) 
+      break;
+    /* Update bisection intervals */
+    if (value > 0)
+      c = b;
+    else
+      a = b;
+    b -= value / derivative;
+  }
+
+  // Now convert back into a slope value 
+  *slope_x = ErfInvPBRT(b);
+  // Simulate Y component 
+  *slope_y = ErfInvPBRT(2.0f * fmax(U2, 1e-6f) - 1.0f);
+  
+  //CHECK(!std::isinf(*slope_x));
+  //CHECK(!std::isnan(*slope_x));
+  //CHECK(!std::isinf(*slope_y));
+  //CHECK(!std::isnan(*slope_y));
+}
+
+static inline float3 BeckmannSample(const float3 wi, float alpha_x, float alpha_y, float U1, float U2) 
+{
+  // 1. stretch wi
+  const float3 wiStretched = normalize(make_float3(alpha_x * wi.x, alpha_y * wi.y, wi.z));
+
+  // 2. simulate P22_{wi}(x_slope, y_slope, 1, 1)
+  float slope_x, slope_y;
+  BeckmannSample11(CosThetaPBRT(wiStretched), U1, U2, 
+                   &slope_x, &slope_y);
+
+  // 3. rotate
+  float tmp = CosPhiPBRT(wiStretched) * slope_x - SinPhiPBRT(wiStretched) * slope_y;
+  slope_y   = SinPhiPBRT(wiStretched) * slope_x + CosPhiPBRT(wiStretched) * slope_y;
+  slope_x   = tmp;
+
+  // 4. unstretch
+  slope_x = alpha_x * slope_x;
+  slope_y = alpha_y * slope_y;
+  
+  // 5. compute normal
+  return normalize(make_float3(-slope_x, -slope_y, 1.f));
+}
+
+
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -91,7 +245,6 @@ static inline float TrowbridgeReitzDistributionD(const float3 wh, float alphax, 
   const float e = (Cos2PhiPBRT(wh) / (alphax * alphax) + Sin2PhiPBRT(wh) / (alphay * alphay)) * tan2Theta;
   return 1.0f / (M_PI * alphax * alphay * cos4Theta * (1.0f + e) * (1.0f + e));
 }
-
 
 static inline float TrowbridgeReitzDistributionLambda(const float3 w, float alphax, float alphay)
 {

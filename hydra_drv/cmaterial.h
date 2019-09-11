@@ -160,8 +160,8 @@ static inline float orennayarFunc(const float3 l, const float3 v, const float3 n
 
   if (sinTheta_wi > 1e-4 && sinTheta_wo > 1e-4)
   {
-    float sinphii = SinPhiPBRT(wi, sinTheta_wi), cosphii = CosPhiPBRT(wi, sinTheta_wi);
-    float sinphio = SinPhiPBRT(wo, sinTheta_wo), cosphio = CosPhiPBRT(wo, sinTheta_wo);
+    float sinphii = SinPhiPBRT1(wi, sinTheta_wi), cosphii = CosPhiPBRT1(wi, sinTheta_wi);
+    float sinphio = SinPhiPBRT1(wo, sinTheta_wo), cosphio = CosPhiPBRT1(wo, sinTheta_wo);
     float dcos    = cosphii * cosphio + sinphii * sinphio;
     maxcos = fmax(0.f, dcos);
   }
