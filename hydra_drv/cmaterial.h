@@ -1084,7 +1084,8 @@ static inline float3 beckmannEvalBxDF(__global const PlainMaterial* a_pMat, cons
   return clamp(texColor*beckmannGetColor(a_pMat), 0.0f, 1.0f)*INV_PI;
 }
 
-static inline void BeckmannSampleAndEvalBRDF(__global const PlainMaterial* a_pMat, const float a_r1, const float a_r2, const float3 ray_dir, const float3 a_normal, const float2 a_texCoord,
+static inline void BeckmannSampleAndEvalBRDF(__global const PlainMaterial* a_pMat, const float a_r1, const float a_r2, 
+                                             const float3 ray_dir, const float3 a_normal, const float2 a_texCoord, const float3 a_tan, const float3 a_bitan,
                                              __global const EngineGlobals* a_globals, texture2d_t a_tex, __private const ProcTextureList* a_ptList,
                                              __private MatSample* a_out)
 {
@@ -1094,8 +1095,32 @@ static inline void BeckmannSampleAndEvalBRDF(__global const PlainMaterial* a_pMa
   const float3 texColor   = sample2DExt(beckmannGetTex(a_pMat).y, a_texCoord, (__global const int4*)a_pMat, a_tex, a_globals, a_ptList);
   const float3 kd         = clamp(texColor*beckmannGetColor(a_pMat), 0.0f, 1.0f);
 
-  a_out->direction = newDir;
-  a_out->pdf       = cosTheta*INV_PI;
+  const float alphax = BeckmannRoughnessToAlpha(0.5f); // 0.99f;
+  const float alphay = BeckmannRoughnessToAlpha(0.5f); // 0.01f;
+
+  ///////////////////////////////////////////////////////////////////////////// to PBRT coordinate system
+  // wo = v = ray_dir
+  // wi = l = -newDir
+  //
+  float3 nx, ny, nz = a_normal;
+
+  if(fabs(alphax - alphay) > 1.0e-5f)
+  {
+    nx = a_tan;
+    ny = a_bitan;
+  }
+  else
+  {
+    CoordinateSystem(nz, &nx, &ny);
+  }
+  ///////////////////////////////////////////////////////////////////////////// to PBRT coordinate system
+
+  const float3 wo  = make_float3(-dot(ray_dir, nx), -dot(ray_dir, ny), -dot(ray_dir, nz));
+  const float3 wh  = BeckmannDistributionSampleWH(wo, make_float2(a_r1, a_r2), alphax, alphay);
+  const float3 wi  = (2.0f * dot(wo, wh) * wh) - wo; // Compute incident direction by reflecting about wh
+
+  a_out->direction = wi.x*nx + wi.y*ny + wi.z*nz; // back to normal coordinate system
+  a_out->pdf       = BeckmannDistributionPdf(wo, wh, alphax, alphay);
   a_out->color     = kd*INV_PI;
   if (cosTheta <= DEPSILON)
     a_out->color = make_float3(0, 0, 0);
@@ -1545,7 +1570,7 @@ static inline void MaterialLeafSampleAndEvalBRDF(__global const PlainMaterial* p
     break;
   
   case PLAIN_MAT_CLASS_BECKMANN: 
-    BeckmannSampleAndEvalBRDF(pMat, rands.x, rands.y, ray_dir, hitNorm, pSurfHit->texCoord, a_globals, a_tex, a_ptList,
+    BeckmannSampleAndEvalBRDF(pMat, rands.x, rands.y, ray_dir, hitNorm, pSurfHit->texCoord, pSurfHit->tangent, pSurfHit->biTangent, a_globals, a_tex, a_ptList,
                              a_out);
     break;
 

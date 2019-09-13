@@ -232,6 +232,32 @@ static inline float3 BeckmannSample(const float3 wi, float alpha_x, float alpha_
   return normalize(make_float3(-slope_x, -slope_y, 1.f));
 }
 
+static inline float3 BeckmannDistributionSampleWH(const float3 wo, const float2 u, float alphax, float alphay)
+{
+  float3 wh;
+  const bool flip = (wo.z < 0.0f);
+  wh = BeckmannSample(flip ? -wo : wo, alphax, alphay, u.x, u.y);
+  if (flip) 
+    wh = (-1.0f)*wh;
+  return wh;
+}
+
+static inline float BeckmannG1(float3 w, float alphax, float alphay) 
+{
+  //    if (Dot(w, wh) * CosTheta(w) < 0.) return 0.;
+  return 1.0f / (1.0f + BeckmannDistributionLambda(w, alphax, alphay));
+}
+
+static inline float BeckmannDistributionPdf(float3 wo, float3 wh, float alphax, float alphay) 
+{
+  return BeckmannDistributionD(wh, alphax, alphay) * BeckmannG1(wo, alphax, alphay) * fabs(dot(wo, wh)) / AbsCosThetaPBRT(wo);
+}
+
+static inline float BeckmannRoughnessToAlpha(float roughness) 
+{
+  const float x = log(fmax(roughness, 1.0e-3f));
+  return 1.62142f + 0.819955f * x + 0.1734f * x * x + 0.0171201f * x * x * x + 0.000640711f * x * x * x * x;
+}
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -333,5 +359,31 @@ static inline float3 TrowbridgeReitzSample(const float3 wi, float alpha_x, float
   return normalize(make_float3(-slope_x, -slope_y, 1.));
 }
 
+static inline float3 TrowbridgeReitzDistributionSampleWH(const float3 wo, const float2 u, float alphax, float alphay)
+{
+  float3 wh;
+  bool flip = wo.z < 0;
+  wh = TrowbridgeReitzSample(flip ? -wo : wo, alphax, alphay, u.x, u.y);
+  if (flip) 
+    wh = -wh;
+  return wh;
+}
+
+static inline float TrowbridgeReitzG1(float3 w, float alphax, float alphay) 
+{
+  //    if (Dot(w, wh) * CosTheta(w) < 0.) return 0.;
+  return 1.0f / (1.0f + TrowbridgeReitzDistributionLambda(w, alphax, alphay));
+}
+
+static inline float TrowbridgeReitzDistributionPdf(float3 wo, float3 wh, float alphax, float alphay) 
+{
+  return TrowbridgeReitzDistributionD(wh, alphax, alphay) * TrowbridgeReitzG1(wo, alphax, alphay) * fabs(dot(wo, wh)) / AbsCosThetaPBRT(wo);
+}
+
+inline float TrowbridgeReitzRoughnessToAlpha(float roughness) 
+{
+  const float x = log(fmax(roughness, 1e-3f));
+  return 1.62142f + 0.819955f * x + 0.1734f * x * x + 0.0171201f * x * x * x + 0.000640711f * x * x * x * x;
+}
 
 #endif
