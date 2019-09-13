@@ -4,6 +4,15 @@
 #include "cglobals.h"
 #include "cfetch.h"
 
+static inline float FrCond(const float cosi, const float eta, const float k)
+{
+  const float tmp    = (eta*eta + k*k) * cosi*cosi;
+  const float Rparl2 = (tmp - (2.f * eta * cosi) + 1.0f) / (tmp + (2.f * eta * cosi) + 1.0f);
+  const float tmp_f  = eta*eta + k*k;
+  const float Rperp2 = (tmp_f - (2.f * eta * cosi) + cosi*cosi) / (tmp_f + (2.f * eta * cosi) + cosi*cosi);
+  return fabs(Rparl2 + Rperp2) / 2.f;
+}
+
 static inline float CosPhiPBRT1(const float3 w, const float sintheta)
 {
   if (sintheta == 0.f) 
@@ -257,6 +266,31 @@ static inline float BeckmannRoughnessToAlpha(float roughness)
 {
   const float x = log(fmax(roughness, 1.0e-3f));
   return 1.62142f + 0.819955f * x + 0.1734f * x * x + 0.0171201f * x * x * x + 0.000640711f * x * x * x * x;
+}
+
+static inline float BeckmannG(const float3 wo, const float3 wi, float alphax, float alphay)
+{
+  return 1.0f / (1.0f + BeckmannDistributionLambda(wo, alphax, alphay) + BeckmannDistributionLambda(wi, alphax, alphay));
+}
+
+static inline float BeckmannBRDF_PBRT(const float3 wo, const float3 wi, float alphax, float alphay)
+{
+  const float cosThetaO = AbsCosThetaPBRT(wo); 
+  const float cosThetaI = AbsCosThetaPBRT(wi);
+
+  float3 wh = wi + wo;
+
+  // Handle degenerate cases for microfacet reflection
+  if (cosThetaI == 0.0f || cosThetaO == 0.0f) 
+    return 0.0f;
+    
+  if (wh.x == 0.0f && wh.y == 0.0f && wh.z == 0.0f) 
+    return 0.0f;
+  
+  wh = normalize(wh);
+  const float F = FrCond(dot(wi, wh), 5.0f, 1.25f);
+
+  return BeckmannDistributionD(wh, alphax, alphay) * BeckmannG(wo, wi, alphax, alphay) * F / (4.0f * cosThetaI * cosThetaO);
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
