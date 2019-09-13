@@ -257,4 +257,81 @@ static inline float TrowbridgeReitzDistributionLambda(const float3 w, float alph
   return (-1.0f + sqrt(1.f + alpha2Tan2Theta)) / 2.0f;
 }
 
+
+static inline void TrowbridgeReitzSample11(float cosTheta, float U1, float U2,
+                                           float *slope_x, float *slope_y)
+{
+  // special case (normal incidence)
+  if (cosTheta > 0.9999f) 
+  {
+    const float r   = sqrt(U1 / (1.0f - U1));
+    const float phi = 6.28318530718f * U2;
+    *slope_x = r * cos(phi);
+    *slope_y = r * sin(phi);
+    return;
+  }
+
+  const float sinTheta = sqrt(fmax(0.0f, 1.0f - cosTheta * cosTheta));
+  const float tanTheta = sinTheta / cosTheta;
+  const float a        = 1.0f / tanTheta;
+  const float G1       = 2.0f / (1.0f + sqrt(1.f + 1.f / (a * a)));
+
+  // sample slope_x
+  const float A  = 2.0f * U1 / G1 - 1.0f;
+  float tmp      = 1.f / (A * A - 1.f);
+  if (tmp > 1e10f) 
+    tmp = 1e10f;
+
+  const float B         = tanTheta;
+  const float D         = sqrt(fmax(B * B * tmp * tmp - (A * A - B * B) * tmp, 0.0f));
+  const float slope_x_1 = B * tmp - D;
+  const float slope_x_2 = B * tmp + D;
+
+  *slope_x = (A < 0.0f || slope_x_2 > 1.f / tanTheta) ? slope_x_1 : slope_x_2;
+
+  // sample slope_y
+  float S;
+  if (U2 > 0.5f) 
+  {
+    S  = 1.f;
+    U2 = 2.f * (U2 - .5f);
+  } 
+  else 
+  {
+    S = -1.f;
+    U2 = 2.f * (.5f - U2);
+  }
+  const float z = (U2 * (U2 * (U2 * 0.27385f - 0.73369f) + 0.46341f)) /
+                  (U2 * (U2 * (U2 * 0.093073f + 0.309420f) - 1.000000f) + 0.597999f);
+
+  *slope_y = S * z * sqrt(1.f + *slope_x * *slope_x);
+  
+  //CHECK(!std::isinf(*slope_y));
+  //CHECK(!std::isnan(*slope_y));
+}
+
+static inline float3 TrowbridgeReitzSample(const float3 wi, float alpha_x, float alpha_y, float U1, float U2) 
+{
+  // 1. stretch wi
+  const float3 wiStretched = normalize(make_float3(alpha_x * wi.x, alpha_y * wi.y, wi.z));
+
+  // 2. simulate P22_{wi}(x_slope, y_slope, 1, 1)
+  float slope_x, slope_y;
+  TrowbridgeReitzSample11(CosThetaPBRT(wiStretched), U1, U2, 
+                          &slope_x, &slope_y);
+
+  // 3. rotate
+  float tmp = CosPhiPBRT(wiStretched) * slope_x - SinPhiPBRT(wiStretched) * slope_y;
+  slope_y   = SinPhiPBRT(wiStretched) * slope_x + CosPhiPBRT(wiStretched) * slope_y;
+  slope_x   = tmp;
+
+  // 4. unstretch
+  slope_x = alpha_x * slope_x;
+  slope_y = alpha_y * slope_y;
+
+  // 5. compute normal
+  return normalize(make_float3(-slope_x, -slope_y, 1.));
+}
+
+
 #endif
