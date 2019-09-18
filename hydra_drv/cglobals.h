@@ -1063,7 +1063,7 @@ static inline float4x4 transpose(const float4x4 a_mat)
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-IDH_CALL float3 EyeRayDir(float x, float y, float w, float h, float4x4 a_mViewProjInv) // g_mViewProjInv
+static inline float3 EyeRayDir(float x, float y, float w, float h, float4x4 a_mViewProjInv) // g_mViewProjInv
 {
   float4 pos = make_float4( 2.0f * (x + 0.5f) / w - 1.0f, 
                            -2.0f * (y + 0.5f) / h + 1.0f, 
@@ -1079,7 +1079,7 @@ IDH_CALL float3 EyeRayDir(float x, float y, float w, float h, float4x4 a_mViewPr
 }
 
 
-IDH_CALL void matrix4x4f_mult_ray3(float4x4 a_mWorldViewInv, __private float3* ray_pos, __private float3* ray_dir) // g_mWorldViewInv
+static inline void matrix4x4f_mult_ray3(float4x4 a_mWorldViewInv, __private float3* ray_pos, __private float3* ray_dir) // g_mWorldViewInv
 {
   float3 pos  = mul(a_mWorldViewInv, (*ray_pos));
   float3 pos2 = mul(a_mWorldViewInv, ((*ray_pos) + 100.0f*(*ray_dir)));
@@ -1093,7 +1093,7 @@ IDH_CALL void matrix4x4f_mult_ray3(float4x4 a_mWorldViewInv, __private float3* r
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////
 ////
-IDH_CALL float3 matrix3x3f_mult_float3(__global const float* M, float3 v)
+static inline float3 matrix3x3f_mult_float3(__global const float* M, float3 v)
 {
   float3 res;
   res.x = M[0 * 3 + 0] * v.x + M[0 * 3 + 1] * v.y + M[0 * 3 + 2] * v.z;
@@ -1102,16 +1102,15 @@ IDH_CALL float3 matrix3x3f_mult_float3(__global const float* M, float3 v)
   return res;
 }
 
-
-IDH_CALL float DistanceSquared(float3 a, float3 b)
+static inline float DistanceSquared(float3 a, float3 b)
 {
   float3 diff = b - a;
   return dot(diff, diff);
 }
 
-IDH_CALL float UniformConePdf(float cosThetaMax) { return 1.0f / (2.0f * M_PI * (1.0f - cosThetaMax)); }
+static inline float UniformConePdf(float cosThetaMax) { return 1.0f / (2.0f * M_PI * (1.0f - cosThetaMax)); }
 
-IDH_CALL float3 UniformSampleSphere(float u1, float u2)
+static inline float3 UniformSampleSphere(float u1, float u2)
 {
   float z = 1.0f - 2.0f * u1;
   float r = sqrt(fmax(0.0f, 1.0f - z*z));
@@ -1121,12 +1120,12 @@ IDH_CALL float3 UniformSampleSphere(float u1, float u2)
   return make_float3(x, y, z);
 }
 
-IDH_CALL float lerp2(float t, float a, float b)
+static inline float lerp2(float t, float a, float b)
 {
   return (1.0f - t) * a + t * b;
 }
 
-IDH_CALL float3 UniformSampleCone(float u1, float u2, float costhetamax, float3 x, float3 y, float3 z)
+static inline float3 UniformSampleCone(float u1, float u2, float costhetamax, float3 x, float3 y, float3 z)
 {
   float costheta = lerp2(u1, costhetamax, 1.0f);
   float sintheta = sqrt(1.0f - costheta*costheta);
@@ -1134,7 +1133,7 @@ IDH_CALL float3 UniformSampleCone(float u1, float u2, float costhetamax, float3 
   return cos(phi) * sintheta * x + sin(phi) * sintheta * y + costheta * z;
 }
 
-IDH_CALL float2 RaySphereIntersect(float3 rayPos, float3 rayDir, float3 sphPos, float radius)
+static inline float2 RaySphereIntersect(float3 rayPos, float3 rayDir, float3 sphPos, float radius)
 {
   float3 k = rayPos - sphPos;
   float  b = dot(k, rayDir);

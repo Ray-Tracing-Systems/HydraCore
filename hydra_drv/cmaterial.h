@@ -1080,8 +1080,8 @@ static inline void BeckmannSampleAndEvalBRDF(__global const PlainMaterial* a_pMa
                                              __global const EngineGlobals* a_globals, texture2d_t a_tex, __private const ProcTextureList* a_ptList,
                                              __private MatSample* a_out)
 {
-  const float alphax = BeckmannRoughnessToAlpha(1.0f);  
-  const float alphay = BeckmannRoughnessToAlpha(0.0001f);  
+  const float alphax = BeckmannRoughnessToAlpha(0.001f);  
+  const float alphay = BeckmannRoughnessToAlpha(0.001f);  
 
   ///////////////////////////////////////////////////////////////////////////// to PBRT coordinate system
   // wo = v = ray_dir
@@ -1110,12 +1110,14 @@ static inline void BeckmannSampleAndEvalBRDF(__global const PlainMaterial* a_pMa
   const float3 newDir      = wi.x*nx + wi.y*ny + wi.z*nz; // back to normal coordinate system
   const float  cosThetaOut = dot(newDir, a_normal);
 
+  //const float  maxValBrdf  = lerp2(1.0f - fabs(dot(wo, wh)), 500.0f, 2000.0f);
+
   a_out->direction = newDir;
   a_out->pdf       = BeckmannDistributionPdf(wo, wh, alphax, alphay);
   if (cosThetaOut <= DEPSILON)
     a_out->color = make_float3(0, 0, 0);
   else  
-    a_out->color = kd*BeckmannBRDF_PBRT(wo, wi, alphax, alphay);
+    a_out->color = kd*fmin(BeckmannBRDF_PBRT(wo, wi, alphax, alphay), 1000.0f);
   a_out->flags = RAY_EVENT_G;
 }
 

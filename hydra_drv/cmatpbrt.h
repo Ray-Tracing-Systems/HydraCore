@@ -281,10 +281,10 @@ static inline float BeckmannBRDF_PBRT(const float3 wo, const float3 wi, float al
   float3 wh = wi + wo;
 
   // Handle degenerate cases for microfacet reflection
-  if (cosThetaI == 0.0f || cosThetaO == 0.0f) 
+  if (cosThetaI <= 1e-6f || cosThetaO <= 1e-6f) 
     return 0.0f;
     
-  if (wh.x == 0.0f && wh.y == 0.0f && wh.z == 0.0f) 
+  if (fabs(wh.x) <= 1e-6f && fabs(wh.y) <= 1e-6f && fabs(wh.z) <= 1e-6f) 
     return 0.0f;
   
   wh = normalize(wh);
