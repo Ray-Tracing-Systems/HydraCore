@@ -1032,6 +1032,7 @@ static inline void GGXSampleAndEvalBRDF(__global const PlainMaterial* a_pMat, co
 
 #define BECKMANN_GLOSINESS_TEXID_OFFSET        17
 #define BECKMANN_GLOSINESS_TEXMATRIXID_OFFSET  18
+#define BECKMANN_ANISOTROPY_OFFSET             19
 
 #define BECKMANN_SAMPLER0_OFFSET               20 
 #define BECKMANN_SAMPLER1_OFFSET               32
@@ -1047,7 +1048,7 @@ static inline int2   beckmannGetTex(__global const PlainMaterial* a_pMat)
 
 
 static inline float beckmannGlosiness(__global const PlainMaterial* a_pMat, const float2 a_texCoord, 
-                                   __global const EngineGlobals* a_globals, texture2d_t a_tex, __private const ProcTextureList* a_ptList)
+                                      __global const EngineGlobals* a_globals, texture2d_t a_tex, __private const ProcTextureList* a_ptList)
 {
   if (as_int(a_pMat->data[BECKMANN_GLOSINESS_TEXID_OFFSET]) != INVALID_TEXTURE)
   {
@@ -1061,9 +1062,13 @@ static inline float beckmannGlosiness(__global const PlainMaterial* a_pMat, cons
     return a_pMat->data[BECKMANN_GLOSINESS_OFFSET];
 }
 
+static inline float beckmannAnisotropy(__global const PlainMaterial* a_pMat)
+{
+  return a_pMat->data[BECKMANN_ANISOTROPY_OFFSET];
+}
 
 static inline float beckmannEvalPDF(__global const PlainMaterial* a_pMat, const float3 l, const float3 v, const float3 n, 
-                                 const float2 a_texCoord, __global const EngineGlobals* a_globals, texture2d_t a_tex, __private const ProcTextureList* a_ptList)
+                                    const float2 a_texCoord, __global const EngineGlobals* a_globals, texture2d_t a_tex, __private const ProcTextureList* a_ptList)
 {
   return fabs(dot(l, n))*INV_PI;
 }
@@ -1080,8 +1085,11 @@ static inline void BeckmannSampleAndEvalBRDF(__global const PlainMaterial* a_pMa
                                              __global const EngineGlobals* a_globals, texture2d_t a_tex, __private const ProcTextureList* a_ptList,
                                              __private MatSample* a_out)
 {
-  const float alphax = BeckmannRoughnessToAlpha(0.001f);  
-  const float alphay = BeckmannRoughnessToAlpha(0.001f);  
+  const float roughness = 0.5f - 0.5f*beckmannGlosiness(a_pMat, a_texCoord, a_globals, a_tex, a_ptList);
+  const float anisoMult = 1.0f - beckmannAnisotropy(a_pMat);
+
+  const float alphax = BeckmannRoughnessToAlpha(roughness*roughness);  
+  const float alphay = BeckmannRoughnessToAlpha(roughness*roughness*anisoMult*anisoMult);  
 
   ///////////////////////////////////////////////////////////////////////////// to PBRT coordinate system
   // wo = v = ray_dir
@@ -1104,8 +1112,8 @@ static inline void BeckmannSampleAndEvalBRDF(__global const PlainMaterial* a_pMa
   const float3 wh  = BeckmannDistributionSampleWH(wo, make_float2(a_r1, a_r2), alphax, alphay);
   const float3 wi  = (2.0f * dot(wo, wh) * wh) - wo; // Compute incident direction by reflecting about wh
   
-  const float3 texColor   = sample2DExt(beckmannGetTex(a_pMat).y, a_texCoord, (__global const int4*)a_pMat, a_tex, a_globals, a_ptList);
-  const float3 kd         = clamp(texColor*beckmannGetColor(a_pMat), 0.0f, 1.0f);
+  const float3 texColor    = sample2DExt(beckmannGetTex(a_pMat).y, a_texCoord, (__global const int4*)a_pMat, a_tex, a_globals, a_ptList);
+  const float3 kd          = clamp(texColor*beckmannGetColor(a_pMat), 0.0f, 1.0f);
   
   const float3 newDir      = wi.x*nx + wi.y*ny + wi.z*nz; // back to normal coordinate system
   const float  cosThetaOut = dot(newDir, a_normal);
@@ -1117,7 +1125,7 @@ static inline void BeckmannSampleAndEvalBRDF(__global const PlainMaterial* a_pMa
   if (cosThetaOut <= DEPSILON)
     a_out->color = make_float3(0, 0, 0);
   else  
-    a_out->color = kd*fmin(BeckmannBRDF_PBRT(wo, wi, alphax, alphay), 1000.0f);
+    a_out->color = kd*fmin(BeckmannBRDF_PBRT(wo, wi, alphax, alphay), 500.0f);
   a_out->flags = RAY_EVENT_G;
 }
 

@@ -513,8 +513,9 @@ public:
     m_plain.data[BECKMANN_COLORY_OFFSET] = color.y;
     m_plain.data[BECKMANN_COLORZ_OFFSET] = color.z;
 
-    m_plain.data[BECKMANN_COSPOWER_OFFSET]  = cosPower;
-    m_plain.data[BECKMANN_GLOSINESS_OFFSET] = a_glosiness;
+    m_plain.data[BECKMANN_COSPOWER_OFFSET]   = cosPower;
+    m_plain.data[BECKMANN_GLOSINESS_OFFSET]  = a_glosiness;
+    m_plain.data[BECKMANN_ANISOTROPY_OFFSET] = a_aniso;
 
     ((int*)(m_plain.data))[BECKMANN_TEXID_OFFSET]           = texId;
     ((int*)(m_plain.data))[BECKMANN_GLOSINESS_TEXID_OFFSET] = glossTexId;
@@ -1001,13 +1002,13 @@ std::shared_ptr<IMaterial> ReflectiveMaterialFromHydraMtl(const pugi::xml_node a
 
 	const std::wstring brfdType = reflect.attribute(L"brdf_type").as_string();
 
-  if (texIdGloss == INVALID_TEXTURE && glossVal >= 0.995f)
+  if (texIdGloss == INVALID_TEXTURE && (glossVal >= 0.995f && brfdType != L"beckmann"))
     return std::make_shared<MirrorMaterial>(colorS, texId, sampler);
   else if (brfdType == L"torranse_sparrow")
     return std::make_shared<BlinnTorranceSrappowMaterial>(colorS, texId, sampler, 0.0f, texIdGloss, samplerGloss, glossVal, samplerAniso, anisoVal);
   //else if (brfdType == L"ggx" || brfdType == L"GGX")
   //  return std::make_shared<GGXMaterial>                 (colorS, texId, sampler, 0.0f, texIdGloss, samplerGloss, glossVal, samplerAniso, anisoVal);
-  else if (brfdType == L"beckmann" || brfdType == L"Beckmann")
+  else if (brfdType == L"beckmann")
     return std::make_shared<BeckmannMaterial>            (colorS, texId, sampler, 0.0f, texIdGloss, samplerGloss, glossVal, samplerAniso, anisoVal);
   else
     return std::make_shared<PhongMaterial>               (colorS, texId, sampler, 0.0f, texIdGloss, samplerGloss, glossVal);
