@@ -147,7 +147,7 @@ static inline void BeckmannSample11(float cosThetaI, float U1, float U2,
   /* Special case (normal incidence) */
   if (cosThetaI > 0.9999f) 
   {
-    const float r      = sqrt(log(1.0f - U1));
+    const float r      = sqrt(-log(1.0f - U1));
     const float sinPhi = sin(2.0f * M_PI * U2);
     const float cosPhi = cos(2.0f * M_PI * U2);
     *slope_x = r * cosPhi;
@@ -288,9 +288,9 @@ static inline float BeckmannBRDF_PBRT(const float3 wo, const float3 wi, float al
     return 0.0f;
   
   wh = normalize(wh);
-  const float F = FrCond(dot(wi, wh), 5.0f, 1.25f);
+  const float F = 1.0f; // FrCond(dot(wi, wh), 5.0f, 1.25f);
 
-  return BeckmannDistributionD(wh, alphax, alphay) * BeckmannG(wo, wi, alphax, alphay) * F / (4.0f * cosThetaI * cosThetaO);
+  return BeckmannDistributionD(wh, alphax, alphay) * BeckmannG(wo, wi, alphax, alphay) * F / fmax(4.0f * cosThetaI * cosThetaO, DEPSILON);
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////

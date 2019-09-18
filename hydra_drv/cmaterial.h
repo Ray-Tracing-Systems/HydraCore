@@ -1081,7 +1081,7 @@ static inline void BeckmannSampleAndEvalBRDF(__global const PlainMaterial* a_pMa
                                              __private MatSample* a_out)
 {
   const float alphax = BeckmannRoughnessToAlpha(1.0f);  
-  const float alphay = BeckmannRoughnessToAlpha(0.001f);  
+  const float alphay = BeckmannRoughnessToAlpha(0.0001f);  
 
   ///////////////////////////////////////////////////////////////////////////// to PBRT coordinate system
   // wo = v = ray_dir
@@ -1091,8 +1091,8 @@ static inline void BeckmannSampleAndEvalBRDF(__global const PlainMaterial* a_pMa
 
   if(fabs(alphax - alphay) > 1.0e-5f)
   {
-    ny = a_bitan;
-    nx = a_tan;
+    nx = a_bitan;
+    ny = a_tan;
   }
   else
   {
