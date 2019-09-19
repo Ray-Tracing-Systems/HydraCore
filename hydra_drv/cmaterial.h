@@ -1619,10 +1619,10 @@ static inline void MaterialLeafSampleAndEvalBRDF(__global const PlainMaterial* p
                            a_out);
     break;
 
-  //case PLAIN_MAT_CLASS_BLINN_SPECULAR: 
-  //  BlinnSampleAndEvalBRDF(pMat, rands.x, rands.y, ray_dir, hitNorm, pSurfHit->texCoord, pSurfHit->tangent, pSurfHit->biTangent, a_globals, a_tex, a_ptList,
-  //                         a_out);
-  //  break;
+  case PLAIN_MAT_CLASS_BLINN_SPECULAR: 
+    BlinnSampleAndEvalBRDF(pMat, rands.x, rands.y, ray_dir, hitNorm, pSurfHit->texCoord, pSurfHit->tangent, pSurfHit->biTangent, a_globals, a_tex, a_ptList,
+                           a_out);
+    break;
   
   case PLAIN_MAT_CLASS_BECKMANN: 
     BeckmannSampleAndEvalBRDF(pMat, rands.x, rands.y, ray_dir, hitNorm, pSurfHit->texCoord, pSurfHit->tangent, pSurfHit->biTangent, a_globals, a_tex, a_ptList,
@@ -1827,11 +1827,11 @@ static inline BxDFResult materialLeafEval(__global const PlainMaterial* pMat, __
     res.pdfFwd  = phongEvalPDF (pMat, sc->l, sc->v, n, sc->tc,              a_globals, a_tex, a_ptList);
     res.pdfRev  = phongEvalPDF (pMat, sc->v, sc->l, n, sc->tc,              a_globals, a_tex, a_ptList);
     break;
-  //case PLAIN_MAT_CLASS_BLINN_SPECULAR: 
-  //  res.brdf    = blinnEvalBxDF(pMat, sc->l, sc->v, n, sc->tc, a_globals, a_tex, a_ptList)*cosMult;
-  //  res.pdfFwd  = blinnEvalPDF (pMat, sc->l, sc->v, n, sc->tc, a_globals, a_tex, a_ptList);
-  //  res.pdfRev  = blinnEvalPDF (pMat, sc->v, sc->l, n, sc->tc, a_globals, a_tex, a_ptList);
-  //  break;
+  case PLAIN_MAT_CLASS_BLINN_SPECULAR: 
+    res.brdf    = blinnEvalBxDF(pMat, sc->l, sc->v, n, sc->tc, a_globals, a_tex, a_ptList)*cosMult;
+    res.pdfFwd  = blinnEvalPDF (pMat, sc->l, sc->v, n, sc->tc, a_globals, a_tex, a_ptList);
+    res.pdfRev  = blinnEvalPDF (pMat, sc->v, sc->l, n, sc->tc, a_globals, a_tex, a_ptList);
+    break;
   case PLAIN_MAT_CLASS_BECKMANN:
     res.brdf    = beckmannEvalBxDF(pMat, sc->l, sc->v, n, sc->tg, sc->bn, sc->tc, a_globals, a_tex, a_ptList)*cosMult;
     res.pdfFwd  = beckmannEvalPDF (pMat, sc->l, sc->v, n, sc->tg, sc->bn, sc->tc, a_globals, a_tex, a_ptList);
