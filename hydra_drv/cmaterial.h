@@ -1067,23 +1067,7 @@ static inline float beckmannAnisotropy(__global const PlainMaterial* a_pMat)
   return a_pMat->data[BECKMANN_ANISOTROPY_OFFSET];
 }
 
-static inline float beckmannEvalPDF(__global const PlainMaterial* a_pMat, const float3 l, const float3 v, const float3 n, 
-                                    const float2 a_texCoord, __global const EngineGlobals* a_globals, texture2d_t a_tex, __private const ProcTextureList* a_ptList)
-{
-  return fabs(dot(l, n))*INV_PI;
-}
-
-static inline float3 beckmannEvalBxDF(__global const PlainMaterial* a_pMat, const float3 l, const float3 v, const float3 n, 
-                                      const float2 a_texCoord, __global const EngineGlobals* a_globals, texture2d_t a_tex, __private const ProcTextureList* a_ptList)
-{
-  const float3 texColor = sample2DExt(beckmannGetTex(a_pMat).y, a_texCoord, (__global const int4*)a_pMat, a_tex, a_globals, a_ptList);
-  return clamp(texColor*beckmannGetColor(a_pMat), 0.0f, 1.0f)*INV_PI;
-}
-
-static inline void BeckmannSampleAndEvalBRDF(__global const PlainMaterial* a_pMat, const float a_r1, const float a_r2, 
-                                             const float3 ray_dir, const float3 a_normal, const float2 a_texCoord, const float3 a_tan, const float3 a_bitan,
-                                             __global const EngineGlobals* a_globals, texture2d_t a_tex, __private const ProcTextureList* a_ptList,
-                                             __private MatSample* a_out)
+static inline float2 beckmannAlphaXY(__global const PlainMaterial* a_pMat, const float2 a_texCoord, __global const EngineGlobals* a_globals, texture2d_t a_tex, __private const ProcTextureList* a_ptList)
 {
   const float roughness = 0.5f - 0.5f*beckmannGlosiness(a_pMat, a_texCoord, a_globals, a_tex, a_ptList);
   const float anisoMult = 1.0f - beckmannAnisotropy(a_pMat);
@@ -1091,13 +1075,84 @@ static inline void BeckmannSampleAndEvalBRDF(__global const PlainMaterial* a_pMa
   const float alphax = BeckmannRoughnessToAlpha(roughness*roughness);  
   const float alphay = BeckmannRoughnessToAlpha(roughness*roughness*anisoMult*anisoMult);  
 
+  return make_float2(alphax, alphay);
+}
+
+
+static inline float beckmannEvalPDF(__global const PlainMaterial* a_pMat, const float3 l, const float3 v, const float3 n, const float3 a_tan, const float3 a_bitan,
+                                    const float2 a_texCoord, __global const EngineGlobals* a_globals, texture2d_t a_tex, __private const ProcTextureList* a_ptList)
+{
+  const float2 alpha = beckmannAlphaXY(a_pMat, a_texCoord, a_globals, a_tex, a_ptList);
+
+  ///////////////////////////////////////////////////////////////////////////// to PBRT coordinate system
+  // wo = v = ray_dir
+  // wi = l = -newDir
+  //
+  float3 nx, ny, nz = n;
+
+  if(fabs(alpha.x - alpha.y) > 1.0e-5f)
+  {
+    nx = a_bitan;
+    ny = a_tan;
+  }
+  else
+  {
+    CoordinateSystem(nz, &nx, &ny);
+  }
+  ///////////////////////////////////////////////////////////////////////////// to PBRT coordinate system
+
+  const float3 wo  = make_float3(-dot(v, nx), -dot(v, ny), -dot(v, nz));
+  const float3 wi  = make_float3(-dot(l, nx), -dot(l, ny), -dot(l, nz));
+  const float3 wh  = normalize(l + v);
+  
+  return BeckmannDistributionPdf(wo, wh, alpha.x, alpha.y);
+}
+
+static inline float3 beckmannEvalBxDF(__global const PlainMaterial* a_pMat, const float3 l, const float3 v, const float3 n, const float3 a_tan, const float3 a_bitan,
+                                      const float2 a_texCoord, __global const EngineGlobals* a_globals, texture2d_t a_tex, __private const ProcTextureList* a_ptList)
+{
+  const float3 texColor = sample2DExt(beckmannGetTex(a_pMat).y, a_texCoord, (__global const int4*)a_pMat, a_tex, a_globals, a_ptList);
+  const float3 color    = clamp(texColor*beckmannGetColor(a_pMat), 0.0f, 1.0f);
+
+  const float2 alpha = beckmannAlphaXY(a_pMat, a_texCoord, a_globals, a_tex, a_ptList);
+
+  ///////////////////////////////////////////////////////////////////////////// to PBRT coordinate system
+  // wo = v = ray_dir
+  // wi = l = -newDir
+  //
+  float3 nx, ny, nz = n;
+
+  if(fabs(alpha.x - alpha.y) > 1.0e-5f)
+  {
+    nx = a_bitan;
+    ny = a_tan;
+  }
+  else
+  {
+    CoordinateSystem(nz, &nx, &ny);
+  }
+  ///////////////////////////////////////////////////////////////////////////// to PBRT coordinate system
+
+  const float3 wo  = make_float3(-dot(v, nx), -dot(v, ny), -dot(v, nz));
+  const float3 wi  = make_float3(-dot(l, nx), -dot(l, ny), -dot(l, nz));
+  
+  return color*fmin(BeckmannBRDF_PBRT(wo, wi, alpha.x, alpha.y), 500.0f);
+}
+
+static inline void BeckmannSampleAndEvalBRDF(__global const PlainMaterial* a_pMat, const float a_r1, const float a_r2, 
+                                             const float3 ray_dir, const float3 a_normal, const float2 a_texCoord, const float3 a_tan, const float3 a_bitan,
+                                             __global const EngineGlobals* a_globals, texture2d_t a_tex, __private const ProcTextureList* a_ptList,
+                                             __private MatSample* a_out)
+{
+  const float2 alpha = beckmannAlphaXY(a_pMat, a_texCoord, a_globals, a_tex, a_ptList);
+
   ///////////////////////////////////////////////////////////////////////////// to PBRT coordinate system
   // wo = v = ray_dir
   // wi = l = -newDir
   //
   float3 nx, ny, nz = a_normal;
 
-  if(fabs(alphax - alphay) > 1.0e-5f)
+  if(fabs(alpha.x - alpha.y) > 1.0e-5f)
   {
     nx = a_bitan;
     ny = a_tan;
@@ -1109,7 +1164,7 @@ static inline void BeckmannSampleAndEvalBRDF(__global const PlainMaterial* a_pMa
   ///////////////////////////////////////////////////////////////////////////// to PBRT coordinate system
 
   const float3 wo  = make_float3(-dot(ray_dir, nx), -dot(ray_dir, ny), -dot(ray_dir, nz));
-  const float3 wh  = BeckmannDistributionSampleWH(wo, make_float2(a_r1, a_r2), alphax, alphay);
+  const float3 wh  = BeckmannDistributionSampleWH(wo, make_float2(a_r1, a_r2), alpha.x, alpha.y);
   const float3 wi  = (2.0f * dot(wo, wh) * wh) - wo; // Compute incident direction by reflecting about wh
   
   const float3 texColor    = sample2DExt(beckmannGetTex(a_pMat).y, a_texCoord, (__global const int4*)a_pMat, a_tex, a_globals, a_ptList);
@@ -1121,11 +1176,11 @@ static inline void BeckmannSampleAndEvalBRDF(__global const PlainMaterial* a_pMa
   //const float  maxValBrdf  = lerp2(1.0f - fabs(dot(wo, wh)), 500.0f, 2000.0f);
 
   a_out->direction = newDir;
-  a_out->pdf       = BeckmannDistributionPdf(wo, wh, alphax, alphay);
+  a_out->pdf       = BeckmannDistributionPdf(wo, wh, alpha.x, alpha.y);
   if (cosThetaOut <= DEPSILON)
     a_out->color = make_float3(0, 0, 0);
   else  
-    a_out->color = kd*fmin(BeckmannBRDF_PBRT(wo, wi, alphax, alphay), 500.0f);
+    a_out->color = kd*fmin(BeckmannBRDF_PBRT(wo, wi, alpha.x, alpha.y), 500.0f);
   a_out->flags = RAY_EVENT_G;
 }
 
@@ -1776,11 +1831,11 @@ static inline BxDFResult materialLeafEval(__global const PlainMaterial* pMat, __
     res.pdfFwd  = blinnEvalPDF (pMat, sc->l, sc->v, n, sc->tc, a_globals, a_tex, a_ptList);
     res.pdfRev  = blinnEvalPDF (pMat, sc->v, sc->l, n, sc->tc, a_globals, a_tex, a_ptList);
     break;
-  case PLAIN_MAT_CLASS_BECKMANN: 
-    res.brdf    = beckmannEvalBxDF(pMat, sc->l, sc->v, n, sc->tc, a_globals, a_tex, a_ptList)*cosMult;
-    res.pdfFwd  = beckmannEvalPDF (pMat, sc->l, sc->v, n, sc->tc, a_globals, a_tex, a_ptList);
-    res.pdfRev  = beckmannEvalPDF (pMat, sc->v, sc->l, n, sc->tc, a_globals, a_tex, a_ptList);
-    break;
+  //case PLAIN_MAT_CLASS_BECKMANN: 
+  //  res.brdf    = beckmannEvalBxDF(pMat, sc->l, sc->v, n, sc->tg, sc->bn, sc->tc, a_globals, a_tex, a_ptList)*cosMult;
+  //  res.pdfFwd  = beckmannEvalPDF (pMat, sc->l, sc->v, n, sc->tg, sc->bn, sc->tc, a_globals, a_tex, a_ptList);
+  //  res.pdfRev  = beckmannEvalPDF (pMat, sc->v, sc->l, n, sc->tg, sc->bn, sc->tc, a_globals, a_tex, a_ptList);
+  //  break;
   //case PLAIN_MAT_CLASS_GGX:  
   //  res.brdf    = ggxEvalBxDF(pMat, sc->l, sc->v, n, sc->tc, a_evalFlags, a_globals, a_tex, a_ptList)*cosMult;
   //  res.pdfFwd  = ggxEvalPDF (pMat, sc->l, sc->v, n, sc->tc,              a_globals, a_tex, a_ptList);
