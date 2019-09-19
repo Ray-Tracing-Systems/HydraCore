@@ -245,7 +245,7 @@ static inline float3 BeckmannDistributionSampleWH(const float3 wo, const float2 
 {
   float3 wh;
   const bool flip = (wo.z < 0.0f);
-  wh = BeckmannSample(flip ? -wo : wo, alphax, alphay, u.x, u.y);
+  wh = BeckmannSample(flip ? (-1.0f)*wo : wo, alphax, alphay, u.x, u.y);
   if (flip) 
     wh = (-1.0f)*wh;
   return wh;

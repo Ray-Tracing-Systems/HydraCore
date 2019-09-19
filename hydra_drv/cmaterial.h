@@ -1152,6 +1152,7 @@ static inline void BeckmannSampleAndEvalBRDF(__global const PlainMaterial* a_pMa
   //
   float3 nx, ny, nz = a_normal;
 
+  
   if(fabs(alpha.x - alpha.y) > 1.0e-5f)
   {
     nx = a_bitan;
@@ -1173,7 +1174,7 @@ static inline void BeckmannSampleAndEvalBRDF(__global const PlainMaterial* a_pMa
   const float3 newDir      = wi.x*nx + wi.y*ny + wi.z*nz; // back to normal coordinate system
   const float  cosThetaOut = dot(newDir, a_normal);
 
-  //const float  maxValBrdf  = lerp2(1.0f - fabs(dot(wo, wh)), 500.0f, 2000.0f);
+  //const float3 newDir2 = make_float3(newDir.x, -newDir.z, newDir.y);
 
   a_out->direction = newDir;
   a_out->pdf       = BeckmannDistributionPdf(wo, wh, alpha.x, alpha.y);

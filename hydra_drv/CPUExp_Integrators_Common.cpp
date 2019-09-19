@@ -292,7 +292,7 @@ void IntegratorCommon::DoPass(std::vector<uint>& a_imageLDR)
       float3 ray_pos, ray_dir;
       std::tie(ray_pos, ray_dir) = makeEyeRay(x, y);
 
-      if (x == 725 && y == 391)
+      if (x == 360 && y == 415)
         int a = 2;
 
 			const float3 color = PathTrace(ray_pos, ray_dir, makeInitialMisData(), 0, 0); 
