@@ -42,7 +42,7 @@ add_executable(hydra ${SOURCE_FILES} ${EXTERNAL_SRC})
 
 #MESSAGE(WARNING "CMAKE_SOURCE_DIR: " ${CMAKE_SOURCE_DIR} )
 #SET (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=address -fsanitize-address-use-after-scope -fno-omit-frame-pointer -fsanitize=leak -fsanitize=undefined -fsanitize=bounds-strict")
-SET (CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} -ldl")
+SET (CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} -ldl -fopenmp")
 
 if(WIN32)
     #add_definitions(-DUNICODE -D_UNICODE)
