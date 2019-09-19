@@ -1105,7 +1105,7 @@ static inline float beckmannEvalPDF(__global const PlainMaterial* a_pMat, const 
   const float3 wi  = make_float3(-dot(l, nx), -dot(l, ny), -dot(l, nz));
   const float3 wh  = normalize(l + v);
   
-  return BeckmannDistributionPdf(wo, wh, alpha.x, alpha.y);
+  return BeckmannDistributionPdf(wo, wh, alpha.x, alpha.y)*INV_PI;
 }
 
 static inline float3 beckmannEvalBxDF(__global const PlainMaterial* a_pMat, const float3 l, const float3 v, const float3 n, const float3 a_tan, const float3 a_bitan,
@@ -1136,7 +1136,7 @@ static inline float3 beckmannEvalBxDF(__global const PlainMaterial* a_pMat, cons
   const float3 wo  = make_float3(-dot(v, nx), -dot(v, ny), -dot(v, nz));
   const float3 wi  = make_float3(-dot(l, nx), -dot(l, ny), -dot(l, nz));
   
-  return color*fmin(BeckmannBRDF_PBRT(wo, wi, alpha.x, alpha.y), 500.0f);
+  return color*fmin(BeckmannBRDF_PBRT(wo, wi, alpha.x, alpha.y), 500.0f)*INV_PI;
 }
 
 static inline void BeckmannSampleAndEvalBRDF(__global const PlainMaterial* a_pMat, const float a_r1, const float a_r2, 
@@ -1177,11 +1177,11 @@ static inline void BeckmannSampleAndEvalBRDF(__global const PlainMaterial* a_pMa
   //const float3 newDir2 = make_float3(newDir.x, -newDir.z, newDir.y);
 
   a_out->direction = newDir;
-  a_out->pdf       = BeckmannDistributionPdf(wo, wh, alpha.x, alpha.y);
+  a_out->pdf       = BeckmannDistributionPdf(wo, wh, alpha.x, alpha.y)*INV_PI;
   if (cosThetaOut <= DEPSILON)
     a_out->color = make_float3(0, 0, 0);
   else  
-    a_out->color = kd*fmin(BeckmannBRDF_PBRT(wo, wi, alpha.x, alpha.y), 500.0f);
+    a_out->color = kd*fmin(BeckmannBRDF_PBRT(wo, wi, alpha.x, alpha.y), 500.0f)*INV_PI;
   a_out->flags = RAY_EVENT_G;
 }
 
@@ -1832,11 +1832,11 @@ static inline BxDFResult materialLeafEval(__global const PlainMaterial* pMat, __
     res.pdfFwd  = blinnEvalPDF (pMat, sc->l, sc->v, n, sc->tc, a_globals, a_tex, a_ptList);
     res.pdfRev  = blinnEvalPDF (pMat, sc->v, sc->l, n, sc->tc, a_globals, a_tex, a_ptList);
     break;
-  //case PLAIN_MAT_CLASS_BECKMANN: 
-  //  res.brdf    = beckmannEvalBxDF(pMat, sc->l, sc->v, n, sc->tg, sc->bn, sc->tc, a_globals, a_tex, a_ptList)*cosMult;
-  //  res.pdfFwd  = beckmannEvalPDF (pMat, sc->l, sc->v, n, sc->tg, sc->bn, sc->tc, a_globals, a_tex, a_ptList);
-  //  res.pdfRev  = beckmannEvalPDF (pMat, sc->v, sc->l, n, sc->tg, sc->bn, sc->tc, a_globals, a_tex, a_ptList);
-  //  break;
+  case PLAIN_MAT_CLASS_BECKMANN:
+    res.brdf    = beckmannEvalBxDF(pMat, sc->l, sc->v, n, sc->tg, sc->bn, sc->tc, a_globals, a_tex, a_ptList)*cosMult;
+    res.pdfFwd  = beckmannEvalPDF (pMat, sc->l, sc->v, n, sc->tg, sc->bn, sc->tc, a_globals, a_tex, a_ptList);
+    res.pdfRev  = beckmannEvalPDF (pMat, sc->v, sc->l, n, sc->tg, sc->bn, sc->tc, a_globals, a_tex, a_ptList);
+    break;
   //case PLAIN_MAT_CLASS_GGX:  
   //  res.brdf    = ggxEvalBxDF(pMat, sc->l, sc->v, n, sc->tc, a_evalFlags, a_globals, a_tex, a_ptList)*cosMult;
   //  res.pdfFwd  = ggxEvalPDF (pMat, sc->l, sc->v, n, sc->tc,              a_globals, a_tex, a_ptList);

@@ -105,7 +105,7 @@ static inline float ErfInvPBRT(float x)
   } 
   else 
   {
-    w = sqrt(w) - 3;
+    w = sqrt(w) - 3.0f;
     p = -0.000200214257f;
     p = 0.000100950558f + p * w;
     p = 0.00134934322f + p * w;
