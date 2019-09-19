@@ -10,7 +10,7 @@ Input::Input()
   
   //noWindow      = false;             ///< run 'console_main', else run 'window_main'
   //inLibraryPath = "tests/test_42_beckmann"; ///< cornell box with teapot
-  inLibraryPath = "/home/frol/temp/scenelib_aniso";
+  inLibraryPath = "tests/test_aniso";
   //inLibraryPath = "tests/test_42_with_mirror";  
   //inLibraryPath = "tests/test_223_small"; ///< cornell box with sphere
   //inLibraryPath = "tests/test_224";

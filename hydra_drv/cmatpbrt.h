@@ -80,8 +80,8 @@ inline float ErfPBRT(float x)
     sign = -1;
   x = fabs(x);
   // A&S formula 7.1.26
-  const float t = 1 / (1 + p * x);
-  const float y = 1 - (((((a5 * t + a4) * t) + a3) * t + a2) * t + a1) * t * exp(-x * x);
+  const float t = 1.0f / (1.0f + p * x);
+  const float y = 1.0f - (((((a5 * t + a4) * t) + a3) * t + a2) * t + a1) * t * exp(-x * x);
   return sign * y;
 }
 
@@ -168,7 +168,7 @@ static inline void BeckmannSample11(float cosThetaI, float U1, float U2,
   // in the Erf() domain 
   //
   float a = -1, c = ErfPBRT(cotThetaI);
-  const float sample_x = max(U1, 1e-6f);
+  const float sample_x = fmax(U1, 1e-6f);
 
   // Start with a good initial guess 
   // Float b = (1-sample_x) * a + sample_x * c;
