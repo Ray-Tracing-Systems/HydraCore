@@ -551,7 +551,7 @@ protected:
 
 };
 
-/*
+
 
 class GGXMaterial : public IMaterial
 {
@@ -602,7 +602,6 @@ protected:
 
 };
 
-*/
 
 
 
@@ -1009,8 +1008,8 @@ std::shared_ptr<IMaterial> ReflectiveMaterialFromHydraMtl(const pugi::xml_node a
     return std::make_shared<MirrorMaterial>(colorS, texId, sampler);
   else if (brfdType == L"torranse_sparrow")
     return std::make_shared<BlinnTorranceSrappowMaterial>(colorS, texId, sampler, 0.0f, texIdGloss, samplerGloss, glossVal, samplerAniso, anisoVal);
-  //else if (brfdType == L"ggx" || brfdType == L"GGX")
-  //  return std::make_shared<GGXMaterial>                 (colorS, texId, sampler, 0.0f, texIdGloss, samplerGloss, glossVal, samplerAniso, anisoVal);
+  else if (brfdType == L"ggx" || brfdType == L"GGX")
+    return std::make_shared<GGXMaterial>                 (colorS, texId, sampler, 0.0f, texIdGloss, samplerGloss, glossVal, samplerAniso, anisoVal);
   else if (brfdType == L"beckmann")
     return std::make_shared<BeckmannMaterial>            (colorS, texId, sampler, 0.0f, texIdGloss, samplerGloss, glossVal, samplerAniso, anisoVal, anisoRot);
   else
