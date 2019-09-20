@@ -47,8 +47,8 @@
     <reflectivity brdf_type="beckmann">
       <extrusion val="maxcolor" />
       <color val="1 1 1" />
-      <glossiness val="1.0" />
-      <anisotropy val="1.0" />
+      <glossiness val="0.0" />
+      <anisotropy val="1.0" rot = "0.5"/>
       <fresnel val="1" />
       <fresnel_ior val="1.5" />
     </reflectivity>

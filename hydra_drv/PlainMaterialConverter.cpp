@@ -507,7 +507,7 @@ public:
   BeckmannMaterial() {  }
   BeckmannMaterial(float3 color, int texId, SWTexSampler a_samplerColor, float cosPower, int glossTexId, 
                    SWTexSampler a_samplerGloss, float a_glosiness, 
-                   SWTexSampler a_samplerAniso, float a_aniso)
+                   SWTexSampler a_samplerAniso, float a_aniso, float a_anisoRot)
   {
     m_plain.data[BECKMANN_COLORX_OFFSET] = color.x;
     m_plain.data[BECKMANN_COLORY_OFFSET] = color.y;
@@ -516,6 +516,8 @@ public:
     m_plain.data[BECKMANN_COSPOWER_OFFSET]   = cosPower;
     m_plain.data[BECKMANN_GLOSINESS_OFFSET]  = a_glosiness;
     m_plain.data[BECKMANN_ANISOTROPY_OFFSET] = a_aniso;
+    m_plain.data[BECKMANN_ANISO_ROT_OFFSET]  = a_anisoRot;
+    
 
     ((int*)(m_plain.data))[BECKMANN_TEXID_OFFSET]           = texId;
     ((int*)(m_plain.data))[BECKMANN_GLOSINESS_TEXID_OFFSET] = glossTexId;
@@ -970,6 +972,7 @@ std::shared_ptr<IMaterial> ReflectiveMaterialFromHydraMtl(const pugi::xml_node a
   const float3 colorS   = HydraXMLHelpers::ReadValue3f(reflect.child(L"color"));
   const float  glossVal = HydraXMLHelpers::ReadValue1f(gloss);
   const float  anisoVal = HydraXMLHelpers::ReadValue1f(aniso);
+  const float  anisoRot = aniso.attribute(L"rot").as_float();
 
   int32_t texId      = INVALID_TEXTURE;
   int32_t texIdGloss = INVALID_TEXTURE;
@@ -1009,7 +1012,7 @@ std::shared_ptr<IMaterial> ReflectiveMaterialFromHydraMtl(const pugi::xml_node a
   //else if (brfdType == L"ggx" || brfdType == L"GGX")
   //  return std::make_shared<GGXMaterial>                 (colorS, texId, sampler, 0.0f, texIdGloss, samplerGloss, glossVal, samplerAniso, anisoVal);
   else if (brfdType == L"beckmann")
-    return std::make_shared<BeckmannMaterial>            (colorS, texId, sampler, 0.0f, texIdGloss, samplerGloss, glossVal, samplerAniso, anisoVal);
+    return std::make_shared<BeckmannMaterial>            (colorS, texId, sampler, 0.0f, texIdGloss, samplerGloss, glossVal, samplerAniso, anisoVal, anisoRot);
   else
     return std::make_shared<PhongMaterial>               (colorS, texId, sampler, 0.0f, texIdGloss, samplerGloss, glossVal);
 }

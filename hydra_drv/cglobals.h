@@ -1102,6 +1102,58 @@ static inline float3 matrix3x3f_mult_float3(__global const float* M, float3 v)
   return res;
 }
 
+static inline float3x3 RotateAroundVector3x3(float3 v, float rotAngle)
+{
+  const float cos_t = cos(rotAngle);
+  const float sin_t = sin(rotAngle);
+
+  float3x3 m;
+
+  m.row[0].x = (1.0f - cos_t)*v.x*v.x + cos_t;
+  m.row[0].y = (1.0f - cos_t)*v.x*v.y - sin_t*v.z;
+  m.row[0].z = (1.0f - cos_t)*v.x*v.z + sin_t*v.y;
+
+  m.row[1].x = (1.0f - cos_t)*v.y*v.x + sin_t*v.z;
+  m.row[1].y = (1.0f - cos_t)*v.y*v.y + cos_t;
+  m.row[1].z = (1.0f - cos_t)*v.y*v.z - sin_t*v.x;
+
+  m.row[2].x = (1.0f - cos_t)*v.x*v.z - sin_t*v.y;
+  m.row[2].y = (1.0f - cos_t)*v.z*v.y + sin_t*v.x;
+  m.row[2].z = (1.0f - cos_t)*v.z*v.z + cos_t;
+
+  return m;
+}
+
+static inline float4x4 RotateAroundVector4x4(float3 v, float rotAngle)
+{
+  const float cos_t = cos(rotAngle);
+  const float sin_t = sin(rotAngle);
+
+  float4x4 m;
+
+  m.row[0].x = (1.0f - cos_t)*v.x*v.x + cos_t;
+  m.row[0].y = (1.0f - cos_t)*v.x*v.y - sin_t*v.z;
+  m.row[0].z = (1.0f - cos_t)*v.x*v.z + sin_t*v.y;
+  m.row[0].w = 1.0f;
+
+  m.row[1].x = (1.0f - cos_t)*v.y*v.x + sin_t*v.z;
+  m.row[1].y = (1.0f - cos_t)*v.y*v.y + cos_t;
+  m.row[1].z = (1.0f - cos_t)*v.y*v.z - sin_t*v.x;
+  m.row[1].w = 1.0f;
+
+  m.row[2].x = (1.0f - cos_t)*v.x*v.z - sin_t*v.y;
+  m.row[2].y = (1.0f - cos_t)*v.z*v.y + sin_t*v.x;
+  m.row[2].z = (1.0f - cos_t)*v.z*v.z + cos_t;
+  m.row[2].w = 1.0f;
+
+  m.row[3].x = 0.0f;
+  m.row[3].y = 0.0f;
+  m.row[3].z = 0.0f;
+  m.row[3].w = 1.0f;
+
+  return m;
+}
+
 static inline float DistanceSquared(float3 a, float3 b)
 {
   float3 diff = b - a;

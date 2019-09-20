@@ -1018,8 +1018,6 @@ static inline void GGXSampleAndEvalBRDF(__global const PlainMaterial* a_pMat, co
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-// microfacet mode, blinn distribution and torrance-sparrow brdf in analogue to pbrt
-//
 #define BECKMANN_COLORX_OFFSET       10
 #define BECKMANN_COLORY_OFFSET       11
 #define BECKMANN_COLORZ_OFFSET       12
@@ -1036,6 +1034,8 @@ static inline void GGXSampleAndEvalBRDF(__global const PlainMaterial* a_pMat, co
 
 #define BECKMANN_SAMPLER0_OFFSET               20 
 #define BECKMANN_SAMPLER1_OFFSET               32
+
+#define BECKMANN_ANISO_ROT_OFFSET              44
 
 static inline float3 beckmannGetColor(__global const PlainMaterial* a_pMat) { return make_float3(a_pMat->data[BECKMANN_COLORX_OFFSET], a_pMat->data[BECKMANN_COLORY_OFFSET], a_pMat->data[BECKMANN_COLORZ_OFFSET]); }
 static inline int2   beckmannGetTex(__global const PlainMaterial* a_pMat)
@@ -1062,10 +1062,8 @@ static inline float beckmannGlosiness(__global const PlainMaterial* a_pMat, cons
     return a_pMat->data[BECKMANN_GLOSINESS_OFFSET];
 }
 
-static inline float beckmannAnisotropy(__global const PlainMaterial* a_pMat)
-{
-  return a_pMat->data[BECKMANN_ANISOTROPY_OFFSET];
-}
+static inline float beckmannAnisotropy(__global const PlainMaterial* a_pMat) { return a_pMat->data[BECKMANN_ANISOTROPY_OFFSET]; }
+static inline float beckmannAnisoRot(__global const PlainMaterial* a_pMat) { return a_pMat->data[BECKMANN_ANISO_ROT_OFFSET]; }
 
 static inline float2 beckmannAlphaXY(__global const PlainMaterial* a_pMat, const float2 a_texCoord, __global const EngineGlobals* a_globals, texture2d_t a_tex, __private const ProcTextureList* a_ptList)
 {
@@ -1077,7 +1075,6 @@ static inline float2 beckmannAlphaXY(__global const PlainMaterial* a_pMat, const
 
   return make_float2(alphax, alphay);
 }
-
 
 static inline float beckmannEvalPDF(__global const PlainMaterial* a_pMat, const float3 l, const float3 v, const float3 n, const float3 a_tan, const float3 a_bitan,
                                     const float2 a_texCoord, __global const EngineGlobals* a_globals, texture2d_t a_tex, __private const ProcTextureList* a_ptList)
@@ -1094,6 +1091,10 @@ static inline float beckmannEvalPDF(__global const PlainMaterial* a_pMat, const 
   {
     nx = a_bitan;
     ny = a_tan;
+
+    const float4x4 mRot = RotateAroundVector4x4(nz, beckmannAnisoRot(a_pMat)*M_PI*0.5f);
+    nx = mul3x3(mRot, nx);
+    ny = mul3x3(mRot, ny);
   }
   else
   {
@@ -1126,6 +1127,10 @@ static inline float3 beckmannEvalBxDF(__global const PlainMaterial* a_pMat, cons
   {
     nx = a_bitan;
     ny = a_tan;
+
+    const float4x4 mRot = RotateAroundVector4x4(nz, beckmannAnisoRot(a_pMat)*M_PI*0.5f);
+    nx = mul3x3(mRot, nx);
+    ny = mul3x3(mRot, ny);
   }
   else
   {
@@ -1152,11 +1157,14 @@ static inline void BeckmannSampleAndEvalBRDF(__global const PlainMaterial* a_pMa
   //
   float3 nx, ny, nz = a_normal;
 
-  
   if(fabs(alpha.x - alpha.y) > 1.0e-5f)
   {
     nx = a_bitan;
     ny = a_tan;
+
+    const float4x4 mRot = RotateAroundVector4x4(nz, beckmannAnisoRot(a_pMat)*M_PI*0.5f);
+    nx = mul3x3(mRot, nx);
+    ny = mul3x3(mRot, ny);
   }
   else
   {
