@@ -1,11 +1,12 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="14.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-    <LocalDebuggerCommandArguments>-nowindow 0 -saveinterval 120</LocalDebuggerCommandArguments>
+    <LocalDebuggerCommandArguments>-nowindow 1 -inputlib "D:\PROG\HydraRepos\HydraAPI\main\demos\demo_02" -width 512 -height 512 -cpu_fb 1 -sharedimage hydraimage_1569057012278  -cl_device_id 0 </LocalDebuggerCommandArguments>
     <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
+    <LocalDebuggerWorkingDirectory>..\..\HydraAPI\main</LocalDebuggerWorkingDirectory>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <LocalDebuggerCommandArguments>-nowindow 0 -saveinterval 120</LocalDebuggerCommandArguments>
+    <LocalDebuggerCommandArguments>-nowindow 1 -inputlib "D:\PROG\HydraRepos\HydraAPI\main\demos\demo_02" -width 512 -height 512 -cpu_fb 1 -sharedimage hydraimage_1569057012278  -cl_device_id 0 </LocalDebuggerCommandArguments>
     <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
   </PropertyGroup>
 </Project>

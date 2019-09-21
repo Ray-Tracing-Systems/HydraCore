@@ -9,6 +9,7 @@
 #include "cfetch.h"
 
 #include "clight.h"
+#include "cmatpbrt.h"
 #include "cmaterial.h"
 #include "cbidir.h"
 

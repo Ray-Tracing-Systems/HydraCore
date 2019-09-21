@@ -1,6 +1,7 @@
 #include "cglobals.h"
 #include "cfetch.h"
 #include "crandom.h"
+#include "cmatpbrt.h"
 #include "cmaterial.h"
 #include "clight.h"
 #include "cbidir.h"
