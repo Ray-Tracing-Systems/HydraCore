@@ -96,6 +96,9 @@
     <ClInclude Include="cglobals.h">
       <Filter>core</Filter>
     </ClInclude>
+    <ClInclude Include="cmatpbrt.h">
+      <Filter>core</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="RenderDriverRTE.cpp">

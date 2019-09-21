@@ -131,11 +131,11 @@
       <color val="0 0 0" />
       <roughness val="0" />
     </diffuse>
-    <reflectivity brdf_type="ggx">
+    <reflectivity brdf_type="trggx">
       <extrusion val="maxcolor" />
       <color val="1 1 1" />
       <glossiness val="0.5" />
-      <anisotropy val="1.0" rot = "1.0"/>
+      <anisotropy val="1.0" rot = "0.5"/>
       <fresnel val="0" />
       <fresnel_ior val="1.5" />
     </reflectivity>

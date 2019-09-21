@@ -2633,8 +2633,9 @@ enum PLAIN_MAT_TYPES {
   PLAIN_MAT_CLASS_EMISSIVE       = 10,
   PLAIN_MAT_CLASS_VOLUME_PERLIN  = 11, // incactive currently
 	PLAIN_MAT_CLASS_SSS            = 12, // incactive currently
-  PLAIN_MAT_CLASS_GGX            = 13, // in progress 
-  PLAIN_MAT_CLASS_BECKMANN       = 14  // in progress, anisotropic BRDF
+  PLAIN_MAT_CLASS_BECKMANN       = 13, // anisotropic BRDF
+  PLAIN_MAT_CLASS_TRGGX          = 14, // anisotropic BRDF
+  PLAIN_MAT_CLASS_GGX            = 15, // isotropic and simple 
 };
 
 

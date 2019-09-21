@@ -41,6 +41,71 @@ static inline bool SameHemispherePBRT(float3 w, float3 wp) { return w.z * wp.z >
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+static inline float TorranceSparrowG1(const float3 wo, const float3 wi, const float3 wh) // in PBRT coord system
+{
+  const float NdotWh = fabs(wh.z);
+  const float NdotWo = fabs(wo.z);
+  const float NdotWi = fabs(wi.z);
+  const float WOdotWh = fmax(fabs(dot(wo, wh)), DEPSILON);
+
+  return fmin(1.f, fmin((2.f * NdotWh * NdotWo / WOdotWh), (2.f * NdotWh * NdotWi / WOdotWh)));
+}
+
+static inline float TorranceSparrowG2(const float3 wo, const float3 wi, const float3 wh, const float3 n) // in normal word coord system
+{
+  const float NdotWh = fabs(dot(wh, n));
+  const float NdotWo = fabs(dot(wo, n));
+  const float NdotWi = fabs(dot(wi, n));
+  const float WOdotWh = fmax(fabs(dot(wo, wh)), DEPSILON);
+
+  return fmin(1.f, fmin((2.f * NdotWh * NdotWo / WOdotWh), (2.f * NdotWh * NdotWi / WOdotWh)));
+}
+
+static inline float TorranceSparrowGF1(const float3 wo, const float3 wi) // in PBRT coord system
+{
+  const float cosThetaO = fabs(wo.z); // inline float AbsCosTheta(const Vector &w) { return fabsf(w.z); }
+  const float cosThetaI = fabs(wi.z); // inline float AbsCosTheta(const Vector &w) { return fabsf(w.z); }
+
+  if (cosThetaI == 0.0f || cosThetaO == 0.0f)
+    return 0.0f;
+
+  float3 wh = wi + wo;
+  if (wh.x == 0.0f && wh.y == 0.0f && wh.z == 0.0f)
+    return 0.0f;
+
+  wh = normalize(wh);
+
+  const float cosThetaH = dot(wi, wh);
+  const float F = FrCond(cosThetaH, 5.0f, 1.25f); // fresnel->Evaluate(cosThetaH);
+
+  return fmin(TorranceSparrowG1(wo, wi, wh) * F / fmax(4.f * cosThetaI * cosThetaO, DEPSILON), 250.0f);
+}
+
+static inline float TorranceSparrowGF2(const float3 wo, const float3 wi, const float3 n)  // in normal word coord system
+{
+  const float cosThetaO = fabs(dot(wo, n)); // inline float AbsCosTheta(const Vector &w) { return fabsf(w.z); }
+  const float cosThetaI = fabs(dot(wi, n)); // inline float AbsCosTheta(const Vector &w) { return fabsf(w.z); }
+
+  if (cosThetaI == 0.f || cosThetaO == 0.0f)
+    return 0.0f;
+
+  float3 wh = wi + wo;
+  if (wh.x == 0.0f && wh.y == 0.0f && wh.z == 0.0f)
+    return 0.0f;
+
+  wh = normalize(wh);
+
+  const float cosThetaH = dot(wi, wh);
+  const float F = FrCond(cosThetaH, 5.0f, 1.25f); // fresnel->Evaluate(cosThetaH);
+
+  return fmin(TorranceSparrowG2(wo, wi, wh, n) * F / fmax(4.0f * cosThetaI * cosThetaO, DEPSILON), 10.0f);
+}
+
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
 inline float CosThetaPBRT   (float3 w) { return w.z; }
 inline float Cos2ThetaPBRT  (float3 w) { return w.z * w.z; }
 inline float AbsCosThetaPBRT(float3 w) { return fabs(w.z); }
@@ -416,8 +481,33 @@ static inline float TrowbridgeReitzDistributionPdf(float3 wo, float3 wh, float a
 
 inline float TrowbridgeReitzRoughnessToAlpha(float roughness) 
 {
-  const float x = log(fmax(roughness, 1e-3f));
+  const float x = log(fmax(roughness, 1e-4f));
   return 1.62142f + 0.819955f * x + 0.1734f * x * x + 0.0171201f * x * x * x + 0.000640711f * x * x * x * x;
+}
+
+static inline float TrowbridgeReitzG(const float3 wo, const float3 wi, float alphax, float alphay)
+{
+  return 1.0f / (1.0f + TrowbridgeReitzDistributionLambda(wo, alphax, alphay) + TrowbridgeReitzDistributionLambda(wi, alphax, alphay));
+}
+
+static inline float TrowbridgeReitzBRDF_PBRT(const float3 wo, const float3 wi, float alphax, float alphay)
+{
+  const float cosThetaO = AbsCosThetaPBRT(wo);
+  const float cosThetaI = AbsCosThetaPBRT(wi);
+
+  float3 wh = wi + wo;
+
+  // Handle degenerate cases for microfacet reflection
+  if (cosThetaI <= 1e-6f || cosThetaO <= 1e-6f)
+    return 0.0f;
+
+  if (fabs(wh.x) <= 1e-6f && fabs(wh.y) <= 1e-6f && fabs(wh.z) <= 1e-6f)
+    return 0.0f;
+
+  wh = normalize(wh);
+  const float F = 1.0f; // FrCond(dot(wi, wh), 5.0f, 1.25f);
+
+  return TrowbridgeReitzDistributionD(wh, alphax, alphay) * TrowbridgeReitzG(wo, wi, alphax, alphay) * F / fmax(4.0f * cosThetaI * cosThetaO, DEPSILON);
 }
 
 #endif

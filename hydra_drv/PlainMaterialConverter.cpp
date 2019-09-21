@@ -551,6 +551,58 @@ protected:
 
 };
 
+class TRGGXMaterial : public IMaterial
+{
+
+public:
+
+  TRGGXMaterial() {  }
+  TRGGXMaterial(float3 color, int texId, SWTexSampler a_samplerColor, float cosPower, int glossTexId,
+                SWTexSampler a_samplerGloss, float a_glosiness,
+                SWTexSampler a_samplerAniso, float a_aniso, float a_anisoRot)
+  {
+    m_plain.data[BECKMANN_COLORX_OFFSET] = color.x;
+    m_plain.data[BECKMANN_COLORY_OFFSET] = color.y;
+    m_plain.data[BECKMANN_COLORZ_OFFSET] = color.z;
+
+    m_plain.data[BECKMANN_COSPOWER_OFFSET]   = cosPower;
+    m_plain.data[BECKMANN_GLOSINESS_OFFSET]  = a_glosiness;
+    m_plain.data[BECKMANN_ANISOTROPY_OFFSET] = a_aniso;
+    m_plain.data[BECKMANN_ANISO_ROT_OFFSET]  = a_anisoRot;
+
+
+    ((int*)(m_plain.data))[BECKMANN_TEXID_OFFSET]           = texId;
+    ((int*)(m_plain.data))[BECKMANN_GLOSINESS_TEXID_OFFSET] = glossTexId;
+
+    //////////////////////////////////////////////////////////////////////////////////////////////////////////////// put samplers right here
+    const int texMatrixId = (texId == INVALID_TEXTURE) ? INVALID_TEXTURE : (BECKMANN_SAMPLER0_OFFSET / 4);
+    const int glossTexMatrixId = (glossTexId == INVALID_TEXTURE) ? INVALID_TEXTURE : (BECKMANN_SAMPLER1_OFFSET / 4);
+
+    ((int*)(m_plain.data))[BECKMANN_TEXMATRIXID_OFFSET] = texMatrixId;
+    ((int*)(m_plain.data))[BECKMANN_GLOSINESS_TEXMATRIXID_OFFSET] = glossTexMatrixId;
+
+    SWTexSampler* pSampler1 = (SWTexSampler*)(m_plain.data + BECKMANN_SAMPLER0_OFFSET);
+    SWTexSampler* pSampler2 = (SWTexSampler*)(m_plain.data + BECKMANN_SAMPLER1_OFFSET);
+    (*pSampler1) = a_samplerColor;
+    (*pSampler2) = a_samplerGloss;
+    //////////////////////////////////////////////////////////////////////////////////////////////////////////////// put samplers right here
+
+    ((int*)(m_plain.data))[PLAIN_MAT_TYPE_OFFSET]  = PLAIN_MAT_CLASS_TRGGX;
+    ((int*)(m_plain.data))[PLAIN_MAT_FLAGS_OFFSET] = PLAIN_MATERIAL_CAST_CAUSTICS;
+  }
+
+  std::vector<PlainMaterial> ConvertToPlainMaterial() const
+  {
+    std::vector<PlainMaterial> res(1);
+    res[0] = m_plain;
+    return res;
+  }
+
+protected:
+
+
+};
+
 
 
 class GGXMaterial : public IMaterial
@@ -1012,6 +1064,8 @@ std::shared_ptr<IMaterial> ReflectiveMaterialFromHydraMtl(const pugi::xml_node a
     return std::make_shared<GGXMaterial>                 (colorS, texId, sampler, 0.0f, texIdGloss, samplerGloss, glossVal, samplerAniso, anisoVal);
   else if (brfdType == L"beckmann")
     return std::make_shared<BeckmannMaterial>            (colorS, texId, sampler, 0.0f, texIdGloss, samplerGloss, glossVal, samplerAniso, anisoVal, anisoRot);
+  else if (brfdType == L"trggx" || brfdType == L"TRGGX")
+    return std::make_shared<TRGGXMaterial>               (colorS, texId, sampler, 0.0f, texIdGloss, samplerGloss, glossVal, samplerAniso, anisoVal, anisoRot);
   else
     return std::make_shared<PhongMaterial>               (colorS, texId, sampler, 0.0f, texIdGloss, samplerGloss, glossVal);
 }

@@ -153,6 +153,7 @@
     <ClInclude Include="clight.h" />
     <ClInclude Include="cl_scan_gpu.h" />
     <ClInclude Include="cmaterial.h" />
+    <ClInclude Include="cmatpbrt.h" />
     <ClInclude Include="CPUExp_bxdf.h" />
     <ClInclude Include="CPUExp_Integrators.h" />
     <ClInclude Include="crandom.h" />
