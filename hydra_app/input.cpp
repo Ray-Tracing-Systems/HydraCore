@@ -10,8 +10,8 @@ Input::Input()
   
   //noWindow      = false;             ///< run 'console_main', else run 'window_main'
   //inLibraryPath = "tests/test_42_beckmann"; ///< cornell box with teapot
-  inLibraryPath = "tests/test_aniso";
-  //inLibraryPath = "tests/test_42_with_mirror";  
+  //inLibraryPath = "tests/test_aniso";
+  inLibraryPath = "tests/test_42_with_mirror";  
   //inLibraryPath = "tests/test_223_small"; ///< cornell box with sphere
   //inLibraryPath = "tests/test_224";
   //inLibraryPath = "tests/test_224_sphere";
@@ -19,14 +19,14 @@ Input::Input()
   //inLibraryPath = "tests/test_pool";
   //inLibraryPath = "C:/[Hydra]/pluginFiles/scenelib/";
 
-  inDevelopment = false;  ///< recompile shaders each time; note that nvidia have their own shader cache!
-  inDeviceId    = 0;     ///< opencl device id
+  inDevelopment = true;  ///< recompile shaders each time; note that nvidia have their own shader cache!
+  inDeviceId    = -1;     ///< opencl device id
   cpuFB         = true;  ///< store frame buffer on CPU. Automaticly enabled if
   enableMLT     = false; ///< if use MMLT, you MUST enable it early, when render process just started (here or via command line).
   boxMode       = false; ///< special 'in the box' mode when render don't react to any commands
 
-  winWidth      = 1024;  ///<
-  winHeight     = 1024;  ///<
+  winWidth      = 512;  ///<
+  winHeight     = 512;  ///<
 
   enableOpenGL1 = false; ///< if you want to draw scene for some debug needs with OpenGL1.
   exitStatus    = false;

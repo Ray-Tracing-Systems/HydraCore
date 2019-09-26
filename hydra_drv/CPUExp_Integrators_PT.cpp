@@ -223,3 +223,145 @@ float3 IntegratorMISPT::PathTrace(float3 ray_pos, float3 ray_dir, MisData misPre
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+float3 IntegratorMISPTLoop::PathTrace(float3 ray_pos, float3 ray_dir, MisData misPrev, int a_currDepth, uint flags)
+{
+  float3 accumColor        = make_float3(0,0,0);
+  float3 accumuThoroughput = make_float3(1,1,1);
+  float3 currColor         = make_float3(0,0,0);
+
+  for(int depth = a_currDepth; depth < m_maxDepth; depth++) {
+
+  if (depth >= m_maxDepth)
+  {
+    currColor = float3(0, 0, 0);
+    break;
+  }
+
+  Lite_Hit hit = rayTrace(ray_pos, ray_dir);
+
+  if (HitNone(hit))
+  {
+    currColor = environmentColor(ray_dir, misPrev, flags, m_pGlobals, m_matStorage, m_pdfStorage, m_texStorage);
+    break;
+  }
+
+  SurfaceHit surfElem = surfaceEval(ray_pos, ray_dir, hit);
+  
+  float3 emission = emissionEval(ray_pos, ray_dir, surfElem, flags, misPrev, fetchInstId(hit));
+  if (dot(emission, emission) > 1e-3f)
+  {
+    const PlainLight* pLight = getLightFromInstId(fetchInstId(hit));
+
+    if (pLight != nullptr)
+    {
+      float lgtPdf    = lightPdfSelectRev(pLight)*lightEvalPDF(pLight, ray_pos, ray_dir, surfElem.pos, surfElem.normal, surfElem.texCoord, m_pdfStorage, m_pGlobals);
+      float bsdfPdf   = misPrev.matSamplePdf;
+      float misWeight = misWeightHeuristic(bsdfPdf, lgtPdf);  // (bsdfPdf*bsdfPdf) / (lgtPdf*lgtPdf + bsdfPdf*bsdfPdf);
+
+      if (misPrev.isSpecular)
+        misWeight = 1.0f;
+
+      currColor = emission*misWeight;
+      break;
+    }
+    else
+    {
+      currColor = emission;
+      break;
+    }
+  }
+  else if (depth >= m_maxDepth-1)
+  {
+    currColor = make_float3(0, 0, 0);
+    break;
+  }
+
+  float3 explicitColor = make_float3(0, 0, 0);
+
+  // static inline float4 rndLight(RandomGen* gen, __global const float* rptr, const int bounceId,
+  //                              __global const int* a_tab, const unsigned int qmcPos, __constant unsigned int* a_qmcTable)
+  
+  const unsigned int* qmcTablePtr = GetQMCTableIfEnabled();
+  
+  auto& gen = randomGen();
+  const float4 rndLightData = rndLight(&gen, depth,
+                                       m_pGlobals->rmQMC, PerThread().qmcPos, qmcTablePtr);
+  
+  float lightPickProb = 1.0f;
+  int lightOffset     = SelectRandomLightRev(rndLightData.z, surfElem.pos, m_pGlobals,
+                                             &lightPickProb);
+  
+  if (lightOffset >= 0) // if need to sample direct light ?
+  { 
+    const PlainMaterial* pHitMaterial = materialAt(m_pGlobals, m_matStorage, surfElem.matId);
+    __global const PlainLight* pLight = lightAt(m_pGlobals, lightOffset);
+    
+    ShadowSample explicitSam;
+    LightSampleRev(pLight, to_float3(rndLightData), surfElem.pos, m_pGlobals, m_pdfStorage, m_texStorage,
+                   &explicitSam);
+    
+    const float3 shadowRayDir = normalize(explicitSam.pos - surfElem.pos);
+    const float3 shadowRayPos = OffsShadowRayPos(surfElem.pos, surfElem.normal, shadowRayDir, surfElem.sRayOff);
+
+    const float3 shadow = shadowTrace(shadowRayPos, shadowRayDir, length(shadowRayPos - explicitSam.pos)*0.995f);
+        
+    ShadeContext sc;
+    sc.wp = surfElem.pos;
+    sc.l  = shadowRayDir;
+    sc.v  = (-1.0f)*ray_dir;
+    sc.n  = surfElem.normal;
+    sc.fn = surfElem.flatNormal;
+    sc.tg = surfElem.tangent;
+    sc.bn = surfElem.biTangent;
+    sc.tc = surfElem.texCoord;
+
+    auto ptlCopy = m_ptlDummy;
+    GetProcTexturesIdListFromMaterialHead(pHitMaterial, &ptlCopy);
+    
+    const auto evalData      = materialEval(pHitMaterial, &sc, (EVAL_FLAG_DEFAULT), /* global data --> */ m_pGlobals, m_texStorage, m_texStorageAux, &ptlCopy);
+    
+    const float cosThetaOut1 = fmax(+dot(shadowRayDir, surfElem.normal), 0.0f);
+    const float cosThetaOut2 = fmax(-dot(shadowRayDir, surfElem.normal), 0.0f);
+    const float3 bxdfVal     = (evalData.brdf*cosThetaOut1 + evalData.btdf*cosThetaOut2);
+   
+    const float lgtPdf       = explicitSam.pdf*lightPickProb;
+    
+    float misWeight = misWeightHeuristic(lgtPdf, evalData.pdfFwd); // (lgtPdf*lgtPdf) / (lgtPdf*lgtPdf + bsdfPdf*bsdfPdf);
+    if (explicitSam.isPoint)
+      misWeight = 1.0f;
+    
+    explicitColor = (1.0f / lightPickProb)*(explicitSam.color * (1.0f / fmax(explicitSam.pdf, DEPSILON2)))*bxdfVal*misWeight*shadow; // clamp brdfVal? test it !!!
+  }
+
+  // next bounce
+  //
+  { 
+    const MatSample matSam = std::get<0>( sampleAndEvalBxDF(ray_dir, surfElem) );
+    const float3 bxdfVal   = matSam.color * (1.0f / fmaxf(matSam.pdf, 1e-20f));
+    const float cosTheta   = fabs(dot(matSam.direction, surfElem.normal));
+
+    ray_dir = matSam.direction;
+    ray_pos = OffsRayPos(surfElem.pos, surfElem.normal, matSam.direction);
+
+    misPrev              = makeInitialMisData();
+    misPrev.isSpecular   = isPureSpecular(matSam);
+    misPrev.matSamplePdf = matSam.pdf;
+    flags                = flagsNextBounceLite(flags, matSam, m_pGlobals);
+    
+    accumColor        += accumuThoroughput*explicitColor;
+    accumuThoroughput *= cosTheta*bxdfVal;
+  }
+  
+  } // for
+
+  accumColor        += accumuThoroughput*currColor;
+
+  return accumColor;
+  //return explicitColor + cosTheta*bxdfVal*PathTrace(nextRay_pos, nextRay_dir, currMis, a_currDepth + 1, flags);  // --*(1.0 / (1.0 - pabsorb));
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+
