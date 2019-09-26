@@ -231,23 +231,237 @@ float3 IntegratorMISPTLoop::PathTrace(float3 ray_pos, float3 ray_dir, MisData mi
 
   for(int depth = a_currDepth; depth < m_maxDepth; depth++) {
 
-  if (depth >= m_maxDepth)
+    if (depth >= m_maxDepth)
+      break; 
+
+    // #kernel name RayTrace
+    // #kernel in   (ray_pos, ray_dir)
+    // #kernel out  (hit)
+    //
+    Lite_Hit hit;
+    {
+      hit = rayTrace(ray_pos, ray_dir);
+    }
+
+    // #kernel name HitEnvironment
+    // #kernel in   (hit, misPrev, flags)
+    // #kernel con  (m_pGlobals, m_matStorage, m_pdfStorage, m_texStorage)
+    // #kernel out  (currColor)
+    //
+    {
+      if (HitNone(hit))
+      {
+        currColor = environmentColor(ray_dir, misPrev, flags, m_pGlobals, m_matStorage, m_pdfStorage, m_texStorage);
+        break; // #threadlocal(break);
+      }
+    }
+  
+    // #kernel name EvalSurface
+    // #kernel in   (ray_pos, ray_dir, hit)
+    // #kernel out  (surfElem)
+    SurfaceHit surfElem;
+    {
+      surfElem = surfaceEval(ray_pos, ray_dir, hit);
+    }
+
+    //#kernel name EvalEmission
+    //#kernel in   (ray_pos, ray_dir, surfElem, flags, misPrev)
+    //#kernel con  (...)
+    //#kernel out  (currColor)
+    //
+    {
+      float3 emission = emissionEval(ray_pos, ray_dir, surfElem, flags, misPrev, fetchInstId(hit));
+      if (dot(emission, emission) > 1e-3f)
+      {
+        const PlainLight* pLight = getLightFromInstId(fetchInstId(hit));
+    
+        if (pLight != nullptr)
+        {
+          float lgtPdf    = lightPdfSelectRev(pLight)*lightEvalPDF(pLight, ray_pos, ray_dir, surfElem.pos, surfElem.normal, surfElem.texCoord, m_pdfStorage, m_pGlobals);
+          float bsdfPdf   = misPrev.matSamplePdf;
+          float misWeight = misWeightHeuristic(bsdfPdf, lgtPdf);  // (bsdfPdf*bsdfPdf) / (lgtPdf*lgtPdf + bsdfPdf*bsdfPdf);
+    
+          if (misPrev.isSpecular)
+            misWeight = 1.0f;
+    
+          currColor = emission*misWeight;
+          break; // #threadlocal(break);
+        }
+        else
+        {
+          currColor = emission;
+          break; // #threadlocal(break);
+        }
+      }
+      else if (depth >= m_maxDepth-1)
+      {
+        currColor = make_float3(0, 0, 0);
+        break;  // #threadlocal(break);
+      }
+    }
+    
+    float  lightPickProb;
+    int    lightOffset;
+    float4 rndLightData;
+    //#kernel SelectLight(surfElem.pos, lightPickProb, lightOffset, rndLightData)
+    {
+      const unsigned int* qmcTablePtr = GetQMCTableIfEnabled();
+      
+      RandomGen& gen = randomGen();
+      rndLightData   = rndLight(&gen, depth,
+                                m_pGlobals->rmQMC, PerThread().qmcPos, qmcTablePtr);
+      
+      lightPickProb = 1.0f;
+      lightOffset   = SelectRandomLightRev(rndLightData.z, surfElem.pos, m_pGlobals,
+                                           &lightPickProb);
+    }
+
+    float3 shadowRayPos, shadowRayDir; 
+    ShadowSample explicitSam;
+
+    //#kernel LightSample()
+    {
+      if (lightOffset >= 0) // if need to sample direct light ?
+      { 
+        const PlainMaterial* pHitMaterial = materialAt(m_pGlobals, m_matStorage, surfElem.matId);
+        __global const PlainLight* pLight = lightAt(m_pGlobals, lightOffset);
+        
+        LightSampleRev(pLight, to_float3(rndLightData), surfElem.pos, m_pGlobals, m_pdfStorage, m_texStorage,
+                       &explicitSam);
+        
+        shadowRayDir = normalize(explicitSam.pos - surfElem.pos);
+        shadowRayPos = OffsShadowRayPos(surfElem.pos, surfElem.normal, shadowRayDir, surfElem.sRayOff);
+      }
+    }
+    
+    //#kernel ShadowTrace()
+    float3 shadow;            // #compress(shadow, half3)
+    {
+      if (lightOffset >= 0)
+      {
+        shadow = shadowTrace(shadowRayPos, shadowRayDir, length(shadowRayPos - explicitSam.pos)*0.995f);
+      }
+    }
+
+    float3 explicitColor = make_float3(0, 0, 0);
+    //#kernel name Shade
+    //#kernel out  (explicitColor)
+    {
+      if (lightOffset >= 0)
+      {
+        ShadeContext sc;
+        sc.wp = surfElem.pos;
+        sc.l  = shadowRayDir;
+        sc.v  = (-1.0f)*ray_dir;
+        sc.n  = surfElem.normal;
+        sc.fn = surfElem.flatNormal;
+        sc.tg = surfElem.tangent;
+        sc.bn = surfElem.biTangent;
+        sc.tc = surfElem.texCoord;
+
+        const PlainMaterial* pHitMaterial = materialAt(m_pGlobals, m_matStorage, surfElem.matId);    
+ 
+        auto ptlCopy = m_ptlDummy;
+        GetProcTexturesIdListFromMaterialHead(pHitMaterial, &ptlCopy);
+        
+        const auto evalData      = materialEval(pHitMaterial, &sc, (EVAL_FLAG_DEFAULT), /* global data --> */ m_pGlobals, m_texStorage, m_texStorageAux, &ptlCopy);
+        
+        const float cosThetaOut1 = fmax(+dot(shadowRayDir, surfElem.normal), 0.0f);
+        const float cosThetaOut2 = fmax(-dot(shadowRayDir, surfElem.normal), 0.0f);
+        const float3 bxdfVal     = (evalData.brdf*cosThetaOut1 + evalData.btdf*cosThetaOut2);
+       
+        const float lgtPdf       = explicitSam.pdf*lightPickProb;
+        
+        float misWeight = misWeightHeuristic(lgtPdf, evalData.pdfFwd); // (lgtPdf*lgtPdf) / (lgtPdf*lgtPdf + bsdfPdf*bsdfPdf);
+        if (explicitSam.isPoint)
+          misWeight = 1.0f;
+        
+        explicitColor = (1.0f / lightPickProb)*(explicitSam.color * (1.0f / fmax(explicitSam.pdf, DEPSILON2)))*bxdfVal*misWeight*shadow; // clamp brdfVal? test it !!!
+      }
+    }
+    
+    // #kernel name NextBounce
+    // #kernel in    (surfElem)
+    // #kernel out   (misPrev)
+    // #kernel inout (ray_pos, ray_dir, flags, accumColor, accumuThoroughput)
+    //
+    { 
+      const MatSample matSam = std::get<0>( sampleAndEvalBxDF(ray_dir, surfElem) );
+      const float3 bxdfVal   = matSam.color * (1.0f / fmaxf(matSam.pdf, 1e-20f));
+      const float cosTheta   = fabs(dot(matSam.direction, surfElem.normal));
+  
+      ray_dir              = matSam.direction;
+      ray_pos              = OffsRayPos(surfElem.pos, surfElem.normal, matSam.direction);
+  
+      misPrev              = makeInitialMisData();
+      misPrev.isSpecular   = isPureSpecular(matSam);
+      misPrev.matSamplePdf = matSam.pdf;
+      flags                = flagsNextBounceLite(flags, matSam, m_pGlobals);
+      
+      accumColor         += accumuThoroughput*explicitColor;
+      accumuThoroughput  *= cosTheta*bxdfVal;
+    }
+  
+  } // for
+
+  //#kernel name AddLastBouceContrib
+  //#kernel in    (currColor, accumuThoroughput)
+  //#kernel inout (accumColor)
   {
-    currColor = float3(0, 0, 0);
-    break;
+    accumColor += accumuThoroughput*currColor;
   }
 
-  Lite_Hit hit = rayTrace(ray_pos, ray_dir);
+  return accumColor;
+}
 
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+void IntegratorMISPTLoop2::kernel_InitAccumData(float3& accumColor, float3& accumuThoroughput, float3& currColor)
+{
+  accumColor        = make_float3(0,0,0);
+  accumuThoroughput = make_float3(1,1,1);
+  currColor         = make_float3(0,0,0);
+}
+
+void IntegratorMISPTLoop2::kernel_RayTrace(const float3& ray_pos, const float3& ray_dir, 
+                                           Lite_Hit& hit)
+{
+  hit = rayTrace(ray_pos, ray_dir);
+}
+
+bool IntegratorMISPTLoop2::kernel_HitEnvironment(const float3& ray_dir, const Lite_Hit& hit, const MisData& misPrev, const int& flags,
+                                                 float3& currColor)
+{
   if (HitNone(hit))
   {
     currColor = environmentColor(ray_dir, misPrev, flags, m_pGlobals, m_matStorage, m_pdfStorage, m_texStorage);
-    break;
+    return true;
   }
 
-  SurfaceHit surfElem = surfaceEval(ray_pos, ray_dir, hit);
-  
+  return false;
+}
+
+void IntegratorMISPTLoop2::kernel_EvalSurface(const float3& ray_pos, const float3& ray_dir, const Lite_Hit& hit,
+                                              SurfaceHit& surfElem)
+{
+  surfElem = surfaceEval(ray_pos, ray_dir, hit);
+}
+
+bool IntegratorMISPTLoop2::kernel_EvalEmission(const float3& ray_pos, const float3& ray_dir, 
+                                               const SurfaceHit& surfElem, const int& flags, 
+                                               const MisData& misPrev, const Lite_Hit& hit,
+                                               const int depth,
+                                               float3& currColor)
+{
+
   float3 emission = emissionEval(ray_pos, ray_dir, surfElem, flags, misPrev, fetchInstId(hit));
+  
   if (dot(emission, emission) > 1e-3f)
   {
     const PlainLight* pLight = getLightFromInstId(fetchInstId(hit));
@@ -262,106 +476,168 @@ float3 IntegratorMISPTLoop::PathTrace(float3 ray_pos, float3 ray_dir, MisData mi
         misWeight = 1.0f;
 
       currColor = emission*misWeight;
-      break;
+      return true;
     }
     else
     {
       currColor = emission;
-      break;
+      return true;
     }
   }
   else if (depth >= m_maxDepth-1)
   {
     currColor = make_float3(0, 0, 0);
-    break;
+    return true;
   }
 
-  float3 explicitColor = make_float3(0, 0, 0);
+  return false;
+}
 
-  // static inline float4 rndLight(RandomGen* gen, __global const float* rptr, const int bounceId,
-  //                              __global const int* a_tab, const unsigned int qmcPos, __constant unsigned int* a_qmcTable)
-  
+void IntegratorMISPTLoop2::kernel_LightSelect(const SurfaceHit& surfElem, const int depth,
+                                              float& lightPickProb, int& lightOffset, float4& rndLightData)
+{
   const unsigned int* qmcTablePtr = GetQMCTableIfEnabled();
   
-  auto& gen = randomGen();
-  const float4 rndLightData = rndLight(&gen, depth,
-                                       m_pGlobals->rmQMC, PerThread().qmcPos, qmcTablePtr);
+  RandomGen& gen = randomGen();
+  rndLightData   = rndLight(&gen, depth,
+                            m_pGlobals->rmQMC, PerThread().qmcPos, qmcTablePtr);
   
-  float lightPickProb = 1.0f;
-  int lightOffset     = SelectRandomLightRev(rndLightData.z, surfElem.pos, m_pGlobals,
-                                             &lightPickProb);
-  
+  lightPickProb = 1.0f;
+  lightOffset   = SelectRandomLightRev(rndLightData.z, surfElem.pos, m_pGlobals,
+                                       &lightPickProb);
+}
+
+
+void IntegratorMISPTLoop2::kernel_LightSample(const SurfaceHit& surfElem, const int& lightOffset, const float4& rndLightData,
+                                              float3& shadowRayPos, float3& shadowRayDir, ShadowSample& explicitSam)
+{
   if (lightOffset >= 0) // if need to sample direct light ?
   { 
     const PlainMaterial* pHitMaterial = materialAt(m_pGlobals, m_matStorage, surfElem.matId);
     __global const PlainLight* pLight = lightAt(m_pGlobals, lightOffset);
     
-    ShadowSample explicitSam;
     LightSampleRev(pLight, to_float3(rndLightData), surfElem.pos, m_pGlobals, m_pdfStorage, m_texStorage,
                    &explicitSam);
     
-    const float3 shadowRayDir = normalize(explicitSam.pos - surfElem.pos);
-    const float3 shadowRayPos = OffsShadowRayPos(surfElem.pos, surfElem.normal, shadowRayDir, surfElem.sRayOff);
+    shadowRayDir = normalize(explicitSam.pos - surfElem.pos);
+    shadowRayPos = OffsShadowRayPos(surfElem.pos, surfElem.normal, shadowRayDir, surfElem.sRayOff);
+  }
+}
 
-    const float3 shadow = shadowTrace(shadowRayPos, shadowRayDir, length(shadowRayPos - explicitSam.pos)*0.995f);
-        
-    ShadeContext sc;
-    sc.wp = surfElem.pos;
-    sc.l  = shadowRayDir;
-    sc.v  = (-1.0f)*ray_dir;
-    sc.n  = surfElem.normal;
-    sc.fn = surfElem.flatNormal;
-    sc.tg = surfElem.tangent;
-    sc.bn = surfElem.biTangent;
-    sc.tc = surfElem.texCoord;
 
-    auto ptlCopy = m_ptlDummy;
-    GetProcTexturesIdListFromMaterialHead(pHitMaterial, &ptlCopy);
+float3 IntegratorMISPTLoop2::PathTrace(float3 ray_pos, float3 ray_dir, MisData misPrev, int a_currDepth, uint flags)
+{
+  float3 accumColor, accumuThoroughput, currColor;
+  kernel_InitAccumData(accumColor, accumuThoroughput, currColor);
+
+  for(int depth = a_currDepth; depth < m_maxDepth; depth++) // !!! #single(depth)
+  {
+    if (depth >= m_maxDepth)
+      break; 
+
+    Lite_Hit hit;
+    kernel_RayTrace(ray_pos, ray_dir,
+                    hit);
     
-    const auto evalData      = materialEval(pHitMaterial, &sc, (EVAL_FLAG_DEFAULT), /* global data --> */ m_pGlobals, m_texStorage, m_texStorageAux, &ptlCopy);
-    
-    const float cosThetaOut1 = fmax(+dot(shadowRayDir, surfElem.normal), 0.0f);
-    const float cosThetaOut2 = fmax(-dot(shadowRayDir, surfElem.normal), 0.0f);
-    const float3 bxdfVal     = (evalData.brdf*cosThetaOut1 + evalData.btdf*cosThetaOut2);
+    if(kernel_HitEnvironment(ray_dir, hit, misPrev, flags,
+                             currColor))
+      break;
    
-    const float lgtPdf       = explicitSam.pdf*lightPickProb;
-    
-    float misWeight = misWeightHeuristic(lgtPdf, evalData.pdfFwd); // (lgtPdf*lgtPdf) / (lgtPdf*lgtPdf + bsdfPdf*bsdfPdf);
-    if (explicitSam.isPoint)
-      misWeight = 1.0f;
-    
-    explicitColor = (1.0f / lightPickProb)*(explicitSam.color * (1.0f / fmax(explicitSam.pdf, DEPSILON2)))*bxdfVal*misWeight*shadow; // clamp brdfVal? test it !!!
-  }
+    SurfaceHit surfElem;
+    kernel_EvalSurface(ray_pos, ray_dir, hit,
+                       surfElem);
 
-  // next bounce
-  //
-  { 
-    const MatSample matSam = std::get<0>( sampleAndEvalBxDF(ray_dir, surfElem) );
-    const float3 bxdfVal   = matSam.color * (1.0f / fmaxf(matSam.pdf, 1e-20f));
-    const float cosTheta   = fabs(dot(matSam.direction, surfElem.normal));
-
-    ray_dir = matSam.direction;
-    ray_pos = OffsRayPos(surfElem.pos, surfElem.normal, matSam.direction);
-
-    misPrev              = makeInitialMisData();
-    misPrev.isSpecular   = isPureSpecular(matSam);
-    misPrev.matSamplePdf = matSam.pdf;
-    flags                = flagsNextBounceLite(flags, matSam, m_pGlobals);
+    if(kernel_EvalEmission(ray_pos, ray_dir, surfElem, flags, misPrev, hit, depth,
+                           currColor))
+      break;
     
-    accumColor        += accumuThoroughput*explicitColor;
-    accumuThoroughput *= cosTheta*bxdfVal;
-  }
+    float  lightPickProb;
+    int    lightOffset;
+    float4 rndLightData;
+    kernel_LightSelect(surfElem, depth, 
+                       lightPickProb, lightOffset, rndLightData);
+
+    float3 shadowRayPos, shadowRayDir; 
+    ShadowSample explicitSam;
+    kernel_LightSample(surfElem, lightOffset, rndLightData,
+                       shadowRayPos, shadowRayDir, explicitSam);
+    
+    //#kernel ShadowTrace()
+    float3 shadow;            // #compress(shadow, half3)
+    {
+      if (lightOffset >= 0)
+      {
+        shadow = shadowTrace(shadowRayPos, shadowRayDir, length(shadowRayPos - explicitSam.pos)*0.995f);
+      }
+    }
+
+    float3 explicitColor = make_float3(0, 0, 0);
+    //#kernel name Shade
+    //#kernel out  (explicitColor)
+    {
+      if (lightOffset >= 0)
+      {
+        ShadeContext sc;
+        sc.wp = surfElem.pos;
+        sc.l  = shadowRayDir;
+        sc.v  = (-1.0f)*ray_dir;
+        sc.n  = surfElem.normal;
+        sc.fn = surfElem.flatNormal;
+        sc.tg = surfElem.tangent;
+        sc.bn = surfElem.biTangent;
+        sc.tc = surfElem.texCoord;
+
+        const PlainMaterial* pHitMaterial = materialAt(m_pGlobals, m_matStorage, surfElem.matId);    
+ 
+        auto ptlCopy = m_ptlDummy;
+        GetProcTexturesIdListFromMaterialHead(pHitMaterial, &ptlCopy);
+        
+        const auto evalData      = materialEval(pHitMaterial, &sc, (EVAL_FLAG_DEFAULT), /* global data --> */ m_pGlobals, m_texStorage, m_texStorageAux, &ptlCopy);
+        
+        const float cosThetaOut1 = fmax(+dot(shadowRayDir, surfElem.normal), 0.0f);
+        const float cosThetaOut2 = fmax(-dot(shadowRayDir, surfElem.normal), 0.0f);
+        const float3 bxdfVal     = (evalData.brdf*cosThetaOut1 + evalData.btdf*cosThetaOut2);
+       
+        const float lgtPdf       = explicitSam.pdf*lightPickProb;
+        
+        float misWeight = misWeightHeuristic(lgtPdf, evalData.pdfFwd); // (lgtPdf*lgtPdf) / (lgtPdf*lgtPdf + bsdfPdf*bsdfPdf);
+        if (explicitSam.isPoint)
+          misWeight = 1.0f;
+        
+        explicitColor = (1.0f / lightPickProb)*(explicitSam.color * (1.0f / fmax(explicitSam.pdf, DEPSILON2)))*bxdfVal*misWeight*shadow; // clamp brdfVal? test it !!!
+      }
+    }
+    
+    // #kernel name NextBounce
+    // #kernel in    (surfElem)
+    // #kernel out   (misPrev)
+    // #kernel inout (ray_pos, ray_dir, flags, accumColor, accumuThoroughput)
+    //
+    { 
+      const MatSample matSam = std::get<0>( sampleAndEvalBxDF(ray_dir, surfElem) );
+      const float3 bxdfVal   = matSam.color * (1.0f / fmaxf(matSam.pdf, 1e-20f));
+      const float cosTheta   = fabs(dot(matSam.direction, surfElem.normal));
+  
+      ray_dir              = matSam.direction;
+      ray_pos              = OffsRayPos(surfElem.pos, surfElem.normal, matSam.direction);
+  
+      misPrev              = makeInitialMisData();
+      misPrev.isSpecular   = isPureSpecular(matSam);
+      misPrev.matSamplePdf = matSam.pdf;
+      flags                = flagsNextBounceLite(flags, matSam, m_pGlobals);
+      
+      accumColor         += accumuThoroughput*explicitColor;
+      accumuThoroughput  *= cosTheta*bxdfVal;
+    }
   
   } // for
 
-  accumColor        += accumuThoroughput*currColor;
+  //#kernel name AddLastBouceContrib
+  //#kernel in    (currColor, accumuThoroughput)
+  //#kernel inout (accumColor)
+  {
+    accumColor += accumuThoroughput*currColor;
+  }
 
   return accumColor;
-  //return explicitColor + cosTheta*bxdfVal*PathTrace(nextRay_pos, nextRay_dir, currMis, a_currDepth + 1, flags);  // --*(1.0 / (1.0 - pabsorb));
 }
-
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-
