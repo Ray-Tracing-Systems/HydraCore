@@ -20,6 +20,7 @@ set(SOURCE_FILES
         CPUExp_Integrators.h
         CPUExp_Integrators_LT.cpp
         CPUExp_Integrators_PT.cpp
+        CPUExp_Integrators_PT_Loop.cpp
         CPUExp_Integrators_PT_QMC.cpp
         CPUExp_Integrators_SBDPT.cpp
         CPUExp_Integrators_MMLT.cpp
