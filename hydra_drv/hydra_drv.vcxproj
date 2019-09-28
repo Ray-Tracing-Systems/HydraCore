@@ -183,6 +183,7 @@
     <ClCompile Include="CPUExp_Integrators_LT.cpp" />
     <ClCompile Include="CPUExp_Integrators_MMLT.cpp" />
     <ClCompile Include="CPUExp_Integrators_PT.cpp" />
+    <ClCompile Include="CPUExp_Integrators_PT_Loop.cpp" />
     <ClCompile Include="CPUExp_Integrators_PT_QMC.cpp" />
     <ClCompile Include="CPUExp_Integrators_SBDPT.cpp" />
     <ClCompile Include="CPUExp_Integrators_ThreeWay.cpp" />

@@ -76,7 +76,7 @@ static inline float TorranceSparrowGF1(const float3 wo, const float3 wi) // in P
   wh = normalize(wh);
 
   const float cosThetaH = dot(wi, wh);
-  const float F = FrCond(cosThetaH, 5.0f, 1.25f); // fresnel->Evaluate(cosThetaH);
+  const float F = 1.0f; // FrCond(cosThetaH, 5.0f, 1.25f); // fresnel->Evaluate(cosThetaH);
 
   return fmin(TorranceSparrowG1(wo, wi, wh) * F / fmax(4.f * cosThetaI * cosThetaO, DEPSILON), 250.0f);
 }
@@ -96,7 +96,7 @@ static inline float TorranceSparrowGF2(const float3 wo, const float3 wi, const f
   wh = normalize(wh);
 
   const float cosThetaH = dot(wi, wh);
-  const float F = FrCond(cosThetaH, 5.0f, 1.25f); // fresnel->Evaluate(cosThetaH);
+  const float F = 1.0f; // FrCond(cosThetaH, 5.0f, 1.25f); // fresnel->Evaluate(cosThetaH);
 
   return fmin(TorranceSparrowG2(wo, wi, wh, n) * F / fmax(4.0f * cosThetaI * cosThetaO, DEPSILON), 10.0f);
 }

@@ -218,6 +218,9 @@
     <ClCompile Include="GPUOCLLayerOther.cpp">
       <Filter>GPULayer</Filter>
     </ClCompile>
+    <ClCompile Include="CPUExp_Integrators_PT_Loop.cpp">
+      <Filter>CPULayer</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="shaders\image.cl">
