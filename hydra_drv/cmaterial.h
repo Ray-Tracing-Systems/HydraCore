@@ -796,15 +796,15 @@ static inline void BlinnSampleAndEvalBRDF(__global const PlainMaterial* a_pMat, 
   const float  cosThetaOut = dot(newDir, a_normal);
   const float  GF1         = TorranceSparrowGF1(wo, wi);
 
-  const float estimatedThoroughput = fabs(cosThetaOut)*(D * GF1) / fmax(blinn_pdf, DEPSILON2);
-  const float brightBordersMult    = fmin(estimatedThoroughput, 1.0f) / fmax(estimatedThoroughput, DEPSILON2);
+  //const float estimatedThoroughput = fabs(cosThetaOut)*(D * GF1) / fmax(blinn_pdf, DEPSILON2);
+  //const float brightBordersMult    = fmin(estimatedThoroughput, 1.0f) / fmax(estimatedThoroughput, DEPSILON2);
 
   const float3 texColor = sample2DExt(blinnGetTex(a_pMat).y, a_texCoord, (__global const int4*)a_pMat, a_tex, a_globals, a_ptList);
   const float3 color    = clamp(blinnGetColor(a_pMat)*texColor, 0.0f, 1.0f);
 
   a_out->direction = newDir; 
   a_out->pdf       = blinn_pdf;
-  a_out->color     = (color * D * GF1) * brightBordersMult;
+  a_out->color     = (color * D * GF1); // *brightBordersMult;
   if(cosThetaOut < 1e-6f)
     a_out->color   = make_float3(0,0,0);
 
