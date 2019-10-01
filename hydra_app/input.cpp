@@ -19,7 +19,8 @@ Input::Input()
   //inLibraryPath = "tests/test_pool";
   //inLibraryPath = "C:/[Hydra]/pluginFiles/scenelib/";
 
-  //inLibraryPath = "D:/PROG/HydraRepos/HydraTests/3dsMaxTests/009_blinn_glossy_and_mirror_640x480";
+  //inLibraryPath = "D:/PROG/HydraRepos/HydraTests/3dsMaxTests/034_hydra_mat_Microfacet";
+  //inLibraryPath = "D:/PROG/HydraRepos/HydraTests/tests_f/test_202";
 
   inDevelopment = false;  ///< recompile shaders each time; note that nvidia have their own shader cache!
   inDeviceId    = 0;     ///< opencl device id

@@ -739,8 +739,6 @@ static inline float blinnEvalPDF(__global const PlainMaterial* a_pMat, const flo
   return blinn_pdf;
 }
 
-#define BLINN_COLOR_MULT 2.0f
-
 static inline float3 blinnEvalBxDF(__global const PlainMaterial* a_pMat, const float3 l, const float3 v, const float3 n, 
                                    const float2 a_texCoord, __global const EngineGlobals* a_globals, texture2d_t a_tex, __private const ProcTextureList* a_ptList)
 {
@@ -756,7 +754,7 @@ static inline float3 blinnEvalBxDF(__global const PlainMaterial* a_pMat, const f
   const float D         = (exponent + 2.0f) * INV_TWOPI * pow(costhetah, exponent);
   const float cosTheta  = fmax(dot(l, n), 0.0f);
 
-  return BLINN_COLOR_MULT*color*D*TorranceSparrowGF2(l, v, n);
+  return color*D*TorranceSparrowGF2(l, v, n);
 }
 
 static inline void BlinnSampleAndEvalBRDF(__global const PlainMaterial* a_pMat, const float a_r1, const float a_r2, const float3 ray_dir, const float3 a_normal, const float2 a_texCoord, const float3 a_tan, const float3 a_bitan,
@@ -799,14 +797,14 @@ static inline void BlinnSampleAndEvalBRDF(__global const PlainMaterial* a_pMat, 
   const float  GF1         = TorranceSparrowGF1(wo, wi);
 
   const float estimatedThoroughput = fabs(cosThetaOut)*(D * GF1) / fmax(blinn_pdf, DEPSILON2);
-  const float brightBordersMult    = fmin(estimatedThoroughput, 0.525f) / fmax(estimatedThoroughput, DEPSILON2);
+  const float brightBordersMult    = fmin(estimatedThoroughput, 1.0f) / fmax(estimatedThoroughput, DEPSILON2);
 
   const float3 texColor = sample2DExt(blinnGetTex(a_pMat).y, a_texCoord, (__global const int4*)a_pMat, a_tex, a_globals, a_ptList);
   const float3 color    = clamp(blinnGetColor(a_pMat)*texColor, 0.0f, 1.0f);
 
   a_out->direction = newDir; 
   a_out->pdf       = blinn_pdf;
-  a_out->color     = (BLINN_COLOR_MULT * color * D * GF1) * brightBordersMult;
+  a_out->color     = (color * D * GF1) * brightBordersMult;
   if(cosThetaOut < 1e-6f)
     a_out->color   = make_float3(0,0,0);
 

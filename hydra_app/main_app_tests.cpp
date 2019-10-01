@@ -16,7 +16,7 @@ static HRSceneInstRef scnRef;
 static HRRenderRef    renderRef;
 
 #ifdef WIN32
-std::vector<std::wstring> hr_listfiles(const wchar_t* a_folder);
+std::vector<std::wstring> hr_listfiles(const wchar_t* a_folder, bool excludeDirs = true);
 #endif
 
 static std::wstring tail(std::wstring const& source, size_t const length) 
