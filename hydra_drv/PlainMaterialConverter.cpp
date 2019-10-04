@@ -1577,6 +1577,11 @@ std::shared_ptr<IMaterial> CreateMaterialFromXmlNode(pugi::xml_node a_node, Rend
       if (a_pRTE->m_shadowMatteBackTexId == 0)
         a_pRTE->m_shadowMatteBackTexId = INVALID_TEXTURE;
 
+      if(back.attribute(L"mode").as_string() == L"spherical")
+        a_pRTE->m_shadowMatteBackMode = MODE_SPHERICAL;
+      else  
+        a_pRTE->m_shadowMatteBackMode = MODE_CAM_PROJECTED;
+        
       if (back.child(L"texture").attribute(L"input_gamma") != nullptr)
         a_pRTE->m_shadowMatteBackGamma = back.child(L"texture").attribute(L"input_gamma").as_float();
 

@@ -147,6 +147,7 @@ namespace RAYTR
 
     int32_t tmpSkyLightBackTexId;
     float   tmpSkyLightBackGamma;
+    int     tmpMatteBackMode;
 
   protected:
 

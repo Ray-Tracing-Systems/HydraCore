@@ -241,8 +241,9 @@ void IntegratorMISPTLoop2::kernel_NextBounce(const SurfaceHit& surfElem, const f
                             m_pGlobals, m_texStorage, m_texStorageAux, &m_ptlDummy, 
                             &matSam, &matOffset);
 
-  const float3 bxdfVal   = matSam.color * (1.0f / fmaxf(matSam.pdf, 1e-20f));
-  const float cosTheta   = fabs(dot(matSam.direction, surfElem.normal));
+  const float3 bxdfVal = matSam.color * (1.0f / fmaxf(matSam.pdf, 1e-20f));
+  const float cosTheta = fabs(dot(matSam.direction, surfElem.normal));
+  
   ray_dir              = matSam.direction;
   ray_pos              = OffsRayPos(surfElem.pos, surfElem.normal, matSam.direction);
   misPrev              = makeInitialMisData();

@@ -513,6 +513,37 @@ static inline float3 environmentColor(float3 rayDir, MisData misPrev, unsigned i
   return envColor;
 }
 
+/**
+\brief  A
+
+\return back enviromnent color
+
+*/
+
+static inline float3 backColorOfSecondEnv(float3 ray_dir, float2 screen, __global const EngineGlobals* a_globals, texture2d_t in_texStorage1)
+{
+  const float texCoordX = screen.x / a_globals->varsF[HRT_WIDTH_F];
+  const float texCoordY = screen.y / a_globals->varsF[HRT_HEIGHT_F];
+  const float gammaInv  = a_globals->varsF[HRT_BACK_TEXINPUT_GAMMA];
+  const int offset      = textureHeaderOffset(a_globals, a_globals->varsI[HRT_SHADOW_MATTE_BACK]);
+ 
+  float3 envColor;       
+  
+  if(a_globals->varsI[HRT_SHADOW_MATTE_BACK_MODE] == MODE_SPHERICAL)
+  {
+    float sintheta = 0.0f;
+    const float2 texCoord = sphereMapTo2DTexCoord(ray_dir, &sintheta);
+    envColor = to_float3(read_imagef_sw4(in_texStorage1 + offset, texCoord, TEX_CLAMP_U | TEX_CLAMP_V));
+  }
+  else
+    envColor = to_float3(read_imagef_sw4(in_texStorage1 + offset, make_float2(texCoordX, texCoordY), TEX_CLAMP_U | TEX_CLAMP_V));
+  
+  envColor.x = pow(envColor.x, gammaInv);
+  envColor.y = pow(envColor.y, gammaInv);
+  envColor.z = pow(envColor.z, gammaInv);
+  
+  return envColor;
+}
 
 /**
 \brief  Add Perez Sun and Camera mapped texture to function "environmentColor".
@@ -565,16 +596,7 @@ static inline float3 environmentColorExtended(float3 ray_pos, float3 ray_dir, Mi
     const bool transparent   = (rayBounce == 1 && (otherFlags & RAY_EVENT_T) != 0);
     
     if (backTextureId != INVALID_TEXTURE && (rayBounce == 0 || transparent))
-    {
-      const float texCoordX = (float)screenX / a_globals->varsF[HRT_WIDTH_F];
-      const float texCoordY = (float)screenY / a_globals->varsF[HRT_HEIGHT_F];
-      const float gammaInv  = a_globals->varsF[HRT_BACK_TEXINPUT_GAMMA];
-      const int offset      = textureHeaderOffset(a_globals, backTextureId);
-      envColor   = to_float3(read_imagef_sw4(in_texStorage1 + offset, make_float2(texCoordX, texCoordY), TEX_CLAMP_U | TEX_CLAMP_V));
-      envColor.x = pow(envColor.x, gammaInv);
-      envColor.y = pow(envColor.y, gammaInv);
-      envColor.z = pow(envColor.z, gammaInv);
-    }
+      envColor = backColorOfSecondEnv(ray_dir, make_float2((float)screenX, (float)screenY), a_globals, in_texStorage1);
   }
 
   return envColor;

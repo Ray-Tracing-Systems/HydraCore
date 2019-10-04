@@ -139,6 +139,7 @@ RenderDriverRTE::RenderDriverRTE(const wchar_t* a_options, int w, int h, int a_d
   m_drawPassNumber       = 0;
   m_maxRaysPerPixel      = 1000000;
   m_shadowMatteBackTexId = INVALID_TEXTURE;
+  m_shadowMatteBackMode  = MODE_CAM_PROJECTED;
   m_shadowMatteBackGamma = 2.2f;
   m_pSysMutex            = hr_create_system_mutex("hydrabvh");
 }
@@ -930,7 +931,17 @@ bool RenderDriverRTE::UpdateLight(int32_t a_lightId, pugi::xml_node a_lightNode)
       m_lights[a_lightId]->tmpSkyLightBackTexId = back.child(L"texture").attribute(L"id").as_int();
       if (back.child(L"texture").attribute(L"input_gamma") != nullptr)
         m_lights[a_lightId]->tmpSkyLightBackGamma = back.child(L"texture").attribute(L"input_gamma").as_float();
+
+      if(std::wstring(back.attribute(L"mode").as_string()) == std::wstring(L"spherical"))
+        m_lights[a_lightId]->tmpMatteBackMode = MODE_SPHERICAL;
+      else  
+        m_lights[a_lightId]->tmpMatteBackMode = MODE_CAM_PROJECTED;
     }
+    else
+    {
+      m_lights[a_lightId]->tmpMatteBackMode = MODE_CAM_PROJECTED;
+    }
+    
   }
   else
   {
@@ -1416,15 +1427,16 @@ void RenderDriverRTE::EndScene() // #TODO: add dirty flags (?) to update only th
   m_pHWLayer->SetAllInstMatrices   (&m_instMatricesInv[0], int32_t(m_instMatricesInv.size()));
   m_pHWLayer->SetAllInstIdToRemapId(&m_meshRemapListId[0], int32_t(m_meshRemapListId.size()));
 
-  // put bounding sphere to engine globals
+  // put bounding sphere and other globals to engine globals
   //
   auto vars = m_pHWLayer->GetAllFlagsAndVars();
-  vars.m_varsF[HRT_BSPHERE_CENTER_X]    = m_sceneBoundingSphere.x;
-  vars.m_varsF[HRT_BSPHERE_CENTER_Y]    = m_sceneBoundingSphere.y;
-  vars.m_varsF[HRT_BSPHERE_CENTER_Z]    = m_sceneBoundingSphere.z;
-  vars.m_varsF[HRT_BSPHERE_RADIUS  ]    = m_sceneBoundingSphere.w;
-  vars.m_varsI[HRT_SHADOW_MATTE_BACK]   = this->m_shadowMatteBackTexId;
-  vars.m_varsF[HRT_BACK_TEXINPUT_GAMMA] = this->m_shadowMatteBackGamma;
+  vars.m_varsF[HRT_BSPHERE_CENTER_X]       = m_sceneBoundingSphere.x;
+  vars.m_varsF[HRT_BSPHERE_CENTER_Y]       = m_sceneBoundingSphere.y;
+  vars.m_varsF[HRT_BSPHERE_CENTER_Z]       = m_sceneBoundingSphere.z;
+  vars.m_varsF[HRT_BSPHERE_RADIUS  ]       = m_sceneBoundingSphere.w;
+  vars.m_varsI[HRT_SHADOW_MATTE_BACK]      = m_shadowMatteBackTexId;
+  vars.m_varsF[HRT_BACK_TEXINPUT_GAMMA]    = m_shadowMatteBackGamma;
+  vars.m_varsI[HRT_SHADOW_MATTE_BACK_MODE] = m_shadowMatteBackMode;
   m_pHWLayer->SetAllFlagsAndVars(vars);
 
   // calculate light selector pdf tables
@@ -2002,6 +2014,7 @@ void RenderDriverRTE::InstanceLights(int32_t a_lightId, const float* a_matrix, p
   {
     this->m_shadowMatteBackTexId = pLight->tmpSkyLightBackTexId;
     this->m_shadowMatteBackGamma = pLight->tmpSkyLightBackGamma;
+    this->m_shadowMatteBackMode  = pLight->tmpMatteBackMode;
   }  
 
 }

@@ -419,6 +419,8 @@ enum FLAG_BITS{HRT_COMPUTE_SHADOWS                 = 1,
                HRT_ENABLE_COHERENT_PT              = 65536*16384,
               };
 
+enum BACK_MODE {MODE_CAM_PROJECTED = 0, MODE_SPHERICAL = 1};
+
 enum VARIABLE_NAMES { // int vars
                       //
                       HRT_ENABLE_DOF               = 0,
@@ -460,9 +462,9 @@ enum VARIABLE_NAMES { // int vars
                       HRT_MAX_SAMPLES_PER_PIXEL    = 36,
                       HRT_CONTRIB_SAMPLES          = 37,
                       HRT_BOX_MODE_ON              = 38,
-
                       HRT_KMLT_OR_QMC_LGT_BOUNCES  = 39,
                       HRT_KMLT_OR_QMC_MAT_BOUNCES  = 40,
+                      HRT_SHADOW_MATTE_BACK_MODE   = 41
 };
 
 enum VARIABLE_FLOAT_NAMES{ // float vars

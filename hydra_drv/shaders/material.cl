@@ -555,18 +555,7 @@ __kernel void HitEnvOrLightKernel(__global const float4*    restrict in_rpos,
       float3 envColor = make_float3(0, 0, 0);
 
       if (x >= 0.0f && y >= 0.0f && x <= a_globals->varsF[HRT_WIDTH_F] && y <= a_globals->varsF[HRT_HEIGHT_F])
-      {
-        const float texCoordX = x / a_globals->varsF[HRT_WIDTH_F];
-        const float texCoordY = y / a_globals->varsF[HRT_HEIGHT_F];
-        const float gammaInv  = a_globals->varsF[HRT_BACK_TEXINPUT_GAMMA];
-
-        const int offset = textureHeaderOffset(a_globals, backTextureId);
-        envColor = to_float3(read_imagef_sw4(in_texStorage1 + offset, make_float2(texCoordX, texCoordY), TEX_CLAMP_U | TEX_CLAMP_V));
-
-        envColor.x = pow(envColor.x, gammaInv);
-        envColor.y = pow(envColor.y, gammaInv);
-        envColor.z = pow(envColor.z, gammaInv);
-      }
+        envColor = backColorOfSecondEnv(ray_dir, make_float2(x, y), a_globals, in_texStorage1);
 
       out_emission[tid] = to_float4(envColor, 0.0f);
     }

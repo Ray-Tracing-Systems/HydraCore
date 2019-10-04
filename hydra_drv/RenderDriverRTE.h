@@ -125,6 +125,7 @@ struct RenderDriverRTE : public IHRRenderDriver
     AOProcTexInfo ao;
   };
 
+  int   m_shadowMatteBackMode;
   int   m_shadowMatteBackTexId;
   float m_shadowMatteBackGamma;
 
