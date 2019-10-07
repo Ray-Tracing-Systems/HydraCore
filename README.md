@@ -100,4 +100,4 @@ However if you find that for some reason you can't use one of these components, 
 Most of these components can be replaced.
 
 # Acknowlegments
-This project is supported by RFBR 16-31-60048 "mol_a_dk".
+This project is supported by RFBR 16-31-60048 "mol_a_dk" and 18-31-20032 "mol_a_ved".
