@@ -329,7 +329,7 @@ static inline float BeckmannDistributionPdf(float3 wo, float3 wh, float alphax, 
 
 static inline float BeckmannRoughnessToAlpha(float roughness) 
 {
-  const float x = log(fmax(roughness, 1.0e-4f));
+  const float x = log(fmax(roughness, 1.0e-3f));
   return 1.62142f + 0.819955f * x + 0.1734f * x * x + 0.0171201f * x * x * x + 0.000640711f * x * x * x * x;
 }
 
@@ -481,7 +481,7 @@ static inline float TrowbridgeReitzDistributionPdf(float3 wo, float3 wh, float a
 
 inline float TrowbridgeReitzRoughnessToAlpha(float roughness) 
 {
-  const float x = log(fmax(roughness, 1e-4f));
+  const float x = log(fmax(roughness, 1e-3f));
   return 1.62142f + 0.819955f * x + 0.1734f * x * x + 0.0171201f * x * x * x + 0.000640711f * x * x * x * x;
 }
 

@@ -912,8 +912,8 @@ static inline float3 ggxEvalBxDF(__global const PlainMaterial* a_pMat, const flo
 {
   //GGX for light (explicit strategy).
   const float3 texColor = sample2DExt(ggxGetTex(a_pMat).y, a_texCoord, (__global const int4*)a_pMat, a_tex, a_globals, a_ptList);
-  const float3 color = clamp(ggxGetColor(a_pMat)*texColor, 0.0f, 1.0f);
-  const float  gloss = ggxGlosiness(a_pMat, a_texCoord, a_globals, a_tex, a_ptList);
+  const float3 color    = clamp(ggxGetColor(a_pMat)*texColor, 0.0f, 1.0f);
+  const float  gloss    = ggxGlosiness(a_pMat, a_texCoord, a_globals, a_tex, a_ptList);
 
   const float roughness = 1.0f - gloss;
   const float roug_sqr = roughness * roughness;
@@ -931,7 +931,7 @@ static inline float3 ggxEvalBxDF(__global const PlainMaterial* a_pMat, const flo
   const float D = GGX_Distribution(dotNH, roug_sqr);
   //const float F       = 1.0f; // Fresnel is not needed here, because it is used for the blend with diffusion.
 
-  return texColor * D /** F*/ * G / (4.0f * dotNV * dotNL);
+  return color*texColor * D /** F*/ * G / (4.0f * dotNV * dotNL);
 }
 
 static inline void GGXSampleAndEvalBRDF(__global const PlainMaterial* a_pMat, const float a_r1, const float a_r2, const float3 ray_dir, const float3 a_normal, const float2 a_texCoord,
