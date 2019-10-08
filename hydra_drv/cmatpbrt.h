@@ -353,7 +353,7 @@ static inline float BeckmannBRDF_PBRT(const float3 wo, const float3 wi, float al
     return 0.0f;
   
   wh = normalize(wh);
-  const float F = 1.0f; // FrCond(dot(wi, wh), 5.0f, 1.25f);
+  const float F = FrCond(dot(wi, wh), 5.0f, 1.25f);
 
   return BeckmannDistributionD(wh, alphax, alphay) * BeckmannG(wo, wi, alphax, alphay) * F / fmax(4.0f * cosThetaI * cosThetaO, DEPSILON);
 }
@@ -505,7 +505,7 @@ static inline float TrowbridgeReitzBRDF_PBRT(const float3 wo, const float3 wi, f
     return 0.0f;
 
   wh = normalize(wh);
-  const float F = 1.0f; // FrCond(dot(wi, wh), 5.0f, 1.25f);
+  const float F = FrCond(dot(wi, wh), 5.0f, 1.25f);
 
   return TrowbridgeReitzDistributionD(wh, alphax, alphay) * TrowbridgeReitzG(wo, wi, alphax, alphay) * F / fmax(4.0f * cosThetaI * cosThetaO, DEPSILON);
 }
