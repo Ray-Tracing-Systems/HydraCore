@@ -890,6 +890,7 @@ SWTexSampler SamplerFromTexref(const pugi::xml_node a_node, bool allowAlphaToRGB
   const std::wstring modeV    = a_node.attribute(L"addressing_mode_v").as_string();
   const std::wstring modeS    = a_node.attribute(L"filter").as_string();
   const std::wstring alphaSrc = a_node.attribute(L"input_alpha").as_string(); 
+  const std::wstring channel  = a_node.attribute(L"channel").as_string(); 
 
   if (modeU == L"clamp")
   	res.flags |= TEX_CLAMP_U;
@@ -902,6 +903,11 @@ SWTexSampler SamplerFromTexref(const pugi::xml_node a_node, bool allowAlphaToRGB
 
   if (allowAlphaToRGB && alphaSrc == L"alpha")
     res.flags |= TEX_ALPHASRC_W;
+
+  if(channel == L"1")
+    res.flags |= TEX_COORD_SECOND;
+  else if(channel == L"camera_mapped")  
+    res.flags |= TEX_COORD_CAM_PROJ;
 
   return res;
 }

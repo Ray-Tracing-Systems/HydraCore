@@ -192,7 +192,8 @@ __kernel void ConnectToEyeKernel(__global const uint*          restrict a_flags,
   SurfaceHit surfHit;
   ReadSurfaceHit(in_surfaceHit, tid, iNumElements, 
                  &surfHit);
-  
+  //surfHit.texCoordCamProj = worldPosToScreenSpaceNorm(surfHit.pos, a_globals); // in fact we don't need this for LT kernel, this is only for "ShadowCatcher2"
+
   float3 camDir; float zDepth;
   const float imageToSurfaceFactor = CameraImageToSurfaceFactor(surfHit.pos, surfHit.normal, a_globals,
                                                                 &camDir, &zDepth);
@@ -376,6 +377,7 @@ __kernel void HitEnvOrLightKernel(__global const float4*    restrict in_rpos,
     SurfaceHit surfHit;
     ReadSurfaceHit(in_surfaceHit, tid, iNumElements, 
                   &surfHit);
+    //surfHit.texCoordCamProj = worldPosToScreenSpaceNorm(surfHit.pos, a_globals); // in fact we don't need to evaluate projected texture coordinates here, they won't be uesed further               
 
     const float3 ray_pos = to_float3(in_rpos[tid]);
     const float3 ray_dir = to_float3(in_rdir[tid]);
@@ -620,6 +622,7 @@ __kernel void Shade(__global const float4*    restrict a_rpos,
   SurfaceHit surfHit;
   ReadSurfaceHit(in_surfaceHit, tid, iNumElements, 
                  &surfHit);
+  //surfHit.texCoordCamProj = worldPosToScreenSpaceNorm(surfHit.pos, a_globals);                 
 
   __global const PlainMaterial* pHitMaterial = materialAt(a_globals, in_mtlStorage, surfHit.matId);
   if(pHitMaterial == 0)
@@ -645,15 +648,16 @@ __kernel void Shade(__global const float4*    restrict a_rpos,
   // bool hitFromBack = (bool)(unpackRayFlags(flags) & RAY_HIT_SURFACE_FROM_OTHER_SIDE);
 
   ShadeContext sc;
-  sc.wp  = surfHit.pos;
-  sc.l   = shadowRayDir;
-  sc.v   = (-1.0f)*ray_dir;
-  sc.n   = surfHit.normal;
-  sc.fn  = surfHit.flatNormal;
-  sc.tg  = surfHit.tangent;
-  sc.bn  = surfHit.biTangent;
-  sc.tc  = surfHit.texCoord;
-  sc.hfi = surfHit.hfi;
+  sc.wp   = surfHit.pos;
+  sc.l    = shadowRayDir;
+  sc.v    = (-1.0f)*ray_dir;
+  sc.n    = surfHit.normal;
+  sc.fn   = surfHit.flatNormal;
+  sc.tg   = surfHit.tangent;
+  sc.bn   = surfHit.biTangent;
+  sc.tc   = surfHit.texCoord;
+  sc.tccp = worldPosToScreenSpaceNorm(surfHit.pos, a_globals);
+  sc.hfi  = surfHit.hfi;
 
   ProcTextureList ptl;
   InitProcTextureList(&ptl);
@@ -794,6 +798,7 @@ __kernel void NextBounce(__global const int2*      restrict in_zind,
   SurfaceHit surfHit;
   ReadSurfaceHit(in_surfaceHit, tid, iNumElements, 
                  &surfHit);
+  surfHit.texCoordCamProj = worldPosToScreenSpaceNorm(surfHit.pos, a_globals);               
 
   __global const PlainMaterial* pHitMaterial = materialAt(a_globals, in_mtlStorage, surfHit.matId);
   if(pHitMaterial == 0)
@@ -1103,6 +1108,7 @@ __kernel void NextTransparentBounce(__global   float4*        restrict a_rpos,
     SurfaceHit surfHit;
     ReadSurfaceHit(in_surfaceHit, tid, iNumElements, 
                    &surfHit);
+    //surfHit.texCoordCamProj = worldPosToScreenSpaceNorm(surfHit.pos, a_globals);               
 
     __global const PlainMaterial* pHitMaterial = materialAt(in_globals, in_mtlStorage, surfHit.matId);
     if(pHitMaterial == 0)
@@ -1212,6 +1218,7 @@ __kernel void TransparentShadowKenrel(__global const uint*     restrict in_flags
   SurfaceHit surfHit;
   ReadSurfaceHit(in_surfaceHit, tid, iNumElements, 
                    &surfHit);
+  //surfHit.texCoordCamProj = worldPosToScreenSpaceNorm(surfHit.pos, a_globals);
 
   const float  epsilon = fmax(maxcomp(surfHit.pos), 1.0f)*GEPSILON;
   const float  polyEps = fmin(fmax(PEPSILON*a_hitPolySize[tid], epsilon), PG_SCALE*epsilon);
@@ -1319,6 +1326,7 @@ __kernel void ReadDiffuseColor(__global const float4*    restrict a_rdir,
     SurfaceHit surfHit;
     ReadSurfaceHit(in_surfaceHit, tid, iNumElements, 
                    &surfHit);
+    //surfHit.texCoordCamProj = worldPosToScreenSpaceNorm(surfHit.pos, a_globals);
 
     __global const PlainMaterial* pHitMaterial = materialAt(a_globals, in_mtlStorage, surfHit.matId);
     if(pHitMaterial != 0)
@@ -1475,10 +1483,6 @@ __kernel void PutAlphaToGBuffer(__global const float4* restrict in_thoroughput,
     inout_gbuff1[bid] = packGBuffer1(data1);
   }
 }
-
-
-
-// change 31.08.2018 13:55;
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////

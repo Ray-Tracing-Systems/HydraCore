@@ -80,18 +80,26 @@ static inline  int2   lambertGetDiffuseTex(__global const PlainMaterial* a_pMat)
 
 static inline float  lambertEvalPDF (__global const PlainMaterial* a_pMat, const float3 l, const float3 n) { return fabs(dot(l, n))*INV_PI; }
 
-static inline float3 lambertEvalBxDF(__global const PlainMaterial* a_pMat, const float2 a_texCoord,
+static inline float3 lambertEvalBxDF(__global const PlainMaterial* a_pMat, const float2 a_texCoord, const float2 a_texCoordProj,
                                      __global const EngineGlobals* a_globals, texture2d_t a_tex, __private const ProcTextureList* a_ptList)
 {
-  const float3 texColor = sample2DExt(lambertGetDiffuseTex(a_pMat).y, a_texCoord, (__global const int4*)a_pMat, a_tex, a_globals, a_ptList);
+  const int samplerOffset    = lambertGetDiffuseTex(a_pMat).y;
+  const SWTexSampler sampler = ReadSampler((__global const int4*)a_pMat, samplerOffset);                // TODO: read sampler flags only
+  const float2 texCoord2     = (sampler.flags & TEX_COORD_CAM_PROJ) != 0 ? a_texCoordProj : a_texCoord; // read cam projected texCoord for "ShadowCatcher2"
+
+  const float3 texColor = sample2DExt(samplerOffset, texCoord2, (__global const int4*)a_pMat, a_tex, a_globals, a_ptList);
   return clamp(texColor*lambertGetDiffuseColor(a_pMat), 0.0f, 1.0f)*INV_PI;
 }
 
-static inline void LambertSampleAndEvalBRDF(__global const PlainMaterial* a_pMat, const float a_r1, const float a_r2, const float3 a_normal, const float2 a_texCoord,
+static inline void LambertSampleAndEvalBRDF(__global const PlainMaterial* a_pMat, const float a_r1, const float a_r2, const float3 a_normal, const float2 a_texCoord, const float2 a_texCoordProj,
                                             __global const EngineGlobals* a_globals, texture2d_t a_tex, __private const ProcTextureList* a_ptList,
                                             __private MatSample* a_out)
-{
-  const float3 texColor   = sample2DExt(lambertGetDiffuseTex(a_pMat).y, a_texCoord, (__global const int4*)a_pMat, a_tex, a_globals, a_ptList);
+{ 
+  const int samplerOffset    = lambertGetDiffuseTex(a_pMat).y;
+  const SWTexSampler sampler = ReadSampler((__global const int4*)a_pMat, samplerOffset);                // TODO: read sampler flags only
+  const float2 texCoord2     = (sampler.flags & TEX_COORD_CAM_PROJ) != 0 ? a_texCoordProj : a_texCoord; // read cam projected texCoord for "ShadowCatcher2"
+
+  const float3 texColor   = sample2DExt(samplerOffset, texCoord2, (__global const int4*)a_pMat, a_tex, a_globals, a_ptList);
   const float3 kd         = clamp(texColor*lambertGetDiffuseColor(a_pMat), 0.0f, 1.0f);
 
   const float3 newDir     = MapSampleToCosineDistribution(a_r1, a_r2, a_normal, a_normal, 1.0f);
@@ -1776,7 +1784,7 @@ static inline void MaterialLeafSampleAndEvalBRDF(__global const PlainMaterial* p
     break;
 
   case PLAIN_MAT_CLASS_LAMBERT       : 
-    LambertSampleAndEvalBRDF(pMat, rands.x, rands.y, hitNorm, pSurfHit->texCoord, a_globals, a_tex, a_ptList,
+    LambertSampleAndEvalBRDF(pMat, rands.x, rands.y, hitNorm, pSurfHit->texCoord, pSurfHit->texCoordCamProj, a_globals, a_tex, a_ptList,
                              a_out);
     break;
 
@@ -1997,7 +2005,7 @@ static inline BxDFResult materialLeafEval(__global const PlainMaterial* pMat, __
     res.diffuse = true;
     break;
   case PLAIN_MAT_CLASS_LAMBERT:  
-    res.brdf    = lambertEvalBxDF(pMat, sc->tc, a_globals, a_tex, a_ptList)*cosMult;
+    res.brdf    = lambertEvalBxDF(pMat, sc->tc, sc->tccp, a_globals, a_tex, a_ptList)*cosMult;
     res.pdfFwd  = lambertEvalPDF (pMat, sc->l, n);
     res.pdfRev  = lambertEvalPDF (pMat, sc->v, n);
     res.diffuse = true;

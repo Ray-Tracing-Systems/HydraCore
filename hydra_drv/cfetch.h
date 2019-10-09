@@ -397,8 +397,8 @@ static inline float4 read_imagef_sw4(texture2d_t a_tex, const float2 a_texCoord,
     const int   px = (int)(ffx);
     const int   py = (int)(ffy);
 
-    const float fx = fabs(ffx - (float)px);
-    const float fy = fabs(ffy - (float)py);
+    const float fx  = fabs(ffx - (float)px);
+    const float fy  = fabs(ffy - (float)py);
     const float fx1 = 1.0f - fx;
     const float fy1 = 1.0f - fy;
 

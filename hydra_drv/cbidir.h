@@ -125,6 +125,15 @@ static inline float2 worldPosToScreenSpace(float3 a_wpos, __global const EngineG
   return posScreenSpace;
 }
 
+static inline float2 worldPosToScreenSpaceNorm(float3 a_wpos, __global const EngineGlobals* a_globals)
+{
+  const float4 posWorldSpace  = to_float4(a_wpos, 1.0f);
+  const float4 posCamSpace    = mul4x4x4(make_float4x4(a_globals->mWorldView), posWorldSpace);
+  const float4 posNDC         = mul4x4x4(make_float4x4(a_globals->mProj),      posCamSpace);
+  const float4 posClipSpace   = posNDC*(1.0f / fmax(posNDC.w, DEPSILON));
+  return make_float2(posClipSpace.x*0.5f + 0.5f, posClipSpace.y*0.5f + 0.5f);
+}
+
 static inline float2 worldPosToScreenSpaceWithDOF(float3 a_wpos, __global const EngineGlobals* a_globals, float2 in_randOffsets)
 {
   const float2 offsets        = 2.0f*(in_randOffsets - make_float2(0.5f, 0.5f));
@@ -514,7 +523,8 @@ static inline float3 environmentColor(float3 rayDir, MisData misPrev, unsigned i
 }
 
 /**
-\brief  A
+\brief  Depending on the current shadow matte mode stored in a_globals->varsI[HRT_SHADOW_MATTE_BACK_MODE] 
+        (MODE_SPHERICAL or MODE_CAM_PROJECTED) get back(screen) or backEnv(ray_dir)
 
 \return back enviromnent color
 

@@ -15,10 +15,13 @@
 
 #define INVALID_TEXTURE  0xFFFFFFFE 
 
-#define TEX_POINT_SAM    0x10000000
-#define TEX_ALPHASRC_W   0x20000000
-#define TEX_CLAMP_U      0x40000000
-#define TEX_CLAMP_V      0x80000000
+#define TEX_POINT_SAM      1
+#define TEX_ALPHASRC_W     2
+#define TEX_CLAMP_U        4
+#define TEX_CLAMP_V        8
+#define TEX_COORD_SECOND   16
+#define TEX_COORD_CAM_PROJ 32
+
 
 // they are related because data are storen in one int32 variable triAlphaTest
 //
@@ -2316,7 +2319,8 @@ typedef struct ShadeContextT
   float3 bn;    ///< binormal    (for bump mapping and tangent space transform)
 
   float2 tc;    ///< tex coord (0);
-                //float2 tc1; ///< tex coord (1);
+  //float2 tc1; ///< tex coord (1);
+  float2 tccp;  ///< tex coord camera projected
 
   bool   hfi;   ///< Hit.From.Inside. if hit surface from the inside of the object that have glass or SSS material 
 
@@ -2541,6 +2545,8 @@ typedef struct SurfaceHitT
   float3 tangent;
   float3 biTangent;
   float2 texCoord;
+  //float2 texCoord1;
+  float2 texCoordCamProj;
   int    matId;
   float  t;
   float  sRayOff;
