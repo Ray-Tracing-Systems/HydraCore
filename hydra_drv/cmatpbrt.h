@@ -329,7 +329,7 @@ static inline float BeckmannDistributionPdf(float3 wo, float3 wh, float alphax, 
 
 static inline float BeckmannRoughnessToAlpha(float roughness) 
 {
-  const float x = log(fmax(roughness, 1.0e-3f));
+  const float x = log(fmax(roughness, 1.0e-4f));
   return 1.62142f + 0.819955f * x + 0.1734f * x * x + 0.0171201f * x * x * x + 0.000640711f * x * x * x * x;
 }
 
@@ -353,7 +353,7 @@ static inline float BeckmannBRDF_PBRT(const float3 wo, const float3 wi, float al
     return 0.0f;
   
   wh = normalize(wh);
-  const float F = FrCond(dot(wi, wh), 5.0f, 1.25f);
+  const float F = 1.0f; // FrCond(dot(wi, wh), 5.0f, 1.25f); // fresnel is used inside FresnelBlend
 
   return BeckmannDistributionD(wh, alphax, alphay) * BeckmannG(wo, wi, alphax, alphay) * F / fmax(4.0f * cosThetaI * cosThetaO, DEPSILON);
 }
@@ -464,7 +464,7 @@ static inline float3 TrowbridgeReitzDistributionSampleWH(const float3 wo, const 
   bool flip = wo.z < 0;
   wh = TrowbridgeReitzSample(flip ? -wo : wo, alphax, alphay, u.x, u.y);
   if (flip) 
-    wh = -wh;
+    wh = wh*(-1.0f);
   return wh;
 }
 
@@ -481,7 +481,7 @@ static inline float TrowbridgeReitzDistributionPdf(float3 wo, float3 wh, float a
 
 inline float TrowbridgeReitzRoughnessToAlpha(float roughness) 
 {
-  const float x = log(fmax(roughness, 1e-3f));
+  const float x = log(fmax(roughness, 1e-4f));
   return 1.62142f + 0.819955f * x + 0.1734f * x * x + 0.0171201f * x * x * x + 0.000640711f * x * x * x * x;
 }
 
@@ -505,7 +505,7 @@ static inline float TrowbridgeReitzBRDF_PBRT(const float3 wo, const float3 wi, f
     return 0.0f;
 
   wh = normalize(wh);
-  const float F = FrCond(dot(wi, wh), 5.0f, 1.25f);
+  const float F = 1.0f; //FrCond(dot(wi, wh), 5.0f, 1.25f); //Fresnel is used inside FresnelBlend
 
   return TrowbridgeReitzDistributionD(wh, alphax, alphay) * TrowbridgeReitzG(wo, wi, alphax, alphay) * F / fmax(4.0f * cosThetaI * cosThetaO, DEPSILON);
 }

@@ -1128,7 +1128,7 @@ static inline float3 beckmannEvalBxDF(__global const PlainMaterial* a_pMat, cons
   const float3 wo  = make_float3(-dot(v, nx), -dot(v, ny), -dot(v, nz));
   const float3 wi  = make_float3(-dot(l, nx), -dot(l, ny), -dot(l, nz));
   
-  return color*fmin(BeckmannBRDF_PBRT(wo, wi, alpha.x, alpha.y), 500.0f);
+  return color*fmin(BeckmannBRDF_PBRT(wo, wi, alpha.x, alpha.y), 500.0f)*dot(l,n);
 }
 
 static inline void BeckmannSampleAndEvalBRDF(__global const PlainMaterial* a_pMat, const float a_r1, const float a_r2, 
@@ -1174,7 +1174,7 @@ static inline void BeckmannSampleAndEvalBRDF(__global const PlainMaterial* a_pMa
   if (cosThetaOut <= DEPSILON)
     a_out->color = make_float3(0, 0, 0);
   else  
-    a_out->color = kd*fmin(BeckmannBRDF_PBRT(wo, wi, alpha.x, alpha.y), 500.0f);
+    a_out->color = kd*fmin(BeckmannBRDF_PBRT(wo, wi, alpha.x, alpha.y), 500.0f)*cosThetaOut;
   a_out->flags = RAY_EVENT_G;
 }
 
@@ -1254,7 +1254,7 @@ static inline float3 trggxEvalBxDF(__global const PlainMaterial* a_pMat, const f
   const float3 wo = make_float3(-dot(v, nx), -dot(v, ny), -dot(v, nz));
   const float3 wi = make_float3(-dot(l, nx), -dot(l, ny), -dot(l, nz));
 
-  return color*TrowbridgeReitzBRDF_PBRT(wo, wi, alpha.x, alpha.y);
+  return color*TrowbridgeReitzBRDF_PBRT(wo, wi, alpha.x, alpha.y)*dot(l,n);
 }
 
 static inline void TRGGXSampleAndEvalBRDF(__global const PlainMaterial* a_pMat, const float a_r1, const float a_r2,
@@ -1300,7 +1300,7 @@ static inline void TRGGXSampleAndEvalBRDF(__global const PlainMaterial* a_pMat, 
   if (cosThetaOut <= DEPSILON)
     a_out->color = make_float3(0, 0, 0);
   else
-    a_out->color = kd*TrowbridgeReitzBRDF_PBRT(wo, wi, alpha.x, alpha.y);
+    a_out->color = kd*TrowbridgeReitzBRDF_PBRT(wo, wi, alpha.x, alpha.y)*cosThetaOut;
   a_out->flags = RAY_EVENT_G;
 }
 
