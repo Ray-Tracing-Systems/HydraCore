@@ -20,11 +20,9 @@ Input::Input()
   //inLibraryPath = "tests/test_pool";
   //inLibraryPath = "C:/[Hydra]/pluginFiles/scenelib/";
 
-  //inLibraryPath = "/home/frol/PROG/HydraRepos/HydraAPI-tests/tests_f/test_103";
-  //inLibraryPath = "/home/frol/PROG/HydraRepos/HydraAPI-tests/tests_f/test_137";
-  //inLibraryPath = "D:/PROG/HydraRepos/HydraTests/tests_f/test_202";
-
-  inDevelopment = false; ///< recompile shaders each time; note that nvidia have their own shader cache!
+  //inLibraryPath = "/home/frol/PROG/HydraRepos/clsp/database/temp";
+  
+  inDevelopment = false;  ///< recompile shaders each time; note that nvidia have their own shader cache!
   inDeviceId    = 0;     ///< opencl device id
   cpuFB         = true;  ///< store frame buffer on CPU. Automaticly enabled if
   enableMLT     = false; ///< if use MMLT, you MUST enable it early, when render process just started (here or via command line).

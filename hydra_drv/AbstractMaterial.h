@@ -117,7 +117,7 @@ namespace RAYTR
   {
   public:
 
-    ILight() : tmpSkyLightBackTexId(INVALID_TEXTURE), tmpSkyLightBackGamma(2.2f)
+    ILight() : tmpSkyLightBackTexId(INVALID_TEXTURE), tmpSkyLightBackGamma(2.2f), tmpSkyLightBackColor(1,1,1)
     {
       memset(m_plain.data, 0, sizeof(m_plain.data));
       m_plain.data[PLIGHT_PROB_MULT] = 1.0f;
@@ -147,6 +147,7 @@ namespace RAYTR
 
     int32_t tmpSkyLightBackTexId;
     float   tmpSkyLightBackGamma;
+    float3  tmpSkyLightBackColor;
     int     tmpMatteBackMode;
 
   protected:

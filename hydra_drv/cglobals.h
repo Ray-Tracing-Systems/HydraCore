@@ -467,7 +467,10 @@ enum VARIABLE_NAMES { // int vars
                       HRT_BOX_MODE_ON              = 38,
                       HRT_KMLT_OR_QMC_LGT_BOUNCES  = 39,
                       HRT_KMLT_OR_QMC_MAT_BOUNCES  = 40,
-                      HRT_SHADOW_MATTE_BACK_MODE   = 41
+                      HRT_SHADOW_MATTE_BACK_MODE   = 41,
+                      HRT_SHADOW_MATTE_BACK_COLOR_X= 42,
+                      HRT_SHADOW_MATTE_BACK_COLOR_Y= 43,
+                      HRT_SHADOW_MATTE_BACK_COLOR_Z= 44,
 };
 
 enum VARIABLE_FLOAT_NAMES{ // float vars

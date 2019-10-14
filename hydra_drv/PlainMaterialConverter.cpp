@@ -1580,6 +1580,12 @@ std::shared_ptr<IMaterial> CreateMaterialFromXmlNode(pugi::xml_node a_node, Rend
     if (back != nullptr)
     {
       a_pRTE->m_shadowMatteBackTexId = back.child(L"texture").attribute(L"id").as_int();
+
+      if(back.attribute(L"multcolor") != nullptr)
+        a_pRTE->m_shadowMatteBackColor = HydraXMLHelpers::ReadFloat3(back.attribute(L"multcolor"));
+      else
+        a_pRTE->m_shadowMatteBackColor = float3(1,1,1);
+
       if (a_pRTE->m_shadowMatteBackTexId == 0)
         a_pRTE->m_shadowMatteBackTexId = INVALID_TEXTURE;
 
@@ -1597,6 +1603,11 @@ std::shared_ptr<IMaterial> CreateMaterialFromXmlNode(pugi::xml_node a_node, Rend
       
       if(back.attribute(L"fix_black_triangles").as_int() == 1)
         pResult->AddFlags(PLAIN_MATERIAL_CATCHER_FIX_BLACK_TRIANGLES);
+    }
+    else
+    {
+      a_pRTE->m_shadowMatteBackTexId = INVALID_TEXTURE;
+      a_pRTE->m_shadowMatteBackColor = float3(1,1,1);
     }
 
     if(length(colorE) > 1e-4f) // emissive shadow catcher
