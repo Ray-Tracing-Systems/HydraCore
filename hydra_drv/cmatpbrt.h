@@ -324,7 +324,7 @@ static inline float BeckmannG1(float3 w, float alphax, float alphay)
 
 static inline float BeckmannDistributionPdf(float3 wo, float3 wh, float alphax, float alphay) 
 {
-  return BeckmannDistributionD(wh, alphax, alphay) * BeckmannG1(wo, alphax, alphay) * fabs(dot(wo, wh)) / AbsCosThetaPBRT(wo);
+  return BeckmannDistributionD(wh, alphax, alphay) * BeckmannG1(wo, alphax, alphay) / (4.0f*AbsCosThetaPBRT(wo));
 }
 
 static inline float BeckmannRoughnessToAlpha(float roughness) 
@@ -476,7 +476,7 @@ static inline float TrowbridgeReitzG1(float3 w, float alphax, float alphay)
 
 static inline float TrowbridgeReitzDistributionPdf(float3 wo, float3 wh, float alphax, float alphay) 
 {
-  return TrowbridgeReitzDistributionD(wh, alphax, alphay) * TrowbridgeReitzG1(wo, alphax, alphay) * fabs(dot(wo, wh)) / AbsCosThetaPBRT(wo);
+  return TrowbridgeReitzDistributionD(wh, alphax, alphay) * TrowbridgeReitzG1(wo, alphax, alphay) / (4.0f*AbsCosThetaPBRT(wo));
 }
 
 inline float TrowbridgeReitzRoughnessToAlpha(float roughness) 

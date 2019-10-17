@@ -1090,10 +1090,9 @@ static inline float beckmannEvalPDF(__global const PlainMaterial* a_pMat, const 
   ///////////////////////////////////////////////////////////////////////////// to PBRT coordinate system
 
   const float3 wo  = make_float3(-dot(v, nx), -dot(v, ny), -dot(v, nz));
-  const float3 wi  = make_float3(-dot(l, nx), -dot(l, ny), -dot(l, nz));
   const float3 wh  = normalize(l + v);
   
-  return BeckmannDistributionPdf(wo, wh, alpha.x, alpha.y)*INV_PI;
+  return BeckmannDistributionPdf(wo, wh, alpha.x, alpha.y);
 }
 
 static inline float3 beckmannEvalBxDF(__global const PlainMaterial* a_pMat, const float3 l, const float3 v, const float3 n, const float3 a_tan, const float3 a_bitan,
@@ -1128,7 +1127,7 @@ static inline float3 beckmannEvalBxDF(__global const PlainMaterial* a_pMat, cons
   const float3 wo  = make_float3(-dot(v, nx), -dot(v, ny), -dot(v, nz));
   const float3 wi  = make_float3(-dot(l, nx), -dot(l, ny), -dot(l, nz));
   
-  return color*fmin(BeckmannBRDF_PBRT(wo, wi, alpha.x, alpha.y), 500.0f)*dot(l,n);
+  return color*fmin(BeckmannBRDF_PBRT(wo, wi, alpha.x, alpha.y), 500.0f);
 }
 
 static inline void BeckmannSampleAndEvalBRDF(__global const PlainMaterial* a_pMat, const float a_r1, const float a_r2, 
@@ -1170,11 +1169,11 @@ static inline void BeckmannSampleAndEvalBRDF(__global const PlainMaterial* a_pMa
   const float  cosThetaOut = dot(newDir, a_normal);
 
   a_out->direction = newDir;
-  a_out->pdf       = BeckmannDistributionPdf(wo, wh, alpha.x, alpha.y)*INV_PI;
+  a_out->pdf       = BeckmannDistributionPdf(wo, wh, alpha.x, alpha.y);
   if (cosThetaOut <= DEPSILON)
     a_out->color = make_float3(0, 0, 0);
   else  
-    a_out->color = kd*fmin(BeckmannBRDF_PBRT(wo, wi, alpha.x, alpha.y), 500.0f)*cosThetaOut;
+    a_out->color = kd*fmin(BeckmannBRDF_PBRT(wo, wi, alpha.x, alpha.y), 500.0f);
   a_out->flags = RAY_EVENT_G;
 }
 
@@ -1216,10 +1215,9 @@ static inline float trggxEvalPDF(__global const PlainMaterial* a_pMat, const flo
   ///////////////////////////////////////////////////////////////////////////// to PBRT coordinate system
 
   const float3 wo = make_float3(-dot(v, nx), -dot(v, ny), -dot(v, nz));
-  const float3 wi = make_float3(-dot(l, nx), -dot(l, ny), -dot(l, nz));
   const float3 wh = normalize(l + v);
 
-  return TrowbridgeReitzDistributionPdf(wo, wh, alpha.x, alpha.y)*INV_PI;
+  return TrowbridgeReitzDistributionPdf(wo, wh, alpha.x, alpha.y);
 }
 
 static inline float3 trggxEvalBxDF(__global const PlainMaterial* a_pMat, const float3 l, const float3 v, const float3 n, const float3 a_tan, const float3 a_bitan,
@@ -1254,7 +1252,7 @@ static inline float3 trggxEvalBxDF(__global const PlainMaterial* a_pMat, const f
   const float3 wo = make_float3(-dot(v, nx), -dot(v, ny), -dot(v, nz));
   const float3 wi = make_float3(-dot(l, nx), -dot(l, ny), -dot(l, nz));
 
-  return color*TrowbridgeReitzBRDF_PBRT(wo, wi, alpha.x, alpha.y)*dot(l,n);
+  return color*TrowbridgeReitzBRDF_PBRT(wo, wi, alpha.x, alpha.y);
 }
 
 static inline void TRGGXSampleAndEvalBRDF(__global const PlainMaterial* a_pMat, const float a_r1, const float a_r2,
@@ -1296,14 +1294,13 @@ static inline void TRGGXSampleAndEvalBRDF(__global const PlainMaterial* a_pMat, 
   const float  cosThetaOut = dot(newDir, a_normal);
 
   a_out->direction = newDir;
-  a_out->pdf       = TrowbridgeReitzDistributionPdf(wo, wh, alpha.x, alpha.y)*INV_PI;
+  a_out->pdf       = TrowbridgeReitzDistributionPdf(wo, wh, alpha.x, alpha.y);
   if (cosThetaOut <= DEPSILON)
     a_out->color = make_float3(0, 0, 0);
   else
-    a_out->color = kd*TrowbridgeReitzBRDF_PBRT(wo, wi, alpha.x, alpha.y)*cosThetaOut;
+    a_out->color = kd*TrowbridgeReitzBRDF_PBRT(wo, wi, alpha.x, alpha.y);
   a_out->flags = RAY_EVENT_G;
 }
-
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
