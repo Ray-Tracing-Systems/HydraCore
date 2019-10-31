@@ -507,7 +507,8 @@ public:
   BeckmannMaterial() {  }
   BeckmannMaterial(float3 color, int texId, SWTexSampler a_samplerColor, float cosPower, int glossTexId, 
                    SWTexSampler a_samplerGloss, float a_glosiness, 
-                   SWTexSampler a_samplerAniso, float a_aniso, float a_anisoRot)
+                   SWTexSampler a_samplerAniso, float a_aniso, 
+                   SWTexSampler a_rotSampler,   float a_anisoRot)
   {
     m_plain.data[BECKMANN_COLORX_OFFSET] = color.x;
     m_plain.data[BECKMANN_COLORY_OFFSET] = color.y;
@@ -517,22 +518,33 @@ public:
     m_plain.data[BECKMANN_GLOSINESS_OFFSET]  = a_glosiness;
     m_plain.data[BECKMANN_ANISOTROPY_OFFSET] = a_aniso;
     m_plain.data[BECKMANN_ANISO_ROT_OFFSET]  = a_anisoRot;
-    
 
     ((int*)(m_plain.data))[BECKMANN_TEXID_OFFSET]           = texId;
     ((int*)(m_plain.data))[BECKMANN_GLOSINESS_TEXID_OFFSET] = glossTexId;
+    ((int*)(m_plain.data))[BECKMANN_ANISO_TEXID_OFFSET]     = a_samplerAniso.texId;
+    ((int*)(m_plain.data))[BECKMANN_ROT_TEXID_OFFSET]       = a_rotSampler.texId;
 
     //////////////////////////////////////////////////////////////////////////////////////////////////////////////// put samplers right here
     const int texMatrixId      = (texId == INVALID_TEXTURE)      ? INVALID_TEXTURE : (BECKMANN_SAMPLER0_OFFSET / 4);
     const int glossTexMatrixId = (glossTexId == INVALID_TEXTURE) ? INVALID_TEXTURE : (BECKMANN_SAMPLER1_OFFSET / 4);
 
+    const int anisoTexMatrixId = (a_samplerAniso.texId == INVALID_TEXTURE) ? INVALID_TEXTURE : (BECKMANN_SAMPLER2_OFFSET / 4);
+    const int rotTexMatrixId   = (a_rotSampler.texId == INVALID_TEXTURE)   ? INVALID_TEXTURE : (BECKMANN_SAMPLER3_OFFSET / 4);
+
     ((int*)(m_plain.data))[BECKMANN_TEXMATRIXID_OFFSET]           = texMatrixId;
     ((int*)(m_plain.data))[BECKMANN_GLOSINESS_TEXMATRIXID_OFFSET] = glossTexMatrixId;
 
+    ((int*)(m_plain.data))[BECKMANN_ANISO_TEXMATRIXID_OFFSET]     = anisoTexMatrixId;
+    ((int*)(m_plain.data))[BECKMANN_ROT_TEXMATRIXID_OFFSET]       = rotTexMatrixId;
+
     SWTexSampler* pSampler1 = (SWTexSampler*)(m_plain.data + BECKMANN_SAMPLER0_OFFSET);
     SWTexSampler* pSampler2 = (SWTexSampler*)(m_plain.data + BECKMANN_SAMPLER1_OFFSET);
+    SWTexSampler* pSampler3 = (SWTexSampler*)(m_plain.data + BECKMANN_SAMPLER2_OFFSET);
+    SWTexSampler* pSampler4 = (SWTexSampler*)(m_plain.data + BECKMANN_SAMPLER3_OFFSET);
     (*pSampler1) = a_samplerColor;
     (*pSampler2) = a_samplerGloss;
+    (*pSampler2) = a_samplerAniso;
+    (*pSampler3) = a_rotSampler;
     //////////////////////////////////////////////////////////////////////////////////////////////////////////////// put samplers right here
 
     ((int*)(m_plain.data))[PLAIN_MAT_TYPE_OFFSET]  = PLAIN_MAT_CLASS_BECKMANN;
@@ -559,7 +571,8 @@ public:
   TRGGXMaterial() {  }
   TRGGXMaterial(float3 color, int texId, SWTexSampler a_samplerColor, float cosPower, int glossTexId,
                 SWTexSampler a_samplerGloss, float a_glosiness,
-                SWTexSampler a_samplerAniso, float a_aniso, float a_anisoRot)
+                SWTexSampler a_samplerAniso, float a_aniso, 
+                SWTexSampler a_rotSampler,   float a_anisoRot)
   {
     m_plain.data[BECKMANN_COLORX_OFFSET] = color.x;
     m_plain.data[BECKMANN_COLORY_OFFSET] = color.y;
@@ -864,6 +877,12 @@ const pugi::xml_node SamplerNode(const pugi::xml_node a_node)
     return a_node.child(L"texture");
 }
 
+const pugi::xml_node SamplerNodeRot(const pugi::xml_node a_node)
+{
+  return a_node.child(L"texture_rot");
+}
+
+
 SWTexSampler SamplerFromTexref(const pugi::xml_node a_node, bool allowAlphaToRGB = false)
 {
   SWTexSampler res = DummySampler();
@@ -1034,10 +1053,12 @@ std::shared_ptr<IMaterial> ReflectiveMaterialFromHydraMtl(const pugi::xml_node a
   int32_t texId      = INVALID_TEXTURE;
   int32_t texIdGloss = INVALID_TEXTURE;
   int32_t texIdAniso = INVALID_TEXTURE;
+  int32_t texIdRot   = INVALID_TEXTURE;
 
   SWTexSampler sampler      = DummySampler();
   SWTexSampler samplerGloss = DummySampler();
   SWTexSampler samplerAniso = DummySampler();
+  SWTexSampler samplerRot   = DummySampler();
 
   if(SamplerNode(reflect) != nullptr)
   {
@@ -1057,6 +1078,12 @@ std::shared_ptr<IMaterial> ReflectiveMaterialFromHydraMtl(const pugi::xml_node a
     texIdAniso   = samplerAniso.texId;
   }
 
+  if(SamplerNodeRot(aniso) != nullptr)
+  {
+    samplerRot = SamplerFromTexref(SamplerNodeRot(aniso));
+    texIdRot   = samplerRot.texId;
+  }
+
   a_texId      = texId;
 	a_texSampler = sampler;
 
@@ -1069,9 +1096,13 @@ std::shared_ptr<IMaterial> ReflectiveMaterialFromHydraMtl(const pugi::xml_node a
   else if (brfdType == L"ggx" || brfdType == L"GGX")
     return std::make_shared<GGXMaterial>                 (colorS, texId, sampler, 0.0f, texIdGloss, samplerGloss, glossVal, samplerAniso, anisoVal);
   else if (brfdType == L"beckmann")
-    return std::make_shared<BeckmannMaterial>            (colorS, texId, sampler, 0.0f, texIdGloss, samplerGloss, glossVal, samplerAniso, anisoVal, anisoRot);
+    return std::make_shared<BeckmannMaterial>            (colorS, texId, sampler, 0.0f, texIdGloss, samplerGloss, glossVal, 
+                                                                                                    samplerAniso, anisoVal, 
+                                                                                                    samplerRot,   anisoRot);
   else if (brfdType == L"trggx" || brfdType == L"TRGGX")
-    return std::make_shared<TRGGXMaterial>               (colorS, texId, sampler, 0.0f, texIdGloss, samplerGloss, glossVal, samplerAniso, anisoVal, anisoRot);
+    return std::make_shared<TRGGXMaterial>               (colorS, texId, sampler, 0.0f, texIdGloss, samplerGloss, glossVal, 
+                                                                                                    samplerAniso, anisoVal, 
+                                                                                                    samplerRot,   anisoRot);
   else
     return std::make_shared<PhongMaterial>               (colorS, texId, sampler, 0.0f, texIdGloss, samplerGloss, glossVal);
 }

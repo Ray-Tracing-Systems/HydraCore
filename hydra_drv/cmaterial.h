@@ -1021,8 +1021,16 @@ static inline void GGXSampleAndEvalBRDF(__global const PlainMaterial* a_pMat, co
 
 #define BECKMANN_SAMPLER0_OFFSET               20 
 #define BECKMANN_SAMPLER1_OFFSET               32
+#define BECKMANN_SAMPLER2_OFFSET               44
+#define BECKMANN_SAMPLER3_OFFSET               56
 
-#define BECKMANN_ANISO_ROT_OFFSET              44
+#define BECKMANN_ANISO_ROT_OFFSET              68
+
+#define BECKMANN_ANISO_TEXID_OFFSET            69
+#define BECKMANN_ANISO_TEXMATRIXID_OFFSET      70
+
+#define BECKMANN_ROT_TEXID_OFFSET              71
+#define BECKMANN_ROT_TEXMATRIXID_OFFSET        72
 
 static inline float3 beckmannGetColor(__global const PlainMaterial* a_pMat) { return make_float3(a_pMat->data[BECKMANN_COLORX_OFFSET], a_pMat->data[BECKMANN_COLORY_OFFSET], a_pMat->data[BECKMANN_COLORZ_OFFSET]); }
 static inline int2   beckmannGetTex(__global const PlainMaterial* a_pMat)
@@ -1049,13 +1057,24 @@ static inline float beckmannGlosiness(__global const PlainMaterial* a_pMat, cons
     return a_pMat->data[BECKMANN_GLOSINESS_OFFSET];
 }
 
-static inline float beckmannAnisotropy(__global const PlainMaterial* a_pMat) { return a_pMat->data[BECKMANN_ANISOTROPY_OFFSET]; }
-static inline float beckmannAnisoRot(__global const PlainMaterial* a_pMat) { return a_pMat->data[BECKMANN_ANISO_ROT_OFFSET]; }
+static inline float beckmannAnisotropy(__global const PlainMaterial* a_pMat, const float2 a_texCoord, __global const EngineGlobals* a_globals, texture2d_t a_tex, __private const ProcTextureList* a_ptList) 
+{ 
+  const int2   texId      = make_int2(as_int(a_pMat->data[BECKMANN_ANISO_TEXID_OFFSET]), as_int(a_pMat->data[BECKMANN_ANISO_TEXMATRIXID_OFFSET]));
+  const float3 anisoColor = sample2DExt(texId.y, a_texCoord, (__global const int4*)a_pMat, a_tex, a_globals, a_ptList);
+  return clamp(a_pMat->data[BECKMANN_ANISOTROPY_OFFSET]*maxcomp(anisoColor), 0.0f, 1.0f); 
+}
+
+static inline float beckmannAnisoRot(__global const PlainMaterial* a_pMat, const float2 a_texCoord, __global const EngineGlobals* a_globals, texture2d_t a_tex, __private const ProcTextureList* a_ptList) 
+{ 
+  const int2   texId    = make_int2(as_int(a_pMat->data[BECKMANN_ROT_TEXID_OFFSET]), as_int(a_pMat->data[BECKMANN_ROT_TEXMATRIXID_OFFSET]));
+  const float3 rotColor = sample2DExt(texId.y, a_texCoord, (__global const int4*)a_pMat, a_tex, a_globals, a_ptList);
+  return clamp(a_pMat->data[BECKMANN_ANISO_ROT_OFFSET]*maxcomp(rotColor), 0.0f, 1.0f); 
+}
 
 static inline float2 beckmannAlphaXY(__global const PlainMaterial* a_pMat, const float2 a_texCoord, __global const EngineGlobals* a_globals, texture2d_t a_tex, __private const ProcTextureList* a_ptList)
 {
   const float roughness = 0.5f - 0.5f*beckmannGlosiness(a_pMat, a_texCoord, a_globals, a_tex, a_ptList);
-  const float anisoMult = 1.0f - beckmannAnisotropy(a_pMat);
+  const float anisoMult = 1.0f - beckmannAnisotropy(a_pMat, a_texCoord, a_globals, a_tex, a_ptList);
 
   const float alphax = BeckmannRoughnessToAlpha(roughness*roughness);  
   const float alphay = BeckmannRoughnessToAlpha(roughness*roughness*anisoMult*anisoMult);  
@@ -1079,7 +1098,7 @@ static inline float beckmannEvalPDF(__global const PlainMaterial* a_pMat, const 
     nx = a_bitan;
     ny = a_tan;
 
-    const float4x4 mRot = RotateAroundVector4x4(nz, beckmannAnisoRot(a_pMat)*M_PI*2.0f);
+    const float4x4 mRot = RotateAroundVector4x4(nz, beckmannAnisoRot(a_pMat, a_texCoord, a_globals, a_tex, a_ptList)*M_PI*2.0f);
     nx = mul3x3(mRot, nx);
     ny = mul3x3(mRot, ny);
   }
@@ -1114,7 +1133,7 @@ static inline float3 beckmannEvalBxDF(__global const PlainMaterial* a_pMat, cons
     nx = a_bitan;
     ny = a_tan;
 
-    const float4x4 mRot = RotateAroundVector4x4(nz, beckmannAnisoRot(a_pMat)*M_PI*2.0f);
+    const float4x4 mRot = RotateAroundVector4x4(nz, beckmannAnisoRot(a_pMat, a_texCoord, a_globals, a_tex, a_ptList)*M_PI*2.0f);
     nx = mul3x3(mRot, nx);
     ny = mul3x3(mRot, ny);
   }
@@ -1148,7 +1167,7 @@ static inline void BeckmannSampleAndEvalBRDF(__global const PlainMaterial* a_pMa
     nx = a_bitan;
     ny = a_tan;
 
-    const float4x4 mRot = RotateAroundVector4x4(nz, beckmannAnisoRot(a_pMat)*M_PI*2.0f);
+    const float4x4 mRot = RotateAroundVector4x4(nz, beckmannAnisoRot(a_pMat, a_texCoord, a_globals, a_tex, a_ptList)*M_PI*2.0f);
     nx = mul3x3(mRot, nx);
     ny = mul3x3(mRot, ny);
   }
@@ -1204,7 +1223,7 @@ static inline float trggxEvalPDF(__global const PlainMaterial* a_pMat, const flo
     nx = a_bitan;
     ny = a_tan;
 
-    const float4x4 mRot = RotateAroundVector4x4(nz, beckmannAnisoRot(a_pMat)*M_PI*2.0f);
+    const float4x4 mRot = RotateAroundVector4x4(nz, beckmannAnisoRot(a_pMat, a_texCoord, a_globals, a_tex, a_ptList)*M_PI*2.0f);
     nx = mul3x3(mRot, nx);
     ny = mul3x3(mRot, ny);
   }
@@ -1239,7 +1258,7 @@ static inline float3 trggxEvalBxDF(__global const PlainMaterial* a_pMat, const f
     nx = a_bitan;
     ny = a_tan;
 
-    const float4x4 mRot = RotateAroundVector4x4(nz, beckmannAnisoRot(a_pMat)*M_PI*2.0f);
+    const float4x4 mRot = RotateAroundVector4x4(nz, beckmannAnisoRot(a_pMat, a_texCoord, a_globals, a_tex, a_ptList)*M_PI*2.0f);
     nx = mul3x3(mRot, nx);
     ny = mul3x3(mRot, ny);
   }
@@ -1273,7 +1292,7 @@ static inline void TRGGXSampleAndEvalBRDF(__global const PlainMaterial* a_pMat, 
     nx = a_bitan;
     ny = a_tan;
 
-    const float4x4 mRot = RotateAroundVector4x4(nz, beckmannAnisoRot(a_pMat)*M_PI*2.0f);
+    const float4x4 mRot = RotateAroundVector4x4(nz, beckmannAnisoRot(a_pMat, a_texCoord, a_globals, a_tex, a_ptList)*M_PI*2.0f);
     nx = mul3x3(mRot, nx);
     ny = mul3x3(mRot, ny);
   }
