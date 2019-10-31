@@ -1079,7 +1079,7 @@ static inline float beckmannEvalPDF(__global const PlainMaterial* a_pMat, const 
     nx = a_bitan;
     ny = a_tan;
 
-    const float4x4 mRot = RotateAroundVector4x4(nz, beckmannAnisoRot(a_pMat)*M_PI*0.5f);
+    const float4x4 mRot = RotateAroundVector4x4(nz, beckmannAnisoRot(a_pMat)*M_PI*2.0f);
     nx = mul3x3(mRot, nx);
     ny = mul3x3(mRot, ny);
   }
@@ -1114,7 +1114,7 @@ static inline float3 beckmannEvalBxDF(__global const PlainMaterial* a_pMat, cons
     nx = a_bitan;
     ny = a_tan;
 
-    const float4x4 mRot = RotateAroundVector4x4(nz, beckmannAnisoRot(a_pMat)*M_PI*0.5f);
+    const float4x4 mRot = RotateAroundVector4x4(nz, beckmannAnisoRot(a_pMat)*M_PI*2.0f);
     nx = mul3x3(mRot, nx);
     ny = mul3x3(mRot, ny);
   }
@@ -1148,7 +1148,7 @@ static inline void BeckmannSampleAndEvalBRDF(__global const PlainMaterial* a_pMa
     nx = a_bitan;
     ny = a_tan;
 
-    const float4x4 mRot = RotateAroundVector4x4(nz, beckmannAnisoRot(a_pMat)*M_PI*0.5f);
+    const float4x4 mRot = RotateAroundVector4x4(nz, beckmannAnisoRot(a_pMat)*M_PI*2.0f);
     nx = mul3x3(mRot, nx);
     ny = mul3x3(mRot, ny);
   }
@@ -1204,7 +1204,7 @@ static inline float trggxEvalPDF(__global const PlainMaterial* a_pMat, const flo
     nx = a_bitan;
     ny = a_tan;
 
-    const float4x4 mRot = RotateAroundVector4x4(nz, beckmannAnisoRot(a_pMat)*M_PI*0.5f);
+    const float4x4 mRot = RotateAroundVector4x4(nz, beckmannAnisoRot(a_pMat)*M_PI*2.0f);
     nx = mul3x3(mRot, nx);
     ny = mul3x3(mRot, ny);
   }
@@ -1239,7 +1239,7 @@ static inline float3 trggxEvalBxDF(__global const PlainMaterial* a_pMat, const f
     nx = a_bitan;
     ny = a_tan;
 
-    const float4x4 mRot = RotateAroundVector4x4(nz, beckmannAnisoRot(a_pMat)*M_PI*0.5f);
+    const float4x4 mRot = RotateAroundVector4x4(nz, beckmannAnisoRot(a_pMat)*M_PI*2.0f);
     nx = mul3x3(mRot, nx);
     ny = mul3x3(mRot, ny);
   }
@@ -1273,7 +1273,7 @@ static inline void TRGGXSampleAndEvalBRDF(__global const PlainMaterial* a_pMat, 
     nx = a_bitan;
     ny = a_tan;
 
-    const float4x4 mRot = RotateAroundVector4x4(nz, beckmannAnisoRot(a_pMat)*M_PI*0.5f);
+    const float4x4 mRot = RotateAroundVector4x4(nz, beckmannAnisoRot(a_pMat)*M_PI*2.0f);
     nx = mul3x3(mRot, nx);
     ny = mul3x3(mRot, ny);
   }
