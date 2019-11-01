@@ -301,3 +301,4 @@ hydra_drv/shaders/trace.xx
 hydra_app/CMakeFiles/Makefile.cmake
 hydra_app/CMakeCache.txt
 hydra_app/Makefile
+*.user
