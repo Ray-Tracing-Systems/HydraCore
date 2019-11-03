@@ -252,7 +252,7 @@
     <minRaysPerPixel>256</minRaysPerPixel>
     <maxRaysPerPixel>12560</maxRaysPerPixel>
     <qmc_variant>1</qmc_variant>
-    <mmlt_burn_iters>1024</mmlt_burn_iters>
+    <mmlt_burn_iters>256</mmlt_burn_iters>
     <mmlt_step_power>normal</mmlt_step_power>
     <mmlt_step_size>0.5</mmlt_step_size>
     <mmlt_threads>524288</mmlt_threads>
