@@ -569,7 +569,7 @@ static inline void GlassSampleAndEvalBRDF(__global const PlainMaterial* a_pMat, 
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-// 'fixed' phong material
+// Using the Modified Phong Reflectance Model for Physically ... 
 //
 #define PHONG_COLORX_OFFSET       10
 #define PHONG_COLORY_OFFSET       11
@@ -624,7 +624,7 @@ static inline float phongEvalPDF(__global const PlainMaterial* a_pMat, const flo
   const float  gloss    = phongGlosiness(a_pMat, a_texCoord, a_globals, a_tex, a_ptList);
   const float  cosPower = cosPowerFromGlosiness(gloss);
 
-  return pow(cosTheta, cosPower) * (cosPower + 1.0f) * (0.5f * INV_PI);
+  return pow(cosTheta, cosPower) * (cosPower + 1.0f) * (0.5f * INV_PI); // please see "Using the Modified Phong Reflectance Model for Physically ... 
 }
 
 static inline float PhongPreDivCosThetaFixMult(const float gloss, const float cosThetaOut)
@@ -648,7 +648,7 @@ static inline float3 phongEvalBxDF(__global const PlainMaterial* a_pMat, const f
 
   const float cosThetaFix = fmin(PhongPreDivCosThetaFixMult(gloss, fabs(dot(v, n))), 100.0f);
   
-  return color*(cosPower + 2.0f)*0.5f*INV_PI*pow(cosAlpha, cosPower-1.0f)*cosThetaFix; // 
+  return color*(cosPower + 2.0f)*0.5f*INV_PI*pow(cosAlpha, cosPower)*cosThetaFix; // please see "Using the Modified Phong Reflectance Model for Physically ... 
 }
 
 static inline void PhongSampleAndEvalBRDF(__global const PlainMaterial* a_pMat, const float a_r1, const float a_r2, const float3 ray_dir, const float3 a_normal, const float2 a_texCoord,
@@ -670,11 +670,10 @@ static inline void PhongSampleAndEvalBRDF(__global const PlainMaterial* a_pMat, 
   const float cosThetaFix = PhongPreDivCosThetaFixMult(gloss, fabs(cosThetaOut));
 
   a_out->direction    = newDir;
-  a_out->pdf          = pow(cosAlpha, cosPower) * (cosPower + 1.0f) * (0.5f * INV_PI);
-  a_out->color        = color*((cosPower + 2.0f) * INV_TWOPI * pow(cosAlpha, cosPower))*cosThetaFix;
-  if (cosThetaOut <= 1e-6f)  // reflection under surface must be zerowed!
+  a_out->pdf          = pow(cosAlpha, cosPower) * (cosPower + 1.0f) * (0.5f * INV_PI);              // please see "Using the Modified Phong Reflectance Model for Physically ... 
+  a_out->color        = color*((cosPower + 2.0f)*0.5f*INV_PI*pow(cosAlpha, cosPower))*cosThetaFix;  // 
+  if (cosThetaOut <= 1e-6f)                                                                         // reflection under surface must be zerowed!
     a_out->color = make_float3(0, 0, 0);
-
   a_out->flags = (gloss == 1.0f) ? RAY_EVENT_S : RAY_EVENT_G;
 }
 

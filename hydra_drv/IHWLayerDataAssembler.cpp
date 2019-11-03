@@ -561,8 +561,8 @@ void CPUSharedData::PrepareEngineGlobals()
   {
     //m_pIntegrator = new IntegratorStupidPT(m_width, m_height, (EngineGlobals*)&m_cdataPrepared[0]);
     //m_pIntegrator = new IntegratorShadowPT(m_width, m_height, (EngineGlobals*)&m_cdataPrepared[0]);
-    //m_pIntegrator = new IntegratorMISPT(m_width, m_height, (EngineGlobals*)&m_cdataPrepared[0], 0);     //#TODO: where m_createFlags gone ???
-    m_pIntegrator = new IntegratorMISPTLoop2(m_width, m_height, (EngineGlobals*)&m_cdataPrepared[0], 0);     //#TODO: where m_createFlags gone ???
+    m_pIntegrator = new IntegratorMISPT(m_width, m_height, (EngineGlobals*)&m_cdataPrepared[0], 0);     //#TODO: where m_createFlags gone ???
+    //m_pIntegrator = new IntegratorMISPTLoop2(m_width, m_height, (EngineGlobals*)&m_cdataPrepared[0], 0);     //#TODO: where m_createFlags gone ???
     //m_pIntegrator = new IntegratorMISPT_QMC(m_width, m_height, (EngineGlobals*)&m_cdataPrepared[0], 0);
     //m_pIntegrator = new IntegratorMISPT_AQMC(m_width, m_height, (EngineGlobals*)&m_cdataPrepared[0], 0);
    
@@ -580,7 +580,6 @@ void CPUSharedData::PrepareEngineGlobals()
     //   m_pIntegrator = new IntegratorStupidPT(m_width, m_height, (EngineGlobals*)&m_cdataPrepared[0]);
     // else
     //   m_pIntegrator = new IntegratorMISPT_Full(m_width, m_height, (EngineGlobals*)&m_cdataPrepared[0], m_createFlags);
-
     std::cout << "[cpu_core]: cpu integrator created" << std::endl;
   }
  
