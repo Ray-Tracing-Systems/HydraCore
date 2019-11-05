@@ -624,13 +624,19 @@ static inline float phongEvalPDF(__global const PlainMaterial* a_pMat, const flo
   const float  gloss    = phongGlosiness(a_pMat, a_texCoord, a_globals, a_tex, a_ptList);
   const float  cosPower = cosPowerFromGlosiness(gloss);
 
-  return pow(cosTheta, cosPower) * (cosPower + 1.0f) * (0.5f * INV_PI); // please see "Using the Modified Phong Reflectance Model for Physically ... 
+  return pow(cosTheta, cosPower) * (cosPower + 1.0f) * INV_TWOPI; // please see "Using the Modified Phong Reflectance Model for Physically ... 
 }
+
 
 static inline float PhongPreDivCosThetaFixMult(const float gloss, const float cosThetaOut)
 {
-  const float t       = sigmoid(20.0f*(gloss - 0.5f));
-  const float lerpVal = 1.0f + t*(1.0f / fmax(cosThetaOut, 1e-5f) - 1.0f); // mylerp { return u + t * (v - u); }
+  //const float t = sigmoid(20.0f*(gloss - 0.5f));
+  //const float lerpVal = 1.0f + t * (1.0f / fmax(cosThetaOut, 1e-5f) - 1.0f); // mylerp { return u + t * (v - u); }
+
+  const float t = tanh(pow(gloss, 1.35f) * 3.0f);
+  const float invCosTheta = 1.0f / fmax(cosThetaOut, 1e-5f);
+  const float invCosThetaDark = invCosTheta * 0.675f;
+  const float lerpVal = invCosThetaDark + t * (invCosTheta - invCosThetaDark); // mylerp { return u + t * (v - u); }
   return lerpVal;
 }
 
@@ -648,7 +654,7 @@ static inline float3 phongEvalBxDF(__global const PlainMaterial* a_pMat, const f
 
   const float cosThetaFix = fmin(PhongPreDivCosThetaFixMult(gloss, fabs(dot(v, n))), 100.0f);
   
-  return color*(cosPower + 2.0f)*0.5f*INV_PI*pow(cosAlpha, cosPower)*cosThetaFix; // please see "Using the Modified Phong Reflectance Model for Physically ... 
+  return color*(cosPower + 2.0f)*INV_TWOPI*pow(cosAlpha, cosPower)*cosThetaFix; // please see "Using the Modified Phong Reflectance Model for Physically ... 
 }
 
 static inline void PhongSampleAndEvalBRDF(__global const PlainMaterial* a_pMat, const float a_r1, const float a_r2, const float3 ray_dir, const float3 a_normal, const float2 a_texCoord,
@@ -665,15 +671,19 @@ static inline void PhongSampleAndEvalBRDF(__global const PlainMaterial* a_pMat, 
   const float3 newDir   = MapSampleToModifiedCosineDistribution(a_r1, a_r2, r, a_normal, cosPower);
 
   const float cosAlpha    = clamp(dot(newDir, r), 0.0, M_PI*0.499995f);
-  const float cosThetaOut = dot(newDir, a_normal);
- 
+  const float cosThetaOut = dot(newDir, a_normal); 
   const float cosThetaFix = PhongPreDivCosThetaFixMult(gloss, fabs(cosThetaOut));
 
-  a_out->direction    = newDir;
-  a_out->pdf          = pow(cosAlpha, cosPower) * (cosPower + 1.0f) * (0.5f * INV_PI);              // please see "Using the Modified Phong Reflectance Model for Physically ... 
-  a_out->color        = color*((cosPower + 2.0f)*0.5f*INV_PI*pow(cosAlpha, cosPower))*cosThetaFix;  // 
-  if (cosThetaOut <= 1e-6f)                                                                         // reflection under surface must be zerowed!
+  const float powCosAlphaCosPow         = pow(cosAlpha, cosPower);
+  const float powCosAlphaCosPowInvTwoPi = powCosAlphaCosPow * INV_TWOPI;
+
+  a_out->direction  = newDir;
+  a_out->pdf        = powCosAlphaCosPowInvTwoPi * (cosPower + 1.0f);
+  a_out->color      = powCosAlphaCosPowInvTwoPi * (cosPower + 2.0f) * color * cosThetaFix; // please see "Using the Modified Phong Reflectance Model for Physically ... 
+    
+  if (cosThetaOut <= 1e-6f)                                                                // reflection under surface must be zerowed!
     a_out->color = make_float3(0, 0, 0);
+
   a_out->flags = (gloss == 1.0f) ? RAY_EVENT_S : RAY_EVENT_G;
 }
 
