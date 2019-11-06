@@ -21,15 +21,17 @@ Input::Input()
   //inLibraryPath = "C:/[Hydra]/pluginFiles/scenelib/";
 
   //inLibraryPath = "/home/frol/PROG/HydraRepos/clsp/database/temp";
-  
-  inDevelopment = false;  ///< recompile shaders each time; note that nvidia have their own shader cache!
+  inLibraryPath = "d:/RayTracingSystems/HydraDevelop/HydraAPI-tests/3dsMaxTests/Furnance_Lambert_areaLight";
+
+
+  inDevelopment = true;  ///< recompile shaders each time; note that nvidia have their own shader cache!
   inDeviceId    = 0;     ///< opencl device id
   cpuFB         = true;  ///< store frame buffer on CPU. Automaticly enabled if
   enableMLT     = false; ///< if use MMLT, you MUST enable it early, when render process just started (here or via command line).
   boxMode       = false; ///< special 'in the box' mode when render don't react to any commands
 
-  winWidth      = 1024;  ///<
-  winHeight     = 1024;  ///<
+  winWidth      = 512;  ///<
+  winHeight     = 512;  ///<
 
   enableOpenGL1 = false; ///< if you want to draw scene for some debug needs with OpenGL1.
   exitStatus    = false;
