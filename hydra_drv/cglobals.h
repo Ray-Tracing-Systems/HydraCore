@@ -3038,4 +3038,14 @@ static inline float3 decompressShadow(ushort4 shadowCompressed)
 //#define SBDPT_CHECK_BOUNCE 4
 //#define SBDPT_INDIRECT_ONLY (void)
 
+static inline float WrapVal(float a_val)
+{
+  if (a_val > 1.0f)
+    return a_val - (float)((int)a_val);
+  else if(a_val < -1.0f)
+    return (float)((int)a_val) - a_val;
+  else
+    return a_val;
+}
+
 #endif

@@ -252,9 +252,9 @@ static inline float2 sphereMapTo2DTexCoord(float3 ray_dir, __private float* pSin
   const float2 angles = sphereMapToPhiTheta(ray_dir);
 
   const float texX = clamp(angles.x*0.5f*INV_PI, 0.0f, 1.0f);
-  const float texY = clamp(angles.y*INV_PI, 0.0f, 1.0f);
+  const float texY = clamp(angles.y*INV_PI,      0.0f, 1.0f);
 
-  (*pSinTheta) = sin(angles.y);
+  (*pSinTheta) = sqrt(1.0f - ray_dir.y*ray_dir.y); // sin(angles.y);
   return make_float2(texX, texY);
 }
 

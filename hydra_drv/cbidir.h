@@ -499,7 +499,7 @@ static inline float3 environmentColor(float3 rayDir, MisData misPrev, unsigned i
 
   if (rayBounceNum > 0 && !(a_globals->g_flags & HRT_STUPID_PT_MODE) && (misPrev.isSpecular == 0))
   {
-    float lgtPdf    = lightPdfSelectRev(pEnvLight)*skyLightEvalPDF(pEnvLight, make_float3(0, 0, 0), rayDir, a_globals, a_pdfStorage);
+    float lgtPdf    = lightPdfSelectRev(pEnvLight)*skyLightEvalPDF(pEnvLight, rayDir, a_globals, a_pdfStorage);
     float bsdfPdf   = misPrev.matSamplePdf;
     float misWeight = misWeightHeuristic(bsdfPdf, lgtPdf); // (bsdfPdf*bsdfPdf) / (lgtPdf*lgtPdf + bsdfPdf*bsdfPdf);
 

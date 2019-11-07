@@ -48,8 +48,12 @@ float3  IntegratorShadowPT::PathTrace(float3 ray_pos, float3 ray_dir, MisData mi
   Lite_Hit hit = rayTrace(ray_pos, ray_dir);
 
   if (HitNone(hit))
-    return float3(0, 0, 0);
-
+  {
+    if(a_currDepth == 0)
+      return EnviromnentColor(ray_dir, misPrev, flags);
+    else
+      return float3(0, 0, 0);
+  }
   SurfaceHit surfElem = surfaceEval(ray_pos, ray_dir, hit);
 
   float3 emission = emissionEval(ray_pos, ray_dir, surfElem, flags, misPrev, fetchInstId(hit));
@@ -172,8 +176,8 @@ float3 IntegratorMISPT::PathTrace(float3 ray_pos, float3 ray_dir, MisData misPre
     
     const float3 shadowRayDir = normalize(explicitSam.pos - surfElem.pos);
     const float3 shadowRayPos = OffsShadowRayPos(surfElem.pos, surfElem.normal, shadowRayDir, surfElem.sRayOff);
-
-    const float3 shadow = shadowTrace(shadowRayPos, shadowRayDir, length(shadowRayPos - explicitSam.pos)*0.995f);
+    
+    const float3 shadow       = shadowTrace(shadowRayPos, shadowRayDir, length(shadowRayPos - explicitSam.pos)*0.995f);
         
     ShadeContext sc;
     sc.wp = surfElem.pos;
