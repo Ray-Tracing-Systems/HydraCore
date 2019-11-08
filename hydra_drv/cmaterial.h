@@ -629,14 +629,17 @@ static inline float phongEvalPDF(__global const PlainMaterial* a_pMat, const flo
 
 
 static inline float PhongPreDivCosThetaFixMult(const float gloss, const float cosThetaOut)
-{
-  const float t = sigmoid(20.0f*(gloss - 0.5f));
-  const float lerpVal = 1.0f + t * (1.0f / fmax(cosThetaOut, 1e-5f) - 1.0f); // mylerp { return u + t * (v - u); }
+{ 
+  return 1.0f;
+
+  //const float t       = sigmoid(20.0f*(gloss - 0.5f));
+  //const float lerpVal = 1.0f + t * (1.0f / fmax(cosThetaOut, 1e-5f) - 1.0f); // mylerp { return u + t * (v - u); }
 
   //const float t = tanh(pow(gloss, 1.35f) * 3.0f);
   //const float invCosTheta = 1.0f / fmax(cosThetaOut, 1e-5f);
   //const float invCosThetaDark = invCosTheta * 0.675f;
   //const float lerpVal = invCosThetaDark + t * (invCosTheta - invCosThetaDark); // mylerp { return u + t * (v - u); }
+  
   return  lerpVal;
 }
 
@@ -652,7 +655,8 @@ static inline float3 phongEvalBxDF(__global const PlainMaterial* a_pMat, const f
   const float3 r        = reflect((-1.0)*v, n);
   const float  cosAlpha = clamp(dot(l, r), 0.0f, M_PI*0.499995f);
 
-  const float cosThetaFix = fmin(PhongPreDivCosThetaFixMult(gloss, fabs(dot(v, n))), 100.0f);
+  const float cosTheta    = fabs(dot(v, n));
+  const float cosThetaFix = fmin(PhongPreDivCosThetaFixMult(gloss, cosTheta), 100.0f);
   
   return color*(cosPower + 2.0f)*INV_TWOPI*pow(cosAlpha, cosPower)*cosThetaFix; // please see "Using the Modified Phong Reflectance Model for Physically ... 
 }
@@ -674,8 +678,7 @@ static inline void PhongSampleAndEvalBRDF(__global const PlainMaterial* a_pMat, 
   const float cosThetaOut = dot(newDir, a_normal); 
   const float cosThetaFix = PhongPreDivCosThetaFixMult(gloss, fabs(cosThetaOut));
 
-  const float powCosAlphaCosPow         = pow(cosAlpha, cosPower);
-  const float powCosAlphaCosPowInvTwoPi = powCosAlphaCosPow * INV_TWOPI;
+  const float powCosAlphaCosPowInvTwoPi = pow(cosAlpha, cosPower) * INV_TWOPI;
 
   a_out->direction  = newDir;
   a_out->pdf        = powCosAlphaCosPowInvTwoPi * (cosPower + 1.0f);
