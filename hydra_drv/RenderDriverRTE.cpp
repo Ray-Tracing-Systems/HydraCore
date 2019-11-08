@@ -217,6 +217,7 @@ bool RenderDriverRTE::UpdateSettings(pugi::xml_node a_settingsNode)
     vars.m_flags |= HRT_ENABLE_PT_CAUSTICS;
   }
 
+  // Enable GPU Stupid mode.
   //vars.m_flags |= HRT_ENABLE_PT_CAUSTICS; 
   //vars.m_flags |= HRT_STUPID_PT_MODE;
 

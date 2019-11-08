@@ -36,8 +36,16 @@
 #define TEXMATRIX_ID_MASK     0x00FFFFFF // for texture slots - 'color_texMatrixId' and e.t.c
 #define TEXSAMPLER_TYPE_MASK  0xFF000000 // for texture slots - 'color_texMatrixId' and e.t.c
 
+#ifndef M_HALFPI
+#define M_HALFPI      1.57079632679489661923f
+#endif
+
 #ifndef M_PI
 #define M_PI          3.14159265358979323846f
+#endif
+
+#ifndef M_TWOPI
+#define M_TWOPI       6.28318530717958647692f
 #endif
 
 #ifndef INV_PI

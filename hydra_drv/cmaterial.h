@@ -890,6 +890,30 @@ static inline float ggxGlosiness(__global const PlainMaterial* a_pMat, const flo
     return a_pMat->data[GGX_GLOSINESS_OFFSET];
 }
 
+static inline float Luminance(const float3 color) { return (color.x * 0.2126f + color.y * 0.7152f + color.z * 0.0722f); } //https://en.wikipedia.org/wiki/Relative_luminance
+
+
+static inline float GGXmultiScatterMult(const float gloss, const float dotNV, const float dotNL, const float G, const float3 reflColor)
+{
+  // A simple heuristic compensation brightness (imitation microfaceting multiscattering).
+
+  // lerp() { return u + t * (v - u); }
+
+  const float t     = tanh(pow(gloss, 1.0f) * 3.0f);           // mask for blend main brightness correction.
+  const float u     = 1.0f / G * 4.0f * dotNV * dotNL;         // inverse G factor.
+  const float lerp1 = u + t * (1.0f - u);                      // delete G factor for low glossiness.
+  const float t2    = pow(sin(pow(t, 1.8f) * M_PI), 0.7f);     // mask for about 0.7 glossiness.
+  const float v     = 0.9f / (0.63f + dotNV * dotNV * 0.37f);  // falloff color.
+  const float lerp2 = 1.0f + t2 * (v - 1.0f);                  // delete falloff with mask.
+
+
+  // White color - full multi-scattering reflection in microfaceting in any glossiness.
+  // Black color is a single scattering, it is the basic formula of microfacet, without this compensation function.
+  const float lerp3 = 1.0f + Luminance(reflColor) * (lerp1 * lerp2 - 1.0f);
+
+  return lerp3;
+}
+
 // GGX
 static inline float GGX_GeomShadMask(const float cosThetaN, const float alpha)
 {
@@ -910,14 +934,6 @@ static inline float GGX_Distribution(const float cosThetaNH, const float alpha)
 static inline float ggxEvalPDF(__global const PlainMaterial* a_pMat, const float3 l, const float3 v, const float3 n, const float2 a_texCoord,
                                __global const EngineGlobals* a_globals, texture2d_t a_tex, __private const ProcTextureList* a_ptList)
 {
-  // const float3 r = reflect((-1.0)*v, n);
-  // const float  cosTheta = clamp(fabs(dot(l, r)), DEPSILON2, M_PI*0.499995f);
-  // 
-  // const float  gloss = ggxGlosiness(a_pMat, a_texCoord, a_globals, a_tex, a_ptList);
-  // const float  cosPower = cosPowerFromGlosiness(gloss);
-  // 
-  // return pow(cosTheta, cosPower) * (cosPower + 1.0f) * (0.5f * INV_PI);
-
   const float  gloss = ggxGlosiness(a_pMat, a_texCoord, a_globals, a_tex, a_ptList);
 
   const float roughness = 1.0f - gloss;
@@ -963,7 +979,9 @@ static inline float3 ggxEvalBxDF(__global const PlainMaterial* a_pMat, const flo
   const float D = GGX_Distribution(dotNH, roug_sqr);
   //const float F       = 1.0f; // Fresnel is not needed here, because it is used for the blend with diffusion.
 
-  return color*texColor * D /** F*/ * G / (4.0f * dotNV * dotNL);
+  const float multiScatterMult = GGXmultiScatterMult(gloss, dotNV, dotNL, G, color);
+
+  return color * D /** F*/ * G / (4.0f * dotNV * dotNL) * multiScatterMult;
 }
 
 static inline void GGXSampleAndEvalBRDF(__global const PlainMaterial* a_pMat, const float a_r1, const float a_r2, const float3 ray_dir, const float3 a_normal, const float2 a_texCoord,
@@ -971,14 +989,14 @@ static inline void GGXSampleAndEvalBRDF(__global const PlainMaterial* a_pMat, co
                                         __private MatSample* a_out)
 {
   // GGX for implicit strategy
-  const float3 texColor  = sample2DExt(ggxGetTex(a_pMat).y, a_texCoord, (__global const int4*)a_pMat, a_tex, a_globals, a_ptList);
-  const float3 color     = clamp(ggxGetColor(a_pMat)*texColor, 0.0f, 1.0f);
-  const float  gloss     = ggxGlosiness(a_pMat, a_texCoord, a_globals, a_tex, a_ptList);
-  const float  cosPower  = cosPowerFromGlosiness(gloss);
-  const float  roughness = 1.0f - gloss;
-  const float  roughSqr  = roughness * roughness;
+  const float3 texColor   = sample2DExt(ggxGetTex(a_pMat).y, a_texCoord, (__global const int4*)a_pMat, a_tex, a_globals, a_ptList);
+  const float3 color      = clamp(ggxGetColor(a_pMat)*texColor, 0.0f, 1.0f);
+  const float  gloss      = ggxGlosiness(a_pMat, a_texCoord, a_globals, a_tex, a_ptList);
+  const float  cosPower   = cosPowerFromGlosiness(gloss);
+  const float  roughness  = 1.0f - gloss;
+  const float  roughSqr   = roughness * roughness;
 
-  float3 nx, ny, nz = a_normal;
+  float3 nx, ny, nz       = a_normal;
 
   CoordinateSystem(nz, &nx, &ny);
 
@@ -986,32 +1004,33 @@ static inline void GGXSampleAndEvalBRDF(__global const PlainMaterial* a_pMat, co
   const float3 wo = make_float3(-dot(ray_dir, nx), -dot(ray_dir, ny), -dot(ray_dir, nz));   // wo = v = ray_dir
 
                                                                                             // Compute sampled half-angle vector wh
-  const float phi = a_r1 * 2.f * M_PI;
-  const float cosTheta = clamp(sqrt((1.0f - a_r2) / (1.0f + roughSqr * roughSqr * a_r2 - a_r2)), 0.0f, 1.0f);
-  const float sinTheta = sqrt(1.0f - cosTheta * cosTheta);
-  float3 wh = SphericalDirectionPBRT(sinTheta, cosTheta, phi);
+  const float phi       = a_r1 * M_TWOPI;
+  const float cosTheta  = clamp(sqrt((1.0f - a_r2) / (1.0f + roughSqr * roughSqr * a_r2 - a_r2)), 0.0f, 1.0f);
+  const float sinTheta  = sqrt(1.0f - cosTheta * cosTheta);
+  float3 wh             = SphericalDirectionPBRT(sinTheta, cosTheta, phi);
 
   if (!SameHemispherePBRT(wo, wh))
     wh = wh * (-1.0f);
 
-  const float3 wi = (2.0f * dot(wo, wh) * wh) - wo; // Compute incident direction by reflecting about wh    
-  const float3 newDir = wi.x*nx + wi.y*ny + wi.z*nz; // back to normal coordinate system
+  const float3 wi       = (2.0f * dot(wo, wh) * wh) - wo; // Compute incident direction by reflecting about wh    
+  const float3 newDir   = wi.x*nx + wi.y*ny + wi.z*nz; // back to normal coordinate system
 
-  const float3 v = (-1.0f) * ray_dir;
-  const float3 l = newDir;
-  const float3 h = normalize(v + l); // half vector.
+  const float3 v    = (-1.0f) * ray_dir;
+  const float3 l    = newDir;
+  const float3 h    = normalize(v + l); // half vector.
   const float dotNL = dot(a_normal, l);
   const float dotNV = dot(a_normal, v);
   const float dotNH = dot(a_normal, h);
   const float dotHV = dot(h, v);
 
-  const float D = GGX_Distribution(dotNH, roughSqr);
-  const float G = GGX_GeomShadMask(dotNV, roughSqr) * GGX_GeomShadMask(dotNL, roughSqr);
-  //const float F         = 1.0f; // Fresnel is not needed here, because it is used for the blend with diffusion.
+  const float D                 = GGX_Distribution(dotNH, roughSqr);
+  const float G                 = GGX_GeomShadMask(dotNV, roughSqr) * GGX_GeomShadMask(dotNL, roughSqr);
+  //const float F               = 1.0f; // Fresnel is not needed here, because it is used for the blend with diffusion.
+  const float multiScatterMult  = GGXmultiScatterMult(gloss, dotNV, dotNL, G, color);
 
-  a_out->direction = newDir;
-  a_out->pdf       = D * dotNH / (4.0f * dotHV);
-  a_out->color     = color * D /** F*/ * G / (4.0f * dotNV * dotNL);
+  a_out->direction  = newDir;
+  a_out->pdf        = D * dotNH / (4.0f * dotHV);
+  a_out->color      = color * D /** F*/ * G / (4.0f * dotNV * dotNL) * multiScatterMult;
 
   if (dotNL <= 1e-6f)  // reflection under surface must be zerowed!
     a_out->color = make_float3(0, 0, 0);
