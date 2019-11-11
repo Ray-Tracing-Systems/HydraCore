@@ -21,17 +21,18 @@ Input::Input()
   //inLibraryPath = "C:/[Hydra]/pluginFiles/scenelib/";
 
   //inLibraryPath = "/home/frol/PROG/HydraRepos/clsp/database/temp";
-  inLibraryPath = "d:/RayTracingSystems/HydraDevelop/HydraAPI-tests/3dsMaxTests/Furnance_Lambert_areaLight";
+  //inLibraryPath = "/home/frol/PROG/HydraRepos/HydraAPI-tests/3dsMaxTests/Furnance_Lambert";
+  //inLibraryPath = "/home/frol/PROG/HydraRepos/HydraAPI-tests/3dsMaxTests/Furnance_reflect_Phong";
+  //inLibraryPath = "/home/frol/PROG/HydraRepos/HydraAPI-tests/3dsMaxTests/NaNwithNormalMap";
 
-
-  inDevelopment = true;  ///< recompile shaders each time; note that nvidia have their own shader cache!
+  inDevelopment = false; ///< recompile shaders each time; note that nvidia have their own shader cache!
   inDeviceId    = 0;     ///< opencl device id
-  cpuFB         = true;  ///< store frame buffer on CPU. Automaticly enabled if
+  cpuFB         = true ; ///< store frame buffer on CPU. Automaticly enabled if
   enableMLT     = false; ///< if use MMLT, you MUST enable it early, when render process just started (here or via command line).
   boxMode       = false; ///< special 'in the box' mode when render don't react to any commands
 
-  winWidth      = 512;  ///<
-  winHeight     = 512;  ///<
+  winWidth      = 1024; //1536; ///<
+  winHeight     = 1024; //192;  ///<
 
   enableOpenGL1 = false; ///< if you want to draw scene for some debug needs with OpenGL1.
   exitStatus    = false;
