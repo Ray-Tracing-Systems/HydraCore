@@ -554,7 +554,6 @@ __kernel void BVH4TraversalInstShadowKenrelAS_Packed(__global const uint*       
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 
-
 __kernel void ShowNormals(__global const float4* restrict in_surfaceHit, __global float4* restrict a_color, int iNumElements, int iOffset)
 {
   int tid = GLOBAL_ID_X;
@@ -573,7 +572,6 @@ __kernel void ShowNormals(__global const float4* restrict in_surfaceHit, __globa
 
   a_color[tid + iOffset] = to_float4(norm, 0.0f);
 }
-
 
 
 __kernel void ShowTexCoord(__global const float4* restrict in_surfaceHit, __global float4* a_color, int iNumElements, int iOffset)
