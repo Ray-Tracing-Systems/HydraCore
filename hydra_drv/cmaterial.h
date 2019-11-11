@@ -629,45 +629,17 @@ static inline float phongEvalPDF(__global const PlainMaterial* a_pMat, const flo
 
 
 static inline float PhongPreDivCosThetaFixMult(const float gloss, const float cosThetaOut)
-<<<<<<< HEAD
 { 
-  return 1.0f;
-
-  //const float t       = sigmoid(20.0f*(gloss - 0.5f));
-  //const float lerpVal = 1.0f + t * (1.0f / fmax(cosThetaOut, 1e-5f) - 1.0f); // mylerp { return u + t * (v - u); }
+  //return 1.0f;
+  const float t       = sigmoid(20.0f*(gloss - 0.5f));
+  const float lerpVal = 1.0f + t * (1.0f / fmax(cosThetaOut, 1e-5f) - 1.0f); // mylerp { return u + t * (v - u); }
 
   //const float t = tanh(pow(gloss, 1.35f) * 3.0f);
   //const float invCosTheta = 1.0f / fmax(cosThetaOut, 1e-5f);
   //const float invCosThetaDark = invCosTheta * 0.675f;
   //const float lerpVal = invCosThetaDark + t * (invCosTheta - invCosThetaDark); // mylerp { return u + t * (v - u); }
   
-  //return  lerpVal;
-=======
-{
-  // Source
-  //const float t       = sigmoid(20.0f*(gloss - 0.5f));
-  //const float lerpVal = 1.0f + t * (1.0f / fmax(cosThetaOut, 1e-5f) - 1.0f); // mylerp { return u + t * (v - u); }
-
-  // Best for Stupid CPU and GPU
-  //const float t       = tanh(pow(gloss, 1.35f) * 3.0f);
-  //const float v       = 1.0f / fmax(cosThetaOut, 1e-5f);
-  //const float u       = v * 0.675f;
-  //const float lerpVal = u + t * (v - u); 
-
-  // Compromise for Stupid and MIS on CPU 
-  //const float t       = tanh(pow(gloss, 1.75f) * 3.0f);
-  //const float v       = 1.0f / fmax(cosThetaOut, 1e-5f);
-  //const float u       = (1.0f - INV_TWOPI) / (INV_PI + cosThetaOut * (1.0f - INV_PI));
-  //const float lerpVal = u + t * (v - u);  
-
-  // Compromise for Stupid and MIS on GPU 
-  const float t = tanh(pow(gloss, 1.75f) * 3.0f);
-  const float v = 1.0f / fmax(cosThetaOut, 1e-5f);
-  const float u = 0.85f / (0.2f + cosThetaOut * 0.8f);
-  const float lerpVal = u + t * (v - u);
-
   return lerpVal;
->>>>>>> 150cbae4dc5be8023b3fa4ed8c3ade6d49a574cb
 }
 
 static inline float3 phongEvalBxDF(__global const PlainMaterial* a_pMat, const float3 l, const float3 v, const float3 n, const float2 a_texCoord, const int a_evalFlags,
@@ -683,9 +655,8 @@ static inline float3 phongEvalBxDF(__global const PlainMaterial* a_pMat, const f
   const float  cosAlpha = clamp(dot(l, r), 0.0f, M_PI*0.499995f);
 
   //const float cosThetaV   = fabs(dot(v, n));
-  //const float cosThetaL    = fabs(dot(l, n));
-  //const float phongCrapFix = 1.0f/sqrt(fmax(cosThetaL, 1e-3f));
-  const float cosThetaFix  = fmin(PhongPreDivCosThetaFixMult(gloss, fabs(cosThetaL)), 1000.0f);
+  const float cosThetaL   = fabs(dot(l, n));
+  const float cosThetaFix = fmin(PhongPreDivCosThetaFixMult(gloss, fabs(cosThetaL)), 1000.0f);
   
   return color*(cosPower + 2.0f)*INV_TWOPI*pow(cosAlpha, cosPower)*cosThetaFix; // please see "Using the Modified Phong Reflectance Model for Physically ... 
 }
