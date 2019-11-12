@@ -312,7 +312,7 @@ void IntegratorCommon::DoPass(std::vector<uint>& a_imageLDR)
   //if (m_spp == 1)
     //DebugSaveGbufferImage(L"C:/[Hydra]/rendered_images/torus_gbuff");
 
-  std::cout << "IntegratorCommon: spp = " << m_spp << std::endl;
+  std::cout << "[" << this->Name() << "]: spp = " << m_spp << std::endl;
 }
 
 
