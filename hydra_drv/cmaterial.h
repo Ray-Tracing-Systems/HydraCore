@@ -54,6 +54,42 @@ static inline float sigmoid(float x)
   return 1.0f / (1.0f + exp(-1.0f*x));
 }
 
+static inline float3 MultiScatterBRDF(const float gloss, const float dotNV, const float dotNL, const float G, const float Pss, const float3 reflColor)
+{
+  // A simple heuristic compensation brightness (imitation microfaceting multiscattering).
+
+  // lerp() { return u + t * (v - u); }
+
+  //const float t = tanh(pow(gloss, 1.0f) * 3.0f);           // mask for blend main brightness correction.
+  //const float u = 1.0f / G * 4.0f * dotNV * dotNL;         // inverse G factor.
+  //const float lerp1 = u + t * (1.0f - u);                      // delete G factor for low glossiness.
+  //const float t2 = pow(sin(pow(t, 1.8f) * M_PI), 0.7f);     // mask for about 0.7 glossiness.
+  //const float v = 0.9f / (0.63f + dotNV * dotNV * 0.37f);  // falloff color.
+  //const float lerp2 = 1.0f + t2 * (v - 1.0f);                  // delete falloff with mask.
+
+  // White reflColor - full multi-scattering reflection in microfaceting in any glossiness.
+  // Black reflColor is a single scattering, it is the basic formula of microfacet, without this compensation function.
+  // There is also a slight saturation of color as the roughness increases, due to the multiplication of color in the re-reflections
+  // of the micro-facets.
+  //const float3 white = make_float3(1.0f, 1.0f, 1.0f);
+  //const float3 lerp3 = white + reflColor * (lerp1 * lerp2 - white);
+  //return lerp3;
+
+  // From paper "Practical multiple scattering compensation for microfacet models". Emmanuel Turquin. Industrial Light & Magic.
+  const float EssWo = Pss;// *dotNL;
+  const float EssWoComp = EssWo / (1.0f + EssWo); 
+  const float F0        = 1.0f;
+  const float3 white    = make_float3(1.0f, 1.0f, 1.0f);
+
+  const float3 result = 1.0f + F0 * (1.0f - EssWoComp) / EssWoComp * INV_TWOPI * 0.5f * white;
+  
+  const float invEss  = 1.0f / Pss * INV_PI;
+  const float t       = EssWoComp;
+  //const float3 result = invEss + t * (1.0f - invEss) * white; // lerp
+
+  return result;
+}
+
 //////////////////////////////////////////////////////////////// all other components may overlay their offsets
 
 // lambert material
@@ -751,7 +787,7 @@ static inline float blinnEvalPDF(__global const PlainMaterial* a_pMat, const flo
   const float3 wh      = normalize(l + v);
   const float costheta = fabs(dot(wh,n));
 
-  float blinn_pdf = ((exponent + 1.0f) * pow(costheta, exponent)) / (2.f * M_PI * 4.f * dot(l, wh));
+  float blinn_pdf = ((exponent + 1.0f) * pow(costheta, exponent)) / (M_TWOPI * 4.0f * dot(l, wh));
 
   // if (dot(l, wh) <= 0.0f) // #TODO: this may cause problems when under-surface hit during PT; light strategy weight becobes zero. Or not? see costheta = fabs(dot(wh,n))
   //   blinn_pdf = 0.0f;     // #TODO: this may cause problems when under-surface hit during PT; light strategy weight becobes zero. Or not? see costheta = fabs(dot(wh,n))
@@ -770,17 +806,23 @@ static inline float3 blinnEvalBxDF(__global const PlainMaterial* a_pMat, const f
 
   const float3 wh       = normalize(l + v);
 
-  const float costhetah = fabs(dot(wh,n));
-  const float D         = (exponent + 2.0f) * INV_TWOPI * pow(costhetah, exponent);
-  const float cosTheta  = fmax(dot(l, n), 0.0f);
+  const float cosThetaH = fabs(dot(wh,n));
+  const float D         = (exponent + 2.0f) * INV_TWOPI * pow(cosThetaH, exponent);
+  const float dotNL     = fmax(dot(l, n), 0.0f);
 
-  return color*D*TorranceSparrowGF2(l, v, n);
+  const float Pss       = D * TorranceSparrowGF2(l, v, n);               // Energy single-scattering
+  const float3 Pms      = MultiScatterBRDF(0, 0, dotNL, 0, Pss, color);  // Energy multiple-scattering
+
+  return color * Pss * Pms;
 }
 
 static inline void BlinnSampleAndEvalBRDF(__global const PlainMaterial* a_pMat, const float a_r1, const float a_r2, const float3 ray_dir, const float3 a_normal, const float2 a_texCoord, const float3 a_tan, const float3 a_bitan,
                                           __global const EngineGlobals* a_globals, texture2d_t a_tex, __private const ProcTextureList* a_ptList,
                                           __private MatSample* a_out)
 {
+  const float3 texColor = sample2DExt(blinnGetTex(a_pMat).y, a_texCoord, (__global const int4*)a_pMat, a_tex, a_globals, a_ptList);
+  const float3 color    = clamp(blinnGetColor(a_pMat)*texColor, 0.0f, 1.0f);
+
   ///////////////////////////////////////////////////////////////////////////// to PBRT coordinate system
   // wo = v = ray_dir
   // wi = l = -newDir
@@ -791,7 +833,7 @@ static inline void BlinnSampleAndEvalBRDF(__global const PlainMaterial* a_pMat, 
 
   float phi, gloss;
   CoordinateSystem(nz, &nx, &ny);
-  phi   = a_r2 * 2.f * M_PI;
+  phi   = a_r2 * M_TWOPI;
   gloss = glossOrig;
   ///////////////////////////////////////////////////////////////////////////// to PBRT coordinate system
 
@@ -800,8 +842,8 @@ static inline void BlinnSampleAndEvalBRDF(__global const PlainMaterial* a_pMat, 
 
   // Compute sampled half-angle vector $\wh$ for Blinn distribution
   //
-  const float costheta = pow(a_r1, 1.f / (exponent + 1.0f));
-  const float sintheta = sqrt(fmax(0.f, 1.f - costheta*costheta));
+  const float costheta = pow(a_r1, 1.0f / (exponent + 1.0f));
+  const float sintheta = sqrt(fmax(0.0f, 1.0f - costheta*costheta));
   
   float3 wh = SphericalDirectionPBRT(sintheta, costheta, phi);
   if (!SameHemispherePBRT(wo, wh))
@@ -809,23 +851,24 @@ static inline void BlinnSampleAndEvalBRDF(__global const PlainMaterial* a_pMat, 
 
   const float3 wi = (2.0f * dot(wo, wh) * wh) - wo; // Compute incident direction by reflecting about $\wh$
 
-  const float blinn_pdf = ((exponent + 1.0f) * pow(costheta, exponent)) / fmax(2.f * M_PI * 4.f * dot(wo, wh), DEPSILON);
+  const float blinn_pdf = ((exponent + 1.0f) * pow(costheta, exponent)) / fmax(M_TWOPI * 4.0f * dot(wo, wh), DEPSILON);
   const float D         = ((exponent + 2.0f) * INV_TWOPI * pow(costheta, exponent));
 
-  const float3 newDir      = wi.x*nx + wi.y*ny + wi.z*nz; // back to normal coordinate system
-  const float  cosThetaOut = dot(newDir, a_normal);
-  const float  GF1         = TorranceSparrowGF1(wo, wi);
+  const float3 newDir   = wi.x*nx + wi.y*ny + wi.z*nz; // back to normal coordinate system
+  const float  dotNL    = dot(newDir, a_normal);
+  const float  GF1      = TorranceSparrowGF1(wo, wi);
 
-  //const float estimatedThoroughput = fabs(cosThetaOut)*(D * GF1) / fmax(blinn_pdf, DEPSILON2);
+  //const float estimatedThoroughput = fabs(dotNL)*(D * GF1) / fmax(blinn_pdf, DEPSILON2);
   //const float brightBordersMult    = fmin(estimatedThoroughput, 1.0f) / fmax(estimatedThoroughput, DEPSILON2);
+  
+  const float Pss       = D * GF1;                                       // Energy single-scattering
+  const float3 Pms      = MultiScatterBRDF(0, 0, dotNL, 0, Pss, color);  // Energy multiple-scattering
 
-  const float3 texColor = sample2DExt(blinnGetTex(a_pMat).y, a_texCoord, (__global const int4*)a_pMat, a_tex, a_globals, a_ptList);
-  const float3 color    = clamp(blinnGetColor(a_pMat)*texColor, 0.0f, 1.0f);
+  a_out->direction      = newDir; 
+  a_out->pdf            = blinn_pdf;
+  a_out->color          = color * Pss * Pms; // *brightBordersMult;
 
-  a_out->direction = newDir; 
-  a_out->pdf       = blinn_pdf;
-  a_out->color     = (color * D * GF1); // *brightBordersMult;
-  if(cosThetaOut < 1e-6f)
+  if(dotNL < 1e-6f)
     a_out->color   = make_float3(0,0,0);
 
   a_out->flags     = RAY_EVENT_G;
@@ -881,26 +924,6 @@ static inline float ggxGlosiness(__global const PlainMaterial* a_pMat, const flo
 static inline float Luminance(const float3 color) { return (color.x * 0.2126f + color.y * 0.7152f + color.z * 0.0722f); } //https://en.wikipedia.org/wiki/Relative_luminance
 
 
-static inline float GGXmultiScatterMult(const float gloss, const float dotNV, const float dotNL, const float G, const float3 reflColor)
-{
-  // A simple heuristic compensation brightness (imitation microfaceting multiscattering).
-
-  // lerp() { return u + t * (v - u); }
-
-  const float t     = tanh(pow(gloss, 1.0f) * 3.0f);           // mask for blend main brightness correction.
-  const float u     = 1.0f / G * 4.0f * dotNV * dotNL;         // inverse G factor.
-  const float lerp1 = u + t * (1.0f - u);                      // delete G factor for low glossiness.
-  const float t2    = pow(sin(pow(t, 1.8f) * M_PI), 0.7f);     // mask for about 0.7 glossiness.
-  const float v     = 0.9f / (0.63f + dotNV * dotNV * 0.37f);  // falloff color.
-  const float lerp2 = 1.0f + t2 * (v - 1.0f);                  // delete falloff with mask.
-
-
-  // White color - full multi-scattering reflection in microfaceting in any glossiness.
-  // Black color is a single scattering, it is the basic formula of microfacet, without this compensation function.
-  const float lerp3 = 1.0f + Luminance(reflColor) * (lerp1 * lerp2 - 1.0f);
-
-  return lerp3;
-}
 
 // GGX
 static inline float GGX_GeomShadMask(const float cosThetaN, const float alpha)
@@ -938,7 +961,7 @@ static inline float ggxEvalPDF(__global const PlainMaterial* a_pMat, const float
 
   const float D = GGX_Distribution(dotNH, roughSqr);
   const float G = GGX_GeomShadMask(dotNV, roughSqr) * GGX_GeomShadMask(dotNL, roughSqr);
-  //const float F         = 1.0f; // Fresnel is not needed here, because it is used for the blend with diffusion.
+  //const float F = 1.0f; // Fresnel is not needed here, because it is used for the blend with diffusion.
 
   return  D * dotNH / (4.0f * dotHV);
 }
@@ -963,13 +986,14 @@ static inline float3 ggxEvalBxDF(__global const PlainMaterial* a_pMat, const flo
 
   const float dotNH = dot(n, h);
 
-  const float G = GGX_GeomShadMask(dotNV, roug_sqr) * GGX_GeomShadMask(dotNL, roug_sqr);
-  const float D = GGX_Distribution(dotNH, roug_sqr);
-  //const float F       = 1.0f; // Fresnel is not needed here, because it is used for the blend with diffusion.
+  const float G     = GGX_GeomShadMask(dotNV, roug_sqr) * GGX_GeomShadMask(dotNL, roug_sqr);
+  const float D     = GGX_Distribution(dotNH, roug_sqr);
+  //const float F   = 1.0f; // Fresnel is not needed here, because it is used for the blend with diffusion.
 
-  const float multiScatterMult = GGXmultiScatterMult(gloss, dotNV, dotNL, G, color);
+  const float Ess   = D /** F*/ * G / (4.0f * dotNV * dotNL);                   // Energy single-scattering
+  const float3 Ems  = MultiScatterBRDF(gloss, dotNV, dotNL, G, Ess, color);  // Energy multiple-scattering
 
-  return color * D /** F*/ * G / (4.0f * dotNV * dotNL) * multiScatterMult;
+  return color * Ess * Ems;
 }
 
 static inline void GGXSampleAndEvalBRDF(__global const PlainMaterial* a_pMat, const float a_r1, const float a_r2, const float3 ray_dir, const float3 a_normal, const float2 a_texCoord,
@@ -1011,14 +1035,16 @@ static inline void GGXSampleAndEvalBRDF(__global const PlainMaterial* a_pMat, co
   const float dotNH = dot(a_normal, h);
   const float dotHV = dot(h, v);
 
-  const float D                 = GGX_Distribution(dotNH, roughSqr);
-  const float G                 = GGX_GeomShadMask(dotNV, roughSqr) * GGX_GeomShadMask(dotNL, roughSqr);
-  //const float F               = 1.0f; // Fresnel is not needed here, because it is used for the blend with diffusion.
-  const float multiScatterMult  = GGXmultiScatterMult(gloss, dotNV, dotNL, G, color);
+  const float D     = GGX_Distribution(dotNH, roughSqr);
+  const float G     = GGX_GeomShadMask(dotNV, roughSqr) * GGX_GeomShadMask(dotNL, roughSqr);
+  //const float F   = 1.0f; // Fresnel is not needed here, because it is used for the blend with diffusion.
+
+  const float Ess   = D /** F*/ * G / (4.0f * dotNV * dotNL);                // Energy single-scattering
+  const float3 Ems  = MultiScatterBRDF(gloss, dotNV, dotNL, G, Ess, color);  // Energy multiple-scattering
 
   a_out->direction  = newDir;
   a_out->pdf        = D * dotNH / (4.0f * dotHV);
-  a_out->color      = color * D /** F*/ * G / (4.0f * dotNV * dotNL) * multiScatterMult;
+  a_out->color      = color * Ess * Ems;
 
   if (dotNL <= 1e-6f)  // reflection under surface must be zerowed!
     a_out->color = make_float3(0, 0, 0);

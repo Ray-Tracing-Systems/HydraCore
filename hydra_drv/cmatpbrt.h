@@ -78,7 +78,7 @@ static inline float TorranceSparrowGF1(const float3 wo, const float3 wi) // in P
   const float cosThetaH = dot(wi, wh);
   const float F = 1.0f; // FrCond(cosThetaH, 5.0f, 1.25f); // fresnel->Evaluate(cosThetaH);
 
-  return fmin(TorranceSparrowG1(wo, wi, wh) * F / fmax(4.f * cosThetaI * cosThetaO, DEPSILON), 250.0f);
+  return fmin(TorranceSparrowG1(wo, wi, wh) * F / fmax(4.0f * cosThetaI * cosThetaO, DEPSILON), 250.0f);
 }
 
 static inline float TorranceSparrowGF2(const float3 wo, const float3 wi, const float3 n)  // in normal word coord system
