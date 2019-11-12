@@ -1,0 +1,236 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|Win32">
+      <Configuration>Debug</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|Win32">
+      <Configuration>Release</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Debug|x64">
+      <Configuration>Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|x64">
+      <Configuration>Release</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <ProjectGuid>{CB095789-F909-46DC-B9D6-9160BA7C508C}</ProjectGuid>
+    <Keyword>Win32Proj</Keyword>
+    <RootNamespace>hydra_drv</RootNamespace>
+    <WindowsTargetPlatformVersion>10.0.17763.0</WindowsTargetPlatformVersion>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>v141</PlatformToolset>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>v141</PlatformToolset>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>v141</PlatformToolset>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>v141</PlatformToolset>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings">
+  </ImportGroup>
+  <ImportGroup Label="Shared">
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <LinkIncremental>true</LinkIncremental>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <LinkIncremental>true</LinkIncremental>
+    <IncludePath>../../HydraAPI;../../HydraAPI/utils;../../HydraAPI/dependencies/include;$(IncludePath)</IncludePath>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <LinkIncremental>false</LinkIncremental>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <LinkIncremental>false</LinkIncremental>
+    <IncludePath>../../HydraAPI;../../HydraAPI/utils;../../HydraAPI/dependencies/include;$(IncludePath)</IncludePath>
+  </PropertyGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <ClCompile>
+      <PrecompiledHeader>
+      </PrecompiledHeader>
+      <WarningLevel>Level3</WarningLevel>
+      <Optimization>Disabled</Optimization>
+      <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </ClCompile>
+    <Link>
+      <SubSystem>Console</SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <ClCompile>
+      <PrecompiledHeader>
+      </PrecompiledHeader>
+      <WarningLevel>Level3</WarningLevel>
+      <Optimization>Disabled</Optimization>
+      <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <OpenMPSupport>false</OpenMPSupport>
+    </ClCompile>
+    <Link>
+      <SubSystem>Console</SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <PrecompiledHeader>
+      </PrecompiledHeader>
+      <Optimization>MaxSpeed</Optimization>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <PreprocessorDefinitions>WIN32;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </ClCompile>
+    <Link>
+      <SubSystem>Console</SubSystem>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <OptimizeReferences>true</OptimizeReferences>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <PrecompiledHeader>
+      </PrecompiledHeader>
+      <Optimization>MaxSpeed</Optimization>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <PreprocessorDefinitions>WIN32;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <OpenMPSupport>true</OpenMPSupport>
+    </ClCompile>
+    <Link>
+      <SubSystem>Console</SubSystem>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <OptimizeReferences>true</OptimizeReferences>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <ClInclude Include="AbstractMaterial.h" />
+    <ClInclude Include="bitonic_sort_gpu.h" />
+    <ClInclude Include="cbidir.h" />
+    <ClInclude Include="cfetch.h" />
+    <ClInclude Include="clight.h" />
+    <ClInclude Include="cl_scan_gpu.h" />
+    <ClInclude Include="cmaterial.h" />
+    <ClInclude Include="cmatpbrt.h" />
+    <ClInclude Include="CPUExp_bxdf.h" />
+    <ClInclude Include="CPUExp_Integrators.h" />
+    <ClInclude Include="crandom.h" />
+    <ClInclude Include="ctrace.h" />
+    <ClInclude Include="FastList.h" />
+    <ClInclude Include="cglobals.h" />
+    <ClInclude Include="globals_sys.h" />
+    <ClInclude Include="GPUOCLLayer.h" />
+    <ClInclude Include="HDRImageLite.h" />
+    <ClInclude Include="IHWLayer.h" />
+    <ClInclude Include="IBVHBuilderAPI.h" />
+    <ClInclude Include="IMemoryStorage.h" />
+    <ClInclude Include="MemoryStorageCPU.h" />
+    <ClInclude Include="MemoryStorageOCL.h" />
+    <ClInclude Include="RenderDriverRTE.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="Bitmap.cpp" />
+    <ClCompile Include="bitonic_sort_gpu.cpp" />
+    <ClCompile Include="cl_scan_gpu.cpp" />
+    <ClCompile Include="CPUBilateralFilter2D.cpp" />
+    <ClCompile Include="BVHBuilderLoaderWin.cpp" />
+    <ClCompile Include="CPUExpLayer.cpp" />
+    <ClCompile Include="CPUExp_GBuffer.cpp" />
+    <ClCompile Include="CPUExp_IntegratorSSS.cpp" />
+    <ClCompile Include="CPUExp_Integrators_Common.cpp" />
+    <ClCompile Include="CPUExp_Integrators_LT.cpp" />
+    <ClCompile Include="CPUExp_Integrators_MMLT.cpp" />
+    <ClCompile Include="CPUExp_Integrators_PT.cpp" />
+    <ClCompile Include="CPUExp_Integrators_PT_Loop.cpp" />
+    <ClCompile Include="CPUExp_Integrators_PT_QMC.cpp" />
+    <ClCompile Include="CPUExp_Integrators_SBDPT.cpp" />
+    <ClCompile Include="CPUExp_Integrators_ThreeWay.cpp" />
+    <ClCompile Include="CPUExp_Integrators_TwoWay.cpp" />
+    <ClCompile Include="globals_sys.cpp" />
+    <ClCompile Include="GPUOCLData.cpp" />
+    <ClCompile Include="GPUOCLKernels.cpp" />
+    <ClCompile Include="GPUOCLLayer.cpp" />
+    <ClCompile Include="GPUOCLLayerAdvanced.cpp" />
+    <ClCompile Include="GPUOCLLayerCore.cpp" />
+    <ClCompile Include="GPUOCLLayerMLT.cpp" />
+    <ClCompile Include="GPUOCLLayerOther.cpp" />
+    <ClCompile Include="GPUOCLTests.cpp" />
+    <ClCompile Include="IESRender.cpp" />
+    <ClCompile Include="IHWLayerDataAssembler.cpp" />
+    <ClCompile Include="MemoryStorageCPU.cpp" />
+    <ClCompile Include="MemoryStorageOCL.cpp" />
+    <ClCompile Include="PlainLightConverter.cpp" />
+    <ClCompile Include="PlainMaterialConverter.cpp" />
+    <ClCompile Include="qmc_sobol_niederreiter.cpp" />
+    <ClCompile Include="RenderDriverRTE.cpp" />
+    <ClCompile Include="RenderDriverRTE_AlphaTestTable.cpp" />
+    <ClCompile Include="RenderDriverRTE_AuxTextures.cpp" />
+    <ClCompile Include="RenderDriverRTE_DebugBVH.cpp" />
+    <ClCompile Include="RenderDriverRTE_PdfTables.cpp" />
+    <ClCompile Include="CPUExp_Integrators_MMLTDebug.cpp" />
+    <ClCompile Include="RenderDriverRTE_ProcTex.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\HydraAPI\hydra_api\HydraNewAPI1.vcxproj">
+      <Project>{c05ff9ea-3d61-48b7-abea-4353253691dc}</Project>
+    </ProjectReference>
+    <ProjectReference Include="..\vsgl3\vsgl3.vcxproj">
+      <Project>{2758dd4a-78f6-452f-bbf5-4e86b46bd2ea}</Project>
+    </ProjectReference>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="shaders\image.cl" />
+    <None Include="shaders\light.cl" />
+    <None Include="shaders\material.cl" />
+    <None Include="shaders\mlt.cl" />
+    <None Include="shaders\screen.cl" />
+    <None Include="shaders\sort.cl" />
+    <None Include="shaders\texproc.cl" />
+    <None Include="shaders\trace.cl" />
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets">
+  </ImportGroup>
+</Project>

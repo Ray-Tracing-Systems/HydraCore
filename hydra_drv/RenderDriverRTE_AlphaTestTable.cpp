@@ -22,16 +22,6 @@ int RenderDriverRTE::CountMaterialsWithAlphaTest()
   return numWithAlpha;
 }
 
-static inline float WrapVal(float a_val)
-{
-  if (a_val > 1.0f)
-    return a_val - float(int(a_val));
-  else if(a_val < -1.0f)
-    return float(int(a_val)) - a_val;
-  else
-    return a_val;
-}
-
 static inline unsigned int CompressTexCoord16(const float2 a_txCoord)
 {
   const float fx = WrapVal(a_txCoord.x);

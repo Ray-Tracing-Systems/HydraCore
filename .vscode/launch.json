@@ -15,7 +15,7 @@
                         //"-mmltthreads", "262144"],
                         // "-out",    "/home/frol/temp/test_out/image.png",
                         // "-outall", "/home/frol/temp/test_out/gbuff",
-                        // "-outdir", "/home/frol/temp/test_out/imgseq",
+                        // "-outdir", "/home/frol/temp2"],
                         // "-mmltthreads", "262144",
                         // "-evalgbuffer", "1",
                         // "-cl_device_id","1"],

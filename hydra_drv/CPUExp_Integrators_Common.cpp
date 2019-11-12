@@ -283,8 +283,10 @@ void IntegratorCommon::DoPass(std::vector<uint>& a_imageLDR)
   // Update HDR image
   //
   const float alpha = 1.0f / float(m_spp + 1);
-
+  
+  #ifdef NDEBUG
   #pragma omp parallel for
+  #endif
   for (int y = 0; y < m_height; y++)
   {
     for (int x = 0; x < m_width; x++)

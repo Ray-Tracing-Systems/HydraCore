@@ -726,7 +726,7 @@ __kernel void Shade(__global const float4*    restrict a_rpos,
   if (out_shadow != 0 && rayBounceNum == 0)
   {
     float shadow1 = 255.0f*0.33333f*(shadow.x + shadow.y + shadow.z);
-    if ( (cosThetaOutAux < 0.1f) || (explicitSam.cosAtLight < 0.1f && lightType(pLight) != PLAIN_LIGHT_TYPE_SKY_DOME))
+    if ( (cosThetaOutAux < 0.025f) || (explicitSam.cosAtLight < 0.025f && lightType(pLight) != PLAIN_LIGHT_TYPE_SKY_DOME))
       shadow1 = 255.0f;
    
     out_shadow[tid] = (uchar)(255.0f - clamp(shadow1, 0.0f, 255.0f));
