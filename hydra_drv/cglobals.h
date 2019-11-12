@@ -1461,6 +1461,7 @@ static inline float3 decodeNormal(uint a_data)
   return make_float3(x, y, z);
 }
 
+/*
 struct ALIGN_S(16) HitPosNormT
 {
   float  pos_x;
@@ -1489,8 +1490,9 @@ ID_CALL HitPosNorm make_HitPosNorm(float4 a_data)
   return res;
 }
 
-IDH_CALL float3 GetPos(HitPosNorm a_data) { return make_float3(a_data.pos_x, a_data.pos_y, a_data.pos_z); }
-IDH_CALL void   SetPos(__private HitPosNorm* a_pData, float3 a_pos) { a_pData->pos_x = a_pos.x; a_pData->pos_y = a_pos.y; a_pData->pos_z = a_pos.z; }
+static inline float3 GetPos(HitPosNorm a_data) { return make_float3(a_data.pos_x, a_data.pos_y, a_data.pos_z); }
+static inline void   SetPos(__private HitPosNorm* a_pData, float3 a_pos) { a_pData->pos_x = a_pos.x; a_pData->pos_y = a_pos.y; a_pData->pos_z = a_pos.z; }
+*/
 
 struct ALIGN_S(8) HitTexCoordT
 {
@@ -1509,9 +1511,9 @@ struct ALIGN_S(8) HitMatRefT
 
 typedef struct HitMatRefT HitMatRef;
 
-IDH_CALL int GetMaterialId(HitMatRef a_hitMat) { return a_hitMat.m_data; }
+static inline int GetMaterialId(HitMatRef a_hitMat) { return a_hitMat.m_data; }
 
-IDH_CALL void SetHitType(__private HitMatRef* a_pHitMat, int a_id)
+static inline void SetHitType(__private HitMatRef* a_pHitMat, int a_id)
 {
   int mask = a_id << 28;
   int m_data2 = a_pHitMat->m_data & 0x0FFFFFFF;
@@ -1519,7 +1521,7 @@ IDH_CALL void SetHitType(__private HitMatRef* a_pHitMat, int a_id)
 }
 
 
-IDH_CALL void SetMaterialId(__private HitMatRef* a_pHitMat, int a_mat_id)
+static inline void SetMaterialId(__private HitMatRef* a_pHitMat, int a_mat_id)
 {
   int mask = a_mat_id & 0x0FFFFFFF;
   int m_data2 = a_pHitMat->m_data & 0xF0000000;
@@ -1554,7 +1556,7 @@ static inline void CoordinateSystem(float3 v1, __private float3* v2, __private f
 }
 
 
-IDH_CALL float3 MapSampleToCosineDistribution(float r1, float r2, float3 direction, float3 hit_norm, float power)
+static inline float3 MapSampleToCosineDistribution(float r1, float r2, float3 direction, float3 hit_norm, float power)
 {
   if(power >= 1e6f)
     return direction;
@@ -1594,10 +1596,10 @@ IDH_CALL float3 MapSampleToCosineDistribution(float r1, float r2, float3 directi
   return res;
 }
 
-
 // Using the modified Phong reflectance model for physically based rendering
 //
-IDH_CALL float3 MapSampleToModifiedCosineDistribution(float r1, float r2, float3 direction, float3 hit_norm, float power)
+static inline float3 MapSampleToModifiedCosineDistribution(float r1, float r2, float3 direction, float3 hit_norm, float power, 
+                                                           bool* a_underSurface)
 {
   if (power >= 1e6f)
     return direction;
@@ -1623,11 +1625,15 @@ IDH_CALL float3 MapSampleToModifiedCosineDistribution(float r1, float r2, float3
     nz = temp;
   }
 
-  float3 res = nx*deviation.x + ny*deviation.y + nz*deviation.z;
+  float3 res        = nx*deviation.x + ny*deviation.y + nz*deviation.z;
+  (*a_underSurface) = false;
 
-  float invSign = dot(direction, hit_norm) >= 0.0f ? 1.0f : -1.0f;
-  if (invSign*dot(res, hit_norm) < 0.0f)                                  // reflected ray is below surface #CHECK_THIS
-    res = (-1.0f)*nx*deviation.x - ny*deviation.y + nz*deviation.z;
+  const float invSign = dot(direction, hit_norm) >= 0.0f ? 1.0f : -1.0f;
+  if (invSign*dot(res, hit_norm) < 0.0f)                           // reflected ray is below surface
+  {                                
+    res               = (-1.0f)*nx*deviation.x - ny*deviation.y + nz*deviation.z;
+    (*a_underSurface) = true;
+  } 
 
   return res;
 }

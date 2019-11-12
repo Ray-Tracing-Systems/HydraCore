@@ -24,10 +24,11 @@ Input::Input()
   //inLibraryPath = "/home/frol/PROG/HydraRepos/HydraAPI-tests/3dsMaxTests/Furnance_Lambert";
   //inLibraryPath = "/home/frol/PROG/HydraRepos/HydraAPI-tests/3dsMaxTests/Furnance_reflect_Phong";
   //inLibraryPath = "/home/frol/PROG/HydraRepos/HydraAPI-tests/3dsMaxTests/NaNwithNormalMap";
+  //inLibraryPath = "/media/frol/f5550da9-66b3-4725-940f-ba037e5ffeb2/home/frol/PROG/HydraRepos/HydraAPI-tests/3dsMaxTests/Furnance_reflect_Phong";
 
   inDevelopment = false; ///< recompile shaders each time; note that nvidia have their own shader cache!
   inDeviceId    = 0;     ///< opencl device id
-  cpuFB         = true ; ///< store frame buffer on CPU. Automaticly enabled if
+  cpuFB         = true;  ///< store frame buffer on CPU. Automaticly enabled if
   enableMLT     = false; ///< if use MMLT, you MUST enable it early, when render process just started (here or via command line).
   boxMode       = false; ///< special 'in the box' mode when render don't react to any commands
 

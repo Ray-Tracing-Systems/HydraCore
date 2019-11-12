@@ -423,13 +423,16 @@ static inline void ThinglassSampleAndEvalBRDF(__global const PlainMaterial* a_pM
   float fVal = 1.0f;
 
   if (cosPower < 1e6f)
-  {
-    float3 oldDir = ray_dir;
-    ray_dir = MapSampleToModifiedCosineDistribution(a_r1, a_r2, ray_dir, (-1.0f)*a_normal, cosPower);
+  { 
+    bool underSurface = false;
+    float3 oldDir     = ray_dir;
+    ray_dir = MapSampleToModifiedCosineDistribution(a_r1, a_r2, ray_dir, (-1.0f)*a_normal, cosPower, &underSurface);
 
     float cosTheta = clamp(dot(oldDir, ray_dir), 0.0, M_PI*0.499995f);
 
     fVal = (cosPower + 2.0f) * INV_TWOPI * pow(cosTheta, cosPower);
+    if(underSurface)
+      fVal = 0.0f;
     pdf  = pow(cosTheta, cosPower) * (cosPower + 1.0f) * (0.5f * INV_PI);
   }
 
@@ -571,15 +574,19 @@ static inline void GlassSampleAndEvalBRDF(__global const PlainMaterial* a_pMat, 
   bool  spec = true;
 
   if (cosPower < 1e6f && refractData.success)
-  {
-    float3 oldDir = refractData.ray_dir;
-    refractData.ray_dir = MapSampleToModifiedCosineDistribution(rands.x, rands.y, refractData.ray_dir, (-1.0f)*a_normal, cosPower);
+  { 
+    bool underSurface   = false;
+    float3 oldDir       = refractData.ray_dir;
+    refractData.ray_dir = MapSampleToModifiedCosineDistribution(rands.x, rands.y, refractData.ray_dir, (-1.0f)*a_normal, cosPower, &underSurface);
 
     float cosTheta = clamp(dot(oldDir, refractData.ray_dir), 0.0, M_PI*0.499995f);
 
     fVal = (cosPower + 2.0f) * INV_TWOPI * pow(cosTheta, cosPower);
     pdf  = pow(cosTheta, cosPower) * (cosPower + 1.0f) * (0.5f * INV_PI);
     spec = false;
+
+    if(underSurface)
+      fVal = 0.0f;
   } 
 
   const float cosThetaOut = dot(refractData.ray_dir, a_normal);
@@ -666,16 +673,16 @@ static inline float phongEvalPDF(__global const PlainMaterial* a_pMat, const flo
 
 static inline float PhongPreDivCosThetaFixMult(const float gloss, const float cosThetaOut)
 { 
-  //return 1.0f;
-  const float t       = sigmoid(20.0f*(gloss - 0.5f));
-  const float lerpVal = 1.0f + t * (1.0f / fmax(cosThetaOut, 1e-5f) - 1.0f); // mylerp { return u + t * (v - u); }
+  return 1.0f;
+  //const float t       = sigmoid(20.0f*(gloss - 0.5f));
+  //const float lerpVal = 1.0f + t * (1.0f / fmax(cosThetaOut, 1e-5f) - 1.0f); // mylerp { return u + t * (v - u); }
 
   //const float t = tanh(pow(gloss, 1.35f) * 3.0f);
   //const float invCosTheta = 1.0f / fmax(cosThetaOut, 1e-5f);
   //const float invCosThetaDark = invCosTheta * 0.675f;
   //const float lerpVal = invCosThetaDark + t * (invCosTheta - invCosThetaDark); // mylerp { return u + t * (v - u); }
   
-  return lerpVal;
+  //return lerpVal;
 }
 
 static inline float3 phongEvalBxDF(__global const PlainMaterial* a_pMat, const float3 l, const float3 v, const float3 n, const float2 a_texCoord, const int a_evalFlags,
@@ -706,9 +713,11 @@ static inline void PhongSampleAndEvalBRDF(__global const PlainMaterial* a_pMat, 
   const float3 color    = clamp(phongGetColor(a_pMat)*texColor, 0.0f, 1.0f);
   const float  gloss    = phongGlosiness(a_pMat, a_texCoord, a_globals, a_tex, a_ptList);
   const float  cosPower = cosPowerFromGlosiness(gloss);
-
+  
+  bool underSurface     = false;
   const float3 r        = reflect(ray_dir, a_normal);
-  const float3 newDir   = MapSampleToModifiedCosineDistribution(a_r1, a_r2, r, a_normal, cosPower);
+  const float3 newDir   = MapSampleToModifiedCosineDistribution(a_r1, a_r2, r, a_normal, cosPower, 
+                                                                &underSurface);
 
   const float cosAlpha    = clamp(dot(newDir, r), 0.0, M_PI*0.499995f);
   const float cosThetaOut = dot(newDir, a_normal); 
@@ -720,7 +729,7 @@ static inline void PhongSampleAndEvalBRDF(__global const PlainMaterial* a_pMat, 
   a_out->pdf        = powCosAlphaCosPowInvTwoPi * (cosPower + 1.0f);
   a_out->color      = powCosAlphaCosPowInvTwoPi * (cosPower + 2.0f) * color * cosThetaFix; // please see "Using the Modified Phong Reflectance Model for Physically ... 
     
-  if (cosThetaOut <= 1e-6f)                                                                // reflection under surface must be zerowed!
+  if (cosThetaOut <= 1e-6f || underSurface)                                                // reflection under surface must be zerowed!
     a_out->color = make_float3(0, 0, 0);
 
   a_out->flags = (gloss == 1.0f) ? RAY_EVENT_S : RAY_EVENT_G;
