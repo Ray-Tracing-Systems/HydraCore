@@ -86,8 +86,10 @@ static inline float3 MultiScatterBRDF(const float gloss, const float dotNV, cons
   const float invEss  = 1.0f / Pss * INV_PI;
   const float t       = EssWoComp;
   //const float3 result = invEss + t * (1.0f - invEss) * white; // lerp
+  
+  return white;
 
-  return result;
+  //return result;
 }
 
 //////////////////////////////////////////////////////////////// all other components may overlay their offsets
@@ -855,8 +857,10 @@ static inline void BlinnSampleAndEvalBRDF(__global const PlainMaterial* a_pMat, 
   const float sintheta = sqrt(fmax(0.0f, 1.0f - costheta*costheta));
   
   float3 wh = SphericalDirectionPBRT(sintheta, costheta, phi);
+
+  bool underSurface = false;
   if (!SameHemispherePBRT(wo, wh))
-    wh = wh*(-1.0f);
+    underSurface = true;//wh = wh*(-1.0f); 
 
   const float3 wi = (2.0f * dot(wo, wh) * wh) - wo; // Compute incident direction by reflecting about $\wh$
 
@@ -877,7 +881,7 @@ static inline void BlinnSampleAndEvalBRDF(__global const PlainMaterial* a_pMat, 
   a_out->pdf            = blinn_pdf;
   a_out->color          = color * Pss * Pms; // *brightBordersMult;
 
-  if(dotNL < 1e-6f)
+  if(dotNL < 1e-6f || underSurface)
     a_out->color   = make_float3(0,0,0);
 
   a_out->flags     = RAY_EVENT_G;
