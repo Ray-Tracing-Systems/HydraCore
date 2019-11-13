@@ -1127,14 +1127,19 @@ static inline float beckmannAnisotropy(__global const PlainMaterial* a_pMat, con
 { 
   const int2   texId      = make_int2(as_int(a_pMat->data[BECKMANN_ANISO_TEXID_OFFSET]), as_int(a_pMat->data[BECKMANN_ANISO_TEXMATRIXID_OFFSET]));
   const float3 anisoColor = sample2DExt(texId.y, a_texCoord, (__global const int4*)a_pMat, a_tex, a_globals, a_ptList);
-  return clamp(a_pMat->data[BECKMANN_ANISOTROPY_OFFSET]*maxcomp(anisoColor), 0.0f, 1.0f); 
+  const float texMult     = maxcomp(anisoColor); // (texId.y == INVALID_TEXTURE) ? 1.0f : 1.0f - maxcomp(anisoColor);
+
+  return clamp(a_pMat->data[BECKMANN_ANISOTROPY_OFFSET]*texMult, 0.0f, 1.0f); 
 }
 
 static inline float beckmannAnisoRot(__global const PlainMaterial* a_pMat, const float2 a_texCoord, __global const EngineGlobals* a_globals, texture2d_t a_tex, __private const ProcTextureList* a_ptList) 
 { 
   const int2   texId    = make_int2(as_int(a_pMat->data[BECKMANN_ROT_TEXID_OFFSET]), as_int(a_pMat->data[BECKMANN_ROT_TEXMATRIXID_OFFSET]));
   const float3 rotColor = sample2DExt(texId.y, a_texCoord, (__global const int4*)a_pMat, a_tex, a_globals, a_ptList);
-  return clamp(a_pMat->data[BECKMANN_ANISO_ROT_OFFSET]*maxcomp(rotColor), 0.0f, 1.0f); 
+  
+  const float texMult   = maxcomp(rotColor); //(texId.y == INVALID_TEXTURE) ? 1.0f : 1.0f - maxcomp(rotColor);
+
+  return clamp(a_pMat->data[BECKMANN_ANISO_ROT_OFFSET]*texMult, 0.0f, 1.0f); 
 }
 
 static inline float2 beckmannAlphaXY(__global const PlainMaterial* a_pMat, const float2 a_texCoord, __global const EngineGlobals* a_globals, texture2d_t a_tex, __private const ProcTextureList* a_ptList)
