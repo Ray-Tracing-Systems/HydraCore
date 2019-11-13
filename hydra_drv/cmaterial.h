@@ -1148,6 +1148,26 @@ static inline float2 beckmannAlphaXY(__global const PlainMaterial* a_pMat, const
   return make_float2(alphax, alphay);
 }
 
+static inline void BeckmanTangentSpace(__global const PlainMaterial* a_pMat, float2 alpha, float3 nz, float3 a_tan, float3 a_bitan, float2 a_texCoord,
+                                       __global const EngineGlobals* a_globals, texture2d_t a_tex, __private const ProcTextureList* a_ptList,
+                                       float3* pNx, float3* pNy)
+{
+  if(fabs(alpha.x - alpha.y) > 1.0e-5f)
+  {
+    (*pNx) = a_bitan;
+    (*pNy) = a_tan;
+
+    const float rotVal  = beckmannAnisoRot(a_pMat, a_texCoord, a_globals, a_tex, a_ptList);
+    const float4x4 mRot = RotateAroundVector4x4(nz, rotVal*M_PI*2.0f);
+    (*pNx) = mul3x3(mRot, (*pNx));
+    (*pNy) = mul3x3(mRot, (*pNy));
+  }
+  else
+  {
+    CoordinateSystem(nz, pNx, pNy);
+  } 
+}
+
 static inline float beckmannEvalPDF(__global const PlainMaterial* a_pMat, const float3 l, const float3 v, const float3 n, const float3 a_tan, const float3 a_bitan,
                                     const float2 a_texCoord, __global const EngineGlobals* a_globals, texture2d_t a_tex, __private const ProcTextureList* a_ptList)
 {
@@ -1158,20 +1178,8 @@ static inline float beckmannEvalPDF(__global const PlainMaterial* a_pMat, const 
   // wi = l = -newDir
   //
   float3 nx, ny, nz = n;
-
-  if(fabs(alpha.x - alpha.y) > 1.0e-5f)
-  {
-    nx = a_bitan;
-    ny = a_tan;
-
-    const float4x4 mRot = RotateAroundVector4x4(nz, beckmannAnisoRot(a_pMat, a_texCoord, a_globals, a_tex, a_ptList)*M_PI*2.0f);
-    nx = mul3x3(mRot, nx);
-    ny = mul3x3(mRot, ny);
-  }
-  else
-  {
-    CoordinateSystem(nz, &nx, &ny);
-  }
+  BeckmanTangentSpace(a_pMat, alpha, n, a_tan, a_bitan, a_texCoord, a_globals, a_tex, a_ptList, 
+                      &nx, &ny);
   ///////////////////////////////////////////////////////////////////////////// to PBRT coordinate system
 
   const float3 wo  = make_float3(-dot(v, nx), -dot(v, ny), -dot(v, nz));
@@ -1193,20 +1201,8 @@ static inline float3 beckmannEvalBxDF(__global const PlainMaterial* a_pMat, cons
   // wi = l = -newDir
   //
   float3 nx, ny, nz = n;
-
-  if(fabs(alpha.x - alpha.y) > 1.0e-5f)
-  {
-    nx = a_bitan;
-    ny = a_tan;
-
-    const float4x4 mRot = RotateAroundVector4x4(nz, beckmannAnisoRot(a_pMat, a_texCoord, a_globals, a_tex, a_ptList)*M_PI*2.0f);
-    nx = mul3x3(mRot, nx);
-    ny = mul3x3(mRot, ny);
-  }
-  else
-  {
-    CoordinateSystem(nz, &nx, &ny);
-  }
+  BeckmanTangentSpace(a_pMat, alpha, nz, a_tan, a_bitan, a_texCoord, a_globals, a_tex, a_ptList, 
+                      &nx, &ny);
   ///////////////////////////////////////////////////////////////////////////// to PBRT coordinate system
 
   const float3 wo  = make_float3(-dot(v, nx), -dot(v, ny), -dot(v, nz));
@@ -1227,20 +1223,8 @@ static inline void BeckmannSampleAndEvalBRDF(__global const PlainMaterial* a_pMa
   // wi = l = -newDir
   //
   float3 nx, ny, nz = a_normal;
-
-  if(fabs(alpha.x - alpha.y) > 1.0e-5f)
-  {
-    nx = a_bitan;
-    ny = a_tan;
-
-    const float4x4 mRot = RotateAroundVector4x4(nz, beckmannAnisoRot(a_pMat, a_texCoord, a_globals, a_tex, a_ptList)*M_PI*2.0f);
-    nx = mul3x3(mRot, nx);
-    ny = mul3x3(mRot, ny);
-  }
-  else
-  {
-    CoordinateSystem(nz, &nx, &ny);
-  }
+  BeckmanTangentSpace(a_pMat, alpha, nz, a_tan, a_bitan, a_texCoord, a_globals, a_tex, a_ptList, 
+                      &nx, &ny);
   ///////////////////////////////////////////////////////////////////////////// to PBRT coordinate system
 
   const float3 wo  = make_float3(-dot(ray_dir, nx), -dot(ray_dir, ny), -dot(ray_dir, nz));

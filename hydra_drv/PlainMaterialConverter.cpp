@@ -505,7 +505,7 @@ class BeckmannMaterial : public IMaterial
 public:
 
   BeckmannMaterial() {  }
-  BeckmannMaterial(float3 color, int texId, SWTexSampler a_samplerColor, float cosPower, int glossTexId, 
+  BeckmannMaterial(float3 color, SWTexSampler a_samplerColor, float cosPower, 
                    SWTexSampler a_samplerGloss, float a_glosiness, 
                    SWTexSampler a_samplerAniso, float a_aniso, 
                    SWTexSampler a_rotSampler,   float a_anisoRot)
@@ -519,14 +519,14 @@ public:
     m_plain.data[BECKMANN_ANISOTROPY_OFFSET] = a_aniso;
     m_plain.data[BECKMANN_ANISO_ROT_OFFSET]  = a_anisoRot;
 
-    ((int*)(m_plain.data))[BECKMANN_TEXID_OFFSET]           = texId;
-    ((int*)(m_plain.data))[BECKMANN_GLOSINESS_TEXID_OFFSET] = glossTexId;
+    ((int*)(m_plain.data))[BECKMANN_TEXID_OFFSET]           = a_samplerColor.texId;
+    ((int*)(m_plain.data))[BECKMANN_GLOSINESS_TEXID_OFFSET] = a_samplerGloss.texId;
     ((int*)(m_plain.data))[BECKMANN_ANISO_TEXID_OFFSET]     = a_samplerAniso.texId;
     ((int*)(m_plain.data))[BECKMANN_ROT_TEXID_OFFSET]       = a_rotSampler.texId;
 
     //////////////////////////////////////////////////////////////////////////////////////////////////////////////// put samplers right here
-    const int texMatrixId      = (texId == INVALID_TEXTURE)      ? INVALID_TEXTURE : (BECKMANN_SAMPLER0_OFFSET / 4);
-    const int glossTexMatrixId = (glossTexId == INVALID_TEXTURE) ? INVALID_TEXTURE : (BECKMANN_SAMPLER1_OFFSET / 4);
+    const int texMatrixId      = (a_samplerColor.texId == INVALID_TEXTURE) ? INVALID_TEXTURE : (BECKMANN_SAMPLER0_OFFSET / 4);
+    const int glossTexMatrixId = (a_samplerGloss.texId == INVALID_TEXTURE) ? INVALID_TEXTURE : (BECKMANN_SAMPLER1_OFFSET / 4);
 
     const int anisoTexMatrixId = (a_samplerAniso.texId == INVALID_TEXTURE) ? INVALID_TEXTURE : (BECKMANN_SAMPLER2_OFFSET / 4);
     const int rotTexMatrixId   = (a_rotSampler.texId == INVALID_TEXTURE)   ? INVALID_TEXTURE : (BECKMANN_SAMPLER3_OFFSET / 4);
@@ -543,8 +543,8 @@ public:
     SWTexSampler* pSampler4 = (SWTexSampler*)(m_plain.data + BECKMANN_SAMPLER3_OFFSET);
     (*pSampler1) = a_samplerColor;
     (*pSampler2) = a_samplerGloss;
-    (*pSampler2) = a_samplerAniso;
-    (*pSampler3) = a_rotSampler;
+    (*pSampler3) = a_samplerAniso;
+    (*pSampler4) = a_rotSampler;
     //////////////////////////////////////////////////////////////////////////////////////////////////////////////// put samplers right here
 
     ((int*)(m_plain.data))[PLAIN_MAT_TYPE_OFFSET]  = PLAIN_MAT_CLASS_BECKMANN;
@@ -1041,6 +1041,12 @@ std::shared_ptr<IMaterial> DiffuseAndTranslucentBlendMaterialFromHydraMtl(const 
 
 std::shared_ptr<IMaterial> ReflectiveMaterialFromHydraMtl(const pugi::xml_node a_node, int& a_texId, SWTexSampler& a_texSampler)
 {
+  const int32_t matId = a_node.attribute(L"id").as_int();
+  //if(matId == 3)
+  //{
+  //  int a = 2;
+  //}
+
   pugi::xml_node reflect = a_node.child(L"reflectivity");
   pugi::xml_node gloss   = reflect.child(L"glossiness");
   pugi::xml_node aniso   = reflect.child(L"anisotropy");
@@ -1096,9 +1102,9 @@ std::shared_ptr<IMaterial> ReflectiveMaterialFromHydraMtl(const pugi::xml_node a
   else if (brfdType == L"ggx" || brfdType == L"GGX")
     return std::make_shared<GGXMaterial>                 (colorS, texId, sampler, 0.0f, texIdGloss, samplerGloss, glossVal, samplerAniso, anisoVal);
   else if (brfdType == L"beckmann")
-    return std::make_shared<BeckmannMaterial>            (colorS, texId, sampler, 0.0f, texIdGloss, samplerGloss, glossVal, 
-                                                                                                    samplerAniso, anisoVal, 
-                                                                                                    samplerRot,   anisoRot);
+    return std::make_shared<BeckmannMaterial>            (colorS, sampler, 0.0f, samplerGloss, glossVal, 
+                                                                                 samplerAniso, anisoVal, 
+                                                                                 samplerRot,   anisoRot);
   else if (brfdType == L"trggx" || brfdType == L"TRGGX")
     return std::make_shared<TRGGXMaterial>               (colorS, texId, sampler, 0.0f, texIdGloss, samplerGloss, glossVal, 
                                                                                                     samplerAniso, anisoVal, 
