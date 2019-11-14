@@ -421,8 +421,8 @@ void GPUOCLLayer::RunProductionSamplingMode()
   //
   std::vector<int> allPixels = MakeAllPixelsList();
 
-  const int numPasses     = int( int64_t(m_width*m_height)*int64_t(PMPIX_SAMPLES) / int64_t(GetRayBuffSize()) );
-  const int pixelsPerPass = GetRayBuffSize() / PMPIX_SAMPLES;
+  const int pixelsPerPass = GetRayBuffSize()  / PMPIX_SAMPLES;
+  const int numPasses     =  (m_width*m_height)%pixelsPerPass == 0 ? (m_width*m_height)/pixelsPerPass : (m_width*m_height)/pixelsPerPass + 1;
 
   cl_int ciErr1 = CL_SUCCESS;
 
@@ -463,13 +463,6 @@ void GPUOCLLayer::RunProductionSamplingMode()
         break;
       }
     }
-
-    //std::cerr << "g_immediateExit = " << g_immediateExit << std::endl;
-
-    // (2) take a part of list and put it to the GPU
-    //
-    //CHECK_CL(clEnqueueWriteBuffer(m_globals.cmdQueue, pixCoordGPU, CL_TRUE, 0,
-    //                            pixelsPerPass*sizeof(int), (void*)(allPixels.data() + currPos), 0, NULL, NULL));
 
     // (3) generate PMPIX_SAMPLES rays per each pixel
     //
