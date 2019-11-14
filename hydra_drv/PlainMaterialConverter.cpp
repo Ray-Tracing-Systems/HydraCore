@@ -508,7 +508,7 @@ public:
   BeckmannMaterial(float3 color, SWTexSampler a_samplerColor, float cosPower, 
                    SWTexSampler a_samplerGloss, float a_glosiness, 
                    SWTexSampler a_samplerAniso, float a_aniso, 
-                   SWTexSampler a_rotSampler,   float a_anisoRot)
+                   SWTexSampler a_rotSampler,   float a_anisoRot, bool a_flipAxis)
   {
     m_plain.data[BECKMANN_COLORX_OFFSET] = color.x;
     m_plain.data[BECKMANN_COLORY_OFFSET] = color.y;
@@ -549,6 +549,9 @@ public:
 
     ((int*)(m_plain.data))[PLAIN_MAT_TYPE_OFFSET]  = PLAIN_MAT_CLASS_BECKMANN;
     ((int*)(m_plain.data))[PLAIN_MAT_FLAGS_OFFSET] = PLAIN_MATERIAL_CAST_CAUSTICS;
+
+    if(a_flipAxis)
+      ((int*)(m_plain.data))[PLAIN_MAT_FLAGS_OFFSET] |= PLAIN_MATERIAL_FLIP_TANGENT;
   }
 
   std::vector<PlainMaterial> ConvertToPlainMaterial() const
@@ -569,10 +572,10 @@ class TRGGXMaterial : public IMaterial
 public:
 
   TRGGXMaterial() {  }
-  TRGGXMaterial(float3 color, int texId, SWTexSampler a_samplerColor, float cosPower, int glossTexId,
+  TRGGXMaterial(float3 color, SWTexSampler a_samplerColor, float cosPower,
                 SWTexSampler a_samplerGloss, float a_glosiness,
                 SWTexSampler a_samplerAniso, float a_aniso, 
-                SWTexSampler a_rotSampler,   float a_anisoRot)
+                SWTexSampler a_rotSampler,   float a_anisoRot, bool a_flipAxis)
   {
     m_plain.data[BECKMANN_COLORX_OFFSET] = color.x;
     m_plain.data[BECKMANN_COLORY_OFFSET] = color.y;
@@ -584,24 +587,36 @@ public:
     m_plain.data[BECKMANN_ANISO_ROT_OFFSET]  = a_anisoRot;
 
 
-    ((int*)(m_plain.data))[BECKMANN_TEXID_OFFSET]           = texId;
-    ((int*)(m_plain.data))[BECKMANN_GLOSINESS_TEXID_OFFSET] = glossTexId;
+    ((int*)(m_plain.data))[BECKMANN_TEXID_OFFSET]           = a_samplerColor.texId;
+    ((int*)(m_plain.data))[BECKMANN_GLOSINESS_TEXID_OFFSET] = a_samplerGloss.texId;
 
     //////////////////////////////////////////////////////////////////////////////////////////////////////////////// put samplers right here
-    const int texMatrixId = (texId == INVALID_TEXTURE) ? INVALID_TEXTURE : (BECKMANN_SAMPLER0_OFFSET / 4);
-    const int glossTexMatrixId = (glossTexId == INVALID_TEXTURE) ? INVALID_TEXTURE : (BECKMANN_SAMPLER1_OFFSET / 4);
+    const int texMatrixId      = (a_samplerColor.texId == INVALID_TEXTURE) ? INVALID_TEXTURE : (BECKMANN_SAMPLER0_OFFSET / 4);
+    const int glossTexMatrixId = (a_samplerGloss.texId == INVALID_TEXTURE) ? INVALID_TEXTURE : (BECKMANN_SAMPLER1_OFFSET / 4);
 
-    ((int*)(m_plain.data))[BECKMANN_TEXMATRIXID_OFFSET] = texMatrixId;
+    const int anisoTexMatrixId = (a_samplerAniso.texId == INVALID_TEXTURE) ? INVALID_TEXTURE : (BECKMANN_SAMPLER2_OFFSET / 4);
+    const int rotTexMatrixId   = (a_rotSampler.texId == INVALID_TEXTURE)   ? INVALID_TEXTURE : (BECKMANN_SAMPLER3_OFFSET / 4);
+
+    ((int*)(m_plain.data))[BECKMANN_TEXMATRIXID_OFFSET]           = texMatrixId;
     ((int*)(m_plain.data))[BECKMANN_GLOSINESS_TEXMATRIXID_OFFSET] = glossTexMatrixId;
+
+    ((int*)(m_plain.data))[BECKMANN_ANISO_TEXMATRIXID_OFFSET]     = anisoTexMatrixId;
+    ((int*)(m_plain.data))[BECKMANN_ROT_TEXMATRIXID_OFFSET]       = rotTexMatrixId;
 
     SWTexSampler* pSampler1 = (SWTexSampler*)(m_plain.data + BECKMANN_SAMPLER0_OFFSET);
     SWTexSampler* pSampler2 = (SWTexSampler*)(m_plain.data + BECKMANN_SAMPLER1_OFFSET);
+    SWTexSampler* pSampler3 = (SWTexSampler*)(m_plain.data + BECKMANN_SAMPLER2_OFFSET);
+    SWTexSampler* pSampler4 = (SWTexSampler*)(m_plain.data + BECKMANN_SAMPLER3_OFFSET);
     (*pSampler1) = a_samplerColor;
     (*pSampler2) = a_samplerGloss;
+    (*pSampler3) = a_samplerAniso;
+    (*pSampler4) = a_rotSampler;
     //////////////////////////////////////////////////////////////////////////////////////////////////////////////// put samplers right here
 
     ((int*)(m_plain.data))[PLAIN_MAT_TYPE_OFFSET]  = PLAIN_MAT_CLASS_TRGGX;
     ((int*)(m_plain.data))[PLAIN_MAT_FLAGS_OFFSET] = PLAIN_MATERIAL_CAST_CAUSTICS;
+    if(a_flipAxis)
+      ((int*)(m_plain.data))[PLAIN_MAT_FLAGS_OFFSET] |= PLAIN_MATERIAL_FLIP_TANGENT;
   }
 
   std::vector<PlainMaterial> ConvertToPlainMaterial() const
@@ -1056,6 +1071,8 @@ std::shared_ptr<IMaterial> ReflectiveMaterialFromHydraMtl(const pugi::xml_node a
   const float  anisoVal = HydraXMLHelpers::ReadValue1f(aniso);
   const float  anisoRot = aniso.attribute(L"rot").as_float();
 
+  int32_t anisoFlipAxis = aniso.attribute(L"flip_axis").as_int();
+
   int32_t texId      = INVALID_TEXTURE;
   int32_t texIdGloss = INVALID_TEXTURE;
   int32_t texIdAniso = INVALID_TEXTURE;
@@ -1104,11 +1121,11 @@ std::shared_ptr<IMaterial> ReflectiveMaterialFromHydraMtl(const pugi::xml_node a
   else if (brfdType == L"beckmann")
     return std::make_shared<BeckmannMaterial>            (colorS, sampler, 0.0f, samplerGloss, glossVal, 
                                                                                  samplerAniso, anisoVal, 
-                                                                                 samplerRot,   anisoRot);
+                                                                                 samplerRot,   anisoRot, (anisoFlipAxis == 1));
   else if (brfdType == L"trggx" || brfdType == L"TRGGX")
-    return std::make_shared<TRGGXMaterial>               (colorS, texId, sampler, 0.0f, texIdGloss, samplerGloss, glossVal, 
-                                                                                                    samplerAniso, anisoVal, 
-                                                                                                    samplerRot,   anisoRot);
+    return std::make_shared<TRGGXMaterial>               (colorS, sampler, 0.0f, samplerGloss, glossVal, 
+                                                                                 samplerAniso, anisoVal, 
+                                                                                 samplerRot,   anisoRot, (anisoFlipAxis == 1));
   else
     return std::make_shared<PhongMaterial>               (colorS, texId, sampler, 0.0f, texIdGloss, samplerGloss, glossVal);
 }

@@ -1638,7 +1638,6 @@ static inline float3 MapSampleToModifiedCosineDistribution(float r1, float r2, f
   return res;
 }
 
-
 /**
 \brief  transform float2 sample in rect [-1,1]x[-1,1] to disc centered at (0,0) with radius == 1. 
 \param  xy - input sample in rect [-1,1]x[-1,1]
@@ -2693,6 +2692,7 @@ enum PLAIN_MAT_FLAGS{
   PLAIN_MATERIAL_CAMERA_MAPPED_REFL   = 32768*16,
   PLAIN_MATERIAL_EMISSIVE_SHADOW_CATCHER     = 32768*32,
   PLAIN_MATERIAL_CATCHER_FIX_BLACK_TRIANGLES = 32768*64,
+  PLAIN_MATERIAL_FLIP_TANGENT                = 32768*128,
 };
 
 #define PLAIN_MATERIAL_DATA_SIZE        192

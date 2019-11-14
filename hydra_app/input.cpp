@@ -25,6 +25,7 @@ Input::Input()
   //inLibraryPath = "/home/frol/PROG/HydraRepos/HydraAPI-tests/3dsMaxTests/Furnance_reflect_Phong";
   //inLibraryPath = "/home/frol/PROG/HydraRepos/HydraAPI-tests/3dsMaxTests/NaNwithNormalMap";
   //inLibraryPath = "/media/frol/f5550da9-66b3-4725-940f-ba037e5ffeb2/home/frol/PROG/HydraRepos/HydraAPI-tests/3dsMaxTests/Furnance_reflect_Phong";
+  //inLibraryPath = "/media/frol/f5550da9-66b3-4725-940f-ba037e5ffeb2/home/frol/PROG/HydraRepos/HydraAPI-tests/3dsMaxTests/Anisotropy_and_AreaLight_2";
 
   inDevelopment = false; ///< recompile shaders each time; note that nvidia have their own shader cache!
   inDeviceId    = 0;     ///< opencl device id
@@ -90,7 +91,6 @@ static bool ReadBoolCmd(const std::unordered_map<std::string, std::string>& a_pa
   else
     return false;
 }
-
 
 /**
 \brief  Read int from hash map. if no value was found (by key), don't overwrite 'pParam'
