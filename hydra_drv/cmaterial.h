@@ -860,7 +860,7 @@ static inline void BlinnSampleAndEvalBRDF(__global const PlainMaterial* a_pMat, 
 
   bool underSurface = false;
   if (!SameHemispherePBRT(wo, wh))
-    underSurface = true;//wh = wh*(-1.0f); 
+    underSurface = true;
 
   const float3 wi = (2.0f * dot(wo, wh) * wh) - wo; // Compute incident direction by reflecting about $\wh$
 
