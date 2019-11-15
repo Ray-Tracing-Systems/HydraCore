@@ -471,6 +471,11 @@ void GPUOCLLayer::RunProductionSamplingMode()
     const int pixelsInThisPass = (pixelsDone + pixelsPerPass <= allPixels.size()) ? pixelsPerPass : int(allPixels.size() - pixelsDone);
     const int finalSize        = PMPIX_SAMPLES*pixelsInThisPass;
 
+	  if (pass >= numPasses-5)
+	  {
+      int a = 2;
+	  }
+
     runKernel_MakeEyeRaysSpp(PMPIX_SAMPLES, 0, finalSize, pixCoordGPU,
                              m_rays.rayPos, m_rays.rayDir);
 
@@ -490,10 +495,12 @@ void GPUOCLLayer::RunProductionSamplingMode()
     CHECK_CL(clEnqueueReadBuffer(m_globals.cmdQueue, pixColorGPU, CL_TRUE, 0,
                                  pixelsInThisPass*sizeof(float4), pixColors.data(), 0, NULL, NULL));
 
-    if(pass < numPasses-1) // copy next pixels portion asynchronious
+    if(pass < numPasses-2) // copy next pixels portion asynchronious
     {
+      const int pixelsInNextPass = (pixelsDone + pixelsInThisPass <= allPixels.size()) ? pixelsPerPass : int(allPixels.size()) - pixelsDone - pixelsInThisPass;
+
       CHECK_CL(clEnqueueWriteBuffer(m_globals.cmdQueue, pixCoordGPU, CL_FALSE, 0,
-                                    pixelsInThisPass*sizeof(int), (void*)(allPixels.data() + currPos + pixelsPerPass), 0, NULL, NULL));
+                                    pixelsInNextPass*sizeof(int), (void*)(allPixels.data() + currPos + pixelsInThisPass), 0, NULL, NULL));
       clFlush(m_globals.cmdQueue);
     }
 
