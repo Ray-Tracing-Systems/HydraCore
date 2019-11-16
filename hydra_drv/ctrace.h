@@ -1962,7 +1962,9 @@ static inline SurfaceHit surfaceEvalLS(const float3 a_rpos, const float3 a_rdir,
   surfHit.tangent   = normalize((1.0f - uv.x - uv.y)*to_float3(A_tang) + uv.y*to_float3(B_tang) + uv.x*to_float3(C_tang));
   surfHit.biTangent = normalize( handedness > 0.0f ? cross(surfHit.normal, surfHit.tangent) : cross(surfHit.tangent, surfHit.normal));
   
-  if(length(surfHit.normal - surfHit.tangent) < 1e-10f)                     // broken tangent space inside model, recalculate it in some way
+  const bool badTangent = (!isfinite(surfHit.biTangent.x) || !isfinite(surfHit.biTangent.y) || !isfinite(surfHit.biTangent.z));
+
+  if(fabs(fabs(dot(surfHit.normal,surfHit.tangent)) - 1.0f) < 1e-4f || badTangent)  // broken tangent space inside model, recalculate it in some way
     CoordinateSystem(surfHit.normal, &surfHit.tangent, &surfHit.biTangent);
   
   return surfHit;
