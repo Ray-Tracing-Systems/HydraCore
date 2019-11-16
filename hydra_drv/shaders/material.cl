@@ -512,9 +512,6 @@ __kernel void HitEnvOrLightKernel(__global const float4*    restrict in_rpos,
           }
 
           ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////// \\\\\\\\\\\\\\\\\\\\\\
-            
-          if (unpackBounceNum(flags) > 0)
-            emissColor = clamp(emissColor, 0.0f, a_globals->varsF[HRT_BSDF_CLAMPING]);
 
           if (misPrev.prevMaterialOffset >= 0)
           {
@@ -738,9 +735,6 @@ __kernel void Shade(__global const float4*    restrict a_rpos,
   const float3 bxdfVal = (evalData.brdf*cosThetaOut1 + evalData.btdf*cosThetaOut2);
 
   float3 shadeColor = (explicitSam.color * (1.0f / fmax(explicitSam.pdf, DEPSILON)))*bxdfVal*misWeight*shadow; 
-
-  if (unpackBounceNum(flags) > 0)
-    shadeColor = clamp(shadeColor, 0.0f, a_globals->varsF[HRT_BSDF_CLAMPING]);
 
   float maxColorLight = fmax(explicitSam.color.x, fmax(explicitSam.color.y, explicitSam.color.z));
   float maxColorShade = fmax(shadeColor.x, fmax(shadeColor.y, shadeColor.z));

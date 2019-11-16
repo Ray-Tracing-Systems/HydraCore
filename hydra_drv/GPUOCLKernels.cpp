@@ -1368,7 +1368,6 @@ void GPUOCLLayer::float2half(const float* a_inData, size_t a_size, std::vector<c
   clReleaseMemObject(tempHalfBuff);
 }
 
-
 void GPUOCLLayer::float2half(const std::vector<float>& a_in, std::vector<cl_half>& a_out)
 {
   if (a_in.size() == 0 || a_in.size() != a_out.size())
@@ -1377,6 +1376,24 @@ void GPUOCLLayer::float2half(const std::vector<float>& a_in, std::vector<cl_half
   float2half(&a_in[0], a_in.size(), a_out);
 }
 
+void GPUOCLLayer::runKernel_ClampFloat4(cl_mem buff1, cl_float a_min, cl_float a_max, size_t a_size)
+{
+  if(buff1 == 0)
+    return;
+
+  cl_kernel kern = m_progs.screen.kernel("ClampFloat4");
+
+  size_t szLocalWorkSize = 256;
+  cl_int iNumElements    = cl_int(a_size);
+  a_size                 = roundBlocks(a_size, int(szLocalWorkSize));
+
+  CHECK_CL(clSetKernelArg(kern, 0, sizeof(cl_mem),   (void*)&buff1));
+  CHECK_CL(clSetKernelArg(kern, 1, sizeof(cl_float), (void*)&a_min));
+  CHECK_CL(clSetKernelArg(kern, 2, sizeof(cl_float), (void*)&a_max));
+  CHECK_CL(clSetKernelArg(kern, 3, sizeof(cl_int),   (void*)&iNumElements));
+
+  CHECK_CL(clEnqueueNDRangeKernel(m_globals.cmdQueue, kern, 1, NULL, &a_size, &szLocalWorkSize, 0, NULL, NULL));
+}
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////

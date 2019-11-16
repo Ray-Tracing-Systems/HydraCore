@@ -240,11 +240,9 @@ bool RenderDriverRTE::UpdateSettings(pugi::xml_node a_settingsNode)
     vars.m_varsI[HRT_ENABLE_PATH_REGENERATE] = 0;
   }
 
-  vars.m_varsF[HRT_IMAGE_GAMMA]      = 2.2f;
-  vars.m_varsF[HRT_TEXINPUT_GAMMA]   = 2.2f;
-  vars.m_varsF[HRT_BSDF_CLAMPING]    = 1e6f;
-  vars.m_varsF[HRT_ENV_CLAMPING]     = 1e6f;
-  vars.m_varsF[HRT_PATH_TRACE_ERROR] = 0.025f;
+  vars.m_varsF[HRT_IMAGE_GAMMA]         = 2.2f;
+  vars.m_varsF[HRT_TEXINPUT_GAMMA]      = 2.2f;
+  vars.m_varsF[HRT_PATH_TRACE_ERROR]    = 0.025f;
   vars.m_varsF[HRT_TRACE_PROCEEDINGS_TRESHOLD] = 1e-8f;
 
   if(a_settingsNode.child(L"mmlt_burn_iters") != nullptr)
@@ -256,6 +254,11 @@ bool RenderDriverRTE::UpdateSettings(pugi::xml_node a_settingsNode)
     vars.m_varsF[HRT_MMLT_IMPLICIT_FIXED_PROB] = clamp(a_settingsNode.child(L"mmlt_sds_fixed_prob").text().as_float(), 0.0f, 0.95f);
   else
     vars.m_varsF[HRT_MMLT_IMPLICIT_FIXED_PROB] = 0.0f;
+
+  if(a_settingsNode.child(L"clamping") != nullptr)
+    vars.m_varsF[HRT_PATH_TRACE_CLAMPING] = a_settingsNode.child(L"clamping").text().as_float();
+  else
+    vars.m_varsF[HRT_PATH_TRACE_CLAMPING] = 1e6f;
 
   vars.m_varsF[HRT_MMLT_STEP_SIZE_POWER] = 1024.0f; // (512, 1024, 2048)  -- 512 is large step, 2048 is small
   vars.m_varsF[HRT_MMLT_STEP_SIZE_COEFF] = 1.0f;    // (1.0f, 1.5f, 2.0f) -- 1.0f is normal step, 2.0f is small
