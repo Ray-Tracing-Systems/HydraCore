@@ -105,7 +105,7 @@ void IntegratorLT::ConnectEye(SurfaceHit a_hit, float3 ray_dir, float3 a_accColo
   // the conversion factor from image plane area density to surface area density
   //
   float3 camDir; float zDepth;
-  const float imageToSurfaceFactor = CameraImageToSurfaceFactor(a_hit.pos, a_hit.normal, m_pGlobals,
+  const float imageToSurfaceFactor = CameraImageToSurfaceFactor(a_hit.pos, a_hit.normal, m_pGlobals, make_float2(0,0),
                                                                 &camDir, &zDepth);
 
   if (imageToSurfaceFactor <= 0.0f)
