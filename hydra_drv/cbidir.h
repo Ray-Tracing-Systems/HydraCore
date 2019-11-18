@@ -607,7 +607,7 @@ static inline float3 environmentColorExtended(float3 ray_pos, float3 ray_dir, Mi
     const uint rayBounce     = unpackBounceNum(flags);
     unsigned int otherFlags  = unpackRayFlags(flags);
     const int backTextureId  = a_globals->varsI[HRT_SHADOW_MATTE_BACK];
-    const bool transparent   = (rayBounce == 1 && (otherFlags & RAY_EVENT_T) != 0);
+    const bool transparent   = ((otherFlags & RAY_EVENT_T) != 0) && ((otherFlags & RAY_EVENT_D) == 0) && ((otherFlags & RAY_EVENT_G) == 0); 
     
     if (backTextureId != INVALID_TEXTURE && (rayBounce == 0 || transparent))
       envColor = backColorOfSecondEnv(ray_dir, make_float2((float)screenX, (float)screenY), a_globals, in_texStorage1);
