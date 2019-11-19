@@ -1112,7 +1112,7 @@ std::shared_ptr<IMaterial> ReflectiveMaterialFromHydraMtl(const pugi::xml_node a
 
 	const std::wstring brfdType = reflect.attribute(L"brdf_type").as_string();
 
-  if (texIdGloss == INVALID_TEXTURE && (glossVal >= 0.995f && brfdType != L"beckmann"))
+  if (texIdGloss == INVALID_TEXTURE && glossVal >= 0.995f)
     return std::make_shared<MirrorMaterial>(colorS, texId, sampler);
   else if (brfdType == L"torranse_sparrow")
     return std::make_shared<BlinnTorranceSrappowMaterial>(colorS, texId, sampler, 0.0f, texIdGloss, samplerGloss, glossVal, samplerAniso, anisoVal);
