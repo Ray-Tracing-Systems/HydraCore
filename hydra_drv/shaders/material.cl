@@ -196,7 +196,7 @@ __kernel void ConnectToEyeKernel(__global const uint*          restrict a_flags,
   //surfHit.texCoordCamProj = worldPosToScreenSpaceNorm(surfHit.pos, a_globals); // in fact we don't need this for LT kernel, this is only for "ShadowCatcher2"
 
   RandomGen gen = out_gens[tid];
-  const float2 offsD11 = MapSamplesToDisc(rndFloat2_Pseudo(&gen)*2.0f - 1.0f);
+  const float2 offsD11 = MapSamplesToDisc(rndFloat2_Pseudo(&gen)*2.0f - 1.0f); // MapSamplesToDisc
   out_gens[tid] = gen;
 
   float3 camDir; float zDepth;
@@ -268,7 +268,6 @@ __kernel void ConnectToEyeKernel(__global const uint*          restrict a_flags,
       misWeight = 0.0f;
   }
 
-
   // We divide the contribution by surfaceToImageFactor to convert the (already
   // divided) pdf from surface area to image plane area, w.r.t. which the
   // pixel integral is actually defined. We also divide by the number of samples
@@ -284,8 +283,8 @@ __kernel void ConnectToEyeKernel(__global const uint*          restrict a_flags,
   int x = 65535, y = 65535;
   if (dot(sampleColor, sampleColor) > 1e-12f) // add final result to image
   {
-    //const float2 posScreenSpace = worldPosToScreenSpaceWithDOF(surfHit.pos, a_globals, offsD11);
-    const float2 posScreenSpace = worldPosToScreenSpace(surfHit.pos, a_globals);
+    const float2 posScreenSpace = worldPosToScreenSpaceWithDOF(surfHit.pos, a_globals, offsD11);
+    //const float2 posScreenSpace = worldPosToScreenSpace(surfHit.pos, a_globals);
 
     x = (int)(posScreenSpace.x);
     y = (int)(posScreenSpace.y);

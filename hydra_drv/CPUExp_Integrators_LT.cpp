@@ -6,7 +6,9 @@ void IntegratorLT::DoPass(std::vector<uint>& a_imageLDR)
   const int samplesPerPass = m_width*m_height;
   mLightSubPathCount = float(samplesPerPass);
 
+  #ifdef NDEBUG
   #pragma omp parallel for
+  #endif
   for (int i = 0; i < samplesPerPass; i++)
     DoLightPath(i);
 
@@ -151,7 +153,8 @@ void IntegratorLT::ConnectEye(SurfaceHit a_hit, float3 ray_dir, float3 a_accColo
 
     if (!HitSome(hit) || hit.t > zDepth)
     {
-      const float2 posScreenSpace = worldPosToScreenSpace(a_hit.pos, m_pGlobals);
+      const float2 posScreenSpace  = worldPosToScreenSpace(a_hit.pos, m_pGlobals);
+      //const float2 posScreenSpace2 = worldPosToScreenSpaceWithDOF(a_hit.pos, m_pGlobals, float2(0,0));
 
       const int x = int(posScreenSpace.x + 0.5f);
       const int y = int(posScreenSpace.y + 0.5f);

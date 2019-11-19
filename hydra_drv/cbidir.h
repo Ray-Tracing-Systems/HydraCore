@@ -154,7 +154,8 @@ static inline float2 worldPosToScreenSpaceWithDOF(float3 a_wpos, __global const 
   const float4 posCamSpace    = mul4x4x4(mWorldView, to_float4(a_wpos, 1.0f));
   const float4 posNDC         = mul4x4x4(make_float4x4(a_globals->mProj), posCamSpace);
   const float4 posClipSpace   = posNDC*(1.0f / fmax(posNDC.w, DEPSILON));
-  return make_float2(posClipSpace.x*0.5f + 0.5f, posClipSpace.y*0.5f + 0.5f);
+  const float2 posScreenSpace = clipSpaceToScreenSpace(posClipSpace, a_globals->varsF[HRT_WIDTH_F], a_globals->varsF[HRT_HEIGHT_F]);
+  return posScreenSpace;
 }
 
 /**
