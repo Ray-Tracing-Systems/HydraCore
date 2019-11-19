@@ -29,7 +29,7 @@ __kernel void MakeEyeShadowRays(__global const uint*          restrict a_flags,
                  &sHit);
   
   float3 camDir; float zDepth;
-  const float imageToSurfaceFactor = CameraImageToSurfaceFactor(sHit.pos, sHit.normal, a_globals,
+  const float imageToSurfaceFactor = CameraImageToSurfaceFactor(sHit.pos, sHit.normal, a_globals, make_float2(0,0),
                                                                 &camDir, &zDepth);
 
   // const int s1 = dot(camDir, sHit.normal) < 0.0f ? -1 : 1; // note that both flatNorm and sHit.normal are already fliped if they needed; so dot(camDir, sHit.normal) < -0.01f is enough
@@ -154,6 +154,7 @@ __kernel void ConnectToEyeKernel(__global const uint*          restrict a_flags,
                                  __global const int*           restrict in_lightId,
                                  __global const float*         restrict in_lsam2,
                                  __global const float4*        restrict in_procTexData,
+                                 __global RandomGen*           restrict out_gens,
                                  
                                  __global const float4*        restrict in_mtlStorage,
                                  __global const EngineGlobals* restrict a_globals,
@@ -194,8 +195,12 @@ __kernel void ConnectToEyeKernel(__global const uint*          restrict a_flags,
                  &surfHit);
   //surfHit.texCoordCamProj = worldPosToScreenSpaceNorm(surfHit.pos, a_globals); // in fact we don't need this for LT kernel, this is only for "ShadowCatcher2"
 
+  RandomGen gen = out_gens[tid];
+  const float2 offsD11 = MapSamplesToDisc(rndFloat2_Pseudo(&gen)*2.0f - 1.0f); // MapSamplesToDisc
+  out_gens[tid] = gen;
+
   float3 camDir; float zDepth;
-  const float imageToSurfaceFactor = CameraImageToSurfaceFactor(surfHit.pos, surfHit.normal, a_globals,
+  const float imageToSurfaceFactor = CameraImageToSurfaceFactor(surfHit.pos, surfHit.normal, a_globals, offsD11,
                                                                 &camDir, &zDepth);
 
   float  signOfNormal = 1.0f;
@@ -263,7 +268,6 @@ __kernel void ConnectToEyeKernel(__global const uint*          restrict a_flags,
       misWeight = 0.0f;
   }
 
-
   // We divide the contribution by surfaceToImageFactor to convert the (already
   // divided) pdf from surface area to image plane area, w.r.t. which the
   // pixel integral is actually defined. We also divide by the number of samples
@@ -279,7 +283,8 @@ __kernel void ConnectToEyeKernel(__global const uint*          restrict a_flags,
   int x = 65535, y = 65535;
   if (dot(sampleColor, sampleColor) > 1e-12f) // add final result to image
   {
-    const float2 posScreenSpace = worldPosToScreenSpace(surfHit.pos, a_globals);
+    const float2 posScreenSpace = worldPosToScreenSpaceWithDOF(surfHit.pos, a_globals, offsD11);
+    //const float2 posScreenSpace = worldPosToScreenSpace(surfHit.pos, a_globals);
 
     x = (int)(posScreenSpace.x);
     y = (int)(posScreenSpace.y);
@@ -347,7 +352,7 @@ __kernel void HitEnvOrLightKernel(__global const float4*    restrict in_rpos,
     const int screenY     = (packedXY & 0xFFFF0000) >> 16;
     
     float3 envColor = environmentColorExtended(ray_pos, ray_dir, misPrev, flags, screenX, screenY,
-                                               a_globals, in_mtlStorage, in_pdfStorage, in_texStorage1);
+                                               a_globals, in_mtlStorage, in_pdfStorage, in_texStorage1); // 18.11.2019; 20:33
     
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////// Direct/Indirect Light for MMLT/KMLT
     {
@@ -401,7 +406,7 @@ __kernel void HitEnvOrLightKernel(__global const float4*    restrict in_rpos,
       if (a_currDepth == 0)
       {
         float3 camDirDummy; float zDepthDummy;
-        const float imageToSurfaceFactor = CameraImageToSurfaceFactor(surfHit.pos, surfHit.normal, a_globals,
+        const float imageToSurfaceFactor = CameraImageToSurfaceFactor(surfHit.pos, surfHit.normal, a_globals, make_float2(0,0),
                                                                       &camDirDummy, &zDepthDummy);
 
         const float cameraPdfA = imageToSurfaceFactor / a_mLightSubPathCount;

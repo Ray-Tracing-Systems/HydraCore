@@ -145,7 +145,7 @@ void IntegratorTwoWay::TraceLightPath(float3 ray_pos, float3 ray_dir, int a_curr
 void IntegratorTwoWay::ConnectEye(SurfaceHit a_hit, float3 ray_pos, float3 ray_dir, int a_currBounce, PerRayAcc* a_pAccData, float3 a_accColor)
 {
   float3 camDir; float zDepth;
-  const float imageToSurfaceFactor = CameraImageToSurfaceFactor(a_hit.pos, a_hit.normal, m_pGlobals,
+  const float imageToSurfaceFactor = CameraImageToSurfaceFactor(a_hit.pos, a_hit.normal, m_pGlobals, make_float2(0,0),
                                                                 &camDir, &zDepth);
   if (imageToSurfaceFactor <= 0.0f)
     return;
@@ -346,7 +346,7 @@ float3 IntegratorTwoWay::PathTrace(float3 ray_pos, float3 ray_dir)
   // Compute pdf conversion factor from image plane area to surface area
   //
   float3 camDir; float zDepth;
-  const float imageToSurfaceFactor = CameraImageToSurfaceFactor(firstHit.pos, firstHit.normal, m_pGlobals,
+  const float imageToSurfaceFactor = CameraImageToSurfaceFactor(firstHit.pos, firstHit.normal, m_pGlobals, make_float2(0,0),
                                                                 &camDir, &zDepth);
 
   const float cameraPdfA = imageToSurfaceFactor / mLightSubPathCount;

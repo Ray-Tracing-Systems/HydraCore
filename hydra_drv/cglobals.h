@@ -299,6 +299,35 @@ enum MEGATEX_USAGE{ MEGATEX_SHADING      = 1,
      float sinVal = sincos(a_value, &cosVal);
      return make_float2(sinVal, cosVal);
    }
+   
+   static inline float4x4 lookAtTransposed(float3 eye, float3 center, float3 up)
+   {
+     float3 x, y, z; // basis; will make a rotation matrix
+ 
+     z.x = eye.x - center.x;
+     z.y = eye.y - center.y;
+     z.z = eye.z - center.z;
+     z = normalize(z);
+ 
+     y.x = up.x;
+     y.y = up.y;
+     y.z = up.z;
+ 
+     x = cross(y, z); // X vector = Y cross Z
+     y = cross(z, x); // Recompute Y = Z cross X
+ 
+     // cross product gives area of parallelogram, which is < 1.0 for
+     // non-perpendicular unit-length vectors; so normalize x, y here
+     x = normalize(x);
+     y = normalize(y);
+ 
+     float4x4 M;
+     M.row[0].x = x.x; M.row[1].x = x.y; M.row[2].x = x.z; M.row[3].x = -x.x * eye.x - x.y * eye.y - x.z*eye.z;
+     M.row[0].y = y.x; M.row[1].y = y.y; M.row[2].y = y.z; M.row[3].y = -y.x * eye.x - y.y * eye.y - y.z*eye.z;
+     M.row[0].z = z.x; M.row[1].z = z.y; M.row[2].z = z.z; M.row[3].z = -z.x * eye.x - z.y * eye.y - z.z*eye.z;
+     M.row[0].w = 0.0; M.row[1].w = 0.0; M.row[2].w = 0.0; M.row[3].w = 1.0;
+     return M;
+   }
 
   #else                              // Common C++
     

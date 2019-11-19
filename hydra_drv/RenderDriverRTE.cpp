@@ -1680,7 +1680,7 @@ void RenderDriverRTE::Draw()
   CalcCameraMatrices(&m_modelViewInv, &m_projInv, &mWorldView, &mProj);
 
   const float aspect = float(m_width) / float(m_height);
-  m_pHWLayer->SetCamMatrices(m_projInv.L(), m_modelViewInv.L(), mProj.L(), mWorldView.L(), aspect, DEG_TO_RAD*m_camera.fov);
+  m_pHWLayer->SetCamMatrices(m_projInv.L(), m_modelViewInv.L(), mProj.L(), mWorldView.L(), aspect, DEG_TO_RAD*m_camera.fov, m_camera.lookAt);
   m_pHWLayer->PrepareEngineGlobals();
 
   const int NUM_PASS = 1;

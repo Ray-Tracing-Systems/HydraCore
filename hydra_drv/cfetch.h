@@ -32,7 +32,9 @@ typedef struct GlobalRenderDataT
   float varsF[GMAXVARS];
   int   rmQMC[QMC_VARS_NUM];
 
-  float camForward[3];  ///< needed for light tracing
+  float camForward [3]; ///< needed for light tracing
+  float camUpVector[3]; ///< needed for light tracing
+  float camLookAt  [3]; ///< needed for light tracing
   float imagePlaneDist; ///< needed for light tracing
 
   ///////////////////////////////////////////////////////////////////////////////////////////////

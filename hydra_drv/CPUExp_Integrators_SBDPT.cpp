@@ -361,7 +361,7 @@ PathVertex IntegratorSBDPT::CameraPath(float3 ray_pos, float3 ray_dir, float3 a_
   if (a_currDepth == 1)
   {
     float3 camDirDummy; float zDepthDummy;
-    const float imageToSurfaceFactor = CameraImageToSurfaceFactor(surfElem.pos, surfElem.normal, m_pGlobals,
+    const float imageToSurfaceFactor = CameraImageToSurfaceFactor(surfElem.pos, surfElem.normal, m_pGlobals, make_float2(0,0),
                                                                   &camDirDummy, &zDepthDummy);
     const float cameraPdfA = imageToSurfaceFactor / mLightSubPathCount;
     a_perThread->pdfArray[a_fullPathDepth].pdfRev = cameraPdfA;
@@ -504,7 +504,7 @@ float3 IntegratorSBDPT::ConnectEye(const PathVertex& a_lv, int a_ltDepth,
 {
 
   float3 camDir; float zDepth;
-  const float imageToSurfaceFactor = CameraImageToSurfaceFactor(a_lv.hit.pos, a_lv.hit.normal, m_pGlobals,
+  const float imageToSurfaceFactor = CameraImageToSurfaceFactor(a_lv.hit.pos, a_lv.hit.normal, m_pGlobals, make_float2(0,0),
                                                                 &camDir, &zDepth);
 
   const PlainMaterial* pHitMaterial = materialAt(m_pGlobals, m_matStorage, a_lv.hit.matId);

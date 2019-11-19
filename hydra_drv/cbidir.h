@@ -68,19 +68,25 @@ static inline void ReadPathVertexSupplement(const __global float4* a_in, int a_t
 \param  a_hitPos  - world position point we are going to connect with camera in LT
 \param  a_hitNorm - normal of the  point we are going to connect with camera in LT
 \param  a_globals - engine globals
+\param  a_diskOffs- offset of the camera in interval [-1,1] with disk distribution; (0,0) means no offset.
 \param  pCamDir   - out parameter. Camera forward direction.
 \param  pZDepth   - out parameter. Distance between a_hitPos and camera position.
 \return pdf conversion factor from image plane area to surface area.
 
 */
 
-static inline float CameraImageToSurfaceFactor(const float3 a_hitPos, const float3 a_hitNorm, __global const EngineGlobals* a_globals,
+static inline float CameraImageToSurfaceFactor(const float3 a_hitPos, const float3 a_hitNorm, __global const EngineGlobals* a_globals, float2 a_diskOffs,
                                                __private float3* pCamDir, __private float* pZDepth)
 {
   const float4x4 mWorldViewInv  = make_float4x4(a_globals->mWorldViewInverse);
-  const float3   camPos         = mul(mWorldViewInv, make_float3(0, 0, 0));
-  const float3   camForward     = make_float3(a_globals->camForward[0], a_globals->camForward[1], a_globals->camForward[2]);
+
+  const float3   camForward     = make_float3(a_globals->camForward[0],  a_globals->camForward[1],  a_globals->camForward[2]);
+  const float3   camUp          = make_float3(a_globals->camUpVector[0], a_globals->camUpVector[1], a_globals->camUpVector[2]);
+  const float3   camLeft        = normalize(cross(camForward, camUp)); 
   const float    imagePlaneDist = a_globals->imagePlaneDist;
+
+
+  const float3 camPos = mul(mWorldViewInv, make_float3(0, 0, 0)) + camUp*a_diskOffs.y*a_globals->varsF[HRT_DOF_LENS_RADIUS] + camLeft*a_diskOffs.x*a_globals->varsF[HRT_DOF_LENS_RADIUS];
 
   const float  zDepth = length(camPos - a_hitPos);
   const float3 camDir = (1.0f / zDepth)*(camPos - a_hitPos); // normalize
@@ -134,25 +140,29 @@ static inline float2 worldPosToScreenSpaceNorm(float3 a_wpos, __global const Eng
   return make_float2(posClipSpace.x*0.5f + 0.5f, posClipSpace.y*0.5f + 0.5f);
 }
 
-static inline float2 worldPosToScreenSpaceWithDOF(float3 a_wpos, __global const EngineGlobals* a_globals, float2 in_randOffsets)
+static inline float2 worldPosToScreenSpaceWithDOF(float3 a_wpos, __global const EngineGlobals* a_globals, float2 a_diskOffs)
 {
-  const float2 offsets        = 2.0f*(in_randOffsets - make_float2(0.5f, 0.5f));
+  const float3   camForward   = make_float3(a_globals->camForward[0],  a_globals->camForward[1],  a_globals->camForward[2]);
+  const float3   camUp        = make_float3(a_globals->camUpVector[0], a_globals->camUpVector[1], a_globals->camUpVector[2]);
+  const float3   camLeft      = normalize(cross(camForward, camUp)); 
+  
+        float3   camPos       = mul(make_float4x4(a_globals->mWorldViewInverse), make_float3(0, 0, 0));
 
-  const float4 posWorldSpace  = to_float4(a_wpos, 1.0f);
-  const float4 posCamSpace    = mul4x4x4(make_float4x4(a_globals->mWorldView), posWorldSpace);
+  const float F   = a_globals->imagePlaneDist; // ?
+  const float P   = length(camPos - make_float3(a_globals->camLookAt[0], a_globals->camLookAt[1], a_globals->camLookAt[2])); // camera target distance
+  const float D   = length(a_wpos - camPos);                                                                                 // posCamSpace.z
 
-  // @{GPU Gems Chapter 23. Depth of Field: A Survey of Techniques}
-  //
+  const float PoH = (P <= D) ? 2.0f : 1.25f;
+  const float LaS = pow(fmin(fabs(P-D) / fmax(D, 1e-10f), 1.0f), PoH);
 
-  const float A = 1.0f; // ?
-  const float F = 1.0f; // ?
-  // P = camera target distance
-  // D = posCamSpace.z;
-  //
-  // C := A*( F*(P-D) )/( D*(P-F) ); 
+  const float3   camShift     = camUp*a_diskOffs.y*a_globals->varsF[HRT_DOF_LENS_RADIUS] + camLeft*a_diskOffs.x*a_globals->varsF[HRT_DOF_LENS_RADIUS];
+  const float3   camLookaAt   = make_float3(a_globals->camLookAt[0],   a_globals->camLookAt[1],   a_globals->camLookAt[2]) + LaS*camShift;
+                 camPos       = camPos + camShift;
 
- 
-  const float4 posNDC         = mul4x4x4(make_float4x4(a_globals->mProj), posCamSpace); // + C*make_float4(offsets.x, offsets.y, 0.0f, 0.0f)
+  const float4x4 mWorldView   = transpose(lookAtTransposed(camPos, camLookaAt, camUp));
+
+  const float4 posCamSpace    = mul4x4x4(mWorldView, to_float4(a_wpos, 1.0f));
+  const float4 posNDC         = mul4x4x4(make_float4x4(a_globals->mProj), posCamSpace);
   const float4 posClipSpace   = posNDC*(1.0f / fmax(posNDC.w, DEPSILON));
   const float2 posScreenSpace = clipSpaceToScreenSpace(posClipSpace, a_globals->varsF[HRT_WIDTH_F], a_globals->varsF[HRT_HEIGHT_F]);
   return posScreenSpace;

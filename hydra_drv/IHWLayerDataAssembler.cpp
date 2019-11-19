@@ -91,7 +91,7 @@ AllRenderVarialbes IHWLayer::GetAllFlagsAndVars() const
 }
 
 
-void IHWLayer::SetCamMatrices(float mProjInverse[16], float mWorldViewInverse[16], float mProj[16], float mWorldView[16], float a_aspectX, float a_fovX)
+void IHWLayer::SetCamMatrices(float mProjInverse[16], float mWorldViewInverse[16], float mProj[16], float mWorldView[16], float a_aspectX, float a_fovX, float3 a_lookAt)
 {
   memcpy(m_globsBuffHeader.mProjInverse,      mProjInverse,      sizeof(float) * 16);
   memcpy(m_globsBuffHeader.mWorldViewInverse, mWorldViewInverse, sizeof(float) * 16);
@@ -114,12 +114,26 @@ void IHWLayer::SetCamMatrices(float mProjInverse[16], float mWorldViewInverse[16
   const float4x4 mTransform = make_float4x4(mWorldViewInverse);
   const float3   camp1(0, 0, 0);
   const float3   camp2(0, 0, -1);
+  const float3   camp3(0, 1, 0);
+
   const float3   camp1t = mul(mTransform, camp1);
   const float3   camp2t = mul(mTransform, camp2);
+  const float3   camp3t = mul(mTransform, camp3);
+
   const float3   camFwd = normalize(camp2t - camp1t);
+  const float3   camUpv = normalize(camp3t - camp1t);
+
   m_globsBuffHeader.camForward[0] = camFwd.x;
   m_globsBuffHeader.camForward[1] = camFwd.y;
   m_globsBuffHeader.camForward[2] = camFwd.z;
+
+  m_globsBuffHeader.camUpVector[0] = camUpv.x; 
+  m_globsBuffHeader.camUpVector[1] = camUpv.y; 
+  m_globsBuffHeader.camUpVector[2] = camUpv.z; 
+
+  m_globsBuffHeader.camLookAt[0] = a_lookAt.x;
+  m_globsBuffHeader.camLookAt[1] = a_lookAt.y;
+  m_globsBuffHeader.camLookAt[2] = a_lookAt.z;
 
   const float fovX                 = vars.m_varsF[HRT_FOV_X];
   const float tanHalfAngle         = tanf(0.5f*fovX);
@@ -562,11 +576,11 @@ void CPUSharedData::PrepareEngineGlobals()
     //m_pIntegrator = new IntegratorStupidPT(m_width, m_height, (EngineGlobals*)&m_cdataPrepared[0]);
     //m_pIntegrator = new IntegratorShadowPT(m_width, m_height, (EngineGlobals*)&m_cdataPrepared[0]);
     //m_pIntegrator = new IntegratorMISPT(m_width, m_height, (EngineGlobals*)&m_cdataPrepared[0], 0);     //#TODO: where m_createFlags gone ???
-    m_pIntegrator = new IntegratorMISPTLoop2(m_width, m_height, (EngineGlobals*)&m_cdataPrepared[0], 0);     //#TODO: where m_createFlags gone ???
+    //m_pIntegrator = new IntegratorMISPTLoop2(m_width, m_height, (EngineGlobals*)&m_cdataPrepared[0], 0);     //#TODO: where m_createFlags gone ???
     //m_pIntegrator = new IntegratorMISPT_QMC(m_width, m_height, (EngineGlobals*)&m_cdataPrepared[0], 0);
     //m_pIntegrator = new IntegratorMISPT_AQMC(m_width, m_height, (EngineGlobals*)&m_cdataPrepared[0], 0);
    
-    //m_pIntegrator = new IntegratorLT(m_width, m_height, (EngineGlobals*)&m_cdataPrepared[0]);
+    m_pIntegrator = new IntegratorLT(m_width, m_height, (EngineGlobals*)&m_cdataPrepared[0]);
     //m_pIntegrator = new IntegratorTwoWay(m_width, m_height, (EngineGlobals*)&m_cdataPrepared[0]);
     //m_pIntegrator = new IntegratorThreeWay(m_width, m_height, (EngineGlobals*)&m_cdataPrepared[0]);  
 

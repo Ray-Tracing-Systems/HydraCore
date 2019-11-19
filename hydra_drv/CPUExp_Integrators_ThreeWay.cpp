@@ -192,7 +192,7 @@ void IntegratorThreeWay::ConnectEye(SurfaceHit a_hit, float3 ray_pos, float3 ray
                                     PerRayAcc* a_pAccData, float3 a_color)
 {
   float3 camDir; float zDepth;
-  const float imageToSurfaceFactor = CameraImageToSurfaceFactor(a_hit.pos, a_hit.normal, m_pGlobals,
+  const float imageToSurfaceFactor = CameraImageToSurfaceFactor(a_hit.pos, a_hit.normal, m_pGlobals, make_float2(0,0),
                                                                 &camDir, &zDepth);
   if (imageToSurfaceFactor <= 0.0f)
     return;
@@ -305,7 +305,7 @@ float3  IntegratorThreeWay::PathTraceAcc(float3 ray_pos, float3 ray_dir, const f
   if (a_currDepth == 0)
   {
     float3 camDirDummy; float zDepthDummy;
-    const float imageToSurfaceFactor = CameraImageToSurfaceFactor(surfElem.pos, surfElem.normal, m_pGlobals,
+    const float imageToSurfaceFactor = CameraImageToSurfaceFactor(surfElem.pos, surfElem.normal, m_pGlobals, make_float2(0,0),
                                                                   &camDirDummy, &zDepthDummy);
 
     const float cameraPdfA = imageToSurfaceFactor / mLightSubPathCount;
