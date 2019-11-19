@@ -152,8 +152,8 @@ static inline float2 worldPosToScreenSpaceWithDOF(float3 a_wpos, __global const 
   const float P   = length(camPos - make_float3(a_globals->camLookAt[0], a_globals->camLookAt[1], a_globals->camLookAt[2])); // camera target distance
   const float D   = length(a_wpos - camPos);                                                                                 // posCamSpace.z
 
-  const float PoH = 1.0f;
-  const float LaS = pow(fmin(fabs(P-D) / fmax(D, 1e-10f), 0.5f), PoH);
+  const float PoH = 1.5f;
+  const float LaS = pow(fmin(fabs(P-D) / fmax(D, 1e-10f), 1.0f), PoH);
 
   const float3   camShift     = camUp*a_diskOffs.y*a_globals->varsF[HRT_DOF_LENS_RADIUS] + camLeft*a_diskOffs.x*a_globals->varsF[HRT_DOF_LENS_RADIUS];
   const float3   camLookaAt   = make_float3(a_globals->camLookAt[0],   a_globals->camLookAt[1],   a_globals->camLookAt[2]) + LaS*camShift;
