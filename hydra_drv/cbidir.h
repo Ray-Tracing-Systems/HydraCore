@@ -145,9 +145,19 @@ static inline float2 worldPosToScreenSpaceWithDOF(float3 a_wpos, __global const 
   const float3   camForward   = make_float3(a_globals->camForward[0],  a_globals->camForward[1],  a_globals->camForward[2]);
   const float3   camUp        = make_float3(a_globals->camUpVector[0], a_globals->camUpVector[1], a_globals->camUpVector[2]);
   const float3   camLeft      = normalize(cross(camForward, camUp)); 
+  
+        float3   camPos       = mul(make_float4x4(a_globals->mWorldViewInverse), make_float3(0, 0, 0));
 
-  const float3   camLookaAt   = make_float3(a_globals->camLookAt[0],   a_globals->camLookAt[1],   a_globals->camLookAt[2]);
-  const float3   camPos       = mul(make_float4x4(a_globals->mWorldViewInverse), make_float3(0, 0, 0)) + camUp*a_diskOffs.y*a_globals->varsF[HRT_DOF_LENS_RADIUS] + camLeft*a_diskOffs.x*a_globals->varsF[HRT_DOF_LENS_RADIUS];
+  const float F   = a_globals->imagePlaneDist; // ?
+  const float P   = length(camPos - make_float3(a_globals->camLookAt[0], a_globals->camLookAt[1], a_globals->camLookAt[2])); // camera target distance
+  const float D   = length(a_wpos - camPos);                                                                                 // posCamSpace.z
+  
+  const float CoC = ( F*fabs(P-D) )/fmax( D*fabs(P-F), 1e-5f); // 0.125f*clamp(D/fmax(P, 1e-5f), 0.0f, 1.0f); //( F*fabs(P-D) )/fmax( D*fabs(P-F), 1e-5f); 
+  
+
+  const float3   camShift     = camUp*a_diskOffs.y*a_globals->varsF[HRT_DOF_LENS_RADIUS] + camLeft*a_diskOffs.x*a_globals->varsF[HRT_DOF_LENS_RADIUS];
+  const float3   camLookaAt   = make_float3(a_globals->camLookAt[0],   a_globals->camLookAt[1],   a_globals->camLookAt[2]) + CoC*camShift;
+                 camPos       = camPos + camShift;
 
   const float4x4 mWorldView   = transpose(lookAtTransposed(camPos, camLookaAt, camUp));
 
