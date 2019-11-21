@@ -1459,35 +1459,29 @@ static inline MisData makeInitialMisData()
   return data;
 }
 
-static inline uint encodeNormal(float3 n)
+static inline unsigned int encodeNormal(float3 n)
 {
-  short x = (short)(n.x*32767.0f);
-  short y = (short)(n.y*32767.0f);
+  const int x = (int)(n.x*32767.0f);
+  const int y = (int)(n.y*32767.0f);
 
-  ushort sign = (n.z >= 0) ? 0 : 1;
-
-  int sx = ((int)(x & 0xfffe) | sign);
-  int sy = ((int)(y & 0xfffe) << 16);
+  const unsigned int sign = (n.z >= 0) ? 0 : 1;
+  const unsigned int sx   = ((unsigned int)(x & 0xfffe) | sign);
+  const unsigned int sy   = ((unsigned int)(y & 0xffff) << 16);
 
   return (sx | sy);
 }
 
-static inline float3 decodeNormal(uint a_data)
-{
-  const float divInv = 1.0f / 32767.0f;
+static inline float3 decodeNormal(unsigned int a_data)
+{  
+  const unsigned int a_enc_x = (a_data  & 0x0000FFFF);
+  const unsigned int a_enc_y = ((a_data & 0xFFFF0000) >> 16);
+  const float sign           = (a_enc_x & 0x0001) ? -1.0f : 1.0f;
 
-  short a_enc_x, a_enc_y;
+  const float x = ((short)(a_enc_x & 0xfffe))*(1.0f / 32767.0f);
+  const float y = ((short)(a_enc_y & 0xffff))*(1.0f / 32767.0f);
+  const float z = sign*sqrt(fmax(1.0f - x*x - y*y, 0.0f));
 
-  a_enc_x = (short)(a_data & 0x0000FFFF);
-  a_enc_y = (short)((int)(a_data & 0xFFFF0000) >> 16);
-
-  float sign = (a_enc_x & 0x0001) ? -1.0f : 1.0f;
-
-  float x = (short)(a_enc_x & 0xfffe)*divInv;
-  float y = (short)(a_enc_y & 0xfffe)*divInv;
-  float z = sign*sqrt(fmax(1.0f - x*x - y*y, 0.0f));
-
-  return make_float3(x, y, z);
+  return float3(x, y, z);
 }
 
 /*
