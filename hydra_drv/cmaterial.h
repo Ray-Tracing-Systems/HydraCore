@@ -673,25 +673,25 @@ static inline float phongEvalPDF(__global const PlainMaterial* a_pMat, const flo
 }
 
 
-static inline float PhongPreDivCosThetaFixMult(const float gloss, const float cosThetaOut)
+static inline float PhongEnergyFix(const float dotRL, const float3 l, const float3 n, const float3 v)
 { 
-  return 1.0f;
-  //const float t       = sigmoid(20.0f*(gloss - 0.5f));
-  //const float lerpVal = 1.0f + t * (1.0f / fmax(cosThetaOut, 1e-5f) - 1.0f); // mylerp { return u + t * (v - u); }
-
-  //const float t = tanh(pow(gloss, 1.35f) * 3.0f);
-  //const float invCosTheta = 1.0f / fmax(cosThetaOut, 1e-5f);
-  //const float invCosThetaDark = invCosTheta * 0.675f;
-  //const float lerpVal = invCosThetaDark + t * (invCosTheta - invCosThetaDark); // mylerp { return u + t * (v - u); }
+  const float dotNL         = dot(n, l);
+  const float dotNV         = dot(n, (-1.0f) * v);
   
-  //return lerpVal;
+  const float geomCosFix    = 1.0f / dotNL * dotRL; // the transfer of geometric cosine in the space of reflection.
+  
+  const float volUnderSurf      = 2.0f / 3.0f * M_PI * (1.0f - dotRL); // the volume of the spherical segment 
+  const float halfVolUnderSurf  = 1.0f + volUnderSurf;// *0.5f;
+  const float power             = 1;// 0.0f + halfVolUnderSurf * (1.0f - 0.0f);
+  const float underSurfFix      = halfVolUnderSurf + dotNV * (1.0f - halfVolUnderSurf); // fix half ray under surface
+
+  return geomCosFix;// *underSurfFix;
 }
 
 static inline float3 phongEvalBxDF(__global const PlainMaterial* a_pMat, const float3 l, const float3 v, const float3 n, const float2 a_texCoord, const int a_evalFlags,
                                    __global const EngineGlobals* a_globals, texture2d_t a_tex, __private const ProcTextureList* a_ptList)
 {
   const float3 texColor = sample2DExt(phongGetTex(a_pMat).y, a_texCoord, (__global const int4*)a_pMat, a_tex, a_globals, a_ptList);
-
   const float3 color    = clamp(phongGetColor(a_pMat)*texColor, 0.0f, 1.0f);
   const float  gloss    = phongGlosiness(a_pMat, a_texCoord, a_globals, a_tex, a_ptList); 
   const float  cosPower = cosPowerFromGlosiness(gloss);
@@ -699,11 +699,9 @@ static inline float3 phongEvalBxDF(__global const PlainMaterial* a_pMat, const f
   const float3 r        = reflect((-1.0)*v, n);
   const float  cosAlpha = clamp(dot(l, r), 0.0f, M_PI*0.499995f);
 
-  //const float cosThetaV   = fabs(dot(v, n));
-  const float cosThetaL   = fabs(dot(l, n));
-  const float cosThetaFix = fmin(PhongPreDivCosThetaFixMult(gloss, fabs(cosThetaL)), 1000.0f);
+  const float energyFix = PhongEnergyFix(cosAlpha, l, n, v);
   
-  return color*(cosPower + 2.0f)*INV_TWOPI*pow(cosAlpha, cosPower)*cosThetaFix; // please see "Using the Modified Phong Reflectance Model for Physically ... 
+  return color*(cosPower + 2.0f)*INV_TWOPI*pow(cosAlpha, cosPower)*energyFix; // please see "Using the Modified Phong Reflectance Model for Physically ... 
 }
 
 static inline void PhongSampleAndEvalBRDF(__global const PlainMaterial* a_pMat, const float a_r1, const float a_r2, const float3 ray_dir, const float3 a_normal, const float2 a_texCoord,
@@ -717,20 +715,19 @@ static inline void PhongSampleAndEvalBRDF(__global const PlainMaterial* a_pMat, 
   
   bool underSurface     = false;
   const float3 r        = reflect(ray_dir, a_normal);
-  const float3 newDir   = MapSampleToModifiedCosineDistribution(a_r1, a_r2, r, a_normal, cosPower, 
-                                                                &underSurface);
+  const float3 newDir   = MapSampleToModifiedCosineDistribution(a_r1, a_r2, r, a_normal, cosPower, &underSurface);
 
   const float cosAlpha    = clamp(dot(newDir, r), 0.0, M_PI*0.499995f);
-  const float cosThetaOut = dot(newDir, a_normal); 
-  const float cosThetaFix = PhongPreDivCosThetaFixMult(gloss, fabs(cosThetaOut));
+  const float dotNL       = dot(a_normal, newDir);
+  const float energyFix   = PhongEnergyFix(cosAlpha, newDir, a_normal, ray_dir);
 
   const float powCosAlphaCosPowInvTwoPi = pow(cosAlpha, cosPower) * INV_TWOPI;
 
   a_out->direction  = newDir;
   a_out->pdf        = powCosAlphaCosPowInvTwoPi * (cosPower + 1.0f);
-  a_out->color      = powCosAlphaCosPowInvTwoPi * (cosPower + 2.0f) * color * cosThetaFix; // please see "Using the Modified Phong Reflectance Model for Physically ... 
+  a_out->color      = powCosAlphaCosPowInvTwoPi * (cosPower + 2.0f) * color * energyFix; // please see "Using the Modified Phong Reflectance Model for Physically ... 
     
-  if (cosThetaOut <= 1e-6f || underSurface)                                                // reflection under surface must be zerowed!
+  if (dotNL <= 1e-6f || underSurface)                                                // reflection under surface must be zerowed!
     a_out->color = make_float3(0, 0, 0);
 
   a_out->flags = (gloss == 1.0f) ? RAY_EVENT_S : RAY_EVENT_G;
@@ -938,8 +935,31 @@ static inline float Luminance(const float3 color) { return (color.x * 0.2126f + 
 
 
 // GGX
+static inline float GGX_HeightCorrelatedGeomShadMask(const float dotNV, const float dotNL, const float alpha)
+{
+  // Height-Correlated Masking and Shadowing function
+  // Masking
+  const float tanWo = sqrt(1.0f - dotNV * dotNV) / dotNV;
+  const float aWo = 1.0f / (alpha * tanWo);
+  const float lambdaWo = (-1.0f + sqrt(1.0f + 1.0f / (aWo*aWo))) / 2.0f;
+  // Shadowing
+  const float tanWi = sqrt(1.0f - dotNL * dotNL) / dotNL;
+  const float aWi = 1.0f / (alpha * tanWi);
+  const float lambdaWi = (-1.0f + sqrt(1.0f + 1.0f / (aWi*aWi))) / 2.0f;
+  // Full
+  const float G = 1.0f / (1.0f + lambdaWo + lambdaWi);
+  return G;
+}
+
 static inline float GGX_GeomShadMask(const float cosThetaN, const float alpha)
 {
+  // Height - Correlated G.
+  //const float tanNV      = sqrt(1.0f - cosThetaN * cosThetaN) / cosThetaN;
+  //const float a          = 1.0f / (alpha * tanNV);
+  //const float lambda     = (-1.0f + sqrt(1.0f + 1.0f / (a*a))) / 2.0f;
+  //const float G          = 1.0f / (1.0f + lambda);
+
+  // Optimized and equal to the commented-out formulas on top.
   const float cosTheta_sqr = clamp(cosThetaN*cosThetaN, 0.0f, 1.0f);
   const float tan2         = (1.0f - cosTheta_sqr) / cosTheta_sqr;
   const float GP           = 2.0f / (1.0f + sqrt(1.0f + alpha * alpha * tan2));
@@ -994,19 +1014,19 @@ static inline float3 ggxEvalBxDF(__global const PlainMaterial* a_pMat, const flo
   const float maxColor  = max(color.x, max(color.y, color.z));
   const float  gloss    = ggxGlosiness(a_pMat, a_texCoord, a_globals, a_tex, a_ptList);
   const float roughness = 1.0f - gloss;
-  const float roug_sqr  = roughness * roughness;
+  const float roughSqr  = roughness * roughness;
 
   const float3 h    = normalize(v + l); // half vector.
   const float dotNH = dot(n, h);
 
-  const float D     = GGX_Distribution(dotNH, roug_sqr);
-  const float G     = GGX_GeomShadMask(dotNV, roug_sqr) * GGX_GeomShadMask(dotNL, roug_sqr);
-  //const float F   = 1.0f; // Fresnel is not needed here, because it is used for the blend with diffusion.
+  const float D     = GGX_Distribution(dotNH, roughSqr);
+  //const float G     = GGX_GeomShadMask(dotNV, roughSqr)*GGX_GeomShadMask(dotNL, roughSqr); more correctly than a simple multiplication of masks.
+  const float G     = GGX_HeightCorrelatedGeomShadMask(dotNV, dotNL, roughSqr);
+  //const float F   = 1.0f;                                                       // Fresnel is not needed here, because it is used for the blend with diffusion.
 
-  const float Pss   = D /** F*/ * G / (4.0f * dotNV * dotNL);                // Pass single-scattering
-  const float Pms   = 1.0f;// MultiScatterBRDF(gloss, dotNV, dotNL, G, Pss, color);  // Pass multiple-scattering
+  const float Pss   = D /** F*/ * G / (4.0f * dotNV * dotNL);                     // Pass single-scattering
 
-  return color * Pss * Pms;
+  return color * Pss;
 }
 
 static inline void GGXSampleAndEvalBRDF(__global const PlainMaterial* a_pMat, const float a_r1, const float a_r2, const float3 ray_dir, const float3 a_normal, const float2 a_texCoord,
@@ -1042,23 +1062,24 @@ static inline void GGXSampleAndEvalBRDF(__global const PlainMaterial* a_pMat, co
   const float3 v    = (-1.0f) * ray_dir;
   const float3 l    = newDir;
   const float3 h    = normalize(v + l);                   // half vector.
-  const float dotNL = dot(a_normal, l);
-  const float dotNV = dot(a_normal, v);
-  const float dotNH = dot(a_normal, h);
-  const float dotHV = dot(h, v);
+  const float dotNL = clamp(dot(a_normal, l), 0.0f, 1.0f);
+  const float dotNV = clamp(dot(a_normal, v), 0.0f, 1.0f);
+  const float dotNH = clamp(dot(a_normal, h), 0.0f, 1.0f);
+  const float dotHV = clamp(dot(h, v), 0.0f, 1.0f);
+  const float dotHL = clamp(dot(h, l), 0.0f, 1.0f);
     
   const float D     = GGX_Distribution(dotNH, roughSqr);
-  const float G     = GGX_GeomShadMask(dotNV, roughSqr) * GGX_GeomShadMask(dotNL, roughSqr);
-  //const float F   = 1.0f; // Fresnel is not needed here, because it is used for the blend with diffusion.
+  //const float G     = GGX_GeomShadMask(dotNV, roughSqr) * GGX_GeomShadMask(dotNL, roughSqr); 
+  const float G     = GGX_HeightCorrelatedGeomShadMask(dotNV, dotNL, roughSqr); // more correctly than a simple multiplication of masks.
+  //const float F   = 1.0f;                                                     // Fresnel is not needed here, because it is used for the blend with diffusion.
 
   const float Pss   = D /** F*/ * G / (4.0f * dotNV * dotNL);                   // Pass single-scattering
-  const float Pms   = 1.0f; // MultiScatterBRDF(gloss, dotNV, dotNL, G, Pss, color);  // Pass multiple-scattering
-
+  
   a_out->direction  = newDir;
   a_out->pdf        = D * dotNH / (4.0f * dotHV);    
-  a_out->color      = color * Pss * Pms;  
+  a_out->color      = color * Pss;  
 
-  if (dotNV <= 0.0f || dotNL <= 1e-6f || underSurface) // reflection under surface must be zerowed!
+  if (dotNV <= 1e-6f || dotNL <= 1e-6f || underSurface) // reflection under surface must be zerowed!
     a_out->color = make_float3(0, 0, 0);
 
   a_out->flags = (gloss == 1.0f) ? RAY_EVENT_S : RAY_EVENT_G;
