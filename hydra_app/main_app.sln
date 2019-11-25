@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio 14
-VisualStudioVersion = 14.0.25420.1
+# Visual Studio 15
+VisualStudioVersion = 15.0.28307.705
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "hydra", "main_app.vcxproj", "{ACF3BDA6-E228-4015-A8C6-4450AFACDE39}"
 	ProjectSection(ProjectDependencies) = postProject
@@ -29,6 +29,8 @@ EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ies_parser", "..\..\HydraAPI\utils\ies_parser\ies_parser.vcxproj", "{1D53B494-4B7E-464B-82A1-A2052240F6EF}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "mikktspace", "..\..\HydraAPI\utils\mikktspace\mikktspace.vcxproj", "{7844C04D-F5D4-4C90-B080-6744A10C3332}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "bakeBrdfEnergy", "..\bakeBrdfEnergy\bakeBrdfEnergy.vcxproj", "{505E34E5-697D-4474-A9AC-263EABB3B170}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -108,6 +110,14 @@ Global
 		{7844C04D-F5D4-4C90-B080-6744A10C3332}.Release|x64.Build.0 = Release|x64
 		{7844C04D-F5D4-4C90-B080-6744A10C3332}.Release|x86.ActiveCfg = Release|Win32
 		{7844C04D-F5D4-4C90-B080-6744A10C3332}.Release|x86.Build.0 = Release|Win32
+		{505E34E5-697D-4474-A9AC-263EABB3B170}.Debug|x64.ActiveCfg = Debug|x64
+		{505E34E5-697D-4474-A9AC-263EABB3B170}.Debug|x64.Build.0 = Debug|x64
+		{505E34E5-697D-4474-A9AC-263EABB3B170}.Debug|x86.ActiveCfg = Debug|Win32
+		{505E34E5-697D-4474-A9AC-263EABB3B170}.Debug|x86.Build.0 = Debug|Win32
+		{505E34E5-697D-4474-A9AC-263EABB3B170}.Release|x64.ActiveCfg = Release|x64
+		{505E34E5-697D-4474-A9AC-263EABB3B170}.Release|x64.Build.0 = Release|x64
+		{505E34E5-697D-4474-A9AC-263EABB3B170}.Release|x86.ActiveCfg = Release|Win32
+		{505E34E5-697D-4474-A9AC-263EABB3B170}.Release|x86.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
