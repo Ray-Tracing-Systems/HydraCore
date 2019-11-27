@@ -1481,7 +1481,7 @@ static inline float3 decodeNormal(unsigned int a_data)
   const float y = ((short)(a_enc_y & 0xffff))*(1.0f / 32767.0f);
   const float z = sign*sqrt(fmax(1.0f - x*x - y*y, 0.0f));
 
-  return float3(x, y, z);
+  return make_float3(x, y, z);
 }
 
 /*
