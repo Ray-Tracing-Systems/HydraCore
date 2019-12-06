@@ -1,4 +1,4 @@
-// � Copyright 2017 Vladimir Frolov, MSU Grapics & Media Lab
+// Copyright 2017 Vladimir Frolov, MSU Grapics & Media Lab
 //
 
 #include "AbstractMaterial.h"
@@ -466,14 +466,17 @@ class BlinnTorranceSrappowMaterial : public IMaterial
 public:
 
   BlinnTorranceSrappowMaterial() {}
-  BlinnTorranceSrappowMaterial(float3 color, int texId, SWTexSampler a_samplerColor, float cosPower, int glossTexId, SWTexSampler a_samplerGloss, float a_glosiness)
+  BlinnTorranceSrappowMaterial(float3 color, int texId, SWTexSampler a_samplerColor, float cosPower, int glossTexId, 
+                               SWTexSampler a_samplerGloss, float a_glosiness,
+                               SWTexSampler a_samplerAniso, float a_anisotropy)
   {
     m_plain.data[BLINN_COLORX_OFFSET] = color.x;
     m_plain.data[BLINN_COLORY_OFFSET] = color.y;
     m_plain.data[BLINN_COLORZ_OFFSET] = color.z;
 
-    m_plain.data[BLINN_COSPOWER_OFFSET]  = cosPower;
-    m_plain.data[BLINN_GLOSINESS_OFFSET] = a_glosiness; 
+    m_plain.data[BLINN_COSPOWER_OFFSET]    = cosPower;
+    m_plain.data[BLINN_GLOSINESS_OFFSET]   = a_glosiness; 
+    m_plain.data[BLINN_ANISOTROPY_OFFSET]  = a_anisotropy; 
 
     this->PutSamplerAt(texId,      a_samplerColor, BLINN_TEXID_OFFSET,           BLINN_TEXMATRIXID_OFFSET,           BLINN_SAMPLER0_OFFSET);
     this->PutSamplerAt(glossTexId, a_samplerGloss, BLINN_GLOSINESS_TEXID_OFFSET, BLINN_GLOSINESS_TEXMATRIXID_OFFSET, BLINN_SAMPLER1_OFFSET);
@@ -494,6 +497,191 @@ protected:
 
 
 };
+
+
+class BeckmannMaterial : public IMaterial
+{
+
+public:
+
+  BeckmannMaterial() {  }
+  BeckmannMaterial(float3 color, SWTexSampler a_samplerColor, float cosPower, 
+                   SWTexSampler a_samplerGloss, float a_glosiness, 
+                   SWTexSampler a_samplerAniso, float a_aniso, 
+                   SWTexSampler a_rotSampler,   float a_anisoRot, bool a_flipAxis)
+  {
+    m_plain.data[BECKMANN_COLORX_OFFSET] = color.x;
+    m_plain.data[BECKMANN_COLORY_OFFSET] = color.y;
+    m_plain.data[BECKMANN_COLORZ_OFFSET] = color.z;
+
+    m_plain.data[BECKMANN_COSPOWER_OFFSET]   = cosPower;
+    m_plain.data[BECKMANN_GLOSINESS_OFFSET]  = a_glosiness;
+    m_plain.data[BECKMANN_ANISOTROPY_OFFSET] = a_aniso;
+    m_plain.data[BECKMANN_ANISO_ROT_OFFSET]  = a_anisoRot;
+
+    ((int*)(m_plain.data))[BECKMANN_TEXID_OFFSET]           = a_samplerColor.texId;
+    ((int*)(m_plain.data))[BECKMANN_GLOSINESS_TEXID_OFFSET] = a_samplerGloss.texId;
+    ((int*)(m_plain.data))[BECKMANN_ANISO_TEXID_OFFSET]     = a_samplerAniso.texId;
+    ((int*)(m_plain.data))[BECKMANN_ROT_TEXID_OFFSET]       = a_rotSampler.texId;
+
+    //////////////////////////////////////////////////////////////////////////////////////////////////////////////// put samplers right here
+    const int texMatrixId      = (a_samplerColor.texId == INVALID_TEXTURE) ? INVALID_TEXTURE : (BECKMANN_SAMPLER0_OFFSET / 4);
+    const int glossTexMatrixId = (a_samplerGloss.texId == INVALID_TEXTURE) ? INVALID_TEXTURE : (BECKMANN_SAMPLER1_OFFSET / 4);
+
+    const int anisoTexMatrixId = (a_samplerAniso.texId == INVALID_TEXTURE) ? INVALID_TEXTURE : (BECKMANN_SAMPLER2_OFFSET / 4);
+    const int rotTexMatrixId   = (a_rotSampler.texId == INVALID_TEXTURE)   ? INVALID_TEXTURE : (BECKMANN_SAMPLER3_OFFSET / 4);
+
+    ((int*)(m_plain.data))[BECKMANN_TEXMATRIXID_OFFSET]           = texMatrixId;
+    ((int*)(m_plain.data))[BECKMANN_GLOSINESS_TEXMATRIXID_OFFSET] = glossTexMatrixId;
+
+    ((int*)(m_plain.data))[BECKMANN_ANISO_TEXMATRIXID_OFFSET]     = anisoTexMatrixId;
+    ((int*)(m_plain.data))[BECKMANN_ROT_TEXMATRIXID_OFFSET]       = rotTexMatrixId;
+
+    SWTexSampler* pSampler1 = (SWTexSampler*)(m_plain.data + BECKMANN_SAMPLER0_OFFSET);
+    SWTexSampler* pSampler2 = (SWTexSampler*)(m_plain.data + BECKMANN_SAMPLER1_OFFSET);
+    SWTexSampler* pSampler3 = (SWTexSampler*)(m_plain.data + BECKMANN_SAMPLER2_OFFSET);
+    SWTexSampler* pSampler4 = (SWTexSampler*)(m_plain.data + BECKMANN_SAMPLER3_OFFSET);
+    (*pSampler1) = a_samplerColor;
+    (*pSampler2) = a_samplerGloss;
+    (*pSampler3) = a_samplerAniso;
+    (*pSampler4) = a_rotSampler;
+    //////////////////////////////////////////////////////////////////////////////////////////////////////////////// put samplers right here
+
+    ((int*)(m_plain.data))[PLAIN_MAT_TYPE_OFFSET]  = PLAIN_MAT_CLASS_BECKMANN;
+    ((int*)(m_plain.data))[PLAIN_MAT_FLAGS_OFFSET] = PLAIN_MATERIAL_CAST_CAUSTICS;
+
+    if(a_flipAxis)
+      ((int*)(m_plain.data))[PLAIN_MAT_FLAGS_OFFSET] |= PLAIN_MATERIAL_FLIP_TANGENT;
+  }
+
+  std::vector<PlainMaterial> ConvertToPlainMaterial() const
+  {
+    std::vector<PlainMaterial> res(1);
+    res[0] = m_plain;
+    return res;
+  }
+
+protected:
+
+
+};
+
+class TRGGXMaterial : public IMaterial
+{
+
+public:
+
+  TRGGXMaterial() {  }
+  TRGGXMaterial(float3 color, SWTexSampler a_samplerColor, float cosPower,
+                SWTexSampler a_samplerGloss, float a_glosiness,
+                SWTexSampler a_samplerAniso, float a_aniso, 
+                SWTexSampler a_rotSampler,   float a_anisoRot, bool a_flipAxis)
+  {
+    m_plain.data[BECKMANN_COLORX_OFFSET] = color.x;
+    m_plain.data[BECKMANN_COLORY_OFFSET] = color.y;
+    m_plain.data[BECKMANN_COLORZ_OFFSET] = color.z;
+
+    m_plain.data[BECKMANN_COSPOWER_OFFSET]   = cosPower;
+    m_plain.data[BECKMANN_GLOSINESS_OFFSET]  = a_glosiness;
+    m_plain.data[BECKMANN_ANISOTROPY_OFFSET] = a_aniso;
+    m_plain.data[BECKMANN_ANISO_ROT_OFFSET]  = a_anisoRot;
+
+
+    ((int*)(m_plain.data))[BECKMANN_TEXID_OFFSET]           = a_samplerColor.texId;
+    ((int*)(m_plain.data))[BECKMANN_GLOSINESS_TEXID_OFFSET] = a_samplerGloss.texId;
+
+    //////////////////////////////////////////////////////////////////////////////////////////////////////////////// put samplers right here
+    const int texMatrixId      = (a_samplerColor.texId == INVALID_TEXTURE) ? INVALID_TEXTURE : (BECKMANN_SAMPLER0_OFFSET / 4);
+    const int glossTexMatrixId = (a_samplerGloss.texId == INVALID_TEXTURE) ? INVALID_TEXTURE : (BECKMANN_SAMPLER1_OFFSET / 4);
+
+    const int anisoTexMatrixId = (a_samplerAniso.texId == INVALID_TEXTURE) ? INVALID_TEXTURE : (BECKMANN_SAMPLER2_OFFSET / 4);
+    const int rotTexMatrixId   = (a_rotSampler.texId == INVALID_TEXTURE)   ? INVALID_TEXTURE : (BECKMANN_SAMPLER3_OFFSET / 4);
+
+    ((int*)(m_plain.data))[BECKMANN_TEXMATRIXID_OFFSET]           = texMatrixId;
+    ((int*)(m_plain.data))[BECKMANN_GLOSINESS_TEXMATRIXID_OFFSET] = glossTexMatrixId;
+
+    ((int*)(m_plain.data))[BECKMANN_ANISO_TEXMATRIXID_OFFSET]     = anisoTexMatrixId;
+    ((int*)(m_plain.data))[BECKMANN_ROT_TEXMATRIXID_OFFSET]       = rotTexMatrixId;
+
+    SWTexSampler* pSampler1 = (SWTexSampler*)(m_plain.data + BECKMANN_SAMPLER0_OFFSET);
+    SWTexSampler* pSampler2 = (SWTexSampler*)(m_plain.data + BECKMANN_SAMPLER1_OFFSET);
+    SWTexSampler* pSampler3 = (SWTexSampler*)(m_plain.data + BECKMANN_SAMPLER2_OFFSET);
+    SWTexSampler* pSampler4 = (SWTexSampler*)(m_plain.data + BECKMANN_SAMPLER3_OFFSET);
+    (*pSampler1) = a_samplerColor;
+    (*pSampler2) = a_samplerGloss;
+    (*pSampler3) = a_samplerAniso;
+    (*pSampler4) = a_rotSampler;
+    //////////////////////////////////////////////////////////////////////////////////////////////////////////////// put samplers right here
+
+    ((int*)(m_plain.data))[PLAIN_MAT_TYPE_OFFSET]  = PLAIN_MAT_CLASS_TRGGX;
+    ((int*)(m_plain.data))[PLAIN_MAT_FLAGS_OFFSET] = PLAIN_MATERIAL_CAST_CAUSTICS;
+    if(a_flipAxis)
+      ((int*)(m_plain.data))[PLAIN_MAT_FLAGS_OFFSET] |= PLAIN_MATERIAL_FLIP_TANGENT;
+  }
+
+  std::vector<PlainMaterial> ConvertToPlainMaterial() const
+  {
+    std::vector<PlainMaterial> res(1);
+    res[0] = m_plain;
+    return res;
+  }
+
+protected:
+
+
+};
+
+
+
+class GGXMaterial : public IMaterial
+{
+
+public:
+
+  GGXMaterial() {  }
+  GGXMaterial(float3 color, int texId, SWTexSampler a_samplerColor, float cosPower, int glossTexId, 
+              SWTexSampler a_samplerGloss, float a_glosiness, 
+              SWTexSampler a_samplerAniso, float a_aniso)
+  {
+    m_plain.data[GGX_COLORX_OFFSET] = color.x;
+    m_plain.data[GGX_COLORY_OFFSET] = color.y;
+    m_plain.data[GGX_COLORZ_OFFSET] = color.z;
+
+    m_plain.data[GGX_COSPOWER_OFFSET]  = cosPower;
+    m_plain.data[GGX_GLOSINESS_OFFSET] = a_glosiness;
+
+    ((int*)(m_plain.data))[GGX_TEXID_OFFSET]           = texId;
+    ((int*)(m_plain.data))[GGX_GLOSINESS_TEXID_OFFSET] = glossTexId;
+
+    //////////////////////////////////////////////////////////////////////////////////////////////////////////////// put samplers right here
+    const int texMatrixId      = (texId == INVALID_TEXTURE)      ? INVALID_TEXTURE : (GGX_SAMPLER0_OFFSET / 4);
+    const int glossTexMatrixId = (glossTexId == INVALID_TEXTURE) ? INVALID_TEXTURE : (GGX_SAMPLER1_OFFSET / 4);
+
+    ((int*)(m_plain.data))[GGX_TEXMATRIXID_OFFSET]           = texMatrixId;
+    ((int*)(m_plain.data))[GGX_GLOSINESS_TEXMATRIXID_OFFSET] = glossTexMatrixId;
+
+    SWTexSampler* pSampler1 = (SWTexSampler*)(m_plain.data + GGX_SAMPLER0_OFFSET);
+    SWTexSampler* pSampler2 = (SWTexSampler*)(m_plain.data + GGX_SAMPLER1_OFFSET);
+    (*pSampler1) = a_samplerColor;
+    (*pSampler2) = a_samplerGloss;
+    //////////////////////////////////////////////////////////////////////////////////////////////////////////////// put samplers right here
+
+    ((int*)(m_plain.data))[PLAIN_MAT_TYPE_OFFSET]  = PLAIN_MAT_CLASS_GGX;
+    ((int*)(m_plain.data))[PLAIN_MAT_FLAGS_OFFSET] = PLAIN_MATERIAL_CAST_CAUSTICS;
+  }
+
+  std::vector<PlainMaterial> ConvertToPlainMaterial() const
+  {
+    std::vector<PlainMaterial> res(1);
+    res[0] = m_plain;
+    return res;
+  }
+
+protected:
+
+
+};
+
 
 
 
@@ -704,6 +892,12 @@ const pugi::xml_node SamplerNode(const pugi::xml_node a_node)
     return a_node.child(L"texture");
 }
 
+const pugi::xml_node SamplerNodeRot(const pugi::xml_node a_node)
+{
+  return a_node.child(L"texture_rot");
+}
+
+
 SWTexSampler SamplerFromTexref(const pugi::xml_node a_node, bool allowAlphaToRGB = false)
 {
   SWTexSampler res = DummySampler();
@@ -730,6 +924,7 @@ SWTexSampler SamplerFromTexref(const pugi::xml_node a_node, bool allowAlphaToRGB
   const std::wstring modeV    = a_node.attribute(L"addressing_mode_v").as_string();
   const std::wstring modeS    = a_node.attribute(L"filter").as_string();
   const std::wstring alphaSrc = a_node.attribute(L"input_alpha").as_string(); 
+  const std::wstring channel  = a_node.attribute(L"channel").as_string(); 
 
   if (modeU == L"clamp")
   	res.flags |= TEX_CLAMP_U;
@@ -742,6 +937,11 @@ SWTexSampler SamplerFromTexref(const pugi::xml_node a_node, bool allowAlphaToRGB
 
   if (allowAlphaToRGB && alphaSrc == L"alpha")
     res.flags |= TEX_ALPHASRC_W;
+
+  if(channel == L"1")
+    res.flags |= TEX_COORD_SECOND;
+  else if(channel == L"camera_mapped")  
+    res.flags |= TEX_COORD_CAM_PROJ;
 
   return res;
 }
@@ -856,40 +1056,76 @@ std::shared_ptr<IMaterial> DiffuseAndTranslucentBlendMaterialFromHydraMtl(const 
 
 std::shared_ptr<IMaterial> ReflectiveMaterialFromHydraMtl(const pugi::xml_node a_node, int& a_texId, SWTexSampler& a_texSampler)
 {
+  const int32_t matId = a_node.attribute(L"id").as_int();
+  //if(matId == 3)
+  //{
+  //  int a = 2;
+  //}
+
   pugi::xml_node reflect = a_node.child(L"reflectivity");
   pugi::xml_node gloss   = reflect.child(L"glossiness");
+  pugi::xml_node aniso   = reflect.child(L"anisotropy");
 
   const float3 colorS   = HydraXMLHelpers::ReadValue3f(reflect.child(L"color"));
   const float  glossVal = HydraXMLHelpers::ReadValue1f(gloss);
+  const float  anisoVal = HydraXMLHelpers::ReadValue1f(aniso);
+  const float  anisoRot = aniso.attribute(L"rot").as_float();
 
-  int32_t texId = INVALID_TEXTURE;
+  int32_t anisoFlipAxis = aniso.attribute(L"flip_axis").as_int();
+
+  int32_t texId      = INVALID_TEXTURE;
+  int32_t texIdGloss = INVALID_TEXTURE;
+  int32_t texIdAniso = INVALID_TEXTURE;
+  int32_t texIdRot   = INVALID_TEXTURE;
 
   SWTexSampler sampler      = DummySampler();
   SWTexSampler samplerGloss = DummySampler();
-  if (SamplerNode(reflect) != nullptr)
+  SWTexSampler samplerAniso = DummySampler();
+  SWTexSampler samplerRot   = DummySampler();
+
+  if(SamplerNode(reflect) != nullptr)
   {
     sampler = SamplerFromTexref(SamplerNode(reflect));
     texId   = sampler.texId;
   }
 
-	a_texId      = texId;
-	a_texSampler = sampler;
-
-  int32_t texIdGloss = INVALID_TEXTURE;
-
-  if (SamplerNode(gloss) != nullptr)
+  if(SamplerNode(gloss) != nullptr)
   {
     samplerGloss = SamplerFromTexref(SamplerNode(gloss));
     texIdGloss   = samplerGloss.texId;
   }
 
+  if(SamplerNode(aniso) != nullptr)
+  {
+    samplerAniso = SamplerFromTexref(SamplerNode(aniso));
+    texIdAniso   = samplerAniso.texId;
+  }
+
+  if(SamplerNodeRot(aniso) != nullptr)
+  {
+    samplerRot = SamplerFromTexref(SamplerNodeRot(aniso));
+    texIdRot   = samplerRot.texId;
+  }
+
+  a_texId      = texId;
+	a_texSampler = sampler;
 
 	const std::wstring brfdType = reflect.attribute(L"brdf_type").as_string();
 
   if (texIdGloss == INVALID_TEXTURE && glossVal >= 0.995f)
     return std::make_shared<MirrorMaterial>(colorS, texId, sampler);
   else if (brfdType == L"torranse_sparrow")
-    return std::make_shared<BlinnTorranceSrappowMaterial>(colorS, texId, sampler, 0.0f, texIdGloss, samplerGloss, glossVal);
+    return std::make_shared<BlinnTorranceSrappowMaterial>(colorS, texId, sampler, 0.0f, texIdGloss, samplerGloss, glossVal, samplerAniso, anisoVal);
+  else if (brfdType == L"ggx" || brfdType == L"GGX")
+    return std::make_shared<GGXMaterial>                 (colorS, texId, sampler, 0.0f, texIdGloss, samplerGloss, glossVal, samplerAniso, anisoVal);
+  else if (brfdType == L"beckmann")
+    return std::make_shared<BeckmannMaterial>            (colorS, sampler, 0.0f, samplerGloss, glossVal, 
+                                                                                 samplerAniso, anisoVal, 
+                                                                                 samplerRot,   anisoRot, (anisoFlipAxis == 1));
+  else if (brfdType == L"trggx" || brfdType == L"TRGGX")
+    return std::make_shared<TRGGXMaterial>               (colorS, sampler, 0.0f, samplerGloss, glossVal, 
+                                                                                 samplerAniso, anisoVal, 
+                                                                                 samplerRot,   anisoRot, (anisoFlipAxis == 1));
   else
     return std::make_shared<PhongMaterial>               (colorS, texId, sampler, 0.0f, texIdGloss, samplerGloss, glossVal);
 }
@@ -1398,9 +1634,20 @@ std::shared_ptr<IMaterial> CreateMaterialFromXmlNode(pugi::xml_node a_node, Rend
     if (back != nullptr)
     {
       a_pRTE->m_shadowMatteBackTexId = back.child(L"texture").attribute(L"id").as_int();
+
+      if(back.attribute(L"multcolor") != nullptr)
+        a_pRTE->m_shadowMatteBackColor = HydraXMLHelpers::ReadFloat3(back.attribute(L"multcolor"));
+      else
+        a_pRTE->m_shadowMatteBackColor = float3(1,1,1);
+
       if (a_pRTE->m_shadowMatteBackTexId == 0)
         a_pRTE->m_shadowMatteBackTexId = INVALID_TEXTURE;
 
+      if(back.attribute(L"mode").as_string() == L"spherical")
+        a_pRTE->m_shadowMatteBackMode = MODE_SPHERICAL;
+      else  
+        a_pRTE->m_shadowMatteBackMode = MODE_CAM_PROJECTED;
+        
       if (back.child(L"texture").attribute(L"input_gamma") != nullptr)
         a_pRTE->m_shadowMatteBackGamma = back.child(L"texture").attribute(L"input_gamma").as_float();
 
@@ -1410,6 +1657,11 @@ std::shared_ptr<IMaterial> CreateMaterialFromXmlNode(pugi::xml_node a_node, Rend
       
       if(back.attribute(L"fix_black_triangles").as_int() == 1)
         pResult->AddFlags(PLAIN_MATERIAL_CATCHER_FIX_BLACK_TRIANGLES);
+    }
+    else
+    {
+      a_pRTE->m_shadowMatteBackTexId = INVALID_TEXTURE;
+      a_pRTE->m_shadowMatteBackColor = float3(1,1,1);
     }
 
     if(length(colorE) > 1e-4f) // emissive shadow catcher

@@ -91,8 +91,8 @@ std::string HydraInstallPath();
 size_t ReplaceIncludeWithFile(std::string& a_str, size_t a_pos, const std::string& a_fileName)
 {
   bool inWhiteList = false;
-  const std::string whiteList[8] = {"globals.h", "cglobals.h", "cfetch.h", "crandom.h", "ctrace.h", "cmaterial.h", "clight.h", "cbidir.h"};
-  for(int i=0;i<8;i++)
+  const std::string whiteList[9] = {"globals.h", "cglobals.h", "cfetch.h", "crandom.h", "ctrace.h", "cmatpbrt.h", "cmaterial.h", "clight.h", "cbidir.h"};
+  for(int i=0;i<9;i++)
   {
     if(a_fileName.find(whiteList[i]) != std::string::npos)
     {

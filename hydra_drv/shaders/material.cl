@@ -1,6 +1,7 @@
 #include "cglobals.h"
 #include "cfetch.h"
 #include "crandom.h"
+#include "cmatpbrt.h"
 #include "cmaterial.h"
 #include "clight.h"
 #include "cbidir.h"
@@ -28,7 +29,7 @@ __kernel void MakeEyeShadowRays(__global const uint*          restrict a_flags,
                  &sHit);
   
   float3 camDir; float zDepth;
-  const float imageToSurfaceFactor = CameraImageToSurfaceFactor(sHit.pos, sHit.normal, a_globals,
+  const float imageToSurfaceFactor = CameraImageToSurfaceFactor(sHit.pos, sHit.normal, a_globals, make_float2(0,0),
                                                                 &camDir, &zDepth);
 
   // const int s1 = dot(camDir, sHit.normal) < 0.0f ? -1 : 1; // note that both flatNorm and sHit.normal are already fliped if they needed; so dot(camDir, sHit.normal) < -0.01f is enough
@@ -153,6 +154,7 @@ __kernel void ConnectToEyeKernel(__global const uint*          restrict a_flags,
                                  __global const int*           restrict in_lightId,
                                  __global const float*         restrict in_lsam2,
                                  __global const float4*        restrict in_procTexData,
+                                 __global RandomGen*           restrict out_gens,
                                  
                                  __global const float4*        restrict in_mtlStorage,
                                  __global const EngineGlobals* restrict a_globals,
@@ -191,9 +193,14 @@ __kernel void ConnectToEyeKernel(__global const uint*          restrict a_flags,
   SurfaceHit surfHit;
   ReadSurfaceHit(in_surfaceHit, tid, iNumElements, 
                  &surfHit);
-  
+  //surfHit.texCoordCamProj = worldPosToScreenSpaceNorm(surfHit.pos, a_globals); // in fact we don't need this for LT kernel, this is only for "ShadowCatcher2"
+
+  RandomGen gen = out_gens[tid];
+  const float2 offsD11 = MapSamplesToDisc(rndFloat2_Pseudo(&gen)*2.0f - 1.0f); // MapSamplesToDisc
+  out_gens[tid] = gen;
+
   float3 camDir; float zDepth;
-  const float imageToSurfaceFactor = CameraImageToSurfaceFactor(surfHit.pos, surfHit.normal, a_globals,
+  const float imageToSurfaceFactor = CameraImageToSurfaceFactor(surfHit.pos, surfHit.normal, a_globals, offsD11,
                                                                 &camDir, &zDepth);
 
   float  signOfNormal = 1.0f;
@@ -261,7 +268,6 @@ __kernel void ConnectToEyeKernel(__global const uint*          restrict a_flags,
       misWeight = 0.0f;
   }
 
-
   // We divide the contribution by surfaceToImageFactor to convert the (already
   // divided) pdf from surface area to image plane area, w.r.t. which the
   // pixel integral is actually defined. We also divide by the number of samples
@@ -277,7 +283,8 @@ __kernel void ConnectToEyeKernel(__global const uint*          restrict a_flags,
   int x = 65535, y = 65535;
   if (dot(sampleColor, sampleColor) > 1e-12f) // add final result to image
   {
-    const float2 posScreenSpace = worldPosToScreenSpace(surfHit.pos, a_globals);
+    const float2 posScreenSpace = worldPosToScreenSpaceWithDOF(surfHit.pos, a_globals, offsD11);
+    //const float2 posScreenSpace = worldPosToScreenSpace(surfHit.pos, a_globals);
 
     x = (int)(posScreenSpace.x);
     y = (int)(posScreenSpace.y);
@@ -345,7 +352,7 @@ __kernel void HitEnvOrLightKernel(__global const float4*    restrict in_rpos,
     const int screenY     = (packedXY & 0xFFFF0000) >> 16;
     
     float3 envColor = environmentColorExtended(ray_pos, ray_dir, misPrev, flags, screenX, screenY,
-                                               a_globals, in_mtlStorage, in_pdfStorage, in_texStorage1);
+                                               a_globals, in_mtlStorage, in_pdfStorage, in_texStorage1); // 18.11.2019; 20:33
     
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////// Direct/Indirect Light for MMLT/KMLT
     {
@@ -375,6 +382,7 @@ __kernel void HitEnvOrLightKernel(__global const float4*    restrict in_rpos,
     SurfaceHit surfHit;
     ReadSurfaceHit(in_surfaceHit, tid, iNumElements, 
                   &surfHit);
+    //surfHit.texCoordCamProj = worldPosToScreenSpaceNorm(surfHit.pos, a_globals); // in fact we don't need to evaluate projected texture coordinates here, they won't be uesed further               
 
     const float3 ray_pos = to_float3(in_rpos[tid]);
     const float3 ray_dir = to_float3(in_rdir[tid]);
@@ -398,7 +406,7 @@ __kernel void HitEnvOrLightKernel(__global const float4*    restrict in_rpos,
       if (a_currDepth == 0)
       {
         float3 camDirDummy; float zDepthDummy;
-        const float imageToSurfaceFactor = CameraImageToSurfaceFactor(surfHit.pos, surfHit.normal, a_globals,
+        const float imageToSurfaceFactor = CameraImageToSurfaceFactor(surfHit.pos, surfHit.normal, a_globals, make_float2(0,0),
                                                                       &camDirDummy, &zDepthDummy);
 
         const float cameraPdfA = imageToSurfaceFactor / a_mLightSubPathCount;
@@ -509,9 +517,6 @@ __kernel void HitEnvOrLightKernel(__global const float4*    restrict in_rpos,
           }
 
           ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////// \\\\\\\\\\\\\\\\\\\\\\
-            
-          if (unpackBounceNum(flags) > 0)
-            emissColor = clamp(emissColor, 0.0f, a_globals->varsF[HRT_BSDF_CLAMPING]);
 
           if (misPrev.prevMaterialOffset >= 0)
           {
@@ -554,18 +559,7 @@ __kernel void HitEnvOrLightKernel(__global const float4*    restrict in_rpos,
       float3 envColor = make_float3(0, 0, 0);
 
       if (x >= 0.0f && y >= 0.0f && x <= a_globals->varsF[HRT_WIDTH_F] && y <= a_globals->varsF[HRT_HEIGHT_F])
-      {
-        const float texCoordX = x / a_globals->varsF[HRT_WIDTH_F];
-        const float texCoordY = y / a_globals->varsF[HRT_HEIGHT_F];
-        const float gammaInv  = a_globals->varsF[HRT_BACK_TEXINPUT_GAMMA];
-
-        const int offset = textureHeaderOffset(a_globals, backTextureId);
-        envColor = to_float3(read_imagef_sw4(in_texStorage1 + offset, make_float2(texCoordX, texCoordY), TEX_CLAMP_U | TEX_CLAMP_V));
-
-        envColor.x = pow(envColor.x, gammaInv);
-        envColor.y = pow(envColor.y, gammaInv);
-        envColor.z = pow(envColor.z, gammaInv);
-      }
+        envColor = backColorOfSecondEnv(ray_dir, make_float2(x, y), a_globals, in_texStorage1);
 
       out_emission[tid] = to_float4(envColor, 0.0f);
     }
@@ -630,6 +624,7 @@ __kernel void Shade(__global const float4*    restrict a_rpos,
   SurfaceHit surfHit;
   ReadSurfaceHit(in_surfaceHit, tid, iNumElements, 
                  &surfHit);
+  //surfHit.texCoordCamProj = worldPosToScreenSpaceNorm(surfHit.pos, a_globals);                 
 
   __global const PlainMaterial* pHitMaterial = materialAt(a_globals, in_mtlStorage, surfHit.matId);
   if(pHitMaterial == 0)
@@ -655,15 +650,16 @@ __kernel void Shade(__global const float4*    restrict a_rpos,
   // bool hitFromBack = (bool)(unpackRayFlags(flags) & RAY_HIT_SURFACE_FROM_OTHER_SIDE);
 
   ShadeContext sc;
-  sc.wp  = surfHit.pos;
-  sc.l   = shadowRayDir;
-  sc.v   = (-1.0f)*ray_dir;
-  sc.n   = surfHit.normal;
-  sc.fn  = surfHit.flatNormal;
-  sc.tg  = surfHit.tangent;
-  sc.bn  = surfHit.biTangent;
-  sc.tc  = surfHit.texCoord;
-  sc.hfi = surfHit.hfi;
+  sc.wp   = surfHit.pos;
+  sc.l    = shadowRayDir;
+  sc.v    = (-1.0f)*ray_dir;
+  sc.n    = surfHit.normal;
+  sc.fn   = surfHit.flatNormal;
+  sc.tg   = surfHit.tangent;
+  sc.bn   = surfHit.biTangent;
+  sc.tc   = surfHit.texCoord;
+  sc.tccp = worldPosToScreenSpaceNorm(surfHit.pos, a_globals);
+  sc.hfi  = surfHit.hfi;
 
   ProcTextureList ptl;
   InitProcTextureList(&ptl);
@@ -732,7 +728,7 @@ __kernel void Shade(__global const float4*    restrict a_rpos,
   if (out_shadow != 0 && rayBounceNum == 0)
   {
     float shadow1 = 255.0f*0.33333f*(shadow.x + shadow.y + shadow.z);
-    if ( (cosThetaOutAux < 0.1f) || (explicitSam.cosAtLight < 0.1f && lightType(pLight) != PLAIN_LIGHT_TYPE_SKY_DOME))
+    if ( (cosThetaOutAux < 0.025f) || (explicitSam.cosAtLight < 0.025f && lightType(pLight) != PLAIN_LIGHT_TYPE_SKY_DOME))
       shadow1 = 255.0f;
    
     out_shadow[tid] = (uchar)(255.0f - clamp(shadow1, 0.0f, 255.0f));
@@ -744,9 +740,6 @@ __kernel void Shade(__global const float4*    restrict a_rpos,
   const float3 bxdfVal = (evalData.brdf*cosThetaOut1 + evalData.btdf*cosThetaOut2);
 
   float3 shadeColor = (explicitSam.color * (1.0f / fmax(explicitSam.pdf, DEPSILON)))*bxdfVal*misWeight*shadow; 
-
-  if (unpackBounceNum(flags) > 0)
-    shadeColor = clamp(shadeColor, 0.0f, a_globals->varsF[HRT_BSDF_CLAMPING]);
 
   float maxColorLight = fmax(explicitSam.color.x, fmax(explicitSam.color.y, explicitSam.color.z));
   float maxColorShade = fmax(shadeColor.x, fmax(shadeColor.y, shadeColor.z));
@@ -804,6 +797,7 @@ __kernel void NextBounce(__global const int2*      restrict in_zind,
   SurfaceHit surfHit;
   ReadSurfaceHit(in_surfaceHit, tid, iNumElements, 
                  &surfHit);
+  surfHit.texCoordCamProj = worldPosToScreenSpaceNorm(surfHit.pos, a_globals);               
 
   __global const PlainMaterial* pHitMaterial = materialAt(a_globals, in_mtlStorage, surfHit.matId);
   if(pHitMaterial == 0)
@@ -1113,6 +1107,7 @@ __kernel void NextTransparentBounce(__global   float4*        restrict a_rpos,
     SurfaceHit surfHit;
     ReadSurfaceHit(in_surfaceHit, tid, iNumElements, 
                    &surfHit);
+    //surfHit.texCoordCamProj = worldPosToScreenSpaceNorm(surfHit.pos, a_globals);               
 
     __global const PlainMaterial* pHitMaterial = materialAt(in_globals, in_mtlStorage, surfHit.matId);
     if(pHitMaterial == 0)
@@ -1222,6 +1217,7 @@ __kernel void TransparentShadowKenrel(__global const uint*     restrict in_flags
   SurfaceHit surfHit;
   ReadSurfaceHit(in_surfaceHit, tid, iNumElements, 
                    &surfHit);
+  //surfHit.texCoordCamProj = worldPosToScreenSpaceNorm(surfHit.pos, a_globals);
 
   const float  epsilon = fmax(maxcomp(surfHit.pos), 1.0f)*GEPSILON;
   const float  polyEps = fmin(fmax(PEPSILON*a_hitPolySize[tid], epsilon), PG_SCALE*epsilon);
@@ -1329,6 +1325,7 @@ __kernel void ReadDiffuseColor(__global const float4*    restrict a_rdir,
     SurfaceHit surfHit;
     ReadSurfaceHit(in_surfaceHit, tid, iNumElements, 
                    &surfHit);
+    //surfHit.texCoordCamProj = worldPosToScreenSpaceNorm(surfHit.pos, a_globals);
 
     __global const PlainMaterial* pHitMaterial = materialAt(a_globals, in_mtlStorage, surfHit.matId);
     if(pHitMaterial != 0)
@@ -1485,10 +1482,6 @@ __kernel void PutAlphaToGBuffer(__global const float4* restrict in_thoroughput,
     inout_gbuff1[bid] = packGBuffer1(data1);
   }
 }
-
-
-
-// change 31.08.2018 13:55;
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////

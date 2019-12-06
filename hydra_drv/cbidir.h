@@ -68,19 +68,25 @@ static inline void ReadPathVertexSupplement(const __global float4* a_in, int a_t
 \param  a_hitPos  - world position point we are going to connect with camera in LT
 \param  a_hitNorm - normal of the  point we are going to connect with camera in LT
 \param  a_globals - engine globals
+\param  a_diskOffs- offset of the camera in interval [-1,1] with disk distribution; (0,0) means no offset.
 \param  pCamDir   - out parameter. Camera forward direction.
 \param  pZDepth   - out parameter. Distance between a_hitPos and camera position.
 \return pdf conversion factor from image plane area to surface area.
 
 */
 
-static inline float CameraImageToSurfaceFactor(const float3 a_hitPos, const float3 a_hitNorm, __global const EngineGlobals* a_globals,
+static inline float CameraImageToSurfaceFactor(const float3 a_hitPos, const float3 a_hitNorm, __global const EngineGlobals* a_globals, float2 a_diskOffs,
                                                __private float3* pCamDir, __private float* pZDepth)
 {
   const float4x4 mWorldViewInv  = make_float4x4(a_globals->mWorldViewInverse);
-  const float3   camPos         = mul(mWorldViewInv, make_float3(0, 0, 0));
-  const float3   camForward     = make_float3(a_globals->camForward[0], a_globals->camForward[1], a_globals->camForward[2]);
+
+  const float3   camForward     = make_float3(a_globals->camForward[0],  a_globals->camForward[1],  a_globals->camForward[2]);
+  const float3   camUp          = make_float3(a_globals->camUpVector[0], a_globals->camUpVector[1], a_globals->camUpVector[2]);
+  const float3   camLeft        = normalize(cross(camForward, camUp)); 
   const float    imagePlaneDist = a_globals->imagePlaneDist;
+
+
+  const float3 camPos = mul(mWorldViewInv, make_float3(0, 0, 0)) + camUp*a_diskOffs.y*a_globals->varsF[HRT_DOF_LENS_RADIUS] + camLeft*a_diskOffs.x*a_globals->varsF[HRT_DOF_LENS_RADIUS];
 
   const float  zDepth = length(camPos - a_hitPos);
   const float3 camDir = (1.0f / zDepth)*(camPos - a_hitPos); // normalize
@@ -125,25 +131,38 @@ static inline float2 worldPosToScreenSpace(float3 a_wpos, __global const EngineG
   return posScreenSpace;
 }
 
-static inline float2 worldPosToScreenSpaceWithDOF(float3 a_wpos, __global const EngineGlobals* a_globals, float2 in_randOffsets)
+static inline float2 worldPosToScreenSpaceNorm(float3 a_wpos, __global const EngineGlobals* a_globals)
 {
-  const float2 offsets        = 2.0f*(in_randOffsets - make_float2(0.5f, 0.5f));
-
   const float4 posWorldSpace  = to_float4(a_wpos, 1.0f);
   const float4 posCamSpace    = mul4x4x4(make_float4x4(a_globals->mWorldView), posWorldSpace);
+  const float4 posNDC         = mul4x4x4(make_float4x4(a_globals->mProj),      posCamSpace);
+  const float4 posClipSpace   = posNDC*(1.0f / fmax(posNDC.w, DEPSILON));
+  return make_float2(posClipSpace.x*0.5f + 0.5f, posClipSpace.y*0.5f + 0.5f);
+}
 
-  // @{GPU Gems Chapter 23. Depth of Field: A Survey of Techniques}
-  //
+static inline float2 worldPosToScreenSpaceWithDOF(float3 a_wpos, __global const EngineGlobals* a_globals, float2 a_diskOffs)
+{
+  const float3   camForward   = make_float3(a_globals->camForward[0],  a_globals->camForward[1],  a_globals->camForward[2]);
+  const float3   camUp        = make_float3(a_globals->camUpVector[0], a_globals->camUpVector[1], a_globals->camUpVector[2]);
+  const float3   camLeft      = normalize(cross(camForward, camUp)); 
+  
+        float3   camPos       = mul(make_float4x4(a_globals->mWorldViewInverse), make_float3(0, 0, 0));
 
-  const float A = 1.0f; // ?
-  const float F = 1.0f; // ?
-  // P = camera target distance
-  // D = posCamSpace.z;
-  //
-  // C := A*( F*(P-D) )/( D*(P-F) ); 
+  const float F   = a_globals->imagePlaneDist; // ?
+  const float P   = length(camPos - make_float3(a_globals->camLookAt[0], a_globals->camLookAt[1], a_globals->camLookAt[2])); // camera target distance
+  const float D   = length(a_wpos - camPos);                                                                                 // posCamSpace.z
 
- 
-  const float4 posNDC         = mul4x4x4(make_float4x4(a_globals->mProj), posCamSpace); // + C*make_float4(offsets.x, offsets.y, 0.0f, 0.0f)
+  const float PoH = (P <= D) ? 2.0f : 1.25f;
+  const float LaS = 0.0f; // pow(fmin(fabs(P-D) / fmax(D, 1e-10f), 1.0f), PoH);
+
+  const float3   camShift     = camUp*a_diskOffs.y*a_globals->varsF[HRT_DOF_LENS_RADIUS] + camLeft*a_diskOffs.x*a_globals->varsF[HRT_DOF_LENS_RADIUS];
+  const float3   camLookaAt   = make_float3(a_globals->camLookAt[0],   a_globals->camLookAt[1],   a_globals->camLookAt[2]) + LaS*camShift;
+                 camPos       = camPos + camShift;
+
+  const float4x4 mWorldView   = transpose(lookAtTransposed(camPos, camLookaAt, camUp));
+
+  const float4 posCamSpace    = mul4x4x4(mWorldView, to_float4(a_wpos, 1.0f));
+  const float4 posNDC         = mul4x4x4(make_float4x4(a_globals->mProj), posCamSpace);
   const float4 posClipSpace   = posNDC*(1.0f / fmax(posNDC.w, DEPSILON));
   const float2 posScreenSpace = clipSpaceToScreenSpace(posClipSpace, a_globals->varsF[HRT_WIDTH_F], a_globals->varsF[HRT_HEIGHT_F]);
   return posScreenSpace;
@@ -490,7 +509,7 @@ static inline float3 environmentColor(float3 rayDir, MisData misPrev, unsigned i
 
   if (rayBounceNum > 0 && !(a_globals->g_flags & HRT_STUPID_PT_MODE) && (misPrev.isSpecular == 0))
   {
-    float lgtPdf    = lightPdfSelectRev(pEnvLight)*skyLightEvalPDF(pEnvLight, make_float3(0, 0, 0), rayDir, a_globals, a_pdfStorage);
+    float lgtPdf    = lightPdfSelectRev(pEnvLight)*skyLightEvalPDF(pEnvLight, rayDir, a_globals, a_pdfStorage);
     float bsdfPdf   = misPrev.matSamplePdf;
     float misWeight = misWeightHeuristic(bsdfPdf, lgtPdf); // (bsdfPdf*bsdfPdf) / (lgtPdf*lgtPdf + bsdfPdf*bsdfPdf);
 
@@ -513,6 +532,42 @@ static inline float3 environmentColor(float3 rayDir, MisData misPrev, unsigned i
   return envColor;
 }
 
+/**
+\brief  Depending on the current shadow matte mode stored in a_globals->varsI[HRT_SHADOW_MATTE_BACK_MODE] 
+        (MODE_SPHERICAL or MODE_CAM_PROJECTED) get back(screen) or backEnv(ray_dir)
+
+\return back enviromnent color
+
+*/
+
+static inline float3 backColorOfSecondEnv(float3 ray_dir, float2 screen, __global const EngineGlobals* a_globals, texture2d_t in_texStorage1)
+{
+  const float texCoordX = screen.x / a_globals->varsF[HRT_WIDTH_F];
+  const float texCoordY = screen.y / a_globals->varsF[HRT_HEIGHT_F];
+  const float gammaInv  = a_globals->varsF[HRT_BACK_TEXINPUT_GAMMA];
+  const int offset      = textureHeaderOffset(a_globals, a_globals->varsI[HRT_SHADOW_MATTE_BACK]);
+ 
+  const float3 backColorMult = make_float3(a_globals->varsF[HRT_SHADOW_MATTE_BACK_COLOR_X], 
+                                           a_globals->varsF[HRT_SHADOW_MATTE_BACK_COLOR_Y],
+                                           a_globals->varsF[HRT_SHADOW_MATTE_BACK_COLOR_Z]);
+
+  float3 envColor;       
+  
+  if(a_globals->varsI[HRT_SHADOW_MATTE_BACK_MODE] == MODE_SPHERICAL)
+  {
+    float sintheta = 0.0f;
+    const float2 texCoord = sphereMapTo2DTexCoord(ray_dir, &sintheta);
+    envColor = backColorMult*to_float3(read_imagef_sw4(in_texStorage1 + offset, texCoord, TEX_CLAMP_U | TEX_CLAMP_V));
+  }
+  else
+    envColor = backColorMult*to_float3(read_imagef_sw4(in_texStorage1 + offset, make_float2(texCoordX, texCoordY), TEX_CLAMP_U | TEX_CLAMP_V));
+  
+  envColor.x = pow(envColor.x, gammaInv);
+  envColor.y = pow(envColor.y, gammaInv);
+  envColor.z = pow(envColor.z, gammaInv);
+  
+  return envColor;
+}
 
 /**
 \brief  Add Perez Sun and Camera mapped texture to function "environmentColor".
@@ -562,19 +617,10 @@ static inline float3 environmentColorExtended(float3 ray_pos, float3 ray_dir, Mi
     const uint rayBounce     = unpackBounceNum(flags);
     unsigned int otherFlags  = unpackRayFlags(flags);
     const int backTextureId  = a_globals->varsI[HRT_SHADOW_MATTE_BACK];
-    const bool transparent   = (rayBounce == 1 && (otherFlags & RAY_EVENT_T) != 0);
+    const bool transparent   = ((otherFlags & RAY_EVENT_T) != 0) && ((otherFlags & RAY_EVENT_D) == 0) && ((otherFlags & RAY_EVENT_G) == 0); 
     
     if (backTextureId != INVALID_TEXTURE && (rayBounce == 0 || transparent))
-    {
-      const float texCoordX = (float)screenX / a_globals->varsF[HRT_WIDTH_F];
-      const float texCoordY = (float)screenY / a_globals->varsF[HRT_HEIGHT_F];
-      const float gammaInv  = a_globals->varsF[HRT_BACK_TEXINPUT_GAMMA];
-      const int offset      = textureHeaderOffset(a_globals, backTextureId);
-      envColor   = to_float3(read_imagef_sw4(in_texStorage1 + offset, make_float2(texCoordX, texCoordY), TEX_CLAMP_U | TEX_CLAMP_V));
-      envColor.x = pow(envColor.x, gammaInv);
-      envColor.y = pow(envColor.y, gammaInv);
-      envColor.z = pow(envColor.z, gammaInv);
-    }
+      envColor = backColorOfSecondEnv(ray_dir, make_float2((float)screenX, (float)screenY), a_globals, in_texStorage1);
   }
 
   return envColor;

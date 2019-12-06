@@ -22,7 +22,7 @@
     <ProjectGuid>{CB095789-F909-46DC-B9D6-9160BA7C508C}</ProjectGuid>
     <Keyword>Win32Proj</Keyword>
     <RootNamespace>hydra_drv</RootNamespace>
-    <WindowsTargetPlatformVersion>8.1</WindowsTargetPlatformVersion>
+    <WindowsTargetPlatformVersion>10.0.17763.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
@@ -41,13 +41,13 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
     <ConfigurationType>StaticLibrary</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
-    <PlatformToolset>v140</PlatformToolset>
+    <PlatformToolset>v141</PlatformToolset>
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
     <ConfigurationType>StaticLibrary</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
-    <PlatformToolset>v140</PlatformToolset>
+    <PlatformToolset>v141</PlatformToolset>
     <WholeProgramOptimization>true</WholeProgramOptimization>
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
@@ -153,6 +153,7 @@
     <ClInclude Include="clight.h" />
     <ClInclude Include="cl_scan_gpu.h" />
     <ClInclude Include="cmaterial.h" />
+    <ClInclude Include="cmatpbrt.h" />
     <ClInclude Include="CPUExp_bxdf.h" />
     <ClInclude Include="CPUExp_Integrators.h" />
     <ClInclude Include="crandom.h" />
@@ -182,6 +183,7 @@
     <ClCompile Include="CPUExp_Integrators_LT.cpp" />
     <ClCompile Include="CPUExp_Integrators_MMLT.cpp" />
     <ClCompile Include="CPUExp_Integrators_PT.cpp" />
+    <ClCompile Include="CPUExp_Integrators_PT_Loop.cpp" />
     <ClCompile Include="CPUExp_Integrators_PT_QMC.cpp" />
     <ClCompile Include="CPUExp_Integrators_SBDPT.cpp" />
     <ClCompile Include="CPUExp_Integrators_ThreeWay.cpp" />

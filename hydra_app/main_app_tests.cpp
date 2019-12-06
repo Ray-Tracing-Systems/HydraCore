@@ -15,9 +15,6 @@ static HRCameraRef    camRef;
 static HRSceneInstRef scnRef;
 static HRRenderRef    renderRef;
 
-#ifdef WIN32
-std::vector<std::wstring> hr_listfiles(const wchar_t* a_folder);
-#endif
 
 static std::wstring tail(std::wstring const& source, size_t const length) 
 {

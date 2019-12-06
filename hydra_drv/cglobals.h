@@ -15,10 +15,13 @@
 
 #define INVALID_TEXTURE  0xFFFFFFFE 
 
-#define TEX_POINT_SAM    0x10000000
-#define TEX_ALPHASRC_W   0x20000000
-#define TEX_CLAMP_U      0x40000000
-#define TEX_CLAMP_V      0x80000000
+#define TEX_POINT_SAM      1
+#define TEX_ALPHASRC_W     2
+#define TEX_CLAMP_U        4
+#define TEX_CLAMP_V        8
+#define TEX_COORD_SECOND   16
+#define TEX_COORD_CAM_PROJ 32
+
 
 // they are related because data are storen in one int32 variable triAlphaTest
 //
@@ -33,8 +36,16 @@
 #define TEXMATRIX_ID_MASK     0x00FFFFFF // for texture slots - 'color_texMatrixId' and e.t.c
 #define TEXSAMPLER_TYPE_MASK  0xFF000000 // for texture slots - 'color_texMatrixId' and e.t.c
 
+#ifndef M_HALFPI
+#define M_HALFPI      1.57079632679489661923f
+#endif
+
 #ifndef M_PI
 #define M_PI          3.14159265358979323846f
+#endif
+
+#ifndef M_TWOPI
+#define M_TWOPI       6.28318530717958647692f
 #endif
 
 #ifndef INV_PI
@@ -288,6 +299,35 @@ enum MEGATEX_USAGE{ MEGATEX_SHADING      = 1,
      float sinVal = sincos(a_value, &cosVal);
      return make_float2(sinVal, cosVal);
    }
+   
+   static inline float4x4 lookAtTransposed(float3 eye, float3 center, float3 up)
+   {
+     float3 x, y, z; // basis; will make a rotation matrix
+ 
+     z.x = eye.x - center.x;
+     z.y = eye.y - center.y;
+     z.z = eye.z - center.z;
+     z = normalize(z);
+ 
+     y.x = up.x;
+     y.y = up.y;
+     y.z = up.z;
+ 
+     x = cross(y, z); // X vector = Y cross Z
+     y = cross(z, x); // Recompute Y = Z cross X
+ 
+     // cross product gives area of parallelogram, which is < 1.0 for
+     // non-perpendicular unit-length vectors; so normalize x, y here
+     x = normalize(x);
+     y = normalize(y);
+ 
+     float4x4 M;
+     M.row[0].x = x.x; M.row[1].x = x.y; M.row[2].x = x.z; M.row[3].x = -x.x * eye.x - x.y * eye.y - x.z*eye.z;
+     M.row[0].y = y.x; M.row[1].y = y.y; M.row[2].y = y.z; M.row[3].y = -y.x * eye.x - y.y * eye.y - y.z*eye.z;
+     M.row[0].z = z.x; M.row[1].z = z.y; M.row[2].z = z.z; M.row[3].z = -z.x * eye.x - z.y * eye.y - z.z*eye.z;
+     M.row[0].w = 0.0; M.row[1].w = 0.0; M.row[2].w = 0.0; M.row[3].w = 1.0;
+     return M;
+   }
 
   #else                              // Common C++
     
@@ -419,6 +459,8 @@ enum FLAG_BITS{HRT_COMPUTE_SHADOWS                 = 1,
                HRT_ENABLE_COHERENT_PT              = 65536*16384,
               };
 
+enum BACK_MODE {MODE_CAM_PROJECTED = 0, MODE_SPHERICAL = 1};
+
 enum VARIABLE_NAMES { // int vars
                       //
                       HRT_ENABLE_DOF               = 0,
@@ -460,9 +502,12 @@ enum VARIABLE_NAMES { // int vars
                       HRT_MAX_SAMPLES_PER_PIXEL    = 36,
                       HRT_CONTRIB_SAMPLES          = 37,
                       HRT_BOX_MODE_ON              = 38,
-
                       HRT_KMLT_OR_QMC_LGT_BOUNCES  = 39,
                       HRT_KMLT_OR_QMC_MAT_BOUNCES  = 40,
+                      HRT_SHADOW_MATTE_BACK_MODE   = 41,
+                      HRT_SHADOW_MATTE_BACK_COLOR_X= 42,
+                      HRT_SHADOW_MATTE_BACK_COLOR_Y= 43,
+                      HRT_SHADOW_MATTE_BACK_COLOR_Z= 44,
 };
 
 enum VARIABLE_FLOAT_NAMES{ // float vars
@@ -487,8 +532,8 @@ enum VARIABLE_FLOAT_NAMES{ // float vars
                            
                            HRT_CAM_FOV                             = 14,
                            HRT_PATH_TRACE_ERROR                    = 15,  
-                           HRT_ENV_CLAMPING                        = 16,
-                           HRT_BSDF_CLAMPING                       = 17, 
+                           HRT_PATH_TRACE_CLAMPING                 = 16,
+                           HRT_DUMMY_VARIABLE                      = 17, 
 
                            HRT_BSPHERE_CENTER_X                    = 18,
                            HRT_BSPHERE_CENTER_Y                    = 19,
@@ -1063,7 +1108,7 @@ static inline float4x4 transpose(const float4x4 a_mat)
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-IDH_CALL float3 EyeRayDir(float x, float y, float w, float h, float4x4 a_mViewProjInv) // g_mViewProjInv
+static inline float3 EyeRayDir(float x, float y, float w, float h, float4x4 a_mViewProjInv) // g_mViewProjInv
 {
   float4 pos = make_float4( 2.0f * (x + 0.5f) / w - 1.0f, 
                            -2.0f * (y + 0.5f) / h + 1.0f, 
@@ -1079,7 +1124,7 @@ IDH_CALL float3 EyeRayDir(float x, float y, float w, float h, float4x4 a_mViewPr
 }
 
 
-IDH_CALL void matrix4x4f_mult_ray3(float4x4 a_mWorldViewInv, __private float3* ray_pos, __private float3* ray_dir) // g_mWorldViewInv
+static inline void matrix4x4f_mult_ray3(float4x4 a_mWorldViewInv, __private float3* ray_pos, __private float3* ray_dir) // g_mWorldViewInv
 {
   float3 pos  = mul(a_mWorldViewInv, (*ray_pos));
   float3 pos2 = mul(a_mWorldViewInv, ((*ray_pos) + 100.0f*(*ray_dir)));
@@ -1093,7 +1138,7 @@ IDH_CALL void matrix4x4f_mult_ray3(float4x4 a_mWorldViewInv, __private float3* r
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////
 ////
-IDH_CALL float3 matrix3x3f_mult_float3(__global const float* M, float3 v)
+static inline float3 matrix3x3f_mult_float3(__global const float* M, float3 v)
 {
   float3 res;
   res.x = M[0 * 3 + 0] * v.x + M[0 * 3 + 1] * v.y + M[0 * 3 + 2] * v.z;
@@ -1102,16 +1147,67 @@ IDH_CALL float3 matrix3x3f_mult_float3(__global const float* M, float3 v)
   return res;
 }
 
+static inline float3x3 RotateAroundVector3x3(float3 v, float rotAngle)
+{
+  const float cos_t = cos(rotAngle);
+  const float sin_t = sin(rotAngle);
 
-IDH_CALL float DistanceSquared(float3 a, float3 b)
+  float3x3 m;
+
+  m.row[0].x = (1.0f - cos_t)*v.x*v.x + cos_t;
+  m.row[0].y = (1.0f - cos_t)*v.x*v.y - sin_t*v.z;
+  m.row[0].z = (1.0f - cos_t)*v.x*v.z + sin_t*v.y;
+
+  m.row[1].x = (1.0f - cos_t)*v.y*v.x + sin_t*v.z;
+  m.row[1].y = (1.0f - cos_t)*v.y*v.y + cos_t;
+  m.row[1].z = (1.0f - cos_t)*v.y*v.z - sin_t*v.x;
+
+  m.row[2].x = (1.0f - cos_t)*v.x*v.z - sin_t*v.y;
+  m.row[2].y = (1.0f - cos_t)*v.z*v.y + sin_t*v.x;
+  m.row[2].z = (1.0f - cos_t)*v.z*v.z + cos_t;
+
+  return m;
+}
+
+static inline float4x4 RotateAroundVector4x4(float3 v, float rotAngle)
+{
+  const float cos_t = cos(rotAngle);
+  const float sin_t = sin(rotAngle);
+
+  float4x4 m;
+
+  m.row[0].x = (1.0f - cos_t)*v.x*v.x + cos_t;
+  m.row[0].y = (1.0f - cos_t)*v.x*v.y - sin_t*v.z;
+  m.row[0].z = (1.0f - cos_t)*v.x*v.z + sin_t*v.y;
+  m.row[0].w = 1.0f;
+
+  m.row[1].x = (1.0f - cos_t)*v.y*v.x + sin_t*v.z;
+  m.row[1].y = (1.0f - cos_t)*v.y*v.y + cos_t;
+  m.row[1].z = (1.0f - cos_t)*v.y*v.z - sin_t*v.x;
+  m.row[1].w = 1.0f;
+
+  m.row[2].x = (1.0f - cos_t)*v.x*v.z - sin_t*v.y;
+  m.row[2].y = (1.0f - cos_t)*v.z*v.y + sin_t*v.x;
+  m.row[2].z = (1.0f - cos_t)*v.z*v.z + cos_t;
+  m.row[2].w = 1.0f;
+
+  m.row[3].x = 0.0f;
+  m.row[3].y = 0.0f;
+  m.row[3].z = 0.0f;
+  m.row[3].w = 1.0f;
+
+  return m;
+}
+
+static inline float DistanceSquared(float3 a, float3 b)
 {
   float3 diff = b - a;
   return dot(diff, diff);
 }
 
-IDH_CALL float UniformConePdf(float cosThetaMax) { return 1.0f / (2.0f * M_PI * (1.0f - cosThetaMax)); }
+static inline float UniformConePdf(float cosThetaMax) { return 1.0f / (2.0f * M_PI * (1.0f - cosThetaMax)); }
 
-IDH_CALL float3 UniformSampleSphere(float u1, float u2)
+static inline float3 UniformSampleSphere(float u1, float u2)
 {
   float z = 1.0f - 2.0f * u1;
   float r = sqrt(fmax(0.0f, 1.0f - z*z));
@@ -1121,12 +1217,12 @@ IDH_CALL float3 UniformSampleSphere(float u1, float u2)
   return make_float3(x, y, z);
 }
 
-IDH_CALL float lerp2(float t, float a, float b)
+static inline float lerp2(float t, float a, float b)
 {
   return (1.0f - t) * a + t * b;
 }
 
-IDH_CALL float3 UniformSampleCone(float u1, float u2, float costhetamax, float3 x, float3 y, float3 z)
+static inline float3 UniformSampleCone(float u1, float u2, float costhetamax, float3 x, float3 y, float3 z)
 {
   float costheta = lerp2(u1, costhetamax, 1.0f);
   float sintheta = sqrt(1.0f - costheta*costheta);
@@ -1134,7 +1230,7 @@ IDH_CALL float3 UniformSampleCone(float u1, float u2, float costhetamax, float3 
   return cos(phi) * sintheta * x + sin(phi) * sintheta * y + costheta * z;
 }
 
-IDH_CALL float2 RaySphereIntersect(float3 rayPos, float3 rayDir, float3 sphPos, float radius)
+static inline float2 RaySphereIntersect(float3 rayPos, float3 rayDir, float3 sphPos, float radius)
 {
   float3 k = rayPos - sphPos;
   float  b = dot(k, rayDir);
@@ -1363,37 +1459,32 @@ static inline MisData makeInitialMisData()
   return data;
 }
 
-static inline uint encodeNormal(float3 n)
+static inline unsigned int encodeNormal(float3 n)
 {
-  short x = (short)(n.x*32767.0f);
-  short y = (short)(n.y*32767.0f);
+  const int x = (int)(n.x*32767.0f);
+  const int y = (int)(n.y*32767.0f);
 
-  ushort sign = (n.z >= 0) ? 0 : 1;
-
-  int sx = ((int)(x & 0xfffe) | sign);
-  int sy = ((int)(y & 0xfffe) << 16);
+  const unsigned int sign = (n.z >= 0) ? 0 : 1;
+  const unsigned int sx   = ((unsigned int)(x & 0xfffe) | sign);
+  const unsigned int sy   = ((unsigned int)(y & 0xffff) << 16);
 
   return (sx | sy);
 }
 
-static inline float3 decodeNormal(uint a_data)
-{
-  const float divInv = 1.0f / 32767.0f;
+static inline float3 decodeNormal(unsigned int a_data)
+{  
+  const unsigned int a_enc_x = (a_data  & 0x0000FFFF);
+  const unsigned int a_enc_y = ((a_data & 0xFFFF0000) >> 16);
+  const float sign           = (a_enc_x & 0x0001) ? -1.0f : 1.0f;
 
-  short a_enc_x, a_enc_y;
-
-  a_enc_x = (short)(a_data & 0x0000FFFF);
-  a_enc_y = (short)((int)(a_data & 0xFFFF0000) >> 16);
-
-  float sign = (a_enc_x & 0x0001) ? -1.0f : 1.0f;
-
-  float x = (short)(a_enc_x & 0xfffe)*divInv;
-  float y = (short)(a_enc_y & 0xfffe)*divInv;
-  float z = sign*sqrt(fmax(1.0f - x*x - y*y, 0.0f));
+  const float x = ((short)(a_enc_x & 0xfffe))*(1.0f / 32767.0f);
+  const float y = ((short)(a_enc_y & 0xffff))*(1.0f / 32767.0f);
+  const float z = sign*sqrt(fmax(1.0f - x*x - y*y, 0.0f));
 
   return make_float3(x, y, z);
 }
 
+/*
 struct ALIGN_S(16) HitPosNormT
 {
   float  pos_x;
@@ -1422,8 +1513,9 @@ ID_CALL HitPosNorm make_HitPosNorm(float4 a_data)
   return res;
 }
 
-IDH_CALL float3 GetPos(HitPosNorm a_data) { return make_float3(a_data.pos_x, a_data.pos_y, a_data.pos_z); }
-IDH_CALL void   SetPos(__private HitPosNorm* a_pData, float3 a_pos) { a_pData->pos_x = a_pos.x; a_pData->pos_y = a_pos.y; a_pData->pos_z = a_pos.z; }
+static inline float3 GetPos(HitPosNorm a_data) { return make_float3(a_data.pos_x, a_data.pos_y, a_data.pos_z); }
+static inline void   SetPos(__private HitPosNorm* a_pData, float3 a_pos) { a_pData->pos_x = a_pos.x; a_pData->pos_y = a_pos.y; a_pData->pos_z = a_pos.z; }
+*/
 
 struct ALIGN_S(8) HitTexCoordT
 {
@@ -1442,9 +1534,9 @@ struct ALIGN_S(8) HitMatRefT
 
 typedef struct HitMatRefT HitMatRef;
 
-IDH_CALL int GetMaterialId(HitMatRef a_hitMat) { return a_hitMat.m_data; }
+static inline int GetMaterialId(HitMatRef a_hitMat) { return a_hitMat.m_data; }
 
-IDH_CALL void SetHitType(__private HitMatRef* a_pHitMat, int a_id)
+static inline void SetHitType(__private HitMatRef* a_pHitMat, int a_id)
 {
   int mask = a_id << 28;
   int m_data2 = a_pHitMat->m_data & 0x0FFFFFFF;
@@ -1452,7 +1544,7 @@ IDH_CALL void SetHitType(__private HitMatRef* a_pHitMat, int a_id)
 }
 
 
-IDH_CALL void SetMaterialId(__private HitMatRef* a_pHitMat, int a_mat_id)
+static inline void SetMaterialId(__private HitMatRef* a_pHitMat, int a_mat_id)
 {
   int mask = a_mat_id & 0x0FFFFFFF;
   int m_data2 = a_pHitMat->m_data & 0xF0000000;
@@ -1487,7 +1579,7 @@ static inline void CoordinateSystem(float3 v1, __private float3* v2, __private f
 }
 
 
-IDH_CALL float3 MapSampleToCosineDistribution(float r1, float r2, float3 direction, float3 hit_norm, float power)
+static inline float3 MapSampleToCosineDistribution(float r1, float r2, float3 direction, float3 hit_norm, float power)
 {
   if(power >= 1e6f)
     return direction;
@@ -1527,10 +1619,10 @@ IDH_CALL float3 MapSampleToCosineDistribution(float r1, float r2, float3 directi
   return res;
 }
 
-
 // Using the modified Phong reflectance model for physically based rendering
 //
-IDH_CALL float3 MapSampleToModifiedCosineDistribution(float r1, float r2, float3 direction, float3 hit_norm, float power)
+static inline float3 MapSampleToModifiedCosineDistribution(float r1, float r2, float3 direction, float3 hit_norm, float power, 
+                                                           bool* a_underSurface)
 {
   if (power >= 1e6f)
     return direction;
@@ -1556,15 +1648,18 @@ IDH_CALL float3 MapSampleToModifiedCosineDistribution(float r1, float r2, float3
     nz = temp;
   }
 
-  float3 res = nx*deviation.x + ny*deviation.y + nz*deviation.z;
+  float3 res        = nx*deviation.x + ny*deviation.y + nz*deviation.z;
+  (*a_underSurface) = false;
 
-  float invSign = dot(direction, hit_norm) >= 0.0f ? 1.0f : -1.0f;
-  if (invSign*dot(res, hit_norm) < 0.0f)                                  // reflected ray is below surface #CHECK_THIS
-    res = (-1.0f)*nx*deviation.x - ny*deviation.y + nz*deviation.z;
+  const float invSign = dot(direction, hit_norm) >= 0.0f ? 1.0f : -1.0f;
+  if (invSign*dot(res, hit_norm) < 0.0f)                           // reflected ray is below surface
+  {                                
+    res               = (-1.0f)*nx*deviation.x - ny*deviation.y + nz*deviation.z;
+    (*a_underSurface) = true;
+  } 
 
   return res;
 }
-
 
 /**
 \brief  transform float2 sample in rect [-1,1]x[-1,1] to disc centered at (0,0) with radius == 1. 
@@ -2263,7 +2358,8 @@ typedef struct ShadeContextT
   float3 bn;    ///< binormal    (for bump mapping and tangent space transform)
 
   float2 tc;    ///< tex coord (0);
-                //float2 tc1; ///< tex coord (1);
+  //float2 tc1; ///< tex coord (1);
+  float2 tccp;  ///< tex coord camera projected
 
   bool   hfi;   ///< Hit.From.Inside. if hit surface from the inside of the object that have glass or SSS material 
 
@@ -2488,6 +2584,8 @@ typedef struct SurfaceHitT
   float3 tangent;
   float3 biTangent;
   float2 texCoord;
+  //float2 texCoord1;
+  float2 texCoordCamProj;
   int    matId;
   float  t;
   float  sRayOff;
@@ -2569,7 +2667,6 @@ static inline float3 ReadSurfaceHitPos(const __global float4* a_in, int a_tid, i
 
 
 enum PLAIN_MAT_TYPES {
-
   PLAIN_MAT_CLASS_PHONG_SPECULAR = 0,
   PLAIN_MAT_CLASS_BLINN_SPECULAR = 1, // Micro Facet Torrance Sparrow model with Blinn distribution
   PLAIN_MAT_CLASS_PERFECT_MIRROR = 2,
@@ -2581,8 +2678,11 @@ enum PLAIN_MAT_TYPES {
   PLAIN_MAT_CLASS_OREN_NAYAR     = 8,
   PLAIN_MAT_CLASS_BLEND_MASK     = 9,
   PLAIN_MAT_CLASS_EMISSIVE       = 10,
-  PLAIN_MAT_CLASS_VOLUME_PERLIN  = 11,
-	PLAIN_MAT_CLASS_SSS            = 12
+  PLAIN_MAT_CLASS_VOLUME_PERLIN  = 11, // incactive currently
+	PLAIN_MAT_CLASS_SSS            = 12, // incactive currently
+  PLAIN_MAT_CLASS_BECKMANN       = 13, // anisotropic BRDF
+  PLAIN_MAT_CLASS_TRGGX          = 14, // anisotropic BRDF
+  PLAIN_MAT_CLASS_GGX            = 15, // isotropic and simple 
 };
 
 
@@ -2615,6 +2715,7 @@ enum PLAIN_MAT_FLAGS{
   PLAIN_MATERIAL_CAMERA_MAPPED_REFL   = 32768*16,
   PLAIN_MATERIAL_EMISSIVE_SHADOW_CATCHER     = 32768*32,
   PLAIN_MATERIAL_CATCHER_FIX_BLACK_TRIANGLES = 32768*64,
+  PLAIN_MATERIAL_FLIP_TANGENT                = 32768*128,
 };
 
 #define PLAIN_MATERIAL_DATA_SIZE        192
@@ -2973,5 +3074,15 @@ static inline float3 decompressShadow(ushort4 shadowCompressed)
 
 //#define SBDPT_CHECK_BOUNCE 4
 //#define SBDPT_INDIRECT_ONLY (void)
+
+static inline float WrapVal(float a_val)
+{
+  if (a_val > 1.0f)
+    return a_val - (float)((int)a_val);
+  else if(a_val < -1.0f)
+    return (float)((int)a_val) - a_val;
+  else
+    return a_val;
+}
 
 #endif

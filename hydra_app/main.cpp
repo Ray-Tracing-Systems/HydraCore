@@ -196,8 +196,6 @@ int main(int argc, const char** argv)
     if (r1 == nullptr || r2 == nullptr)
       std::cerr << "[main]: freopen failed!" << std::endl;
   }
-
-
   
 
   try

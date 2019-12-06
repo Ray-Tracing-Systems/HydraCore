@@ -124,6 +124,7 @@ protected:
   void float2half(cl_mem buffIn, cl_mem buffOut, size_t a_size);
   void float2half(const std::vector<float>& a_in, std::vector<cl_half>& a_out);
   void float2half(const float* a_inData, size_t a_size, std::vector<cl_half>& a_out);
+  void runKernel_ClampFloat4(cl_mem buff1, cl_float a_min, cl_float a_max, size_t a_size);
 
   double reduce_avg1f(cl_mem a_buff, size_t a_size);
 

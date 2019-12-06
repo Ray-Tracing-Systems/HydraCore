@@ -283,8 +283,10 @@ void IntegratorCommon::DoPass(std::vector<uint>& a_imageLDR)
   // Update HDR image
   //
   const float alpha = 1.0f / float(m_spp + 1);
-
+  
+  #ifdef NDEBUG
   #pragma omp parallel for
+  #endif
   for (int y = 0; y < m_height; y++)
   {
     for (int x = 0; x < m_width; x++)
@@ -292,11 +294,16 @@ void IntegratorCommon::DoPass(std::vector<uint>& a_imageLDR)
       float3 ray_pos, ray_dir;
       std::tie(ray_pos, ray_dir) = makeEyeRay(x, y);
 
-      if (x == 725 && y == 391)
+      if (x == 1008 && y == 0)
         int a = 2;
 
 			const float3 color = PathTrace(ray_pos, ray_dir, makeInitialMisData(), 0, 0); 
       const float maxCol = maxcomp(color);
+
+      if(!isfinite(color.x) || !isfinite(color.y) || !isfinite(color.z))
+      {
+        int a = 2;
+      }
 
       m_summColors[y*m_width + x] = m_summColors[y*m_width + x] * (1.0f - alpha) + to_float4(color, maxCol)*alpha;
     }
@@ -310,7 +317,7 @@ void IntegratorCommon::DoPass(std::vector<uint>& a_imageLDR)
   //if (m_spp == 1)
     //DebugSaveGbufferImage(L"C:/[Hydra]/rendered_images/torus_gbuff");
 
-  std::cout << "IntegratorCommon: spp = " << m_spp << std::endl;
+  std::cout << "[" << this->Name() << "]: spp = " << m_spp << std::endl;
 }
 
 

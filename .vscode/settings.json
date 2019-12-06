@@ -47,6 +47,16 @@
         "typeinfo": "cpp",
         "utility": "cpp",
         "iomanip": "cpp",
-        "functional": "cpp"
+        "functional": "cpp",
+        "atomic": "cpp",
+        "cstddef": "cpp",
+        "algorithm": "cpp",
+        "iterator": "cpp",
+        "map": "cpp",
+        "memory_resource": "cpp",
+        "numeric": "cpp",
+        "random": "cpp",
+        "regex": "cpp",
+        "string": "cpp"
     }
 }

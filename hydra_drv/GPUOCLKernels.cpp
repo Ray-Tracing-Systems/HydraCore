@@ -1120,20 +1120,21 @@ void GPUOCLLayer::runKernel_ProjectSamplesToScreen(cl_mem a_rayFlags, cl_mem a_r
   CHECK_CL(clSetKernelArg(kern, 6, sizeof(cl_mem), (void*)&m_rays.lightOffsetBuff)); //#TODO: remove this buffer, store it inside 'lsamRev'
   CHECK_CL(clSetKernelArg(kern, 7, sizeof(cl_mem), (void*)&m_rays.lsamRev));
   CHECK_CL(clSetKernelArg(kern, 8, sizeof(cl_mem), (void*)&m_rays.hitProcTexData));
+  CHECK_CL(clSetKernelArg(kern, 9, sizeof(cl_mem), (void*)&m_rays.randGenState));
 
-  CHECK_CL(clSetKernelArg(kern, 9, sizeof(cl_mem), (void*)&m_scene.storageMat));
-  CHECK_CL(clSetKernelArg(kern, 10, sizeof(cl_mem), (void*)&m_scene.allGlobsData));
-  CHECK_CL(clSetKernelArg(kern, 11, sizeof(cl_mem), (void*)&m_scene.storageTex));
-  CHECK_CL(clSetKernelArg(kern, 12, sizeof(cl_mem), (void*)&m_scene.storageTexAux));
-  CHECK_CL(clSetKernelArg(kern, 13, sizeof(cl_mem), (void*)&m_globals.cMortonTable));
+  CHECK_CL(clSetKernelArg(kern, 10, sizeof(cl_mem), (void*)&m_scene.storageMat));
+  CHECK_CL(clSetKernelArg(kern, 11, sizeof(cl_mem), (void*)&m_scene.allGlobsData));
+  CHECK_CL(clSetKernelArg(kern, 12, sizeof(cl_mem), (void*)&m_scene.storageTex));
+  CHECK_CL(clSetKernelArg(kern, 13, sizeof(cl_mem), (void*)&m_scene.storageTexAux));
+  CHECK_CL(clSetKernelArg(kern, 14, sizeof(cl_mem), (void*)&m_globals.cMortonTable));
 
-  CHECK_CL(clSetKernelArg(kern, 14, sizeof(cl_mem), (void*)&a_colorsIn));
-  CHECK_CL(clSetKernelArg(kern, 15, sizeof(cl_mem), (void*)&a_colorsOut));
-  CHECK_CL(clSetKernelArg(kern, 16, sizeof(cl_mem), (void*)&a_zindex));
+  CHECK_CL(clSetKernelArg(kern, 15, sizeof(cl_mem), (void*)&a_colorsIn));
+  CHECK_CL(clSetKernelArg(kern, 16, sizeof(cl_mem), (void*)&a_colorsOut));
+  CHECK_CL(clSetKernelArg(kern, 17, sizeof(cl_mem), (void*)&a_zindex));
  
-  CHECK_CL(clSetKernelArg(kern, 17, sizeof(cl_float), (void*)&mLightSubPathCount));
-  CHECK_CL(clSetKernelArg(kern, 18, sizeof(cl_int),   (void*)&currBounce));
-  CHECK_CL(clSetKernelArg(kern, 19, sizeof(cl_int),   (void*)&isize));
+  CHECK_CL(clSetKernelArg(kern, 18, sizeof(cl_float), (void*)&mLightSubPathCount));
+  CHECK_CL(clSetKernelArg(kern, 19, sizeof(cl_int),   (void*)&currBounce));
+  CHECK_CL(clSetKernelArg(kern, 20, sizeof(cl_int),   (void*)&isize));
 
   CHECK_CL(clEnqueueNDRangeKernel(m_globals.cmdQueue, kern, 1, NULL, &a_size, &localWorkSize, 0, NULL, NULL));
   waitIfDebug(__FILE__, __LINE__);
@@ -1368,7 +1369,6 @@ void GPUOCLLayer::float2half(const float* a_inData, size_t a_size, std::vector<c
   clReleaseMemObject(tempHalfBuff);
 }
 
-
 void GPUOCLLayer::float2half(const std::vector<float>& a_in, std::vector<cl_half>& a_out)
 {
   if (a_in.size() == 0 || a_in.size() != a_out.size())
@@ -1377,6 +1377,24 @@ void GPUOCLLayer::float2half(const std::vector<float>& a_in, std::vector<cl_half
   float2half(&a_in[0], a_in.size(), a_out);
 }
 
+void GPUOCLLayer::runKernel_ClampFloat4(cl_mem buff1, cl_float a_min, cl_float a_max, size_t a_size)
+{
+  if(buff1 == 0)
+    return;
+
+  cl_kernel kern = m_progs.screen.kernel("ClampFloat4");
+
+  size_t szLocalWorkSize = 256;
+  cl_int iNumElements    = cl_int(a_size);
+  a_size                 = roundBlocks(a_size, int(szLocalWorkSize));
+
+  CHECK_CL(clSetKernelArg(kern, 0, sizeof(cl_mem),   (void*)&buff1));
+  CHECK_CL(clSetKernelArg(kern, 1, sizeof(cl_float), (void*)&a_min));
+  CHECK_CL(clSetKernelArg(kern, 2, sizeof(cl_float), (void*)&a_max));
+  CHECK_CL(clSetKernelArg(kern, 3, sizeof(cl_int),   (void*)&iNumElements));
+
+  CHECK_CL(clEnqueueNDRangeKernel(m_globals.cmdQueue, kern, 1, NULL, &a_size, &szLocalWorkSize, 0, NULL, NULL));
+}
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////

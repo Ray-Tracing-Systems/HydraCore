@@ -9,6 +9,7 @@
 #include "cfetch.h"
 
 #include "clight.h"
+#include "cmatpbrt.h"
 #include "cmaterial.h"
 #include "cbidir.h"
 
@@ -837,7 +838,7 @@ __kernel void MMLTCameraPathBounce(__global   float4*        restrict a_rpos,
   if (a_currDepth == 1)
   {
     float3 camDirDummy; float zDepthDummy;
-    const float imageToSurfaceFactor = CameraImageToSurfaceFactor(surfElem.pos, surfElem.normal, a_globals,
+    const float imageToSurfaceFactor = CameraImageToSurfaceFactor(surfElem.pos, surfElem.normal, a_globals, make_float2(0,0),
                                                                   &camDirDummy, &zDepthDummy);
     const float cameraPdfA = imageToSurfaceFactor / mLightSubPathCount;
    
@@ -1390,7 +1391,7 @@ __kernel void MMLTMakeShadowRay(__global const int2  *  restrict in_splitInfo,
       if (lv.valid)
       {
          float3 camDir; float zDepth;
-         const float imageToSurfaceFactor = CameraImageToSurfaceFactor(lv.hit.pos, lv.hit.normal, a_globals,
+         const float imageToSurfaceFactor = CameraImageToSurfaceFactor(lv.hit.pos, lv.hit.normal, a_globals, make_float2(0,0),
                                                                        &camDir, &zDepth);
          float signOfNormal = 1.0f;
          if (lv.hit.matId >= 0)
@@ -1540,7 +1541,7 @@ __kernel void MMLTConnect(__global const int2  *  restrict in_splitInfo,
       if (lv.valid)
       {
         float3 camDir; float zDepth;
-        const float imageToSurfaceFactor = CameraImageToSurfaceFactor(lv.hit.pos, lv.hit.normal, a_globals,
+        const float imageToSurfaceFactor = CameraImageToSurfaceFactor(lv.hit.pos, lv.hit.normal, a_globals, make_float2(0,0),
                                                                       &camDir, &zDepth);
       
         __global const PlainMaterial* pHitMaterial = materialAt(a_globals, in_mtlStorage, lv.hit.matId);

@@ -151,6 +151,8 @@ public:
 
   virtual void SetMaxDepth(int a_depth) { m_maxDepth = a_depth; }
 
+  virtual const char* Name() const = 0;
+
 protected:
 
   Integrator(const Integrator& a_rhs) {}
@@ -168,6 +170,8 @@ public:
 
   IntegratorCommon(int w, int h, EngineGlobals* a_pGlobals, int a_createFlags);
   ~IntegratorCommon();
+
+  const char* Name() const { return "IntegratorCommon"; }
 
   float3 PathTrace(float3 a_rpos, float3 a_rdir, MisData misPrev, int a_currDepth, uint flags); //!!!1
 	virtual float3 PathTraceVol(float3 a_rpos, float3 a_rdir, MisData misPrev, int a_currDepth, uint flags, float sigmaS = 0.0, float3 sigmaA = float3(0.0, 0.0, 0.0)) { return float3(0,0,0); };
@@ -314,6 +318,8 @@ public:
 
   IntegratorStupidPT(int w, int h, EngineGlobals* a_pGlobals) : IntegratorCommon(w, h, a_pGlobals, 0) {  }
   
+  const char* Name() const { return "IntegratorStupidPT"; }
+
   void DoPass(std::vector<uint>& a_imageLDR) 
   { 
     m_pGlobals->g_flags |= HRT_STUPID_PT_MODE; 
@@ -332,6 +338,7 @@ public:
 
 	IntegratorStupidPTSSS(int w, int h, EngineGlobals* a_pGlobals) : IntegratorCommon(w, h, a_pGlobals, 0) {}
 
+  const char* Name() const { return "IntegratorStupidPTSSS"; }
 
 	float3 PathTrace(float3 a_rpos, float3 a_rdir, MisData misPrev, int a_currDepth, uint flags);
 	float3 PathTraceVol(float3 a_rpos, float3 a_rdir, MisData misPrev, int a_currDepth, uint flags, float sigmaS = 0.0, float3 sigmaA = float3(0.0, 0.0 ,0.0)) override;
@@ -343,6 +350,8 @@ class IntegratorShadowPTSSS : public IntegratorCommon
 public:
 
 	IntegratorShadowPTSSS(int w, int h, EngineGlobals* a_pGlobals) : IntegratorCommon(w, h, a_pGlobals, 0) {}
+
+  const char* Name() const { return "IntegratorShadowPTSSS"; }
 
 	float3 PathTrace(float3 a_rpos, float3 a_rdir, MisData misPrev, int a_currDepth, uint flags);
 	std::tuple<MatSample, int, float3> sampleAndEvalBxDF(float3 ray_dir, const SurfaceHit& surfElem, uint flags, float3 shadow, float3 &new_ray_pos);
@@ -361,6 +370,8 @@ public:
 
   IntegratorShadowPT(int w, int h, EngineGlobals* a_pGlobals) : IntegratorCommon(w, h, a_pGlobals, 0) {}
 
+  const char* Name() const { return "IntegratorShadowPT"; }
+
   float3 PathTrace(float3 a_rpos, float3 a_rdir, MisData misPrev, int a_currDepth, uint flags);
 };
 
@@ -371,8 +382,71 @@ public:
 
   IntegratorMISPT(int w, int h, EngineGlobals* a_pGlobals, int a_createFlags) : IntegratorCommon(w, h, a_pGlobals, a_createFlags) {}
 
+  const char* Name() const { return "IntegratorMISPT"; }
+
   float3 PathTrace(float3 a_rpos, float3 a_rdir, MisData misPrev, int a_currDepth, uint flags);
 };
+
+//////////////////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////////////////
+
+class IntegratorMISPTLoop2 : public IntegratorCommon
+{
+public:
+
+  IntegratorMISPTLoop2(int w, int h, EngineGlobals* a_pGlobals, int a_createFlags) : IntegratorCommon(w, h, a_pGlobals, a_createFlags) {}
+
+  const char* Name() const { return "IntegratorMISPTLoop2"; }
+
+  float3 PathTrace(float3 a_rpos, float3 a_rdir, MisData misPrev, int a_currDepth, uint flags);
+
+private:
+
+  void kernel_InitAccumData(float3& accumColor, float3& accumuThoroughput, float3& currColor);
+
+  void kernel_RayTrace(const float3& ray_pos, const float3& ray_dir, 
+                       Lite_Hit& hit);
+
+  bool kernel_HitEnvironment(const float3& ray_dir, const Lite_Hit& hit, const MisData& misPrev, const int& flags,
+                             float3& currColor);
+
+  void kernel_EvalSurface(const float3& ray_pos, const float3& ray_dir, const Lite_Hit& hit,
+                          SurfaceHit& surfElem);
+
+  bool kernel_EvalEmission(const float3& ray_pos, const float3& ray_dir, 
+                           const SurfaceHit& surfElem, const int& flags, 
+                           const MisData& misPrev, const Lite_Hit& hit, 
+                           const int depth,  // noreference!
+                           float3& currColor);
+
+  void kernel_LightSelect(const SurfaceHit& surfElem, const int depth,
+                          float& lightPickProb, int& lightOffset, float4& rndLightData);
+
+  void kernel_LightSample(const SurfaceHit& surfElem, const int& lightOffset, const float4& rndLightData,
+                          float3& shadowRayPos, float3& shadowRayDir, ShadowSample& explicitSam);
+
+
+  void kernel_ShadowTrace(const float3&  shadowRayPos, const float3&  shadowRayDir, const int& lightOffset, const float3& explicitSamPos,
+                          float3& shadow);
+
+  void kernel_Shade(const SurfaceHit& surfElem, const ShadowSample& explicitSam, const float3& shadowRayDir, const float3& ray_dir,
+                    const float3& shadow, const float& lightPickProb, const int& lightOffset,
+                    float3& explicitColor);
+
+  void kernel_NextBounce(const SurfaceHit& surfElem, const float3& explicitColor,
+                         MisData& misPrev, float3& ray_pos, float3& ray_dir, uint& flags, float3& accumColor, float3& accumuThoroughput);
+
+  void kernel_AddLastBouceContrib(const float3& currColor, const float3& accumuThoroughput,
+                                  float3& accumColor);
+
+};
+
+//////////////////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////////////////
 
 class IntegratorMISPT_QMC : public IntegratorMISPT
 {
@@ -380,6 +454,8 @@ public:
   
   IntegratorMISPT_QMC(int w, int h, EngineGlobals* a_pGlobals, int a_createFlags) : IntegratorMISPT(w, h, a_pGlobals, a_createFlags) {}
   
+  const char* Name() const { return "IntegratorMISPT_QMC"; }
+
   void DoPass(std::vector<uint>& a_imageLDR) override;
   
   const unsigned int* GetQMCTableIfEnabled() const override { return (const unsigned int*)m_tableQMC; }
@@ -391,6 +467,8 @@ public:
   
   IntegratorMISPT_AQMC(int w, int h, EngineGlobals* a_pGlobals, int a_createFlags);
   
+  const char* Name() const { return "IntegratorMISPT_AQMC"; }
+
   void DoPass(std::vector<uint>& a_imageLDR) override;
   
   const unsigned int* GetQMCTableIfEnabled() const override { return (const unsigned int*)m_tableQMC; }
@@ -513,10 +591,9 @@ class IntegratorLT : public IntegratorCommon
 {
 public:
 
-  IntegratorLT(int w, int h, EngineGlobals* a_pGlobals) : IntegratorCommon(w, h, a_pGlobals, 0)
-  {
+  IntegratorLT(int w, int h, EngineGlobals* a_pGlobals) : IntegratorCommon(w, h, a_pGlobals, 0) {}
 
-  }
+  const char* Name() const { return "IntegratorLT"; }
 
   void DoPass(std::vector<uint>& a_imageLDR) override;
 
@@ -540,10 +617,9 @@ class IntegratorTwoWay : public IntegratorCommon
 {
 public:
 
-  IntegratorTwoWay(int w, int h, EngineGlobals* a_pGlobals) : IntegratorCommon(w, h, a_pGlobals, 0)
-  {
+  IntegratorTwoWay(int w, int h, EngineGlobals* a_pGlobals) : IntegratorCommon(w, h, a_pGlobals, 0) {}
 
-  }
+  const char* Name() const { return "IntegratorTwoWay"; }
 
   void DoPass(std::vector<uint>& a_imageLDR) override;
 
@@ -575,10 +651,9 @@ class IntegratorThreeWay : public IntegratorCommon
 {
 public:
 
-  IntegratorThreeWay(int w, int h, EngineGlobals* a_pGlobals) : IntegratorCommon(w, h, a_pGlobals, 0)
-  {
+  IntegratorThreeWay(int w, int h, EngineGlobals* a_pGlobals) : IntegratorCommon(w, h, a_pGlobals, 0) {}
 
-  }
+  const char* Name() const { return "IntegratorThreeWay"; }
 
   void DoPass(std::vector<uint>& a_imageLDR) override;
 
@@ -618,10 +693,9 @@ class IntegratorSBDPT : public IntegratorCommon
 {
 public:
 
-  IntegratorSBDPT(int w, int h, EngineGlobals* a_pGlobals) : IntegratorCommon(w, h, a_pGlobals, 0)
-  {
-   
-  }
+  IntegratorSBDPT(int w, int h, EngineGlobals* a_pGlobals) : IntegratorCommon(w, h, a_pGlobals, 0) {}
+
+  const char* Name() const { return "IntegratorSBDPT"; }
 
   void DoPass(std::vector<uint>& a_imageLDR) override;
 
@@ -679,6 +753,8 @@ public:
     m_summColors.resize(1);
     m_hdrData = pIndirectImage;
   }
+
+  const char* Name() const { return "IntegratorMMLT"; }
 
   void DoPass(std::vector<uint>& a_imageLDR) override;
   void SetMaxDepth(int a_depth) override;
@@ -759,7 +835,9 @@ public:
 
   IntegratorMMLT_CompressedRand(int w, int h, EngineGlobals* a_pGlobals)                         : IntegratorMMLT(w, h, a_pGlobals) {}
   IntegratorMMLT_CompressedRand(int w, int h, EngineGlobals* a_pGlobals, float4* pIndirectImage) : IntegratorMMLT(w, h, a_pGlobals, pIndirectImage) {}
-
+  
+  const char* Name() const { return "IntegratorMMLT_CompressedRand"; }
+  
 protected:
 
   enum {MMLT_MAX_BOUNCE_COMPRESSED = 20};

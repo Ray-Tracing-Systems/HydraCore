@@ -307,9 +307,12 @@ static inline float3 skyLightGetIntensityTexturedENV(__global const PlainLight* 
 }
 
 static inline float evalMap2DPdf(float2 texCoordT, __global const float* intervals, const int sizeX, const int sizeY)
-{
+{  
   const float fw = (float)sizeX;
   const float fh = (float)sizeY;
+  
+  //texCoordT.x = WrapVal(texCoordT.x);
+  //texCoordT.y = WrapVal(texCoordT.y);
 
   if (texCoordT.x < 0.0f || texCoordT.x > 1.0f) texCoordT.x -= (float)((int)(texCoordT.x));
   if (texCoordT.y < 0.0f || texCoordT.x > 1.0f) texCoordT.y -= (float)((int)(texCoordT.y));
@@ -323,20 +326,17 @@ static inline float evalMap2DPdf(float2 texCoordT, __global const float* interva
   if (pixelX < 0) pixelX += sizeX;
   if (pixelY < 0) pixelY += sizeY;
 
-  //if (pixelX < 0 || pixelY < 0)
-    //return 1.0f;
-
   const int pixelOffset = pixelY*sizeX + pixelX;
-  const int maxSize = sizeX*sizeY;
-  const int offset0 = (pixelOffset + 0 < maxSize) ? pixelOffset + 0 : maxSize - 1;
-  const int offset1 = (pixelOffset + 1 < maxSize) ? pixelOffset + 1 : maxSize - 1;
+  const int maxSize     = sizeX*sizeY;
+  const int offset0     = (pixelOffset + 0 < maxSize+0) ? pixelOffset + 0 : maxSize - 1;
+  const int offset1     = (pixelOffset + 1 < maxSize+1) ? pixelOffset + 1 : maxSize;
 
   const float2 interval = make_float2(intervals[offset0], intervals[offset1]);
-
+  
   return (interval.y - interval.x)*(fw*fh)/intervals[sizeX*sizeY];
 }
 
-static inline float skyLightEvalPDF(__global const PlainLight* pLight, float3 illuminatingPoint, float3 rayDir, __global const EngineGlobals* a_globals, __global const float4* a_pdfStorage)
+static inline float skyLightEvalPDF(__global const PlainLight* pLight, float3 rayDir, __global const EngineGlobals* a_globals, __global const float4* a_pdfStorage)
 {
   __global const float* pdfHeader = pdfTableHeader(as_int(pLight->data[SKY_DOME_PDF_TABLE0]), a_pdfStorage, a_globals);
   __global const float* intervals = pdfHeader + 4;
@@ -360,7 +360,7 @@ static inline float skyLightEvalPDF(__global const PlainLight* pLight, float3 il
 
   const float2 texCoordT = mul2x4(pMatrix->row[0], pMatrix->row[1], texCoord);
   const float mapPdf     = evalMap2DPdf(texCoordT, intervals, sizeX, sizeY);
-  return (mapPdf * 1.0f) / (2.f * M_PI * M_PI * fmax(sintheta, DEPSILON));
+  return (mapPdf * 1.0f) / (2.f * M_PI * M_PI * fmax(fabs(sintheta), DEPSILON));    
 }
 
 
@@ -422,7 +422,7 @@ static inline void LightSampleIESSphere(__global const PlainLight* pLight, float
   float sinTheta = 0.0f;
   float3 lsDir   = texCoord2DToSphereMap(sample.texCoord, &sinTheta);
   (*a_outDir)    = normalize(matrix3x3f_mult_float3(pMatrix, lsDir));
-  (*a_outPdfW)   = INV_PI*INV_PI*0.5f*(sample.mapPdf/fmax(sinTheta, DEPSILON2));
+  (*a_outPdfW)   = INV_PI*INV_PI*0.5f*(sample.mapPdf/fmax(fabs(sinTheta), DEPSILON2));
 }
 
 inline static void SkyLightSampleRev(__global const PlainLight* pLight, float3 rands, float3 illuminatingPoint,
@@ -453,7 +453,7 @@ inline static void SkyLightSampleRev(__global const PlainLight* pLight, float3 r
   const float3 color  = skyLightGetIntensityEnv(pLight, sampleDir)*txClr; 
 
   const float hitDist = length(illuminatingPoint - samplePos);
-  const float pdf     = (sample.mapPdf * 1.0f) / (2.f * M_PI * M_PI * fmax(sintheta, DEPSILON));
+  const float pdf     = (sample.mapPdf * 1.0f) / (2.f * M_PI * M_PI * fmax(fabs(sintheta), DEPSILON));
 
   a_out->isPoint = false;
   a_out->pos     = samplePos;

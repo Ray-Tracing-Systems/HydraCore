@@ -20,6 +20,7 @@ set(SOURCE_FILES
         CPUExp_Integrators.h
         CPUExp_Integrators_LT.cpp
         CPUExp_Integrators_PT.cpp
+        CPUExp_Integrators_PT_Loop.cpp
         CPUExp_Integrators_PT_QMC.cpp
         CPUExp_Integrators_SBDPT.cpp
         CPUExp_Integrators_MMLT.cpp
@@ -72,7 +73,7 @@ include_directories(${HYDRA_API_ROOT_DIR})
 
 find_package(OpenMP REQUIRED)
 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -msse4.1")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -msse4.1 -fopenmp")
 
 ADD_LIBRARY(hydra_drv STATIC ${SOURCE_FILES})
 

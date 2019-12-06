@@ -32,7 +32,9 @@ typedef struct GlobalRenderDataT
   float varsF[GMAXVARS];
   int   rmQMC[QMC_VARS_NUM];
 
-  float camForward[3];  ///< needed for light tracing
+  float camForward [3]; ///< needed for light tracing
+  float camUpVector[3]; ///< needed for light tracing
+  float camLookAt  [3]; ///< needed for light tracing
   float imagePlaneDist; ///< needed for light tracing
 
   ///////////////////////////////////////////////////////////////////////////////////////////////
@@ -252,9 +254,9 @@ static inline float2 sphereMapTo2DTexCoord(float3 ray_dir, __private float* pSin
   const float2 angles = sphereMapToPhiTheta(ray_dir);
 
   const float texX = clamp(angles.x*0.5f*INV_PI, 0.0f, 1.0f);
-  const float texY = clamp(angles.y*INV_PI, 0.0f, 1.0f);
+  const float texY = clamp(angles.y*INV_PI,      0.0f, 1.0f);
 
-  (*pSinTheta) = sin(angles.y);
+  (*pSinTheta) = sqrt(1.0f - ray_dir.y*ray_dir.y); // sin(angles.y);
   return make_float2(texX, texY);
 }
 
@@ -397,8 +399,8 @@ static inline float4 read_imagef_sw4(texture2d_t a_tex, const float2 a_texCoord,
     const int   px = (int)(ffx);
     const int   py = (int)(ffy);
 
-    const float fx = fabs(ffx - (float)px);
-    const float fy = fabs(ffy - (float)py);
+    const float fx  = fabs(ffx - (float)px);
+    const float fy  = fabs(ffy - (float)py);
     const float fx1 = 1.0f - fx;
     const float fy1 = 1.0f - fy;
 

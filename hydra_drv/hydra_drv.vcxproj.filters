@@ -96,6 +96,9 @@
     <ClInclude Include="cglobals.h">
       <Filter>core</Filter>
     </ClInclude>
+    <ClInclude Include="cmatpbrt.h">
+      <Filter>core</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="RenderDriverRTE.cpp">
@@ -214,6 +217,9 @@
     </ClCompile>
     <ClCompile Include="GPUOCLLayerOther.cpp">
       <Filter>GPULayer</Filter>
+    </ClCompile>
+    <ClCompile Include="CPUExp_Integrators_PT_Loop.cpp">
+      <Filter>CPULayer</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

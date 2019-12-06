@@ -791,7 +791,20 @@ __kernel void MaxPixelSize256(__global const Lite_Hit*  in_hits,
 }
 
 
+__kernel void ClampFloat4(__global float4* inout_color, float a_min, float a_max, int iNumElements)
+{
+  const int tid = GLOBAL_ID_X;
+  if (tid >= iNumElements)
+    return;
+  
+  float4 color = inout_color[tid];
+  
+  color.x = fmax(fmin(color.x, a_max), a_min);
+  color.y = fmax(fmin(color.y, a_max), a_min);
+  color.z = fmax(fmin(color.z, a_max), a_min);
 
+  inout_color[tid] = color;
+}
 
 __kernel void BlendFrameBuffers(__global float4* out_dst, __global const float4* in_src1, __global const float4* in_src2, 
                                float4 k1, float4 k2, int iNumElements)

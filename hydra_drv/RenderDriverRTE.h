@@ -125,8 +125,10 @@ struct RenderDriverRTE : public IHRRenderDriver
     AOProcTexInfo ao;
   };
 
-  int   m_shadowMatteBackTexId;
-  float m_shadowMatteBackGamma;
+  int    m_shadowMatteBackMode;
+  int    m_shadowMatteBackTexId;
+  float  m_shadowMatteBackGamma;
+  float3 m_shadowMatteBackColor;
 
   void ExecuteCommand(const wchar_t* a_cmd, wchar_t* a_out) override;
   void ReadBumpAndOpacity(std::shared_ptr<RAYTR::IMaterial> pResult, pugi::xml_node a_node);
