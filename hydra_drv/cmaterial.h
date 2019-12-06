@@ -697,7 +697,7 @@ static inline float3 phongEvalBxDF(__global const PlainMaterial* a_pMat, const f
   const float  cosPower = cosPowerFromGlosiness(gloss);
 
   const float3 r        = reflect((-1.0)*v, n);
-  const float  cosAlpha = clamp(dot(l, r), 0.0f, M_PI*0.499995f);
+  const float  cosAlpha = clamp(dot(l, r), 0.0f, 1.0f);
 
   const float energyFix = PhongEnergyFix(cosAlpha, l, n, v);
   
@@ -717,9 +717,9 @@ static inline void PhongSampleAndEvalBRDF(__global const PlainMaterial* a_pMat, 
   const float3 r        = reflect(ray_dir, a_normal);
   const float3 newDir   = MapSampleToModifiedCosineDistribution(a_r1, a_r2, r, a_normal, cosPower, &underSurface);
 
-  const float cosAlpha    = clamp(dot(newDir, r), 0.0, M_PI*0.499995f);
-  const float dotNL       = dot(a_normal, newDir);
-  const float energyFix   = PhongEnergyFix(cosAlpha, newDir, a_normal, ray_dir);
+  const float cosAlpha  = clamp(dot(newDir, r), 0.0, 1.0f);
+  const float dotNL     = dot(a_normal, newDir);
+  const float energyFix = PhongEnergyFix(cosAlpha, newDir, a_normal, ray_dir);
 
   const float powCosAlphaCosPowInvTwoPi = pow(cosAlpha, cosPower) * INV_TWOPI;
 
@@ -732,7 +732,6 @@ static inline void PhongSampleAndEvalBRDF(__global const PlainMaterial* a_pMat, 
 
   a_out->flags = (gloss == 1.0f) ? RAY_EVENT_S : RAY_EVENT_G;
 }
-
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -985,7 +984,7 @@ static inline float ggxEvalPDF(__global const PlainMaterial* a_pMat, const float
 
   const float3 texColor = sample2DExt(ggxGetTex(a_pMat).y, a_texCoord, (__global const int4*)a_pMat, a_tex, a_globals, a_ptList);
   const float3 color    = clamp(ggxGetColor(a_pMat)*texColor, 0.0f, 1.0f);
-  const float maxColor  = max(color.x, max(color.y, color.z));
+  const float maxColor  = fmax(color.x, fmax(color.y, color.z));
   const float  gloss    = ggxGlosiness(a_pMat, a_texCoord, a_globals, a_tex, a_ptList);
   const float roughness = 1.0f - gloss;
   const float roughSqr  = roughness * roughness;
@@ -1011,7 +1010,7 @@ static inline float3 ggxEvalBxDF(__global const PlainMaterial* a_pMat, const flo
 
   const float3 texColor = sample2DExt(ggxGetTex(a_pMat).y, a_texCoord, (__global const int4*)a_pMat, a_tex, a_globals, a_ptList);
   const float3 color    = clamp(ggxGetColor(a_pMat)*texColor, 0.0f, 1.0f);
-  const float maxColor  = max(color.x, max(color.y, color.z));
+  const float maxColor  = fmax(color.x, fmax(color.y, color.z));
   const float  gloss    = ggxGlosiness(a_pMat, a_texCoord, a_globals, a_tex, a_ptList);
   const float roughness = 1.0f - gloss;
   const float roughSqr  = roughness * roughness;
