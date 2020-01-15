@@ -302,3 +302,5 @@ hydra_app/CMakeFiles/Makefile.cmake
 hydra_app/CMakeCache.txt
 hydra_app/Makefile
 *.user
+bakeBrdfEnergy/x64/
+bakeBrdfEnergy/.vs/
