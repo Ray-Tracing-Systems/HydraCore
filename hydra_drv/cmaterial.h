@@ -884,7 +884,8 @@ static inline void BlinnSampleAndEvalBRDF(__global const PlainMaterial* a_pMat, 
 
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
+// GGX
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 #define GGX_COLORX_OFFSET       10
 #define GGX_COLORY_OFFSET       11
 #define GGX_COLORZ_OFFSET       12
@@ -919,10 +920,10 @@ static inline float ggxGlosiness(__global const PlainMaterial* a_pMat, const flo
 {
   if (as_int(a_pMat->data[GGX_GLOSINESS_TEXID_OFFSET]) != INVALID_TEXTURE)
   {
-    const int2   texId = make_int2(as_int(a_pMat->data[GGX_GLOSINESS_TEXID_OFFSET]), as_int(a_pMat->data[GGX_GLOSINESS_TEXMATRIXID_OFFSET]));
+    const int2   texId      = make_int2(as_int(a_pMat->data[GGX_GLOSINESS_TEXID_OFFSET]), as_int(a_pMat->data[GGX_GLOSINESS_TEXMATRIXID_OFFSET]));
     const float3 glossColor = sample2DExt(texId.y, a_texCoord, (__global const int4*)a_pMat, a_tex, a_globals, a_ptList);
-    const float  glossMult = a_pMat->data[GGX_GLOSINESS_OFFSET];
-    const float  glosiness = clamp(glossMult*maxcomp(glossColor), 0.0f, 0.999f);
+    const float  glossMult  = a_pMat->data[GGX_GLOSINESS_OFFSET];
+    const float  glosiness  = clamp(glossMult*maxcomp(glossColor), 0.0f, 0.999f);
     return glosiness;
   }
   else
@@ -931,9 +932,13 @@ static inline float ggxGlosiness(__global const PlainMaterial* a_pMat, const flo
 
 static inline float Luminance(const float3 color) { return (color.x * 0.2126f + color.y * 0.7152f + color.z * 0.0722f); } //https://en.wikipedia.org/wiki/Relative_luminance
 
+static inline float SmithGGXMaskingShadowing(const float dotNL, const float dotNV, float roughSqr)
+{
+  const float denomA = dotNV * sqrt(roughSqr + (1.0f - roughSqr) * dotNL * dotNL);
+  const float denomB = dotNL * sqrt(roughSqr + (1.0f - roughSqr) * dotNV * dotNV);
+  return 2.0f * dotNL * dotNV / fmax((denomA + denomB), 1e-6f);
+}
 
-
-// GGX
 static inline float GGX_HeightCorrelatedGeomShadMask(const float dotNV, const float dotNL, const float alpha)
 {
   // Height-Correlated Masking and Shadowing function
@@ -970,30 +975,31 @@ static inline float GGX_Distribution(const float cosThetaNH, const float alpha)
   const float alpha2  = alpha * alpha;
   const float NH_sqr  = clamp(cosThetaNH * cosThetaNH, 0.0f, 1.0f);
   const float den     = NH_sqr * alpha2 + (1.0f - NH_sqr);
-  return alpha2 / (M_PI * den * den);
+  return alpha2 / fmax(M_PI * den * den, 1e-6f);
 }
 
 static inline float ggxEvalPDF(__global const PlainMaterial* a_pMat, const float3 l, const float3 v, const float3 n, const float2 a_texCoord,
                                __global const EngineGlobals* a_globals, texture2d_t a_tex, __private const ProcTextureList* a_ptList)
 {
-  const float dotNL = dot(n, l);
-  const float dotNV = dot(n, v);
+  return  1.0f; // for correct IBPT Heitz sampling 2017 (GGXSample2AndEvalBRDF).
 
-  if (dotNV <= 0.0f || dotNL <= 1e-6f)
+  const float dotNL       = dot(n, l);
+  const float dotNV       = dot(n, v);
+
+  if (dotNV < 1e-6f || dotNL < 1e-6f)
     return 0.0f;
 
-  const float3 texColor = sample2DExt(ggxGetTex(a_pMat).y, a_texCoord, (__global const int4*)a_pMat, a_tex, a_globals, a_ptList);
-  const float3 color    = clamp(ggxGetColor(a_pMat)*texColor, 0.0f, 1.0f);
-  const float maxColor  = fmax(color.x, fmax(color.y, color.z));
-  const float  gloss    = ggxGlosiness(a_pMat, a_texCoord, a_globals, a_tex, a_ptList);
-  const float roughness = 1.0f - gloss;
-  const float roughSqr  = roughness * roughness;
+  const float3 texColor   = sample2DExt(ggxGetTex(a_pMat).y, a_texCoord, (__global const int4*)a_pMat, a_tex, a_globals, a_ptList);
+  const float3 color      = clamp(ggxGetColor(a_pMat)*texColor, 0.0f, 1.0f);
+  const float  gloss      = ggxGlosiness(a_pMat, a_texCoord, a_globals, a_tex, a_ptList);
+  const float roughness   = 1.0f - gloss;
+  const float roughSqr    = roughness * roughness;
 
-  const float3 h    = normalize(v + l); // half vector.
-  const float dotNH = dot(n, h);
-  const float dotHV = dot(h, v);
+  const float3 h          = normalize(v + l); // half vector.
+  const float dotNH       = dot(n, h);
+  const float dotHV       = dot(h, v);
 
-  const float D = GGX_Distribution(dotNH, roughSqr);
+  const float D           = GGX_Distribution(dotNH, roughSqr);
 
   return  D * dotNH / (4.0f * dotHV);
 }
@@ -1002,28 +1008,28 @@ static inline float3 ggxEvalBxDF(__global const PlainMaterial* a_pMat, const flo
                                  __global const EngineGlobals* a_globals, texture2d_t a_tex, __private const ProcTextureList* a_ptList)
 {
   //GGX for light (explicit strategy).
-  const float dotNL = dot(n, l);
-  const float dotNV = dot(n, v);
+  const float dotNL     = dot(n, l);
+  const float dotNV     = dot(n, v);
 
-  if (dotNV <= 0.0f || dotNL <= 1e-6f)
+  if (dotNV < 1e-6f || dotNL < 1e-6f)
     return make_float3(0.0f, 0.0f, 0.0f);
 
   const float3 texColor = sample2DExt(ggxGetTex(a_pMat).y, a_texCoord, (__global const int4*)a_pMat, a_tex, a_globals, a_ptList);
   const float3 color    = clamp(ggxGetColor(a_pMat)*texColor, 0.0f, 1.0f);
-  const float maxColor  = fmax(color.x, fmax(color.y, color.z));
   const float  gloss    = ggxGlosiness(a_pMat, a_texCoord, a_globals, a_tex, a_ptList);
   const float roughness = 1.0f - gloss;
   const float roughSqr  = roughness * roughness;
 
-  const float3 h    = normalize(v + l); // half vector.
-  const float dotNH = dot(n, h);
+  const float3 h        = normalize(v + l); // half vector.
+  const float dotNH     = dot(n, h);
 
-  const float D     = GGX_Distribution(dotNH, roughSqr);
-  //const float G     = GGX_GeomShadMask(dotNV, roughSqr)*GGX_GeomShadMask(dotNL, roughSqr); more correctly than a simple multiplication of masks.
-  const float G     = GGX_HeightCorrelatedGeomShadMask(dotNV, dotNL, roughSqr);
-  //const float F   = 1.0f;                                                       // Fresnel is not needed here, because it is used for the blend with diffusion.
+  //const float F       = 1.0f;                                                     // Fresnel is not needed here, because it is used for the blend with diffusion.
+  const float D         = GGX_Distribution(dotNH, roughSqr);
+  //const float G       = GGX_GeomShadMask(dotNV, roughSqr) * GGX_GeomShadMask(dotNL, roughSqr); 
+  //const float G       = GGX_HeightCorrelatedGeomShadMask(dotNV, dotNL, roughSqr); //more correctly than a simple multiplication of masks.
+  const float G         = SmithGGXMaskingShadowing(dotNL, dotNV, roughSqr);         // from Heitz sampling 2017 (GGXSample2AndEvalBRDF)
 
-  const float Pss   = D /** F*/ * G / (4.0f * dotNV * dotNL);                     // Pass single-scattering
+  const float Pss       = D /** F*/ * G / fmax(4.0f * dotNV * dotNL, 1e-6f);        // Pass single-scattering
 
   return color * Pss;
 }
@@ -1051,9 +1057,9 @@ static inline void GGXSampleAndEvalBRDF(__global const PlainMaterial* a_pMat, co
   const float sinTheta  = sqrt(1.0f - cosTheta * cosTheta);
   float3 wh             = SphericalDirectionPBRT(sinTheta, cosTheta, phi);
 
-  bool underSurface = false;
-  if (!SameHemispherePBRT(wo, wh))
-    underSurface = true;
+  //bool underSurface = false;
+  //if (!SameHemispherePBRT(wo, wh))  // here, under the surface is never going to happen
+  //  underSurface = true;
 
   const float3 wi       = (2.0f * dot(wo, wh) * wh) - wo; // Compute incident direction by reflecting about wh. wi (input) = light
   const float3 newDir   = wi.x*nx + wi.y*ny + wi.z*nz;    // back to normal coordinate system
@@ -1061,29 +1067,119 @@ static inline void GGXSampleAndEvalBRDF(__global const PlainMaterial* a_pMat, co
   const float3 v    = (-1.0f) * ray_dir;
   const float3 l    = newDir;
   const float3 h    = normalize(v + l);                   // half vector.
-  const float dotNL = clamp(dot(a_normal, l), 0.0f, 1.0f);
-  const float dotNV = clamp(dot(a_normal, v), 0.0f, 1.0f);
-  const float dotNH = clamp(dot(a_normal, h), 0.0f, 1.0f);
-  const float dotHV = clamp(dot(h, v), 0.0f, 1.0f);
-  const float dotHL = clamp(dot(h, l), 0.0f, 1.0f);
+  const float dotNL = dot(a_normal, l);
+  const float dotNV = dot(a_normal, v);
+  const float dotNH = dot(a_normal, h);
+  const float dotHV = dot(h, v);
+  //const float dotHL = dot(h, l);
     
-  const float D     = GGX_Distribution(dotNH, roughSqr);
-  //const float G     = GGX_GeomShadMask(dotNV, roughSqr) * GGX_GeomShadMask(dotNL, roughSqr); 
-  const float G     = GGX_HeightCorrelatedGeomShadMask(dotNV, dotNL, roughSqr); // more correctly than a simple multiplication of masks.
-  //const float F   = 1.0f;                                                     // Fresnel is not needed here, because it is used for the blend with diffusion.
+  float Pss         = 0.0f;
+  a_out->pdf        = 1.0f;
 
-  const float Pss   = D /** F*/ * G / (4.0f * dotNV * dotNL);                   // Pass single-scattering
+  if (dotNV > 1e-6f && dotNL > 1e-6f) 
+  {
+    //const float F = 1.0f;                                                     // Fresnel is not needed here, because it is used for the blend with diffusion.
+    const float D   = GGX_Distribution(dotNH, roughSqr);
+    //const float G   = GGX_GeomShadMask(dotNV, roughSqr) * GGX_GeomShadMask(dotNL, roughSqr); 
+    const float G   = GGX_HeightCorrelatedGeomShadMask(dotNV, dotNL, roughSqr); // more correctly than a simple multiplication of masks.
+
+    Pss             = D /** F*/ * G / fmax(4.0f * dotNV * dotNL, 1e-6f);        // Pass single-scattering  
+    a_out->pdf      = D * dotNH / fmax(4.0f * dotHV, 1e-6f);
+  }
   
   a_out->direction  = newDir;
-  a_out->pdf        = D * dotNH / (4.0f * dotHV);    
   a_out->color      = color * Pss;  
-
-  if (dotNV <= 1e-6f || dotNL <= 1e-6f || underSurface) // reflection under surface must be zerowed!
-    a_out->color = make_float3(0, 0, 0);
 
   a_out->flags = (gloss == 1.0f) ? RAY_EVENT_S : RAY_EVENT_G;
 }
 
+//////////////////////////////////////////////////////////////////////////////////////
+// GGX sample v.2
+// https://hal.archives-ouvertes.fr/hal-01509746/document
+// https://schuttejoe.github.io/post/ggximportancesamplingpart2/
+//////////////////////////////////////////////////////////////////////////////////////
+static inline float SmithGGXMasking(const float dotNV, float roughSqr)
+{
+  const float denomC = sqrt(roughSqr + (1.0f - roughSqr) * dotNV * dotNV) + dotNV;
+  return 2.0f * dotNV / fmax(denomC, 1e-6f);
+}
+
+static inline float3 GgxVndf(float3 wo, float roughness, float u1, float u2)
+{
+  // -- Stretch the view vector so we are sampling as though
+  // -- roughness==1
+  const float3 v = normalize(make_float3(wo.x * roughness, wo.y * roughness, wo.z));
+
+  // -- Build an orthonormal basis with v, t1, and t2
+  const float3 XAxis = make_float3(1.0f, 0.0f, 0.0f);
+  const float3 ZAxis = make_float3(0.0f, 0.0f, 1.0f);
+  const float3 t1 = (v.z < 0.999f) ? normalize(cross(v, ZAxis)) : XAxis;
+  const float3 t2 = cross(t1, v);
+
+  // -- Choose a point on a disk with each half of the disk weighted
+  // -- proportionally to its projection onto direction v
+  const float a = 1.0f / (1.0f + v.z);
+  const float r = sqrt(u1);
+  const float phi = (u2 < a) ? (u2 / a) * M_PI : M_PI + (u2 - a) / (1.0f - a) * M_PI;
+  const float p1 = r * cos(phi);
+  const float p2 = r * sin(phi) * ((u2 < a) ? 1.0f : v.z);
+
+  // -- Calculate the normal in this stretched tangent space
+  const float3 n = p1 * t1 + p2 * t2 + sqrt(fmax(0.0f, 1.0f - p1 * p1 - p2 * p2)) * v;
+
+  // -- unstretch and normalize the normal
+  return normalize(make_float3(roughness * n.x, roughness * n.y, fmax(0.0f, n.z)));
+}
+
+static inline void GGXSample2AndEvalBRDF(__global const PlainMaterial* a_pMat, const float a_r1, const float a_r2, const float3 ray_dir, const float3 a_normal, const float2 a_texCoord,
+                                        __global const EngineGlobals* a_globals, texture2d_t a_tex, __private const ProcTextureList* a_ptList,
+                                        __private MatSample* a_out)
+{
+  // GGX for implicit strategy
+  const float3 texColor   = sample2DExt(ggxGetTex(a_pMat).y, a_texCoord, (__global const int4*)a_pMat, a_tex, a_globals, a_ptList);
+  const float3 color      = clamp(ggxGetColor(a_pMat)*texColor, 0.0f, 1.0f);
+  const float  gloss      = ggxGlosiness(a_pMat, a_texCoord, a_globals, a_tex, a_ptList);
+  const float  roughness  = 1.0f - gloss;
+  const float  roughSqr   = roughness * roughness;
+
+  float3 nx, ny, nz       = a_normal;
+  CoordinateSystem(nz, &nx, &ny);
+
+  // to PBRT coordinate system
+  // wo = v = ray_dir
+  // wi = l = -newDir   
+
+  const float3 wo     = make_float3(-dot(ray_dir, nx), -dot(ray_dir, ny), -dot(ray_dir, nz));
+  const float3 wh     = GgxVndf(wo, roughSqr, a_r1, a_r2);
+
+  //bool underSurface   = false;         
+  //if (!SameHemispherePBRT(wo, wh))  // here, under the surface is never going to happen
+  //  underSurface      = true;
+
+  const float3 wi     = (2.0f * dot(wo, wh) * wh) - wo;       // Compute incident direction by reflecting about wm    
+  const float3 newDir = wi.x * nx + wi.y * ny + wi.z * nz;    // back to normal coordinate system
+  
+  const float3 v      = (-1.0f) * ray_dir;
+  const float3 l      = newDir;
+  const float dotNL   = dot(a_normal, l);
+  const float dotNV   = dot(a_normal, v);
+
+  float Pss           = 0.0f; // Pass single-scattering
+
+  if (dotNL > 1e-6f && dotNV > 1e-6f)
+  {
+    //const float F   = Fresnel is not needed here, because it is used for the blend with diffusion.    
+    const float G1    = SmithGGXMasking(dotNV, roughSqr);
+    const float G2    = SmithGGXMaskingShadowing(dotNL, dotNV, roughSqr);
+    Pss               = /*F **/ G2 / fmax(G1, 1e-6f) / dotNL;    
+  }
+
+  a_out->direction    = newDir;
+  a_out->pdf          = 1.0f;
+  a_out->color        = color * Pss;
+
+  a_out->flags = (gloss == 1.0f) ? RAY_EVENT_S : RAY_EVENT_G;
+}
 
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -1820,7 +1916,7 @@ static inline void MaterialLeafSampleAndEvalBRDF(__global const PlainMaterial* p
     break;
 
   case PLAIN_MAT_CLASS_GGX: 
-    GGXSampleAndEvalBRDF(pMat, rands.x, rands.y, ray_dir, hitNorm, pSurfHit->texCoord, a_globals, a_tex, a_ptList,
+    GGXSample2AndEvalBRDF(pMat, rands.x, rands.y, ray_dir, hitNorm, pSurfHit->texCoord, a_globals, a_tex, a_ptList,
                          a_out);
     break;
 
