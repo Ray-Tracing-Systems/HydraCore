@@ -932,6 +932,39 @@ static inline float ggxGlosiness(__global const PlainMaterial* a_pMat, const flo
 
 static inline float Luminance(const float3 color) { return (color.x * 0.2126f + color.y * 0.7152f + color.z * 0.0722f); } //https://en.wikipedia.org/wiki/Relative_luminance
 
+static inline float SmithGGXMasking(const float dotNV, float roughSqr)
+{
+  const float denomC = sqrt(roughSqr + (1.0f - roughSqr) * dotNV * dotNV) + dotNV;
+  return 2.0f * dotNV / fmax(denomC, 1e-6f);
+}
+
+static inline float3 GgxVndf(float3 wo, float roughness, float u1, float u2)
+{
+  // -- Stretch the view vector so we are sampling as though
+  // -- roughness==1
+  const float3 v = normalize(make_float3(wo.x * roughness, wo.y * roughness, wo.z));
+
+  // -- Build an orthonormal basis with v, t1, and t2
+  const float3 XAxis = make_float3(1.0f, 0.0f, 0.0f);
+  const float3 ZAxis = make_float3(0.0f, 0.0f, 1.0f);
+  const float3 t1 = (v.z < 0.999f) ? normalize(cross(v, ZAxis)) : XAxis;
+  const float3 t2 = cross(t1, v);
+
+  // -- Choose a point on a disk with each half of the disk weighted
+  // -- proportionally to its projection onto direction v
+  const float a = 1.0f / (1.0f + v.z);
+  const float r = sqrt(u1);
+  const float phi = (u2 < a) ? (u2 / a) * M_PI : M_PI + (u2 - a) / (1.0f - a) * M_PI;
+  const float p1 = r * cos(phi);
+  const float p2 = r * sin(phi) * ((u2 < a) ? 1.0f : v.z);
+
+  // -- Calculate the normal in this stretched tangent space
+  const float3 n = p1 * t1 + p2 * t2 + sqrt(fmax(0.0f, 1.0f - p1 * p1 - p2 * p2)) * v;
+
+  // -- unstretch and normalize the normal
+  return normalize(make_float3(roughness * n.x, roughness * n.y, fmax(0.0f, n.z)));
+}
+
 static inline float SmithGGXMaskingShadowing(const float dotNL, const float dotNV, float roughSqr)
 {
   const float denomA = dotNV * sqrt(roughSqr + (1.0f - roughSqr) * dotNL * dotNL);
@@ -981,8 +1014,6 @@ static inline float GGX_Distribution(const float cosThetaNH, const float alpha)
 static inline float ggxEvalPDF(__global const PlainMaterial* a_pMat, const float3 l, const float3 v, const float3 n, const float2 a_texCoord,
                                __global const EngineGlobals* a_globals, texture2d_t a_tex, __private const ProcTextureList* a_ptList)
 {
-  return  1.0f; // for correct IBPT Heitz sampling 2017 (GGXSample2AndEvalBRDF).
-
   const float dotNL       = dot(n, l);
   const float dotNV       = dot(n, v);
 
@@ -1025,11 +1056,11 @@ static inline float3 ggxEvalBxDF(__global const PlainMaterial* a_pMat, const flo
 
   //const float F       = 1.0f;                                                     // Fresnel is not needed here, because it is used for the blend with diffusion.
   const float D         = GGX_Distribution(dotNH, roughSqr);
-  //const float G       = GGX_GeomShadMask(dotNV, roughSqr) * GGX_GeomShadMask(dotNL, roughSqr); 
-  //const float G       = GGX_HeightCorrelatedGeomShadMask(dotNV, dotNL, roughSqr); //more correctly than a simple multiplication of masks.
-  const float G         = SmithGGXMaskingShadowing(dotNL, dotNV, roughSqr);         // from Heitz sampling 2017 (GGXSample2AndEvalBRDF)
+  //const float G       = GGX_HeightCorrelatedGeomShadMask(dotNV, dotNL, roughSqr); //more correctly than a simple multiplication of masks, but worse for new sampling (GGXSample2AndEvalBRDF).
+  //const float G         = SmithGGXMaskingShadowing(dotNL, dotNV, roughSqr);         // from Heitz sampling 2017 (GGXSample2AndEvalBRDF), but worse for new sampling (GGXSample2AndEvalBRDF).
+  const float G         = GGX_GeomShadMask(dotNV, roughSqr) * GGX_GeomShadMask(dotNL, roughSqr); // it's more like new sampling Heitz sampling 2017 (GGXSample2AndEvalBRDF).
 
-  const float Pss       = D /** F*/ * G / fmax(4.0f * dotNV * dotNL, 1e-6f);        // Pass single-scattering
+  float Pss       = D /** F*/ * G / fmax(4.0f * dotNV * dotNL, 1e-6f);        // Pass single-scattering
 
   return color * Pss;
 }
@@ -1080,8 +1111,11 @@ static inline void GGXSampleAndEvalBRDF(__global const PlainMaterial* a_pMat, co
   {
     //const float F = 1.0f;                                                     // Fresnel is not needed here, because it is used for the blend with diffusion.
     const float D   = GGX_Distribution(dotNH, roughSqr);
-    //const float G   = GGX_GeomShadMask(dotNV, roughSqr) * GGX_GeomShadMask(dotNL, roughSqr); 
-    const float G   = GGX_HeightCorrelatedGeomShadMask(dotNV, dotNL, roughSqr); // more correctly than a simple multiplication of masks.
+    const float G   = GGX_GeomShadMask(dotNV, roughSqr) * GGX_GeomShadMask(dotNL, roughSqr); 
+    //const float G   = GGX_HeightCorrelatedGeomShadMask(dotNV, dotNL, roughSqr); 
+    // GGX_HeightCorrelatedGeomShadMask is more correct than simple mask multiplication, 
+    // but the explicit strategy with simple multiplication is more like a new sampling (GGXSample2AndEvalBRDF).
+    // Therefore, for this sampling, we will leave the same G.
 
     Pss             = D /** F*/ * G / fmax(4.0f * dotNV * dotNL, 1e-6f);        // Pass single-scattering  
     a_out->pdf      = D * dotNH / fmax(4.0f * dotHV, 1e-6f);
@@ -1098,38 +1132,8 @@ static inline void GGXSampleAndEvalBRDF(__global const PlainMaterial* a_pMat, co
 // https://hal.archives-ouvertes.fr/hal-01509746/document
 // https://schuttejoe.github.io/post/ggximportancesamplingpart2/
 //////////////////////////////////////////////////////////////////////////////////////
-static inline float SmithGGXMasking(const float dotNV, float roughSqr)
-{
-  const float denomC = sqrt(roughSqr + (1.0f - roughSqr) * dotNV * dotNV) + dotNV;
-  return 2.0f * dotNV / fmax(denomC, 1e-6f);
-}
 
-static inline float3 GgxVndf(float3 wo, float roughness, float u1, float u2)
-{
-  // -- Stretch the view vector so we are sampling as though
-  // -- roughness==1
-  const float3 v = normalize(make_float3(wo.x * roughness, wo.y * roughness, wo.z));
-
-  // -- Build an orthonormal basis with v, t1, and t2
-  const float3 XAxis = make_float3(1.0f, 0.0f, 0.0f);
-  const float3 ZAxis = make_float3(0.0f, 0.0f, 1.0f);
-  const float3 t1 = (v.z < 0.999f) ? normalize(cross(v, ZAxis)) : XAxis;
-  const float3 t2 = cross(t1, v);
-
-  // -- Choose a point on a disk with each half of the disk weighted
-  // -- proportionally to its projection onto direction v
-  const float a = 1.0f / (1.0f + v.z);
-  const float r = sqrt(u1);
-  const float phi = (u2 < a) ? (u2 / a) * M_PI : M_PI + (u2 - a) / (1.0f - a) * M_PI;
-  const float p1 = r * cos(phi);
-  const float p2 = r * sin(phi) * ((u2 < a) ? 1.0f : v.z);
-
-  // -- Calculate the normal in this stretched tangent space
-  const float3 n = p1 * t1 + p2 * t2 + sqrt(fmax(0.0f, 1.0f - p1 * p1 - p2 * p2)) * v;
-
-  // -- unstretch and normalize the normal
-  return normalize(make_float3(roughness * n.x, roughness * n.y, fmax(0.0f, n.z)));
-}
+// Warning! func "ggxEvalPDF" for "GGXSample2AndEvalBRDF" = 1.0f;
 
 static inline void GGXSample2AndEvalBRDF(__global const PlainMaterial* a_pMat, const float a_r1, const float a_r2, const float3 ray_dir, const float3 a_normal, const float2 a_texCoord,
                                         __global const EngineGlobals* a_globals, texture2d_t a_tex, __private const ProcTextureList* a_ptList,
@@ -2130,8 +2134,10 @@ static inline BxDFResult materialLeafEval(__global const PlainMaterial* pMat, __
     break;
   case PLAIN_MAT_CLASS_GGX:  
     res.brdf    = ggxEvalBxDF(pMat, sc->l, sc->v, n, sc->tc, a_evalFlags, a_globals, a_tex, a_ptList)*cosMult;
-    res.pdfFwd  = ggxEvalPDF (pMat, sc->l, sc->v, n, sc->tc,              a_globals, a_tex, a_ptList);
-    res.pdfRev  = ggxEvalPDF (pMat, sc->v, sc->l, n, sc->tc,              a_globals, a_tex, a_ptList);
+    //res.pdfFwd  = ggxEvalPDF (pMat, sc->l, sc->v, n, sc->tc,              a_globals, a_tex, a_ptList);
+    //res.pdfRev  = ggxEvalPDF (pMat, sc->v, sc->l, n, sc->tc,              a_globals, a_tex, a_ptList);
+    res.pdfFwd = 1.0f; // for Heitz sampling 2017 (GGXSample2AndEvalBRDF).
+    res.pdfRev = 1.0f; // for Heitz sampling 2017 (GGXSample2AndEvalBRDF).
     break;   
   case PLAIN_MAT_CLASS_PERFECT_MIRROR: 
     res.brdf   = mirrorEvalBxDF(pMat, sc->l, sc->v, n)*cosMult;
