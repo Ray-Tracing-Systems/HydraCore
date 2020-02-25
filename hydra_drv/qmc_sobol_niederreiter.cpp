@@ -9,15 +9,15 @@ typedef long long int INT64;
 // Table generation functions
 ////////////////////////////////////////////////////////////////////////////////
 // Internal 64(63)-bit table
-static INT64 cjn[63][QRNG_DIMENSIONS];
+static INT64 cjn[63][QRNG_DIMENSIONS_K];
 
-static int GeneratePolynomials(int buffer[QRNG_DIMENSIONS], bool primitive)
+static int GeneratePolynomials(int buffer[QRNG_DIMENSIONS_K], bool primitive)
 {
     int i, j, n, p1, p2, l;
     int e_p1, e_p2, e_b;
 
     //generate all polynomials to buffer
-    for(n = 1, buffer[0] = 0x2, p2 = 0, l = 0; n < QRNG_DIMENSIONS; ++n){
+    for(n = 1, buffer[0] = 0x2, p2 = 0, l = 0; n < QRNG_DIMENSIONS_K; ++n){
         //search for the next irreducable polynomial
         for(p1 = buffer[n - 1] + 1; ; ++p1){
             //find degree of polynomial p1
@@ -79,7 +79,7 @@ static int GeneratePolynomials(int buffer[QRNG_DIMENSIONS], bool primitive)
 //    year = "1992" }
 ////////////////////////////////////////////////////////////////////////////////
 static void GenerateCJ(){
-    int buffer[QRNG_DIMENSIONS];
+    int buffer[QRNG_DIMENSIONS_K];
     int *polynomials;
     int n, p1, l, e_p1;
 
@@ -87,8 +87,8 @@ static void GenerateCJ(){
     l = GeneratePolynomials(buffer, false);
 
     // convert all polynomials from buffer to polynomials table
-    polynomials = new int[l + 2 * QRNG_DIMENSIONS + 1];
-    for(n = 0, l = 0; n < QRNG_DIMENSIONS; ++n){
+    polynomials = new int[l + 2 * QRNG_DIMENSIONS_K + 1];
+    for(n = 0, l = 0; n < QRNG_DIMENSIONS_K; ++n){
         //find degree of polynomial p1
         for(p1 = buffer[n], e_p1 = 30; (p1 & (1 << e_p1)) == 0; --e_p1) {} 
 
@@ -176,12 +176,12 @@ static void GenerateCJ(){
 ////////////////////////////////////////////////////////////////////////////////
 // Initialization (table setup)
 ////////////////////////////////////////////////////////////////////////////////
-extern "C" void initQuasirandomGenerator(unsigned int table[QRNG_DIMENSIONS][QRNG_RESOLUTION])
+extern "C" void initQuasirandomGenerator(unsigned int table[QRNG_DIMENSIONS_K][QRNG_RESOLUTION_K])
 {
   GenerateCJ();
 
-  for(int dim = 0; dim < QRNG_DIMENSIONS; dim++)
-    for(int bit = 0; bit < QRNG_RESOLUTION; bit++)
+  for(int dim = 0; dim < QRNG_DIMENSIONS_K; dim++)
+    for(int bit = 0; bit < QRNG_RESOLUTION_K; bit++)
       table[dim][bit] = (int)((cjn[bit][dim] >> 32) & 0x7FFFFFFF);
 }
 

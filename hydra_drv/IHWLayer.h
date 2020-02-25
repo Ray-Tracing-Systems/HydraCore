@@ -14,7 +14,6 @@
 #include "IBVHBuilderAPI.h"
 #include "IMemoryStorage.h"
 
-#include "hydra_api/HydraAPI.h"
 #include "hydra_api/HydraInternal.h"
 
 typedef void(*RTE_PROGRESSBAR_CALLBACK)(const wchar_t* message, float a_progress);
@@ -91,13 +90,13 @@ struct LightMeshData
   size_t  size;
 };
 
-
+const float* getGGXParams();
 
 class IHWLayer
 {
 public:
 
-  IHWLayer() : m_progressBar(nullptr), m_width(0), m_height(0), m_pExternalImage(nullptr) { InitEngineGlobals(&m_globsBuffHeader); }
+  IHWLayer() : m_progressBar(nullptr), m_width(0), m_height(0), m_pExternalImage(nullptr) { InitEngineGlobals(&m_globsBuffHeader, getGGXParams()); }
   virtual ~IHWLayer();
 
   virtual void Clear(CLEAR_FLAGS a_flags)   = 0;

@@ -6,7 +6,7 @@
 
 #include "cl_scan_gpu.h"
 
-extern "C" void initQuasirandomGenerator(unsigned int table[QRNG_DIMENSIONS][QRNG_RESOLUTION]);
+extern "C" void initQuasirandomGenerator(unsigned int table[QRNG_DIMENSIONS_K][QRNG_RESOLUTION_K]);
 
 #include <algorithm>
 #undef min

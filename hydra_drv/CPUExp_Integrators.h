@@ -308,7 +308,7 @@ protected:
   std::vector<float> m_lightContribFwd;
   std::vector<float> m_lightContribRev;
 
-  unsigned int m_tableQMC[QRNG_DIMENSIONS][QRNG_RESOLUTION];
+  unsigned int m_tableQMC[QRNG_DIMENSIONS_K][QRNG_RESOLUTION_K];
 };
 
 

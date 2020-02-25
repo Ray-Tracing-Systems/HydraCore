@@ -64,7 +64,7 @@ void IntegratorCommon::RandomizeAllGenerators()
   }
 }
 
-extern "C" void initQuasirandomGenerator(unsigned int table[QRNG_DIMENSIONS][QRNG_RESOLUTION]);
+extern "C" void initQuasirandomGenerator(unsigned int table[QRNG_DIMENSIONS_K][QRNG_RESOLUTION_K]);
 
 IntegratorCommon::IntegratorCommon(int w, int h, EngineGlobals* a_pGlobals, int a_createFlags) : m_initDoneOnce(false), m_matStorage(nullptr)
 {

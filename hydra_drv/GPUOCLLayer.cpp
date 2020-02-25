@@ -6,7 +6,9 @@
 
 #include "cl_scan_gpu.h"
 
-extern "C" void initQuasirandomGenerator(unsigned int table[QRNG_DIMENSIONS][QRNG_RESOLUTION]);
+#include "../bakeBrdfEnergy/MultiScatteringTables.cpp"
+
+extern "C" void initQuasirandomGenerator(unsigned int table[QRNG_DIMENSIONS_K][QRNG_RESOLUTION_K]);
 
 #include <algorithm>
 #undef min
@@ -413,6 +415,7 @@ const HRRenderDeviceInfoListElem* GPUOCLLayer::ListDevices() const
 }
 
 //void TestPathVertexReadWrite();
+const float* getGGXParams();
 
 GPUOCLLayer::GPUOCLLayer(int w, int h, int a_flags, int a_deviceId) : Base(w, h, a_flags)
 { 
@@ -422,7 +425,7 @@ GPUOCLLayer::GPUOCLLayer(int w, int h, int a_flags, int a_deviceId) : Base(w, h,
   for (int i = 0; i < MEM_TAKEN_OBJECTS_NUM; i++)
     m_memoryTaken[i] = 0;
   
-  InitEngineGlobals(&m_globsBuffHeader);
+  InitEngineGlobals(&m_globsBuffHeader, getGGXParams());
   
   #ifdef WIN32
   int initRes = clewInit(L"opencl.dll");
@@ -697,9 +700,9 @@ GPUOCLLayer::GPUOCLLayer(int w, int h, int a_flags, int a_deviceId) : Base(w, h,
 
   // create qmc table for Niederreiter sequence
   //
-  unsigned int tableCPU[QRNG_DIMENSIONS][QRNG_RESOLUTION];
+  unsigned int tableCPU[QRNG_DIMENSIONS_K][QRNG_RESOLUTION_K];
   initQuasirandomGenerator(tableCPU);
-  m_globals.qmcTable = clCreateBuffer(m_globals.ctx, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, QRNG_DIMENSIONS * QRNG_RESOLUTION * sizeof(unsigned int), &tableCPU, &ciErr1);
+  m_globals.qmcTable = clCreateBuffer(m_globals.ctx, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, QRNG_DIMENSIONS_K * QRNG_RESOLUTION_K * sizeof(unsigned int), &tableCPU, &ciErr1);
 
   if (ciErr1 != CL_SUCCESS)
     RUN_TIME_ERROR("Error when create qmcTable");

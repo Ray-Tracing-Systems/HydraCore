@@ -221,19 +221,19 @@ static inline float MutateKelemen(float valueX, float2 rands, float p2, float p1
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-#define QRNG_DIMENSIONS 11
-#define QRNG_RESOLUTION 31
-#define INT_SCALE (1.0f / (float)0x80000001U)
+#define QRNG_DIMENSIONS_K 11
+#define QRNG_RESOLUTION_K 31
+#define INT_SCALE_K (1.0f / (float)0x80000001U)
 
 static inline float rndQmcSobolN(unsigned int pos, int dim, __constant unsigned int *c_Table)
 {
   unsigned int result = 0;
   unsigned int data   = pos;
 
-  for (int bit = 0; bit < QRNG_RESOLUTION; bit++, data >>= 1)
-    if (data & 1) result ^= c_Table[bit + dim*QRNG_RESOLUTION];
+  for (int bit = 0; bit < QRNG_RESOLUTION_K; bit++, data >>= 1)
+    if (data & 1) result ^= c_Table[bit + dim*QRNG_RESOLUTION_K];
 
-  return (float)(result + 1) * INT_SCALE;
+  return (float)(result + 1) * INT_SCALE_K;
 }
 
 /**
