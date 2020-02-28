@@ -75,17 +75,20 @@ typedef struct GlobalRenderDataT
   PlainLight suns[MAX_SUN_NUM];   // #change this?
 
   float m_essGGXSample2Table[4096];
+  float m_essTranspGGXTable[4096];
+
 
 } EngineGlobals;
 
 #ifndef OCL_COMPILER
-static inline void InitEngineGlobals(EngineGlobals* a_pGlobals, const float* a_ggxData)
+static inline void InitEngineGlobals(EngineGlobals* a_pGlobals, const float* a_ggxData, const float* a_transpGgxData)
 {
   memset(a_pGlobals, 0, sizeof(EngineGlobals));
   for(int i=0;i<QMC_VARS_NUM;i++)
     a_pGlobals->rmQMC[i] = -1;
 
-  memcpy(a_pGlobals->m_essGGXSample2Table, a_ggxData, sizeof(float) * 4096);
+  memcpy(a_pGlobals->m_essGGXSample2Table, a_ggxData,      sizeof(float) * 4096);
+  memcpy(a_pGlobals->m_essTranspGGXTable, a_transpGgxData, sizeof(float) * 4096);
 }
 #endif
 

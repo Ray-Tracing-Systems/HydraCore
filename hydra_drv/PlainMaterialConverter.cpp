@@ -641,7 +641,7 @@ public:
   GGXMaterial() {  }
   GGXMaterial(float3 color, int texId, SWTexSampler a_samplerColor, float cosPower, int glossTexId, 
               SWTexSampler a_samplerGloss, float a_glosiness, 
-              SWTexSampler a_samplerAniso, float a_aniso)
+              SWTexSampler a_samplerAniso, float a_aniso, float a_ior)
   {
     m_plain.data[GGX_COLORX_OFFSET] = color.x;
     m_plain.data[GGX_COLORY_OFFSET] = color.y;
@@ -649,6 +649,7 @@ public:
 
     m_plain.data[GGX_COSPOWER_OFFSET]  = cosPower;
     m_plain.data[GGX_GLOSINESS_OFFSET] = a_glosiness;
+    m_plain.data[GGX_FRESNEL_IOR]      = a_ior;
 
     ((int*)(m_plain.data))[GGX_TEXID_OFFSET]           = texId;
     ((int*)(m_plain.data))[GGX_GLOSINESS_TEXID_OFFSET] = glossTexId;
@@ -1054,7 +1055,7 @@ std::shared_ptr<IMaterial> DiffuseAndTranslucentBlendMaterialFromHydraMtl(const 
 	  return DiffuseMaterialFromHydraMtl(a_node);
 }
 
-std::shared_ptr<IMaterial> ReflectiveMaterialFromHydraMtl(const pugi::xml_node a_node, int& a_texId, SWTexSampler& a_texSampler)
+std::shared_ptr<IMaterial> ReflectiveMaterialFromHydraMtl(const pugi::xml_node a_node, int& a_texId, SWTexSampler& a_texSampler, float a_ior)
 {
   const int32_t matId = a_node.attribute(L"id").as_int();
   //if(matId == 3)
@@ -1117,7 +1118,7 @@ std::shared_ptr<IMaterial> ReflectiveMaterialFromHydraMtl(const pugi::xml_node a
   else if (brfdType == L"torranse_sparrow")
     return std::make_shared<BlinnTorranceSrappowMaterial>(colorS, texId, sampler, 0.0f, texIdGloss, samplerGloss, glossVal, samplerAniso, anisoVal);
   else if (brfdType == L"ggx" || brfdType == L"GGX")
-    return std::make_shared<GGXMaterial>                 (colorS, texId, sampler, 0.0f, texIdGloss, samplerGloss, glossVal, samplerAniso, anisoVal);
+    return std::make_shared<GGXMaterial>                 (colorS, texId, sampler, 0.0f, texIdGloss, samplerGloss, glossVal, samplerAniso, anisoVal, a_ior);
   else if (brfdType == L"beckmann")
     return std::make_shared<BeckmannMaterial>            (colorS, sampler, 0.0f, samplerGloss, glossVal, 
                                                                                  samplerAniso, anisoVal, 
@@ -1501,6 +1502,9 @@ std::shared_ptr<IMaterial> CreateFromHydraMaterialXmlNode(pugi::xml_node a_node)
     colorD = colorSSS;
 
   const bool haveFresnelRefl = (reflect.child(L"fresnel").attribute(L"val").as_int() == 1);
+  const bool  fresnelBlend   = haveFresnelRefl;
+  const float fresnelIOR     = ReadFresnelIOR(reflect);
+  const int   reflExtrusion  = ReadExtrusionType(reflect);
 
   int texReflId   = INVALID_TEXTURE;
   int texTranspId = INVALID_TEXTURE;
@@ -1508,7 +1512,7 @@ std::shared_ptr<IMaterial> CreateFromHydraMaterialXmlNode(pugi::xml_node a_node)
   SWTexSampler samplTranspId = DummySampler();
 
   auto pMaterialD = DiffuseAndTranslucentBlendMaterialFromHydraMtl(a_node);
-  auto pMaterialS = ReflectiveMaterialFromHydraMtl(a_node, texReflId, samplReflId);
+  auto pMaterialS = ReflectiveMaterialFromHydraMtl(a_node, texReflId, samplReflId, fresnelIOR);
   auto pMaterialT = TransparentMaterialFromHydraMtl(a_node, texTranspId, samplTranspId);
   auto pMaterialE = EmissiveMaterialFromHydraMtl(a_node);
 
@@ -1516,10 +1520,6 @@ std::shared_ptr<IMaterial> CreateFromHydraMaterialXmlNode(pugi::xml_node a_node)
 
   if (length(colorT) > 1e-5f && length(colorS) > 1e-5f && length(colorD) > 1e-5f)
   {
-    const bool  fresnelBlend  = haveFresnelRefl;
-    const float fresnelIOR    = ReadFresnelIOR(reflect);
-    const int   reflExtrusion = ReadExtrusionType(reflect);
-
     std::shared_ptr<BlendMaskMaterial> pST = std::make_shared<BlendMaskMaterial>(pMaterialS, pMaterialT, colorS, texReflId, samplReflId, fresnelBlend, true, reflExtrusion, fresnelIOR);
     std::shared_ptr<IMaterial> pMaterialST = pST;
 
@@ -1533,10 +1533,6 @@ std::shared_ptr<IMaterial> CreateFromHydraMaterialXmlNode(pugi::xml_node a_node)
   }
   else if (length(colorT) > 1e-5f && length(colorS) > 1e-5f)
   {
-    const bool  fresnelBlend  = haveFresnelRefl;
-    const float fresnelIOR    = ReadFresnelIOR(reflect);
-    const int   reflExtrusion = ReadExtrusionType(reflect);
-
     std::shared_ptr<BlendMaskMaterial> pResult2 = std::make_shared<BlendMaskMaterial>(pMaterialS, pMaterialT, colorS, texReflId, samplReflId, fresnelBlend, true, reflExtrusion, fresnelIOR);
 
     pResult2->AddFlags(PLAIN_MATERIAL_HAS_TRANSPARENCY);
@@ -1547,10 +1543,6 @@ std::shared_ptr<IMaterial> CreateFromHydraMaterialXmlNode(pugi::xml_node a_node)
   }
   else if ((length(colorD) > 1e-5f && length(colorS) > 1e-5f) || (length(colorS) > 1e-5f && haveFresnelRefl))
   {
-    const bool  fresnelBlend  = haveFresnelRefl;
-    const float fresnelIOR    = ReadFresnelIOR(reflect);
-    const int   reflExtrusion = ReadExtrusionType(reflect);
-
     std::shared_ptr<BlendMaskMaterial> pResult2 = std::make_shared<BlendMaskMaterial>(pMaterialS, pMaterialD, colorS, texReflId, samplReflId, fresnelBlend, true, reflExtrusion, fresnelIOR);
 
     pResult = pResult2;

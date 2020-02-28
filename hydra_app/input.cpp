@@ -28,23 +28,28 @@ Input::Input()
   //inLibraryPath = "/media/frol/f5550da9-66b3-4725-940f-ba037e5ffeb2/home/frol/PROG/HydraRepos/HydraAPI-tests/3dsMaxTests/Anisotropy_and_AreaLight_2";
 
   //inLibraryPath = "d:/Works/Ray-Tracing_Systems/HydraDevelop/HydraAPI-tests/3dsMaxTests/330_CornellBoxWithSphereCylinderTeapot";
-  //inLibraryPath = "d:/Works/Ray-Tracing_Systems/HydraDevelop/HydraAPI-tests/3dsMaxTests/345_CornellBox_Glass";
-  //inLibraryPath = "d:/Works/Ray-Tracing_Systems/HydraDevelop/HydraAPI-tests/3dsMaxTests/343_Furnance_transp";
   //inLibraryPath = "d:/Works/Ray-Tracing_Systems/HydraDevelop/HydraAPI-tests/3dsMaxTests/335_Furnance_reflect_GGX"; 
   //inLibraryPath = "d:/Works/Ray-Tracing_Systems/HydraDevelop/HydraAPI-tests/3dsMaxTests/336_Furnance_reflect_GGX_areaLight"; 
+  inLibraryPath = "d:/Works/Ray-Tracing_Systems/HydraDevelop/HydraAPI-tests/3dsMaxTests/343_Furnance_transp";
+  //inLibraryPath = "d:/Works/Ray-Tracing_Systems/HydraDevelop/HydraAPI-tests/3dsMaxTests/345_CornellBox_Glass";
+  //inLibraryPath = "d:/Works/Ray-Tracing_Systems/HydraDevelop/HydraAPI-tests/3dsMaxTests/346_CornellBox_GlassRough";
 
   inDevelopment = false;  ///< recompile shaders each time; note that nvidia have their own shader cache!
-  inDeviceId    = 1;     ///< opencl device id
+  inDeviceId    = -1;     ///< opencl device id
   cpuFB         = true;  ///< store frame buffer on CPU. Automaticly enabled if
   enableMLT     = false; ///< if use MMLT, you MUST enable it early, when render process just started (here or via command line).
   boxMode       = false; ///< special 'in the box' mode when render don't react to any commands
 
-  winWidth      = 1024;
-  winHeight     = 1024;
-  //winWidth      = 1600; // 343_Furnance_transp
-  //winHeight     = 300;  // 343_Furnance_transp
-  //winWidth      = 1600; // 336_Furnance_reflect_GGX_areaLight
-  //winHeight     = 128 * 1.5625f;  // 336_Furnance_reflect_GGX_areaLight
+  //winWidth      = 512;
+  //winHeight     = 512;
+  
+  // 335, 343
+  winWidth      = 1600; 
+  winHeight     = 300;  
+  
+  // 336_Furnance_reflect_GGX_areaLight
+  //winWidth      = 1600; 
+  //winHeight     = 128 * 1.5625f;  
 
   enableOpenGL1 = false; ///< if you want to draw scene for some debug needs with OpenGL1.
   exitStatus    = false;

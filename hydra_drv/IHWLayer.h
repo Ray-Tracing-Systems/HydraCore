@@ -90,13 +90,14 @@ struct LightMeshData
   size_t  size;
 };
 
-const float* getGGXParams();
+const float* getGgxTable();
+const float* getTranspGgxTable();
 
 class IHWLayer
 {
 public:
 
-  IHWLayer() : m_progressBar(nullptr), m_width(0), m_height(0), m_pExternalImage(nullptr) { InitEngineGlobals(&m_globsBuffHeader, getGGXParams()); }
+  IHWLayer() : m_progressBar(nullptr), m_width(0), m_height(0), m_pExternalImage(nullptr) { InitEngineGlobals(&m_globsBuffHeader, getGgxTable(), getTranspGgxTable()); }
   virtual ~IHWLayer();
 
   virtual void Clear(CLEAR_FLAGS a_flags)   = 0;

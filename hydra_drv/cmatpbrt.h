@@ -6,6 +6,7 @@
 
 static inline float FrCond(const float cosi, const float eta, const float k)
 {
+  // absorption coefficient k = 0.0f for dielectric case.
   const float tmp    = (eta*eta + k*k) * cosi*cosi;
   const float Rparl2 = (tmp - (2.f * eta * cosi) + 1.0f) / (tmp + (2.f * eta * cosi) + 1.0f);
   const float tmp_f  = eta*eta + k*k;
