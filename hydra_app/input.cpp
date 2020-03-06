@@ -30,22 +30,23 @@ Input::Input()
   //inLibraryPath = "d:/Works/Ray-Tracing_Systems/HydraDevelop/HydraAPI-tests/3dsMaxTests/330_CornellBoxWithSphereCylinderTeapot";
   //inLibraryPath = "d:/Works/Ray-Tracing_Systems/HydraDevelop/HydraAPI-tests/3dsMaxTests/335_Furnance_reflect_GGX"; 
   //inLibraryPath = "d:/Works/Ray-Tracing_Systems/HydraDevelop/HydraAPI-tests/3dsMaxTests/336_Furnance_reflect_GGX_areaLight"; 
-  inLibraryPath = "d:/Works/Ray-Tracing_Systems/HydraDevelop/HydraAPI-tests/3dsMaxTests/343_Furnance_transp";
+  //inLibraryPath = "d:/Works/Ray-Tracing_Systems/HydraDevelop/HydraAPI-tests/3dsMaxTests/343_Furnance_transp";
+  //inLibraryPath = "d:/Works/Ray-Tracing_Systems/HydraDevelop/HydraAPI-tests/3dsMaxTests/344_Furnance_glass";
   //inLibraryPath = "d:/Works/Ray-Tracing_Systems/HydraDevelop/HydraAPI-tests/3dsMaxTests/345_CornellBox_Glass";
-  //inLibraryPath = "d:/Works/Ray-Tracing_Systems/HydraDevelop/HydraAPI-tests/3dsMaxTests/346_CornellBox_GlassRough";
+  inLibraryPath = "d:/Works/Ray-Tracing_Systems/HydraDevelop/HydraAPI-tests/3dsMaxTests/346_CornellBox_GlassRough";
 
   inDevelopment = false;  ///< recompile shaders each time; note that nvidia have their own shader cache!
-  inDeviceId    = -1;     ///< opencl device id
+  inDeviceId    = 1;     ///< opencl device id
   cpuFB         = true;  ///< store frame buffer on CPU. Automaticly enabled if
   enableMLT     = false; ///< if use MMLT, you MUST enable it early, when render process just started (here or via command line).
   boxMode       = false; ///< special 'in the box' mode when render don't react to any commands
 
-  //winWidth      = 512;
-  //winHeight     = 512;
+  winWidth      = 512;
+  winHeight     = 512;
   
   // 335, 343
-  winWidth      = 1600; 
-  winHeight     = 300;  
+  //winWidth      = 1600; 
+  //winHeight     = 300;  
   
   // 336_Furnance_reflect_GGX_areaLight
   //winWidth      = 1600; 

@@ -706,7 +706,12 @@ IDH_CALL uint GetMortonNumber(int x, int y, int z)
 }
 
 
-IDH_CALL float3 reflect(float3 dir, float3 normal) { return normalize((normal * dot(dir, normal) * (-2.0f)) + dir); }
+IDH_CALL float3 reflect(float3 dir, float3 normal) 
+{ 
+  // Do not use this function for "wo" and "wh" microfacets terms. 
+  // They need the formula: 2.0f * dot(wo, wh) * wh - wo;
+  return normalize((normal * dot(dir, normal) * (-2.0f)) + dir); 
+}
 
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////

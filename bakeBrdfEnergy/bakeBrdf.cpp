@@ -9,7 +9,7 @@
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 
-enum brdfModel { PHONG, TORRSPARR, BECKMANN, GGX, TRGGX, TRANSPARENCY_GGX };
+enum brdfModel { PHONG, TORRSPARR, BECKMANN, GGX, TRGGX, TRANSP, TRANSP_INSIDE};
 
 float simpleRnd()
 {
@@ -19,7 +19,7 @@ float simpleRnd()
 //float sign(float a) { return (a > 0.0f) ? 1.0f : -1.0f; }
 
 
-float GGX2017(const float3 ray_dir, const float3 normal, const float roughSqr)
+float Ggx2017(const float3 ray_dir, const float3 normal, const float roughSqr)
 {
   if (roughSqr < 1e-6f)
     return 1.0f;
@@ -55,8 +55,8 @@ float GGX2017(const float3 ray_dir, const float3 normal, const float roughSqr)
 }
 
 
-float TransparGGX(const float3 ray_dir, float3 normal, const float roughSqr)
-{  
+float TranspGgx(const float3 ray_dir, float3 normal, const float roughSqr, const bool inside, const float ior)
+{
   if (roughSqr < 1e-6f)
     return 1.0f;
 
@@ -64,52 +64,51 @@ float TransparGGX(const float3 ray_dir, float3 normal, const float roughSqr)
   const float r2         = simpleRnd();
   const float r3         = simpleRnd();
 
-  const float ior        = 1.5f;
-  RefractResult refrData = myrefract(ray_dir, normal, ior, 1.0f, r3);
+  const float3 normal2   = inside ? (-1.0f) * normal : normal;
+  RefractResult refrData = myrefract(ray_dir, normal2, ior, 1.0f, r3);
 
-  float Pss              = 0.0f; // Pass single-scattering.
+  float Pss              = 1.0f; // Pass single-scattering.
 
-  if (refrData.success)
+  float3 nx, ny, nz      = normal;
+  CoordinateSystem(nz, &nx, &ny);
+
+  // New sampling Heitz 2017
+  const float3 wo        = make_float3(-dot(ray_dir, nx), -dot(ray_dir, ny), -dot(ray_dir, nz));
+  const float3 wh        = GgxVndf(wo, roughSqr, r1, r2);
+  const float eta        = refrData.eta;
+  const float dotWoWh    = dot(wo, wh);
+  float3      wt         =  2.0f * dotWoWh * wh - wo;                             // reflect    
+  const float fresn      = fresnelReflectionCoeffMentalLike(dotWoWh, 1.0f / eta);
+
+  if (r3 > fresn)
   {
-    float3 nx, ny, nz   = normal;
-    CoordinateSystem(nz, &nx, &ny);
-
-    const float3 wo     = normalize(make_float3(-dot(ray_dir, nx), -dot(ray_dir, ny), -dot(ray_dir, nz)));
-    const float3 wh     = GgxVndf(wo, roughSqr, r1, r2);
-
-    const float eta     = refrData.eta;
-    const float dotWoWh = dot(wo, wh);
     const float radicand = 1.0f + eta * eta * (dotWoWh * dotWoWh - 1.0f);
-
-    if (radicand >= 0.0f) // the root is not extracted from negative numbers.
+    if (radicand > 0.0f)
     {
-      const float3 wt     = (eta * dotWoWh - sqrt(radicand)) * wh - eta * wo;
-      const float3 newDir = normalize(wt.x * nx + wt.y * ny + wt.z * nz);    // back to normal coordinate system
-
-      const float3 v      = ray_dir;
-      const float3 l      = newDir;
-      const float3 n      = sign(dot(normal, ray_dir)) * normal;
-
-      const float dotNV   = dot(n, v);
-      const float dotNL   = dot(n, l);
-
-      const float G1      = SmithGGXMasking(dotNV, roughSqr);
-      const float G2      = SmithGGXMaskingShadowing(dotNL, dotNV, roughSqr);
-
-      Pss                 = G2 / fmax(G1, 1e-6f);
+      refrData.success = true;
+      wt = (eta * dotWoWh - sqrt(radicand)) * wh - eta * wo;                      // refract
     }
-    else
-      Pss = 0.0f; // total internal reflection
   }
-  
-  
-  const float cosThetaOut = dot(refrData.ray_dir, normal);  
 
+  refrData.ray_dir  = normalize(wt.x * nx + wt.y * ny + wt.z * nz);    // back to normal coordinate system
+
+  const float3 v    = ray_dir;
+  const float3 l    = refrData.ray_dir;
+  const float dotNV = fabs(dot(normal, v));
+  const float dotNL = fabs(dot(normal, l));
+
+  // Fresnel is not needed here, because it is used for the blend.    
+  const float G1    = SmithGGXMasking(dotNV, roughSqr);
+  const float G2    = SmithGGXMaskingShadowing(dotNL, dotNV, roughSqr);
+  Pss               = G2 / fmax(G1, 1e-6f);
+  
+  const float cosThetaOut = dot(refrData.ray_dir, normal);
   if      (refrData.success  && cosThetaOut >= -1e-6f) Pss = 0.0f; // refraction/transparency must be under surface!
   else if (!refrData.success && cosThetaOut < 1e-6f)   Pss = 0.0f; // reflection happened in wrong way    
 
   return Pss;
 }
+
 
 
 
@@ -144,8 +143,27 @@ void BakeBrdfEnergy(const brdfModel brdf, const int maxSample, const int widthTa
     
     switch (brdf)
     {
-      case GGX:              res = GGX2017(v, n, roughSqr);     break;
-      case TRANSPARENCY_GGX: res = TransparGGX(v, n, roughSqr); break;
+      case GGX:              res = Ggx2017(v, n, roughSqr);     break;
+      case TRANSP: 
+      {
+        const float ior    = 1.5f;
+        //const float fresn  = clamp(fresnelReflectionCoeffMentalLike(dotNV, ior), 0.0f, 1.0f);
+        const float transp = TranspGgx(v, n, roughSqr, false, ior);
+        //const float refl   = Ggx2017(v, n, roughSqr);
+        //res                = lerp(transp, refl, fresn);
+        res                = transp;
+        break;
+      }
+      case TRANSP_INSIDE:
+      {
+        const float ior    = 1.5f;
+        //const float fresn  = clamp(fresnelReflectionCoeffMentalLike(dotNV, ior), 0.0f, 1.0f);
+        const float transp = TranspGgx(v, n, roughSqr, true, ior);
+        //const float refl   = Ggx2017(v, n, roughSqr);
+        //res                = lerp(transp, refl, fresn);
+        res                =  transp;
+        break;
+      }
       default: break;
     }   
 
@@ -185,9 +203,10 @@ void SaveTableToFile(const brdfModel brdf, const int widthTable, const int areaT
 
   switch (brdf)
   {
-    case GGX:              a_fileName = "MSTablesGGX2017.cpp";         break;
-    case TRANSPARENCY_GGX: a_fileName = "MSTablesTransparencyGGX.cpp"; break;
-    default:               a_fileName = "tmp.txt";                     break;      
+    case GGX:           a_fileName = "MSTablesGgx2017.cpp";      break;
+    case TRANSP:        a_fileName = "MSTablesTransp.cpp";       break;
+    case TRANSP_INSIDE: a_fileName = "MSTablesTranspInside.cpp"; break;
+    default:            a_fileName = "tmp.txt";                  break;      
   }
 
   std::ofstream fout(a_fileName.c_str(), std::ios::binary);
@@ -200,8 +219,10 @@ void SaveTableToFile(const brdfModel brdf, const int widthTable, const int areaT
   // Print table
   switch (brdf)
   {
-    case GGX:              fout << "static const float EssGGX2017Table[" << areaTable << "] = {" << std::endl; break;
-    case TRANSPARENCY_GGX: fout << "static const float EssTranspGGX[" << areaTable << "] = {" << std::endl;    break;
+    case GGX:           fout << "static const float EssGgx2017Table["    << areaTable << "] = {" << std::endl; break;
+    case TRANSP:        fout << "static const float EssTranspGgx["       << areaTable << "] = {" << std::endl; break;
+    case TRANSP_INSIDE: fout << "static const float EssTranspGgxInside[" << areaTable << "] = {" << std::endl; break;
+
     default: break;
   }
 
@@ -231,8 +252,9 @@ void SaveTableToFile(const brdfModel brdf, const int widthTable, const int areaT
 
   switch (brdf)
   {
-    case GGX:                fout << "const float* getGgxTable() { return EssGGX2017Table; }";    break;
-    case TRANSPARENCY_GGX:   fout << "const float* getTranspGgxTable() { return EssTranspGGX; }"; break;
+    case GGX:           fout << "const float* getGgxTable() { return EssGgx2017Table; }";             break;
+    case TRANSP:        fout << "const float* getTranspTable() { return EssTranspGgx; }";             break;
+    case TRANSP_INSIDE: fout << "const float* getTranspInsideTable() { return EssTranspGgxInside; }"; break;
     default: break;
   }
 
@@ -242,14 +264,16 @@ void SaveTableToFile(const brdfModel brdf, const int widthTable, const int areaT
   std::cout << std::endl;
 }
 
+
 ////////////////////////////////////////////////////////////////////////////////////////
+
 
 int main(int argc, const char** argv)
 {
-  const int widthTable = 32;
+  const int widthTable = 64;
   const int areaTable  = widthTable * widthTable;
-  const int maxSample  = 100000 * areaTable;// INT_MAX;
-  const brdfModel brdf = TRANSPARENCY_GGX;// GGX2017;
+  const int maxSample  = fmin(200000 * areaTable, INT_MAX);
+  const brdfModel brdf = TRANSP_INSIDE;// GGX2017;
   
   std::vector<float> result(areaTable);
 
@@ -257,7 +281,7 @@ int main(int argc, const char** argv)
   BakeBrdfEnergy(brdf, maxSample, widthTable, result.data()); 
 
   // Save table to file
-  SaveTableToFile(TRANSPARENCY_GGX, widthTable, areaTable, result);
+  SaveTableToFile(brdf, widthTable, areaTable, result);
   
   return 0;
 }
