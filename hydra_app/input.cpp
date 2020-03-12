@@ -32,10 +32,10 @@ Input::Input()
   //inLibraryPath = "d:/Works/Ray-Tracing_Systems/HydraDevelop/HydraAPI-tests/3dsMaxTests/336_Furnance_reflect_GGX_areaLight"; 
   //inLibraryPath = "d:/Works/Ray-Tracing_Systems/HydraDevelop/HydraAPI-tests/3dsMaxTests/343_Furnance_transp";
   //inLibraryPath = "d:/Works/Ray-Tracing_Systems/HydraDevelop/HydraAPI-tests/3dsMaxTests/344_Furnance_glass";
-  //inLibraryPath = "d:/Works/Ray-Tracing_Systems/HydraDevelop/HydraAPI-tests/3dsMaxTests/345_CornellBox_Glass";
-  inLibraryPath = "d:/Works/Ray-Tracing_Systems/HydraDevelop/HydraAPI-tests/3dsMaxTests/346_CornellBox_GlassRough";
+  inLibraryPath = "d:/Works/Ray-Tracing_Systems/HydraDevelop/HydraAPI-tests/3dsMaxTests/345_CornellBox_Glass";
+  //inLibraryPath = "d:/Works/Ray-Tracing_Systems/HydraDevelop/HydraAPI-tests/3dsMaxTests/346_CornellBox_GlassRough";
 
-  inDevelopment = false;  ///< recompile shaders each time; note that nvidia have their own shader cache!
+  inDevelopment = true;  ///< recompile shaders each time; note that nvidia have their own shader cache!
   inDeviceId    = 1;     ///< opencl device id
   cpuFB         = true;  ///< store frame buffer on CPU. Automaticly enabled if
   enableMLT     = false; ///< if use MMLT, you MUST enable it early, when render process just started (here or via command line).

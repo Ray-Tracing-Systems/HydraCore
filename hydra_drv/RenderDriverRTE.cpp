@@ -218,8 +218,8 @@ bool RenderDriverRTE::UpdateSettings(pugi::xml_node a_settingsNode)
   }
 
   // Enable GPU Stupid mode.
-  //vars.m_flags |= HRT_ENABLE_PT_CAUSTICS; 
-  //vars.m_flags |= HRT_STUPID_PT_MODE;
+  vars.m_flags |= HRT_ENABLE_PT_CAUSTICS; 
+  vars.m_flags |= HRT_STUPID_PT_MODE;
 
   vars.m_varsI[HRT_TRACE_DEPTH]            = 6;
   vars.m_varsI[HRT_DIFFUSE_TRACE_DEPTH]    = 3;
@@ -1229,8 +1229,17 @@ bool RenderDriverRTE::UpdateCamera(pugi::xml_node a_camNode)
   vars.m_varsF[HRT_DOF_FOCAL_PLANE_DIST] = length(m_camera.pos - m_camera.lookAt);
 
   if (!a_camNode.child(L"enable_dof").text().empty())
-    vars.m_varsI[HRT_ENABLE_DOF] = a_camNode.child(L"enable_dof").text().as_int();
-
+  {
+    int hasDof = a_camNode.child(L"enable_dof").text().as_int();
+    
+    if (hasDof > 0)
+      vars.m_varsI[HRT_ENABLE_DOF]      = hasDof;
+    else
+    {
+      vars.m_varsI[HRT_ENABLE_DOF]      = 0;
+      vars.m_varsF[HRT_DOF_LENS_RADIUS] = 0.0f;
+    }
+  }
 
   if (!a_camNode.child(L"tiltRotX").text().empty() || !a_camNode.child(L"tiltRotY").text().empty())
   {

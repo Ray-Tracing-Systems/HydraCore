@@ -92,8 +92,8 @@ static float BilinearFromTable(__global const float* a_inData, float a_newPosX, 
     return 1.0f;  
 }
 
-static float3 GetMultiscatteringFromTable(const int widthTab, const float roughness, const float dotNV,
-                                        __global const float* msTable, const float3 color)
+static float3 GetMultiscatteringFromTable(const int widthTab, const float roughness,const float dotNV,
+                                          __global const float* msTable, const float3 color)
 {
   const float y      = roughness * widthTab;
   const float x      = dotNV * widthTab;
@@ -580,26 +580,51 @@ static inline RefractResult myrefract(float3 ray_dir, float3 a_normal, float a_m
   return res;
 }
 
+static inline RefractResult myRefractGgx(float3 ray_dir, float3 a_normal, float a_matIOR, float a_outsideIOR, float a_rand)
+{
+  RefractResult res;
+  res.eta = a_outsideIOR / a_matIOR; // from air to our material
+
+  float cosTheta = dot(a_normal, ray_dir) * (-1.0f);
+
+  if (cosTheta < 0.0f)
+  {
+    cosTheta = cosTheta * (-1.0f);
+    a_normal = a_normal * (-1.0f);
+    res.eta  = 1.0f / res.eta;
+  }
+  
+  const float dotVN = cosTheta * (-1.0f);
+  
+  const float k = 1.0f - res.eta * res.eta * (1.0f - cosTheta * cosTheta);
+  if (k > 0.0f)
+  {
+    res.ray_dir = normalize(res.eta*ray_dir + (res.eta*cosTheta - sqrt(k))*a_normal);  // refract
+    res.success = true;
+  }
+  else
+  {
+    res.ray_dir = normalize((a_normal * dotVN * (-2.0f)) + ray_dir);                    // reflect
+    res.success = false;  
+    res.eta     = 1.0f;
+  }
+
+  return res;
+}
+
 static inline void GlassSampleAndEvalBRDF(__global const PlainMaterial* a_pMat, const float3 rands, const float3 ray_dir, float3 a_normal, const float2 a_texCoord, const bool a_hitFromInside, 
                                           __global const EngineGlobals* a_globals, texture2d_t a_tex, __private const ProcTextureList* a_ptList, const bool a_isFwdDir,
                                           __private MatSample* a_out)
 {
   const float3 texColor    = sample2DExt(glassGetTex(a_pMat).y, a_texCoord, (__global const int4*)a_pMat, a_tex, a_globals, a_ptList);
   const float3 color       = clamp(glassGetColor(a_pMat)*texColor, 0.0f, 1.0f);
-  const float  cosPower  = glassCosPower(a_pMat, a_texCoord, a_globals, a_tex, a_ptList);
-  //const int2   texId       = make_int2(as_int(a_pMat->data[GLASS_GLOSINESS_TEXID_OFFSET]), as_int(a_pMat->data[GLASS_GLOSINESS_TEXMATRIXID_OFFSET]));
-  //const float3 glossColor  = sample2DExt(texId.y, a_texCoord, (__global const int4*)a_pMat, a_tex, a_globals, a_ptList);
-  //const float  glossMult   = a_pMat->data[GLASS_GLOSINESS];
-  //const float  glossiness  = clamp(glossMult*maxcomp(glossColor), 0.0f, 1.0f);
-  //const float  cosPower    = cosPowerFromGlosiness(glossiness);
-
+  const float  cosPower    = glassCosPower(a_pMat, a_texCoord, a_globals, a_tex, a_ptList);
   const float IOR          = a_pMat->data[GLASS_IOR_OFFSET];                // #TODO: add IOR change based on current wave length if spectral trace is used
   const float3 normal2     = a_hitFromInside ? (-1.0f)*a_normal : a_normal;
 
   bool   spec              = true;
   float  pdf               = 1.0f;
   float  Pss               = 1.0f;                          // Pass single-scattering.
-  float3 Pms               = make_float3(1.0f, 1.0f, 1.0f); // Pass multi-scattering
 
   RefractResult refrData   = myrefract(ray_dir, normal2, IOR, 1.0f, rands.z);
 
@@ -617,28 +642,20 @@ static inline void GlassSampleAndEvalBRDF(__global const PlainMaterial* a_pMat, 
 
     if(underSurface)
       Pss = 0.0f;
-    //else
-    //{
-    //  // Pass multi-scattering.
-    //  const float roughness = 1.0f - glossiness;
-    //  const float dotNV     = dot(refrData.ray_dir, a_normal);
-    //  if (refrData.eta >= 1.0f) Pms = GetMultiscatteringFromTable(32, roughness, dotNV, a_globals->m_essTranspTable, color);
-    //  else                      Pms = GetMultiscatteringFromTable(32, roughness, dotNV, a_globals->m_essTranspInsideTable, color);
-    //}
   } 
 
   const float cosThetaOut = dot(refrData.ray_dir, a_normal);
   const float cosMult     = 1.0f / fmax(fabs(cosThetaOut), 1e-6f);
   
-  // only camera paths are multiplied by this factor, and etas
-  // are swapped because radiance flows in the opposite direction
-  const float adjointBsdfMult = a_isFwdDir ? 1.0f : refrData.eta*refrData.eta; // see SmallVCM and or Veach adjoint bsdf
+  // only camera paths are multiplied by this factor, and etas are swapped because radiance
+  // flows in the opposite direction. See SmallVCM and or Veach adjoint bsdf.
+  const float adjointBtdfMult = a_isFwdDir ? 1.0f : (refrData.eta*refrData.eta);
 
   a_out->pdf       = pdf;
   a_out->direction = refrData.ray_dir;
   
-  if (refrData.success) a_out->color = color * Pss * Pms * adjointBsdfMult * cosMult;
-  else                  a_out->color = make_float3(1.0f, 1.0f, 1.0f)       * cosMult;
+  if (refrData.success) a_out->color = color * Pss * adjointBtdfMult * cosMult;
+  else                  a_out->color = make_float3(1.0f, 1.0f, 1.0f) * cosMult;
 
   if (spec)             a_out->flags = (RAY_EVENT_S | RAY_EVENT_T);
   else                  a_out->flags = (RAY_EVENT_G | RAY_EVENT_T);
@@ -675,72 +692,100 @@ static inline void GlassGGXSampleAndEvalBRDF(__global const PlainMaterial* a_pMa
   bool   spec             = true;
   float  Pss              = 1.0f;                          // Pass single-scattering.
   float3 Pms              = make_float3(1.0f, 1.0f, 1.0f); // Pass multi-scattering
+  a_out->pdf              = 1.0f;
 
-  RefractResult refrData  = myrefract(ray_dir, normal2, IOR, 1.0f, rands.z);
-
-  if (gloss < 0.999f/* && refrData.success*/)
+  RefractResult refrData  = myrefract(ray_dir, normal2, IOR, 1.0f, rands.z);  
+  
+  if (gloss < 0.999f && refrData.success)
   {
-    spec                 = false;
+    spec             = false;
+    const float eta  = refrData.eta;
 
     float3 nx, ny, nz    = a_normal;
     CoordinateSystem(nz, &nx, &ny);
 
-    // New sampling Heitz 2017
+    
     const float3 wo      = make_float3(-dot(ray_dir, nx), -dot(ray_dir, ny), -dot(ray_dir, nz));
-    const float3 wh      = GgxVndf(wo, roughSqr, rands.x, rands.y);
-    const float eta      = refrData.eta;
-    const float dotWoWh  = dot(wo, wh);  
-    float3      wt       =  2.0f * dotWoWh * wh - wo;                             // reflect    
-    const float fresn    = fresnelReflectionCoeffMentalLike(dotWoWh, 1.0f/eta);
-
-    if (rands.z >= fresn)
+    const float3 wh      = GgxVndf(wo, roughSqr, rands.x, rands.y);             // New sampling Heitz 2017
+    const float  dotWoWh = dot(wo, wh);          
+    float3       newDir  = wo * (-1.0f);
+        
+    const float radicand = 1.0f + eta * eta * (dotWoWh * dotWoWh - 1.0f);
+    if (radicand > 0.0f)
     {
-      const float radicand = 1.0f + eta * eta * (dotWoWh * dotWoWh - 1.0f);
-      if (radicand > 0.0f)                                                  
-      {
-        refrData.success = true;
-        wt = (eta * dotWoWh - sqrt(radicand)) * wh - eta * wo;                    // refract
-      }
-    }        
+      //refrData.success   = true;
+      newDir             = (eta * dotWoWh - sqrt(radicand)) * wh - eta * wo;    // refract        
+    }
+    else
+    {
+      refrData.success   = false;
+    //  refrData.eta       = 1.0f;
+    //  newDir             = 2.0f * dotWoWh * wh - wo;                            // reflect 
+    }
 
-    refrData.ray_dir  = normalize(wt.x * nx + wt.y * ny + wt.z * nz);    // back to normal coordinate system
+    refrData.ray_dir  = normalize(newDir.x * nx + newDir.y * ny + newDir.z * nz);    // back to normal coordinate system
 
     const float3 v    = ray_dir;
     const float3 l    = refrData.ray_dir;
-    const float dotNV = fabs(dot(a_normal, v));
-    const float dotNL = fabs(dot(a_normal, l));
+    const float3 n    = a_normal;    
+    const float3 h    = normalize(v + l); // half vector.
+    const float dotNV = fabs(dot(n, v));
+    const float dotNL = fabs(dot(n, l));
+    const float dotNH = fabs(dot(n, h));
+    const float dotHV = fabs(dot(h, v));
+    const float dotHL = fabs(dot(v, l));
 
     // Fresnel is not needed here, because it is used for the blend.    
-    const float G1    = SmithGGXMasking(dotNV, roughSqr);
-    const float G2    = SmithGGXMaskingShadowing(dotNL, dotNV, roughSqr);
-    Pss               = G2 / fmax(G1, 1e-6f);
+    const float D   = GGX_Distribution(dotNH, roughSqr);
+    const float G1  = SmithGGXMasking(dotNV, roughSqr);
+    const float G2  = SmithGGXMaskingShadowing(dotNL, dotNV, roughSqr);
+       
+    // Abbreviated formula without PDF.
+    //Pss             = G2 / fmax(G1, 1e-6f);
 
-    // Pass multi-scattering.      
-    if (eta < 1.0f) Pms = GetMultiscatteringFromTable(64, roughness, dotNV, a_globals->m_essTranspTable, color);
-    else            Pms = GetMultiscatteringFromTable(64, roughness, dotNV, a_globals->m_essTranspInsideTable, color);
+    // Full formuls.
+
+    float etaI = 1.0f;
+    float etaO = IOR;
+
+    if (eta > 1.0f)
+    {      
+      etaI = IOR;
+      etaO = 1.0f;
+    }
+
+    const float eq1 = (dotHV * dotHL) / fmax(dotNV * dotNL, 1e-6f);
+    const float eq2 = etaO * etaO * G2 * D / fmax(pow(etaI * dotHV + etaO * dotHL, 2), 1e-6f);
+    Pss             = eq1 * eq2 * dotNL; // dotNL is here to cancel cosMult at the end.
+
+    // Full formuls with PDF.
+    const float Dv    = D * G1 * dotHV / fmax(dotNV, 1e-6f);
+    const float jacob = etaO * etaO * dotHL / fmax(pow(etaI * dotHV + etaO * dotHL, 2), 1e-6f);
+    a_out->pdf        = Dv * jacob;
+
+    // Pass multi-scattering.    
+    //if (eta < 1.0f) Pms = GetMultiscatteringFromTable(64, roughness, dotNV, a_globals->m_essTranspTable, color);
+    //else            Pms = GetMultiscatteringFromTable(64, roughness, dotNV, a_globals->m_essTranspInsideTable, color);    
   }
-
-  a_out->pdf                  = 1.0f;
-  a_out->direction            = refrData.ray_dir;
 
   const float cosThetaOut = dot(refrData.ray_dir, a_normal);
   const float cosMult     = 1.0f / fmax(fabs(cosThetaOut), 1e-6f);
 
+  a_out->direction            = refrData.ray_dir;
+
   
-  if (refrData.success)
-  {
-    // adjointBsdfMult - only camera paths are multiplied by this factor, and etas are swapped because radiance
-    // flows in the opposite direction. See SmallVCM and or Veach adjoint bsdf.
-    const float adjointBsdfMult = a_isFwdDir ? 1.0f : refrData.eta*refrData.eta;
-    a_out->color = color * Pss * Pms * adjointBsdfMult * cosMult;
-  }
-  else a_out->color = make_float3(1.0f, 1.0f, 1.0f) * Pss * Pms * cosMult;
-                       
+  // only camera paths are multiplied by this factor, and etas are swapped because radiance
+  // flows in the opposite direction. See SmallVCM and or Veach adjoint bsdf.
+  const float adjointBtdfMult = a_isFwdDir ? 1.0f : (refrData.eta*refrData.eta);
+
+  if (refrData.success) a_out->color = color * Pss * Pms * adjointBtdfMult * cosMult;
+  else                  a_out->color = make_float3(1.0f, 1.0f, 1.0f)       * cosMult;
+
   if (spec)             a_out->flags = (RAY_EVENT_S | RAY_EVENT_T);
   else                  a_out->flags = (RAY_EVENT_G | RAY_EVENT_T);
 
-  if      ( refrData.success && cosThetaOut >= -1e-6f) a_out->color = make_float3(0.0f, 0.0f, 0.0f); // refraction/transparency must be under surface!
-  else if (!refrData.success && cosThetaOut < 1e-6f)   a_out->color = make_float3(0.0f, 0.0f, 0.0f); // reflection happened in wrong way    
+  if      (refrData.success  && cosThetaOut >= -1e-6f) a_out->color = make_float3(0, 0, 0); // refraction/transparency must be under surface!
+  else if (!refrData.success && cosThetaOut < 1e-6f)   a_out->color = make_float3(0, 0, 0); // reflection happened in wrong way
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -1136,12 +1181,6 @@ static inline float GGX_Distribution(const float cosThetaNH, const float alpha)
 static inline float ggxEvalPDF(__global const PlainMaterial* a_pMat, const float3 l, const float3 v, const float3 n, const float2 a_texCoord,
                                __global const EngineGlobals* a_globals, texture2d_t a_tex, __private const ProcTextureList* a_ptList)
 {
-  const float dotNL       = dot(n, l);
-  const float dotNV       = dot(n, v);
-
-  if (dotNV < 1e-6f || dotNL < 1e-6f)
-    return 0.0f;
-
   const float3 texColor   = sample2DExt(ggxGetTex(a_pMat).y, a_texCoord, (__global const int4*)a_pMat, a_tex, a_globals, a_ptList);
   const float3 color      = clamp(ggxGetColor(a_pMat)*texColor, 0.0f, 1.0f);
   const float  gloss      = ggxGlosiness(a_pMat, a_texCoord, a_globals, a_tex, a_ptList);
@@ -1149,8 +1188,8 @@ static inline float ggxEvalPDF(__global const PlainMaterial* a_pMat, const float
   const float roughSqr    = roughness * roughness;
 
   const float3 h          = normalize(v + l); // half vector.
-  const float dotNH       = dot(n, h);
-  const float dotHV       = dot(h, v);
+  const float dotNH       = fabs(dot(n, h));
+  const float dotHV       = fabs(dot(h, v));
 
   const float D           = GGX_Distribution(dotNH, roughSqr);
 
@@ -1161,11 +1200,6 @@ static inline float3 ggxEvalBxDF(__global const PlainMaterial* a_pMat, const flo
                                  __global const EngineGlobals* a_globals, texture2d_t a_tex, __private const ProcTextureList* a_ptList)
 {
   //GGX for light (explicit strategy).
-  const float dotNL     = dot(n, l);
-  const float dotNV     = dot(n, v);
-
-  if (dotNV < 1e-6f || dotNL < 1e-6f)
-    return make_float3(0.0f, 0.0f, 0.0f);
 
   const float3 texColor = sample2DExt(ggxGetTex(a_pMat).y, a_texCoord, (__global const int4*)a_pMat, a_tex, a_globals, a_ptList);
   const float3 color    = clamp(ggxGetColor(a_pMat)*texColor, 0.0f, 1.0f);
@@ -1174,19 +1208,20 @@ static inline float3 ggxEvalBxDF(__global const PlainMaterial* a_pMat, const flo
   const float roughSqr  = roughness * roughness;
 
   const float3 h        = normalize(v + l); // half vector.
-  const float dotNH     = dot(n, h);
+  const float dotNL     = fabs(dot(n, l));
+  const float dotNV     = fabs(dot(n, v));
+  const float dotNH     = fabs(dot(n, h));
 
-  //const float F       = 1.0f;                                                     // Fresnel is not needed here, because it is used for the blend with diffusion.
+  // Fresnel is not needed here, because it is used for the blend with diffusion.
   const float D         = GGX_Distribution(dotNH, roughSqr);
+  //const float G       = GGX_GeomShadMask(dotNV, roughSqr) * GGX_GeomShadMask(dotNL, roughSqr); 
   //const float G       = GGX_HeightCorrelatedGeomShadMask(dotNV, dotNL, roughSqr); //more correctly than a simple multiplication of masks, but worse for new sampling (GGXSample2AndEvalBRDF).
-  //const float G         = SmithGGXMaskingShadowing(dotNL, dotNV, roughSqr);         // from Heitz sampling 2017 (GGXSample2AndEvalBRDF), but worse for new sampling (GGXSample2AndEvalBRDF).
-  const float G         = GGX_GeomShadMask(dotNV, roughSqr) * GGX_GeomShadMask(dotNL, roughSqr); // it's more like new sampling Heitz sampling 2017 (GGXSample2AndEvalBRDF).
+  const float G         = SmithGGXMaskingShadowing(dotNL, dotNV, roughSqr);         // from Heitz sampling 2017 (GGXSample2AndEvalBRDF), but worse for new sampling (GGXSample2AndEvalBRDF).
 
-  float Pss             = D /** F*/ * G / fmax(4.0f * dotNV * dotNL, 1e-6f);        // Pass single-scattering
+  float Pss             = D * G / fmax(4.0f * dotNV * dotNL, 1e-6f);        // Pass single-scattering
 
   // Pass multi-scattering.
-  float3 Pms            = GetMultiscatteringFromTable(64, roughness, dotNV, a_globals->m_essGgx2017Table, color);
-  
+  float3 Pms            = GetMultiscatteringFromTable(64, roughness, dotNV, a_globals->m_essGgx2017Table, color);  
 
   return color * Pss * Pms;
 }
@@ -1224,28 +1259,22 @@ static inline void GGXSampleAndEvalBRDF(__global const PlainMaterial* a_pMat, co
   const float3 v    = (-1.0f) * ray_dir;
   const float3 l    = newDir;
   const float3 h    = normalize(v + l);                   // half vector.
-  const float dotNL = dot(a_normal, l);
-  const float dotNV = dot(a_normal, v);
-  const float dotNH = dot(a_normal, h);
-  const float dotHV = dot(h, v);
-  //const float dotHL = dot(h, l);
+  const float dotNL = fabs(dot(a_normal, l));
+  const float dotNV = fabs(dot(a_normal, v));
+  const float dotNH = fabs(dot(a_normal, h));
+  const float dotHV = fabs(dot(h, v));
     
   float Pss         = 0.0f;
   a_out->pdf        = 1.0f;
 
-  if (dotNV > 1e-6f && dotNL > 1e-6f) 
-  {
-    //const float F = 1.0f;                                                     // Fresnel is not needed here, because it is used for the blend with diffusion.
-    const float D   = GGX_Distribution(dotNH, roughSqr);
-    const float G   = GGX_GeomShadMask(dotNV, roughSqr) * GGX_GeomShadMask(dotNL, roughSqr); 
-    //const float G   = GGX_HeightCorrelatedGeomShadMask(dotNV, dotNL, roughSqr); 
-    // GGX_HeightCorrelatedGeomShadMask is more correct than simple mask multiplication, 
-    // but the explicit strategy with simple multiplication is more like a new sampling (GGXSample2AndEvalBRDF).
-    // Therefore, for this sampling, we will leave the same G.
+  // Fresnel is not needed here, because it is used for the blend with diffusion.
+  const float D   = GGX_Distribution(dotNH, roughSqr);
+  //const float G   = GGX_GeomShadMask(dotNV, roughSqr) * GGX_GeomShadMask(dotNL, roughSqr); 
+  //const float G   = GGX_HeightCorrelatedGeomShadMask(dotNV, dotNL, roughSqr);   
+  const float G   = SmithGGXMaskingShadowing(dotNL, dotNV, roughSqr); // from new sampling (GGXSample2AndEvalBRDF).
 
-    Pss             = D /** F*/ * G / fmax(4.0f * dotNV * dotNL, 1e-6f);        // Pass single-scattering  
-    a_out->pdf      = D * dotNH / fmax(4.0f * dotHV, 1e-6f);
-  }
+  Pss             = D * G / fmax(4.0f * dotNV * dotNL, 1e-6f);        // Pass single-scattering  
+  a_out->pdf      = D * dotNH / fmax(4.0f * dotHV, 1e-6f);
   
   a_out->direction  = newDir;
   a_out->color      = color * Pss;  
@@ -1281,33 +1310,48 @@ static inline void GGXSample2AndEvalBRDF(__global const PlainMaterial* a_pMat, c
   // wo = v = ray_dir
   // wi = l = -newDir   
 
-  float Pss            = 1.0f; // Pass single-scattering.
-  float3 Pms           = make_float3(1.0f, 1.0f, 1.0f); // Pass multi-scattering.
+  float Pss           = 1.0f; // Pass single-scattering.
+  float3 Pms          = make_float3(1.0f, 1.0f, 1.0f); // Pass multi-scattering.
+  a_out->pdf          = 1.0f;
 
   const float3 wo     = make_float3(-dot(ray_dir, nx), -dot(ray_dir, ny), -dot(ray_dir, nz));
   const float3 wh     = GgxVndf(wo, roughSqr, a_r1, a_r2);
   const float3 wi     = 2.0f * dot(wo, wh) * wh - wo;       // Compute incident direction by reflecting about wm  
   const float3 newDir = normalize(wi.x * nx + wi.y * ny + wi.z * nz);    // back to normal coordinate system
 
-  const float3 v      = (-1.0f) * ray_dir;
+  const float3 n      = a_normal;
   const float3 l      = newDir;
-  const float dotNL   = fabs(dot(a_normal, l));
-  const float dotNV   = fabs(dot(a_normal, v));
+  const float dotNL   = fabs(dot(n, l));
 
   if (gloss <= 0.99f)
   {
+    const float3 v    = ray_dir * (-1.0f);
+    const float3 h    = normalize(v + l); // half vector.
+    const float dotNV = fabs(dot(n, v));
+    const float dotNH = fabs(dot(n, h));
+    const float dotHV = fabs(dot(h, v));
+    const float dotHL = fabs(dot(v, l));
+
     // Fresnel is not needed here, because it is used for the blend with diffusion.    
+    const float D     = GGX_Distribution(dotNH, roughSqr);
     const float G1    = SmithGGXMasking(dotNV, roughSqr);
     const float G2    = SmithGGXMaskingShadowing(dotNL, dotNV, roughSqr);
-    Pss               = G2 / fmax(G1, 1e-6f);
+    
+    // Abbreviated formula without PDF.
+    //Pss             = G2 / fmax(G1, 1e-6f) / fmax(dotNL, 1e-6f);
         
+    // Full formuls with PDF.
+    Pss               = D * G2 / fmax(4.0f * dotNV * dotNL, 1e-6f);
+    const float Dv    = D * G1 * dotHV / fmax(dotNV, 1e-6f);
+    const float jacob = 1.0f / fmax(4.0f * dotHV, 1e-6f);
+    a_out->pdf        = Dv * jacob;
+
     // Pass multi-scattering.    
     Pms = GetMultiscatteringFromTable(64, roughness, dotNV, a_globals->m_essGgx2017Table, color);
   }  
 
-  a_out->pdf          = 1.0f;
   a_out->direction    = newDir;
-  a_out->color        = color * Pss * Pms / fmax(dotNL, 1e-6f);
+  a_out->color        = color * Pss * Pms;
 
   a_out->flags = (gloss == 1.0f) ? RAY_EVENT_S : RAY_EVENT_G;
 }
@@ -2262,10 +2306,8 @@ static inline BxDFResult materialLeafEval(__global const PlainMaterial* pMat, __
     break;
   case PLAIN_MAT_CLASS_GGX:  
     res.brdf    = ggxEvalBxDF(pMat, sc->l, sc->v, n, sc->tc, a_evalFlags, a_globals, a_tex, a_ptList)*cosMult;
-    //res.pdfFwd  = ggxEvalPDF (pMat, sc->l, sc->v, n, sc->tc,              a_globals, a_tex, a_ptList);
-    //res.pdfRev  = ggxEvalPDF (pMat, sc->v, sc->l, n, sc->tc,              a_globals, a_tex, a_ptList);
-    res.pdfFwd = 1.0f; // for Heitz sampling 2017 (GGXSample2AndEvalBRDF).
-    res.pdfRev = 1.0f; // for Heitz sampling 2017 (GGXSample2AndEvalBRDF).
+    res.pdfFwd  = ggxEvalPDF(pMat, sc->l, sc->v, n, sc->tc, a_globals, a_tex, a_ptList);
+    res.pdfRev  = ggxEvalPDF(pMat, sc->v, sc->l, n, sc->tc, a_globals, a_tex, a_ptList);
     break;   
   case PLAIN_MAT_CLASS_PERFECT_MIRROR: 
     res.brdf   = mirrorEvalBxDF(pMat, sc->l, sc->v, n)*cosMult;
