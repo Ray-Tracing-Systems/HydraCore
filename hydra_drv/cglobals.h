@@ -204,7 +204,7 @@ enum MEGATEX_USAGE{ MEGATEX_SHADING      = 1,
      } while (atomic_cmpxchg((volatile global unsigned int *)source, prevVal.intVal, newVal.intVal) != prevVal.intVal);
    }
 
-   IDH_CALL float dot3 (const float4 u, const float4 v) { return (u.x*v.x + u.y*v.y + u.z*v.z); }
+   static inline float dot3 (const float4 u, const float4 v) { return (u.x*v.x + u.y*v.y + u.z*v.z); }
 
    typedef struct float4x3T
    {
@@ -221,7 +221,7 @@ enum MEGATEX_USAGE{ MEGATEX_SHADING      = 1,
      float3 row[3];
    } float3x3;
 
-   IDH_CALL float2 make_float2(float a, float b)
+   static inline float2 make_float2(float a, float b)
    {
      float2 res;
      res.x = a;
@@ -229,7 +229,7 @@ enum MEGATEX_USAGE{ MEGATEX_SHADING      = 1,
      return res;
    }
 
-   IDH_CALL float3 make_float3(float a, float b, float c)
+   static inline float3 make_float3(float a, float b, float c)
    {
      float3 res;
      res.x = a;
@@ -238,7 +238,7 @@ enum MEGATEX_USAGE{ MEGATEX_SHADING      = 1,
      return res;
    }
 
-   IDH_CALL float4 make_float4(float a, float b, float c, float d)
+   static inline float4 make_float4(float a, float b, float c, float d)
    {
      float4 res;
      res.x = a;
@@ -248,7 +248,7 @@ enum MEGATEX_USAGE{ MEGATEX_SHADING      = 1,
      return res;
    }
 
-   IDH_CALL float2 to_float2(float4 f4)
+   static inline float2 to_float2(float4 f4)
    {
      float2 res;
      res.x = f4.x;
@@ -256,7 +256,7 @@ enum MEGATEX_USAGE{ MEGATEX_SHADING      = 1,
      return res;
    }
 
-   IDH_CALL float3 to_float3(float4 f4)
+   static inline float3 to_float3(float4 f4)
    {
      float3 res;
      res.x = f4.x;
@@ -265,7 +265,7 @@ enum MEGATEX_USAGE{ MEGATEX_SHADING      = 1,
      return res;
    }
 
-   IDH_CALL float4 to_float4(float3 v, float w)
+   static inline float4 to_float4(float3 v, float w)
    {
      float4 res;
      res.x = v.x;
