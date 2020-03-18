@@ -16,6 +16,7 @@
 #endif
 
 #include <vector>
+#include <memory>
 
 SWTexSampler DummySampler();
 

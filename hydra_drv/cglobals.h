@@ -341,7 +341,7 @@ enum MEGATEX_USAGE{ MEGATEX_SHADING      = 1,
     #define M_PI 3.14159265358979323846f
     
     #include "../../HydraAPI/hydra_api/LiteMath.h"  
-    using namespace HydraLiteMath;
+    using namespace LiteMath;
 
     #include "../../HydraAPI/hydra_api/HR_HDRImage.h"  
     typedef HydraRender::HDRImage4f HDRImage4f;

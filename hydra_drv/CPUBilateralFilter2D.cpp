@@ -63,7 +63,7 @@ void BilateralFilter(const HDRImage4f& inImage, HDRImage4f& outImage, int a_wind
           const int i = x1 - x;
           const int j = y1 - y;
 
-          const float w1 = dot3(dist, dist);
+          const float w1 = dot3f(dist, dist);
           const float w2 = exp(-(w1 * g_NoiseLevel + (i * i + j * j) * g_GaussianSigma));
 
           if (w2 > g_WeightThreshold)
@@ -107,14 +107,14 @@ std::vector<uchar4> CPUSharedData::NormalMapFromDisplacement(int w, int h, const
   std::vector<float> heightDataf(w*h);
   HDRImage4f normslaImage(w, h);
 
-  // инициаЃEзация
+  // пїЅпїЅпїЅпїЅпїЅпїЅпїЅEпїЅпїЅпїЅпїЅпїЅ
   //
   for (auto i = 0; i < heightDataf.size(); i++)
     heightDataf[i] = 255.0f - fmax(float(height[i].x), fmax(float(height[i].y), float(height[i].z)));
 
   const float kScale = 2000.0f / fmin(float(w), float(h));
 
-  // расчет ыMрмалей
+  // пїЅпїЅпїЅпїЅпїЅпїЅ пїЅMпїЅпїЅпїЅпїЅпїЅпїЅ
   //
   #pragma omp parallel for
   for (int y = 0; y < int(h); y++)
