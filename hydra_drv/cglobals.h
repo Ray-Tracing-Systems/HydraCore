@@ -61,7 +61,7 @@
 #endif
 
 #ifndef DEG_TO_RAD
-#define DEG_TO_RAD (M_PI / 180.f)
+#define DEG_TO_RAD (3.14159265358979323846f / 180.f)
 #endif
 
 #define GEPSILON      5e-6f
@@ -337,9 +337,9 @@ enum MEGATEX_USAGE{ MEGATEX_SHADING      = 1,
       #define ALIGN_S(x) __attribute__ ((aligned (x)))
     #endif
 
-    #undef  M_PI
+    #ifndef M_PI
     #define M_PI 3.14159265358979323846f
-    
+    #endif
     #include "../../HydraAPI/hydra_api/LiteMath.h"  
     using namespace LiteMath;
 
