@@ -125,7 +125,7 @@ static inline  int2   lambertGetDiffuseTex(__global const PlainMaterial* a_pMat)
 }
 
 
-static inline float  lambertEvalPDF (__global const PlainMaterial* a_pMat, const float3 l, const float3 n) { return fabs(dot(l, n))*INV_PI; }
+static inline float  lambertEvalPDF (__global const PlainMaterial* a_pMat, const float3 l, const float3 n) { return fabs(dot(l, n)) * INV_PI; }
 
 static inline float3 lambertEvalBxDF(__global const PlainMaterial* a_pMat, const float2 a_texCoord, const float2 a_texCoordProj,
                                      __global const EngineGlobals* a_globals, texture2d_t a_tex, __private const ProcTextureList* a_ptList)
@@ -133,9 +133,9 @@ static inline float3 lambertEvalBxDF(__global const PlainMaterial* a_pMat, const
   const int samplerOffset    = lambertGetDiffuseTex(a_pMat).y;
   const SWTexSampler sampler = ReadSampler((__global const int4*)a_pMat, samplerOffset);                // TODO: read sampler flags only
   const float2 texCoord2     = (sampler.flags & TEX_COORD_CAM_PROJ) != 0 ? a_texCoordProj : a_texCoord; // read cam projected texCoord for "ShadowCatcher2"
-
-  const float3 texColor = sample2DExt(samplerOffset, texCoord2, (__global const int4*)a_pMat, a_tex, a_globals, a_ptList);
-  return clamp(texColor*lambertGetDiffuseColor(a_pMat), 0.0f, 1.0f)*INV_PI;
+  const float3 texColor      = sample2DExt(samplerOffset, texCoord2, (__global const int4*)a_pMat, a_tex, a_globals, a_ptList);
+  
+  return clamp(texColor * lambertGetDiffuseColor(a_pMat), 0.0f, 1.0f) * INV_PI;
 }
 
 static inline void LambertSampleAndEvalBRDF(__global const PlainMaterial* a_pMat, const float a_r1, const float a_r2, const float3 a_normal, const float2 a_texCoord, const float2 a_texCoordProj,
@@ -146,17 +146,18 @@ static inline void LambertSampleAndEvalBRDF(__global const PlainMaterial* a_pMat
   const SWTexSampler sampler = ReadSampler((__global const int4*)a_pMat, samplerOffset);                // TODO: read sampler flags only
   const float2 texCoord2     = (sampler.flags & TEX_COORD_CAM_PROJ) != 0 ? a_texCoordProj : a_texCoord; // read cam projected texCoord for "ShadowCatcher2"
 
-  const float3 texColor   = sample2DExt(samplerOffset, texCoord2, (__global const int4*)a_pMat, a_tex, a_globals, a_ptList);
-  const float3 kd         = clamp(texColor*lambertGetDiffuseColor(a_pMat), 0.0f, 1.0f);
+  const float3 texColor      = sample2DExt(samplerOffset, texCoord2, (__global const int4*)a_pMat, a_tex, a_globals, a_ptList);
+  const float3 color         = clamp(texColor * lambertGetDiffuseColor(a_pMat), 0.0f, 1.0f);
 
-  const float3 newDir     = MapSampleToCosineDistribution(a_r1, a_r2, a_normal, a_normal, 1.0f);
-  const float  cosTheta   = dot(newDir, a_normal);
+  const float3 newDir        = MapSampleToCosineDistribution(a_r1, a_r2, a_normal, a_normal, 1.0f);
+  const float  cosTheta      = dot(newDir, a_normal);
 
-  a_out->direction = newDir;
-  a_out->pdf       = cosTheta*INV_PI;
-  a_out->color     = kd*INV_PI;
+  a_out->direction           = newDir;
+  a_out->pdf                 = cosTheta * INV_PI;
+  a_out->color               = color    * INV_PI;
+
   if (cosTheta <= DEPSILON)
-    a_out->color = make_float3(0, 0, 0);
+    a_out->color = make_float3(0.0f, 0.0f, 0.0f);
 
   a_out->flags = RAY_EVENT_D;
 }
@@ -201,13 +202,13 @@ static inline float orennayarFunc(const float3 l, const float3 v, const float3 n
   ///////////////////////////////////////////////////////////////////////////// to PBRT coordinate system
   // wo = v = -ray_dir
   // wi = l = newDir
-  //
+  
   float3 nx, ny, nz = n;
   CoordinateSystem(nz, &nx, &ny);
 
   float3 wo = make_float3(-dot(v, nx), -dot(v, ny), -dot(v, nz));
   float3 wi = make_float3(-dot(l, nx), -dot(l, ny), -dot(l, nz));
-  //
+  
   ///////////////////////////////////////////////////////////////////////////// to PBRT coordinate system
 
   // Compute cosine term of Oren-Nayar model
@@ -243,32 +244,32 @@ static inline float3  orennayarEvalBxDF(__global const PlainMaterial* a_pMat, co
                                         __global const EngineGlobals* a_globals, texture2d_t a_tex, __private const ProcTextureList* a_ptList)
 {
   const float3 texColor = sample2DExt(orennayarGetDiffuseTex(a_pMat).y, a_texCoord, (__global const int4*)a_pMat, a_tex, a_globals, a_ptList);
-  const float3 kd       = clamp(texColor*orennayarGetDiffuseColor(a_pMat), 0.0f, 1.0f);
+  const float3 color    = clamp(texColor*orennayarGetDiffuseColor(a_pMat), 0.0f, 1.0f);
 
-  return kd*INV_PI*orennayarFunc(l, v, n, a_pMat->data[ORENNAYAR_A], a_pMat->data[ORENNAYAR_B]);
+  return color * INV_PI * orennayarFunc(l, v, n, a_pMat->data[ORENNAYAR_A], a_pMat->data[ORENNAYAR_B]);
 }
 
-static inline float  orennayarEvalPDF(__global const PlainMaterial* a_pMat, const float3 l, const float3 v, const float3 n)
+static inline float orennayarEvalPDF(__global const PlainMaterial* a_pMat, const float3 l, const float3 v, const float3 n)
 { 
-  return fabs(dot(l, n))*INV_PI; 
+  return fabs(dot(l, n)) * INV_PI; 
 }
 
 static inline void OrennayarSampleAndEvalBRDF(__global const PlainMaterial* a_pMat, const float a_r1, const float a_r2, const float3 ray_dir, const float3 a_normal, const float2 a_texCoord,
                                               __global const EngineGlobals* a_globals, texture2d_t a_tex, __private const ProcTextureList* a_ptList,
                                               __private MatSample* a_out)
 {
-  const float3 texColor   = sample2DExt(orennayarGetDiffuseTex(a_pMat).y, a_texCoord, (__global const int4*)a_pMat, a_tex, a_globals, a_ptList);
-  const float3 kd         = clamp(texColor*orennayarGetDiffuseColor(a_pMat), 0.0f, 1.0f);
+  const float3 texColor = sample2DExt(orennayarGetDiffuseTex(a_pMat).y, a_texCoord, (__global const int4*)a_pMat, a_tex, a_globals, a_ptList);
+  const float3 color    = clamp(texColor*orennayarGetDiffuseColor(a_pMat), 0.0f, 1.0f);
 
-  const float3 newDir     = MapSampleToCosineDistribution(a_r1, a_r2, a_normal, a_normal, 1.0f);
-  const float  cosTheta   = dot(newDir, a_normal);
+  const float3 newDir   = MapSampleToCosineDistribution(a_r1, a_r2, a_normal, a_normal, 1.0f);
+  const float  cosTheta = dot(newDir, a_normal);
 
-  a_out->direction = newDir;
-  a_out->pdf       = cosTheta*INV_PI;
-  a_out->color     = kd*INV_PI*orennayarFunc(newDir, (-1.0f)*ray_dir, a_normal, a_pMat->data[ORENNAYAR_A], a_pMat->data[ORENNAYAR_B]);
+  a_out->direction      = newDir;
+  a_out->pdf            = cosTheta * INV_PI;
+  a_out->color          = color    * INV_PI * orennayarFunc(newDir, (-1.0f)*ray_dir, a_normal, a_pMat->data[ORENNAYAR_A], a_pMat->data[ORENNAYAR_B]);
 
   if (cosTheta <= DEPSILON)
-    a_out->color = make_float3(0, 0, 0);
+    a_out->color = make_float3(0.0f, 0.0f, 0.0f);
 
   a_out->flags = RAY_EVENT_D;
 }
@@ -304,7 +305,7 @@ static inline float mirrorEvalPDF(__global const PlainMaterial* a_pMat, float3 l
 
 static inline float3 mirrorEvalBxDF(__global const PlainMaterial* a_pMat, float3 l, float3 v, float3 n)
 {
-  return make_float3(0,0,0);  // because we don't want to sample this material with shadow rays
+  return make_float3(0.0f, 0.0f, 0.0f);  // because we don't want to sample this material with shadow rays
 }
 
 static inline void MirrorSampleAndEvalBRDF(__global const PlainMaterial* a_pMat, const float a_r1, const float a_r2, const float3 ray_dir, const float3 a_normal, const float2 a_texCoord,
@@ -314,6 +315,7 @@ static inline void MirrorSampleAndEvalBRDF(__global const PlainMaterial* a_pMat,
   const float3 texColor = sample2DExt(mirrorGetTex(a_pMat).y, a_texCoord, (__global const int4*)a_pMat, a_tex, a_globals, a_ptList);
   
   float3 newDir = reflect(ray_dir, a_normal);
+
   if (dot(ray_dir, a_normal) > 0.0f)
     newDir = ray_dir;
 
@@ -325,8 +327,9 @@ static inline void MirrorSampleAndEvalBRDF(__global const PlainMaterial* a_pMat,
   a_out->direction    = newDir;
   a_out->pdf          = 1.0f;
   a_out->color        = mirrorGetColor(a_pMat)*texColor*(1.0f/fmax(cosThetaOut, 1e-6f));
+
   if (cosThetaOut <= 1e-6f)
-    a_out->color = make_float3(0, 0, 0);
+    a_out->color = make_float3(0.0f, 0.0f, 0.0f);
 
   a_out->flags = RAY_EVENT_S;
 }
@@ -357,12 +360,9 @@ static inline float cosPowerFromGlosiness(float glosiness)
 {
   //const float cMin = 1.0f;
   const float cMax = 1000000.0f;
-
-  float x = glosiness;
-
-  int k = (fabs(x - 1.0f) < 1e-5f) ? 10 : (int)(x*10.0f);
-
-  const float x1 = (x - (float)(k)*0.1f);
+  float x          = glosiness;
+  int k            = (fabs(x - 1.0f) < 1e-5f) ? 10 : (int)(x * 10.0f);
+  const float x1   = (x - (float)(k) * 0.1f);
 
   if (k == 10 || x >= 0.99f)
     return cMax;
@@ -421,7 +421,7 @@ static inline float thinglassEvalPDF(__global const PlainMaterial* a_pMat, float
 
 static inline float3 thinglassEvalBxDF(__global const PlainMaterial* a_pMat, float3 l, float3 v, float3 n)
 {
-  return make_float3(0, 0, 0);  // because we don't want to sample thsi material with shadow rays
+  return make_float3(0.0f, 0.0f, 0.0f);  // because we don't want to sample thsi material with shadow rays
 }
 
 static inline void ThinglassSampleAndEvalBRDF(__global const PlainMaterial* a_pMat, const float a_r1, const float a_r2, float3 ray_dir, const float3 a_normal, const float2 a_texCoord,
@@ -504,9 +504,9 @@ static inline  int2   glassGetTex(__global const PlainMaterial* a_pMat)
 static inline float glassCosPower(__global const PlainMaterial* a_pMat, const float2 a_texCoord, 
                                   __global const EngineGlobals* a_globals, texture2d_t a_tex, __private const ProcTextureList* a_ptList)
 {
-  const int2   texId      = make_int2(as_int(a_pMat->data[GLASS_GLOSINESS_TEXID_OFFSET]), as_int(a_pMat->data[GLASS_GLOSINESS_TEXMATRIXID_OFFSET]));
-  const float3 glossColor = sample2DExt(texId.y, a_texCoord, (__global const int4*)a_pMat, a_tex, a_globals, a_ptList);
-  const float  glossMult  = a_pMat->data[GLASS_GLOSINESS];
+  const int2   texId       = make_int2(as_int(a_pMat->data[GLASS_GLOSINESS_TEXID_OFFSET]), as_int(a_pMat->data[GLASS_GLOSINESS_TEXMATRIXID_OFFSET]));
+  const float3 glossColor  = sample2DExt(texId.y, a_texCoord, (__global const int4*)a_pMat, a_tex, a_globals, a_ptList);
+  const float  glossMult   = a_pMat->data[GLASS_GLOSINESS];
   const float  glossiness  = clamp(glossMult*maxcomp(glossColor), 0.0f, 1.0f);
   return cosPowerFromGlosiness(glossiness);
 }
@@ -530,7 +530,7 @@ static inline float glassEvalPDF(__global const PlainMaterial* a_pMat, float3 l,
 
 static inline float3 glassEvalBxDF(__global const PlainMaterial* a_pMat, float3 l, float3 v, float3 n)
 {
-  return make_float3(0, 0, 0);  // because we don't want to sample thsi material with shadow rays
+  return make_float3(0.0f, 0.0f, 0.0f);  // because we don't want to sample thsi material with shadow rays
 }
 
 
@@ -546,23 +546,23 @@ typedef struct RefractResultT
 
 static inline RefractResult myrefract(float3 ray_dir, float3 a_normal, float a_matIOR, float a_outsideIOR, float a_rand)
 {
-  float eta = a_outsideIOR / a_matIOR; // from air to our material
-  float cos_theta = -dot(a_normal, ray_dir);
+  float eta       = a_outsideIOR / a_matIOR; // from air to our material
+  float cos_theta = dot(a_normal, ray_dir) * (-1.0f);
 
-  if (cos_theta < 0)
+  if (cos_theta < 0.0f)
   {
     cos_theta = cos_theta * (-1.0f);
-    a_normal = a_normal * (-1.0f);
-    eta = 1.0f / eta;
+    a_normal  = a_normal  * (-1.0f);
+    eta       = 1.0f / eta;
   }
 
   const float k = 1.0f - eta*eta*(1.0f - cos_theta*cos_theta);
 
   // to make borders soft
   //
-  const float threshold = 0.0025f;
+  const float threshold     = 0.0025f;
   const bool stochasticRefl = (k < threshold) && (sqrt(a_rand)*threshold >= k);
-  const bool refrSuccess = ((k >= 0.0f) && !stochasticRefl);
+  const bool refrSuccess    = ((k >= 0.0f) && !stochasticRefl);
 
   if (refrSuccess)
     ray_dir = normalize(eta*ray_dir + (eta*cos_theta - sqrt(k))*a_normal);
@@ -577,6 +577,7 @@ static inline RefractResult myrefract(float3 ray_dir, float3 a_normal, float a_m
     res.eta = eta;
   else
     res.eta = 1.0f;
+
   return res;
 }
 
@@ -604,7 +605,7 @@ static inline RefractResult myRefractGgx(float3 ray_dir, float3 a_normal, float 
   }
   else
   {
-    res.ray_dir = normalize((a_normal * dotVN * (-2.0f)) + ray_dir);                    // reflect
+    res.ray_dir = normalize((a_normal * dotVN * (-2.0f)) + ray_dir);                   // internal reflect
     res.success = false;  
     res.eta     = 1.0f;
   }
@@ -684,8 +685,7 @@ static inline void GlassGGXSampleAndEvalBRDF(__global const PlainMaterial* a_pMa
   const float3 color      = clamp(glassGetColor(a_pMat)*texColor, 0.0f, 1.0f);
   const float  gloss      = glassGloss(a_pMat, a_texCoord, a_globals, a_tex, a_ptList);  
   const float  roughness  = 1.0f - gloss;
-  const float  roughSqr   = roughness * roughness;
-  
+  const float  roughSqr   = roughness * roughness;  
   const float  IOR        = a_pMat->data[GLASS_IOR_OFFSET];                // #TODO: add IOR change based on current wave length if spectral trace is used
   const float3 normal2    = a_hitFromInside ? (-1.0f)*a_normal : a_normal;
 
@@ -694,98 +694,96 @@ static inline void GlassGGXSampleAndEvalBRDF(__global const PlainMaterial* a_pMa
   float3 Pms              = make_float3(1.0f, 1.0f, 1.0f); // Pass multi-scattering
   a_out->pdf              = 1.0f;
 
-  RefractResult refrData  = myrefract(ray_dir, normal2, IOR, 1.0f, rands.z);  
-  
-  if (gloss < 0.999f && refrData.success)
+  RefractResult refrData  = myRefractGgx(ray_dir, normal2, IOR, 1.0f, rands.z);
+
+  if (gloss < 0.999f)
   {
-    spec             = false;
-    const float eta  = refrData.eta;
+    spec           = false;
+    float eta      = 1.0f / IOR;
+    float cosTheta = dot(normal2, ray_dir) * (-1.0f);
+
+    if (cosTheta < 0.0f)
+      eta  = 1.0f / eta;
 
     float3 nx, ny, nz    = a_normal;
     CoordinateSystem(nz, &nx, &ny);
 
-    
     const float3 wo      = make_float3(-dot(ray_dir, nx), -dot(ray_dir, ny), -dot(ray_dir, nz));
     const float3 wh      = GgxVndf(wo, roughSqr, rands.x, rands.y);             // New sampling Heitz 2017
-    const float  dotWoWh = dot(wo, wh);          
-    float3       newDir  = wo * (-1.0f);
-        
+    const float  dotWoWh = dot(wo, wh);
+    float3       newDir;
+
     const float radicand = 1.0f + eta * eta * (dotWoWh * dotWoWh - 1.0f);
     if (radicand > 0.0f)
     {
-      //refrData.success   = true;
       newDir             = (eta * dotWoWh - sqrt(radicand)) * wh - eta * wo;    // refract        
+      refrData.success   = true;
+      refrData.eta       = eta;
     }
     else
     {
+      newDir             = 2.0f * dotWoWh * wh - wo;                            // internal reflect 
       refrData.success   = false;
-    //  refrData.eta       = 1.0f;
-    //  newDir             = 2.0f * dotWoWh * wh - wo;                            // reflect 
+      refrData.eta       = 1.0f;
     }
 
     refrData.ray_dir  = normalize(newDir.x * nx + newDir.y * ny + newDir.z * nz);    // back to normal coordinate system
 
-    const float3 v    = ray_dir;
+    const float3 v    = ray_dir * (-1.0f);
     const float3 l    = refrData.ray_dir;
-    const float3 n    = a_normal;    
-    const float3 h    = normalize(v + l); // half vector.
+    const float3 n    = a_normal;
     const float dotNV = fabs(dot(n, v));
     const float dotNL = fabs(dot(n, l));
-    const float dotNH = fabs(dot(n, h));
-    const float dotHV = fabs(dot(h, v));
-    const float dotHL = fabs(dot(v, l));
 
     // Fresnel is not needed here, because it is used for the blend.    
-    const float D   = GGX_Distribution(dotNH, roughSqr);
     const float G1  = SmithGGXMasking(dotNV, roughSqr);
     const float G2  = SmithGGXMaskingShadowing(dotNL, dotNV, roughSqr);
-       
+
     // Abbreviated formula without PDF.
-    //Pss             = G2 / fmax(G1, 1e-6f);
+    Pss             = G2 / fmax(G1, 1e-6f);
 
-    // Full formuls.
+    // Complete formulas with PDF, if we ever make an explicit strategy for glass.
+    //const float3 h    = normalize(v + l); // half vector.
+    //const float dotNH = fabs(dot(n, h));
+    //const float dotHV = fabs(dot(h, v));
+    //const float dotHL = fabs(dot(v, l));
+    //const float D   = GGX_Distribution(dotNH, roughSqr);
+    //float etaI = 1.0f;
+    //float etaO = IOR;
+    //if (eta > 1.0f)
+    //{      
+    //  etaI = IOR;
+    //  etaO = 1.0f;
+    //}
+    //const float eq1 = (dotHV * dotHL) / fmax(dotNV * dotNL, 1e-6f);
+    //const float eq2 = etaO * etaO * G2 * D / fmax(pow(etaI * dotHV + etaO * dotHL, 2), 1e-6f);
+    //Pss             = eq1 * eq2 * dotNL; // dotNL is here to cancel cosMult at the end.
+    //const float Dv    = D * G1 * dotHV / fmax(dotNV, 1e-6f);
+    //const float jacob = etaO * etaO * dotHL / fmax(pow(etaI * dotHV + etaO * dotHL, 2), 1e-6f);
+    //a_out->pdf        = Dv * jacob;
 
-    float etaI = 1.0f;
-    float etaO = IOR;
-
-    if (eta > 1.0f)
-    {      
-      etaI = IOR;
-      etaO = 1.0f;
-    }
-
-    const float eq1 = (dotHV * dotHL) / fmax(dotNV * dotNL, 1e-6f);
-    const float eq2 = etaO * etaO * G2 * D / fmax(pow(etaI * dotHV + etaO * dotHL, 2), 1e-6f);
-    Pss             = eq1 * eq2 * dotNL; // dotNL is here to cancel cosMult at the end.
-
-    // Full formuls with PDF.
-    const float Dv    = D * G1 * dotHV / fmax(dotNV, 1e-6f);
-    const float jacob = etaO * etaO * dotHL / fmax(pow(etaI * dotHV + etaO * dotHL, 2), 1e-6f);
-    a_out->pdf        = Dv * jacob;
-
-    // Pass multi-scattering.    
-    //if (eta < 1.0f) Pms = GetMultiscatteringFromTable(64, roughness, dotNV, a_globals->m_essTranspTable, color);
-    //else            Pms = GetMultiscatteringFromTable(64, roughness, dotNV, a_globals->m_essTranspInsideTable, color);    
+    // Pass multi-scattering. 
+    if (eta < 1.0f) Pms = GetMultiscatteringFromTable(64, roughness, dotNV, a_globals->m_essTranspTable, color);
+    else            Pms = GetMultiscatteringFromTable(64, roughness, dotNV, a_globals->m_essTranspInsideTable, color);
   }
 
   const float cosThetaOut = dot(refrData.ray_dir, a_normal);
   const float cosMult     = 1.0f / fmax(fabs(cosThetaOut), 1e-6f);
 
-  a_out->direction            = refrData.ray_dir;
-
+  a_out->direction        = refrData.ray_dir;
   
   // only camera paths are multiplied by this factor, and etas are swapped because radiance
   // flows in the opposite direction. See SmallVCM and or Veach adjoint bsdf.
   const float adjointBtdfMult = a_isFwdDir ? 1.0f : (refrData.eta*refrData.eta);
 
-  if (refrData.success) a_out->color = color * Pss * Pms * adjointBtdfMult * cosMult;
-  else                  a_out->color = make_float3(1.0f, 1.0f, 1.0f)       * cosMult;
+  if (refrData.success) a_out->color = color * adjointBtdfMult       * Pss * Pms * cosMult;
+  else                  a_out->color = make_float3(1.0f, 1.0f, 1.0f) * Pss * Pms * cosMult;
 
   if (spec)             a_out->flags = (RAY_EVENT_S | RAY_EVENT_T);
   else                  a_out->flags = (RAY_EVENT_G | RAY_EVENT_T);
 
-  if      (refrData.success  && cosThetaOut >= -1e-6f) a_out->color = make_float3(0, 0, 0); // refraction/transparency must be under surface!
-  else if (!refrData.success && cosThetaOut < 1e-6f)   a_out->color = make_float3(0, 0, 0); // reflection happened in wrong way
+  if      (refrData.success  && cosThetaOut >= -1e-6f) a_out->color = make_float3(0.0f, 0.0f, 0.0f); // refraction/transparency must be under surface!
+  else if (!refrData.success && cosThetaOut < 1e-6f)   a_out->color = make_float3(0.0f, 0.0f, 0.0f); // reflection happened in wrong way
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -829,7 +827,7 @@ static inline float phongGlosiness(__global const PlainMaterial* a_pMat, const f
     const int2   texId      = make_int2(as_int(a_pMat->data[PHONG_GLOSINESS_TEXID_OFFSET]), as_int(a_pMat->data[PHONG_GLOSINESS_TEXMATRIXID_OFFSET]));
     const float3 glossColor = sample2DExt(texId.y, a_texCoord, (__global const int4*)a_pMat, a_tex, a_globals, a_ptList);
     const float  glossMult  = a_pMat->data[PHONG_GLOSINESS_OFFSET];
-    const float  glosiness  = clamp(glossMult*maxcomp(glossColor), 0.0f, 1.0f);
+    const float  glosiness  = clamp(glossMult*maxcomp(glossColor), 0.0f, 0.99f);
     return glosiness; 
   }
   else
@@ -839,11 +837,17 @@ static inline float phongGlosiness(__global const PlainMaterial* a_pMat, const f
 static inline float phongEvalPDF(__global const PlainMaterial* a_pMat, const float3 l, const float3 v, const float3 n, const float2 a_texCoord,
                                  __global const EngineGlobals* a_globals, texture2d_t a_tex, __private const ProcTextureList* a_ptList)
 {
-  const float3 r        = reflect((-1.0)*v, n);
-  const float  cosTheta = clamp(fabs(dot(l, r)), DEPSILON2, M_PI*0.499995f); 
+  const float dotNV = dot(n, v);
+  const float dotNL = dot(n, l);
+
+  if (dotNV < 1e-6f || dotNL < 1e-6f)
+    return 1.0f;
 
   const float  gloss    = phongGlosiness(a_pMat, a_texCoord, a_globals, a_tex, a_ptList);
   const float  cosPower = cosPowerFromGlosiness(gloss);
+
+  const float3 r        = reflect((-1.0)*v, n);
+  const float  cosTheta = clamp(fabs(dot(l, r)), 0.0f, 1.0f); 
 
   return pow(cosTheta, cosPower) * (cosPower + 1.0f) * INV_TWOPI; // please see "Using the Modified Phong Reflectance Model for Physically ... 
 }
@@ -851,15 +855,21 @@ static inline float phongEvalPDF(__global const PlainMaterial* a_pMat, const flo
 
 static inline float PhongEnergyFix(const float dotRL, const float3 l, const float3 n, const float3 v)
 { 
-  const float dotNL         = dot(n, l);
-  const float dotNV         = dot(n, (-1.0f) * v);  
-  const float geomCosFix    = 1.0f / dotNL * dotRL; // the transfer of geometric cosine in the space of reflection.  
+  const float dotNL      = dot(n, l);
+  const float dotNV      = dot(n, (-1.0f) * v);  
+  const float geomCosFix = 1.0f / dotNL * dotRL; // the transfer of geometric cosine in the space of reflection.  
   return geomCosFix;
 }
 
 static inline float3 phongEvalBxDF(__global const PlainMaterial* a_pMat, const float3 l, const float3 v, const float3 n, const float2 a_texCoord, const int a_evalFlags,
                                    __global const EngineGlobals* a_globals, texture2d_t a_tex, __private const ProcTextureList* a_ptList)
 {
+  const float dotNV = dot(n, v);
+  const float dotNL = dot(n, l);
+
+  if (dotNV < 1e-6f || dotNL < 1e-6f)
+    return make_float3(0.0f, 0.0f, 0.0f);
+
   const float3 texColor = sample2DExt(phongGetTex(a_pMat).y, a_texCoord, (__global const int4*)a_pMat, a_tex, a_globals, a_ptList);
   const float3 color    = clamp(phongGetColor(a_pMat)*texColor, 0.0f, 1.0f);
   const float  gloss    = phongGlosiness(a_pMat, a_texCoord, a_globals, a_tex, a_ptList); 
@@ -867,7 +877,6 @@ static inline float3 phongEvalBxDF(__global const PlainMaterial* a_pMat, const f
 
   const float3 r        = reflect((-1.0)*v, n);
   const float  cosAlpha = clamp(dot(l, r), 0.0f, 1.0f);
-
   const float energyFix = PhongEnergyFix(cosAlpha, l, n, v);
   
   return color*(cosPower + 2.0f)*INV_TWOPI*pow(cosAlpha, cosPower)*energyFix; // please see "Using the Modified Phong Reflectance Model for Physically ... 
@@ -886,20 +895,27 @@ static inline void PhongSampleAndEvalBRDF(__global const PlainMaterial* a_pMat, 
   const float3 r        = reflect(ray_dir, a_normal);
   const float3 newDir   = MapSampleToModifiedCosineDistribution(a_r1, a_r2, r, a_normal, cosPower, &underSurface);
 
-  const float cosAlpha  = clamp(dot(newDir, r), 0.0, 1.0f);
-  const float dotNL     = dot(a_normal, newDir);
-  const float energyFix = PhongEnergyFix(cosAlpha, newDir, a_normal, ray_dir);
+  const float3 v    = ray_dir * (-1.0f);
+  const float3 l    = newDir;
+  const float dotNV = dot(a_normal, v);
+  const float dotNL = dot(a_normal, l);
 
-  const float powCosAlphaCosPowInvTwoPi = pow(cosAlpha, cosPower) * INV_TWOPI;
+  if (dotNV < 1e-6f || dotNL < 1e-6f || underSurface) // reflection under surface must be zerowed!
+  {
+    a_out->color = make_float3(0.0f, 0.0f, 0.0f);
+    a_out->pdf   = 1.0f;
+  }
+  else
+  {
+    const float cosAlpha  = clamp(dot(newDir, r), 0.0, 1.0f);
+    const float eqTemp    = pow(cosAlpha, cosPower) * INV_TWOPI;
+    const float energyFix = PhongEnergyFix(cosAlpha, newDir, a_normal, ray_dir);
+    a_out->pdf            = eqTemp * (cosPower + 1.0f);
+    a_out->color          = eqTemp * (cosPower + 2.0f) * color * energyFix; // please see "Using the Modified Phong Reflectance Model for Physically ... 
+  }    
 
   a_out->direction  = newDir;
-  a_out->pdf        = powCosAlphaCosPowInvTwoPi * (cosPower + 1.0f);
-  a_out->color      = powCosAlphaCosPowInvTwoPi * (cosPower + 2.0f) * color * energyFix; // please see "Using the Modified Phong Reflectance Model for Physically ... 
-    
-  if (dotNL <= 1e-6f || underSurface)                                                // reflection under surface must be zerowed!
-    a_out->color = make_float3(0, 0, 0);
-
-  a_out->flags = (gloss == 1.0f) ? RAY_EVENT_S : RAY_EVENT_G;
+  a_out->flags      = (gloss >= 0.99f) ? RAY_EVENT_S : RAY_EVENT_G;
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -940,7 +956,7 @@ static inline float blinnGlosiness(__global const PlainMaterial* a_pMat, const f
     const int2   texId      = make_int2(as_int(a_pMat->data[BLINN_GLOSINESS_TEXID_OFFSET]), as_int(a_pMat->data[BLINN_GLOSINESS_TEXMATRIXID_OFFSET]));
     const float3 glossColor = sample2DExt(texId.y, a_texCoord, (__global const int4*)a_pMat, a_tex, a_globals, a_ptList);
     const float  glossMult  = a_pMat->data[BLINN_GLOSINESS_OFFSET];
-    const float  glosiness  = clamp(glossMult*maxcomp(glossColor), 0.0f, 1.0f);
+    const float  glosiness  = clamp(glossMult*maxcomp(glossColor), 0.0f, 0.99f);
     return glosiness;
   }
   else
@@ -957,10 +973,16 @@ static inline float blinnCosPower(__global const PlainMaterial* a_pMat, const fl
 static inline float blinnEvalPDF(__global const PlainMaterial* a_pMat, const float3 l, const float3 v, const float3 n, 
                                  const float2 a_texCoord, __global const EngineGlobals* a_globals, texture2d_t a_tex, __private const ProcTextureList* a_ptList)
 {
+  const float dotNV = dot(n, v);
+  const float dotNL = dot(n, l);
+
+  if (dotNV < 1e-6f || dotNL < 1e-6f)
+    return 1.0f;
+
   const float  exponent = blinnCosPower(a_pMat, a_texCoord, a_globals, a_tex, a_ptList); // a_pMat->data[BLINN_COSPOWER_OFFSET];
 
   const float3 wh      = normalize(l + v);
-  const float costheta = fabs(dot(wh,n));
+  const float costheta = fabs(dot(wh, n));
 
   float blinn_pdf = ((exponent + 1.0f) * pow(costheta, exponent)) / (M_TWOPI * 4.0f * dot(l, wh));
 
@@ -973,22 +995,23 @@ static inline float blinnEvalPDF(__global const PlainMaterial* a_pMat, const flo
 static inline float3 blinnEvalBxDF(__global const PlainMaterial* a_pMat, const float3 l, const float3 v, const float3 n, 
                                    const float2 a_texCoord, __global const EngineGlobals* a_globals, texture2d_t a_tex, __private const ProcTextureList* a_ptList)
 {
-  const float3 texColor = sample2DExt(blinnGetTex(a_pMat).y, a_texCoord, (__global const int4*)a_pMat, a_tex, a_globals, a_ptList);
+  const float dotNV = dot(n, v);
+  const float dotNL = dot(n, l);
 
+  if (dotNV < 1e-6f || dotNL < 1e-6f)
+    return make_float3(0.0f, 0.0f, 0.0f);
+
+  const float3 texColor = sample2DExt(blinnGetTex(a_pMat).y, a_texCoord, (__global const int4*)a_pMat, a_tex, a_globals, a_ptList);
   const float3 color    = clamp(blinnGetColor(a_pMat)*texColor, 0.0f, 1.0f);
   const float  gloss    = blinnGlosiness(a_pMat, a_texCoord, a_globals, a_tex, a_ptList);
   const float  exponent = cosPowerFromGlosiness(gloss); 
-
+  
   const float3 wh       = normalize(l + v);
+  const float cosThetaH = fabs(dot(wh, n));
 
-  const float cosThetaH = fabs(dot(wh,n));
   const float D         = (exponent + 2.0f) * INV_TWOPI * pow(cosThetaH, exponent);
-  const float dotNL     = fmax(dot(l, n), 0.0f);
-
-  const float Pss       = D * TorranceSparrowGF2(l, v, n);               // Energy single-scattering
-  const float Pms       = 1.0f;  // Energy multiple-scattering
-
-  return color * Pss * Pms;
+   
+  return color * D * TorranceSparrowGF2(l, v, n);  
 }
 
 static inline void BlinnSampleAndEvalBRDF(__global const PlainMaterial* a_pMat, const float a_r1, const float a_r2, const float3 ray_dir, const float3 a_normal, const float2 a_texCoord, const float3 a_tan, const float3 a_bitan,
@@ -997,55 +1020,47 @@ static inline void BlinnSampleAndEvalBRDF(__global const PlainMaterial* a_pMat, 
 {
   const float3 texColor = sample2DExt(blinnGetTex(a_pMat).y, a_texCoord, (__global const int4*)a_pMat, a_tex, a_globals, a_ptList);
   const float3 color    = clamp(blinnGetColor(a_pMat)*texColor, 0.0f, 1.0f);
+  const float gloss     = blinnGlosiness(a_pMat, a_texCoord, a_globals, a_tex, a_ptList);
+  //const float aniso     = a_pMat->data[BLINN_ANISOTROPY_OFFSET];
 
   ///////////////////////////////////////////////////////////////////////////// to PBRT coordinate system
   // wo = v = ray_dir
   // wi = l = -newDir
-  //
+  
   float3 nx, ny, nz     = a_normal;
-  const float aniso     = a_pMat->data[BLINN_ANISOTROPY_OFFSET];
-  const float glossOrig = blinnGlosiness(a_pMat, a_texCoord, a_globals, a_tex, a_ptList);
-
-  float phi, gloss;
   CoordinateSystem(nz, &nx, &ny);
-  phi   = a_r2 * M_TWOPI;
-  gloss = glossOrig;
   ///////////////////////////////////////////////////////////////////////////// to PBRT coordinate system
 
   const float3 wo        = make_float3(-dot(ray_dir, nx), -dot(ray_dir, ny), -dot(ray_dir, nz));
-  const float  exponent  = cosPowerFromGlosiness(gloss);                                                //
+  const float  exponent  = cosPowerFromGlosiness(gloss);                                                
 
   // Compute sampled half-angle vector $\wh$ for Blinn distribution
-  //
-  const float costheta = pow(a_r1, 1.0f / (exponent + 1.0f));
-  const float sintheta = sqrt(fmax(0.0f, 1.0f - costheta*costheta));
   
-  float3 wh = SphericalDirectionPBRT(sintheta, costheta, phi);
+  const float costheta  = pow(a_r1, 1.0f / (exponent + 1.0f));
+  const float sintheta  = sqrt(fmax(0.0f, 1.0f - costheta*costheta));  
+  const float3 wh       = SphericalDirectionPBRT(sintheta, costheta, a_r2 * M_TWOPI);
+  const float3 wi       = (2.0f * dot(wo, wh) * wh) - wo;               // Compute incident direction by reflecting about $\wh$
+  const float3 newDir   = normalize(wi.x * nx + wi.y * ny + wi.z * nz); // back to normal coordinate system
 
-  bool underSurface = false;
-  if (!SameHemispherePBRT(wo, wh))
-    underSurface = true;
+  const float3 v    = ray_dir * (-1.0f);
+  const float3 l    = newDir;
+  const float dotNV = dot(a_normal, v);
+  const float dotNL = dot(a_normal, l);
 
-  const float3 wi = (2.0f * dot(wo, wh) * wh) - wo; // Compute incident direction by reflecting about $\wh$
-
-  const float blinn_pdf = ((exponent + 1.0f) * pow(costheta, exponent)) / fmax(M_TWOPI * 4.0f * dot(wo, wh), DEPSILON);
-  const float D         = ((exponent + 2.0f) * INV_TWOPI * pow(costheta, exponent));
-
-  const float3 newDir   = wi.x*nx + wi.y*ny + wi.z*nz; // back to normal coordinate system
-  const float  dotNL    = dot(newDir, a_normal);
-  const float  GF1      = TorranceSparrowGF1(wo, wi);
-    
-  const float Pss       = D * GF1;    // Pass single-scattering
-  const float Pms       = 1.0f;// Pass multiple-scattering
+  if (dotNV < 1e-6f || dotNL < 1e-6f)
+  {
+    a_out->color        = make_float3(0.0f, 0.0f, 0.0f);
+    a_out->pdf          = 1.0f;
+  }
+  else
+  {
+    const float D       = ((exponent + 2.0f) * INV_TWOPI * pow(costheta, exponent));
+    a_out->color        = color * D * TorranceSparrowGF1(wo, wi);
+    a_out->pdf          = ((exponent + 1.0f) * pow(costheta, exponent)) / fmax(M_TWOPI * 4.0f * dot(wo, wh), DEPSILON);
+  }
 
   a_out->direction      = newDir; 
-  a_out->pdf            = blinn_pdf;
-  a_out->color          = color * Pss *Pms; 
-
-  if(dotNL < 1e-6f || underSurface)
-    a_out->color   = make_float3(0,0,0);
-
-  a_out->flags     = RAY_EVENT_G;
+  a_out->flags          = (gloss >= 0.99f) ? RAY_EVENT_S : RAY_EVENT_G;
 }
 
 
@@ -1165,7 +1180,7 @@ static inline float GGX_GeomShadMask(const float cosThetaN, const float alpha)
 
   // Optimized and equal to the commented-out formulas on top.
   const float cosTheta_sqr = clamp(cosThetaN*cosThetaN, 0.0f, 1.0f);
-  const float tan2         = (1.0f - cosTheta_sqr) / cosTheta_sqr;
+  const float tan2         = (1.0f - cosTheta_sqr) / fmax(cosTheta_sqr, 1e-6f);
   const float GP           = 2.0f / (1.0f + sqrt(1.0f + alpha * alpha * tan2));
   return GP;
 }
@@ -1181,25 +1196,67 @@ static inline float GGX_Distribution(const float cosThetaNH, const float alpha)
 static inline float ggxEvalPDF(__global const PlainMaterial* a_pMat, const float3 l, const float3 v, const float3 n, const float2 a_texCoord,
                                __global const EngineGlobals* a_globals, texture2d_t a_tex, __private const ProcTextureList* a_ptList)
 {
-  const float3 texColor   = sample2DExt(ggxGetTex(a_pMat).y, a_texCoord, (__global const int4*)a_pMat, a_tex, a_globals, a_ptList);
-  const float3 color      = clamp(ggxGetColor(a_pMat)*texColor, 0.0f, 1.0f);
-  const float  gloss      = ggxGlosiness(a_pMat, a_texCoord, a_globals, a_tex, a_ptList);
-  const float roughness   = 1.0f - gloss;
-  const float roughSqr    = roughness * roughness;
+  const float dotNV = dot(n, v);
+  const float dotNL = dot(n, l);
 
-  const float3 h          = normalize(v + l); // half vector.
-  const float dotNH       = fabs(dot(n, h));
-  const float dotHV       = fabs(dot(h, v));
+  if (dotNV < 1e-6f || dotNL < 1e-6f)
+    return 1.0f;
 
-  const float D           = GGX_Distribution(dotNH, roughSqr);
+  // from GGXSampleAndEvalBRDF
+  const float3 texColor = sample2DExt(ggxGetTex(a_pMat).y, a_texCoord, (__global const int4*)a_pMat, a_tex, a_globals, a_ptList);
+  const float3 color    = clamp(ggxGetColor(a_pMat)*texColor, 0.0f, 1.0f);
+  const float  gloss    = ggxGlosiness(a_pMat, a_texCoord, a_globals, a_tex, a_ptList);
+  const float roughness = 1.0f - gloss;
+  const float roughSqr  = roughness * roughness;
+  
+  const float3 h        = normalize(v + l); // half vector.
+  const float dotNH     = dot(n, h);
+  const float dotHV     = dot(h, v);
+  const float D         = GGX_Distribution(dotNH, roughSqr);
 
   return  D * dotNH / (4.0f * dotHV);
+}
+
+static inline float ggx2EvalPDF(__global const PlainMaterial* a_pMat, const float3 l, const float3 v, const float3 n, const float2 a_texCoord,
+                               __global const EngineGlobals* a_globals, texture2d_t a_tex, __private const ProcTextureList* a_ptList)
+{
+  const float dotNV = dot(n, v);
+  const float dotNL = dot(n, l);
+
+  if (dotNV < 1e-6f || dotNL < 1e-6f)
+    return 1.0f;
+
+  // from GGXSample2AndEvalBRDF
+  const float3 texColor = sample2DExt(ggxGetTex(a_pMat).y, a_texCoord, (__global const int4*)a_pMat, a_tex, a_globals, a_ptList);
+  const float3 color    = clamp(ggxGetColor(a_pMat)*texColor, 0.0f, 1.0f);
+  const float  gloss    = ggxGlosiness(a_pMat, a_texCoord, a_globals, a_tex, a_ptList);
+  const float roughness = 1.0f - gloss;
+  const float roughSqr  = roughness * roughness;
+
+  const float3 h        = normalize(v + l); // half vector.
+  const float dotNH     = dot(n, h);
+  const float dotHV     = dot(h, v);
+  
+  const float G1        = SmithGGXMasking(dotNV, roughSqr);
+  const float G2        = SmithGGXMaskingShadowing(dotNL, dotNV, roughSqr);
+  const float D         = GGX_Distribution(dotNH, roughSqr);
+  const float Dv        = D * G1 * dotHV / fmax(dotNV, 1e-6f);
+  const float jacob     = 1.0f / fmax(4.0f * dotHV, 1e-6f);
+
+  return Dv * jacob;
 }
 
 static inline float3 ggxEvalBxDF(__global const PlainMaterial* a_pMat, const float3 l, const float3 v, const float3 n, const float2 a_texCoord, const int a_evalFlags,
                                  __global const EngineGlobals* a_globals, texture2d_t a_tex, __private const ProcTextureList* a_ptList)
 {
   //GGX for light (explicit strategy).
+
+  const float dotNV = dot(n, v);  
+  const float dotNL = dot(n, l);
+  
+  if (dotNV < 1e-6f || dotNL < 1e-6f)
+    return make_float3(0.0f, 0.0f, 0.0f);
+
 
   const float3 texColor = sample2DExt(ggxGetTex(a_pMat).y, a_texCoord, (__global const int4*)a_pMat, a_tex, a_globals, a_ptList);
   const float3 color    = clamp(ggxGetColor(a_pMat)*texColor, 0.0f, 1.0f);
@@ -1208,19 +1265,16 @@ static inline float3 ggxEvalBxDF(__global const PlainMaterial* a_pMat, const flo
   const float roughSqr  = roughness * roughness;
 
   const float3 h        = normalize(v + l); // half vector.
-  const float dotNL     = fabs(dot(n, l));
-  const float dotNV     = fabs(dot(n, v));
-  const float dotNH     = fabs(dot(n, h));
+  const float dotNH     = dot(n, h);
 
   // Fresnel is not needed here, because it is used for the blend with diffusion.
   const float D         = GGX_Distribution(dotNH, roughSqr);
-  //const float G       = GGX_GeomShadMask(dotNV, roughSqr) * GGX_GeomShadMask(dotNL, roughSqr); 
-  //const float G       = GGX_HeightCorrelatedGeomShadMask(dotNV, dotNL, roughSqr); //more correctly than a simple multiplication of masks, but worse for new sampling (GGXSample2AndEvalBRDF).
+  //const float G         = GGX_GeomShadMask(dotNV, roughSqr) * GGX_GeomShadMask(dotNL, roughSqr); 
   const float G         = SmithGGXMaskingShadowing(dotNL, dotNV, roughSqr);         // from Heitz sampling 2017 (GGXSample2AndEvalBRDF), but worse for new sampling (GGXSample2AndEvalBRDF).
 
   float Pss             = D * G / fmax(4.0f * dotNV * dotNL, 1e-6f);        // Pass single-scattering
 
-  // Pass multi-scattering.
+  // Pass multi-scattering. Not exactly the same as GGX2. For good, you need your own table.
   float3 Pms            = GetMultiscatteringFromTable(64, roughness, dotNV, a_globals->m_essGgx2017Table, color);  
 
   return color * Pss * Pms;
@@ -1248,38 +1302,39 @@ static inline void GGXSampleAndEvalBRDF(__global const PlainMaterial* a_pMat, co
   const float cosTheta  = clamp(sqrt((1.0f - a_r2) / (1.0f + roughSqr * roughSqr * a_r2 - a_r2)), 0.0f, 1.0f);
   const float sinTheta  = sqrt(1.0f - cosTheta * cosTheta);
   const float3 wh       = SphericalDirectionPBRT(sinTheta, cosTheta, phi);
+  const float3 wi       = (2.0f * dot(wo, wh) * wh) - wo;                  // Compute incident direction by reflecting about wh. wi (input) = light
+  const float3 newDir   = normalize(wi.x*nx + wi.y*ny + wi.z*nz);          // back to normal coordinate system
 
-  //bool underSurface = false;
-  //if (!SameHemispherePBRT(wo, wh))  // here, under the surface is never going to happen
-  //  underSurface = true;
+  float Pss         = 1.0f;  // Pass single-scattering  
 
-  const float3 wi       = (2.0f * dot(wo, wh) * wh) - wo; // Compute incident direction by reflecting about wh. wi (input) = light
-  const float3 newDir   = wi.x*nx + wi.y*ny + wi.z*nz;    // back to normal coordinate system
-
-  const float3 v    = (-1.0f) * ray_dir;
+  const float3 v    = ray_dir * (-1.0f);
   const float3 l    = newDir;
-  const float3 h    = normalize(v + l);                   // half vector.
-  const float dotNL = fabs(dot(a_normal, l));
-  const float dotNV = fabs(dot(a_normal, v));
-  const float dotNH = fabs(dot(a_normal, h));
-  const float dotHV = fabs(dot(h, v));
-    
-  float Pss         = 0.0f;
-  a_out->pdf        = 1.0f;
+  const float dotNV = dot(a_normal, v);
+  const float dotNL = dot(a_normal, l);
 
-  // Fresnel is not needed here, because it is used for the blend with diffusion.
-  const float D   = GGX_Distribution(dotNH, roughSqr);
-  //const float G   = GGX_GeomShadMask(dotNV, roughSqr) * GGX_GeomShadMask(dotNL, roughSqr); 
-  //const float G   = GGX_HeightCorrelatedGeomShadMask(dotNV, dotNL, roughSqr);   
-  const float G   = SmithGGXMaskingShadowing(dotNL, dotNV, roughSqr); // from new sampling (GGXSample2AndEvalBRDF).
+  if (dotNV < 1e-6f || dotNL < 1e-6f)
+  {
+    Pss             = 0.0f;
+    a_out->pdf      = 1.0f;
+  }
+  else
+  {
+    const float3 h    = normalize(v + l);  // half vector.
+    const float dotNV = dot(a_normal, v);
+    const float dotNH = dot(a_normal, h);
+    const float dotHV = dot(h, v);
 
-  Pss             = D * G / fmax(4.0f * dotNV * dotNL, 1e-6f);        // Pass single-scattering  
-  a_out->pdf      = D * dotNH / fmax(4.0f * dotHV, 1e-6f);
+    // Fresnel is not needed here, because it is used for the blend with diffusion.
+    const float D   = GGX_Distribution(dotNH, roughSqr);
+    const float G   = GGX_GeomShadMask(dotNV, roughSqr) * GGX_GeomShadMask(dotNL, roughSqr); 
+
+    Pss             = D * G / fmax(4.0f * dotNV * dotNL, 1e-6f);        
+    a_out->pdf      = D * dotNH / fmax(4.0f * dotHV, 1e-6f);
+  }
   
   a_out->direction  = newDir;
   a_out->color      = color * Pss;  
-
-  a_out->flags = (gloss == 1.0f) ? RAY_EVENT_S : RAY_EVENT_G;
+  a_out->flags = (gloss >= 0.99f) ? RAY_EVENT_S : RAY_EVENT_G;
 }
 
 //////////////////////////////////////////////////////////////////////////////////////
@@ -1296,14 +1351,13 @@ static inline void GGXSample2AndEvalBRDF(__global const PlainMaterial* a_pMat, c
                                          __private MatSample* a_out)
 {
   // GGX for implicit strategy
-  const float3 texColor   = sample2DExt(ggxGetTex(a_pMat).y, a_texCoord, (__global const int4*)a_pMat, a_tex, a_globals, a_ptList);
-  const float3 color      = clamp(ggxGetColor(a_pMat)*texColor, 0.0f, 1.0f);
-  const float  gloss      = ggxGlosiness(a_pMat, a_texCoord, a_globals, a_tex, a_ptList);
-  const float  roughness  = 1.0f - gloss;
-  const float  roughSqr   = roughness * roughness;
+  const float3 texColor  = sample2DExt(ggxGetTex(a_pMat).y, a_texCoord, (__global const int4*)a_pMat, a_tex, a_globals, a_ptList);
+  const float3 color     = clamp(ggxGetColor(a_pMat)*texColor, 0.0f, 1.0f);
+  const float  gloss     = ggxGlosiness(a_pMat, a_texCoord, a_globals, a_tex, a_ptList);
+  const float  roughness = 1.0f - gloss;
+  const float  roughSqr  = roughness * roughness;
 
-
-  float3 nx, ny, nz       = a_normal;
+  float3 nx, ny, nz      = a_normal;
   CoordinateSystem(nz, &nx, &ny);
 
   // to PBRT coordinate system
@@ -1312,48 +1366,50 @@ static inline void GGXSample2AndEvalBRDF(__global const PlainMaterial* a_pMat, c
 
   float Pss           = 1.0f; // Pass single-scattering.
   float3 Pms          = make_float3(1.0f, 1.0f, 1.0f); // Pass multi-scattering.
-  a_out->pdf          = 1.0f;
 
   const float3 wo     = make_float3(-dot(ray_dir, nx), -dot(ray_dir, ny), -dot(ray_dir, nz));
   const float3 wh     = GgxVndf(wo, roughSqr, a_r1, a_r2);
-  const float3 wi     = 2.0f * dot(wo, wh) * wh - wo;       // Compute incident direction by reflecting about wm  
+  const float3 wi     = 2.0f * dot(wo, wh) * wh - wo;                     // Compute incident direction by reflecting about wm  
   const float3 newDir = normalize(wi.x * nx + wi.y * ny + wi.z * nz);    // back to normal coordinate system
 
-  const float3 n      = a_normal;
-  const float3 l      = newDir;
-  const float dotNL   = fabs(dot(n, l));
+  const float3 v    = ray_dir * (-1.0f);
+  const float3 l    = newDir;
+  const float dotNV = dot(a_normal, v);
+  const float dotNL = dot(a_normal, l);
 
-  if (gloss <= 0.99f)
+  if (dotNV < 1e-6f || dotNL < 1e-6f)
   {
-    const float3 v    = ray_dir * (-1.0f);
+    Pss               = 0.0f;
+    a_out->pdf        = 1.0f;
+  }
+  else
+  {
     const float3 h    = normalize(v + l); // half vector.
-    const float dotNV = fabs(dot(n, v));
-    const float dotNH = fabs(dot(n, h));
-    const float dotHV = fabs(dot(h, v));
-    const float dotHL = fabs(dot(v, l));
+    const float dotNH = dot(a_normal, h);
+    const float dotHV = dot(h, v);
 
     // Fresnel is not needed here, because it is used for the blend with diffusion.    
     const float D     = GGX_Distribution(dotNH, roughSqr);
     const float G1    = SmithGGXMasking(dotNV, roughSqr);
     const float G2    = SmithGGXMaskingShadowing(dotNL, dotNV, roughSqr);
-    
+
     // Abbreviated formula without PDF.
-    //Pss             = G2 / fmax(G1, 1e-6f) / fmax(dotNL, 1e-6f);
-        
+    //Pss             = G2 / fmax(G1, 1e-6f);
+    //a_out->pdf      = 1.0f;
+
     // Full formuls with PDF.
-    Pss               = D * G2 / fmax(4.0f * dotNV * dotNL, 1e-6f);
+    Pss               = D * G2 / fmax(4.0f * dotNV, 1e-6f); // removing dotNL from the denominator (4.0f*dotNV*dotNL), since there is a division by it at the end.
     const float Dv    = D * G1 * dotHV / fmax(dotNV, 1e-6f);
     const float jacob = 1.0f / fmax(4.0f * dotHV, 1e-6f);
     a_out->pdf        = Dv * jacob;
 
     // Pass multi-scattering.    
     Pms = GetMultiscatteringFromTable(64, roughness, dotNV, a_globals->m_essGgx2017Table, color);
-  }  
+  }
 
   a_out->direction    = newDir;
-  a_out->color        = color * Pss * Pms;
-
-  a_out->flags = (gloss == 1.0f) ? RAY_EVENT_S : RAY_EVENT_G;
+  a_out->color        = color * Pss * Pms / fmax(dotNL, 1e-6f);
+  a_out->flags        = (gloss >= 0.99f) ? RAY_EVENT_S : RAY_EVENT_G;
 }
 
 
@@ -1450,20 +1506,18 @@ static inline void BeckmanTangentSpace(__global const PlainMaterial* a_pMat, flo
                                        __global const EngineGlobals* a_globals, texture2d_t a_tex, __private const ProcTextureList* a_ptList,
                                        float3* pNx, float3* pNy)
 {
-  if(fabs(alpha.x - alpha.y) > 1.0e-5f)
+  if(fabs(alpha.x - alpha.y) > 1e-5f)
   {
     (*pNx) = a_bitan;
     (*pNy) = a_tan;
 
     const float rotVal  = beckmannAnisoRot(a_pMat, a_texCoord, a_globals, a_tex, a_ptList);
-    const float4x4 mRot = RotateAroundVector4x4(nz, rotVal*M_PI*2.0f);
+    const float4x4 mRot = RotateAroundVector4x4(nz, rotVal * M_TWOPI);
     (*pNx) = mul3x3(mRot, (*pNx));
     (*pNy) = mul3x3(mRot, (*pNy));
   }
   else
-  {
     CoordinateSystem(nz, pNx, pNy);
-  }
 
   if((materialGetFlags(a_pMat) & PLAIN_MATERIAL_FLIP_TANGENT) != 0)
   {
@@ -1471,50 +1525,58 @@ static inline void BeckmanTangentSpace(__global const PlainMaterial* a_pMat, flo
     (*pNx) = (*pNy);
     (*pNy) = temp; 
   }
-
 }
 
 static inline float beckmannEvalPDF(__global const PlainMaterial* a_pMat, const float3 l, const float3 v, const float3 n, const float3 a_tan, const float3 a_bitan,
                                     const float2 a_texCoord, __global const EngineGlobals* a_globals, texture2d_t a_tex, __private const ProcTextureList* a_ptList)
 {
+  const float dotNV = dot(n, v);
+  const float dotNL = dot(n, l);
+
+  if (dotNV < 1e-6f || dotNL < 1e-6f)
+    return 1.0f;
+  
   const float2 alpha = beckmannAlphaXY(a_pMat, a_texCoord, a_globals, a_tex, a_ptList);
 
   ///////////////////////////////////////////////////////////////////////////// to PBRT coordinate system
   // wo = v = ray_dir
   // wi = l = -newDir
-  //
+  
   float3 nx, ny, nz = n;
-  BeckmanTangentSpace(a_pMat, alpha, n, a_tan, a_bitan, a_texCoord, a_globals, a_tex, a_ptList, 
-                      &nx, &ny);
+  BeckmanTangentSpace(a_pMat, alpha, n, a_tan, a_bitan, a_texCoord, a_globals, a_tex, a_ptList, &nx, &ny);
   ///////////////////////////////////////////////////////////////////////////// to PBRT coordinate system
 
   const float3 wo  = make_float3(-dot(v, nx), -dot(v, ny), -dot(v, nz));
   const float3 wh  = normalize(l + v);
-  
+
   return BeckmannDistributionPdf(wo, wh, alpha.x, alpha.y);
 }
 
 static inline float3 beckmannEvalBxDF(__global const PlainMaterial* a_pMat, const float3 l, const float3 v, const float3 n, const float3 a_tan, const float3 a_bitan,
                                       const float2 a_texCoord, __global const EngineGlobals* a_globals, texture2d_t a_tex, __private const ProcTextureList* a_ptList)
 {
+  const float dotNV = dot(n, v);
+  const float dotNL = dot(n, l);
+
+  if (dotNV < 1e-6f || dotNL < 1e-6f)
+    return make_float3(0.0f, 0.0f, 0.0f);
+
   const float3 texColor = sample2DExt(beckmannGetTex(a_pMat).y, a_texCoord, (__global const int4*)a_pMat, a_tex, a_globals, a_ptList);
   const float3 color    = clamp(texColor*beckmannGetColor(a_pMat), 0.0f, 1.0f);
-
-  const float2 alpha = beckmannAlphaXY(a_pMat, a_texCoord, a_globals, a_tex, a_ptList);
+  const float2 alpha    = beckmannAlphaXY(a_pMat, a_texCoord, a_globals, a_tex, a_ptList);
 
   ///////////////////////////////////////////////////////////////////////////// to PBRT coordinate system
   // wo = v = ray_dir
   // wi = l = -newDir
-  //
+  
   float3 nx, ny, nz = n;
-  BeckmanTangentSpace(a_pMat, alpha, nz, a_tan, a_bitan, a_texCoord, a_globals, a_tex, a_ptList, 
-                      &nx, &ny);
+  BeckmanTangentSpace(a_pMat, alpha, nz, a_tan, a_bitan, a_texCoord, a_globals, a_tex, a_ptList, &nx, &ny);
   ///////////////////////////////////////////////////////////////////////////// to PBRT coordinate system
 
   const float3 wo  = make_float3(-dot(v, nx), -dot(v, ny), -dot(v, nz));
   const float3 wi  = make_float3(-dot(l, nx), -dot(l, ny), -dot(l, nz));
   
-  return color*fmin(BeckmannBRDF_PBRT(wo, wi, alpha.x, alpha.y), 500.0f);
+  return color * BeckmannBRDF_PBRT(wo, wi, alpha.x, alpha.y);
 }
 
 static inline void BeckmannSampleAndEvalBRDF(__global const PlainMaterial* a_pMat, const float a_r1, const float a_r2, 
@@ -1522,34 +1584,42 @@ static inline void BeckmannSampleAndEvalBRDF(__global const PlainMaterial* a_pMa
                                              __global const EngineGlobals* a_globals, texture2d_t a_tex, __private const ProcTextureList* a_ptList,
                                              __private MatSample* a_out)
 {
-  const float2 alpha = beckmannAlphaXY(a_pMat, a_texCoord, a_globals, a_tex, a_ptList);
+  const float3 texColor = sample2DExt(beckmannGetTex(a_pMat).y, a_texCoord, (__global const int4*)a_pMat, a_tex, a_globals, a_ptList);
+  const float3 color    = clamp(texColor*beckmannGetColor(a_pMat), 0.0f, 1.0f);
+  const float2 alpha    = beckmannAlphaXY(a_pMat, a_texCoord, a_globals, a_tex, a_ptList);
+  const float gloss     = beckmannGlosiness(a_pMat, a_texCoord, a_globals, a_tex, a_ptList);
 
   ///////////////////////////////////////////////////////////////////////////// to PBRT coordinate system
   // wo = v = ray_dir
   // wi = l = -newDir
-  //
+  
   float3 nx, ny, nz = a_normal;
-  BeckmanTangentSpace(a_pMat, alpha, nz, a_tan, a_bitan, a_texCoord, a_globals, a_tex, a_ptList, 
-                      &nx, &ny);
+  BeckmanTangentSpace(a_pMat, alpha, nz, a_tan, a_bitan, a_texCoord, a_globals, a_tex, a_ptList, &nx, &ny);
   ///////////////////////////////////////////////////////////////////////////// to PBRT coordinate system
 
-  const float3 wo  = make_float3(-dot(ray_dir, nx), -dot(ray_dir, ny), -dot(ray_dir, nz));
-  const float3 wh  = BeckmannDistributionSampleWH(wo, make_float2(a_r1, a_r2), alpha.x, alpha.y);
-  const float3 wi  = (2.0f * dot(wo, wh) * wh) - wo; // Compute incident direction by reflecting about wh
-  
-  const float3 texColor    = sample2DExt(beckmannGetTex(a_pMat).y, a_texCoord, (__global const int4*)a_pMat, a_tex, a_globals, a_ptList);
-  const float3 kd          = clamp(texColor*beckmannGetColor(a_pMat), 0.0f, 1.0f);
-  
-  const float3 newDir      = wi.x*nx + wi.y*ny + wi.z*nz; // back to normal coordinate system
-  const float  cosThetaOut = dot(newDir, a_normal);
+  const float3 wo     = make_float3(-dot(ray_dir, nx), -dot(ray_dir, ny), -dot(ray_dir, nz));
+  const float3 wh     = BeckmannDistributionSampleWH(wo, make_float2(a_r1, a_r2), alpha.x, alpha.y);
+  const float3 wi     = (2.0f * dot(wo, wh) * wh) - wo;               // Compute incident direction by reflecting about wh  
+  const float3 newDir = normalize(wi.x * nx + wi.y * ny + wi.z * nz); // back to normal coordinate system
 
-  a_out->direction = newDir;
-  a_out->pdf       = BeckmannDistributionPdf(wo, wh, alpha.x, alpha.y);
-  if (cosThetaOut <= DEPSILON)
-    a_out->color = make_float3(0, 0, 0);
-  else  
-    a_out->color = kd*fmin(BeckmannBRDF_PBRT(wo, wi, alpha.x, alpha.y), 500.0f);
-  a_out->flags = RAY_EVENT_G;
+  const float3 v    = ray_dir * (-1.0f);
+  const float3 l    = newDir;
+  const float dotNV = dot(a_normal, v);
+  const float dotNL = dot(a_normal, l);
+
+  if (dotNV < 1e-6f || dotNL < 1e-6f)
+  {
+    a_out->color      = make_float3(0.0f, 0.0f, 0.0f);
+    a_out->pdf        = 1.0f;
+  }
+  else
+  {
+    a_out->color      = color * BeckmannBRDF_PBRT(wo, wi, alpha.x, alpha.y);
+    a_out->pdf        = BeckmannDistributionPdf(wo, wh, alpha.x, alpha.y);
+  }
+  
+  a_out->direction    = newDir;  
+  a_out->flags = (gloss >= 0.99f) ? RAY_EVENT_S : RAY_EVENT_G;
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -1566,6 +1636,12 @@ static inline void BeckmannSampleAndEvalBRDF(__global const PlainMaterial* a_pMa
 static inline float trggxEvalPDF(__global const PlainMaterial* a_pMat, const float3 l, const float3 v, const float3 n, const float3 a_tan, const float3 a_bitan,
                                  const float2 a_texCoord, __global const EngineGlobals* a_globals, texture2d_t a_tex, __private const ProcTextureList* a_ptList)
 {
+  const float dotNV = dot(n, v);
+  const float dotNL = dot(n, l);
+
+  if (dotNV < 1e-6f || dotNL < 1e-6f)
+    return 1.0f;
+
   const float2 alpha = beckmannAlphaXY(a_pMat, a_texCoord, a_globals, a_tex, a_ptList);
 
   ///////////////////////////////////////////////////////////////////////////// to PBRT coordinate system
@@ -1586,24 +1662,28 @@ static inline float trggxEvalPDF(__global const PlainMaterial* a_pMat, const flo
 static inline float3 trggxEvalBxDF(__global const PlainMaterial* a_pMat, const float3 l, const float3 v, const float3 n, const float3 a_tan, const float3 a_bitan,
                                    const float2 a_texCoord, __global const EngineGlobals* a_globals, texture2d_t a_tex, __private const ProcTextureList* a_ptList)
 {
+  const float dotNV = dot(n, v);
+  const float dotNL = dot(n, l);
+
+  if (dotNV < 1e-6f || dotNL < 1e-6f)
+    return make_float3(0.0f, 0.0f, 0.0f);
+
   const float3 texColor = sample2DExt(beckmannGetTex(a_pMat).y, a_texCoord, (__global const int4*)a_pMat, a_tex, a_globals, a_ptList);
   const float3 color    = clamp(texColor*beckmannGetColor(a_pMat), 0.0f, 1.0f);
-
   const float2 alpha    = beckmannAlphaXY(a_pMat, a_texCoord, a_globals, a_tex, a_ptList);
-
+  
   ///////////////////////////////////////////////////////////////////////////// to PBRT coordinate system
   // wo = v = ray_dir
   // wi = l = -newDir
-  //
+  
   float3 nx, ny, nz = n;
-  BeckmanTangentSpace(a_pMat, alpha, nz, a_tan, a_bitan, a_texCoord, a_globals, a_tex, a_ptList, 
-                      &nx, &ny);
+  BeckmanTangentSpace(a_pMat, alpha, nz, a_tan, a_bitan, a_texCoord, a_globals, a_tex, a_ptList, &nx, &ny);
   ///////////////////////////////////////////////////////////////////////////// to PBRT coordinate system
 
   const float3 wo = make_float3(-dot(v, nx), -dot(v, ny), -dot(v, nz));
   const float3 wi = make_float3(-dot(l, nx), -dot(l, ny), -dot(l, nz));
 
-  return color*TrowbridgeReitzBRDF_PBRT(wo, wi, alpha.x, alpha.y);
+  return color * TrowbridgeReitzBRDF_PBRT(wo, wi, alpha.x, alpha.y);
 }
 
 static inline void TRGGXSampleAndEvalBRDF(__global const PlainMaterial* a_pMat, const float a_r1, const float a_r2,
@@ -1611,34 +1691,42 @@ static inline void TRGGXSampleAndEvalBRDF(__global const PlainMaterial* a_pMat, 
                                           __global const EngineGlobals* a_globals, texture2d_t a_tex, __private const ProcTextureList* a_ptList,
                                           __private MatSample* a_out)
 {
-  const float2 alpha = beckmannAlphaXY(a_pMat, a_texCoord, a_globals, a_tex, a_ptList);
+  const float3 texColor = sample2DExt(beckmannGetTex(a_pMat).y, a_texCoord, (__global const int4*)a_pMat, a_tex, a_globals, a_ptList);
+  const float3 color    = clamp(texColor*beckmannGetColor(a_pMat), 0.0f, 1.0f);
+  const float2 alpha    = beckmannAlphaXY(a_pMat, a_texCoord, a_globals, a_tex, a_ptList);
+  const float gloss     = beckmannGlosiness(a_pMat, a_texCoord, a_globals, a_tex, a_ptList);
 
   ///////////////////////////////////////////////////////////////////////////// to PBRT coordinate system
   // wo = v = ray_dir
   // wi = l = -newDir
-  //
+  
   float3 nx, ny, nz = a_normal;
-  BeckmanTangentSpace(a_pMat, alpha, nz, a_tan, a_bitan, a_texCoord, a_globals, a_tex, a_ptList, 
-                      &nx, &ny);
+  BeckmanTangentSpace(a_pMat, alpha, nz, a_tan, a_bitan, a_texCoord, a_globals, a_tex, a_ptList, &nx, &ny);
   ///////////////////////////////////////////////////////////////////////////// to PBRT coordinate system
 
-  const float3 wo = make_float3(-dot(ray_dir, nx), -dot(ray_dir, ny), -dot(ray_dir, nz));
-  const float3 wh = TrowbridgeReitzDistributionSampleWH(wo, make_float2(a_r1, a_r2), alpha.x, alpha.y);
-  const float3 wi = (2.0f * dot(wo, wh) * wh) - wo; // Compute incident direction by reflecting about wh
+  const float3 wo     = make_float3(-dot(ray_dir, nx), -dot(ray_dir, ny), -dot(ray_dir, nz));
+  const float3 wh     = TrowbridgeReitzDistributionSampleWH(wo, make_float2(a_r1, a_r2), alpha.x, alpha.y);
+  const float3 wi     = (2.0f * dot(wo, wh) * wh) - wo;         // Compute incident direction by reflecting about wh
+  const float3 newDir = normalize(wi.x * nx + wi.y * ny + wi.z * nz);      // back to normal coordinate system
 
-  const float3 texColor = sample2DExt(beckmannGetTex(a_pMat).y, a_texCoord, (__global const int4*)a_pMat, a_tex, a_globals, a_ptList);
-  const float3 kd       = clamp(texColor*beckmannGetColor(a_pMat), 0.0f, 1.0f);
+  const float3 v    = ray_dir * (-1.0f);
+  const float3 l    = newDir;
+  const float dotNV = dot(a_normal, v);
+  const float dotNL = dot(a_normal, l);
 
-  const float3 newDir      = wi.x*nx + wi.y*ny + wi.z*nz; // back to normal coordinate system
-  const float  cosThetaOut = dot(newDir, a_normal);
-
-  a_out->direction = newDir;
-  a_out->pdf       = TrowbridgeReitzDistributionPdf(wo, wh, alpha.x, alpha.y);
-  if (cosThetaOut <= DEPSILON)
-    a_out->color = make_float3(0, 0, 0);
+  if (dotNV < 1e-6f || dotNL < 1e-6f)
+  {
+    a_out->color      = make_float3(0.0f, 0.0f, 0.0f);
+    a_out->pdf        = 1.0f;
+  }
   else
-    a_out->color = kd*TrowbridgeReitzBRDF_PBRT(wo, wi, alpha.x, alpha.y);
-  a_out->flags = RAY_EVENT_G;
+  {
+    a_out->color      = color * TrowbridgeReitzBRDF_PBRT(wo, wi, alpha.x, alpha.y);
+    a_out->pdf        = TrowbridgeReitzDistributionPdf(wo, wh, alpha.x, alpha.y);
+  }
+      
+  a_out->direction    = newDir;
+  a_out->flags        = (gloss >= 0.99f) ? RAY_EVENT_S : RAY_EVENT_G;
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -2072,62 +2160,53 @@ static inline void MaterialLeafSampleAndEvalBRDF(__global const PlainMaterial* p
   switch (materialGetType(pMat))
   {
   case PLAIN_MAT_CLASS_PHONG_SPECULAR: 
-    PhongSampleAndEvalBRDF(pMat, rands.x, rands.y, ray_dir, hitNorm, pSurfHit->texCoord, a_globals, a_tex, a_ptList,
-                           a_out);
+    PhongSampleAndEvalBRDF(pMat, rands.x, rands.y, ray_dir, hitNorm, pSurfHit->texCoord, a_globals, a_tex, a_ptList, a_out);
     break;
 
   case PLAIN_MAT_CLASS_BLINN_SPECULAR: 
-    BlinnSampleAndEvalBRDF(pMat, rands.x, rands.y, ray_dir, hitNorm, pSurfHit->texCoord, pSurfHit->tangent, pSurfHit->biTangent, a_globals, a_tex, a_ptList,
-                           a_out);
+    BlinnSampleAndEvalBRDF(pMat, rands.x, rands.y, ray_dir, hitNorm, pSurfHit->texCoord, pSurfHit->tangent, pSurfHit->biTangent, a_globals, a_tex, a_ptList, a_out);
     break;
   
   case PLAIN_MAT_CLASS_BECKMANN: 
-    BeckmannSampleAndEvalBRDF(pMat, rands.x, rands.y, ray_dir, hitNorm, pSurfHit->texCoord, pSurfHit->tangent, pSurfHit->biTangent, a_globals, a_tex, a_ptList,
-                              a_out);
+    BeckmannSampleAndEvalBRDF(pMat, rands.x, rands.y, ray_dir, hitNorm, pSurfHit->texCoord, pSurfHit->tangent, pSurfHit->biTangent, a_globals, a_tex, a_ptList, a_out);
     break;
   
   case PLAIN_MAT_CLASS_TRGGX:
-    TRGGXSampleAndEvalBRDF(pMat, rands.x, rands.y, ray_dir, hitNorm, pSurfHit->texCoord, pSurfHit->tangent, pSurfHit->biTangent, a_globals, a_tex, a_ptList,
-                           a_out);
+    TRGGXSampleAndEvalBRDF(pMat, rands.x, rands.y, ray_dir, hitNorm, pSurfHit->texCoord, pSurfHit->tangent, pSurfHit->biTangent, a_globals, a_tex, a_ptList, a_out);
     break;
 
   case PLAIN_MAT_CLASS_GGX: 
-    GGXSample2AndEvalBRDF(pMat, rands.x, rands.y, ray_dir, hitNorm, pSurfHit->texCoord, a_globals, a_tex, a_ptList,
-                         a_out);
+    //GGXSampleAndEvalBRDF(pMat, rands.x, rands.y, ray_dir, hitNorm, pSurfHit->texCoord, a_globals, a_tex, a_ptList, a_out);
+    GGXSample2AndEvalBRDF(pMat, rands.x, rands.y, ray_dir, hitNorm, pSurfHit->texCoord, a_globals, a_tex, a_ptList, a_out); // new sampling 2017
     break;
 
   case PLAIN_MAT_CLASS_PERFECT_MIRROR: 
-    MirrorSampleAndEvalBRDF(pMat, rands.x, rands.y, ray_dir, hitNorm, pSurfHit->texCoord, a_globals, a_tex, a_ptList,
-                            a_out);
+    MirrorSampleAndEvalBRDF(pMat, rands.x, rands.y, ray_dir, hitNorm, pSurfHit->texCoord, a_globals, a_tex, a_ptList, a_out);
     break;
 
   case PLAIN_MAT_CLASS_THIN_GLASS: 
-    ThinglassSampleAndEvalBRDF(pMat, rands.x, rands.y, ray_dir, hitNorm, pSurfHit->texCoord, a_globals, a_tex, a_ptList,
-                               a_out);
+    ThinglassSampleAndEvalBRDF(pMat, rands.x, rands.y, ray_dir, hitNorm, pSurfHit->texCoord, a_globals, a_tex, a_ptList, a_out);
     break;
+
   case PLAIN_MAT_CLASS_GLASS: 
-    GlassSampleAndEvalBRDF(pMat, rands, ray_dir, hitNorm, pSurfHit->texCoord, pSurfHit->hfi, a_globals, a_tex, a_ptList, a_isFwdDir,
-                           a_out);
+    //GlassSampleAndEvalBRDF(pMat, rands, ray_dir, hitNorm, pSurfHit->texCoord, pSurfHit->hfi, a_globals, a_tex, a_ptList, a_isFwdDir, a_out);  // Phong glass.
+    GlassGGXSampleAndEvalBRDF(pMat, rands, ray_dir, hitNorm, pSurfHit->texCoord, pSurfHit->hfi, a_globals, a_tex, a_ptList, a_isFwdDir, a_out); // GGX glass.
     break;
 
   case PLAIN_MAT_CLASS_TRANSLUCENT   : 
-    TranslucentSampleAndEvalBRDF(pMat, rands.x, rands.y, ray_dir, hitNorm, pSurfHit->texCoord, a_globals, a_tex, a_ptList,
-                                 a_out);
+    TranslucentSampleAndEvalBRDF(pMat, rands.x, rands.y, ray_dir, hitNorm, pSurfHit->texCoord, a_globals, a_tex, a_ptList, a_out);
     break;
 
   case PLAIN_MAT_CLASS_OREN_NAYAR    : 
-    OrennayarSampleAndEvalBRDF(pMat, rands.x, rands.y, ray_dir, hitNorm, pSurfHit->texCoord, a_globals, a_tex, a_ptList,
-                               a_out);
+    OrennayarSampleAndEvalBRDF(pMat, rands.x, rands.y, ray_dir, hitNorm, pSurfHit->texCoord, a_globals, a_tex, a_ptList, a_out);
     break;
 
   case PLAIN_MAT_CLASS_LAMBERT       : 
-    LambertSampleAndEvalBRDF(pMat, rands.x, rands.y, hitNorm, pSurfHit->texCoord, pSurfHit->texCoordCamProj, a_globals, a_tex, a_ptList,
-                             a_out);
+    LambertSampleAndEvalBRDF(pMat, rands.x, rands.y, hitNorm, pSurfHit->texCoord, pSurfHit->texCoordCamProj, a_globals, a_tex, a_ptList, a_out);
     break;
 
   case PLAIN_MAT_CLASS_SHADOW_MATTE  : 
-    ShadowmatteSampleAndEvalBRDF(pMat, ray_dir, hitNorm, a_shadow,
-                                 a_out);
+    ShadowmatteSampleAndEvalBRDF(pMat, ray_dir, hitNorm, a_shadow, a_out);
     break;
   };
 
@@ -2300,14 +2379,16 @@ static inline BxDFResult materialLeafEval(__global const PlainMaterial* pMat, __
     res.pdfRev  = beckmannEvalPDF (pMat, sc->v, sc->l, n, sc->tg, sc->bn, sc->tc, a_globals, a_tex, a_ptList);
     break;
   case PLAIN_MAT_CLASS_TRGGX:
-    res.brdf   = trggxEvalBxDF(pMat, sc->l, sc->v, n, sc->tg, sc->bn, sc->tc, a_globals, a_tex, a_ptList)*cosMult;
-    res.pdfFwd = trggxEvalPDF (pMat, sc->l, sc->v, n, sc->tg, sc->bn, sc->tc, a_globals, a_tex, a_ptList);
-    res.pdfRev = trggxEvalPDF (pMat, sc->v, sc->l, n, sc->tg, sc->bn, sc->tc, a_globals, a_tex, a_ptList);
+    res.brdf    = trggxEvalBxDF(pMat, sc->l, sc->v, n, sc->tg, sc->bn, sc->tc, a_globals, a_tex, a_ptList)*cosMult;
+    res.pdfFwd  = trggxEvalPDF (pMat, sc->l, sc->v, n, sc->tg, sc->bn, sc->tc, a_globals, a_tex, a_ptList);
+    res.pdfRev  = trggxEvalPDF (pMat, sc->v, sc->l, n, sc->tg, sc->bn, sc->tc, a_globals, a_tex, a_ptList);
     break;
   case PLAIN_MAT_CLASS_GGX:  
-    res.brdf    = ggxEvalBxDF(pMat, sc->l, sc->v, n, sc->tc, a_evalFlags, a_globals, a_tex, a_ptList)*cosMult;
-    res.pdfFwd  = ggxEvalPDF(pMat, sc->l, sc->v, n, sc->tc, a_globals, a_tex, a_ptList);
-    res.pdfRev  = ggxEvalPDF(pMat, sc->v, sc->l, n, sc->tc, a_globals, a_tex, a_ptList);
+    res.brdf    =  ggxEvalBxDF(pMat, sc->l, sc->v, n, sc->tc, a_evalFlags, a_globals, a_tex, a_ptList)*cosMult;
+    //res.pdfFwd  = ggxEvalPDF(pMat, sc->l, sc->v, n, sc->tc, a_globals, a_tex, a_ptList);
+    //res.pdfRev  = ggxEvalPDF(pMat, sc->v, sc->l, n, sc->tc, a_globals, a_tex, a_ptList);
+    res.pdfFwd  = ggx2EvalPDF(pMat, sc->l, sc->v, n, sc->tc, a_globals, a_tex, a_ptList); // for new sampling 2017.
+    res.pdfRev  = ggx2EvalPDF(pMat, sc->v, sc->l, n, sc->tc, a_globals, a_tex, a_ptList); // for new sampling 2017.
     break;   
   case PLAIN_MAT_CLASS_PERFECT_MIRROR: 
     res.brdf   = mirrorEvalBxDF(pMat, sc->l, sc->v, n)*cosMult;
@@ -2319,7 +2400,7 @@ static inline BxDFResult materialLeafEval(__global const PlainMaterial* pMat, __
     res.pdfFwd = thinglassEvalPDF (pMat, sc->l, sc->v, n);
     res.pdfRev = thinglassEvalPDF (pMat, sc->v, sc->l, n);
     break;
-  case PLAIN_MAT_CLASS_GLASS:  
+  case PLAIN_MAT_CLASS_GLASS: 
     res.brdf   = glassEvalBxDF(pMat, sc->l, sc->v, n)*cosMult;
     res.pdfFwd = glassEvalPDF (pMat, sc->l, sc->v, n);
     res.pdfRev = glassEvalPDF (pMat, sc->v, sc->l, n);
