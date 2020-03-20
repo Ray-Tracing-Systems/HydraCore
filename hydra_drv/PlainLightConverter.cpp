@@ -71,52 +71,48 @@ int2 AddIesTexTableToStorage(const std::wstring pathW, IMemoryStorage* a_storage
 float4x4 GetSubMatrix3x3(PlainLight& a_lightData, int a_slotOffset)
 {
   float4x4 matrix;
-  matrix.M(0, 0) = a_lightData.data[a_slotOffset + 0];
-  matrix.M(0, 1) = a_lightData.data[a_slotOffset + 1];
-  matrix.M(0, 2) = a_lightData.data[a_slotOffset + 2];
-  matrix.M(1, 0) = a_lightData.data[a_slotOffset + 3];
-  matrix.M(1, 1) = a_lightData.data[a_slotOffset + 4];
-  matrix.M(1, 2) = a_lightData.data[a_slotOffset + 5];
-  matrix.M(2, 0) = a_lightData.data[a_slotOffset + 6];
-  matrix.M(2, 1) = a_lightData.data[a_slotOffset + 7];
-  matrix.M(2, 2) = a_lightData.data[a_slotOffset + 8];
+  matrix(0, 0) = a_lightData.data[a_slotOffset + 0];
+  matrix(0, 1) = a_lightData.data[a_slotOffset + 1];
+  matrix(0, 2) = a_lightData.data[a_slotOffset + 2];
+  matrix(1, 0) = a_lightData.data[a_slotOffset + 3];
+  matrix(1, 1) = a_lightData.data[a_slotOffset + 4];
+  matrix(1, 2) = a_lightData.data[a_slotOffset + 5];
+  matrix(2, 0) = a_lightData.data[a_slotOffset + 6];
+  matrix(2, 1) = a_lightData.data[a_slotOffset + 7];
+  matrix(2, 2) = a_lightData.data[a_slotOffset + 8];
   return matrix;
 }
 
 void PutSubMatrix3x3(PlainLight& a_lightData, int a_slotOffset, const float4x4& a_matrix)
 {
-  a_lightData.data[a_slotOffset + 0] = a_matrix.M(0, 0);
-  a_lightData.data[a_slotOffset + 1] = a_matrix.M(0, 1);
-  a_lightData.data[a_slotOffset + 2] = a_matrix.M(0, 2);
-  a_lightData.data[a_slotOffset + 3] = a_matrix.M(1, 0);
-  a_lightData.data[a_slotOffset + 4] = a_matrix.M(1, 1);
-  a_lightData.data[a_slotOffset + 5] = a_matrix.M(1, 2);
-  a_lightData.data[a_slotOffset + 6] = a_matrix.M(2, 0);
-  a_lightData.data[a_slotOffset + 7] = a_matrix.M(2, 1);
-  a_lightData.data[a_slotOffset + 8] = a_matrix.M(2, 2);
+  a_lightData.data[a_slotOffset + 0] = a_matrix(0, 0);
+  a_lightData.data[a_slotOffset + 1] = a_matrix(0, 1);
+  a_lightData.data[a_slotOffset + 2] = a_matrix(0, 2);
+  a_lightData.data[a_slotOffset + 3] = a_matrix(1, 0);
+  a_lightData.data[a_slotOffset + 4] = a_matrix(1, 1);
+  a_lightData.data[a_slotOffset + 5] = a_matrix(1, 2);
+  a_lightData.data[a_slotOffset + 6] = a_matrix(2, 0);
+  a_lightData.data[a_slotOffset + 7] = a_matrix(2, 1);
+  a_lightData.data[a_slotOffset + 8] = a_matrix(2, 2);
 }
 
 void PutSubMatrix3x3Transp(PlainLight& a_lightData, int a_slotOffset, const float4x4& a_matrix)
 {
-  a_lightData.data[a_slotOffset + 0] = a_matrix.M(0, 0);
-  a_lightData.data[a_slotOffset + 1] = a_matrix.M(1, 0);
-  a_lightData.data[a_slotOffset + 2] = a_matrix.M(2, 0);
-  a_lightData.data[a_slotOffset + 3] = a_matrix.M(0, 1);
-  a_lightData.data[a_slotOffset + 4] = a_matrix.M(1, 1);
-  a_lightData.data[a_slotOffset + 5] = a_matrix.M(2, 1);
-  a_lightData.data[a_slotOffset + 6] = a_matrix.M(0, 2);
-  a_lightData.data[a_slotOffset + 7] = a_matrix.M(1, 2);
-  a_lightData.data[a_slotOffset + 8] = a_matrix.M(2, 2);
+  a_lightData.data[a_slotOffset + 0] = a_matrix(0, 0);
+  a_lightData.data[a_slotOffset + 1] = a_matrix(1, 0);
+  a_lightData.data[a_slotOffset + 2] = a_matrix(2, 0);
+  a_lightData.data[a_slotOffset + 3] = a_matrix(0, 1);
+  a_lightData.data[a_slotOffset + 4] = a_matrix(1, 1);
+  a_lightData.data[a_slotOffset + 5] = a_matrix(2, 1);
+  a_lightData.data[a_slotOffset + 6] = a_matrix(0, 2);
+  a_lightData.data[a_slotOffset + 7] = a_matrix(1, 2);
+  a_lightData.data[a_slotOffset + 8] = a_matrix(2, 2);
 }
-
 
 void ILight::TransformIESMatrix(const float4x4& a_matrix, PlainLight& copy)
 {
 	float4x4 mrot = a_matrix;
-	mrot.row[0].w = 0.0f;
-	mrot.row[1].w = 0.0f;
-	mrot.row[2].w = 0.0f;
-	mrot.row[3].w = 1.0f;
+	mrot.m_col[3] = float4(0.0f, 0.0f, 0.0f, 1.0f);
 
   float4x4 iesMatrix = GetSubMatrix3x3(m_plain, IES_LIGHT_MATRIX_E00);
 
@@ -169,7 +165,7 @@ public:
     
 		if (ROTATE_IES_90_DEG)
 		{
-			float4x4 mrot = HydraLiteMath::rotate_Y_4x4(DEG_TO_RAD*90.0f);
+			float4x4 mrot = LiteMath::rotate4x4Y(DEG_TO_RAD*90.0f);
 			iesMatrix     = mul(mrot, iesMatrix);
 		}
 
@@ -292,11 +288,8 @@ public:
     float3 lnorm  = float3(copy.data[PLIGHT_NORM_X], copy.data[PLIGHT_NORM_Y], copy.data[PLIGHT_NORM_Z]);
 
     float4x4 mrot = a_matrix;
-    mrot.row[0].w = 0.0f;
-    mrot.row[1].w = 0.0f;
-    mrot.row[2].w = 0.0f;
-    mrot.row[3].w = 1.0f;
-
+    mrot.m_col[3] = float4(0.0f, 0.0f, 0.0f, 1.0f);
+    
     lnorm = mul(mrot, lnorm);
 
     copy.data[PLIGHT_NORM_X] = lnorm.x;
@@ -315,10 +308,7 @@ public:
       // (4) calc surface area 
       //
       float4x4 mrot = a_matrix;
-      mrot.row[0].w = 0.0f;
-      mrot.row[1].w = 0.0f;
-      mrot.row[2].w = 0.0f;
-      mrot.row[3].w = 1.0f;
+      mrot.m_col[3] = float4(0.0f, 0.0f, 0.0f, 1.0f);
 
       const float3 vert  = mul(mrot, normalize(float3(1, 1, 1)));
       const float mult   = length(vert);
@@ -400,10 +390,7 @@ public:
     // (4) calc surface area 
     //
     float4x4 mrot = a_matrix;
-    mrot.row[0].w = 0.0f;
-    mrot.row[1].w = 0.0f;
-    mrot.row[2].w = 0.0f;
-    mrot.row[3].w = 1.0f;
+    mrot.m_col[3] = float4(0.0f, 0.0f, 0.0f, 1.0f);
 
     const float zMin   = m_plain.data[CYLINDER_LIGHT_ZMIN];
     const float zMax   = m_plain.data[CYLINDER_LIGHT_ZMAX];
@@ -487,10 +474,7 @@ public:
     // (4) calc surface area 
     //
     float4x4 mrot = a_matrix;
-    mrot.row[0].w = 0.0f;
-    mrot.row[1].w = 0.0f;
-    mrot.row[2].w = 0.0f;
-    mrot.row[3].w = 1.0f;
+    mrot.m_col[3] = float4(0.0f, 0.0f, 0.0f, 1.0f);
 
     const float3 vert  = mul(mrot, normalize(float3(1, 1, 1)));
     const float mult   = length(vert);
@@ -562,10 +546,7 @@ public:
     float3 lnorm  = float3(copy.data[PLIGHT_NORM_X], copy.data[PLIGHT_NORM_Y], copy.data[PLIGHT_NORM_Z]);
 
     float4x4 mrot = a_matrix;
-    mrot.row[0].w = 0.0f;
-    mrot.row[1].w = 0.0f;
-    mrot.row[2].w = 0.0f;
-    mrot.row[3].w = 1.0f;
+    mrot.m_col[3] = float4(0.0f, 0.0f, 0.0f, 1.0f);
 
     lnorm = mul(mrot, lnorm);
 
@@ -625,10 +606,7 @@ public:
     float3 lnorm = float3(copy.data[PLIGHT_NORM_X], copy.data[PLIGHT_NORM_Y], copy.data[PLIGHT_NORM_Z]);
 
     float4x4 mrot = a_matrix;
-    mrot.row[0].w = 0.0f;
-    mrot.row[1].w = 0.0f;
-    mrot.row[2].w = 0.0f;
-    mrot.row[3].w = 1.0f;
+    mrot.m_col[3] = float4(0.0f, 0.0f, 0.0f, 1.0f);
 
     lnorm = mul(mrot, lnorm);
 
@@ -660,7 +638,7 @@ public:
       HydraXMLHelpers::ReadMatrix4x4(a_node.child(L"ies"), L"matrix", iesMatrix.L());
       if (ROTATE_IES_90_DEG)
       {
-        float4x4 mrot = HydraLiteMath::rotate_Y_4x4(DEG_TO_RAD*90.0f);
+        float4x4 mrot = LiteMath::rotate4x4Y(DEG_TO_RAD*90.0f);
         iesMatrix = mul(mrot, iesMatrix);
       }
     }
@@ -817,10 +795,8 @@ public:
     copy.data[PLIGHT_POS_Z] = lpos.z;
   
     float4x4 mrot = a_matrix;
-    mrot.row[0].w = 0.0f;
-    mrot.row[1].w = 0.0f;
-    mrot.row[2].w = 0.0f;
-    mrot.row[3].w = 1.0f;
+    mrot.m_col[3] = float4(0.0f, 0.0f, 0.0f, 1.0f);
+
     ::PutSubMatrix3x3Transp(copy, MESH_LIGHT_MATRIX_E00, a_matrix);
 
     double totalSA = 0.0;
@@ -1002,11 +978,10 @@ public:
     samplerMat1  = samplerMat0;  // TODO: implement secondary sampler later
     (*pSampler1) = (*pSampler0); // TODO: implement secondary sampler later
 
-    pSampler0->row0 = samplerMat0.row[0];
-    pSampler0->row1 = samplerMat0.row[1];
-
-    pSampler1->row0 = samplerMat1.row[0];
-    pSampler1->row1 = samplerMat1.row[1];
+    pSampler0->row0 = samplerMat0.get_row(0);
+    pSampler0->row1 = samplerMat0.get_row(1);
+    pSampler1->row0 = samplerMat1.get_row(0);
+    pSampler1->row1 = samplerMat1.get_row(1);
 
     (*pInvMatrix0) = inverse4x4(samplerMat0);
     (*pInvMatrix1) = inverse4x4(samplerMat1);

@@ -49,10 +49,10 @@ void DebugSaveBVHNodesToArray4f(std::deque<NodeWithMatrix>& a_nodes, std::deque<
       dataB[counter + 0] = to_float4(node->m_boxMin, 0.0f);
       dataB[counter + 1] = to_float4(node->m_boxMax, 0.0f);
 
-      dataM[counter2 + 0] = matrix.row[0];
-      dataM[counter2 + 1] = matrix.row[1];
-      dataM[counter2 + 2] = matrix.row[2];
-      dataM[counter2 + 3] = matrix.row[3];
+      dataM[counter2 + 0] = matrix.m_col[0];
+      dataM[counter2 + 1] = matrix.m_col[1];
+      dataM[counter2 + 2] = matrix.m_col[2];
+      dataM[counter2 + 3] = matrix.m_col[3];
 
       counter += 2;
       counter2 += 4;
@@ -71,10 +71,10 @@ void DebugSaveBVHNodesToArray4f(std::deque<NodeWithMatrix>& a_nodes, std::deque<
       dataB[counter + 0] = to_float4(node->m_boxMin, 0.0f);
       dataB[counter + 1] = to_float4(node->m_boxMax, 0.0f);
 
-      dataM[counter2 + 0] = matrix.row[0];
-      dataM[counter2 + 1] = matrix.row[1];
-      dataM[counter2 + 2] = matrix.row[2];
-      dataM[counter2 + 3] = matrix.row[3];
+      dataM[counter2 + 0] = matrix.m_col[0];
+      dataM[counter2 + 1] = matrix.m_col[1];
+      dataM[counter2 + 2] = matrix.m_col[2];
+      dataM[counter2 + 3] = matrix.m_col[3];
 
       counter += 2;
       counter2 += 4;

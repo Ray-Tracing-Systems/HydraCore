@@ -10,14 +10,13 @@
 #include "hydra_api/HydraXMLHelpers.h"
 #include "hydra_api/HydraInternal.h"
 
-#include "hydra_api/vfloat4_x64.h"
+#include "hydra_api/LiteMath.h"
 
 #ifdef WIN32
 using cvex::operator-;
 using cvex::operator+;
 using cvex::operator*;
 using cvex::operator/;
-
 #undef min
 #undef max
 #endif
@@ -1183,7 +1182,7 @@ bool RenderDriverRTE::UpdateCamera(pugi::xml_node a_camNode)
 
     // restore FOV from projection matrix
     //
-    m_camera.fov = 2.0f*atan(1.0f/m_camera.mProj.M(1, 1))*(180.f/M_PI);
+    m_camera.fov = 2.0f*atan(1.0f/m_camera.mProj(1, 1))*(180.f/M_PI);
   }
   else
   {
@@ -1280,8 +1279,8 @@ void RenderDriverRTE::CalcCameraMatrices(float4x4* a_pModelViewMatrixInv, float4
   }
   else
   {
-    projTransposed      = projectionMatrixTransposed(m_camera.fov, aspect, m_camera.nearPlane, m_camera.farPlane);
-    worldViewTransposed = lookAtTransposed(m_camera.pos, m_camera.lookAt, m_camera.up);
+    projTransposed      = transpose(perspectiveMatrix(m_camera.fov, aspect, m_camera.nearPlane, m_camera.farPlane));
+    worldViewTransposed = transpose(lookAt(m_camera.pos, m_camera.lookAt, m_camera.up));
   }
 
   (*a_pModelViewMatrixInv)     = transpose(inverse4x4(worldViewTransposed));

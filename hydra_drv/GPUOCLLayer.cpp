@@ -6,9 +6,9 @@
 
 #include "cl_scan_gpu.h"
 
-#include "../bakeBrdfEnergy/MSTablesGgx2017.cpp"
-#include "../bakeBrdfEnergy/MSTablesTransp.cpp"
-#include "../bakeBrdfEnergy/MSTablesTranspInside.cpp"
+//#include "../bakeBrdfEnergy/MSTablesGgx2017.cpp"
+//#include "../bakeBrdfEnergy/MSTablesTransp.cpp"
+//#include "../bakeBrdfEnergy/MSTablesTranspInside.cpp"
 
 extern "C" void initQuasirandomGenerator(unsigned int table[QRNG_DIMENSIONS_K][QRNG_RESOLUTION_K]);
 

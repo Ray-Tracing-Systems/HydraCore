@@ -61,6 +61,9 @@ set(SOURCE_FILES
         RenderDriverRTE_PdfTables.cpp
         RenderDriverRTE_ProcTex.cpp
         CPUExp_GBuffer.cpp
+        ../bakeBrdfEnergy/MSTablesGGX2017.cpp
+        ../bakeBrdfEnergy/MSTablesTransp.cpp
+        ../bakeBrdfEnergy/MSTablesTranspInside.cpp
     )
 
 if (CMAKE_BUILD_TYPE STREQUAL "Debug")

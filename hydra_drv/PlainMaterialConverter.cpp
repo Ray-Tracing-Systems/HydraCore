@@ -12,10 +12,9 @@
 
 using RAYTR::IMaterial;
 
-using HydraLiteMath::float2;
-using HydraLiteMath::float3;
-using HydraLiteMath::float4;
-
+using LiteMath::float2;
+using LiteMath::float3;
+using LiteMath::float4;
 
 SWTexSampler DummySampler()
 {
@@ -918,8 +917,8 @@ SWTexSampler SamplerFromTexref(const pugi::xml_node a_node, bool allowAlphaToRGB
   else
     samplerMatrix.identity();
 
-  res.row0 = samplerMatrix.row[0];
-  res.row1 = samplerMatrix.row[1];
+  res.row0 = samplerMatrix.get_row(0);
+  res.row1 = samplerMatrix.get_row(1);
 
   const std::wstring modeU    = a_node.attribute(L"addressing_mode_u").as_string();
   const std::wstring modeV    = a_node.attribute(L"addressing_mode_v").as_string();

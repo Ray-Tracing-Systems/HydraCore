@@ -447,7 +447,7 @@ void GPUOCLLayer::MMLT_Pass(int a_passNumber, int minBounce, int maxBounce, int 
 
     int smallStepType = 0;
     {
-      const float p = HydraLiteMath::rnd(0.0f, 1.0f);
+      const float p = LiteMath::rnd(0.0f, 1.0f);
       if(p <= 0.333f)
         smallStepType = MUTATE_LIGHT;
       else if (0.333f < p && p <= 0.667f)
