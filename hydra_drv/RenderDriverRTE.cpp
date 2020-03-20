@@ -1270,23 +1270,23 @@ void RenderDriverRTE::CalcCameraMatrices(float4x4* a_pModelViewMatrixInv, float4
 {
   const float aspect = float(m_width) / float(m_height);
 
-  float4x4 projTransposed, worldViewTransposed;
+  float4x4 proj, worldView;
 
   if (m_camera.mUseMatrices)
   {
-    projTransposed      = transpose(m_camera.mProj);
-    worldViewTransposed = transpose(m_camera.mWorldView);
+    proj      = m_camera.mProj;
+    worldView = m_camera.mWorldView;
   }
   else
   {
-    projTransposed      = transpose(perspectiveMatrix(m_camera.fov, aspect, m_camera.nearPlane, m_camera.farPlane));
-    worldViewTransposed = transpose(lookAt(m_camera.pos, m_camera.lookAt, m_camera.up));
+    proj      = perspectiveMatrix(m_camera.fov, aspect, m_camera.nearPlane, m_camera.farPlane);
+    worldView = lookAt(m_camera.pos, m_camera.lookAt, m_camera.up);
   }
 
-  (*a_pModelViewMatrixInv)     = transpose(inverse4x4(worldViewTransposed));
-  (*a_projMatrixInv)           = transpose(inverse4x4(projTransposed));
-  (*a_pModelViewMatrix)        = transpose(worldViewTransposed);
-  (*a_projMatrix)              = transpose(projTransposed);
+  (*a_pModelViewMatrixInv)     = inverse4x4(worldView);
+  (*a_projMatrixInv)           = inverse4x4(proj);
+  (*a_pModelViewMatrix)        = worldView;
+  (*a_projMatrix)              = proj;
 }
 
 void RenderDriverRTE::BeginScene(pugi::xml_node a_sceneNode)
@@ -1688,7 +1688,8 @@ void RenderDriverRTE::Draw()
   CalcCameraMatrices(&m_modelViewInv, &m_projInv, &mWorldView, &mProj);
 
   const float aspect = float(m_width) / float(m_height);
-  m_pHWLayer->SetCamMatrices(m_projInv.L(), m_modelViewInv.L(), mProj.L(), mWorldView.L(), aspect, DEG_TO_RAD*m_camera.fov, m_camera.lookAt);
+  m_pHWLayer->SetCamMatrices((float*)&m_projInv, (float*)&m_modelViewInv, (float*)&mProj, (float*)&mWorldView, 
+                             aspect, DEG_TO_RAD*m_camera.fov, m_camera.lookAt);
   m_pHWLayer->PrepareEngineGlobals();
 
   const int NUM_PASS = 1;

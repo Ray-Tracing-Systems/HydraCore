@@ -12,13 +12,13 @@ Input::Input()
   //inLibraryPath = "tests/test_42_beckmann"; ///< cornell box with teapot
   //inLibraryPath = "tests/test_aniso";
   //inLibraryPath = "tests/test_42_with_mirror";  
-  //inLibraryPath = "tests/test_42";
+  inLibraryPath = "tests/test_42";
   //inLibraryPath = "tests/test_223_small"; ///< cornell box with sphere
   //inLibraryPath = "tests/test_224";
   //inLibraryPath = "tests/test_224_sphere";
   //inLibraryPath = "tests/test_224_sphere_microfacet";
   //inLibraryPath = "tests/test_pool";
-  inLibraryPath = "C:/[Hydra]/pluginFiles/scenelib/";
+  //inLibraryPath = "C:/[Hydra]/pluginFiles/scenelib/";
 
   //inLibraryPath = "/home/frol/PROG/HydraRepos/clsp/database/temp";
   //inLibraryPath = "/home/frol/PROG/HydraRepos/HydraAPI-tests/3dsMaxTests/Furnance_Lambert";
@@ -32,11 +32,11 @@ Input::Input()
   //inLibraryPath = "d:/Works/Ray-Tracing_Systems/HydraDevelop/HydraAPI-tests/3dsMaxTests/336_Furnance_reflect_GGX_areaLight"; 
   //inLibraryPath = "d:/Works/Ray-Tracing_Systems/HydraDevelop/HydraAPI-tests/3dsMaxTests/343_Furnance_transp";
   //inLibraryPath = "d:/Works/Ray-Tracing_Systems/HydraDevelop/HydraAPI-tests/3dsMaxTests/344_Furnance_glass";
-  inLibraryPath = "d:/Works/Ray-Tracing_Systems/HydraDevelop/HydraAPI-tests/3dsMaxTests/345_CornellBox_Glass";
+  //inLibraryPath = "d:/Works/Ray-Tracing_Systems/HydraDevelop/HydraAPI-tests/3dsMaxTests/345_CornellBox_Glass";
   //inLibraryPath = "d:/Works/Ray-Tracing_Systems/HydraDevelop/HydraAPI-tests/3dsMaxTests/346_CornellBox_GlassRough";
 
   inDevelopment = true;  ///< recompile shaders each time; note that nvidia have their own shader cache!
-  inDeviceId    = 1;     ///< opencl device id
+  inDeviceId    = -1;     ///< opencl device id
   cpuFB         = true;  ///< store frame buffer on CPU. Automaticly enabled if
   enableMLT     = false; ///< if use MMLT, you MUST enable it early, when render process just started (here or via command line).
   boxMode       = false; ///< special 'in the box' mode when render don't react to any commands
