@@ -889,10 +889,10 @@ static inline Lite_Hit BVH4InstTraverse(float3 ray_pos, float3 ray_dir, float t_
       const int nextOffset = as_int(a_bvh[leftNodeOffset * 8 + 0].w);
 
       float4x4 matrix;
-      matrix.row[0] = a_bvh[leftNodeOffset * 8 + 2];
-      matrix.row[1] = a_bvh[leftNodeOffset * 8 + 3];
-      matrix.row[2] = a_bvh[leftNodeOffset * 8 + 4];
-      matrix.row[3] = a_bvh[leftNodeOffset * 8 + 5];
+      matrix.m_col[0] = a_bvh[leftNodeOffset * 8 + 2];
+      matrix.m_col[1] = a_bvh[leftNodeOffset * 8 + 3];
+      matrix.m_col[2] = a_bvh[leftNodeOffset * 8 + 4];
+      matrix.m_col[3] = a_bvh[leftNodeOffset * 8 + 5];
 
       instId = as_int(a_bvh[leftNodeOffset * 8 + 6].x);
       //instId = leftNodeOffset * 8 + 2; // save instAddr instead of instId
@@ -1122,10 +1122,10 @@ static inline float3 BVH4InstTraverseShadow(float3 ray_pos, float3 ray_dir, floa
       const int nextOffset = as_int(a_bvh[leftNodeOffset * 8 + 0].w);
       
       float4x4 matrix;
-      matrix.row[0] = a_bvh[leftNodeOffset * 8 + 2];
-      matrix.row[1] = a_bvh[leftNodeOffset * 8 + 3];
-      matrix.row[2] = a_bvh[leftNodeOffset * 8 + 4];
-      matrix.row[3] = a_bvh[leftNodeOffset * 8 + 5];
+      matrix.m_col[0] = a_bvh[leftNodeOffset * 8 + 2];
+      matrix.m_col[1] = a_bvh[leftNodeOffset * 8 + 3];
+      matrix.m_col[2] = a_bvh[leftNodeOffset * 8 + 4];
+      matrix.m_col[3] = a_bvh[leftNodeOffset * 8 + 5];
       
       instId = as_int(a_bvh[leftNodeOffset * 8 + 6].x);
       
@@ -1346,10 +1346,10 @@ static inline Lite_Hit BVH4InstTraverseAlpha(float3 ray_pos, float3 ray_dir, flo
       const int nextOffset = as_int(a_bvh[leftNodeOffset * 8 + 0].w);
 
       float4x4 matrix;
-      matrix.row[0] = a_bvh[leftNodeOffset * 8 + 2];
-      matrix.row[1] = a_bvh[leftNodeOffset * 8 + 3];
-      matrix.row[2] = a_bvh[leftNodeOffset * 8 + 4];
-      matrix.row[3] = a_bvh[leftNodeOffset * 8 + 5];
+      matrix.m_col[0] = a_bvh[leftNodeOffset * 8 + 2];
+      matrix.m_col[1] = a_bvh[leftNodeOffset * 8 + 3];
+      matrix.m_col[2] = a_bvh[leftNodeOffset * 8 + 4];
+      matrix.m_col[3] = a_bvh[leftNodeOffset * 8 + 5];
 
       instId = as_int(a_bvh[leftNodeOffset * 8 + 6].x);
       //instId = leftNodeOffset * 8 + 2; // save instAddr instead of instId
@@ -1572,10 +1572,10 @@ static inline Lite_Hit BVH4InstTraverseAlphaS(float3 ray_pos, float3 ray_dir, fl
       const int nextOffset = as_int(a_bvh[leftNodeOffset * 8 + 0].w);
 
       float4x4 matrix;
-      matrix.row[0] = a_bvh[leftNodeOffset * 8 + 2];
-      matrix.row[1] = a_bvh[leftNodeOffset * 8 + 3];
-      matrix.row[2] = a_bvh[leftNodeOffset * 8 + 4];
-      matrix.row[3] = a_bvh[leftNodeOffset * 8 + 5];
+      matrix.m_col[0] = a_bvh[leftNodeOffset * 8 + 2];
+      matrix.m_col[1] = a_bvh[leftNodeOffset * 8 + 3];
+      matrix.m_col[2] = a_bvh[leftNodeOffset * 8 + 4];
+      matrix.m_col[3] = a_bvh[leftNodeOffset * 8 + 5];
 
       instId = as_int(a_bvh[leftNodeOffset * 8 + 6].x);
       //instId = leftNodeOffset * 8 + 2; // save instAddr instead of instId
@@ -1804,10 +1804,10 @@ static inline float3 BVH4InstTraverseShadowAlphaS(float3 ray_pos, float3 ray_dir
       const int nextOffset = as_int(a_bvh[leftNodeOffset * 8 + 0].w);
       
       float4x4 matrix;
-      matrix.row[0] = a_bvh[leftNodeOffset * 8 + 2];
-      matrix.row[1] = a_bvh[leftNodeOffset * 8 + 3];
-      matrix.row[2] = a_bvh[leftNodeOffset * 8 + 4];
-      matrix.row[3] = a_bvh[leftNodeOffset * 8 + 5];
+      matrix.m_col[0] = a_bvh[leftNodeOffset * 8 + 2];
+      matrix.m_col[1] = a_bvh[leftNodeOffset * 8 + 3];
+      matrix.m_col[2] = a_bvh[leftNodeOffset * 8 + 4];
+      matrix.m_col[3] = a_bvh[leftNodeOffset * 8 + 5];
       
       instId = as_int(a_bvh[leftNodeOffset * 8 + 6].x);
       

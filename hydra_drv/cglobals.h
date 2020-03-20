@@ -206,14 +206,9 @@ enum MEGATEX_USAGE{ MEGATEX_SHADING      = 1,
 
    static inline float dot3 (const float4 u, const float4 v) { return (u.x*v.x + u.y*v.y + u.z*v.z); }
 
-   typedef struct float4x3T
-   {
-     float4 row[3];
-   } float4x3;
-
    typedef struct float4x4T
    {
-     float4 row[4];
+     float4 m_col[4];
    } float4x4;
 
    typedef struct float3x3T
@@ -348,11 +343,6 @@ enum MEGATEX_USAGE{ MEGATEX_SHADING      = 1,
 
     typedef unsigned int   uint;
     typedef unsigned short ushort;
-
-    typedef struct float4x3T
-    {
-      float4 row[3];
-    } float4x3;
 
     typedef struct float3x3T
     {
@@ -815,62 +805,52 @@ static inline float3 OffsShadowRayPos(const float3 a_hitPos, const float3 a_surf
 static inline float4x4 make_float4x4(__global const float* a_data)
 {
   float4x4 matrix;
-  matrix.row[0] = make_float4(a_data[0], a_data[1], a_data[2], a_data[3]);
-  matrix.row[1] = make_float4(a_data[4], a_data[5], a_data[6], a_data[7]);
-  matrix.row[2] = make_float4(a_data[8], a_data[9], a_data[10], a_data[11]);
-  matrix.row[3] = make_float4(a_data[12], a_data[13], a_data[14], a_data[15]);
+  matrix.m_col[0] = make_float4(a_data[0], a_data[1], a_data[2], a_data[3]);
+  matrix.m_col[1] = make_float4(a_data[4], a_data[5], a_data[6], a_data[7]);
+  matrix.m_col[2] = make_float4(a_data[8], a_data[9], a_data[10], a_data[11]);
+  matrix.m_col[3] = make_float4(a_data[12], a_data[13], a_data[14], a_data[15]);
   return matrix;
 }
 
-IDH_CALL float4x4 make_matrix_rotationX(float a_angle)
+static inline float4x4 make_matrix_rotationX(float a_angle)
 {
-  float sinx = sin(a_angle);
-  float cosx = cos(a_angle);
+  const float sinx = sin(a_angle);
+  const float cosx = cos(a_angle);
 
-  float4x4 matrix;
-  matrix.row[0] = make_float4(1.0f, 0.0f, 0.0f, 0.0f);
-  matrix.row[1] = make_float4(0.0f, cosx, sinx, 0.0f);
-  matrix.row[2] = make_float4(0.0f, -sinx, cosx, 0.0f);
-  matrix.row[3] = make_float4(0.0f, 0.0f, 0.0f, 1.0f);
-  return matrix;
-}
-
-IDH_CALL float4x4 make_matrix_rotationY(float a_angle)
-{
-  float siny = sin(a_angle);
-  float cosy = cos(a_angle);
-
-  float4x4 matrix;
-  matrix.row[0] = make_float4(cosy, 0.0f, -siny, 0.0f);
-  matrix.row[1] = make_float4(0.0f, 1.0f, 0.0f, 0.0f);
-  matrix.row[2] = make_float4(siny, 0.0f, cosy, 0.0f);
-  matrix.row[3] = make_float4(0.0f, 0.0f, 0.0f, 1.0f);
-
-  return matrix;
-}
-
-IDH_CALL float3 mul4x3x3(float4x3 m, float3 v)
-{
-  float3 res;
-  res.x = m.row[0].x*v.x + m.row[0].y*v.y + m.row[0].z*v.z + m.row[0].w;
-  res.y = m.row[1].x*v.x + m.row[1].y*v.y + m.row[1].z*v.z + m.row[1].w;
-  res.z = m.row[2].x*v.x + m.row[2].y*v.y + m.row[2].z*v.z + m.row[2].w;
+  float4x4 res;
+  res.m_col[0] = make_float4(1.0f, 0.0f,    0.0f, 0.0f);
+  res.m_col[1] = make_float4(0.0f, +cosx,  +sinx, 0.0f);
+  res.m_col[2] = make_float4(0.0f, -sinx,  +cosx, 0.0f);
+  res.m_col[3] = make_float4(0.0f, 0.0f,    0.0f, 1.0f);
   return res;
 }
 
-IDH_CALL float4 mul4x4x4(float4x4 m, float4 v)
+static inline float4x4 make_matrix_rotationY(float a_angle)
+{
+  const float siny = sin(a_angle);
+  const float cosy = cos(a_angle);
+
+  float4x4 res;
+  res.m_col[0] = make_float4(+cosy, 0.0f, -siny, 0.0f);
+  res.m_col[1] = make_float4(0.0f,  1.0f,  0.0f, 0.0f);
+  res.m_col[2] = make_float4(+siny, 0.0f, +cosy, 0.0f);
+  res.m_col[3] = make_float4(0.0f,  0.0f,  0.0f, 1.0f);
+  return res;
+}
+
+static inline float4 mul4x4x4(float4x4 m, float4 v)
 {
   float4 res;
-  res.x = m.row[0].x*v.x + m.row[0].y*v.y + m.row[0].z*v.z + m.row[0].w*v.w;
-  res.y = m.row[1].x*v.x + m.row[1].y*v.y + m.row[1].z*v.z + m.row[1].w*v.w;
-  res.z = m.row[2].x*v.x + m.row[2].y*v.y + m.row[2].z*v.z + m.row[2].w*v.w;
-  res.w = m.row[3].x*v.x + m.row[3].y*v.y + m.row[3].z*v.z + m.row[3].w*v.w;
+  res.x = v[0] * m.m_col[0][0] + v[1] * m.m_col[1][0] + v[2] * m.m_col[2][0] + v[3] * m.m_col[3][0];
+  res.y = v[0] * m.m_col[0][1] + v[1] * m.m_col[1][1] + v[2] * m.m_col[2][1] + v[3] * m.m_col[3][1];
+  res.z = v[0] * m.m_col[0][2] + v[1] * m.m_col[1][2] + v[2] * m.m_col[2][2] + v[3] * m.m_col[3][2];
+  res.w = v[0] * m.m_col[0][3] + v[1] * m.m_col[1][3] + v[2] * m.m_col[2][3] + v[3] * m.m_col[3][3];
   return res;
 }
 
 #ifndef COMMON_CPLUS_PLUS_CODE
 
-IDH_CALL float3 mul(float4x4 m, float3 v)
+static inline float3 mul(float4x4 m, float3 v)
 {
   float3 res;
   res.x = m.row[0].x*v.x + m.row[0].y*v.y + m.row[0].z*v.z + m.row[0].w;
@@ -881,17 +861,7 @@ IDH_CALL float3 mul(float4x4 m, float3 v)
 
 #endif
 
-IDH_CALL float3 mul3x4(float4x3 m, float3 v)
-{
-  float3 res;
-  res.x = m.row[0].x*v.x + m.row[0].y*v.y + m.row[0].z*v.z + m.row[0].w;
-  res.y = m.row[1].x*v.x + m.row[1].y*v.y + m.row[1].z*v.z + m.row[1].w;
-  res.z = m.row[2].x*v.x + m.row[2].y*v.y + m.row[2].z*v.z + m.row[2].w;
-  return res;
-}
-
-
-IDH_CALL float3x3 make_float3x3(float3 a, float3 b, float3 c)
+static inline float3x3 make_float3x3(float3 a, float3 b, float3 c)
 {
   float3x3 m;
   m.row[0] = a;
@@ -900,7 +870,7 @@ IDH_CALL float3x3 make_float3x3(float3 a, float3 b, float3 c)
   return m;
 }
 
-IDH_CALL float3x3 make_float3x3_by_columns(float3 a, float3 b, float3 c)
+static inline float3x3 make_float3x3_by_columns(float3 a, float3 b, float3 c)
 {
   float3x3 m;
   m.row[0].x = a.x;
@@ -917,7 +887,7 @@ IDH_CALL float3x3 make_float3x3_by_columns(float3 a, float3 b, float3 c)
   return m;
 }
 
-IDH_CALL float3 mul3x3x3(float3x3 m, const float3 v)
+static inline float3 mul3x3x3(float3x3 m, const float3 v)
 {
   float3 res;
   res.x = m.row[0].x*v.x + m.row[0].y*v.y + m.row[0].z*v.z;
@@ -926,7 +896,7 @@ IDH_CALL float3 mul3x3x3(float3x3 m, const float3 v)
   return res;
 }
 
-IDH_CALL float3x3 mul3x3x3x3(float3x3 m1, float3x3 m2)
+static inline float3x3 mul3x3x3x3(float3x3 m1, float3x3 m2)
 {
   float3 column1 = mul3x3x3(m1, make_float3(m2.row[0].x, m2.row[1].x, m2.row[2].x));
   float3 column2 = mul3x3x3(m1, make_float3(m2.row[0].y, m2.row[1].y, m2.row[2].y));
@@ -935,7 +905,7 @@ IDH_CALL float3x3 mul3x3x3x3(float3x3 m1, float3x3 m2)
   return make_float3x3_by_columns(column1, column2, column3);
 }
 
-IDH_CALL float3x3 inverse(float3x3 a)
+static inline float3x3 inverse(float3x3 a)
 {
   float det = a.row[0].x * (a.row[1].y * a.row[2].z - a.row[1].z * a.row[2].y) -
               a.row[0].y * (a.row[1].x * a.row[2].z - a.row[1].z * a.row[2].x) +
@@ -1055,7 +1025,7 @@ static inline float4x4 inverse4x4(float4x4 m1)
 // return the inverse view matrix
 //
 
-IDH_CALL float4x4 lookAt(float3 eye, float3 center, float3 up)
+static inline float4x4 lookAt(float3 eye, float3 center, float3 up)
 {
   float3 x, y, z; // basis; will make a rotation matrix
 
@@ -1181,25 +1151,25 @@ static inline float4x4 RotateAroundVector4x4(float3 v, float rotAngle)
 
   float4x4 m;
 
-  m.row[0].x = (1.0f - cos_t)*v.x*v.x + cos_t;
-  m.row[0].y = (1.0f - cos_t)*v.x*v.y - sin_t*v.z;
-  m.row[0].z = (1.0f - cos_t)*v.x*v.z + sin_t*v.y;
-  m.row[0].w = 1.0f;
+  m.m_col[0][0] = (1.0f - cos_t)*v.x*v.x + cos_t;
+  m.m_col[1][0] = (1.0f - cos_t)*v.x*v.y - sin_t*v.z;
+  m.m_col[2][0] = (1.0f - cos_t)*v.x*v.z + sin_t*v.y;
+  m.m_col[3][0] = 1.0f;
 
-  m.row[1].x = (1.0f - cos_t)*v.y*v.x + sin_t*v.z;
-  m.row[1].y = (1.0f - cos_t)*v.y*v.y + cos_t;
-  m.row[1].z = (1.0f - cos_t)*v.y*v.z - sin_t*v.x;
-  m.row[1].w = 1.0f;
+  m.m_col[0][1] = (1.0f - cos_t)*v.y*v.x + sin_t*v.z;
+  m.m_col[1][1] = (1.0f - cos_t)*v.y*v.y + cos_t;
+  m.m_col[2][1] = (1.0f - cos_t)*v.y*v.z - sin_t*v.x;
+  m.m_col[3][1] = 1.0f;
 
-  m.row[2].x = (1.0f - cos_t)*v.x*v.z - sin_t*v.y;
-  m.row[2].y = (1.0f - cos_t)*v.z*v.y + sin_t*v.x;
-  m.row[2].z = (1.0f - cos_t)*v.z*v.z + cos_t;
-  m.row[2].w = 1.0f;
+  m.m_col[0][2] = (1.0f - cos_t)*v.x*v.z - sin_t*v.y;
+  m.m_col[1][2] = (1.0f - cos_t)*v.z*v.y + sin_t*v.x;
+  m.m_col[2][2] = (1.0f - cos_t)*v.z*v.z + cos_t;
+  m.m_col[3][2] = 1.0f;
 
-  m.row[3].x = 0.0f;
-  m.row[3].y = 0.0f;
-  m.row[3].z = 0.0f;
-  m.row[3].w = 1.0f;
+  m.m_col[0][3] = 0.0f;
+  m.m_col[1][3] = 0.0f;
+  m.m_col[2][3] = 0.0f;
+  m.m_col[3][3] = 1.0f;
 
   return m;
 }
