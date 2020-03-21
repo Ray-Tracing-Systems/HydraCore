@@ -5,7 +5,7 @@
 #include "cfetch.h"
 #include "crandom.h"
 
-IDH_CALL bool RayBoxIntersectionLite(float3 ray_pos, float3 ray_dir, float3 boxMin, float3 boxMax, __private float*  tmin, __private float* tmax)
+static inline bool RayBoxIntersectionLite(float3 ray_pos, float3 ray_dir, float3 boxMin, float3 boxMax, __private float*  tmin, __private float* tmax)
 {
   float lo = ray_dir.x*(boxMin.x - ray_pos.x);
   float hi = ray_dir.x*(boxMax.x - ray_pos.x);
@@ -29,7 +29,7 @@ IDH_CALL bool RayBoxIntersectionLite(float3 ray_pos, float3 ray_dir, float3 boxM
 }
 
 
-IDH_CALL float2 RayBoxIntersectionLite2(float3 ray_pos, float3 ray_dir, float3 boxMin, float3 boxMax)
+static inline float2 RayBoxIntersectionLite2(float3 ray_pos, float3 ray_dir, float3 boxMin, float3 boxMax)
 {
   const float lo  = ray_dir.x*(boxMin.x - ray_pos.x);
   const float hi  = ray_dir.x*(boxMax.x - ray_pos.x);
@@ -437,7 +437,7 @@ static inline void IntersectAllPrimitivesInLeafShadowAlphaS(const float3 ray_pos
 
 #define STACK_SIZE 80
 
-ID_CALL unsigned int BVHTraversal(float3 ray_pos, float3 ray_dir, float t_rayMin, __private Lite_Hit* pHit, 
+static inline unsigned int BVHTraversal(float3 ray_pos, float3 ray_dir, float t_rayMin, __private Lite_Hit* pHit, 
 
                               #ifdef USE_1D_TEXTURES
                                  __read_only image1d_buffer_t  bvhTex,

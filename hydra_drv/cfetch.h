@@ -823,7 +823,7 @@ static inline float3 sample2DAuxExt(int2 a_samplerOffset, float2 texCoord, __glo
 // is not oriented perpendicularly to the optical axis.
 //
 
-ID_CALL float3 tiltCorrection(float3 ray_pos, float3 ray_dir, __global const EngineGlobals* a_globals)
+static inline float3 tiltCorrection(float3 ray_pos, float3 ray_dir, __global const EngineGlobals* a_globals)
 {
   float tiltX = a_globals->varsF[HRT_TILT_ROT_X];
   float tiltY = a_globals->varsF[HRT_TILT_ROT_Y];
@@ -963,7 +963,7 @@ static inline void MakeEyeRayFromF4Rnd(float4 lensOffs, __global const EngineGlo
 
 #ifdef USE_1D_TEXTURES
 
-IDH_CALL int2 getObjectList(unsigned int offset, __read_only image1d_buffer_t objListTex)
+static inline int2 getObjectList(unsigned int offset, __read_only image1d_buffer_t objListTex)
 {
   int2 res;
   float4 tmp = read_imagef(objListTex, offset); //objListTex[offset]; 
@@ -972,7 +972,7 @@ IDH_CALL int2 getObjectList(unsigned int offset, __read_only image1d_buffer_t ob
   return res;
 }
 
-IDH_CALL BVHNode GetBVHNode(unsigned int offset, __read_only image1d_buffer_t bvhTex)
+static inline BVHNode GetBVHNode(unsigned int offset, __read_only image1d_buffer_t bvhTex)
 {
   float4 nodeHalf1 = read_imagef(bvhTex, (int)(2 * offset + 0));
   float4 nodeHalf2 = read_imagef(bvhTex, (int)(2 * offset + 1));
@@ -993,7 +993,7 @@ IDH_CALL BVHNode GetBVHNode(unsigned int offset, __read_only image1d_buffer_t bv
 
 #else
 
-IDH_CALL int2 getObjectList(unsigned int offset, __global const float4* objListTex)
+static inline int2 getObjectList(unsigned int offset, __global const float4* objListTex)
 {
   int2 res;
   float4 tmp = objListTex[offset]; 
@@ -1002,8 +1002,7 @@ IDH_CALL int2 getObjectList(unsigned int offset, __global const float4* objListT
   return res;
 }
 
-
-IDH_CALL BVHNode GetBVHNode(int offset, __global const float4* bvhTex)
+static inline BVHNode GetBVHNode(int offset, __global const float4* bvhTex)
 {
   const int    offset2   = (offset >= 0) ? offset : 0;
 

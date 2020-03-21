@@ -36,7 +36,7 @@ Input::Input()
   //inLibraryPath = "d:/Works/Ray-Tracing_Systems/HydraDevelop/HydraAPI-tests/3dsMaxTests/346_CornellBox_GlassRough";
 
   inDevelopment = true;  ///< recompile shaders each time; note that nvidia have their own shader cache!
-  inDeviceId    = -1;     ///< opencl device id
+  inDeviceId    = 0;     ///< opencl device id
   cpuFB         = true;  ///< store frame buffer on CPU. Automaticly enabled if
   enableMLT     = false; ///< if use MMLT, you MUST enable it early, when render process just started (here or via command line).
   boxMode       = false; ///< special 'in the box' mode when render don't react to any commands

@@ -1079,14 +1079,11 @@ bool RenderDriverRTE::UpdateMesh(int32_t a_meshId, pugi::xml_node a_meshNode, co
 
   // (2) pack first texture coordinates to pos.w and norm.w
   //
-  const float4* pos4f  = (const float4*)a_input.pos4f;
-  const float4* norm4f = (const float4*)a_input.norm4f;
-
   cvex::vector<float4> posAndTx(a_input.vertNum);
   cvex::vector<float4> normAndTy(a_input.vertNum);
 
-  memcpy(posAndTx.data(),  pos4f,  a_input.vertNum*sizeof(float4));
-  memcpy(normAndTy.data(), norm4f, a_input.vertNum*sizeof(float4));
+  memcpy(posAndTx.data(),  a_input.pos4f,  a_input.vertNum*sizeof(float4));
+  memcpy(normAndTy.data(), a_input.norm4f, a_input.vertNum*sizeof(float4));
 
   for (size_t i = 0; i < a_input.vertNum; i++)
   {
