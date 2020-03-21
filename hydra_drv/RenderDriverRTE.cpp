@@ -601,7 +601,7 @@ HRDriverAllocInfo RenderDriverRTE::AllocAll(HRDriverAllocInfo a_info)
   const size_t approxSizeOfLight    = sizeof(PlainLight)    * 4;
 
   m_allTexInfo.clear(); 
-
+  
   if (a_info.imgResInfoArray != nullptr)
   {
     std::vector<HRTexResInfo> allTexInfoVec;
@@ -699,12 +699,11 @@ HRDriverAllocInfo RenderDriverRTE::AllocAll(HRDriverAllocInfo a_info)
 
   // add some gummy data to the compute core
   //
-  auto pMaterial = CreateDiffuseWhiteMaterial();
-  auto plainData = pMaterial->ConvertToPlainMaterial();
+  auto pMaterial = CreateDiffuseWhiteMaterial();      
+  auto plainData = pMaterial->ConvertToPlainMaterial(); 
 
   const int32_t maxMaterialIndex   = a_info.matNum-1;
   const int32_t whiteDiffuseOffset = m_pMaterialStorage->Update(maxMaterialIndex, &plainData[0], plainData.size()*sizeof(PlainMaterial));
-
 
   auto vars = m_pHWLayer->GetAllFlagsAndVars();
   vars.m_varsI[HRT_WHITE_DIFFUSE_OFFSET] = whiteDiffuseOffset;
@@ -1083,8 +1082,11 @@ bool RenderDriverRTE::UpdateMesh(int32_t a_meshId, pugi::xml_node a_meshNode, co
   const float4* pos4f  = (const float4*)a_input.pos4f;
   const float4* norm4f = (const float4*)a_input.norm4f;
 
-  std::vector<float4> posAndTx(pos4f,   pos4f  + a_input.vertNum);
-  std::vector<float4> normAndTy(norm4f, norm4f + a_input.vertNum);
+  cvex::vector<float4> posAndTx(a_input.vertNum);
+  cvex::vector<float4> normAndTy(a_input.vertNum);
+
+  memcpy(posAndTx.data(),  pos4f,  a_input.vertNum*sizeof(float4));
+  memcpy(normAndTy.data(), norm4f, a_input.vertNum*sizeof(float4));
 
   for (size_t i = 0; i < a_input.vertNum; i++)
   {

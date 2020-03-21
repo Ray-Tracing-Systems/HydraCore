@@ -31,8 +31,8 @@ void DebugSaveBVHNodesToArray4f(std::deque<NodeWithMatrix>& a_nodes, std::deque<
   const std::string fileName1 = fileNameStream.str();
   const std::string fileName2 = fileNameStream2.str();
 
-  std::vector<float4> dataB(a_leafes.size() * 2 + a_nodes.size() * 2);
-  std::vector<float4> dataM((a_leafes.size() + a_nodes.size()) * 4);
+  cvex::vector<float4> dataB(a_leafes.size() * 2 + a_nodes.size() * 2);
+  cvex::vector<float4> dataM((a_leafes.size() + a_nodes.size()) * 4);
 
   size_t counter = 0;
   size_t counter2 = 0;

@@ -117,6 +117,19 @@ typedef struct SWTexSamplerT
   float4 row0;
   float4 row1;
 
+  #ifndef OCL_COMPILER
+  SWTexSamplerT operator=(const SWTexSamplerT& rhs)
+  {
+    flags = rhs.flags;
+    gamma = rhs.gamma;
+    texId = rhs.texId;
+    dummy2 = rhs.dummy2;
+    LiteMath::store_u(&row0.x, rhs.row0);
+    LiteMath::store_u(&row1.x, rhs.row1);
+    return *this;
+  }
+  #endif
+
 } SWTexSampler;
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////

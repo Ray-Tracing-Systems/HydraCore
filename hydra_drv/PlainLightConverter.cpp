@@ -5,6 +5,7 @@
 
 #include "hydra_api/pugixml.hpp"
 #include "hydra_api/HydraXMLHelpers.h"
+#include "hydra_api/aligned_alloc.h"
 
 #include "HDRImageLite.h"
 
@@ -819,8 +820,8 @@ public:
 		return copy;
   }
 
-  std::vector<float4> tempPos;
-  std::vector<int>    tempInd;
+  cvex::vector<float4> tempPos;
+  std::vector<int>     tempInd;
 
 protected:
 

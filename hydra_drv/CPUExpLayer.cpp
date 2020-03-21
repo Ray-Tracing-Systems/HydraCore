@@ -49,7 +49,7 @@ protected:
 
   std::vector<uint>       m_tempImage;
   std::vector<ZBlock>     m_tempBlocks;
-  std::vector<float4>     m_cachedTx;
+  cvex::vector<float4>    m_cachedTx;
 };
 
 
@@ -165,7 +165,7 @@ void CPUExpLayer::renderSubPixelData(const char* a_dataName, const std::vector<u
   {
     // restore cached tx color, clear results
     memcpy(a_pixValues, &m_cachedTx[0], m_cachedTx.size()*sizeof(float4));
-    m_cachedTx = std::vector<float4>();
+    m_cachedTx = cvex::vector<float4>();
     return;
   }
 
@@ -174,9 +174,9 @@ void CPUExpLayer::renderSubPixelData(const char* a_dataName, const std::vector<u
   // data for pixel clusters
   //
 
-  std::vector<float4> clustNormals;
-  std::vector<float4> clustColors;
-  std::vector<int4>   clustBegEnd;
+  cvex::vector<float4> clustNormals;
+  cvex::vector<float4> clustColors;
+  cvex::vector<int4>   clustBegEnd;
 
   clustBegEnd.reserve(a_pixels.size() / 100);       clustBegEnd.resize(0);
   clustNormals.reserve(clustBegEnd.capacity() * 4); clustNormals.resize(0);
@@ -197,8 +197,8 @@ void CPUExpLayer::renderSubPixelData(const char* a_dataName, const std::vector<u
 
   for (int y = 0; y < m_height; y++)
   {
-    std::vector<float4>  normals(m_width*spp);
-    std::vector<float4>  txcolor(m_width*spp);
+    cvex::vector<float4> normals(m_width*spp);
+    cvex::vector<float4> txcolor(m_width*spp);
     std::vector<ushort2> pixels(m_width);
 
     #pragma omp parallel for

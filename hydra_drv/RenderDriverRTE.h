@@ -43,8 +43,8 @@ struct MeshGeometry
     return *this;
   }
 
-  std::vector<float4> vertices;
-  std::vector<int>    indices;
+  cvex::vector<float4> vertices;
+  std::vector<int>     indices;
 };
 
 

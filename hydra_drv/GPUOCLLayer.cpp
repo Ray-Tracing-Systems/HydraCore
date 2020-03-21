@@ -1075,7 +1075,7 @@ void GPUOCLLayer::GetLDRImage(uint* data, int width, int height) const
     if (tempLDRBuff == 0)
     {
       std::cerr << "[cl_core]: null m_screen.pbo, alloc temp buffer in host memory " << std::endl;
-      std::vector<float4> hdrData(width*height);
+      cvex::vector<float4> hdrData(width*height);
       GetHDRImage(&hdrData[0], width, height);
 
       #pragma omp parallel for
