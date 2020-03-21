@@ -76,7 +76,7 @@ include_directories(${HYDRA_API_ROOT_DIR})
 
 find_package(OpenMP REQUIRED)
 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -msse4.1 -fopenmp")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -msse4.2 -fopenmp")
 
 ADD_LIBRARY(hydra_drv STATIC ${SOURCE_FILES})
 

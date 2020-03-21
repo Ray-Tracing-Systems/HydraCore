@@ -50,8 +50,10 @@ protected:
     RTCScene              m_sceneTopLevel;
     int                   m_sceneTriNum;
 
+    typedef std::unordered_map<int, float4x4, std::hash<int>, std::equal_to<int>, cvex::aligned<float4x4, 16> > MatrixMap;
+
     std::unordered_map<int, RTCScene> m_rtObjByMeshId;  ///< get embree scenes by meshId
-    std::unordered_map<int, float4x4> m_matByInstId;    ///< get matrix by instanceId
+    MatrixMap                         m_matByInstId;    ///< get matrix by instanceId
     std::unordered_map<int, int>      m_meshIdByInstId; ///< get meshId by instanceId
     std::vector<int>                  m_realInstId;     ///< get actual instance id
 
@@ -72,7 +74,7 @@ protected:
 
   /////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-  size_t Alloc4BVHNodes(std::vector<BVHNode>& a_vector);
+  size_t Alloc4BVHNodes(cvex::vector<BVHNode>& a_vector);
   size_t Alloc3Float4(cvex::vector<float4>& a_vector);
   size_t Alloc1Float4(cvex::vector<float4>& a_vector);
 
