@@ -200,12 +200,12 @@ protected:
   float4x4 m_modelViewInv;
   float4x4 m_projInv;
  
-  std::vector<float4x4> m_instMatricesInv;      ///< 
-  std::vector<int32_t>  m_instLightInstId;      ///<
-  std::vector<int32_t>  m_lightIdByLightInstId; ///< store light id for each light instance 
-  std::vector<int32_t>  m_meshIdByInstId;
-  std::vector<int32_t>  m_instIdByInstId;
-  std::vector<int32_t>  m_meshRemapListId;
+  cvex::vector<float4x4> m_instMatricesInv;      ///< 
+  std::vector<int32_t>   m_instLightInstId;      ///<
+  std::vector<int32_t>   m_lightIdByLightInstId; ///< store light id for each light instance 
+  std::vector<int32_t>   m_meshIdByInstId;
+  std::vector<int32_t>   m_instIdByInstId;
+  std::vector<int32_t>   m_meshRemapListId;
   std::unordered_set<int32_t>  m_skyLightsId;
 
   struct AlphaBuffers

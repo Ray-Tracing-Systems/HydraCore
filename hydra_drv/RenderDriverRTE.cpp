@@ -1441,8 +1441,8 @@ void RenderDriverRTE::EndScene() // #TODO: add dirty flags (?) to update only th
   if (m_instMatricesInv.size() == 0 || m_instLightInstId.size() == 0)
     RUN_TIME_ERROR("RenderDriverRTE::EndScene, no instances in the scene!");
 
-  m_pHWLayer->SetAllInstMatrices   (&m_instMatricesInv[0], int32_t(m_instMatricesInv.size()));
-  m_pHWLayer->SetAllInstIdToRemapId(&m_meshRemapListId[0], int32_t(m_meshRemapListId.size()));
+  m_pHWLayer->SetAllInstMatrices   (m_instMatricesInv.data(), int32_t(m_instMatricesInv.size()));
+  m_pHWLayer->SetAllInstIdToRemapId(m_meshRemapListId.data(), int32_t(m_meshRemapListId.size()));
 
   // put bounding sphere and other globals to engine globals
   //
@@ -1538,7 +1538,7 @@ void RenderDriverRTE::FreeCPUMem()
   m_texTableAux   = std::vector<int>();
   m_materialTable = std::vector<int>();
 
-  m_instMatricesInv      = std::vector<float4x4>();
+  m_instMatricesInv      = cvex::vector<float4x4>();
   m_instLightInstId      = std::vector<int32_t>();
   m_lightIdByLightInstId = std::vector<int32_t>();
   m_meshIdByInstId       = std::vector<int32_t>();
