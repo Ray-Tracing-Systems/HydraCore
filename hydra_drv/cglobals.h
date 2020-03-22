@@ -966,9 +966,9 @@ static inline float4x4 inverse4x4(float4x4 m1)
 
     // calculate matrix inverse
     //
-    const float k = 1.0f / (m1.m_col[0].x * m1.m_col[0].x + m1.m_col[1].x * m1.m_col[0].y +
-                            m1.m_col[2].x * m1.m_col[0].z + m1.m_col[3].x * m1.m_col[0].w);
-
+    const float k = 1.0f / (m1.m_col[0].x * m.m_col[0].x + m1.m_col[1].x * m.m_col[0].y + 
+                            m1.m_col[2].x * m.m_col[0].z + m1.m_col[3].x * m.m_col[0].w);
+  
     const float4 vK = make_float4(k,k,k,k);
     m.m_col[0] = m.m_col[0]*vK;
     m.m_col[1] = m.m_col[1]*vK;
