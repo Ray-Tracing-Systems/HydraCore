@@ -59,7 +59,8 @@ static inline float sigmoid(float x)
 }
 
 
-static float BilinearFromTable(__global const float* a_inData, float a_newPosX, float a_newPosY, const int a_width, const int a_height)
+static float BilinearFrom2dTable(__global const float* a_inData, float a_newPosX, float a_newPosY, const int a_width, 
+                                 const int a_height)
 {
   // |------|------|
   // | dxy1 | dxy2 |
@@ -78,13 +79,13 @@ static float BilinearFromTable(__global const float* a_inData, float a_newPosX, 
   const int dxy3    = (floorY + 1) * a_width + floorX;
   const int dxy4    = dxy3 + 1;
 
-  float dx          = a_newPosX - floorX;
-  float dy          = a_newPosY - floorY;
+  const float dx          = a_newPosX - floorX;
+  const float dy          = a_newPosY - floorY;
 
-  float mult1       = (1.0f - dx) * (1.0f - dy);
-  float mult2       = dx * (1.0f - dy);
-  float mult3       = dy * (1.0f - dx);
-  float mult4       = dx * dy;
+  const float mult1       = (1.0f - dx) * (1.0f - dy);
+  const float mult2       = dx * (1.0f - dy);
+  const float mult3       = dy * (1.0f - dx);
+  const float mult4       = dx * dy;
 
   if (floorY >= 0 && floorX >= 0 && floorY <= a_height - 2 && floorX <= a_width - 2)
     return a_inData[dxy1] * mult1 + a_inData[dxy2] * mult2 + a_inData[dxy3] * mult3 + a_inData[dxy4] * mult4;
@@ -92,13 +93,123 @@ static float BilinearFromTable(__global const float* a_inData, float a_newPosX, 
     return 1.0f;  
 }
 
-static float3 GetMultiscatteringFromTable(const int widthTab, const float roughness,const float dotNV,
-                                          __global const float* msTable, const float3 color)
+
+static float BilinearFrom3dTable(__global const float* a_inData, float a_newPosX, float a_newPosY, float a_newPosZ, 
+                                 const int a_width, const int a_height, const int a_depth, const int a_size2dTable)
 {
-  const float y      = roughness * widthTab;
-  const float x      = dotNV * widthTab;
-  const float Ess    = BilinearFromTable(msTable, x, y, widthTab, widthTab);
+  // |------|------|
+  // | dxy1 | dxy2 |
+  // |------|------|
+  // | dxy3 | dxy4 |
+  // |------|------|
+
+  // |------|------|
+  // | dxy5 | dxy6 |
+  // |------|------|
+  // | dxy7 | dxy8 |
+  // |------|------|
+
+  a_newPosX = clamp(a_newPosX, 0.0f, a_width  - 1.0001f);
+  a_newPosY = clamp(a_newPosY, 0.0f, a_height - 1.0001f);
+  a_newPosZ = clamp(a_newPosZ, 0.0f, a_depth  - 1.0001f);
+
+  const int floorX  = floor(a_newPosX);
+  const int floorY  = floor(a_newPosY);
+  const int floorZ  = floor(a_newPosZ);
+
+  const int zOffset  =  floorZ      * a_size2dTable;
+  const int zOffset2 = (floorZ + 1) * a_size2dTable;
+
+  const int dxy1    = zOffset +  floorY       * a_width + floorX;
+  const int dxy3    = zOffset + (floorY + 1)  * a_width + floorX;
+  const int dxy2    = dxy1 + 1;
+  const int dxy4    = dxy3 + 1;
+
+  const int dxy5    = zOffset2 +  floorY      * a_width + floorX;
+  const int dxy7    = zOffset2 + (floorY + 1) * a_width + floorX;
+  const int dxy6    = dxy5 + 1;
+  const int dxy8    = dxy7 + 1;
+
+  //std::cout << "dxy1 = " << dxy1 << std::endl;
+  //std::cout << "dxy2 = " << dxy2 << std::endl;
+  //std::cout << "dxy3 = " << dxy3 << std::endl;
+  //std::cout << "dxy4 = " << dxy4 << std::endl << std::endl;
+
+  //std::cout << "dxy5 = " << dxy5 << std::endl;
+  //std::cout << "dxy6 = " << dxy6 << std::endl;
+  //std::cout << "dxy7 = " << dxy7 << std::endl;
+  //std::cout << "dxy8 = " << dxy8 << std::endl << std::endl;
+
+  const float dx          = a_newPosX - floorX;
+  const float dy          = a_newPosY - floorY;
+  const float dz          = a_newPosZ - floorZ;
+
+  //std::cout << "dx = " << dx << std::endl;
+  //std::cout << "dy = " << dy << std::endl;
+  //std::cout << "dz = " << dz << std::endl << std::endl;
+
+  const float mult1       = (1.0f - dx) * (1.0f - dy);
+  const float mult2       = dx * (1.0f - dy);
+  const float mult3       = dy * (1.0f - dx);
+  const float mult4       = dx * dy;
+
+  if (floorY >= 0 && floorX >= 0 && floorY <= a_height - 2 && floorX <= a_width - 2)
+  {
+    const float plane1 = a_inData[dxy1] * mult1 + a_inData[dxy2] * mult2 + a_inData[dxy3] * mult3 + a_inData[dxy4] * mult4;
+    const float plane2 = a_inData[dxy5] * mult1 + a_inData[dxy6] * mult2 + a_inData[dxy7] * mult3 + a_inData[dxy8] * mult4;
+    const float res    = plane1 + dz * (plane2 - plane1); // Lerp
+    //std::cout << "plane1 = " << plane1 << std::endl;
+    //std::cout << "plane2 = " << plane2 << std::endl << std::endl;
+    return res;
+  }
+  else
+    return 1.0f;
+}
+
+static float3 GetMultiscatteringFrom2dTable(__global const float* msTable, const float roughness, const float dotNV,
+                                            const int widthTable, const float3 color)
+{
+  const float y      = roughness * (float)(widthTable);
+  const float x      = dotNV     * (float)(widthTable);
+  const float Ess    = BilinearFrom2dTable(msTable, x, y, widthTable, widthTable);
   return 1.0f + color * (1.0f - Ess) / fmax(Ess, 1e-6f);
+}
+
+static float3 GetMultiscatteringFrom3dTable(__global const float * a_msTable, const float a_roughness, const float a_dotNV,
+                                            const float a_ior, const int a_widthTable, const int a_heightTable, 
+                                            const int a_depthTable, const float3 a_color)
+{
+  // Simple access.
+  //const int size2dTable = a_widthTable * a_heightTable;
+  //const int size3dTable = size2dTable * a_depthTable;
+
+  //const int x           = (int)(fmin(a_dotNV,     0.9999f) * (float)(a_widthTable));
+  //const int y           = (int)(fmin(a_roughness, 0.9999f) * (float)(a_heightTable));
+  //const int cell2d      = y * a_widthTable + x;
+
+  //const float iorNormal = (a_ior - 0.4166f) / (2.4f - 0.4166f);        // [0.41, 2.4] -> [0.0, 1.0]
+  //const int z           = (int)(fmin(iorNormal, 0.9999f) * (float)(a_depthTable));
+  //const int zOffset     = z * size2dTable;
+  //const int cell3d      = zOffset + cell2d;
+  
+  if (/*cell3d < size3dTable &&*/ a_ior >= 0.4166f && a_ior <= 2.4f)
+  {
+    //const float Ess = a_msTable[cell3d];
+
+    // Access with interpolation.
+    const int size2dTable = a_widthTable * a_heightTable;
+    const float iorNormal = (a_ior - 0.4166f) / (2.4f - 0.4166f);        // [0.41, 2.4] -> [0.0, 1.0]
+    const float x2        = a_dotNV     * (float)(a_widthTable);
+    const float y2        = a_roughness * (float)(a_heightTable);
+    const float z2        = iorNormal   * (float)(a_depthTable);
+    const float Ess       = BilinearFrom3dTable(a_msTable, x2, y2, z2, a_widthTable, a_heightTable, a_depthTable, size2dTable);
+    return 1.0f + a_color * (1.0f - Ess) / fmax(Ess, 1e-6f);
+  }
+  else
+  {
+    //std::cout << "Error: override array size!" << "cell3d = " << cell3d << std::endl;
+    return make_float3(1.0f, 1.0f, 1.0f);
+  }
 }
 
 //////////////////////////////////////////////////////////////// all other components may overlay their offsets
@@ -581,7 +692,8 @@ static inline RefractResult myrefract(float3 ray_dir, float3 a_normal, float a_m
   return res;
 }
 
-static inline RefractResult myRefractGgx(float3 ray_dir, float3 a_normal, float a_matIOR, float a_outsideIOR, float a_rand)
+static inline RefractResult myRefractGgx(const float3 ray_dir, float3 a_normal, const float a_matIOR, 
+                                         const float a_outsideIOR, const float a_rand)
 {
   RefractResult res;
   res.eta = a_outsideIOR / a_matIOR; // from air to our material
@@ -684,7 +796,7 @@ static inline void GlassGGXSampleAndEvalBRDF(__global const PlainMaterial* a_pMa
   const float3 texColor   = sample2DExt(glassGetTex(a_pMat).y, a_texCoord, (__global const int4*)a_pMat, a_tex, a_globals, a_ptList);
   const float3 color      = clamp(glassGetColor(a_pMat)*texColor, 0.0f, 1.0f);
   const float  gloss      = glassGloss(a_pMat, a_texCoord, a_globals, a_tex, a_ptList);  
-  const float  roughness  = 1.0f - gloss;
+  const float  roughness  = clamp(1.0f - gloss, 0.0f, 1.0f);
   const float  roughSqr   = roughness * roughness;  
   const float  IOR        = a_pMat->data[GLASS_IOR_OFFSET];                // #TODO: add IOR change based on current wave length if spectral trace is used
   const float3 normal2    = a_hitFromInside ? (-1.0f)*a_normal : a_normal;
@@ -763,8 +875,7 @@ static inline void GlassGGXSampleAndEvalBRDF(__global const PlainMaterial* a_pMa
     //a_out->pdf        = Dv * jacob;
 
     // Pass multi-scattering. 
-    if (eta < 1.0f) Pms = GetMultiscatteringFromTable(64, roughness, dotNV, a_globals->m_essTranspTable, color);
-    else            Pms = GetMultiscatteringFromTable(64, roughness, dotNV, a_globals->m_essTranspInsideTable, color);
+    Pms = GetMultiscatteringFrom3dTable(a_globals->m_essTranspTable, roughness, dotNV, 1.0f/eta, 64, 64, 64, color);
   }
 
   const float cosThetaOut = dot(refrData.ray_dir, a_normal);
@@ -1275,7 +1386,7 @@ static inline float3 ggxEvalBxDF(__global const PlainMaterial* a_pMat, const flo
   float Pss             = D * G / fmax(4.0f * dotNV * dotNL, 1e-6f);        // Pass single-scattering
 
   // Pass multi-scattering. Not exactly the same as GGX2. For good, you need your own table.
-  float3 Pms            = GetMultiscatteringFromTable(64, roughness, dotNV, a_globals->m_essGgx2017Table, color);  
+  float3 Pms            = GetMultiscatteringFrom2dTable(a_globals->m_essGgx2017Table, roughness, dotNV, 64, color);  
 
   return color * Pss * Pms;
 }
@@ -1404,7 +1515,7 @@ static inline void GGXSample2AndEvalBRDF(__global const PlainMaterial* a_pMat, c
     a_out->pdf        = Dv * jacob;
 
     // Pass multi-scattering.    
-    Pms = GetMultiscatteringFromTable(64, roughness, dotNV, a_globals->m_essGgx2017Table, color);
+    Pms = GetMultiscatteringFrom2dTable(a_globals->m_essGgx2017Table, roughness, dotNV, 64, color);
   }
 
   a_out->direction    = newDir;
@@ -1936,7 +2047,7 @@ static inline float maxSigmoid(const float x, const float gamma)
   return 1.04f / (1.0f + exp(-gamma*x2)) - 0.02f;
 }
 
-static inline float myluminance(const float3 a_lum) { return dot(make_float3(0.35f, 0.51f, 0.14f), a_lum); }
+static inline float myluminance(const float3 a_lum) { return dot(make_float3(0.2126f, 0.7152f, 0.0722f), a_lum); } // https://en.wikipedia.org/wiki/Relative_luminance
 
 static inline float blendMaskAlpha2(__global const PlainMaterial* pMat, 
                                     const float3 v, const float3 n, const float2 hitTexCoord, 

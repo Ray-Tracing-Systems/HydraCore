@@ -92,13 +92,12 @@ struct LightMeshData
 
 const float* getGgxTable();
 const float* getTranspTable();
-const float* getTranspInsideTable();
 
 class IHWLayer
 {
 public:
 
-  IHWLayer() : m_progressBar(nullptr), m_width(0), m_height(0), m_pExternalImage(nullptr) { InitEngineGlobals(&m_globsBuffHeader, getGgxTable(), getTranspTable(), getTranspInsideTable()); }
+  IHWLayer() : m_progressBar(nullptr), m_width(0), m_height(0), m_pExternalImage(nullptr) { InitEngineGlobals(&m_globsBuffHeader, getGgxTable(), getTranspTable()); }
   virtual ~IHWLayer();
 
   virtual void Clear(CLEAR_FLAGS a_flags)   = 0;

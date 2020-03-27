@@ -181,6 +181,7 @@ protected:
   float m_sppDone;
   float m_sppContrib;
   float m_avgBrightness;
+  bool  m_tablesBeenUpdated;
 
   struct CL_SCREEN_BUFFERS
   {

@@ -74,24 +74,22 @@ typedef struct GlobalRenderDataT
   int        sunNumber;           // #change this?
   PlainLight suns[MAX_SUN_NUM];   // #change this?
 
-  float m_essGgx2017Table[4096];
-  float m_essTranspTable[4096];
-  float m_essTranspInsideTable[4096];
-
+  int   m_allTablesAreReady;
+  float m_essGgx2017Table[4096];  //64*64
+  float m_essTranspTable[64 *64* 64]; //
 
 } EngineGlobals;
 
 #ifndef OCL_COMPILER
-static inline void InitEngineGlobals(EngineGlobals* a_pGlobals, const float* a_ggxData, const float* a_transpData, const float* a_transpInsideData)
+static inline void InitEngineGlobals(EngineGlobals* a_pGlobals, const float* a_ggxData, const float* a_transpData)
 {
   memset(a_pGlobals, 0, sizeof(EngineGlobals));
   for(int i=0;i<QMC_VARS_NUM;i++)
     a_pGlobals->rmQMC[i] = -1;
 
-  memcpy(a_pGlobals->m_essGgx2017Table, a_ggxData,               sizeof(float) * 4096);
-  memcpy(a_pGlobals->m_essTranspTable, a_transpData,             sizeof(float) * 4096);
-  memcpy(a_pGlobals->m_essTranspInsideTable, a_transpInsideData, sizeof(float) * 4096);
-
+  a_pGlobals->m_allTablesAreReady = 1;
+  memcpy(a_pGlobals->m_essGgx2017Table, a_ggxData,   sizeof(float) * 4096);
+  memcpy(a_pGlobals->m_essTranspTable, a_transpData, sizeof(float) * 64 * 64 * 64);
 }
 #endif
 

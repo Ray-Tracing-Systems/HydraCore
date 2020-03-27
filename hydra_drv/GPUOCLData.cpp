@@ -330,7 +330,21 @@ void GPUOCLLayer::UpdateConstants()
   if (m_cdataPrepared.size() == 0)
     return;
 
-  const size_t constantsSize = sizeof(EngineGlobals);
+  size_t constantsSize;
+
+  if (m_tablesBeenUpdated)
+  {
+    constantsSize = sizeof(EngineGlobals)
+      - sizeof(m_globsBuffHeader.m_essGgx2017Table)
+      - sizeof(m_globsBuffHeader.m_essTranspTable);
+  }
+  else if (!m_tablesBeenUpdated && m_globsBuffHeader.m_allTablesAreReady)
+  {
+    constantsSize = sizeof(EngineGlobals);
+    m_tablesBeenUpdated = true;                                 
+  }
+  
+
   int* pbuff = &m_cdataPrepared[0];
   memcpy(pbuff, &m_globsBuffHeader, constantsSize);
   CHECK_CL(clEnqueueWriteBuffer(m_globals.cmdQueue, m_scene.allGlobsData, CL_FALSE, 0, constantsSize, &m_cdataPrepared[0], 0, NULL, NULL));
