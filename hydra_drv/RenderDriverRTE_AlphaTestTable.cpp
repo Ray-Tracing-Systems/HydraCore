@@ -70,7 +70,7 @@ void RenderDriverRTE::CreateAlphaTestTable(ConvertionResult& a_cnvRes, AlphaBuff
   if (maxSamplers == 0)
     return;
 
-  std::vector<SWTexSampler> samplers; 
+  cvex::vector<SWTexSampler> samplers; 
   samplers.reserve(maxSamplers);
 
   std::unordered_map<int, int> samplersOffsets;
@@ -157,9 +157,17 @@ void RenderDriverRTE::CreateAlphaTestTable(ConvertionResult& a_cnvRes, AlphaBuff
             const int offs_B = vertIndices[offset + 1];
             const int offs_C = vertIndices[offset + 2];
 
-            const float2 A_tex = float2(vertPos[offs_A].w, vertNorm[offs_A].w); //vertTexCoord[offs_A];
-            const float2 B_tex = float2(vertPos[offs_B].w, vertNorm[offs_B].w); //vertTexCoord[offs_B];
-            const float2 C_tex = float2(vertPos[offs_C].w, vertNorm[offs_C].w); //vertTexCoord[offs_C];
+            const float4 vPosA  = LiteMath::load_u((const float*)(vertPos + offs_A)); // unaligned access to vertPos (!!!)
+            const float4 vPosB  = LiteMath::load_u((const float*)(vertPos + offs_B));
+            const float4 vPosC  = LiteMath::load_u((const float*)(vertPos + offs_C));
+
+            const float4 vNormA = LiteMath::load_u((const float*)(vertNorm + offs_A)); // unaligned access to vertNorm (!!!)
+            const float4 vNormB = LiteMath::load_u((const float*)(vertNorm + offs_B));
+            const float4 vNormC = LiteMath::load_u((const float*)(vertNorm + offs_C));
+
+            const float2 A_tex = float2(vPosA.w, vNormA.w); //vertTexCoord[offs_A];
+            const float2 B_tex = float2(vPosB.w, vNormB.w); //vertTexCoord[offs_B];
+            const float2 C_tex = float2(vPosC.w, vNormC.w); //vertTexCoord[offs_C];
 
             a_otrData[triOffset + 0].y = CompressTexCoord16(A_tex);
             a_otrData[triOffset + 1].y = CompressTexCoord16(B_tex);
