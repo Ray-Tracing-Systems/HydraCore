@@ -221,6 +221,15 @@
     <ClCompile Include="CPUExp_Integrators_PT_Loop.cpp">
       <Filter>CPULayer</Filter>
     </ClCompile>
+    <ClCompile Include="..\bakeBrdfEnergy\MSTablesGGX2017.cpp">
+      <Filter>Файлы исходного кода</Filter>
+    </ClCompile>
+    <ClCompile Include="..\bakeBrdfEnergy\MSTablesTransp.cpp">
+      <Filter>Файлы исходного кода</Filter>
+    </ClCompile>
+    <ClCompile Include="..\bakeBrdfEnergy\MSTablesTranspInside.cpp">
+      <Filter>Файлы исходного кода</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="shaders\image.cl">
