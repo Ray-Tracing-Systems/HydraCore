@@ -164,7 +164,6 @@ public:
       float matrixData[16];
       HydraXMLHelpers::ReadMatrix4x4(a_node.child(L"ies"), L"matrix", matrixData);
       iesMatrix = float4x4(matrixData);
-      iesMatrix = transpose(iesMatrix);
     }
     const int iesPointArea = a_node.child(L"ies").attribute(L"point_area").as_int();
     
@@ -643,7 +642,6 @@ public:
       float matrixData[16];
       HydraXMLHelpers::ReadMatrix4x4(a_node.child(L"ies"), L"matrix", matrixData);
       iesMatrix = float4x4(matrixData);
-      iesMatrix = transpose(iesMatrix);
       if (ROTATE_IES_90_DEG)
       {
         float4x4 mrot = LiteMath::rotate4x4Y(DEG_TO_RAD*90.0f);
@@ -655,7 +653,6 @@ public:
       float matrixData[16];
       HydraXMLHelpers::ReadMatrix4x4(a_node.child(L"honio"), L"matrix", matrixData);
       iesMatrix = float4x4(matrixData);
-      iesMatrix = transpose(iesMatrix);
     }
     else if(a_node.child(L"ies").attribute(L"matrix") != nullptr && ldistr != L"ies")
     {
@@ -963,7 +960,6 @@ public:
         float matrixData[16];
         HydraXMLHelpers::ReadMatrix4x4(texNode, L"matrix", matrixData);
         samplerMat0 = float4x4(matrixData);
-        samplerMat0 = transpose(samplerMat0);
       }
       if (texNode.attribute(L"input_gamma") != nullptr)
         pSampler0->gamma = texNode.attribute(L"input_gamma").as_float();

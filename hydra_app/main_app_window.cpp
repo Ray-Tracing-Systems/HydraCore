@@ -161,7 +161,7 @@ static void Update(float secondsElapsed)
   
     double mouseX, mouseY;
     glfwGetCursorPos(g_window, &mouseX, &mouseY);
-    g_cam.offsetOrientation(g_input.mouseSensitivity * float(mouseY), g_input.mouseSensitivity * float(mouseX));
+    g_cam.offsetOrientation(g_input.mouseSensitivity * float(mouseY), -g_input.mouseSensitivity * float(mouseX));
     glfwSetCursorPos(g_window, 0, 0); //reset the mouse, so it doesn't go out of the window
     g_capturedMouseJustNow = false;
   }
