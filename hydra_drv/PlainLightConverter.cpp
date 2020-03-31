@@ -115,7 +115,7 @@ void ILight::TransformIESMatrix(const float4x4& a_matrix, PlainLight& copy)
 	float4x4 mrot = a_matrix;
 	mrot.m_col[3] = float4(0.0f, 0.0f, 0.0f, 1.0f);
 
-  float4x4 iesMatrix = GetSubMatrix3x3(m_plain, IES_LIGHT_MATRIX_E00);
+  float4x4 iesMatrix = transpose(GetSubMatrix3x3(m_plain, IES_LIGHT_MATRIX_E00));
 
 	iesMatrix = mul(mrot, iesMatrix); // #TODO: remember C^(-1)*A*C rule ??? !!!
 
