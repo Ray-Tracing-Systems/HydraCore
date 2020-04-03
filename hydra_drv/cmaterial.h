@@ -58,8 +58,7 @@ static inline float sigmoid(float x)
   return 1.0f / (1.0f + exp(-1.0f*x));
 }
 
-
-static float BilinearFrom2dTable(__global const float* a_inData, float a_newPosX, float a_newPosY, const int a_width, 
+static float BilinearFrom2dTable(__global const ushort* a_inData, float a_newPosX, float a_newPosY, const int a_width,
                                  const int a_height)
 {
   // |------|------|
@@ -94,7 +93,7 @@ static float BilinearFrom2dTable(__global const float* a_inData, float a_newPosX
 }
 
 
-static float BilinearFrom3dTable(__global const float* a_inData, float a_newPosX, float a_newPosY, float a_newPosZ, 
+static float BilinearFrom3dTable(__global const ushort* a_inData, float a_newPosX, float a_newPosY, float a_newPosZ,
                                  const int a_width, const int a_height, const int a_depth, const int a_size2dTable)
 {
   // |------|------|
@@ -130,23 +129,9 @@ static float BilinearFrom3dTable(__global const float* a_inData, float a_newPosX
   const int dxy6    = dxy5 + 1;
   const int dxy8    = dxy7 + 1;
 
-  //std::cout << "dxy1 = " << dxy1 << std::endl;
-  //std::cout << "dxy2 = " << dxy2 << std::endl;
-  //std::cout << "dxy3 = " << dxy3 << std::endl;
-  //std::cout << "dxy4 = " << dxy4 << std::endl << std::endl;
-
-  //std::cout << "dxy5 = " << dxy5 << std::endl;
-  //std::cout << "dxy6 = " << dxy6 << std::endl;
-  //std::cout << "dxy7 = " << dxy7 << std::endl;
-  //std::cout << "dxy8 = " << dxy8 << std::endl << std::endl;
-
   const float dx          = a_newPosX - floorX;
   const float dy          = a_newPosY - floorY;
   const float dz          = a_newPosZ - floorZ;
-
-  //std::cout << "dx = " << dx << std::endl;
-  //std::cout << "dy = " << dy << std::endl;
-  //std::cout << "dz = " << dz << std::endl << std::endl;
 
   const float mult1       = (1.0f - dx) * (1.0f - dy);
   const float mult2       = dx * (1.0f - dy);
@@ -158,24 +143,22 @@ static float BilinearFrom3dTable(__global const float* a_inData, float a_newPosX
     const float plane1 = a_inData[dxy1] * mult1 + a_inData[dxy2] * mult2 + a_inData[dxy3] * mult3 + a_inData[dxy4] * mult4;
     const float plane2 = a_inData[dxy5] * mult1 + a_inData[dxy6] * mult2 + a_inData[dxy7] * mult3 + a_inData[dxy8] * mult4;
     const float res    = plane1 + dz * (plane2 - plane1); // Lerp
-    //std::cout << "plane1 = " << plane1 << std::endl;
-    //std::cout << "plane2 = " << plane2 << std::endl << std::endl;
     return res;
   }
   else
     return 1.0f;
 }
 
-static float3 GetMultiscatteringFrom2dTable(__global const float* msTable, const float roughness, const float dotNV,
-                                            const int widthTable, const float3 color)
+static float3 GetMultiscatteringFrom2dTable(__global const ushort* msTable, const float roughness, const float dotNV,
+                                            const int widthTable, const int heightTable, const float3 color)
 {
-  const float y      = roughness * (float)(widthTable);
   const float x      = dotNV     * (float)(widthTable);
-  const float Ess    = BilinearFrom2dTable(msTable, x, y, widthTable, widthTable);
+  const float y      = roughness * (float)(heightTable);
+  const float Ess    = BilinearFrom2dTable(msTable, x, y, widthTable, heightTable) / (float)USHRT_MAX;
   return 1.0f + color * (1.0f - Ess) / fmax(Ess, 1e-6f);
 }
 
-static float3 GetMultiscatteringFrom3dTable(__global const float * a_msTable, const float a_roughness, const float a_dotNV,
+static float3 GetMultiscatteringFrom3dTable(__global const ushort* a_msTable, const float a_roughness, const float a_dotNV,
                                             const float a_ior, const int a_widthTable, const int a_heightTable, 
                                             const int a_depthTable, const float3 a_color)
 {
@@ -202,7 +185,7 @@ static float3 GetMultiscatteringFrom3dTable(__global const float * a_msTable, co
     const float x2        = a_dotNV     * (float)(a_widthTable);
     const float y2        = a_roughness * (float)(a_heightTable);
     const float z2        = iorNormal   * (float)(a_depthTable);
-    const float Ess       = BilinearFrom3dTable(a_msTable, x2, y2, z2, a_widthTable, a_heightTable, a_depthTable, size2dTable);
+    const float Ess       = BilinearFrom3dTable(a_msTable, x2, y2, z2, a_widthTable, a_heightTable, a_depthTable, size2dTable) / (float)USHRT_MAX;
     return 1.0f + a_color * (1.0f - Ess) / fmax(Ess, 1e-6f);
   }
   else
@@ -1386,7 +1369,7 @@ static inline float3 ggxEvalBxDF(__global const PlainMaterial* a_pMat, const flo
   float Pss             = D * G / fmax(4.0f * dotNV * dotNL, 1e-6f);        // Pass single-scattering
 
   // Pass multi-scattering. Not exactly the same as GGX2. For good, you need your own table.
-  float3 Pms            = GetMultiscatteringFrom2dTable(a_globals->m_essGgx2017Table, roughness, dotNV, 64, color);  
+  float3 Pms            = GetMultiscatteringFrom2dTable(a_globals->m_essGgx2017Table, roughness, dotNV, 64, 64, color);
 
   return color * Pss * Pms;
 }
@@ -1515,7 +1498,7 @@ static inline void GGXSample2AndEvalBRDF(__global const PlainMaterial* a_pMat, c
     a_out->pdf        = Dv * jacob;
 
     // Pass multi-scattering.    
-    Pms = GetMultiscatteringFrom2dTable(a_globals->m_essGgx2017Table, roughness, dotNV, 64, color);
+    Pms = GetMultiscatteringFrom2dTable(a_globals->m_essGgx2017Table, roughness, dotNV, 64, 64, color);
   }
 
   a_out->direction    = newDir;
@@ -2243,7 +2226,7 @@ static inline float3 BumpMapping(const float3 tangent, const float3 bitangent, c
   const float3   normalTS         = materialNormalMapFetch(pHitMaterial, a_texCoord, a_texNormal, a_globals, a_ptList);
   const float3x3 tangentTransform = make_float3x3(tangent, bitangent, normal);
 
-  return  normalize(mul3x3x3(inverse(tangentTransform), normalTS));
+  return normalize(mul3x3x3(inverse(tangentTransform), normalTS));
 }
 
 static inline void MaterialLeafSampleAndEvalBRDF(__global const PlainMaterial* pMat, __private const SurfaceHit* pSurfHit, const float3 ray_dir, const float3 rands, const float3 a_shadow, const bool a_isFwdDir, 

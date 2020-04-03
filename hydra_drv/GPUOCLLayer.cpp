@@ -416,8 +416,8 @@ const HRRenderDeviceInfoListElem* GPUOCLLayer::ListDevices() const
 }
 
 //void TestPathVertexReadWrite();
-const float* getGgxTable();
-const float* getTranspTable();
+const ushort* getGgxTable();
+const ushort* getTranspTable();
 
 GPUOCLLayer::GPUOCLLayer(int w, int h, int a_flags, int a_deviceId) : Base(w, h, a_flags)
 { 

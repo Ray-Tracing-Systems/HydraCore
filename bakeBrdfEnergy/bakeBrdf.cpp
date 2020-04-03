@@ -5,6 +5,7 @@
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 #include <fstream>
 #include "../hydra_drv/cmaterial.h"
+#include "../hydra_api/hydraapi.h"
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -14,6 +15,78 @@ enum brdfModel { PHONG, TORRSPARR, BECKMANN, GGX, TRGGX, TRANSP};
 float SimpleRnd()
 {
   return clamp((rand() % RAND_MAX) / (float)(RAND_MAX - 1), 0.0f, 1.0f);
+}
+
+static float BilinearFrom3dTable(__global const float* a_inData, float a_newPosX, float a_newPosY, float a_newPosZ,
+                                 const int a_width, const int a_height, const int a_depth, const int a_size2dTable)
+{
+  // |------|------|
+  // | dxy1 | dxy2 |
+  // |------|------|
+  // | dxy3 | dxy4 |
+  // |------|------|
+
+  // |------|------|
+  // | dxy5 | dxy6 |
+  // |------|------|
+  // | dxy7 | dxy8 |
+  // |------|------|
+
+  a_newPosX = clamp(a_newPosX, 0.0f, a_width - 1.0001f);
+  a_newPosY = clamp(a_newPosY, 0.0f, a_height - 1.0001f);
+  a_newPosZ = clamp(a_newPosZ, 0.0f, a_depth - 1.0001f);
+
+  const int floorX  = floor(a_newPosX);
+  const int floorY  = floor(a_newPosY);
+  const int floorZ  = floor(a_newPosZ);
+
+  const int zOffset  =  floorZ * a_size2dTable;
+  const int zOffset2 = (floorZ + 1) * a_size2dTable;
+
+  const int dxy1    = zOffset + floorY * a_width + floorX;
+  const int dxy3    = zOffset + (floorY + 1)  * a_width + floorX;
+  const int dxy2    = dxy1 + 1;
+  const int dxy4    = dxy3 + 1;
+
+  const int dxy5    = zOffset2 + floorY * a_width + floorX;
+  const int dxy7    = zOffset2 + (floorY + 1) * a_width + floorX;
+  const int dxy6    = dxy5 + 1;
+  const int dxy8    = dxy7 + 1;
+
+  //std::cout << "dxy1 = " << dxy1 << std::endl;
+  //std::cout << "dxy2 = " << dxy2 << std::endl;
+  //std::cout << "dxy3 = " << dxy3 << std::endl;
+  //std::cout << "dxy4 = " << dxy4 << std::endl << std::endl;
+
+  //std::cout << "dxy5 = " << dxy5 << std::endl;
+  //std::cout << "dxy6 = " << dxy6 << std::endl;
+  //std::cout << "dxy7 = " << dxy7 << std::endl;
+  //std::cout << "dxy8 = " << dxy8 << std::endl << std::endl;
+
+  const float dx          = a_newPosX - floorX;
+  const float dy          = a_newPosY - floorY;
+  const float dz          = a_newPosZ - floorZ;
+
+  //std::cout << "dx = " << dx << std::endl;
+  //std::cout << "dy = " << dy << std::endl;
+  //std::cout << "dz = " << dz << std::endl << std::endl;
+
+  const float mult1       = (1.0f - dx) * (1.0f - dy);
+  const float mult2       = dx * (1.0f - dy);
+  const float mult3       = dy * (1.0f - dx);
+  const float mult4       = dx * dy;
+
+  if (floorY >= 0 && floorX >= 0 && floorY <= a_height - 2 && floorX <= a_width - 2)
+  {
+    const float plane1 = a_inData[dxy1] * mult1 + a_inData[dxy2] * mult2 + a_inData[dxy3] * mult3 + a_inData[dxy4] * mult4;
+    const float plane2 = a_inData[dxy5] * mult1 + a_inData[dxy6] * mult2 + a_inData[dxy7] * mult3 + a_inData[dxy8] * mult4;
+    const float res    = plane1 + dz * (plane2 - plane1); // Lerp
+    //std::cout << "plane1 = " << plane1 << std::endl;
+    //std::cout << "plane2 = " << plane2 << std::endl << std::endl;
+    return res;
+  }
+  else
+    return 1.0f;
 }
 
 template<class T>
@@ -40,7 +113,7 @@ void PrintTable(const T * a_result, const int a_widthTable, const int a_heightTa
           std::cout << a_result[a3d] / 1000 << "K";
         else
         {
-          //std::cout.precision(2);
+          std::cout.precision(2);
           std::cout << a_result[a3d];
         }
       }
@@ -60,10 +133,10 @@ void CheckForZero(const int* array, const int sizeArray)
   }
 }
 
-void GenerateTable(float* msTable, const int sizeArray)
-{
-  for (size_t i = 0; i < sizeArray; ++i)
-    msTable[i] = i;// SimpleRnd();
+void GenerateTable(float* a_table, const int sizeArray)
+{    
+  for (size_t i = 0; i < sizeArray; ++i)    
+    a_table[i] = i;// SimpleRnd();  
 }
 
 void ReadTable(const float * a_msTable, const float a_roughness, const float a_dotNV, const float a_ior, const int a_widthTable,
@@ -236,37 +309,52 @@ float TranspGgx(const float3 a_ray_dir, float3 a_normal, const float a_roughSqr,
 
 
 
-void BakeBrdfEnergyTable(float * a_result, const int a_widthTable, const int a_heightTable, const int a_depthTable, const int a_sizeTable, const brdfModel a_brdf, const int a_samplesPerCell)
+void BakeBrdfEnergyTable(float * a_result, const int a_widthTable, const int a_heightTable, const int a_depthTable,
+                         const int a_sizeTable, const brdfModel a_brdf, const int a_samplesPerCell, const bool a_qmc)
 {
   const double totalSamples = (double)a_samplesPerCell * (double)a_sizeTable;
   const int samplesPerPass  = totalSamples / 100;
 
-  std::cout << "Calculate BRDF " << a_widthTable << " x " << a_heightTable << " x " << a_depthTable << " table." << std::endl;
-  std::cout << "Samples per cell: " << a_samplesPerCell / 1000 << "K" << std::endl;
-  std::cout << "Total samples:    " << totalSamples / 1000000 << "M" << std::endl;
+  std::cout << "Calculate BRDF  : " << a_widthTable << " x " << a_heightTable << " x " << a_depthTable << " table." << std::endl;
+  std::cout << "Total samples   : " << totalSamples / 1000000      << "M" << std::endl;
   std::cout << "Samples per pass: " << samplesPerPass / 1000000.0f << "M" << std::endl;
+  std::cout << "Samples per cell: " << a_samplesPerCell / 1000     << "K" << std::endl;
 
   const float3 n = { 0.0f, 0.0f, 1.0f };  
   const int size2dTable = a_widthTable * a_heightTable;
 
   std::vector<int> samplePerCell(a_sizeTable);
 
+  unsigned int table[hr_qmc::QRNG_DIMENSIONS][hr_qmc::QRNG_RESOLUTION];
+  hr_qmc::init(table);
+  const int dimMax = 6;
+  float rnd[dimMax];
+
+
 
   //Loop for any angle view and any light position
-  for (int i = 1 ; i <= 100; ++i)
+
+  for (int prog = 1 ; prog <= 100; prog++)
   {
 #pragma omp parallel for
-    for (int sample = 0; sample < samplesPerPass; ++sample)
-    {
+    for (int sample = 0; sample < samplesPerPass; sample++)
+    {  
+      // Get random number
+      for (size_t dim = 0; dim < dimMax; dim++)
+      {
+        if (a_qmc) rnd[dim] = rndQmcSobolN(sample + prog * sample, dim, &table[0][0]);
+        else       rnd[dim] = SimpleRnd();
+      }
+
       // Reflecion 2D table.
       // Randon roughness.
-      const float roughness  = SimpleRnd();
+      const float roughness  = rnd[0];
       const float roughSqr   = roughness * roughness;
 
       // Random ray (eye).
       // We are looking for the angle of theta, for a linear change in the product of vectors (dotNV)
       // and the position of the view vector (v).
-      const float cosTheta  = SimpleRnd();
+      const float cosTheta  = rnd[1];
       const float theta     = clamp(M_HALFPI - acos(cosTheta), 0.0f, M_HALFPI);
       const float3 v        = normalize(float3(cos(theta), 0.0f, sin(theta))) * (-1.0f); // v = ray_dir
 
@@ -278,7 +366,7 @@ void BakeBrdfEnergyTable(float * a_result, const int a_widthTable, const int a_h
 
       // Transparency 3D table.
       // Find cell in 1D array as 3D table.
-      const float ior       = SimpleRnd() * (2.4f - 0.4166f) + 0.4166f; // [0.41, 2.4]
+      const float ior       = rnd[2] * (2.4f - 0.4166f) + 0.4166f; // [0.41, 2.4]
       const float iorNormal = (ior - 0.4166f) / (2.4f - 0.4166f);       // [0.41, 2.4] -> [0, 1]
       const int z           = (int)(fmin(iorNormal, 0.9999f) * (float)(a_depthTable));
       const int zOffset     = z * size2dTable;
@@ -286,7 +374,7 @@ void BakeBrdfEnergyTable(float * a_result, const int a_widthTable, const int a_h
 
       int a = 0;
       float res             = 0;
-      const float3 rands(SimpleRnd(), SimpleRnd(), SimpleRnd());
+      const float3 rands(rnd[3], rnd[4], rnd[5]);
 
 
       switch (a_brdf)
@@ -329,7 +417,7 @@ void BakeBrdfEnergyTable(float * a_result, const int a_widthTable, const int a_h
         std::cout << std::endl << "Error: override array size!" << "a = " << a;
     }
     
-    std::cout << "Progress: " << i << "% \r";
+    std::cout << "Progress: " << prog << "% \r";
   }
 
   // Print number of samples in the table cell.
@@ -342,7 +430,7 @@ void BakeBrdfEnergyTable(float * a_result, const int a_widthTable, const int a_h
 }
 
 
-void SaveTableToFile(float * a_array, const int a_widthTable, const int a_heightTable, const int a_depthTable, const int a_areaTable, const brdfModel a_brdf)
+void SaveTableToFile(const float* a_array, const int a_widthTable, const int a_heightTable, const int a_depthTable, const int a_areaTable, const brdfModel a_brdf)
 {
   std::string a_fileName;
 
@@ -363,9 +451,9 @@ void SaveTableToFile(float * a_array, const int a_widthTable, const int a_height
   // Print table
   switch (a_brdf)
   {
-    case GGX:           fout << "static const float EssGgx2017Table[" << a_areaTable << "] = {" << std::endl; break;
-    case TRGGX:         fout << "static const float EssTRGgxTable["   << a_areaTable << "] = {" << std::endl; break;
-    case TRANSP:        fout << "static const float EssTranspGgx["    << a_areaTable << "] = {" << std::endl; break;
+    case GGX:           fout << "static const ushort EssGgx2017Table[" << a_areaTable << "] = {" << std::endl; break;
+    case TRGGX:         fout << "static const ushort EssTRGgxTable["   << a_areaTable << "] = {" << std::endl; break;
+    case TRANSP:        fout << "static const ushort EssTranspGgx["    << a_areaTable << "] = {" << std::endl; break;
     default: break;
   }
   
@@ -379,10 +467,12 @@ void SaveTableToFile(float * a_array, const int a_widthTable, const int a_height
         const int zOffset     = z * size2dTable;
         const int a2d         = y * a_widthTable + x;
         const int a3d         = zOffset + a2d;
-
-        fout.width(8);
-        fout.precision(6);
-        fout << a_array[a3d];
+        
+        // float
+        //fout.width(8);
+        //fout.precision(6);
+        //fout << a_array[a3d]; 
+        fout << (ushort)(a_array[a3d] * USHRT_MAX);
 
         if (a3d < (a_areaTable - 1))
           fout << ", ";
@@ -396,9 +486,9 @@ void SaveTableToFile(float * a_array, const int a_widthTable, const int a_height
 
   switch (a_brdf)
   {
-    case GGX:           fout << "const float* getGgxTable() { return EssGgx2017Table; }";             break;
-    case TRGGX:         fout << "const float* getTRGgxTable() { return EssTRGgxTable; }";             break;
-    case TRANSP:        fout << "const float* getTranspTable() { return EssTranspGgx; }";             break;
+    case GGX:           fout << "const ushort* getGgxTable()    { return EssGgx2017Table; }"; break;
+    case TRGGX:         fout << "const ushort* getTRGgxTable()  { return EssTRGgxTable; }";   break;
+    case TRANSP:        fout << "const ushort* getTranspTable() { return EssTranspGgx; }";    break;
     default: break;
   }
 
@@ -414,28 +504,30 @@ void SaveTableToFile(float * a_array, const int a_widthTable, const int a_height
 
 int main(int argc, const char** argv)
 {
+  const bool qmc         = true;
   const bool maxQuality  = true;
   const int  widthTable  = 64;
   const int  heightTable = 64;
   int        depthTable  = 1; // for reflect not need 3d table
-
   const brdfModel brdf   = TRANSP;
 
   if (brdf == TRANSP) depthTable = 64; // for IOR   
     
-  const int sizeTable      = widthTable * heightTable * depthTable;
-  const int samplesPerCell = maxQuality ? 100000 : 1000;
+  const int sizeTable = widthTable * heightTable * depthTable;
+  int samplesPerCell  = 1000;
+  
+  if      (maxQuality &&  qmc) samplesPerCell = UINT32_MAX / sizeTable * (brdf==TRANSP?4:1); // In theory, the maximum number of 32-bit Sable numbers is UINT32_MAX. But as they increase, the quality improves. I don't know why.
+  else if (maxQuality && !qmc) samplesPerCell = 500000;
+  
   
   std::vector<float> resultTables(sizeTable);
     
-  BakeBrdfEnergyTable(resultTables.data(), widthTable, heightTable, depthTable, sizeTable, brdf, samplesPerCell);
+  BakeBrdfEnergyTable(resultTables.data(), widthTable, heightTable, depthTable, sizeTable, brdf, samplesPerCell, qmc);
 
   SaveTableToFile(resultTables.data(), widthTable, heightTable, depthTable, sizeTable, brdf);
 
   //GenerateTable(resultTables.data(), sizeTable);
-
-  //PrintTable(resultTables.data(), widthTable, heightTable, depthTable, false);
-    
+  //PrintTable(resultTables.data(), widthTable, heightTable, depthTable, false);    
   //ReadTable(resultTables.data(), 0.2f, 0.7f, 1.5f, widthTable, heightTable, depthTable);
 
   return 0;

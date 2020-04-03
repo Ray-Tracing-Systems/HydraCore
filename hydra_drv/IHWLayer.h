@@ -90,8 +90,8 @@ struct LightMeshData
   size_t  size;
 };
 
-const float* getGgxTable();
-const float* getTranspTable();
+const ushort* getGgxTable();
+const ushort* getTranspTable();
 
 class IHWLayer
 {
