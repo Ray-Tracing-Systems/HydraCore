@@ -250,7 +250,8 @@ float TRGgx(const float3 ray_dir, const float3 normal, const float a_roughness, 
 }
 
 
-float TranspGgx(const float3 a_ray_dir, float3 a_normal, const float a_roughSqr, const bool a_inside, const float a_ior, const float3 a_rands)
+float TranspGgx(const float3 a_ray_dir, float3 a_normal, const float a_roughSqr, const bool a_inside, const float a_ior, 
+                const float3 a_rands)
 {
   const float3  normal2  = a_inside ? (-1.0f) * a_normal : a_normal;
   RefractResult refrData = myRefractGgx(a_ray_dir, normal2, a_ior, 1.0f, a_rands.z);
@@ -342,7 +343,7 @@ void BakeBrdfEnergyTable(float * a_result, const int a_widthTable, const int a_h
       // Get random number
       for (size_t dim = 0; dim < dimMax; dim++)
       {
-        if (a_qmc) rnd[dim] = rndQmcSobolN(sample + prog * sample, dim, &table[0][0]);
+        if (a_qmc) rnd[dim] = rndQmcSobolN(sample + prog * samplesPerPass, dim, &table[0][0]);
         else       rnd[dim] = SimpleRnd();
       }
 
@@ -516,7 +517,7 @@ int main(int argc, const char** argv)
   const int sizeTable = widthTable * heightTable * depthTable;
   int samplesPerCell  = 1000;
   
-  if      (maxQuality &&  qmc) samplesPerCell = UINT32_MAX / sizeTable * (brdf==TRANSP?4:1); // In theory, the maximum number of 32-bit Sable numbers is UINT32_MAX. But as they increase, the quality improves. I don't know why.
+  if      (maxQuality &&  qmc) samplesPerCell = UINT32_MAX / sizeTable; // UINT32_MAX the maximum number of 32-bit qmc Sobol.
   else if (maxQuality && !qmc) samplesPerCell = 500000;
   
   
