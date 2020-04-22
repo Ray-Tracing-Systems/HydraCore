@@ -947,11 +947,10 @@ static inline float phongEvalPDF(__global const PlainMaterial* a_pMat, const flo
 }
 
 
-static inline float PhongEnergyFix(const float dotRL, const float3 l, const float3 n, const float3 v)
+static inline float PhongEnergyFix(const float a_dotRL, const float3 a_l, const float3 a_n)
 { 
-  const float dotNL      = dot(n, l);
-  const float dotNV      = dot(n, (-1.0f) * v);  
-  const float geomCosFix = 1.0f / dotNL * dotRL; // the transfer of geometric cosine in the space of reflection.  
+  const float dotNL      = dot(a_n, a_l);
+  const float geomCosFix = 1.0f / dotNL * a_dotRL; // the transfer of geometric cosine in the space of reflection.  
   return geomCosFix;
 }
 
@@ -970,8 +969,8 @@ static inline float3 phongEvalBxDF(__global const PlainMaterial* a_pMat, const f
   const float  cosPower = cosPowerFromGlosiness(gloss);
 
   const float3 r        = reflect((-1.0)*v, n);
-  const float  cosAlpha = clamp(dot(l, r), 0.0f, 1.0f);
-  const float energyFix = PhongEnergyFix(cosAlpha, l, n, v);
+  const float  cosAlpha = clamp(dot(l, r), 0.0f, 1.0f); // dotRL  
+  const float energyFix = PhongEnergyFix(cosAlpha, l, n);
   
   return color*(cosPower + 2.0f)*INV_TWOPI*pow(cosAlpha, cosPower)*energyFix; // please see "Using the Modified Phong Reflectance Model for Physically ... 
 }
@@ -1003,7 +1002,7 @@ static inline void PhongSampleAndEvalBRDF(__global const PlainMaterial* a_pMat, 
   {
     const float cosAlpha  = clamp(dot(newDir, r), 0.0, 1.0f);
     const float eqTemp    = pow(cosAlpha, cosPower) * INV_TWOPI;
-    const float energyFix = PhongEnergyFix(cosAlpha, newDir, a_normal, ray_dir);
+    const float energyFix = PhongEnergyFix(cosAlpha, newDir, a_normal);
     a_out->pdf            = eqTemp * (cosPower + 1.0f);
     a_out->color          = eqTemp * (cosPower + 2.0f) * color * energyFix; // please see "Using the Modified Phong Reflectance Model for Physically ... 
   }    
@@ -1206,7 +1205,7 @@ static inline float ggxGlosiness(__global const PlainMaterial* a_pMat, const flo
     return a_pMat->data[GGX_GLOSINESS_OFFSET];
 }
 
-static inline float Luminance(const float3 color) { return (color.x * 0.2126f + color.y * 0.7152f + color.z * 0.0722f); } //https://en.wikipedia.org/wiki/Relative_luminance
+static inline float Luminance(const float3 color) { return dot(color, make_float3(0.2126f, 0.7152f, 0.0722f)); } //https://en.wikipedia.org/wiki/Relative_luminance
 
 static inline float SmithGGXMasking(const float dotNV, float roughSqr)
 {
