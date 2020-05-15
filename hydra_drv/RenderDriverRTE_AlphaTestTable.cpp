@@ -92,7 +92,8 @@ void RenderDriverRTE::CreateAlphaTestTable(ConvertionResult& a_cnvRes, AlphaBuff
 
     for (int triOffset = 0; triOffset < a_cnvRes.trif4Num[treeId];)
     {
-      const int4 test = i4data[triOffset];
+      //const int4 test = i4data[triOffset];
+      const int4 test = LiteMath::load_u( (const int*) (i4data + triOffset + 0) );
       if (test.z == -1 && test.w == -1)    // skip object list header
       {
         a_otrData[triOffset] = uint2(-1,-1);
@@ -100,8 +101,11 @@ void RenderDriverRTE::CreateAlphaTestTable(ConvertionResult& a_cnvRes, AlphaBuff
         continue;
       }
 
-      const int primId = i4data[triOffset + 0].w;
-      const int geomId = i4data[triOffset + 1].w;
+      const int4 data1 = test;
+      const int4 data2 = LiteMath::load_u( (const int*) (i4data + triOffset + 1) );
+
+      const int primId = data1.w; // i4data[triOffset + 0].w;
+      const int geomId = data2.w; // i4data[triOffset + 1].w;
     
       const PlainMesh* mesh = (const PlainMesh*)(geomStorage + geomTable[geomId]);
 
@@ -133,12 +137,14 @@ void RenderDriverRTE::CreateAlphaTestTable(ConvertionResult& a_cnvRes, AlphaBuff
             pSamplerInMaterial = &dummy;
 
           size_t relativeOffset = samplers.size();
-
+          
           auto q = samplersOffsets.find(mId);
           if (q == samplersOffsets.end())
           {
+            SWTexSampler copy;
+            memcpy(&copy, pSamplerInMaterial, sizeof(SWTexSampler)); // unaligned data access alert! must use memcpy.
             samplersOffsets[mId] = int(relativeOffset);
-            samplers.push_back(*pSamplerInMaterial);
+            samplers.push_back(copy);
           }
           else
             relativeOffset = samplersOffsets[mId];
