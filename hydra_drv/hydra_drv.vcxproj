@@ -176,7 +176,6 @@
   <ItemGroup>
     <ClCompile Include="..\bakeBrdfEnergy\MSTablesGGX2017.cpp" />
     <ClCompile Include="..\bakeBrdfEnergy\MSTablesTransp.cpp" />
-    <ClCompile Include="..\bakeBrdfEnergy\MSTablesTranspInside.cpp" />
     <ClCompile Include="Bitmap.cpp" />
     <ClCompile Include="bitonic_sort_gpu.cpp" />
     <ClCompile Include="cl_scan_gpu.cpp" />
