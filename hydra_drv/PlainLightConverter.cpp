@@ -236,7 +236,7 @@ public:
     m_plain.data[AREA_LIGHT_SIZE_Y] = a_size.y;
 
     float4x4 matrix;
-    ::PutSubMatrix3x3Transp(m_plain, AREA_LIGHT_MATRIX_E00, matrix);
+    ::PutSubMatrix3x3(m_plain, AREA_LIGHT_MATRIX_E00, matrix);
 
     m_plain.data[AREA_LIGHT_SPOT_COS1] = a_spotCos1;
     m_plain.data[AREA_LIGHT_SPOT_COS2] = a_spotCos2;
@@ -300,7 +300,7 @@ public:
     copy.data[PLIGHT_NORM_Y] = lnorm.y;
     copy.data[PLIGHT_NORM_Z] = lnorm.z;
 
-    ::PutSubMatrix3x3Transp(copy, AREA_LIGHT_MATRIX_E00, mrot);
+    ::PutSubMatrix3x3(copy, AREA_LIGHT_MATRIX_E00, mrot);
 
 		const_cast<AreaDiffuseLight*>(this)->TransformIESMatrix(a_matrix, copy);
 
