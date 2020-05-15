@@ -63,7 +63,6 @@ set(SOURCE_FILES
         CPUExp_GBuffer.cpp
         ../bakeBrdfEnergy/MSTablesGGX2017.cpp
         ../bakeBrdfEnergy/MSTablesTransp.cpp
-        ../bakeBrdfEnergy/MSTablesTranspInside.cpp
     )
 
 if (CMAKE_BUILD_TYPE STREQUAL "Debug")

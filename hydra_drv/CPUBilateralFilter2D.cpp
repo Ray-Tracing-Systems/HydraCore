@@ -107,14 +107,14 @@ std::vector<uchar4> CPUSharedData::NormalMapFromDisplacement(int w, int h, const
   std::vector<float> heightDataf(w*h);
   HDRImage4f normslaImage(w, h);
 
-  // �������E�����
+  // init
   //
   for (auto i = 0; i < heightDataf.size(); i++)
     heightDataf[i] = 255.0f - fmax(float(height[i].x), fmax(float(height[i].y), float(height[i].z)));
 
   const float kScale = 2000.0f / fmin(float(w), float(h));
 
-  // ������ �M������
+  // calculate normals
   //
   #pragma omp parallel for
   for (int y = 0; y < int(h); y++)

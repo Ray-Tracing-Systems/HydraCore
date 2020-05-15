@@ -30,14 +30,6 @@ Input::Input()
 
   winWidth      = 1024;
   winHeight     = 1024;
-  
-  // 335, 343
-  //winWidth      = 1600; 
-  //winHeight     = 300;  
-  
-  // 336_Furnance_reflect_GGX_areaLight
-  //winWidth      = 1600; 
-  //winHeight     = 128 * 1.5625f;  
 
   enableOpenGL1 = false; ///< if you want to draw scene for some debug needs with OpenGL1.
   exitStatus    = false;

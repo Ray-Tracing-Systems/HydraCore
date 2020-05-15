@@ -113,19 +113,24 @@ inline float AbsCosThetaPBRT(float3 w) { return fabs(w.z); }
 inline float Sin2ThetaPBRT  (float3 w) { return fmax(0.0f, 1.0f - Cos2ThetaPBRT(w)); }
 
 inline float SinThetaPBRT (float3 w) { return sqrt(Sin2ThetaPBRT(w)); }
-inline float TanThetaPBRT (float3 w) { return SinThetaPBRT(w)  / CosThetaPBRT(w); }
-inline float Tan2ThetaPBRT(float3 w) { return Sin2ThetaPBRT(w) / Cos2ThetaPBRT(w); }
+inline float TanThetaPBRT (float3 w) 
+{
+  const float cosThetaPBRT = CosThetaPBRT(w);
+  return (fabs(cosThetaPBRT) < 1e-6f) ? 0.0f : SinThetaPBRT(w)  / cosThetaPBRT;
+}
+
+inline float Tan2ThetaPBRT(float3 w) { return Sin2ThetaPBRT(w) / fmax(Cos2ThetaPBRT(w), 1e-6f); }
 
 inline float CosPhiPBRT(float3 w) 
 {
-    const float sinTheta = SinThetaPBRT(w);
-    return (sinTheta == 0.0f) ? 1.0f : clamp(w.x / sinTheta, -1.0f, 1.0f);
+  const float sinTheta = SinThetaPBRT(w);
+  return (sinTheta == 0.0f) ? 1.0f : clamp(w.x / sinTheta, -1.0f, 1.0f); 
 }
 
 inline float SinPhiPBRT(float3 w) 
 {
-    const float sinTheta = SinThetaPBRT(w);
-    return (sinTheta == 0.0f) ? 0.0f : clamp(w.y / sinTheta, -1.0f, 1.0f);
+  const float sinTheta = SinThetaPBRT(w);
+  return (sinTheta == 0.0f) ? 0.0f : clamp(w.y / sinTheta, -1.0f, 1.0f);
 }
 
 inline float Cos2PhiPBRT(float3 w) { return CosPhiPBRT(w) * CosPhiPBRT(w); }
@@ -134,17 +139,19 @@ inline float Sin2PhiPBRT(float3 w) { return SinPhiPBRT(w) * SinPhiPBRT(w); }
 inline float ErfPBRT(float x) 
 {
   // constants
-  const float a1 = 0.254829592f;
+  const float a1 =  0.254829592f;
   const float a2 = -0.284496736f;
-  const float a3 = 1.421413741f;
+  const float a3 =  1.421413741f;
   const float a4 = -1.453152027f;
-  const float a5 = 1.061405429f;
-  const float p = 0.3275911f;
+  const float a5 =  1.061405429f;
+  const float p  =  0.3275911f;
+
   // Save the sign of x
   int sign = 1;
-  if (x < 0) 
+  if (x < 0.0f) 
     sign = -1;
   x = fabs(x);
+
   // A&S formula 7.1.26
   const float t = 1.0f / (1.0f + p * x);
   const float y = 1.0f - (((((a5 * t + a4) * t) + a3) * t + a2) * t + a1) * t * exp(-x * x);
@@ -159,28 +166,28 @@ static inline float ErfInvPBRT(float x)
   if (w < 5.0f) 
   {
     w = w - 2.5f;
-    p = 2.81022636e-08f;
-    p = 3.43273939e-07f + p * w;
-    p = -3.5233877e-06f + p * w;
+    p =  2.81022636e-08f;
+    p =  3.43273939e-07f + p * w;
+    p = -3.5233877e-06f  + p * w;
     p = -4.39150654e-06f + p * w;
-    p = 0.00021858087f + p * w;
-    p = -0.00125372503f + p * w;
-    p = -0.00417768164f + p * w;
-    p = 0.246640727f + p * w;
-    p = 1.50140941f + p * w;
+    p =  0.00021858087f  + p * w;
+    p = -0.00125372503f  + p * w;
+    p = -0.00417768164f  + p * w;
+    p =  0.246640727f    + p * w;
+    p =  1.50140941f     + p * w;
   } 
   else 
   {
     w = sqrt(w) - 3.0f;
     p = -0.000200214257f;
-    p = 0.000100950558f + p * w;
-    p = 0.00134934322f + p * w;
-    p = -0.00367342844f + p * w;
-    p = 0.00573950773f + p * w;
-    p = -0.0076224613f + p * w;
-    p = 0.00943887047f + p * w;
-    p = 1.00167406f + p * w;
-    p = 2.83297682f + p * w;
+    p =  0.000100950558f + p * w;
+    p =  0.00134934322f  + p * w;
+    p = -0.00367342844f  + p * w;
+    p =  0.00573950773f  + p * w;
+    p = -0.0076224613f   + p * w;
+    p =  0.00943887047f  + p * w;
+    p =  1.00167406f     + p * w;
+    p =  2.83297682f     + p * w;
   }
   return p * x;
 }
@@ -188,34 +195,35 @@ static inline float ErfInvPBRT(float x)
 static inline float BeckmannDistributionD(const float3 wh, float alphax, float alphay)
 {
   float tan2Theta = Tan2ThetaPBRT(wh);
-  if (!isfinite(tan2Theta)) 
-    return 0.0f;
   float cos4Theta = Cos2ThetaPBRT(wh) * Cos2ThetaPBRT(wh);
-  return exp(-tan2Theta * (Cos2PhiPBRT(wh) / (alphax * alphax) + Sin2PhiPBRT(wh) / (alphay * alphay))) / (M_PI * alphax * alphay * cos4Theta);
+  return exp((-1.0f) * tan2Theta * (Cos2PhiPBRT(wh) / fmax(alphax * alphax, 1e-6f) + Sin2PhiPBRT(wh) / fmax(alphay * alphay, 1e-6f))) / fmax(M_PI * alphax * alphay * cos4Theta, 1e-6f);
 }
 
 static inline float BeckmannDistributionLambda(const float3 w, float alphax, float alphay)
 {
   const float absTanTheta = fabs(TanThetaPBRT(w));
-  if (!isfinite(absTanTheta)) 
+  
+  if (!isfinite(absTanTheta) || absTanTheta == 0.0f)
     return 0.0f;
+
   // Compute _alpha_ for direction _w_
-  const float alpha = sqrt(Cos2PhiPBRT(w) * alphax * alphax + Sin2PhiPBRT(w) * alphay * alphay);
-  const float a = 1.0f / (alpha * absTanTheta);
+  const float alpha = sqrt(fmax(Cos2PhiPBRT(w) * alphax * alphax + Sin2PhiPBRT(w) * alphay * alphay, 1e-6f));
+  const float a     = 1.0f / fmax(alpha * absTanTheta, 1e-6f);
+
   if (a >= 1.6f) 
     return 0.0f;
+  
   return (1.0f - 1.259f * a + 0.396f * a * a) / (3.535f * a + 2.181f * a * a);
 }
 
-static inline void BeckmannSample11(float cosThetaI, float U1, float U2,
-                                    float *slope_x, float *slope_y) 
+static inline void BeckmannSample11(float cosThetaI, float U1, float U2, float *slope_x, float *slope_y) 
 {
   /* Special case (normal incidence) */
   if (cosThetaI > 0.9999f) 
   {
-    const float r      = sqrt(-log(1.0f - U1));
-    const float sinPhi = sin(2.0f * M_PI * U2);
-    const float cosPhi = cos(2.0f * M_PI * U2);
+    const float r      = sqrt(log(1.0f - U1) * (-1.0f)); // the root of a negative number?! but it work...
+    const float sinPhi = sin(M_TWOPI * U2);
+    const float cosPhi = cos(M_TWOPI * U2);
     *slope_x = r * cosPhi;
     *slope_y = r * sinPhi;
     return;
@@ -227,27 +235,28 @@ static inline void BeckmannSample11(float cosThetaI, float U1, float U2,
   // performs a numerical inversion with better behavior 
   //
   const float sinThetaI = sqrt(fmax(0.0f, 1.0f - cosThetaI * cosThetaI));
-  const float tanThetaI = sinThetaI / cosThetaI;
-  const float cotThetaI = 1.0f / tanThetaI;
+  const float tanThetaI = sinThetaI / fmax(cosThetaI, 1e-6f);
+  const float cotThetaI = 1.0f / fmax(tanThetaI, 1e-6f);
   
   // Search interval -- everything is parameterized
   // in the Erf() domain 
   //
-  float a = -1, c = ErfPBRT(cotThetaI);
-  const float sample_x = fmax(U1, 1e-6f);
+  float a               = -1.0f;
+  float c               = ErfPBRT(cotThetaI);
+  const float sample_x  = fmax(U1, 1e-6f);
 
   // Start with a good initial guess 
-  // Float b = (1-sample_x) * a + sample_x * c;
+  // Float b            = (1-sample_x) * a + sample_x * c;
   // We can do better (inverse of an approximation computed in Mathematica)
   // 
-  const float thetaI = acos(cosThetaI);
-  const float fit    = 1 + thetaI * (-0.876f + thetaI * (0.4265f - 0.0594f * thetaI));
-  float b            = c - (1 + c) * pow(1 - sample_x, fit);
+  const float thetaI      = acos(cosThetaI);
+  const float fit         = 1.0f + thetaI * (-0.876f + thetaI * (0.4265f - 0.0594f * thetaI));
+  float b                 = c - (1.0f + c) * pow(1.0f - sample_x, fit);
 
   // Normalization factor for the CDF 
   //
-  const float SQRT_PI_INV = 1.f / sqrt(M_PI);
-  float normalization = 1.0f / (1.0f + c + SQRT_PI_INV * tanThetaI * exp(-cotThetaI * cotThetaI));
+  const float SQRT_PI_INV = 1.0f / sqrt(M_PI);
+  float normalization     = 1.0f / fmax(1.0f + c + SQRT_PI_INV * tanThetaI * exp((-1.0f) * cotThetaI * cotThetaI), 1e-6f);
 
   int it = 0;
   while (++it < 10) 
@@ -261,16 +270,17 @@ static inline void BeckmannSample11(float cosThetaI, float U1, float U2,
     // Evaluate the CDF and its derivative
     //   (i.e. the density function) 
     const float invErf     = ErfInvPBRT(b);
-    const float value      = normalization * (1.0f + b + SQRT_PI_INV * tanThetaI * exp(-invErf * invErf)) - sample_x;
-    const float derivative = normalization * (1 - invErf * tanThetaI);
+    const float value      = normalization * (1.0f + b + SQRT_PI_INV * tanThetaI * exp((-1.0f)*invErf * invErf)) - sample_x;
+    const float derivative = normalization * (1.0f - invErf * tanThetaI);
+
     if (fabs(value) < 1e-5f) 
       break;
     /* Update bisection intervals */
-    if (value > 0)
+    if (value > 0.0f)
       c = b;
     else
       a = b;
-    b -= value / derivative;
+    b -= value / fmax(derivative, 1e-6f);
   }
 
   // Now convert back into a slope value 
@@ -291,8 +301,7 @@ static inline float3 BeckmannSample(const float3 wi, float alpha_x, float alpha_
 
   // 2. simulate P22_{wi}(x_slope, y_slope, 1, 1)
   float slope_x, slope_y;
-  BeckmannSample11(CosThetaPBRT(wiStretched), U1, U2, 
-                   &slope_x, &slope_y);
+  BeckmannSample11(CosThetaPBRT(wiStretched), U1, U2, &slope_x, &slope_y);
 
   // 3. rotate
   float tmp = CosPhiPBRT(wiStretched) * slope_x - SinPhiPBRT(wiStretched) * slope_y;
@@ -304,7 +313,7 @@ static inline float3 BeckmannSample(const float3 wi, float alpha_x, float alpha_
   slope_y = alpha_y * slope_y;
   
   // 5. compute normal
-  return normalize(make_float3(-slope_x, -slope_y, 1.f));
+  return normalize(make_float3(slope_x * (-1.0f), slope_y * (-1.0f), 1.0f));
 }
 
 static inline float3 BeckmannDistributionSampleWH(const float3 wo, const float2 u, float alphax, float alphay)
@@ -325,7 +334,7 @@ static inline float BeckmannG1(float3 w, float alphax, float alphay)
 
 static inline float BeckmannDistributionPdf(float3 wo, float3 wh, float alphax, float alphay) 
 {
-  return BeckmannDistributionD(wh, alphax, alphay) * BeckmannG1(wo, alphax, alphay) / (4.0f*AbsCosThetaPBRT(wo));
+  return BeckmannDistributionD(wh, alphax, alphay) * BeckmannG1(wo, alphax, alphay) / fmax(4.0f * AbsCosThetaPBRT(wo), 1e-6f);
 }
 
 static inline float BeckmannRoughnessToAlpha(float roughness) 
@@ -356,7 +365,7 @@ static inline float BeckmannBRDF_PBRT(const float3 wo, const float3 wi, float al
   wh = normalize(wh);
   const float F = 1.0f; // FrCond(dot(wi, wh), 5.0f, 1.25f); // fresnel is used inside FresnelBlend
 
-  return BeckmannDistributionD(wh, alphax, alphay) * BeckmannG(wo, wi, alphax, alphay) * F / fmax(4.0f * cosThetaI * cosThetaO, DEPSILON);
+  return BeckmannDistributionD(wh, alphax, alphay) * BeckmannG(wo, wi, alphax, alphay) * F / fmax(4.0f * cosThetaI * cosThetaO, 1e-6f);
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -365,22 +374,26 @@ static inline float BeckmannBRDF_PBRT(const float3 wo, const float3 wi, float al
 static inline float TrowbridgeReitzDistributionD(const float3 wh, float alphax, float alphay) 
 {
   float tan2Theta = Tan2ThetaPBRT(wh);
+
   if (!isfinite(tan2Theta)) 
     return 0.0f;
+
   const float cos4Theta = Cos2ThetaPBRT(wh) * Cos2ThetaPBRT(wh);
-  const float e = (Cos2PhiPBRT(wh) / (alphax * alphax) + Sin2PhiPBRT(wh) / (alphay * alphay)) * tan2Theta;
+  const float e         = (Cos2PhiPBRT(wh) / (alphax * alphax) + Sin2PhiPBRT(wh) / (alphay * alphay)) * tan2Theta;
   return 1.0f / (M_PI * alphax * alphay * cos4Theta * (1.0f + e) * (1.0f + e));
 }
 
 static inline float TrowbridgeReitzDistributionLambda(const float3 w, float alphax, float alphay)
 {
   const float absTanTheta = fabs(TanThetaPBRT(w));
+
   if (!isfinite(absTanTheta)) 
     return 0.0f;
+
   // Compute _alpha_ for direction _w_
   const float alpha           = sqrt(Cos2PhiPBRT(w) * alphax * alphax + Sin2PhiPBRT(w) * alphay * alphay);
   const float alpha2Tan2Theta = (alpha * absTanTheta) * (alpha * absTanTheta);
-  return (-1.0f + sqrt(1.f + alpha2Tan2Theta)) / 2.0f;
+  return (-1.0f + sqrt(1.0f + alpha2Tan2Theta)) / 2.0f;
 }
 
 
@@ -390,8 +403,8 @@ static inline void TrowbridgeReitzSample11(float cosTheta, float U1, float U2,
   // special case (normal incidence)
   if (cosTheta > 0.9999f) 
   {
-    const float r   = sqrt(U1 / (1.0f - U1));
-    const float phi = 6.28318530718f * U2;
+    const float r   = sqrt(U1 / fmax(1.0f - U1, 1e-6f));
+    const float phi = M_TWOPI * U2;
     *slope_x = r * cos(phi);
     *slope_y = r * sin(phi);
     return;
@@ -400,11 +413,11 @@ static inline void TrowbridgeReitzSample11(float cosTheta, float U1, float U2,
   const float sinTheta = sqrt(fmax(0.0f, 1.0f - cosTheta * cosTheta));
   const float tanTheta = sinTheta / cosTheta;
   const float a        = 1.0f / tanTheta;
-  const float G1       = 2.0f / (1.0f + sqrt(1.f + 1.f / (a * a)));
+  const float G1       = 2.0f / (1.0f + sqrt(1.0f + 1.0f / (a * a)));
 
   // sample slope_x
   const float A  = 2.0f * U1 / G1 - 1.0f;
-  float tmp      = 1.f / (A * A - 1.f);
+  float tmp      = 1.0f / (A * A - 1.0f);
   if (tmp > 1e10f) 
     tmp = 1e10f;
 
@@ -419,18 +432,18 @@ static inline void TrowbridgeReitzSample11(float cosTheta, float U1, float U2,
   float S;
   if (U2 > 0.5f) 
   {
-    S  = 1.f;
-    U2 = 2.f * (U2 - .5f);
+    S  = 1.0f;
+    U2 = 2.0f * (U2 - 0.5f);
   } 
   else 
   {
-    S = -1.f;
-    U2 = 2.f * (.5f - U2);
+    S = -1.0f;
+    U2 = 2.0f * (0.5f - U2);
   }
   const float z = (U2 * (U2 * (U2 * 0.27385f - 0.73369f) + 0.46341f)) /
                   (U2 * (U2 * (U2 * 0.093073f + 0.309420f) - 1.000000f) + 0.597999f);
 
-  *slope_y = S * z * sqrt(1.f + *slope_x * *slope_x);
+  *slope_y = S * z * sqrt(1.0f + *slope_x * *slope_x);
   
   //CHECK(!std::isinf(*slope_y));
   //CHECK(!std::isnan(*slope_y));
@@ -443,8 +456,7 @@ static inline float3 TrowbridgeReitzSample(const float3 wi, float alpha_x, float
 
   // 2. simulate P22_{wi}(x_slope, y_slope, 1, 1)
   float slope_x, slope_y;
-  TrowbridgeReitzSample11(CosThetaPBRT(wiStretched), U1, U2, 
-                          &slope_x, &slope_y);
+  TrowbridgeReitzSample11(CosThetaPBRT(wiStretched), U1, U2, &slope_x, &slope_y);
 
   // 3. rotate
   float tmp = CosPhiPBRT(wiStretched) * slope_x - SinPhiPBRT(wiStretched) * slope_y;
@@ -456,28 +468,28 @@ static inline float3 TrowbridgeReitzSample(const float3 wi, float alpha_x, float
   slope_y = alpha_y * slope_y;
 
   // 5. compute normal
-  return normalize(make_float3(-slope_x, -slope_y, 1.));
+  return normalize(make_float3(slope_x*(-1.0f), slope_y*(-1.0f), 1.0f));
 }
 
 static inline float3 TrowbridgeReitzDistributionSampleWH(const float3 wo, const float2 u, float alphax, float alphay)
 {
   float3 wh;
-  bool flip = wo.z < 0;
-  wh = TrowbridgeReitzSample(flip ? -wo : wo, alphax, alphay, u.x, u.y);
+  bool flip = wo.z < 0.0f;
+  wh        = TrowbridgeReitzSample(flip ? wo*(-1.0f) : wo, alphax, alphay, u.x, u.y);
   if (flip) 
-    wh = wh*(-1.0f);
+    wh = wh * (-1.0f);
   return wh;
 }
 
 static inline float TrowbridgeReitzG1(float3 w, float alphax, float alphay) 
 {
-  //    if (Dot(w, wh) * CosTheta(w) < 0.) return 0.;
+  //    if (Dot(w, wh) * CosTheta(w) < 0.0f) return 0.0f;
   return 1.0f / (1.0f + TrowbridgeReitzDistributionLambda(w, alphax, alphay));
 }
 
 static inline float TrowbridgeReitzDistributionPdf(float3 wo, float3 wh, float alphax, float alphay) 
 {
-  return TrowbridgeReitzDistributionD(wh, alphax, alphay) * TrowbridgeReitzG1(wo, alphax, alphay) / (4.0f*AbsCosThetaPBRT(wo));
+  return TrowbridgeReitzDistributionD(wh, alphax, alphay) * TrowbridgeReitzG1(wo, alphax, alphay) / fmax(4.0f * AbsCosThetaPBRT(wo), 1e-6f);
 }
 
 inline float TrowbridgeReitzRoughnessToAlpha(float roughness) 
@@ -506,9 +518,10 @@ static inline float TrowbridgeReitzBRDF_PBRT(const float3 wo, const float3 wi, f
     return 0.0f;
 
   wh = normalize(wh);
-  const float F = 1.0f; //FrCond(dot(wi, wh), 5.0f, 1.25f); //Fresnel is used inside FresnelBlend
 
-  return TrowbridgeReitzDistributionD(wh, alphax, alphay) * TrowbridgeReitzG(wo, wi, alphax, alphay) * F / fmax(4.0f * cosThetaI * cosThetaO, DEPSILON);
+  //const float F = 1.0f; // Fresnel is used inside FresnelBlend
+
+  return TrowbridgeReitzDistributionD(wh, alphax, alphay) * TrowbridgeReitzG(wo, wi, alphax, alphay) /** F*/ / fmax(4.0f * cosThetaI * cosThetaO, 1e-6f);
 }
 
 #endif

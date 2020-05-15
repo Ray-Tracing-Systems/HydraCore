@@ -6,9 +6,8 @@
 
 #include "cl_scan_gpu.h"
 
-//#include "../bakeBrdfEnergy/MSTablesGgx2017.cpp"
-//#include "../bakeBrdfEnergy/MSTablesTransp.cpp"
-//#include "../bakeBrdfEnergy/MSTablesTranspInside.cpp"
+const ushort* getGgxTable();
+const ushort* getTranspTable();
 
 extern "C" void initQuasirandomGenerator(unsigned int table[QRNG_DIMENSIONS_K][QRNG_RESOLUTION_K]);
 
@@ -417,9 +416,8 @@ const HRRenderDeviceInfoListElem* GPUOCLLayer::ListDevices() const
 }
 
 //void TestPathVertexReadWrite();
-const float* getGgxTable();
-const float* getTranspTable();
-const float* getTranspInsideTable();
+const ushort* getGgxTable();
+const ushort* getTranspTable();
 
 GPUOCLLayer::GPUOCLLayer(int w, int h, int a_flags, int a_deviceId) : Base(w, h, a_flags)
 { 
@@ -429,7 +427,7 @@ GPUOCLLayer::GPUOCLLayer(int w, int h, int a_flags, int a_deviceId) : Base(w, h,
   for (int i = 0; i < MEM_TAKEN_OBJECTS_NUM; i++)
     m_memoryTaken[i] = 0;
   
-  InitEngineGlobals(&m_globsBuffHeader, getGgxTable(), getTranspTable(), getTranspInsideTable());
+  InitEngineGlobals(&m_globsBuffHeader, getGgxTable(), getTranspTable());
   
   #ifdef WIN32
   int initRes = clewInit(L"opencl.dll");
@@ -722,11 +720,12 @@ GPUOCLLayer::GPUOCLLayer(int w, int h, int a_flags, int a_deviceId) : Base(w, h,
 
   waitIfDebug(__FILE__, __LINE__);
 
-  m_spp           = 0.0f;
-  m_sppDL         = 0.0f;
-  m_sppDone       = 0.0f;
-  m_sppContrib    = 0.0f;
-  m_avgBrightness = 1.0f;
+  m_spp               = 0.0f;
+  m_sppDL             = 0.0f;
+  m_sppDone           = 0.0f;
+  m_sppContrib        = 0.0f;
+  m_avgBrightness     = 1.0f;
+  m_tablesBeenUpdated = false;
 }
 
 void GPUOCLLayer::RecompileProcTexShaders(const std::string& a_shaderPath)

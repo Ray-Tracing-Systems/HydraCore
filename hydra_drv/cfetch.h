@@ -74,24 +74,22 @@ typedef struct GlobalRenderDataT
   int        sunNumber;           // #change this?
   PlainLight suns[MAX_SUN_NUM];   // #change this?
 
-  float m_essGgx2017Table[4096];
-  float m_essTranspTable[4096];
-  float m_essTranspInsideTable[4096];
-
+  int    m_allTablesAreReady;
+  ushort m_essGgx2017Table[64 * 64];  
+  ushort m_essTranspTable[64 * 64 * 64];
 
 } EngineGlobals;
 
 #ifndef OCL_COMPILER
-static inline void InitEngineGlobals(EngineGlobals* a_pGlobals, const float* a_ggxData, const float* a_transpData, const float* a_transpInsideData)
+static inline void InitEngineGlobals(EngineGlobals* a_pGlobals, const ushort* a_ggxData, const ushort* a_transpData)
 {
   memset(a_pGlobals, 0, sizeof(EngineGlobals));
   for(int i=0;i<QMC_VARS_NUM;i++)
     a_pGlobals->rmQMC[i] = -1;
 
-  memcpy(a_pGlobals->m_essGgx2017Table, a_ggxData,               sizeof(float) * 4096);
-  memcpy(a_pGlobals->m_essTranspTable, a_transpData,             sizeof(float) * 4096);
-  memcpy(a_pGlobals->m_essTranspInsideTable, a_transpInsideData, sizeof(float) * 4096);
-
+  a_pGlobals->m_allTablesAreReady = 1;
+  memcpy(a_pGlobals->m_essGgx2017Table, a_ggxData,   sizeof(ushort) * 64 * 64);
+  memcpy(a_pGlobals->m_essTranspTable, a_transpData, sizeof(ushort) * 64 * 64 * 64);
 }
 #endif
 
@@ -369,8 +367,8 @@ static inline float4 read_imagef_sw4(texture2d_t a_tex, const float2 a_texCoord,
   const float fw  = (float)(w);
   const float fh  = (float)(h);
 
-  float ffx = a_texCoord.x*fw - 0.5f;
-  float ffy = a_texCoord.y*fh - 0.5f;
+  float ffx = a_texCoord.x * fw - 0.5f; // a_texCoord should not be very large, so that the float does not overflow later. 
+  float ffy = a_texCoord.y * fh - 0.5f; // This is left to the responsibility of the top level.
 
   if ((a_flags & TEX_CLAMP_U) != 0 && ffx < 0) ffx = 0.0f;
   if ((a_flags & TEX_CLAMP_V) != 0 && ffy < 0) ffy = 0.0f;

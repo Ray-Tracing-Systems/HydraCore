@@ -1310,7 +1310,7 @@ enum MATERIAL_EVENT {
   RAY_EVENT_TNINGLASS = 64,
 };
 
-static inline bool isPureSpecular(const MatSample a_sample) { return (a_sample.flags & RAY_EVENT_S) != 0; }
+static inline bool isPureSpecular(const MatSample a_sample) { return (a_sample.flags & RAY_EVENT_S) != 0 || (a_sample.flags & RAY_EVENT_T) != 0; }
 static inline bool isDiffuse     (const MatSample a_sample) { return (a_sample.flags & RAY_EVENT_D) != 0; }
 static inline bool isGlossy      (const MatSample a_sample) { return (a_sample.flags & RAY_EVENT_G) != 0; }
 static inline bool isTransparent (const MatSample a_sample) { return (a_sample.flags & RAY_EVENT_T) != 0; }
@@ -1477,12 +1477,12 @@ static inline void CoordinateSystem(float3 v1, __private float3* v2, __private f
   if (fabs(v1.x) > fabs(v1.y))
   {
     invLen = 1.0f / sqrt(v1.x*v1.x + v1.z*v1.z);
-    (*v2) = make_float3(-v1.z * invLen, 0.0f, v1.x * invLen);
+    (*v2)  = make_float3((-1.0f) * v1.z * invLen, 0.0f, v1.x * invLen);
   }
   else
   {
-    invLen = 1.0f / sqrt(v1.y*v1.y + v1.z*v1.z);
-    (*v2) = make_float3(0.0f, v1.z * invLen, -v1.y * invLen);
+    invLen = 1.0f / sqrt(v1.y * v1.y + v1.z * v1.z);
+    (*v2)  = make_float3(0.0f, v1.z * invLen, (-1.0f) * v1.y * invLen);
   }
 
   (*v3) = cross(v1, (*v2));
