@@ -917,7 +917,6 @@ SWTexSampler SamplerFromTexref(const pugi::xml_node a_node, bool allowAlphaToRGB
     float matrixData[16];
     HydraXMLHelpers::ReadMatrix4x4(a_node, L"matrix", matrixData);
     samplerMatrix = float4x4(matrixData);
-    samplerMatrix = transpose(samplerMatrix);
   }
   else
     samplerMatrix.identity();
