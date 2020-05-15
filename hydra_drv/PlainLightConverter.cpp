@@ -407,7 +407,7 @@ public:
     const float newRadius = m_plain.data[CYLINDER_LIGHT_RADIUS] * mult;
     copy.data[PLIGHT_SURFACE_AREA] = (zMax - zMin)*mult*newRadius*phiMax;
 
-    ::PutSubMatrix3x3Transp(copy, CYLINDER_LIGHT_MATRIX_E00, a_matrix);
+    ::PutSubMatrix3x3(copy, CYLINDER_LIGHT_MATRIX_E00, a_matrix);
   
     return copy;
   }
@@ -766,7 +766,7 @@ public:
     tempInd.assign(indices, indices + pLMesh->tIndicesNum);
 
     float4x4 idenity;
-    ::PutSubMatrix3x3Transp(m_plain, MESH_LIGHT_MATRIX_E00, idenity);
+    ::PutSubMatrix3x3(m_plain, MESH_LIGHT_MATRIX_E00, idenity);
 
     auto colorNode = a_node.child(L"intensity").child(L"color");
 
@@ -807,7 +807,7 @@ public:
     float4x4 mrot = a_matrix;
     mrot.m_col[3] = float4(0.0f, 0.0f, 0.0f, 1.0f);
 
-    ::PutSubMatrix3x3Transp(copy, MESH_LIGHT_MATRIX_E00, a_matrix);
+    ::PutSubMatrix3x3(copy, MESH_LIGHT_MATRIX_E00, a_matrix);
 
     double totalSA = 0.0;
     for (int i = 0; i < tempInd.size(); i += 3)
