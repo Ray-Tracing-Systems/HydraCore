@@ -180,36 +180,36 @@ void ReadTable(const float * a_msTable, const float a_roughness, const float a_d
 }
 
 
-float Ggx2017(const float3 ray_dir, const float3 normal, const float roughSqr, const float3 a_rands)
+float Ggx2017(const float3 a_rayDir, const float3 a_normal, const float a_roughSqr, const float3 a_rands)
 {
-  if (roughSqr < 1e-6f)
+  if (a_roughSqr < 1e-6f)
     return 1.0f;
 
-  const float dotNV = dot(normal, ray_dir * (-1.0f));
+  const float dotNV = dot(a_normal, a_rayDir * (-1.0f));
 
-  float3 nx, ny, nz   = normal;
+  float3 nx, ny, nz   = a_normal;
   CoordinateSystem(nz, &nx, &ny);
 
-  const float3 wo     = normalize(make_float3(-dot(ray_dir, nx), -dot(ray_dir, ny), -dot(ray_dir, nz)));
-  const float3 wh     = GgxVndf(wo, roughSqr, a_rands.x, a_rands.y);
+  const float3 wo     = normalize(make_float3(-dot(a_rayDir, nx), -dot(a_rayDir, ny), -dot(a_rayDir, nz)));
+  const float3 wh     = GgxVndf(wo, a_roughSqr, a_rands.x, a_rands.y);
   const float3 wi     = (2.0f * dot(wo, wh) * wh) - wo;       // Compute incident direction by reflecting about wm  
-  const float3 newDir = normalize(wi.x * nx + wi.y * ny + wi.z * nz);    // back to normal coordinate system
+  const float3 newDir = normalize(wi.x * nx + wi.y * ny + wi.z * nz);    // back to a_normal coordinate system
 
   const float3 l      = newDir;
-  const float dotNL = dot(normal, l);
+  const float dotNL = dot(a_normal, l);
 
   if (dotNL < 1e-6f)
     return 0.0f;  
   
   //const float F   = Fresnel is not needed here, because it is used for the blend with diffusion.    
-  const float G1    = SmithGGXMasking(dotNV, roughSqr);
-  const float G2    = SmithGGXMaskingShadowing(dotNL, dotNV, roughSqr);
+  const float G1    = SmithGGXMasking(dotNV, a_roughSqr);
+  const float G2    = SmithGGXMaskingShadowing(dotNL, dotNV, a_roughSqr);
 
   return G2 / fmax(G1, 1e-6f);
 }
 
 
-float TRGgx(const float3 ray_dir, const float3 normal, const float a_roughness, const float3 a_rands)
+float TRGgx(const float3 ray_dir, const float3 a_normal, const float a_roughness, const float3 a_rands)
 {
   // To bake anisotropy, you need a 3-dimensional array, but for the sake of simplification,
   // we will bake it as an isotropic one. This will be a good compromise for production.
@@ -217,7 +217,7 @@ float TRGgx(const float3 ray_dir, const float3 normal, const float a_roughness, 
   if (a_roughness < 1e-6f)
     return 1.0f;
 
-  const float dotNV = dot(normal, ray_dir * (-1.0f));
+  const float dotNV = dot(a_normal, ray_dir * (-1.0f));
 
   if (dotNV < 1e-6f)
     return 0.0f;
@@ -233,16 +233,16 @@ float TRGgx(const float3 ray_dir, const float3 normal, const float a_roughness, 
   // wo = v = ray_dir
   // wi = l = -newDir
  
-  float3 nx, ny, nz = normal;
+  float3 nx, ny, nz = a_normal;
   CoordinateSystem(nz, &nx, &ny);
   ///////////////////////////////////////////////////////////////////////////// to PBRT coordinate system
 
   const float3 wo          = normalize(make_float3(-dot(ray_dir, nx), -dot(ray_dir, ny), -dot(ray_dir, nz)));
   const float3 wh          = TrowbridgeReitzDistributionSampleWH(wo, make_float2(a_rands.x, a_rands.y), alpha.x, alpha.y);
   const float3 wi          = normalize((2.0f * dot(wo, wh) * wh) - wo);        // Compute incident direction by reflecting about wh  
-  const float3 newDir      = normalize(wi.x * nx + wi.y * ny + wi.z * nz);     // back to normal coordinate system
+  const float3 newDir      = normalize(wi.x * nx + wi.y * ny + wi.z * nz);     // back to a_normal coordinate system
 
-  const float cosThetaOut  = dot(newDir, normal);
+  const float cosThetaOut  = dot(newDir, a_normal);
   const float pdf          = TrowbridgeReitzDistributionPdf(wo, wh, alpha.x, alpha.y);
 
   if (cosThetaOut <= DEPSILON) return 0.0f;
@@ -289,7 +289,7 @@ float TranspGgx(const float3 a_ray_dir, float3 a_normal, const float a_roughSqr,
       refrData.eta       = 1.0f;
     }
 
-    refrData.ray_dir  = normalize(newDir.x * nx + newDir.y * ny + newDir.z * nz);    // back to normal coordinate system
+    refrData.ray_dir  = normalize(newDir.x * nx + newDir.y * ny + newDir.z * nz);    // back to a_normal coordinate system
 
     const float dotNV = fabs(dot(a_normal, a_ray_dir));
     const float dotNL = fabs(dot(a_normal, refrData.ray_dir));
@@ -350,7 +350,7 @@ void BakeBrdfEnergyTable(float * a_result, const int a_widthTable, const int a_h
       // Reflecion 2D table.
       // Randon roughness.
       const float roughness  = rnd[0];
-      const float roughSqr   = roughness * roughness;
+      const float a_roughSqr   = roughness * roughness;
 
       // Random ray (eye).
       // We are looking for the angle of theta, for a linear change in the product of vectors (dotNV)
@@ -380,13 +380,13 @@ void BakeBrdfEnergyTable(float * a_result, const int a_widthTable, const int a_h
 
       switch (a_brdf)
       {
-        case GGX:    res         = Ggx2017(v, n, roughSqr, rands); a = cell2d; break;
+        case GGX:    res         = Ggx2017(v, n, a_roughSqr, rands); a = cell2d; break;
         case TRGGX:  res         = TRGgx(v, n, roughness, rands);  a = cell2d; break;
         case TRANSP:
         {
           const bool  inside     = ior < 1.0f;
           const float outsideIor = inside ? 1.0f / ior : ior;
-          res                    = TranspGgx(v, n, roughSqr, inside, outsideIor, rands);
+          res                    = TranspGgx(v, n, a_roughSqr, inside, outsideIor, rands);
           a                      = cell3d;
           break;
         }
