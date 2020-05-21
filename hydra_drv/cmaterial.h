@@ -950,7 +950,7 @@ static inline float phongEvalPDF(__global const PlainMaterial* a_pMat, const flo
 static inline float PhongEnergyFix(const float a_dotRL, const float3 a_l, const float3 a_n)
 { 
   const float dotNL      = dot(a_n, a_l);
-  const float geomCosFix = 1.0f / dotNL * a_dotRL; // the transfer of geometric cosine in the space of reflection.  
+  const float geomCosFix = a_dotRL / fmax(dotNL,1e-6f); // the transfer of geometric cosine in the space of reflection.  
   return geomCosFix;
 }
 
