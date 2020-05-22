@@ -810,9 +810,6 @@ static inline float3 sample2DAuxExt(int2 a_samplerOffset, float2 texCoord, __glo
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-
-
-
 // Basically the sensor plane is perpendicular to the viewing
 // direction, the optical axis which intersects its center.
 // Focusing can be done by moving the sensor back and forth
@@ -840,10 +837,10 @@ static inline float3 tiltCorrection(float3 ray_pos, float3 ray_dir, __global con
     // rotate
 
     if (fabs(tiltY) > 0.0)
-      p = mul(make_matrix_rotationY(-tiltY), p);
+      p = mul(make_matrix_rotationY(-tiltY), p); // may be (+) ???
 
     if (fabs(tiltX) > 0.0f)
-      p = mul(make_matrix_rotationX(tiltX), p);
+      p = mul(make_matrix_rotationX(-tiltX), p);
 
     p.z -= 1.0f;
 
