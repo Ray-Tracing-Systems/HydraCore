@@ -298,9 +298,9 @@ protected:
   struct TempBvhData
   {
     TempBvhData() : haveInst(true), smoothOpacity(false) {}
-    std::vector<BVHNode> m_bvh;
-    std::vector<float4>  m_tris;
-    std::vector<uint2>   m_atbl;
+    cvex::vector<BVHNode> m_bvh;
+    cvex::vector<float4>  m_tris;
+    std::vector<uint2>    m_atbl;
     bool haveInst;
     bool smoothOpacity;
   };

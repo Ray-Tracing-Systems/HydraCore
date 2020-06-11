@@ -10,14 +10,13 @@
 #include "hydra_api/HydraXMLHelpers.h"
 #include "hydra_api/HydraInternal.h"
 
-#include "hydra_api/vfloat4_x64.h"
+#include "hydra_api/LiteMath.h"
 
 #ifdef WIN32
 using cvex::operator-;
 using cvex::operator+;
 using cvex::operator*;
 using cvex::operator/;
-
 #undef min
 #undef max
 #endif
@@ -602,7 +601,7 @@ HRDriverAllocInfo RenderDriverRTE::AllocAll(HRDriverAllocInfo a_info)
   const size_t approxSizeOfLight    = sizeof(PlainLight)    * 4;
 
   m_allTexInfo.clear(); 
-
+  
   if (a_info.imgResInfoArray != nullptr)
   {
     std::vector<HRTexResInfo> allTexInfoVec;
@@ -700,12 +699,11 @@ HRDriverAllocInfo RenderDriverRTE::AllocAll(HRDriverAllocInfo a_info)
 
   // add some gummy data to the compute core
   //
-  auto pMaterial = CreateDiffuseWhiteMaterial();
-  auto plainData = pMaterial->ConvertToPlainMaterial();
+  auto pMaterial = CreateDiffuseWhiteMaterial();      
+  auto plainData = pMaterial->ConvertToPlainMaterial(); 
 
   const int32_t maxMaterialIndex   = a_info.matNum-1;
   const int32_t whiteDiffuseOffset = m_pMaterialStorage->Update(maxMaterialIndex, &plainData[0], plainData.size()*sizeof(PlainMaterial));
-
 
   auto vars = m_pHWLayer->GetAllFlagsAndVars();
   vars.m_varsI[HRT_WHITE_DIFFUSE_OFFSET] = whiteDiffuseOffset;
@@ -1081,11 +1079,11 @@ bool RenderDriverRTE::UpdateMesh(int32_t a_meshId, pugi::xml_node a_meshNode, co
 
   // (2) pack first texture coordinates to pos.w and norm.w
   //
-  const float4* pos4f  = (const float4*)a_input.pos4f;
-  const float4* norm4f = (const float4*)a_input.norm4f;
+  cvex::vector<float4> posAndTx(a_input.vertNum);
+  cvex::vector<float4> normAndTy(a_input.vertNum);
 
-  std::vector<float4> posAndTx(pos4f,   pos4f  + a_input.vertNum);
-  std::vector<float4> normAndTy(norm4f, norm4f + a_input.vertNum);
+  memcpy(posAndTx.data(),  a_input.pos4f,  a_input.vertNum*sizeof(float4));
+  memcpy(normAndTy.data(), a_input.norm4f, a_input.vertNum*sizeof(float4));
 
   for (size_t i = 0; i < a_input.vertNum; i++)
   {
@@ -1183,7 +1181,7 @@ bool RenderDriverRTE::UpdateCamera(pugi::xml_node a_camNode)
 
     // restore FOV from projection matrix
     //
-    m_camera.fov = 2.0f*atan(1.0f/m_camera.mProj.M(1, 1))*(180.f/M_PI);
+    m_camera.fov = 2.0f*atan(1.0f/m_camera.mProj(1, 1))*(180.f/M_PI);
   }
   else
   {
@@ -1271,23 +1269,23 @@ void RenderDriverRTE::CalcCameraMatrices(float4x4* a_pModelViewMatrixInv, float4
 {
   const float aspect = float(m_width) / float(m_height);
 
-  float4x4 projTransposed, worldViewTransposed;
+  float4x4 proj, worldView;
 
   if (m_camera.mUseMatrices)
   {
-    projTransposed      = transpose(m_camera.mProj);
-    worldViewTransposed = transpose(m_camera.mWorldView);
+    proj      = m_camera.mProj;
+    worldView = m_camera.mWorldView;
   }
   else
   {
-    projTransposed      = projectionMatrixTransposed(m_camera.fov, aspect, m_camera.nearPlane, m_camera.farPlane);
-    worldViewTransposed = lookAtTransposed(m_camera.pos, m_camera.lookAt, m_camera.up);
+    proj      = perspectiveMatrix(m_camera.fov, aspect, m_camera.nearPlane, m_camera.farPlane);
+    worldView = lookAt(m_camera.pos, m_camera.lookAt, m_camera.up);
   }
 
-  (*a_pModelViewMatrixInv)     = transpose(inverse4x4(worldViewTransposed));
-  (*a_projMatrixInv)           = transpose(inverse4x4(projTransposed));
-  (*a_pModelViewMatrix)        = transpose(worldViewTransposed);
-  (*a_projMatrix)              = transpose(projTransposed);
+  (*a_pModelViewMatrixInv)     = inverse4x4(worldView);
+  (*a_projMatrixInv)           = inverse4x4(proj);
+  (*a_pModelViewMatrix)        = worldView;
+  (*a_projMatrix)              = proj;
 }
 
 void RenderDriverRTE::BeginScene(pugi::xml_node a_sceneNode)
@@ -1443,8 +1441,8 @@ void RenderDriverRTE::EndScene() // #TODO: add dirty flags (?) to update only th
   if (m_instMatricesInv.size() == 0 || m_instLightInstId.size() == 0)
     RUN_TIME_ERROR("RenderDriverRTE::EndScene, no instances in the scene!");
 
-  m_pHWLayer->SetAllInstMatrices   (&m_instMatricesInv[0], int32_t(m_instMatricesInv.size()));
-  m_pHWLayer->SetAllInstIdToRemapId(&m_meshRemapListId[0], int32_t(m_meshRemapListId.size()));
+  m_pHWLayer->SetAllInstMatrices   (m_instMatricesInv.data(), int32_t(m_instMatricesInv.size()));
+  m_pHWLayer->SetAllInstIdToRemapId(m_meshRemapListId.data(), int32_t(m_meshRemapListId.size()));
 
   // put bounding sphere and other globals to engine globals
   //
@@ -1540,7 +1538,7 @@ void RenderDriverRTE::FreeCPUMem()
   m_texTableAux   = std::vector<int>();
   m_materialTable = std::vector<int>();
 
-  m_instMatricesInv      = std::vector<float4x4>();
+  m_instMatricesInv      = cvex::vector<float4x4>();
   m_instLightInstId      = std::vector<int32_t>();
   m_lightIdByLightInstId = std::vector<int32_t>();
   m_meshIdByInstId       = std::vector<int32_t>();
@@ -1689,7 +1687,8 @@ void RenderDriverRTE::Draw()
   CalcCameraMatrices(&m_modelViewInv, &m_projInv, &mWorldView, &mProj);
 
   const float aspect = float(m_width) / float(m_height);
-  m_pHWLayer->SetCamMatrices(m_projInv.L(), m_modelViewInv.L(), mProj.L(), mWorldView.L(), aspect, DEG_TO_RAD*m_camera.fov, m_camera.lookAt);
+  m_pHWLayer->SetCamMatrices((float*)&m_projInv, (float*)&m_modelViewInv, (float*)&mProj, (float*)&mWorldView, 
+                             aspect, DEG_TO_RAD*m_camera.fov, m_camera.lookAt);
   m_pHWLayer->PrepareEngineGlobals();
 
   const int NUM_PASS = 1;

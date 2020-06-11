@@ -61,7 +61,7 @@
 #endif
 
 #ifndef DEG_TO_RAD
-#define DEG_TO_RAD (M_PI / 180.f)
+#define DEG_TO_RAD (3.14159265358979323846f / 180.f)
 #endif
 
 #define GEPSILON      5e-6f
@@ -151,22 +151,18 @@ enum MEGATEX_USAGE{ MEGATEX_SHADING      = 1,
    
   #define ALIGN_S(x) __attribute__ ((aligned (x)))
 
-   #define __device__
-   #define IDH_CALL inline
-   #define ID_CALL  inline
+  static inline ushort2 make_ushort2(ushort x, ushort y) { ushort2 res; res.x = x; res.y = y; return res; }
+  static inline int2    make_int2(int a, int b)          { int2 res; res.x = a; res.y = b; return res; }
+  static inline int4    make_int4(int a, int b, int c, int d) { int4 res; res.x = a; res.y = b; res.z = c; res.w = d; return res; }
 
-   IDH_CALL ushort2 make_ushort2(ushort x, ushort y) { ushort2 res; res.x = x; res.y = y; return res; }
-   IDH_CALL int2    make_int2(int a, int b)          { int2 res; res.x = a; res.y = b; return res; }
-   IDH_CALL int4    make_int4(int a, int b, int c, int d) { int4 res; res.x = a; res.y = b; res.z = c; res.w = d; return res; }
+  #define GLOBAL_ID_X get_global_id(0)
+  #define GLOBAL_ID_Y get_global_id(1)
 
-   #define GLOBAL_ID_X get_global_id(0)
-   #define GLOBAL_ID_Y get_global_id(1)
+  #define LOCAL_ID_X  get_local_id(0)
+  #define LOCAL_ID_Y  get_local_id(1)
 
-   #define LOCAL_ID_X  get_local_id(0)
-   #define LOCAL_ID_Y  get_local_id(1)
-
-   #define _PACKED __attribute__ ((packed))
-   #define __device__
+  #define _PACKED __attribute__ ((packed))
+  #define __device__
 
    //#define SYNCTHREADS        barrier(CLK_LOCAL_MEM_FENCE | CLK_GLOBAL_MEM_FENCE)
    #define SYNCTHREADS_LOCAL  barrier(CLK_LOCAL_MEM_FENCE)
@@ -204,16 +200,11 @@ enum MEGATEX_USAGE{ MEGATEX_SHADING      = 1,
      } while (atomic_cmpxchg((volatile global unsigned int *)source, prevVal.intVal, newVal.intVal) != prevVal.intVal);
    }
 
-   IDH_CALL float dot3 (const float4 u, const float4 v) { return (u.x*v.x + u.y*v.y + u.z*v.z); }
-
-   typedef struct float4x3T
-   {
-     float4 row[3];
-   } float4x3;
+   static inline float dot3 (const float4 u, const float4 v) { return (u.x*v.x + u.y*v.y + u.z*v.z); }
 
    typedef struct float4x4T
    {
-     float4 row[4];
+     float4 m_col[4];
    } float4x4;
 
    typedef struct float3x3T
@@ -221,7 +212,7 @@ enum MEGATEX_USAGE{ MEGATEX_SHADING      = 1,
      float3 row[3];
    } float3x3;
 
-   IDH_CALL float2 make_float2(float a, float b)
+   static inline float2 make_float2(float a, float b)
    {
      float2 res;
      res.x = a;
@@ -229,7 +220,7 @@ enum MEGATEX_USAGE{ MEGATEX_SHADING      = 1,
      return res;
    }
 
-   IDH_CALL float3 make_float3(float a, float b, float c)
+   static inline float3 make_float3(float a, float b, float c)
    {
      float3 res;
      res.x = a;
@@ -238,7 +229,7 @@ enum MEGATEX_USAGE{ MEGATEX_SHADING      = 1,
      return res;
    }
 
-   IDH_CALL float4 make_float4(float a, float b, float c, float d)
+   static inline float4 make_float4(float a, float b, float c, float d)
    {
      float4 res;
      res.x = a;
@@ -248,7 +239,7 @@ enum MEGATEX_USAGE{ MEGATEX_SHADING      = 1,
      return res;
    }
 
-   IDH_CALL float2 to_float2(float4 f4)
+   static inline float2 to_float2(float4 f4)
    {
      float2 res;
      res.x = f4.x;
@@ -256,7 +247,7 @@ enum MEGATEX_USAGE{ MEGATEX_SHADING      = 1,
      return res;
    }
 
-   IDH_CALL float3 to_float3(float4 f4)
+   static inline float3 to_float3(float4 f4)
    {
      float3 res;
      res.x = f4.x;
@@ -265,7 +256,7 @@ enum MEGATEX_USAGE{ MEGATEX_SHADING      = 1,
      return res;
    }
 
-   IDH_CALL float4 to_float4(float3 v, float w)
+   static inline float4 to_float4(float3 v, float w)
    {
      float4 res;
      res.x = v.x;
@@ -278,18 +269,18 @@ enum MEGATEX_USAGE{ MEGATEX_SHADING      = 1,
    static inline float3 mul4x3(float4x4 m, float3 v)
    {
      float3 res;
-     res.x = m.row[0].x*v.x + m.row[0].y*v.y + m.row[0].z*v.z + m.row[0].w;
-     res.y = m.row[1].x*v.x + m.row[1].y*v.y + m.row[1].z*v.z + m.row[1].w;
-     res.z = m.row[2].x*v.x + m.row[2].y*v.y + m.row[2].z*v.z + m.row[2].w;
+     res.x = v.x * m.m_col[0].x + v.y * m.m_col[1].x + v.z * m.m_col[2].x + m.m_col[3].x;
+     res.y = v.x * m.m_col[0].y + v.y * m.m_col[1].y + v.z * m.m_col[2].y + m.m_col[3].y;
+     res.z = v.x * m.m_col[0].z + v.y * m.m_col[1].z + v.z * m.m_col[2].z + m.m_col[3].z;
      return res;
    }
 
    static inline float3 mul3x3(float4x4 m, float3 v)
    {
      float3 res;
-     res.x = m.row[0].x*v.x + m.row[0].y*v.y + m.row[0].z*v.z;
-     res.y = m.row[1].x*v.x + m.row[1].y*v.y + m.row[1].z*v.z;
-     res.z = m.row[2].x*v.x + m.row[2].y*v.y + m.row[2].z*v.z;
+     res.x = v.x * m.m_col[0].x + v.y * m.m_col[1].x + v.z * m.m_col[2].x;
+     res.y = v.x * m.m_col[0].y + v.y * m.m_col[1].y + v.z * m.m_col[2].y;
+     res.z = v.x * m.m_col[0].z + v.y * m.m_col[1].z + v.z * m.m_col[2].z;
      return res;
    }
 
@@ -300,35 +291,6 @@ enum MEGATEX_USAGE{ MEGATEX_SHADING      = 1,
      return make_float2(sinVal, cosVal);
    }
    
-   static inline float4x4 lookAtTransposed(float3 eye, float3 center, float3 up)
-   {
-     float3 x, y, z; // basis; will make a rotation matrix
- 
-     z.x = eye.x - center.x;
-     z.y = eye.y - center.y;
-     z.z = eye.z - center.z;
-     z = normalize(z);
- 
-     y.x = up.x;
-     y.y = up.y;
-     y.z = up.z;
- 
-     x = cross(y, z); // X vector = Y cross Z
-     y = cross(z, x); // Recompute Y = Z cross X
- 
-     // cross product gives area of parallelogram, which is < 1.0 for
-     // non-perpendicular unit-length vectors; so normalize x, y here
-     x = normalize(x);
-     y = normalize(y);
- 
-     float4x4 M;
-     M.row[0].x = x.x; M.row[1].x = x.y; M.row[2].x = x.z; M.row[3].x = -x.x * eye.x - x.y * eye.y - x.z*eye.z;
-     M.row[0].y = y.x; M.row[1].y = y.y; M.row[2].y = y.z; M.row[3].y = -y.x * eye.x - y.y * eye.y - y.z*eye.z;
-     M.row[0].z = z.x; M.row[1].z = z.y; M.row[2].z = z.z; M.row[3].z = -z.x * eye.x - z.y * eye.y - z.z*eye.z;
-     M.row[0].w = 0.0; M.row[1].w = 0.0; M.row[2].w = 0.0; M.row[3].w = 1.0;
-     return M;
-   }
-
   #else                              // Common C++
     
     #ifdef WIN32
@@ -337,22 +299,17 @@ enum MEGATEX_USAGE{ MEGATEX_SHADING      = 1,
       #define ALIGN_S(x) __attribute__ ((aligned (x)))
     #endif
 
-    #undef  M_PI
+    #ifndef M_PI
     #define M_PI 3.14159265358979323846f
-    
+    #endif
     #include "../../HydraAPI/hydra_api/LiteMath.h"  
-    using namespace HydraLiteMath;
+    using namespace LiteMath;
 
     #include "../../HydraAPI/hydra_api/HR_HDRImage.h"  
     typedef HydraRender::HDRImage4f HDRImage4f;
 
     typedef unsigned int   uint;
     typedef unsigned short ushort;
-
-    typedef struct float4x3T
-    {
-      float4 row[3];
-    } float4x3;
 
     typedef struct float3x3T
     {
@@ -363,9 +320,6 @@ enum MEGATEX_USAGE{ MEGATEX_SHADING      = 1,
     {
       return make_float2(sin(a_value), cos(a_value));
     }
-
-    #define IDH_CALL static inline
-    #define ID_CALL  static inline
 
     #define __global
     #define __constant const
@@ -578,7 +532,7 @@ enum RENDER_LAYER {
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 
-IDH_CALL uint ZIndex(ushort x, ushort y, __constant ushort* a_mortonTable256)
+static inline uint ZIndex(ushort x, ushort y, __constant ushort* a_mortonTable256)
 {
   return	(a_mortonTable256[y >> 8]   << 17) |
           (a_mortonTable256[x >> 8]   << 16) |
@@ -587,7 +541,7 @@ IDH_CALL uint ZIndex(ushort x, ushort y, __constant ushort* a_mortonTable256)
 }
 
 
-IDH_CALL ushort ExtractFromZIndex3D(uint zIndex, int stride)
+static inline ushort ExtractFromZIndex3D(uint zIndex, int stride)
 {
   uint result = 0;
   for (int i = 0; i < 10; i++)
@@ -599,7 +553,7 @@ IDH_CALL ushort ExtractFromZIndex3D(uint zIndex, int stride)
   return (ushort)result;
 }
 
-IDH_CALL ushort ExtractFromZIndex2D(uint zIndex, int stride)
+static inline ushort ExtractFromZIndex2D(uint zIndex, int stride)
 {
   uint result = 0;
   for (int i = 0; i < 16; i++)
@@ -611,7 +565,7 @@ IDH_CALL ushort ExtractFromZIndex2D(uint zIndex, int stride)
   return (ushort)result;
 }
 
-IDH_CALL ushort ExtractXFromZIndex(uint zIndex)
+static inline ushort ExtractXFromZIndex(uint zIndex)
 {
   uint result = 0;
   for (int i = 0; i<16; i++)
@@ -620,7 +574,7 @@ IDH_CALL ushort ExtractXFromZIndex(uint zIndex)
 }
 
 
-IDH_CALL ushort ExtractYFromZIndex(uint zIndex)
+static inline ushort ExtractYFromZIndex(uint zIndex)
 {
   uint result = 0;
   for (int i = 0; i<16; i++)
@@ -628,7 +582,7 @@ IDH_CALL ushort ExtractYFromZIndex(uint zIndex)
   return (ushort)(result >> 1);
 }
 
-IDH_CALL int blocks(int elems, int threadsPerBlock)
+static inline int blocks(int elems, int threadsPerBlock)
 {
   if (elems % threadsPerBlock == 0 && elems >= threadsPerBlock)
     return elems / threadsPerBlock;
@@ -636,7 +590,7 @@ IDH_CALL int blocks(int elems, int threadsPerBlock)
     return (elems / threadsPerBlock) + 1;
 }
 
-IDH_CALL size_t blocksST(size_t elems, int threadsPerBlock)
+static inline size_t blocksST(size_t elems, int threadsPerBlock)
 {
   if (elems % threadsPerBlock == 0 && elems >= threadsPerBlock)
     return elems / threadsPerBlock;
@@ -644,7 +598,7 @@ IDH_CALL size_t blocksST(size_t elems, int threadsPerBlock)
     return (elems / threadsPerBlock) + 1;
 }
 
-IDH_CALL size_t roundBlocks(size_t elems, int threadsPerBlock)
+static inline size_t roundBlocks(size_t elems, int threadsPerBlock)
 {
   if (elems < threadsPerBlock)
     return (size_t)threadsPerBlock;
@@ -652,9 +606,9 @@ IDH_CALL size_t roundBlocks(size_t elems, int threadsPerBlock)
     return blocksST(elems, threadsPerBlock) * threadsPerBlock;
 }
 
-IDH_CALL uint Index2D(uint x, uint y, int pitch) { return y*pitch + x; }
+static inline uint Index2D(uint x, uint y, int pitch) { return y*pitch + x; }
 
-IDH_CALL uint IndexZBlock2D(int x, int y, int pitch, __constant ushort* a_mortonTable) // window_size[0]
+static inline uint IndexZBlock2D(int x, int y, int pitch, __constant ushort* a_mortonTable) // window_size[0]
 {
   uint zOrderX = x % Z_ORDER_BLOCK_SIZE;
   uint zOrderY = y % Z_ORDER_BLOCK_SIZE;
@@ -669,7 +623,7 @@ IDH_CALL uint IndexZBlock2D(int x, int y, int pitch, __constant ushort* a_morton
 }
 
 
-IDH_CALL ushort2 GetXYFromZBlockIndex(uint a_offset, int w, int h)
+static inline ushort2 GetXYFromZBlockIndex(uint a_offset, int w, int h)
 {
   int blocksSizeX = w / Z_ORDER_BLOCK_SIZE;
   //int blocksSizeY = h / Z_ORDER_BLOCK_SIZE;
@@ -690,7 +644,7 @@ IDH_CALL ushort2 GetXYFromZBlockIndex(uint a_offset, int w, int h)
 }
 
 
-IDH_CALL uint SpreadBits(int x, int offset)
+static inline uint SpreadBits(int x, int offset)
 {
   x = (x | (x << 10)) & 0x000F801F;
   x = (x | (x << 4)) & 0x00E181C3;
@@ -700,13 +654,13 @@ IDH_CALL uint SpreadBits(int x, int offset)
   return (uint)(x) << offset;
 }
 
-IDH_CALL uint GetMortonNumber(int x, int y, int z)
+static inline uint GetMortonNumber(int x, int y, int z)
 {
   return SpreadBits(x, 0) | SpreadBits(y, 1) | SpreadBits(z, 2);
 }
 
 
-IDH_CALL float3 reflect(float3 dir, float3 normal) 
+static inline float3 reflect(float3 dir, float3 normal) 
 { 
   // Do not use this function for "wo" and "wh" microfacets terms. 
   // They need the formula: 2.0f * dot(wo, wh) * wh - wo;
@@ -716,12 +670,12 @@ IDH_CALL float3 reflect(float3 dir, float3 normal)
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////
 ///// a simple tone mapping
-IDH_CALL float3 ToneMapping(float3 color)  { return make_float3(fmin(color.x, 1.0f), fmin(color.y, 1.0f), fmin(color.z, 1.0f)); }
-IDH_CALL float4 ToneMapping4(float4 color) { return make_float4(fmin(color.x, 1.0f), fmin(color.y, 1.0f), fmin(color.z, 1.0f), fmin(color.w, 1.0f)); }
+static inline float3 ToneMapping(float3 color)  { return make_float3(fmin(color.x, 1.0f), fmin(color.y, 1.0f), fmin(color.z, 1.0f)); }
+static inline float4 ToneMapping4(float4 color) { return make_float4(fmin(color.x, 1.0f), fmin(color.y, 1.0f), fmin(color.z, 1.0f), fmin(color.w, 1.0f)); }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////
 ////
-IDH_CALL uint RealColorToUint32_f3(float3 real_color)
+static inline uint RealColorToUint32_f3(float3 real_color)
 {
   float  r = real_color.x*255.0f;
   float  g = real_color.y*255.0f;
@@ -730,8 +684,7 @@ IDH_CALL uint RealColorToUint32_f3(float3 real_color)
   return red | (green << 8) | (blue << 16) | 0xFF000000;
 }
 
-
-IDH_CALL uint RealColorToUint32(float4 real_color)
+static inline uint RealColorToUint32(float4 real_color)
 {
   float  r = real_color.x*255.0f;
   float  g = real_color.y*255.0f;
@@ -815,83 +768,61 @@ static inline float3 OffsShadowRayPos(const float3 a_hitPos, const float3 a_surf
 static inline float4x4 make_float4x4(__global const float* a_data)
 {
   float4x4 matrix;
-  matrix.row[0] = make_float4(a_data[0], a_data[1], a_data[2], a_data[3]);
-  matrix.row[1] = make_float4(a_data[4], a_data[5], a_data[6], a_data[7]);
-  matrix.row[2] = make_float4(a_data[8], a_data[9], a_data[10], a_data[11]);
-  matrix.row[3] = make_float4(a_data[12], a_data[13], a_data[14], a_data[15]);
+  matrix.m_col[0] = make_float4(a_data[0], a_data[1], a_data[2], a_data[3]);
+  matrix.m_col[1] = make_float4(a_data[4], a_data[5], a_data[6], a_data[7]);
+  matrix.m_col[2] = make_float4(a_data[8], a_data[9], a_data[10], a_data[11]);
+  matrix.m_col[3] = make_float4(a_data[12], a_data[13], a_data[14], a_data[15]);
   return matrix;
 }
 
-IDH_CALL float4x4 make_matrix_rotationX(float a_angle)
+static inline float4x4 make_matrix_rotationX(float a_angle)
 {
-  float sinx = sin(a_angle);
-  float cosx = cos(a_angle);
+  const float sinx = sin(a_angle);
+  const float cosx = cos(a_angle);
 
-  float4x4 matrix;
-  matrix.row[0] = make_float4(1.0f, 0.0f, 0.0f, 0.0f);
-  matrix.row[1] = make_float4(0.0f, cosx, sinx, 0.0f);
-  matrix.row[2] = make_float4(0.0f, -sinx, cosx, 0.0f);
-  matrix.row[3] = make_float4(0.0f, 0.0f, 0.0f, 1.0f);
-  return matrix;
-}
-
-IDH_CALL float4x4 make_matrix_rotationY(float a_angle)
-{
-  float siny = sin(a_angle);
-  float cosy = cos(a_angle);
-
-  float4x4 matrix;
-  matrix.row[0] = make_float4(cosy, 0.0f, -siny, 0.0f);
-  matrix.row[1] = make_float4(0.0f, 1.0f, 0.0f, 0.0f);
-  matrix.row[2] = make_float4(siny, 0.0f, cosy, 0.0f);
-  matrix.row[3] = make_float4(0.0f, 0.0f, 0.0f, 1.0f);
-
-  return matrix;
-}
-
-IDH_CALL float3 mul4x3x3(float4x3 m, float3 v)
-{
-  float3 res;
-  res.x = m.row[0].x*v.x + m.row[0].y*v.y + m.row[0].z*v.z + m.row[0].w;
-  res.y = m.row[1].x*v.x + m.row[1].y*v.y + m.row[1].z*v.z + m.row[1].w;
-  res.z = m.row[2].x*v.x + m.row[2].y*v.y + m.row[2].z*v.z + m.row[2].w;
+  float4x4 res;
+  res.m_col[0] = make_float4(1.0f, 0.0f,    0.0f, 0.0f);
+  res.m_col[1] = make_float4(0.0f, +cosx,  +sinx, 0.0f);
+  res.m_col[2] = make_float4(0.0f, -sinx,  +cosx, 0.0f);
+  res.m_col[3] = make_float4(0.0f, 0.0f,    0.0f, 1.0f);
   return res;
 }
 
-IDH_CALL float4 mul4x4x4(float4x4 m, float4 v)
+static inline float4x4 make_matrix_rotationY(float a_angle)
+{
+  const float siny = sin(a_angle);
+  const float cosy = cos(a_angle);
+
+  float4x4 res;
+  res.m_col[0] = make_float4(+cosy, 0.0f, -siny, 0.0f);
+  res.m_col[1] = make_float4(0.0f,  1.0f,  0.0f, 0.0f);
+  res.m_col[2] = make_float4(+siny, 0.0f, +cosy, 0.0f);
+  res.m_col[3] = make_float4(0.0f,  0.0f,  0.0f, 1.0f);
+  return res;
+}
+
+static inline float4 mul4x4x4(float4x4 m, float4 v)
 {
   float4 res;
-  res.x = m.row[0].x*v.x + m.row[0].y*v.y + m.row[0].z*v.z + m.row[0].w*v.w;
-  res.y = m.row[1].x*v.x + m.row[1].y*v.y + m.row[1].z*v.z + m.row[1].w*v.w;
-  res.z = m.row[2].x*v.x + m.row[2].y*v.y + m.row[2].z*v.z + m.row[2].w*v.w;
-  res.w = m.row[3].x*v.x + m.row[3].y*v.y + m.row[3].z*v.z + m.row[3].w*v.w;
+  res.x = v.x * m.m_col[0].x + v.y * m.m_col[1].x + v.z * m.m_col[2].x + v.w * m.m_col[3].x;
+  res.y = v.x * m.m_col[0].y + v.y * m.m_col[1].y + v.z * m.m_col[2].y + v.w * m.m_col[3].y;
+  res.z = v.x * m.m_col[0].z + v.y * m.m_col[1].z + v.z * m.m_col[2].z + v.w * m.m_col[3].z;
+  res.w = v.x * m.m_col[0].w + v.y * m.m_col[1].w + v.z * m.m_col[2].w + v.w * m.m_col[3].w;
   return res;
 }
 
 #ifndef COMMON_CPLUS_PLUS_CODE
-
-IDH_CALL float3 mul(float4x4 m, float3 v)
+static inline float3 mul(float4x4 m, float3 v)
 {
   float3 res;
-  res.x = m.row[0].x*v.x + m.row[0].y*v.y + m.row[0].z*v.z + m.row[0].w;
-  res.y = m.row[1].x*v.x + m.row[1].y*v.y + m.row[1].z*v.z + m.row[1].w;
-  res.z = m.row[2].x*v.x + m.row[2].y*v.y + m.row[2].z*v.z + m.row[2].w;
+  res.x = v.x * m.m_col[0].x + v.y * m.m_col[1].x + v.z * m.m_col[2].x + m.m_col[3].x;
+  res.y = v.x * m.m_col[0].y + v.y * m.m_col[1].y + v.z * m.m_col[2].y + m.m_col[3].y;
+  res.z = v.x * m.m_col[0].z + v.y * m.m_col[1].z + v.z * m.m_col[2].z + m.m_col[3].z;
   return res;
 }
-
 #endif
 
-IDH_CALL float3 mul3x4(float4x3 m, float3 v)
-{
-  float3 res;
-  res.x = m.row[0].x*v.x + m.row[0].y*v.y + m.row[0].z*v.z + m.row[0].w;
-  res.y = m.row[1].x*v.x + m.row[1].y*v.y + m.row[1].z*v.z + m.row[1].w;
-  res.z = m.row[2].x*v.x + m.row[2].y*v.y + m.row[2].z*v.z + m.row[2].w;
-  return res;
-}
-
-
-IDH_CALL float3x3 make_float3x3(float3 a, float3 b, float3 c)
+static inline float3x3 make_float3x3(float3 a, float3 b, float3 c)
 {
   float3x3 m;
   m.row[0] = a;
@@ -900,7 +831,7 @@ IDH_CALL float3x3 make_float3x3(float3 a, float3 b, float3 c)
   return m;
 }
 
-IDH_CALL float3x3 make_float3x3_by_columns(float3 a, float3 b, float3 c)
+static inline float3x3 make_float3x3_by_columns(float3 a, float3 b, float3 c)
 {
   float3x3 m;
   m.row[0].x = a.x;
@@ -917,7 +848,7 @@ IDH_CALL float3x3 make_float3x3_by_columns(float3 a, float3 b, float3 c)
   return m;
 }
 
-IDH_CALL float3 mul3x3x3(float3x3 m, const float3 v)
+static inline float3 mul3x3x3(float3x3 m, const float3 v)
 {
   float3 res;
   res.x = m.row[0].x*v.x + m.row[0].y*v.y + m.row[0].z*v.z;
@@ -926,7 +857,7 @@ IDH_CALL float3 mul3x3x3(float3x3 m, const float3 v)
   return res;
 }
 
-IDH_CALL float3x3 mul3x3x3x3(float3x3 m1, float3x3 m2)
+static inline float3x3 mul3x3x3x3(float3x3 m1, float3x3 m2)
 {
   float3 column1 = mul3x3x3(m1, make_float3(m2.row[0].x, m2.row[1].x, m2.row[2].x));
   float3 column2 = mul3x3x3(m1, make_float3(m2.row[0].y, m2.row[1].y, m2.row[2].y));
@@ -935,7 +866,7 @@ IDH_CALL float3x3 mul3x3x3x3(float3x3 m1, float3x3 m2)
   return make_float3x3_by_columns(column1, column2, column3);
 }
 
-IDH_CALL float3x3 inverse(float3x3 a)
+static inline float3x3 inverse(float3x3 a)
 {
   float det = a.row[0].x * (a.row[1].y * a.row[2].z - a.row[1].z * a.row[2].y) -
               a.row[0].y * (a.row[1].x * a.row[2].z - a.row[1].z * a.row[2].x) +
@@ -956,12 +887,10 @@ IDH_CALL float3x3 inverse(float3x3 a)
   b.row[0] *= s;
   b.row[1] *= s;
   b.row[2] *= s;
-
   return b;
 }
 
 #ifndef COMMON_CPLUS_PLUS_CODE
-
 static inline float4x4 inverse4x4(float4x4 m1)
 {
   float tmp[12]; // temp array for pairs
@@ -969,93 +898,89 @@ static inline float4x4 inverse4x4(float4x4 m1)
 
   // calculate pairs for first 8 elements (cofactors)
   //
-  tmp[0] = m1.row[2].z * m1.row[3].w;
-  tmp[1] = m1.row[2].w * m1.row[3].z;
-  tmp[2] = m1.row[2].y * m1.row[3].w;
-  tmp[3] = m1.row[2].w * m1.row[3].y;
-  tmp[4] = m1.row[2].y * m1.row[3].z;
-  tmp[5] = m1.row[2].z * m1.row[3].y;
-  tmp[6] = m1.row[2].x * m1.row[3].w;
-  tmp[7] = m1.row[2].w * m1.row[3].x;
-  tmp[8] = m1.row[2].x * m1.row[3].z;
-  tmp[9] = m1.row[2].z * m1.row[3].x;
-  tmp[10] = m1.row[2].x * m1.row[3].y;
-  tmp[11] = m1.row[2].y * m1.row[3].x;
+  tmp[0]  = m1.m_col[2].z * m1.m_col[3].w;
+  tmp[1]  = m1.m_col[3].z * m1.m_col[2].w;
+  tmp[2]  = m1.m_col[1].z * m1.m_col[3].w;
+  tmp[3]  = m1.m_col[3].z * m1.m_col[1].w;
+  tmp[4]  = m1.m_col[1].z * m1.m_col[2].w;
+  tmp[5]  = m1.m_col[2].z * m1.m_col[1].w;
+  tmp[6]  = m1.m_col[0].z * m1.m_col[3].w;
+  tmp[7]  = m1.m_col[3].z * m1.m_col[0].w;
+  tmp[8]  = m1.m_col[0].z * m1.m_col[2].w;
+  tmp[9]  = m1.m_col[2].z * m1.m_col[0].w;
+  tmp[10] = m1.m_col[0].z * m1.m_col[1].w;
+  tmp[11] = m1.m_col[1].z * m1.m_col[0].w;
 
-  // calculate first 8 m1.rowents (cofactors)
-  //
-  m.row[0].x = tmp[0] * m1.row[1].y + tmp[3] * m1.row[1].z + tmp[4] * m1.row[1].w;
-  m.row[0].x -= tmp[1] * m1.row[1].y + tmp[2] * m1.row[1].z + tmp[5] * m1.row[1].w;
-  m.row[1].x = tmp[1] * m1.row[1].x + tmp[6] * m1.row[1].z + tmp[9] * m1.row[1].w;
-  m.row[1].x -= tmp[0] * m1.row[1].x + tmp[7] * m1.row[1].z + tmp[8] * m1.row[1].w;
-  m.row[2].x = tmp[2] * m1.row[1].x + tmp[7] * m1.row[1].y + tmp[10] * m1.row[1].w;
-  m.row[2].x -= tmp[3] * m1.row[1].x + tmp[6] * m1.row[1].y + tmp[11] * m1.row[1].w;
-  m.row[3].x = tmp[5] * m1.row[1].x + tmp[8] * m1.row[1].y + tmp[11] * m1.row[1].z;
-  m.row[3].x -= tmp[4] * m1.row[1].x + tmp[9] * m1.row[1].y + tmp[10] * m1.row[1].z;
-  m.row[0].y = tmp[1] * m1.row[0].y + tmp[2] * m1.row[0].z + tmp[5] * m1.row[0].w;
-  m.row[0].y -= tmp[0] * m1.row[0].y + tmp[3] * m1.row[0].z + tmp[4] * m1.row[0].w;
-  m.row[1].y = tmp[0] * m1.row[0].x + tmp[7] * m1.row[0].z + tmp[8] * m1.row[0].w;
-  m.row[1].y -= tmp[1] * m1.row[0].x + tmp[6] * m1.row[0].z + tmp[9] * m1.row[0].w;
-  m.row[2].y = tmp[3] * m1.row[0].x + tmp[6] * m1.row[0].y + tmp[11] * m1.row[0].w;
-  m.row[2].y -= tmp[2] * m1.row[0].x + tmp[7] * m1.row[0].y + tmp[10] * m1.row[0].w;
-  m.row[3].y = tmp[4] * m1.row[0].x + tmp[9] * m1.row[0].y + tmp[10] * m1.row[0].z;
-  m.row[3].y -= tmp[5] * m1.row[0].x + tmp[8] * m1.row[0].y + tmp[11] * m1.row[0].z;
+    // calculate first 8 m1.rowents (cofactors)
+    //
+    m.m_col[0].x = tmp[0]  * m1.m_col[1].y + tmp[3] * m1.m_col[2].y + tmp[4]  * m1.m_col[3].y;
+    m.m_col[0].x -= tmp[1] * m1.m_col[1].y + tmp[2] * m1.m_col[2].y + tmp[5]  * m1.m_col[3].y;
+    m.m_col[0].y = tmp[1]  * m1.m_col[0].y + tmp[6] * m1.m_col[2].y + tmp[9]  * m1.m_col[3].y;
+    m.m_col[0].y -= tmp[0] * m1.m_col[0].y + tmp[7] * m1.m_col[2].y + tmp[8]  * m1.m_col[3].y;
+    m.m_col[0].z = tmp[2]  * m1.m_col[0].y + tmp[7] * m1.m_col[1].y + tmp[10] * m1.m_col[3].y;
+    m.m_col[0].z -= tmp[3] * m1.m_col[0].y + tmp[6] * m1.m_col[1].y + tmp[11] * m1.m_col[3].y;
+    m.m_col[0].w = tmp[5]  * m1.m_col[0].y + tmp[8] * m1.m_col[1].y + tmp[11] * m1.m_col[2].y;
+    m.m_col[0].w -= tmp[4] * m1.m_col[0].y + tmp[9] * m1.m_col[1].y + tmp[10] * m1.m_col[2].y;
+    m.m_col[1].x = tmp[1]  * m1.m_col[1].x + tmp[2] * m1.m_col[2].x + tmp[5]  * m1.m_col[3].x;
+    m.m_col[1].x -= tmp[0] * m1.m_col[1].x + tmp[3] * m1.m_col[2].x + tmp[4]  * m1.m_col[3].x;
+    m.m_col[1].y = tmp[0]  * m1.m_col[0].x + tmp[7] * m1.m_col[2].x + tmp[8]  * m1.m_col[3].x;
+    m.m_col[1].y -= tmp[1] * m1.m_col[0].x + tmp[6] * m1.m_col[2].x + tmp[9]  * m1.m_col[3].x;
+    m.m_col[1].z = tmp[3]  * m1.m_col[0].x + tmp[6] * m1.m_col[1].x + tmp[11] * m1.m_col[3].x;
+    m.m_col[1].z -= tmp[2] * m1.m_col[0].x + tmp[7] * m1.m_col[1].x + tmp[10] * m1.m_col[3].x;
+    m.m_col[1].w = tmp[4]  * m1.m_col[0].x + tmp[9] * m1.m_col[1].x + tmp[10] * m1.m_col[2].x;
+    m.m_col[1].w -= tmp[5] * m1.m_col[0].x + tmp[8] * m1.m_col[1].x + tmp[11] * m1.m_col[2].x;
 
-  // calculate pairs for second 8 m1.rowents (cofactors)
-  //
-  tmp[0] = m1.row[0].z * m1.row[1].w;
-  tmp[1] = m1.row[0].w * m1.row[1].z;
-  tmp[2] = m1.row[0].y * m1.row[1].w;
-  tmp[3] = m1.row[0].w * m1.row[1].y;
-  tmp[4] = m1.row[0].y * m1.row[1].z;
-  tmp[5] = m1.row[0].z * m1.row[1].y;
-  tmp[6] = m1.row[0].x * m1.row[1].w;
-  tmp[7] = m1.row[0].w * m1.row[1].x;
-  tmp[8] = m1.row[0].x * m1.row[1].z;
-  tmp[9] = m1.row[0].z * m1.row[1].x;
-  tmp[10] = m1.row[0].x * m1.row[1].y;
-  tmp[11] = m1.row[0].y * m1.row[1].x;
+    // calculate pairs for second 8 m1.rowents (cofactors)
+    //
+    tmp[0]  = m1.m_col[2].x * m1.m_col[3].y;
+    tmp[1]  = m1.m_col[3].x * m1.m_col[2].y;
+    tmp[2]  = m1.m_col[1].x * m1.m_col[3].y;
+    tmp[3]  = m1.m_col[3].x * m1.m_col[1].y;
+    tmp[4]  = m1.m_col[1].x * m1.m_col[2].y;
+    tmp[5]  = m1.m_col[2].x * m1.m_col[1].y;
+    tmp[6]  = m1.m_col[0].x * m1.m_col[3].y;
+    tmp[7]  = m1.m_col[3].x * m1.m_col[0].y;
+    tmp[8]  = m1.m_col[0].x * m1.m_col[2].y;
+    tmp[9]  = m1.m_col[2].x * m1.m_col[0].y;
+    tmp[10] = m1.m_col[0].x * m1.m_col[1].y;
+    tmp[11] = m1.m_col[1].x * m1.m_col[0].y;
 
-  // calculate second 8 m1 (cofactors)
-  //
-  m.row[0].z = tmp[0] * m1.row[3].y + tmp[3] * m1.row[3].z + tmp[4] * m1.row[3].w;
-  m.row[0].z -= tmp[1] * m1.row[3].y + tmp[2] * m1.row[3].z + tmp[5] * m1.row[3].w;
-  m.row[1].z = tmp[1] * m1.row[3].x + tmp[6] * m1.row[3].z + tmp[9] * m1.row[3].w;
-  m.row[1].z -= tmp[0] * m1.row[3].x + tmp[7] * m1.row[3].z + tmp[8] * m1.row[3].w;
-  m.row[2].z = tmp[2] * m1.row[3].x + tmp[7] * m1.row[3].y + tmp[10] * m1.row[3].w;
-  m.row[2].z -= tmp[3] * m1.row[3].x + tmp[6] * m1.row[3].y + tmp[11] * m1.row[3].w;
-  m.row[3].z = tmp[5] * m1.row[3].x + tmp[8] * m1.row[3].y + tmp[11] * m1.row[3].z;
-  m.row[3].z -= tmp[4] * m1.row[3].x + tmp[9] * m1.row[3].y + tmp[10] * m1.row[3].z;
-  m.row[0].w = tmp[2] * m1.row[2].z + tmp[5] * m1.row[2].w + tmp[1] * m1.row[2].y;
-  m.row[0].w -= tmp[4] * m1.row[2].w + tmp[0] * m1.row[2].y + tmp[3] * m1.row[2].z;
-  m.row[1].w = tmp[8] * m1.row[2].w + tmp[0] * m1.row[2].x + tmp[7] * m1.row[2].z;
-  m.row[1].w -= tmp[6] * m1.row[2].z + tmp[9] * m1.row[2].w + tmp[1] * m1.row[2].x;
-  m.row[2].w = tmp[6] * m1.row[2].y + tmp[11] * m1.row[2].w + tmp[3] * m1.row[2].x;
-  m.row[2].w -= tmp[10] * m1.row[2].w + tmp[2] * m1.row[2].x + tmp[7] * m1.row[2].y;
-  m.row[3].w = tmp[10] * m1.row[2].z + tmp[4] * m1.row[2].x + tmp[9] * m1.row[2].y;
-  m.row[3].w -= tmp[8] * m1.row[2].y + tmp[11] * m1.row[2].z + tmp[5] * m1.row[2].x;
+    // calculate second 8 m1 (cofactors)
+    //
+    m.m_col[2].x = tmp[0]   * m1.m_col[1].w + tmp[3]  * m1.m_col[2].w + tmp[4]  * m1.m_col[3].w;
+    m.m_col[2].x -= tmp[1]  * m1.m_col[1].w + tmp[2]  * m1.m_col[2].w + tmp[5]  * m1.m_col[3].w;
+    m.m_col[2].y = tmp[1]   * m1.m_col[0].w + tmp[6]  * m1.m_col[2].w + tmp[9]  * m1.m_col[3].w;
+    m.m_col[2].y -= tmp[0]  * m1.m_col[0].w + tmp[7]  * m1.m_col[2].w + tmp[8]  * m1.m_col[3].w;
+    m.m_col[2].z = tmp[2]   * m1.m_col[0].w + tmp[7]  * m1.m_col[1].w + tmp[10] * m1.m_col[3].w;
+    m.m_col[2].z -= tmp[3]  * m1.m_col[0].w + tmp[6]  * m1.m_col[1].w + tmp[11] * m1.m_col[3].w;
+    m.m_col[2].w = tmp[5]   * m1.m_col[0].w + tmp[8]  * m1.m_col[1].w + tmp[11] * m1.m_col[2].w;
+    m.m_col[2].w -= tmp[4]  * m1.m_col[0].w + tmp[9]  * m1.m_col[1].w + tmp[10] * m1.m_col[2].w;
+    m.m_col[3].x = tmp[2]   * m1.m_col[2].z + tmp[5]  * m1.m_col[3].z + tmp[1]  * m1.m_col[1].z;
+    m.m_col[3].x -= tmp[4]  * m1.m_col[3].z + tmp[0]  * m1.m_col[1].z + tmp[3]  * m1.m_col[2].z;
+    m.m_col[3].y = tmp[8]   * m1.m_col[3].z + tmp[0]  * m1.m_col[0].z + tmp[7]  * m1.m_col[2].z;
+    m.m_col[3].y -= tmp[6]  * m1.m_col[2].z + tmp[9]  * m1.m_col[3].z + tmp[1]  * m1.m_col[0].z;
+    m.m_col[3].z = tmp[6]   * m1.m_col[1].z + tmp[11] * m1.m_col[3].z + tmp[3]  * m1.m_col[0].z;
+    m.m_col[3].z -= tmp[10] * m1.m_col[3].z + tmp[2]  * m1.m_col[0].z + tmp[7]  * m1.m_col[1].z;
+    m.m_col[3].w = tmp[10]  * m1.m_col[2].z + tmp[4]  * m1.m_col[0].z + tmp[9]  * m1.m_col[1].z;
+    m.m_col[3].w -= tmp[8]  * m1.m_col[1].z + tmp[11] * m1.m_col[2].z + tmp[5]  * m1.m_col[0].z;
 
-  // calculate matrix inverse
-  //
-  float k = 1.0f / (m1.row[0].x * m.row[0].x + m1.row[0].y * m.row[1].x + m1.row[0].z * m.row[2].x + m1.row[0].w * m.row[3].x);
-
-  for (int i = 0; i<4; i++)
-  {
-    m.row[i].x *= k;
-    m.row[i].y *= k;
-    m.row[i].z *= k;
-    m.row[i].w *= k;
-  }
-
-  return m;
+    // calculate matrix inverse
+    //
+    const float k = 1.0f / (m1.m_col[0].x * m.m_col[0].x + m1.m_col[1].x * m.m_col[0].y + 
+                            m1.m_col[2].x * m.m_col[0].z + m1.m_col[3].x * m.m_col[0].w);
+  
+    const float4 vK = make_float4(k,k,k,k);
+    m.m_col[0] = m.m_col[0]*vK;
+    m.m_col[1] = m.m_col[1]*vK;
+    m.m_col[2] = m.m_col[2]*vK;
+    m.m_col[3] = m.m_col[3]*vK;
+    return m;
 }
-
 
 // Look At matrix creation
 // return the inverse view matrix
 //
-
-IDH_CALL float4x4 lookAt(float3 eye, float3 center, float3 up)
+static inline float4x4 lookAt(float3 eye, float3 center, float3 up)
 {
   float3 x, y, z; // basis; will make a rotation matrix
 
@@ -1077,32 +1002,23 @@ IDH_CALL float4x4 lookAt(float3 eye, float3 center, float3 up)
   y = normalize(y);
 
   float4x4 M;
-  M.row[0].x = x.x; M.row[1].x = x.y; M.row[2].x = x.z; M.row[3].x = -x.x * eye.x - x.y * eye.y - x.z*eye.z;
-  M.row[0].y = y.x; M.row[1].y = y.y; M.row[2].y = y.z; M.row[3].y = -y.x * eye.x - y.y * eye.y - y.z*eye.z;
-  M.row[0].z = z.x; M.row[1].z = z.y; M.row[2].z = z.z; M.row[3].z = -z.x * eye.x - z.y * eye.y - z.z*eye.z;
-  M.row[0].w = 0.0; M.row[1].w = 0.0; M.row[2].w = 0.0; M.row[3].w = 1.0;
+  M.m_col[0] = make_float4(x.x, y.x, z.x, 0.0f);
+  M.m_col[1] = make_float4(x.y, y.y, z.y, 0.0f);
+  M.m_col[2] = make_float4(x.z, y.z, z.z, 0.0f);
+  M.m_col[3] = make_float4(-x.x * eye.x - x.y * eye.y - x.z*eye.z,
+                           -y.x * eye.x - y.y * eye.y - y.z*eye.z,
+                           -z.x * eye.x - z.y * eye.y - z.z*eye.z,
+                           1.0f );
   return M;
 }
 
 static inline float4x4 transpose(const float4x4 a_mat)
 {
   float4x4 res;
-  res.row[0].x = a_mat.row[0].x;
-  res.row[0].y = a_mat.row[1].x;
-  res.row[0].z = a_mat.row[2].x;
-  res.row[0].w = a_mat.row[3].x;
-  res.row[1].x = a_mat.row[0].y;
-  res.row[1].y = a_mat.row[1].y;
-  res.row[1].z = a_mat.row[2].y;
-  res.row[1].w = a_mat.row[3].y;
-  res.row[2].x = a_mat.row[0].z;
-  res.row[2].y = a_mat.row[1].z;
-  res.row[2].z = a_mat.row[2].z;
-  res.row[2].w = a_mat.row[3].z;
-  res.row[3].x = a_mat.row[0].w;
-  res.row[3].y = a_mat.row[1].w;
-  res.row[3].z = a_mat.row[2].w;
-  res.row[3].w = a_mat.row[3].w;
+  res.m_col[0] = make_float4(a_mat.m_col[0].x, a_mat.m_col[1].x, a_mat.m_col[2].x, a_mat.m_col[3].x);
+  res.m_col[1] = make_float4(a_mat.m_col[0].y, a_mat.m_col[1].y, a_mat.m_col[2].y, a_mat.m_col[3].y);
+  res.m_col[2] = make_float4(a_mat.m_col[0].z, a_mat.m_col[1].z, a_mat.m_col[2].z, a_mat.m_col[3].z);
+  res.m_col[3] = make_float4(a_mat.m_col[0].w, a_mat.m_col[1].w, a_mat.m_col[2].w, a_mat.m_col[3].w);
   return res;
 }
 
@@ -1181,25 +1097,25 @@ static inline float4x4 RotateAroundVector4x4(float3 v, float rotAngle)
 
   float4x4 m;
 
-  m.row[0].x = (1.0f - cos_t)*v.x*v.x + cos_t;
-  m.row[0].y = (1.0f - cos_t)*v.x*v.y - sin_t*v.z;
-  m.row[0].z = (1.0f - cos_t)*v.x*v.z + sin_t*v.y;
-  m.row[0].w = 1.0f;
+  m.m_col[0].x = (1.0f - cos_t)*v.x*v.x + cos_t;
+  m.m_col[1].x = (1.0f - cos_t)*v.x*v.y - sin_t*v.z;
+  m.m_col[2].x = (1.0f - cos_t)*v.x*v.z + sin_t*v.y;
+  m.m_col[3].x = 1.0f;
 
-  m.row[1].x = (1.0f - cos_t)*v.y*v.x + sin_t*v.z;
-  m.row[1].y = (1.0f - cos_t)*v.y*v.y + cos_t;
-  m.row[1].z = (1.0f - cos_t)*v.y*v.z - sin_t*v.x;
-  m.row[1].w = 1.0f;
+  m.m_col[0].y = (1.0f - cos_t)*v.y*v.x + sin_t*v.z;
+  m.m_col[1].y = (1.0f - cos_t)*v.y*v.y + cos_t;
+  m.m_col[2].y = (1.0f - cos_t)*v.y*v.z - sin_t*v.x;
+  m.m_col[3].y = 1.0f;
 
-  m.row[2].x = (1.0f - cos_t)*v.x*v.z - sin_t*v.y;
-  m.row[2].y = (1.0f - cos_t)*v.z*v.y + sin_t*v.x;
-  m.row[2].z = (1.0f - cos_t)*v.z*v.z + cos_t;
-  m.row[2].w = 1.0f;
+  m.m_col[0].z = (1.0f - cos_t)*v.x*v.z - sin_t*v.y;
+  m.m_col[1].z = (1.0f - cos_t)*v.z*v.y + sin_t*v.x;
+  m.m_col[2].z = (1.0f - cos_t)*v.z*v.z + cos_t;
+  m.m_col[3].z = 1.0f;
 
-  m.row[3].x = 0.0f;
-  m.row[3].y = 0.0f;
-  m.row[3].z = 0.0f;
-  m.row[3].w = 1.0f;
+  m.m_col[0].w = 0.0f;
+  m.m_col[1].w = 0.0f;
+  m.m_col[2].w = 0.0f;
+  m.m_col[3].w = 1.0f;
 
   return m;
 }
@@ -1283,16 +1199,10 @@ struct ObjectListSphere
 
 struct ObjectList
 {
-
 #ifndef OCL_COMPILER
-#ifndef __CUDACC__
-
   ObjectList() { m_triangleCount = m_offset = dummy1 = dummy2 = 0; }
-
   inline ObjectListTriangle* GetTriangles() const { return  (ObjectListTriangle*)(((char*)this) + sizeof(ObjectList)); }
   inline const ObjectListSphere* GetSpheres() const { return  (const ObjectListSphere*)((char*)this + sizeof(ObjectList) + m_triangleCount*sizeof(ObjectListTriangle)); }
-
-#endif
 #endif
 
   int m_offset;
@@ -1301,9 +1211,9 @@ struct ObjectList
   int dummy2;
 };
 
-IDH_CALL int GetNumTriangles(struct ObjectList ol)  { return ol.m_triangleCount; }
-IDH_CALL int GetOffset(struct ObjectList ol)        { return ol.m_offset; }
-IDH_CALL int GetNumPrimitives(struct ObjectList ol) { return GetNumTriangles(ol); }
+static inline int GetNumTriangles(struct ObjectList ol)  { return ol.m_triangleCount; }
+static inline int GetOffset(struct ObjectList ol)        { return ol.m_offset; }
+static inline int GetNumPrimitives(struct ObjectList ol) { return GetNumTriangles(ol); }
 
 
 struct ALIGN_S(16) Lite_HitT
@@ -1316,7 +1226,7 @@ struct ALIGN_S(16) Lite_HitT
 
 typedef struct Lite_HitT Lite_Hit;
 
-IDH_CALL Lite_Hit Make_Lite_Hit(float t, int a_treeId)
+static inline Lite_Hit Make_Lite_Hit(float t, int a_treeId)
 {
   int a_geomId = 0;
 
@@ -1331,17 +1241,15 @@ IDH_CALL Lite_Hit Make_Lite_Hit(float t, int a_treeId)
 static inline bool HitNone(const Lite_Hit a_hit) { return (a_hit.primId == -1) || !isfinite(a_hit.t); }
 static inline bool HitSome(const Lite_Hit a_hit) { return (a_hit.primId != -1) && isfinite(a_hit.t); }
 
-IDH_CALL int IS_LEAF(int a_leftOffsetAndLeaf)                 { return a_leftOffsetAndLeaf & 0x80000000; }
-IDH_CALL int PACK_LEAF_AND_OFFSET(int a_leftOffset, int leaf) { return (a_leftOffset & 0x7fffffff) | (leaf & 0x80000000); }
-IDH_CALL int EXTRACT_OFFSET(int a_leftOffsetAndLeaf)          { return a_leftOffsetAndLeaf & 0x7fffffff; }
+static inline int IS_LEAF(int a_leftOffsetAndLeaf)                 { return a_leftOffsetAndLeaf & 0x80000000; }
+static inline int PACK_LEAF_AND_OFFSET(int a_leftOffset, int leaf) { return (a_leftOffset & 0x7fffffff) | (leaf & 0x80000000); }
+static inline int EXTRACT_OFFSET(int a_leftOffsetAndLeaf)          { return a_leftOffsetAndLeaf & 0x7fffffff; }
 
 
 // a know about bit fields, but in CUDA they didn't work
 //
 struct BVHNodeT
 {
-
-#ifndef __CUDACC__
 #ifndef OCL_COMPILER
 
   BVHNodeT() 
@@ -1351,7 +1259,6 @@ struct BVHNodeT
     m_boxMin            = float3(INFINITY, INFINITY, INFINITY);
     m_boxMax            = float3(-INFINITY, -INFINITY, -INFINITY);
   }
-
 
   inline unsigned int Leaf() const { return (m_leftOffsetAndLeaf & 0x80000000) >> 31; }
 
@@ -1370,8 +1277,6 @@ struct BVHNodeT
 
   inline void SetInstance(unsigned int a_Leaf) { m_escapeIndex = a_Leaf; }
   inline unsigned int Instance() const { return (m_escapeIndex == 1); }
-
-#endif
 #endif
 
   float3 m_boxMin;
@@ -1384,7 +1289,7 @@ struct BVHNodeT
 
 typedef struct BVHNodeT BVHNode;
 
-IDH_CALL bool IsValidNode(const BVHNode a_node) { return !((a_node.m_leftOffsetAndLeaf == 0xffffffff) && (a_node.m_escapeIndex == 0xffffffff)); }
+static inline bool IsValidNode(const BVHNode a_node) { return !((a_node.m_leftOffsetAndLeaf == 0xffffffff) && (a_node.m_escapeIndex == 0xffffffff)); }
 
 struct _PACKED RayFlagsT
 {
@@ -1508,7 +1413,7 @@ struct ALIGN_S(16) HitPosNormT
 
 typedef struct HitPosNormT HitPosNorm;
 
-ID_CALL HitPosNorm make_HitPosNorm(float4 a_data)
+static inline HitPosNorm make_HitPosNorm(float4 a_data)
 {
   HitPosNorm res;
   res.pos_x   = a_data.x;
@@ -1746,7 +1651,7 @@ static inline float3 MapSamplesToCone(float cosCutoff, float2 sample, float3 dir
   return nx*deviation.x + ny*deviation.y + nz*deviation.z;
 }
 
-IDH_CALL float3 MapSamplesToSphere(float r1, float r2) // [-1..1]
+static inline float3 MapSamplesToSphere(float r1, float r2) // [-1..1]
 {
   float phi = r1*3.141592654f * 2.0f; // [0  .. 2PI]
   float h   = r2*2.0f - 1.0f;         // [-1 .. 1]
@@ -1794,13 +1699,6 @@ struct ALIGN_S(16) ZBlockT
 
 typedef struct ZBlockT ZBlock;
 
-//IDH_CALL uint unpackAvgTraceDepth(uint a_flags)                       { return ((a_flags  & 0xFF000000) >> 24); }
-//IDH_CALL uint packAvgTraceDepth(uint a_oldData, uint a_flags)         { return (a_oldData & 0x00FFFFFF) | (a_flags << 24); }
-
-//IDH_CALL uint unpackIndex2(uint a_flags)                       { return (a_flags   & 0x00FFFFFF); }
-//IDH_CALL uint packIndex2(uint a_oldData, uint a_flags)         { return (a_oldData & 0xFF000000) | a_flags; }
-
-
 static bool BlockFinished(ZBlock block, int a_minRaysPerPixel, int a_maxRaysPerPixel, float* a_outDiff) // for use on the cpu side ... for current
 {
   int samplesPerPixel = block.counter; // was *2 due to odd and even staff
@@ -1817,7 +1715,7 @@ static bool BlockFinished(ZBlock block, int a_minRaysPerPixel, int a_maxRaysPerP
   return ((summErrorOk || maxErrorOk) && samplesPerPixel >= minRaysPerPixel) || (samplesPerPixel >= a_maxRaysPerPixel);
 }
 
-IDH_CALL uint ThreadSwizzle1D(uint pixelId, uint zBlockIndex)
+static inline uint ThreadSwizzle1D(uint pixelId, uint zBlockIndex)
 {
   uint indexInsideZBlock = pixelId%CMP_RESULTS_BLOCK_SIZE;
   return zBlockIndex*CMP_RESULTS_BLOCK_SIZE + indexInsideZBlock;
@@ -1857,7 +1755,7 @@ struct MRaysStat
   float sampleTimeMS;
 };
 
-IDH_CALL float probabilityAbsorbRR(uint a_flags, uint a_globalFlags)
+static inline float probabilityAbsorbRR(uint a_flags, uint a_globalFlags)
 {
   if (a_globalFlags & HRT_ENABLE_MMLT) // metropolis don't use roultte
     return 0.0f;
@@ -2009,7 +1907,7 @@ static inline int packXY1616(int x, int y) { return (y << 16) | (x & 0x0000FFFF)
 
 #ifndef OCL_COMPILER 
 
-IDH_CALL float3 clamp3(float3 x, float a, float b) { return make_float3(fmin(fmax(x.x, a), b), fmin(fmax(x.y, a), b), fmin(fmax(x.z, a), b)); }
+static inline float3 clamp3(float3 x, float a, float b) { return make_float3(fmin(fmax(x.x, a), b), fmin(fmax(x.y, a), b), fmin(fmax(x.z, a), b)); }
 
 static unsigned short MortonTable256Host[] =
 {
@@ -2721,6 +2619,7 @@ enum PLAIN_MAT_FLAGS{
   PLAIN_MATERIAL_EMISSIVE_SHADOW_CATCHER     = 32768*32,
   PLAIN_MATERIAL_CATCHER_FIX_BLACK_TRIANGLES = 32768*64,
   PLAIN_MATERIAL_FLIP_TANGENT                = 32768*128,
+  PLAIN_MATERIAL_ENERGY_FIX_OR_MULTISCATTER  = 32768*256,
 };
 
 #define PLAIN_MATERIAL_DATA_SIZE        192

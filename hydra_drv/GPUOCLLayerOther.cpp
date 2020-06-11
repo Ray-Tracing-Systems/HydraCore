@@ -432,7 +432,7 @@ void GPUOCLLayer::RunProductionSamplingMode()
   if (ciErr1 != CL_SUCCESS)
     RUN_TIME_ERROR("Error in clCreateBuffer, RunProductionSamplingMode");
 
-  std::vector<float4> pixColors(pixelsPerPass);
+  cvex::vector<float4> pixColors(pixelsPerPass);
 
   CHECK_CL(clEnqueueWriteBuffer(m_globals.cmdQueue, pixCoordGPU, CL_TRUE, 0, // CL_FALSECL_TRUE
                                 pixelsPerPass*sizeof(int), (void*)(allPixels.data() + 0), 0, NULL, NULL));
@@ -585,9 +585,6 @@ void DebugSaveFuckingGBufferAsManyImages(int a_width, int a_height, const std::v
 
 void GPUOCLLayer::EvalGBuffer(IHRSharedAccumImage* a_pAccumImage, const std::vector<int32_t>& a_instIdByInstId)
 {
-  // std::vector<float4> data1(m_width*m_height);
-  // std::vector<float4> data2(m_width*m_height);
-
   if (a_pAccumImage == nullptr)
     return;
 

@@ -50,8 +50,10 @@ protected:
     RTCScene              m_sceneTopLevel;
     int                   m_sceneTriNum;
 
+    typedef std::unordered_map<int, float4x4, std::hash<int>, std::equal_to<int>, cvex::aligned<float4x4, 16> > MatrixMap;
+
     std::unordered_map<int, RTCScene> m_rtObjByMeshId;  ///< get embree scenes by meshId
-    std::unordered_map<int, float4x4> m_matByInstId;    ///< get matrix by instanceId
+    MatrixMap                         m_matByInstId;    ///< get matrix by instanceId
     std::unordered_map<int, int>      m_meshIdByInstId; ///< get meshId by instanceId
     std::vector<int>                  m_realInstId;     ///< get actual instance id
 
@@ -72,9 +74,9 @@ protected:
 
   /////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-  size_t Alloc4BVHNodes(std::vector<BVHNode>& a_vector);
-  size_t Alloc3Float4(std::vector<float4>& a_vector);
-  size_t Alloc1Float4(std::vector<float4>& a_vector);
+  size_t Alloc4BVHNodes(cvex::vector<BVHNode>& a_vector);
+  size_t Alloc3Float4(cvex::vector<float4>& a_vector);
+  size_t Alloc1Float4(cvex::vector<float4>& a_vector);
 
   struct LinearTree
   {
@@ -91,10 +93,10 @@ protected:
 
     bool empty() const { return (m_convertedLayout.size() <= 4); }
 
-    std::vector<BVHNode> m_convertedLayout;
-    std::vector<float4>  m_convertedTrinagles;
-    size_t               m_totalMeshTriangleCount;
-    std::string          embreeFormat;
+    cvex::vector<BVHNode> m_convertedLayout;
+    cvex::vector<float4>  m_convertedTrinagles;
+    size_t                m_totalMeshTriangleCount;
+    std::string           embreeFormat;
   };
 
   bool m_earlySplit;
@@ -102,8 +104,8 @@ protected:
   std::vector<LinearTree>   m_ltrees;
   int                       m_ltreeId;
 
-  std::vector<BVHNode>      m_dummy4bvh;
-  std::vector<float4>       m_dummy3f4;
+  cvex::vector<BVHNode>      m_dummy4bvh;
+  cvex::vector<float4>       m_dummy3f4;
 
   size_t ConvertBvh4TwoLevel(BVH4::NodeRef node, size_t currNodeOffset, int depth, int instDepth, int a_meshId, const char* a_treeType, int a_treeId);
   void InsertTrainglesInLeaf(size_t currNodeOffset, BVH4::NodeRef node, EmbreeBVH4_2::LinearTree& lt, int a_meshId, const char* a_treeType);

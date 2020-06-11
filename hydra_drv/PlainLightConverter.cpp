@@ -5,6 +5,7 @@
 
 #include "hydra_api/pugixml.hpp"
 #include "hydra_api/HydraXMLHelpers.h"
+#include "hydra_api/aligned_alloc.h"
 
 #include "HDRImageLite.h"
 
@@ -71,59 +72,55 @@ int2 AddIesTexTableToStorage(const std::wstring pathW, IMemoryStorage* a_storage
 float4x4 GetSubMatrix3x3(PlainLight& a_lightData, int a_slotOffset)
 {
   float4x4 matrix;
-  matrix.M(0, 0) = a_lightData.data[a_slotOffset + 0];
-  matrix.M(0, 1) = a_lightData.data[a_slotOffset + 1];
-  matrix.M(0, 2) = a_lightData.data[a_slotOffset + 2];
-  matrix.M(1, 0) = a_lightData.data[a_slotOffset + 3];
-  matrix.M(1, 1) = a_lightData.data[a_slotOffset + 4];
-  matrix.M(1, 2) = a_lightData.data[a_slotOffset + 5];
-  matrix.M(2, 0) = a_lightData.data[a_slotOffset + 6];
-  matrix.M(2, 1) = a_lightData.data[a_slotOffset + 7];
-  matrix.M(2, 2) = a_lightData.data[a_slotOffset + 8];
+  matrix(0, 0) = a_lightData.data[a_slotOffset + 0];
+  matrix(0, 1) = a_lightData.data[a_slotOffset + 1];
+  matrix(0, 2) = a_lightData.data[a_slotOffset + 2];
+  matrix(1, 0) = a_lightData.data[a_slotOffset + 3];
+  matrix(1, 1) = a_lightData.data[a_slotOffset + 4];
+  matrix(1, 2) = a_lightData.data[a_slotOffset + 5];
+  matrix(2, 0) = a_lightData.data[a_slotOffset + 6];
+  matrix(2, 1) = a_lightData.data[a_slotOffset + 7];
+  matrix(2, 2) = a_lightData.data[a_slotOffset + 8];
   return matrix;
 }
 
 void PutSubMatrix3x3(PlainLight& a_lightData, int a_slotOffset, const float4x4& a_matrix)
 {
-  a_lightData.data[a_slotOffset + 0] = a_matrix.M(0, 0);
-  a_lightData.data[a_slotOffset + 1] = a_matrix.M(0, 1);
-  a_lightData.data[a_slotOffset + 2] = a_matrix.M(0, 2);
-  a_lightData.data[a_slotOffset + 3] = a_matrix.M(1, 0);
-  a_lightData.data[a_slotOffset + 4] = a_matrix.M(1, 1);
-  a_lightData.data[a_slotOffset + 5] = a_matrix.M(1, 2);
-  a_lightData.data[a_slotOffset + 6] = a_matrix.M(2, 0);
-  a_lightData.data[a_slotOffset + 7] = a_matrix.M(2, 1);
-  a_lightData.data[a_slotOffset + 8] = a_matrix.M(2, 2);
+  a_lightData.data[a_slotOffset + 0] = a_matrix(0, 0);
+  a_lightData.data[a_slotOffset + 1] = a_matrix(0, 1);
+  a_lightData.data[a_slotOffset + 2] = a_matrix(0, 2);
+  a_lightData.data[a_slotOffset + 3] = a_matrix(1, 0);
+  a_lightData.data[a_slotOffset + 4] = a_matrix(1, 1);
+  a_lightData.data[a_slotOffset + 5] = a_matrix(1, 2);
+  a_lightData.data[a_slotOffset + 6] = a_matrix(2, 0);
+  a_lightData.data[a_slotOffset + 7] = a_matrix(2, 1);
+  a_lightData.data[a_slotOffset + 8] = a_matrix(2, 2);
 }
 
 void PutSubMatrix3x3Transp(PlainLight& a_lightData, int a_slotOffset, const float4x4& a_matrix)
 {
-  a_lightData.data[a_slotOffset + 0] = a_matrix.M(0, 0);
-  a_lightData.data[a_slotOffset + 1] = a_matrix.M(1, 0);
-  a_lightData.data[a_slotOffset + 2] = a_matrix.M(2, 0);
-  a_lightData.data[a_slotOffset + 3] = a_matrix.M(0, 1);
-  a_lightData.data[a_slotOffset + 4] = a_matrix.M(1, 1);
-  a_lightData.data[a_slotOffset + 5] = a_matrix.M(2, 1);
-  a_lightData.data[a_slotOffset + 6] = a_matrix.M(0, 2);
-  a_lightData.data[a_slotOffset + 7] = a_matrix.M(1, 2);
-  a_lightData.data[a_slotOffset + 8] = a_matrix.M(2, 2);
+  a_lightData.data[a_slotOffset + 0] = a_matrix(0, 0);
+  a_lightData.data[a_slotOffset + 1] = a_matrix(1, 0);
+  a_lightData.data[a_slotOffset + 2] = a_matrix(2, 0);
+  a_lightData.data[a_slotOffset + 3] = a_matrix(0, 1);
+  a_lightData.data[a_slotOffset + 4] = a_matrix(1, 1);
+  a_lightData.data[a_slotOffset + 5] = a_matrix(2, 1);
+  a_lightData.data[a_slotOffset + 6] = a_matrix(0, 2);
+  a_lightData.data[a_slotOffset + 7] = a_matrix(1, 2);
+  a_lightData.data[a_slotOffset + 8] = a_matrix(2, 2);
 }
-
 
 void ILight::TransformIESMatrix(const float4x4& a_matrix, PlainLight& copy)
 {
 	float4x4 mrot = a_matrix;
-	mrot.row[0].w = 0.0f;
-	mrot.row[1].w = 0.0f;
-	mrot.row[2].w = 0.0f;
-	mrot.row[3].w = 1.0f;
+	mrot.m_col[3] = float4(0.0f, 0.0f, 0.0f, 1.0f);
 
-  float4x4 iesMatrix = GetSubMatrix3x3(m_plain, IES_LIGHT_MATRIX_E00);
+  float4x4 iesMatrix = transpose(GetSubMatrix3x3(m_plain, IES_LIGHT_MATRIX_E00));
 
 	iesMatrix = mul(mrot, iesMatrix); // #TODO: remember C^(-1)*A*C rule ??? !!!
 
-  ::PutSubMatrix3x3(copy, IES_LIGHT_MATRIX_E00, iesMatrix);
-  ::PutSubMatrix3x3(copy, IES_INV_MATRIX_E00,   inverse4x4(iesMatrix));
+  ::PutSubMatrix3x3Transp(copy, IES_LIGHT_MATRIX_E00, iesMatrix);
+  ::PutSubMatrix3x3Transp(copy, IES_INV_MATRIX_E00,   inverse4x4(iesMatrix));
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -163,13 +160,16 @@ public:
     int32_t iesPdfId = -1;
 
     if (a_node.child(L"ies").attribute(L"matrix") != nullptr)
-      HydraXMLHelpers::ReadMatrix4x4(a_node.child(L"ies"), L"matrix", iesMatrix.L());
-
+    {
+      float matrixData[16];
+      HydraXMLHelpers::ReadMatrix4x4(a_node.child(L"ies"), L"matrix", matrixData);
+      iesMatrix = float4x4(matrixData);
+    }
     const int iesPointArea = a_node.child(L"ies").attribute(L"point_area").as_int();
     
 		if (ROTATE_IES_90_DEG)
 		{
-			float4x4 mrot = HydraLiteMath::rotate_Y_4x4(DEG_TO_RAD*90.0f);
+			float4x4 mrot = LiteMath::rotate4x4Y(DEG_TO_RAD*90.0f);
 			iesMatrix     = mul(mrot, iesMatrix);
 		}
 
@@ -236,7 +236,7 @@ public:
     m_plain.data[AREA_LIGHT_SIZE_Y] = a_size.y;
 
     float4x4 matrix;
-    ::PutSubMatrix3x3Transp(m_plain, AREA_LIGHT_MATRIX_E00, matrix);
+    ::PutSubMatrix3x3(m_plain, AREA_LIGHT_MATRIX_E00, matrix);
 
     m_plain.data[AREA_LIGHT_SPOT_COS1] = a_spotCos1;
     m_plain.data[AREA_LIGHT_SPOT_COS2] = a_spotCos2;
@@ -292,18 +292,15 @@ public:
     float3 lnorm  = float3(copy.data[PLIGHT_NORM_X], copy.data[PLIGHT_NORM_Y], copy.data[PLIGHT_NORM_Z]);
 
     float4x4 mrot = a_matrix;
-    mrot.row[0].w = 0.0f;
-    mrot.row[1].w = 0.0f;
-    mrot.row[2].w = 0.0f;
-    mrot.row[3].w = 1.0f;
-
+    mrot.m_col[3] = float4(0.0f, 0.0f, 0.0f, 1.0f);
+    
     lnorm = mul(mrot, lnorm);
 
     copy.data[PLIGHT_NORM_X] = lnorm.x;
     copy.data[PLIGHT_NORM_Y] = lnorm.y;
     copy.data[PLIGHT_NORM_Z] = lnorm.z;
 
-    ::PutSubMatrix3x3Transp(copy, AREA_LIGHT_MATRIX_E00, mrot);
+    ::PutSubMatrix3x3(copy, AREA_LIGHT_MATRIX_E00, mrot);
 
 		const_cast<AreaDiffuseLight*>(this)->TransformIESMatrix(a_matrix, copy);
 
@@ -315,10 +312,7 @@ public:
       // (4) calc surface area 
       //
       float4x4 mrot = a_matrix;
-      mrot.row[0].w = 0.0f;
-      mrot.row[1].w = 0.0f;
-      mrot.row[2].w = 0.0f;
-      mrot.row[3].w = 1.0f;
+      mrot.m_col[3] = float4(0.0f, 0.0f, 0.0f, 1.0f);
 
       const float3 vert  = mul(mrot, normalize(float3(1, 1, 1)));
       const float mult   = length(vert);
@@ -400,10 +394,7 @@ public:
     // (4) calc surface area 
     //
     float4x4 mrot = a_matrix;
-    mrot.row[0].w = 0.0f;
-    mrot.row[1].w = 0.0f;
-    mrot.row[2].w = 0.0f;
-    mrot.row[3].w = 1.0f;
+    mrot.m_col[3] = float4(0.0f, 0.0f, 0.0f, 1.0f);
 
     const float zMin   = m_plain.data[CYLINDER_LIGHT_ZMIN];
     const float zMax   = m_plain.data[CYLINDER_LIGHT_ZMAX];
@@ -416,7 +407,7 @@ public:
     const float newRadius = m_plain.data[CYLINDER_LIGHT_RADIUS] * mult;
     copy.data[PLIGHT_SURFACE_AREA] = (zMax - zMin)*mult*newRadius*phiMax;
 
-    ::PutSubMatrix3x3Transp(copy, CYLINDER_LIGHT_MATRIX_E00, a_matrix);
+    ::PutSubMatrix3x3(copy, CYLINDER_LIGHT_MATRIX_E00, a_matrix);
   
     return copy;
   }
@@ -487,10 +478,7 @@ public:
     // (4) calc surface area 
     //
     float4x4 mrot = a_matrix;
-    mrot.row[0].w = 0.0f;
-    mrot.row[1].w = 0.0f;
-    mrot.row[2].w = 0.0f;
-    mrot.row[3].w = 1.0f;
+    mrot.m_col[3] = float4(0.0f, 0.0f, 0.0f, 1.0f);
 
     const float3 vert  = mul(mrot, normalize(float3(1, 1, 1)));
     const float mult   = length(vert);
@@ -562,10 +550,7 @@ public:
     float3 lnorm  = float3(copy.data[PLIGHT_NORM_X], copy.data[PLIGHT_NORM_Y], copy.data[PLIGHT_NORM_Z]);
 
     float4x4 mrot = a_matrix;
-    mrot.row[0].w = 0.0f;
-    mrot.row[1].w = 0.0f;
-    mrot.row[2].w = 0.0f;
-    mrot.row[3].w = 1.0f;
+    mrot.m_col[3] = float4(0.0f, 0.0f, 0.0f, 1.0f);
 
     lnorm = mul(mrot, lnorm);
 
@@ -625,10 +610,7 @@ public:
     float3 lnorm = float3(copy.data[PLIGHT_NORM_X], copy.data[PLIGHT_NORM_Y], copy.data[PLIGHT_NORM_Z]);
 
     float4x4 mrot = a_matrix;
-    mrot.row[0].w = 0.0f;
-    mrot.row[1].w = 0.0f;
-    mrot.row[2].w = 0.0f;
-    mrot.row[3].w = 1.0f;
+    mrot.m_col[3] = float4(0.0f, 0.0f, 0.0f, 1.0f);
 
     lnorm = mul(mrot, lnorm);
 
@@ -657,15 +639,21 @@ public:
 
     if (a_node.child(L"ies").attribute(L"matrix") != nullptr && ldistr == L"ies")
     {
-      HydraXMLHelpers::ReadMatrix4x4(a_node.child(L"ies"), L"matrix", iesMatrix.L());
+      float matrixData[16];
+      HydraXMLHelpers::ReadMatrix4x4(a_node.child(L"ies"), L"matrix", matrixData);
+      iesMatrix = float4x4(matrixData);
       if (ROTATE_IES_90_DEG)
       {
-        float4x4 mrot = HydraLiteMath::rotate_Y_4x4(DEG_TO_RAD*90.0f);
+        float4x4 mrot = LiteMath::rotate4x4Y(DEG_TO_RAD*90.0f);
         iesMatrix = mul(mrot, iesMatrix);
       }
     }
-    else if(a_node.child(L"honio").attribute(L"matrix") != nullptr)                        // dont know wtf
-      HydraXMLHelpers::ReadMatrix4x4(a_node.child(L"honio"), L"matrix", iesMatrix.L());
+    else if(a_node.child(L"honio").attribute(L"matrix") != nullptr) 
+    { 
+      float matrixData[16];
+      HydraXMLHelpers::ReadMatrix4x4(a_node.child(L"honio"), L"matrix", matrixData);
+      iesMatrix = float4x4(matrixData);
+    }
     else if(a_node.child(L"ies").attribute(L"matrix") != nullptr && ldistr != L"ies")
     {
       const std::string ldistr2 = ws2s(ldistr); 
@@ -778,7 +766,7 @@ public:
     tempInd.assign(indices, indices + pLMesh->tIndicesNum);
 
     float4x4 idenity;
-    ::PutSubMatrix3x3Transp(m_plain, MESH_LIGHT_MATRIX_E00, idenity);
+    ::PutSubMatrix3x3(m_plain, MESH_LIGHT_MATRIX_E00, idenity);
 
     auto colorNode = a_node.child(L"intensity").child(L"color");
 
@@ -817,11 +805,9 @@ public:
     copy.data[PLIGHT_POS_Z] = lpos.z;
   
     float4x4 mrot = a_matrix;
-    mrot.row[0].w = 0.0f;
-    mrot.row[1].w = 0.0f;
-    mrot.row[2].w = 0.0f;
-    mrot.row[3].w = 1.0f;
-    ::PutSubMatrix3x3Transp(copy, MESH_LIGHT_MATRIX_E00, a_matrix);
+    mrot.m_col[3] = float4(0.0f, 0.0f, 0.0f, 1.0f);
+
+    ::PutSubMatrix3x3(copy, MESH_LIGHT_MATRIX_E00, a_matrix);
 
     double totalSA = 0.0;
     for (int i = 0; i < tempInd.size(); i += 3)
@@ -843,8 +829,8 @@ public:
 		return copy;
   }
 
-  std::vector<float4> tempPos;
-  std::vector<int>    tempInd;
+  cvex::vector<float4> tempPos;
+  std::vector<int>     tempInd;
 
 protected:
 
@@ -970,8 +956,11 @@ public:
     if (texNode != nullptr)
     {
       if(texNode.attribute(L"matrix") != nullptr)
-        HydraXMLHelpers::ReadMatrix4x4(texNode, L"matrix", samplerMat0.L());
-
+      {
+        float matrixData[16];
+        HydraXMLHelpers::ReadMatrix4x4(texNode, L"matrix", matrixData);
+        samplerMat0 = float4x4(matrixData);
+      }
       if (texNode.attribute(L"input_gamma") != nullptr)
         pSampler0->gamma = texNode.attribute(L"input_gamma").as_float();
       else
@@ -1002,11 +991,10 @@ public:
     samplerMat1  = samplerMat0;  // TODO: implement secondary sampler later
     (*pSampler1) = (*pSampler0); // TODO: implement secondary sampler later
 
-    pSampler0->row0 = samplerMat0.row[0];
-    pSampler0->row1 = samplerMat0.row[1];
-
-    pSampler1->row0 = samplerMat1.row[0];
-    pSampler1->row1 = samplerMat1.row[1];
+    pSampler0->row0 = samplerMat0.get_row(0);
+    pSampler0->row1 = samplerMat0.get_row(1);
+    pSampler1->row0 = samplerMat1.get_row(0);
+    pSampler1->row1 = samplerMat1.get_row(1);
 
     (*pInvMatrix0) = inverse4x4(samplerMat0);
     (*pInvMatrix1) = inverse4x4(samplerMat1);

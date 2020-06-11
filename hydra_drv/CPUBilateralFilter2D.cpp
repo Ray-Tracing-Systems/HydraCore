@@ -63,7 +63,7 @@ void BilateralFilter(const HDRImage4f& inImage, HDRImage4f& outImage, int a_wind
           const int i = x1 - x;
           const int j = y1 - y;
 
-          const float w1 = dot3(dist, dist);
+          const float w1 = dot3f(dist, dist);
           const float w2 = exp(-(w1 * g_NoiseLevel + (i * i + j * j) * g_GaussianSigma));
 
           if (w2 > g_WeightThreshold)

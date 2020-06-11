@@ -432,10 +432,10 @@ void GPUOCLLayer::saveBlocksInfoToFile(cl_mem a_blocks, size_t a_size)
 
 void GPUOCLLayer::debugSaveFrameBuffer(const char* a_fileName, cl_mem targetBuff)
 {
-  std::vector<float4> screenColor(m_width*m_height);
+  cvex::vector<float4> screenColor(m_width*m_height);
   CHECK_CL(clEnqueueReadBuffer(m_globals.cmdQueue, targetBuff, CL_TRUE, 0, screenColor.size()*sizeof(float4), &screenColor[0], 0, NULL, NULL));
 
-  std::vector<float4> screenColor2(m_width*m_height);
+  cvex::vector<float4> screenColor2(m_width*m_height);
 
   for (int y = 0; y < m_height; y++)
   {
@@ -452,8 +452,8 @@ void GPUOCLLayer::debugSaveFrameBuffer(const char* a_fileName, cl_mem targetBuff
 
 void GPUOCLLayer::debugSaveRays(const char* a_folderName, cl_mem rpos, cl_mem rdir)
 {
-  std::vector<float4> rposCPU(m_rays.MEGABLOCKSIZE);
-  std::vector<float4> rdirCPU(m_rays.MEGABLOCKSIZE);
+  cvex::vector<float4> rposCPU(m_rays.MEGABLOCKSIZE);
+  cvex::vector<float4> rdirCPU(m_rays.MEGABLOCKSIZE);
 
   CHECK_CL(clEnqueueReadBuffer(m_globals.cmdQueue, rpos, CL_TRUE, 0, rposCPU.size()*sizeof(float4), &rposCPU[0], 0, NULL, NULL));
   CHECK_CL(clEnqueueReadBuffer(m_globals.cmdQueue, rdir, CL_TRUE, 0, rdirCPU.size()*sizeof(float4), &rdirCPU[0], 0, NULL, NULL));
@@ -478,8 +478,8 @@ void GPUOCLLayer::debugSaveRays(const char* a_folderName, cl_mem rpos, cl_mem rd
 
 void GPUOCLLayer::debugSaveRaysText(const char* a_folderName, cl_mem rpos, cl_mem rdir)
 {
-  std::vector<float4> rposCPU(m_rays.MEGABLOCKSIZE);
-  std::vector<float4> rdirCPU(m_rays.MEGABLOCKSIZE);
+  cvex::vector<float4> rposCPU(m_rays.MEGABLOCKSIZE);
+  cvex::vector<float4> rdirCPU(m_rays.MEGABLOCKSIZE);
 
   CHECK_CL(clEnqueueReadBuffer(m_globals.cmdQueue, rpos, CL_TRUE, 0, rposCPU.size()*sizeof(float4), &rposCPU[0], 0, NULL, NULL));
   CHECK_CL(clEnqueueReadBuffer(m_globals.cmdQueue, rdir, CL_TRUE, 0, rdirCPU.size()*sizeof(float4), &rdirCPU[0], 0, NULL, NULL));
@@ -502,7 +502,7 @@ void GPUOCLLayer::debugSaveRaysText(const char* a_folderName, cl_mem rpos, cl_me
 
 void GPUOCLLayer::debugSaveFloat4Text(const char* a_fileName, cl_mem data)
 {
-  std::vector<float4> rposCPU(m_rays.MEGABLOCKSIZE);
+  cvex::vector<float4> rposCPU(m_rays.MEGABLOCKSIZE);
 
   CHECK_CL(clEnqueueReadBuffer(m_globals.cmdQueue, data, CL_TRUE, 0, rposCPU.size()*sizeof(float4), &rposCPU[0], 0, NULL, NULL));
 

@@ -356,13 +356,12 @@ static inline float skyLightEvalPDF(__global const PlainLight* pLight, float3 ra
 
   // apply inverse texcoord transform to get phi and theta and than get correct pdf from table 
   //
-  __global const float4x4* pMatrix = (__global const float4x4*)(pLight->data + SKY_DOME_MATRIX0);
+  __global const float4* pMatrixRow = (__global const float4*)(pLight->data + SKY_DOME_MATRIX0);
 
-  const float2 texCoordT = mul2x4(pMatrix->row[0], pMatrix->row[1], texCoord);
+  const float2 texCoordT = mul2x4(pMatrixRow[0], pMatrixRow[1], texCoord);
   const float mapPdf     = evalMap2DPdf(texCoordT, intervals, sizeX, sizeY);
   return (mapPdf * 1.0f) / (2.f * M_PI * M_PI * fmax(fabs(sintheta), DEPSILON));    
 }
-
 
 static inline int mylocalimax(int a, int b) { return (a > b) ? a : b; }
 static inline int mylocalimin(int a, int b) { return (a < b) ? a : b; }

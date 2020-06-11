@@ -168,10 +168,9 @@ __kernel void ComputeHit(__global const float4*   restrict rpos,
     return;
   }
 
-  float3 ray_pos = to_float3(rpos[tid]);
-  float3 ray_dir = to_float3(rdir[tid]);
+  const float3 ray_pos = to_float3(rpos[tid]);
+  const float3 ray_dir = to_float3(rdir[tid]);
 
- 
   // (1) mul ray with instanceMatrixInv
   //
   const float4x4 instanceMatrixInv = fetchMatrix(hit, in_matrices);
@@ -198,9 +197,6 @@ __kernel void ComputeHit(__global const float4*   restrict rpos,
   const float multInv            = 1.0f/sqrt(3.0f);
   const float3 shadowStartPos    = multInv*mul3x3(instanceMatrix, make_float3(surfHitWS.sRayOff, surfHitWS.sRayOff, surfHitWS.sRayOff));
   
-  //const float3 transformedNormal = mul3x3(instanceMatrix, surfHit.normal);
-  //const float  lengthInv         = 1.0f / length(transformedNormal);
-  
   // gl_NormalMatrix is transpose(inverse(gl_ModelViewMatrix))
   //
   const float4x4 normalMatrix = transpose(instanceMatrixInv);  // gl_NormalMatrix is transpose(inverse(gl_ModelViewMatrix))
@@ -213,7 +209,6 @@ __kernel void ComputeHit(__global const float4*   restrict rpos,
   surfHitWS.t          = length(surfHitWS.pos - ray_pos); // seems this is more precise. VERY strange !!!
   surfHitWS.sRayOff    = length(shadowStartPos);
   
-
   ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////// THIS IS FUCKING CRAZY !!!!
   {
     int rayOtherFlags = unpackRayFlags(flags);
@@ -628,10 +623,7 @@ __kernel void ColorIndexTriangles(__global Lite_Hit* in_hits,
   
 }
 
-
-
-
-// change 16.11.2019 15:38;
+// change 22.03.2020 11:08;
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////

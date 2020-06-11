@@ -256,8 +256,8 @@ void IntegratorCommon::CalcGBufferUncompressed(std::vector<GBufferAll>& a_gbuff)
 
 void TestCompressGBuffer(std::vector<GBufferAll>& a_gbuff)
 {
-  std::vector<float4> gbuff1(a_gbuff.size());
-  std::vector<float4> gbuff2(a_gbuff.size());
+  cvex::vector<float4> gbuff1(a_gbuff.size());
+  cvex::vector<float4> gbuff2(a_gbuff.size());
   
   #pragma omp parallel for
   for (int i = 0; i < int(a_gbuff.size()); i++)
@@ -409,7 +409,7 @@ void IntegratorCommon::DebugSaveNoiseImage(const wchar_t* a_path, const float4* 
   ExtractNoise(a_data, a_userCoeff,
                errArray, normConst);
 
-  std::vector<float4> errImage(m_width*m_height);
+  cvex::vector<float4> errImage(m_width*m_height);
   for (size_t i = 0; i < errImage.size(); i++)
   {
     const float val = errArray[i];

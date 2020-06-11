@@ -183,14 +183,14 @@ void createGaussKernelWeights1D(int size, std::vector<float>& gKernel, float a_s
 
 static inline float maxcolorc(float3 v) { return fmax(v.x, fmax(v.y, v.z)); }
 
-static std::vector<float4> resizeToHalfSizef4(const float4* pixels, int width, int height)
+static cvex::vector<float4> resizeToHalfSizef4(const float4* pixels, int width, int height)
 {
   width  = width / 2;
   height = height / 2;
   if (width == 0)  width = 1;
   if (height == 0) height = 1;
 
-  std::vector<float4> copy(width*height);
+  cvex::vector<float4> copy(width*height);
 
   float4* oldArray = (float4*)(&pixels[0]);
   float4* newArray = (float4*)(&copy[0]);
@@ -227,7 +227,7 @@ static std::vector<float4> resizeToHalfSizef4(const float4* pixels, int width, i
 
 std::vector<float> LuminanceFromFloat4Image(const float4* pixels, int& width, int& height)
 {
-  std::vector<float4> imageCopy;
+  cvex::vector<float4> imageCopy;
   const int maxResolution = MAX_ENV_LIGHT_PDF_SIZE;
 
   for (int i = 0; i < 4; i++)

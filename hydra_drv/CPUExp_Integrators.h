@@ -23,6 +23,8 @@
 
 #include "IBVHBuilderAPI.h"
 
+#include "hydra_api/aligned_alloc.h"
+
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////// old
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////// old
 
@@ -36,11 +38,11 @@ struct SceneBVHData
 
 struct SceneGeomData
 {
-  std::vector<float4> vertPos;
-  std::vector<float2> vertTexCoord;
-  std::vector<float4> vertNormUncompressed;
-  std::vector<float4> vertTangentUncompressed;
-  size_t              vertNum;
+  cvex::vector<float4> vertPos;
+  cvex::vector<float2> vertTexCoord;
+  cvex::vector<float4> vertNormUncompressed;
+  cvex::vector<float4> vertTangentUncompressed;
+  size_t               vertNum;
 
   std::vector<unsigned int> indices;         // of size == numIndices
   std::vector<unsigned int> materialIndices; // of size == numIndices/3
@@ -94,7 +96,7 @@ struct SceneMTexData
   int width[5];
   int height[5];
   std::vector<uint8_t> ldrData[5];
-  std::vector<float4>  hdrData[5];
+  cvex::vector<float4> hdrData[5];
 };
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -298,7 +300,7 @@ protected:
   inline PerThreadData& PerThread() { return m_perThread[omp_get_thread_num()]; }
   inline const int ThreadId() const { return omp_get_thread_num(); }
 
-  std::vector<float4>    m_summColors;  // experimental integrators use very simple not adaptive sampling, no tiles
+  cvex::vector<float4>   m_summColors;  // experimental integrators use very simple not adaptive sampling, no tiles
   float4*                m_hdrData;     // @always equal to &m_summColors[0];
 
   float3 Test_RayTrace(float3 ray_pos, float3 ray_dir);
@@ -821,10 +823,10 @@ protected:
   struct PathShot
   {
     std::vector<float>  randNumbers;
-    std::vector<float4> vpos;
+    cvex::vector<float4> vpos;
   };
   std::map<float, PathShot> m_debugRaysHeap[INTEGRATOR_MAX_THREADS_NUM];
-  std::vector<float4>       m_debugRaysPos [INTEGRATOR_MAX_THREADS_NUM];
+  cvex::vector<float4>      m_debugRaysPos [INTEGRATOR_MAX_THREADS_NUM];
 
 };
 
@@ -861,6 +863,6 @@ protected:
 
 float3 EstimateAverageBrightnessRGB(const HDRImage4f& a_color);
 float  EstimateAverageBrightness   (const HDRImage4f& a_color);
-float3 EstimateAverageBrightnessRGB(const std::vector<float4>& a_color);
-float  EstimateAverageBrightness   (const std::vector<float4>& a_color);
+float3 EstimateAverageBrightnessRGB(const cvex::vector<float4>& a_color);
+float  EstimateAverageBrightness   (const cvex::vector<float4>& a_color);
 

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "../../../HydraCore/hydra_drv/IBVHBuilderAPI.h"
+#include "../../../HydraAPI/hydra_api/aligned_alloc.h"
 
 #include "../common/tutorial/tutorial_device.h"
 using namespace embree;

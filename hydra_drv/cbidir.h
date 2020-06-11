@@ -159,7 +159,7 @@ static inline float2 worldPosToScreenSpaceWithDOF(float3 a_wpos, __global const 
   const float3   camLookaAt   = make_float3(a_globals->camLookAt[0],   a_globals->camLookAt[1],   a_globals->camLookAt[2]) + LaS*camShift;
                  camPos       = camPos + camShift;
 
-  const float4x4 mWorldView   = transpose(lookAtTransposed(camPos, camLookaAt, camUp));
+  const float4x4 mWorldView   = lookAt(camPos, camLookaAt, camUp);
 
   const float4 posCamSpace    = mul4x4x4(mWorldView, to_float4(a_wpos, 1.0f));
   const float4 posNDC         = mul4x4x4(make_float4x4(a_globals->mProj), posCamSpace);
@@ -654,7 +654,11 @@ static inline float3 emissionEval(const float3 ray_pos, const float3 ray_dir,  _
 {
   const float3 normal = pSurfElem->hfi ? (-1.0f)*pSurfElem->normal : pSurfElem->normal;
 
-  if (dot(ray_dir, normal) >= 0.0f)
+  bool hasIES = false;
+  if (a_globals->lightsNum > 0 && pLight != 0)
+    hasIES = (lightFlags(pLight) & LIGHT_HAS_IES) != 0;
+
+  if (dot(ray_dir, normal) >= 0.0f && !hasIES)
     return make_float3(0, 0, 0);
   
   float3 outPathColor = materialEvalEmission(a_pHitMaterial, ray_dir, normal, pSurfElem->texCoord, a_globals, a_texStorage, a_ptl); 

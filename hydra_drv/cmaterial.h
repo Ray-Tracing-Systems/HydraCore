@@ -154,7 +154,7 @@ static float3 GetMultiscatteringFrom2dTable(__global const ushort* msTable, cons
 {
   const float x      = dotNV     * (float)(widthTable);
   const float y      = roughness * (float)(heightTable);
-  const float Ess    = BilinearFrom2dTable(msTable, x, y, widthTable, heightTable) / (float)USHRT_MAX;
+  const float Ess    = BilinearFrom2dTable(msTable, x, y, widthTable, heightTable)*(1.0f/65535.0f);
   return 1.0f + color * (1.0f - Ess) / fmax(Ess, 1e-6f);
 }
 
@@ -185,7 +185,7 @@ static float3 GetMultiscatteringFrom3dTable(__global const ushort* a_msTable, co
     const float x2        = a_dotNV     * (float)(a_widthTable);
     const float y2        = a_roughness * (float)(a_heightTable);
     const float z2        = iorNormal   * (float)(a_depthTable);
-    const float Ess       = BilinearFrom3dTable(a_msTable, x2, y2, z2, a_widthTable, a_heightTable, a_depthTable, size2dTable) / (float)USHRT_MAX;
+    const float Ess       = BilinearFrom3dTable(a_msTable, x2, y2, z2, a_widthTable, a_heightTable, a_depthTable, size2dTable)*(1.0f/65536.0f);
     return 1.0f + a_color * (1.0f - Ess) / fmax(Ess, 1e-6f);
   }
   else
@@ -950,7 +950,7 @@ static inline float phongEvalPDF(__global const PlainMaterial* a_pMat, const flo
 static inline float PhongEnergyFix(const float a_dotRL, const float3 a_l, const float3 a_n)
 { 
   const float dotNL      = dot(a_n, a_l);
-  const float geomCosFix = 1.0f / dotNL * a_dotRL; // the transfer of geometric cosine in the space of reflection.  
+  const float geomCosFix = a_dotRL / fmax(dotNL,1e-6f); // the transfer of geometric cosine in the space of reflection.  
   return geomCosFix;
 }
 
@@ -967,10 +967,11 @@ static inline float3 phongEvalBxDF(__global const PlainMaterial* a_pMat, const f
   const float3 color    = clamp(phongGetColor(a_pMat)*texColor, 0.0f, 1.0f);
   const float  gloss    = phongGlosiness(a_pMat, a_texCoord, a_globals, a_tex, a_ptList); 
   const float  cosPower = cosPowerFromGlosiness(gloss);
-
+  
   const float3 r        = reflect((-1.0)*v, n);
   const float  cosAlpha = clamp(dot(l, r), 0.0f, 1.0f); // dotRL  
-  const float energyFix = PhongEnergyFix(cosAlpha, l, n);
+  const bool   applyFix = (materialGetFlags(a_pMat) & PLAIN_MATERIAL_ENERGY_FIX_OR_MULTISCATTER) != 0;
+  const float energyFix = applyFix ? PhongEnergyFix(cosAlpha, l, n) : 1.0f;
   
   return color*(cosPower + 2.0f)*INV_TWOPI*pow(cosAlpha, cosPower)*energyFix; // please see "Using the Modified Phong Reflectance Model for Physically ... 
 }
@@ -1002,7 +1003,8 @@ static inline void PhongSampleAndEvalBRDF(__global const PlainMaterial* a_pMat, 
   {
     const float cosAlpha  = clamp(dot(newDir, r), 0.0, 1.0f);
     const float eqTemp    = pow(cosAlpha, cosPower) * INV_TWOPI;
-    const float energyFix = PhongEnergyFix(cosAlpha, newDir, a_normal);
+    const bool  applyFix  = (materialGetFlags(a_pMat) & PLAIN_MATERIAL_ENERGY_FIX_OR_MULTISCATTER) != 0;
+    const float energyFix = applyFix ? PhongEnergyFix(cosAlpha, newDir, a_normal) : 1.0f;
     a_out->pdf            = eqTemp * (cosPower + 1.0f);
     a_out->color          = eqTemp * (cosPower + 2.0f) * color * energyFix; // please see "Using the Modified Phong Reflectance Model for Physically ... 
   }    

@@ -216,7 +216,7 @@ void GPUOCLLayer::testTexture2D()
 
 void GPUOCLLayer::testDumpRays(const char* a_fNamePos, const char* a_fnameDir)
 {
-  std::vector<float4> temp(m_rays.MEGABLOCKSIZE);
+  cvex::vector<float4> temp(m_rays.MEGABLOCKSIZE);
   CHECK_CL(clEnqueueReadBuffer(m_globals.cmdQueue, m_rays.rayPos, CL_TRUE, 0, m_rays.MEGABLOCKSIZE*sizeof(float4), &temp[0], 0, NULL, NULL));
 
   std::ofstream fout(a_fNamePos, std::ios::binary);
@@ -236,7 +236,7 @@ void GPUOCLLayer::debugDumpF4Buff(const char* a_fNamePos, cl_mem a_buff)
 {
   int size = int(m_rays.MEGABLOCKSIZE);
 
-  std::vector<float4> temp(size);
+  cvex::vector<float4> temp(size);
   CHECK_CL(clEnqueueReadBuffer(m_globals.cmdQueue, a_buff, CL_TRUE, 0, size*sizeof(float4), &temp[0], 0, NULL, NULL));
 
   std::ofstream fout(a_fNamePos, std::ios::binary);

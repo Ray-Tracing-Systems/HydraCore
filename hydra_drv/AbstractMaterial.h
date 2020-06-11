@@ -16,6 +16,8 @@
 #endif
 
 #include <vector>
+#include <memory>
+#include <cassert>
 
 SWTexSampler DummySampler();
 
@@ -80,11 +82,13 @@ namespace RAYTR
 
     virtual void PutSamplerAt(int a_texId, SWTexSampler a_sampler, const int a_texSlotName, const int a_slotName, const int a_offset)
     {
+      assert(a_offset%4 == 0); // GPU align issues when read float4/int4
       const int samplerOffset = (a_texId == INVALID_TEXTURE) ? INVALID_TEXTURE : (a_offset / 4); // calc offset in "float4/int4"
       ((int*)(m_plain.data))[a_texSlotName] = a_texId;
       ((int*)(m_plain.data))[a_slotName]    = samplerOffset;
       SWTexSampler* pSampler  = (SWTexSampler*)(m_plain.data + a_offset);
-      (*pSampler) = a_sampler;
+      //(*pSampler) = a_sampler; 
+      memcpy(pSampler,&a_sampler, sizeof(SWTexSampler)); // unaligned access warning!
     }
 
     virtual void SetNormalSampler(int a_texId, SWTexSampler a_sampler)   { this->PutSamplerAt(a_texId, a_sampler, NORMAL_TEX_OFFSET, NORMAL_TEX_MATRIX, NORMAL_SAMPLER_OFFSET); }

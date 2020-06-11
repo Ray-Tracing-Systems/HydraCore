@@ -195,21 +195,21 @@ inline static const bool IsThisFuckingEmbreeLeafWithTriangles(const int* pInstId
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-size_t EmbreeBVH4_2::Alloc4BVHNodes(std::vector<BVHNode>& a_vector)
+size_t EmbreeBVH4_2::Alloc4BVHNodes(cvex::vector<BVHNode>& a_vector)
 {
   size_t currSize = a_vector.size();
   a_vector.insert(a_vector.end(), m_dummy4bvh.begin(), m_dummy4bvh.end());
   return currSize;
 }
 
-size_t EmbreeBVH4_2::Alloc3Float4(std::vector<float4>& a_vector)
+size_t EmbreeBVH4_2::Alloc3Float4(cvex::vector<float4>& a_vector)
 {
   size_t currSize = a_vector.size();
   a_vector.insert(a_vector.end(), m_dummy3f4.begin(), m_dummy3f4.end());
   return currSize;
 }
 
-size_t EmbreeBVH4_2::Alloc1Float4(std::vector<float4>& a_vector)
+size_t EmbreeBVH4_2::Alloc1Float4(cvex::vector<float4>& a_vector)
 {
   size_t currSize = a_vector.size();
   a_vector.push_back(float4(0,0,0,0));
@@ -467,8 +467,6 @@ size_t EmbreeBVH4_2::ConvertBvh4TwoLevel(BVH4::NodeRef node, size_t currNodeOffs
         //
         float4x4 mInverse = inverse4x4(m_tree[m_ltreeId].m_matByInstId[(*pInstId)]);     // put matrix
         float4x4* pMatrix = (float4x4*)(&lt.m_convertedLayout[offsets[1]]);
-        //if (root.isLeaf())                                 // #watch this (!!!) different for current ray trace and OpenGL code
-        //mInverse = float4x4();
         (*pMatrix) = mInverse;
       
         int4* pInstId2 = (int4*)(&lt.m_convertedLayout[offsets[3]]);    // put instance id

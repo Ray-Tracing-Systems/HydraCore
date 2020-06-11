@@ -52,7 +52,7 @@ else()
     target_compile_options(hydra PRIVATE -fpermissive -Wnarrowing)
     target_link_libraries(hydra LINK_PUBLIC
             hydra_drv
-            hydrabvhbuilder embree sys tasking simd lexers
+            hydrabvhbuilder embree embree_sse42 sys tasking simd lexers
             vsgl3
             ${OpenMP_CXX_LIBRARIES}
             hydra_api
