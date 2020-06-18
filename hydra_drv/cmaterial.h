@@ -464,6 +464,18 @@ static inline float cosPowerFromGlosiness(float glosiness)
     return glosscoeff[k][3] + glosscoeff[k][2] * x1 + glosscoeff[k][1] * x1*x1 + glosscoeff[k][0] * x1*x1*x1;
 }
 
+static inline float cosPowerFromGlosiness2(float glossiness)
+{
+  //if (glossiness < 0.5f) 
+  //  return 0.4954477200294108 * pow(M_E, (4.865236120765555 * glossiness + 0.7806404723800449));
+  //else
+  //  return 0.000575002720720807 * pow(M_E, 22.425084162248766 * glossiness - 4.147465842325678) + 11.584065908036545;
+
+  if (glossiness < 0.5f)
+    return 0.495448f * pow(M_E, (4.865236f * glossiness + 0.78064f));
+  else
+    return 0.000575f * pow(M_E, 22.425084f * glossiness - 4.147466f) + 11.584066f;
+}
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 // thin glass surface
@@ -503,7 +515,7 @@ static inline float thinglassCosPower(__global const PlainMaterial* a_pMat, cons
   const float3 glossColor = sample2DExt(texId.y, a_texCoord, (__global const int4*)a_pMat, a_tex, a_globals, a_ptList);
   const float  glossMult  = a_pMat->data[THINGLASS_GLOSINESS];
   const float  glosiness  = clamp(glossMult*maxcomp(glossColor), 0.0f, 1.0f);
-  return cosPowerFromGlosiness(glosiness);
+  return cosPowerFromGlosiness2(glosiness);
 }
 
 
@@ -602,7 +614,7 @@ static inline float glassCosPower(__global const PlainMaterial* a_pMat, const fl
   const float3 glossColor  = sample2DExt(texId.y, a_texCoord, (__global const int4*)a_pMat, a_tex, a_globals, a_ptList);
   const float  glossMult   = a_pMat->data[GLASS_GLOSINESS];
   const float  glossiness  = clamp(glossMult*maxcomp(glossColor), 0.0f, 1.0f);
-  return cosPowerFromGlosiness(glossiness);
+  return cosPowerFromGlosiness2(glossiness);
 }
 
 static inline float glassGloss(__global const PlainMaterial* a_pMat, const float2 a_texCoord,
@@ -938,7 +950,7 @@ static inline float phongEvalPDF(__global const PlainMaterial* a_pMat, const flo
     return 1.0f;
 
   const float  gloss    = phongGlosiness(a_pMat, a_texCoord, a_globals, a_tex, a_ptList);
-  const float  cosPower = cosPowerFromGlosiness(gloss);
+  const float  cosPower = cosPowerFromGlosiness2(gloss);
 
   const float3 r        = reflect((-1.0)*v, n);
   const float  cosTheta = clamp(fabs(dot(l, r)), 0.0f, 1.0f); 
@@ -966,7 +978,7 @@ static inline float3 phongEvalBxDF(__global const PlainMaterial* a_pMat, const f
   const float3 texColor = sample2DExt(phongGetTex(a_pMat).y, a_texCoord, (__global const int4*)a_pMat, a_tex, a_globals, a_ptList);
   const float3 color    = clamp(phongGetColor(a_pMat)*texColor, 0.0f, 1.0f);
   const float  gloss    = phongGlosiness(a_pMat, a_texCoord, a_globals, a_tex, a_ptList); 
-  const float  cosPower = cosPowerFromGlosiness(gloss);
+  const float  cosPower = cosPowerFromGlosiness2(gloss);
   
   const float3 r        = reflect((-1.0)*v, n);
   const float  cosAlpha = clamp(dot(l, r), 0.0f, 1.0f); // dotRL  
@@ -983,7 +995,7 @@ static inline void PhongSampleAndEvalBRDF(__global const PlainMaterial* a_pMat, 
   const float3 texColor = sample2DExt(phongGetTex(a_pMat).y, a_texCoord, (__global const int4*)a_pMat, a_tex, a_globals, a_ptList);
   const float3 color    = clamp(phongGetColor(a_pMat)*texColor, 0.0f, 1.0f);
   const float  gloss    = phongGlosiness(a_pMat, a_texCoord, a_globals, a_tex, a_ptList);
-  const float  cosPower = cosPowerFromGlosiness(gloss);
+  const float  cosPower = cosPowerFromGlosiness2(gloss);
   
   bool underSurface     = false;
   const float3 r        = reflect(ray_dir, a_normal);
@@ -1061,7 +1073,7 @@ static inline float blinnGlosiness(__global const PlainMaterial* a_pMat, const f
 static inline float blinnCosPower(__global const PlainMaterial* a_pMat, const float2 a_texCoord, 
                                   __global const EngineGlobals* a_globals, texture2d_t a_tex, __private const ProcTextureList* a_ptList)
 {
-  return cosPowerFromGlosiness(blinnGlosiness(a_pMat, a_texCoord, a_globals, a_tex, a_ptList));
+  return cosPowerFromGlosiness2(blinnGlosiness(a_pMat, a_texCoord, a_globals, a_tex, a_ptList));
 }
 
 
@@ -1099,7 +1111,7 @@ static inline float3 blinnEvalBxDF(__global const PlainMaterial* a_pMat, const f
   const float3 texColor = sample2DExt(blinnGetTex(a_pMat).y, a_texCoord, (__global const int4*)a_pMat, a_tex, a_globals, a_ptList);
   const float3 color    = clamp(blinnGetColor(a_pMat)*texColor, 0.0f, 1.0f);
   const float  gloss    = blinnGlosiness(a_pMat, a_texCoord, a_globals, a_tex, a_ptList);
-  const float  exponent = cosPowerFromGlosiness(gloss); 
+  const float  exponent = cosPowerFromGlosiness2(gloss); 
   
   const float3 wh       = normalize(l + v);
   const float cosThetaH = fabs(dot(wh, n));
@@ -1127,7 +1139,7 @@ static inline void BlinnSampleAndEvalBRDF(__global const PlainMaterial* a_pMat, 
   ///////////////////////////////////////////////////////////////////////////// to PBRT coordinate system
 
   const float3 wo        = make_float3(-dot(ray_dir, nx), -dot(ray_dir, ny), -dot(ray_dir, nz));
-  const float  exponent  = cosPowerFromGlosiness(gloss);                                                
+  const float  exponent  = cosPowerFromGlosiness2(gloss);                                                
 
   // Compute sampled half-angle vector $\wh$ for Blinn distribution
   

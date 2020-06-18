@@ -61,7 +61,11 @@
 #endif
 
 #ifndef DEG_TO_RAD
-#define DEG_TO_RAD (3.14159265358979323846f / 180.f)
+#define DEG_TO_RAD    (3.14159265358979323846f / 180.f)
+#endif
+
+#ifndef M_E
+#define M_E           2.71828182845904523536f
 #endif
 
 #define GEPSILON      5e-6f
