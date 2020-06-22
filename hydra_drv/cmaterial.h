@@ -1382,7 +1382,8 @@ static inline float3 ggxEvalBxDF(__global const PlainMaterial* a_pMat, const flo
   float Pss             = D * G / fmax(4.0f * dotNV * dotNL, 1e-6f);        // Pass single-scattering
 
   // Pass multi-scattering. Not exactly the same as GGX2. For good, you need your own table.
-  float3 Pms            = GetMultiscatteringFrom2dTable(a_globals->m_essGgx2017Table, roughness, dotNV, 64, 64, color);
+  const bool applyFix   = (materialGetFlags(a_pMat) & PLAIN_MATERIAL_ENERGY_FIX_OR_MULTISCATTER) != 0;
+  const float3 Pms      = applyFix ? GetMultiscatteringFrom2dTable(a_globals->m_essGgx2017Table, roughness, dotNV, 64, 64, color) : make_float3(1.0F, 1.0F, 1.0F);
 
   return color * Pss * Pms;
 }
@@ -1511,7 +1512,9 @@ static inline void GGXSample2AndEvalBRDF(__global const PlainMaterial* a_pMat, c
     a_out->pdf        = Dv * jacob;
 
     // Pass multi-scattering.    
-    Pms = GetMultiscatteringFrom2dTable(a_globals->m_essGgx2017Table, roughness, dotNV, 64, 64, color);
+    const bool applyFix = (materialGetFlags(a_pMat) & PLAIN_MATERIAL_ENERGY_FIX_OR_MULTISCATTER) != 0;
+    if (applyFix)
+      Pms = GetMultiscatteringFrom2dTable(a_globals->m_essGgx2017Table, roughness, dotNV, 64, 64, color);    
   }
 
   a_out->direction    = newDir;
