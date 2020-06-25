@@ -1022,7 +1022,7 @@ static inline void PhongSampleAndEvalBRDF(__global const PlainMaterial* a_pMat, 
   }    
 
   a_out->direction  = newDir;
-  a_out->flags      = (gloss >= 0.99f) ? RAY_EVENT_S : RAY_EVENT_G;
+  a_out->flags      = RAY_EVENT_G;
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -1063,7 +1063,7 @@ static inline float blinnGlosiness(__global const PlainMaterial* a_pMat, const f
     const int2   texId      = make_int2(as_int(a_pMat->data[BLINN_GLOSINESS_TEXID_OFFSET]), as_int(a_pMat->data[BLINN_GLOSINESS_TEXMATRIXID_OFFSET]));
     const float3 glossColor = sample2DExt(texId.y, a_texCoord, (__global const int4*)a_pMat, a_tex, a_globals, a_ptList);
     const float  glossMult  = a_pMat->data[BLINN_GLOSINESS_OFFSET];
-    const float  glosiness  = clamp(glossMult*maxcomp(glossColor), 0.0f, 0.99f);
+    const float  glosiness  = clamp(glossMult*maxcomp(glossColor), 0.0f, 0.99F);
     return glosiness;
   }
   else
@@ -1167,7 +1167,7 @@ static inline void BlinnSampleAndEvalBRDF(__global const PlainMaterial* a_pMat, 
   }
 
   a_out->direction      = newDir; 
-  a_out->flags          = (gloss >= 0.99f) ? RAY_EVENT_S : RAY_EVENT_G;
+  a_out->flags          = RAY_EVENT_G;
 }
 
 
@@ -1212,7 +1212,7 @@ static inline float ggxGlosiness(__global const PlainMaterial* a_pMat, const flo
     const int2   texId      = make_int2(as_int(a_pMat->data[GGX_GLOSINESS_TEXID_OFFSET]), as_int(a_pMat->data[GGX_GLOSINESS_TEXMATRIXID_OFFSET]));
     const float3 glossColor = sample2DExt(texId.y, a_texCoord, (__global const int4*)a_pMat, a_tex, a_globals, a_ptList);
     const float  glossMult  = a_pMat->data[GGX_GLOSINESS_OFFSET];
-    const float  glosiness  = clamp(glossMult*maxcomp(glossColor), 0.0f, 0.99f);
+    const float  glosiness  = clamp(glossMult*maxcomp(glossColor), 0.0F, 0.94F);
     return glosiness;
   }
   else
@@ -1442,7 +1442,7 @@ static inline void GGXSampleAndEvalBRDF(__global const PlainMaterial* a_pMat, co
   
   a_out->direction  = newDir;
   a_out->color      = color * Pss;  
-  a_out->flags = (gloss >= 0.99f) ? RAY_EVENT_S : RAY_EVENT_G;
+  a_out->flags      = RAY_EVENT_G;
 }
 
 //////////////////////////////////////////////////////////////////////////////////////
@@ -1519,7 +1519,7 @@ static inline void GGXSample2AndEvalBRDF(__global const PlainMaterial* a_pMat, c
 
   a_out->direction    = newDir;
   a_out->color        = color * Pss * Pms / fmax(dotNL, 1e-6f);
-  a_out->flags        = (gloss >= 0.99f) ? RAY_EVENT_S : RAY_EVENT_G;
+  a_out->flags        = RAY_EVENT_G;
 }
 
 
@@ -1576,7 +1576,7 @@ static inline float beckmannGlosiness(__global const PlainMaterial* a_pMat, cons
     const int2   texId      = make_int2(as_int(a_pMat->data[BECKMANN_GLOSINESS_TEXID_OFFSET]), as_int(a_pMat->data[BECKMANN_GLOSINESS_TEXMATRIXID_OFFSET]));
     const float3 glossColor = sample2DExt(texId.y, a_texCoord, (__global const int4*)a_pMat, a_tex, a_globals, a_ptList);
     const float  glossMult  = a_pMat->data[BECKMANN_GLOSINESS_OFFSET];
-    const float  glosiness  = clamp(glossMult*maxcomp(glossColor), 0.0f, 0.99f);
+    const float  glosiness  = clamp(glossMult*maxcomp(glossColor), 0.0f, 0.99F);
     return glosiness;
   }
   else
@@ -1729,7 +1729,7 @@ static inline void BeckmannSampleAndEvalBRDF(__global const PlainMaterial* a_pMa
   }
   
   a_out->direction    = newDir;  
-  a_out->flags = (gloss >= 0.99f) ? RAY_EVENT_S : RAY_EVENT_G;
+  a_out->flags        = RAY_EVENT_G;
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -1836,7 +1836,7 @@ static inline void TRGGXSampleAndEvalBRDF(__global const PlainMaterial* a_pMat, 
   }
       
   a_out->direction    = newDir;
-  a_out->flags        = (gloss >= 0.99f) ? RAY_EVENT_S : RAY_EVENT_G;
+  a_out->flags        = RAY_EVENT_G;
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
