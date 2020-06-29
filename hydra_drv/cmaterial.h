@@ -464,17 +464,16 @@ static inline float cosPowerFromGlosiness(float glosiness)
     return glosscoeff[k][3] + glosscoeff[k][2] * x1 + glosscoeff[k][1] * x1*x1 + glosscoeff[k][0] * x1*x1*x1;
 }
 
-static inline float cosPowerFromGlosiness2(float glossiness)
+static inline float cosPowerFromGlosiness2(float a_glossiness)
 {
-  //if (glossiness < 0.5f) 
-  //  return 0.4954477200294108 * pow(M_E, (4.865236120765555 * glossiness + 0.7806404723800449));
-  //else
-  //  return 0.000575002720720807 * pow(M_E, 22.425084162248766 * glossiness - 4.147465842325678) + 11.584065908036545;
-
-  if (glossiness < 0.5f)
-    return 0.495448f * pow(M_E, (4.865236f * glossiness + 0.78064f));
+  // Denis Pavlov impl.
+  if (a_glossiness < 0.5f)
+    return 0.495448f * pow(M_E, (4.865236f * a_glossiness + 0.78064f));
   else
-    return 0.000575f * pow(M_E, 22.425084f * glossiness - 4.147466f) + 11.584066f;
+    return 0.000575f * pow(M_E, 22.425084f * a_glossiness - 4.147466f) + 11.584066f;
+
+  // Test impl from https://seblagarde.wordpress.com/2011/08/17/hello-world/
+  //return exp2(10.0F * a_glossiness + 1.0F);
 }
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -959,10 +958,15 @@ static inline float phongEvalPDF(__global const PlainMaterial* a_pMat, const flo
 }
 
 
-static inline float PhongEnergyFix(const float a_dotRL, const float3 a_l, const float3 a_n)
+static inline float PhongEnergyFix(const float a_dotRL, const float3 a_l, const float3 a_n, const float3 a_h)
 { 
   const float dotNL      = dot(a_n, a_l);
-  const float geomCosFix = a_dotRL / fmax(dotNL,1e-6f); // the transfer of geometric cosine in the space of reflection.  
+  const float dotNH      = dot(a_n, a_h);
+
+  //const float geomCosFix = a_dotRL / fmax(dotNL, 1e-6F); // the transfer of geometric cosine in the space of reflection.  
+  const float geomCosFix = a_dotRL / fmax(dotNH, 1e-6F);
+  
+
   return geomCosFix;
 }
 
@@ -981,9 +985,10 @@ static inline float3 phongEvalBxDF(__global const PlainMaterial* a_pMat, const f
   const float  cosPower = cosPowerFromGlosiness2(gloss);
   
   const float3 r        = reflect((-1.0)*v, n);
+  const float3 h        = normalize(r + l);
   const float  cosAlpha = clamp(dot(l, r), 0.0f, 1.0f); // dotRL  
   const bool   applyFix = (materialGetFlags(a_pMat) & PLAIN_MATERIAL_ENERGY_FIX_OR_MULTISCATTER) != 0;
-  const float energyFix = applyFix ? PhongEnergyFix(cosAlpha, l, n) : 1.0f;
+  const float energyFix = applyFix ? PhongEnergyFix(cosAlpha, l, n, h) : 1.0f;
   
   return color*(cosPower + 2.0f)*INV_TWOPI*pow(cosAlpha, cosPower)*energyFix; // please see "Using the Modified Phong Reflectance Model for Physically ... 
 }
@@ -1013,10 +1018,11 @@ static inline void PhongSampleAndEvalBRDF(__global const PlainMaterial* a_pMat, 
   }
   else
   {
+    const float3 h = normalize(r + l);
     const float cosAlpha  = clamp(dot(newDir, r), 0.0, 1.0f);
     const float eqTemp    = pow(cosAlpha, cosPower) * INV_TWOPI;
     const bool  applyFix  = (materialGetFlags(a_pMat) & PLAIN_MATERIAL_ENERGY_FIX_OR_MULTISCATTER) != 0;
-    const float energyFix = applyFix ? PhongEnergyFix(cosAlpha, newDir, a_normal) : 1.0f;
+    const float energyFix = applyFix ? PhongEnergyFix(cosAlpha, newDir, a_normal, h) : 1.0f;
     a_out->pdf            = eqTemp * (cosPower + 1.0f);
     a_out->color          = eqTemp * (cosPower + 2.0f) * color * energyFix; // please see "Using the Modified Phong Reflectance Model for Physically ... 
   }    
