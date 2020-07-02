@@ -12,7 +12,6 @@
 using RAYTR::ILight;
 
 static const bool  ROTATE_IES_90_DEG      = true;
-static const float OLD_PHOTOMETRIC_SCALE  = 1.0f; // M_PI;
 
 SWTexSampler DummySampler();
 
@@ -148,7 +147,7 @@ public:
     if (isDisk)
       a_size.x = HydraXMLHelpers::ReadSphereOrDiskLightRadius(a_node);
 
-    float3   a_intensity        = OLD_PHOTOMETRIC_SCALE*HydraXMLHelpers::ReadLightIntensity(a_node); 
+    float3   a_intensity        = HydraXMLHelpers::ReadLightIntensity(a_node); 
     float    a_lightSurfaceArea = 4.0f*a_size.x*a_size.y; 
 
     if (isDisk)
@@ -194,21 +193,18 @@ public:
 
     /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-    bool isSkyPortal     = (a_node.child(L"sky_portal").attribute(L"val").as_int() == 1);     
-    int  skyPortalSource = 0;
+    bool isSkyPortal       = (a_node.child(L"sky_portal").attribute(L"val").as_int() == 1);     
+    int  skyPortalSource   = 0;
 
     if (isSkyPortal) // #TODO: add support for different sky portal sources
-    {
-      skyPortalSource = a_node.child(L"sky_portal").attribute(L"source_id").as_int();
-			a_intensity *= (1.0f / OLD_PHOTOMETRIC_SCALE);
-    }
+      skyPortalSource      = a_node.child(L"sky_portal").attribute(L"source_id").as_int();
 
     int a_texId            = INVALID_TEXTURE; //#TODO: a_legacy.emissiveTexId;
     int a_texMatrixId      = INVALID_TEXTURE; //#TODO: a_legacy.emissiveTexMatrixId; put 0 here if have some texture and put texture sampler data in AREA_LIGHT_SAMPLER0
     int a_skyPortalSource  = skyPortalSource;
  
-    const float angle1 = HydraXMLHelpers::ReadValue1f(a_node.child(L"falloff_angle"));
-    const float angle2 = HydraXMLHelpers::ReadValue1f(a_node.child(L"falloff_angle2"));
+    const float angle1     = HydraXMLHelpers::ReadValue1f(a_node.child(L"falloff_angle"));
+    const float angle2     = HydraXMLHelpers::ReadValue1f(a_node.child(L"falloff_angle2"));
   
     const float a_spotCos2 = cosf(0.5f*DEG_TO_RAD*angle1); 
     const float a_spotCos1 = cosf(0.5f*DEG_TO_RAD*angle2); 
@@ -319,7 +315,7 @@ public:
       const float radius = m_plain.data[AREA_LIGHT_SIZE_X] * mult;
 
       //copy.data[AREA_LIGHT_SIZE_X]   = radius;
-      copy.data[PLIGHT_SURFACE_AREA] = 3.1415926535f*radius*radius;
+      copy.data[PLIGHT_SURFACE_AREA] = M_PI*radius*radius;
     }
     else
     {
@@ -448,16 +444,16 @@ public:
 
   SphereLight(float3 a_pos, float a_radius, float3 a_intensity)
   {
-    m_plain.data[PLIGHT_POS_X]   = a_pos.x;
-    m_plain.data[PLIGHT_POS_Y]   = a_pos.y;
-    m_plain.data[PLIGHT_POS_Z]   = a_pos.z;
+    m_plain.data[PLIGHT_POS_X]         = a_pos.x;
+    m_plain.data[PLIGHT_POS_Y]         = a_pos.y;
+    m_plain.data[PLIGHT_POS_Z]         = a_pos.z;
 
-    m_plain.data[PLIGHT_COLOR_X] = a_intensity.x;
-    m_plain.data[PLIGHT_COLOR_Y] = a_intensity.y;
-    m_plain.data[PLIGHT_COLOR_Z] = a_intensity.z;
+    m_plain.data[PLIGHT_COLOR_X]       = a_intensity.x;
+    m_plain.data[PLIGHT_COLOR_Y]       = a_intensity.y;
+    m_plain.data[PLIGHT_COLOR_Z]       = a_intensity.z;
 
     m_plain.data[SPHERE_LIGHT_RADIUS]  = a_radius;
-    m_plain.data[PLIGHT_SURFACE_AREA]  = 4.0f*3.1415926535f*a_radius*a_radius;
+    m_plain.data[PLIGHT_SURFACE_AREA]  = 4.0f*M_PI*a_radius*a_radius;
 
     ((int*)m_plain.data)[PLIGHT_TYPE]  = PLAIN_LIGHT_TYPE_SPHERE;
     ((int*)m_plain.data)[PLIGHT_FLAGS] = 0;
@@ -477,15 +473,15 @@ public:
 
     // (4) calc surface area 
     //
-    float4x4 mrot = a_matrix;
-    mrot.m_col[3] = float4(0.0f, 0.0f, 0.0f, 1.0f);
+    float4x4 mrot                  = a_matrix;
+    mrot.m_col[3]                  = float4(0.0f, 0.0f, 0.0f, 1.0f);
 
-    const float3 vert  = mul(mrot, normalize(float3(1, 1, 1)));
-    const float mult   = length(vert);
-    const float radius = m_plain.data[SPHERE_LIGHT_RADIUS] * mult;
+    const float3 vert              = mul(mrot, normalize(float3(1, 1, 1)));
+    const float mult               = length(vert);
+    const float radius             = m_plain.data[SPHERE_LIGHT_RADIUS] * mult;
 
     copy.data[SPHERE_LIGHT_RADIUS] = radius;
-    copy.data[PLIGHT_SURFACE_AREA] = 4.0f*3.1415926535f*radius*radius;
+    copy.data[PLIGHT_SURFACE_AREA] = 4.0f*M_PI*radius*radius;
 
     return copy;
   }
@@ -632,7 +628,7 @@ public:
   PointLight(pugi::xml_node a_node, IMemoryStorage* a_storage, std::unordered_map<std::wstring, int2>& a_iesCache, const std::wstring& a_libPath)
   {
     float3 pos(0, 0, 0);
-    float3 intensity = OLD_PHOTOMETRIC_SCALE*HydraXMLHelpers::ReadLightIntensity(a_node);
+    float3 intensity = HydraXMLHelpers::ReadLightIntensity(a_node) / M_PI;
     float4x4 iesMatrix;
     
     const std::wstring ldistr = a_node.attribute(L"distribution").as_string();
@@ -728,7 +724,7 @@ public:
   MeshLight(pugi::xml_node a_node, IMemoryStorage* a_storage, std::unordered_map<std::wstring, int2>& a_iesCache, const std::wstring& a_libPath, const PlainMesh* pLMesh)
   {
     float3 pos(0, 0, 0);
-    float3 intensity = OLD_PHOTOMETRIC_SCALE*HydraXMLHelpers::ReadLightIntensity(a_node);
+    float3 intensity             = HydraXMLHelpers::ReadLightIntensity(a_node);
 
     m_plain.data[PLIGHT_POS_X]   = pos.x;
     m_plain.data[PLIGHT_POS_Y]   = pos.y;
@@ -738,11 +734,11 @@ public:
     m_plain.data[PLIGHT_COLOR_Y] = intensity.y;
     m_plain.data[PLIGHT_COLOR_Z] = intensity.z;
 
-    const int32_t meshVerId  = a_storage->GetMaxObjectId() + 1;
-    const int32_t meshPdfId  = a_storage->GetMaxObjectId() + 2;
+    const int32_t meshVerId      = a_storage->GetMaxObjectId() + 1;
+    const int32_t meshPdfId      = a_storage->GetMaxObjectId() + 2;
  
-    double surfaceAreaTotal = 0.0;
-    std::vector<float> table = CalcTrianglePickProbTable(pLMesh, &surfaceAreaTotal);
+    double surfaceAreaTotal      = 0.0;
+    std::vector<float> table     = CalcTrianglePickProbTable(pLMesh, &surfaceAreaTotal);
 
     a_storage->Update(meshVerId, pLMesh, pLMesh->totalBytesNum);
     a_storage->Update(meshPdfId, &table[0], table.size()*sizeof(float));
@@ -751,9 +747,9 @@ public:
     ((int*)m_plain.data)[MESH_LIGHT_TABLE_OFFSET_ID] = meshPdfId;
     ((int*)m_plain.data)[MESH_LIGHT_TRI_NUM]         = pLMesh->tIndicesNum / 3;
 
-    m_plain.data[PLIGHT_SURFACE_AREA]  = float(surfaceAreaTotal);
-    ((int*)m_plain.data)[PLIGHT_TYPE]  = PLAIN_LIGHT_TYPE_MESH;
-    ((int*)m_plain.data)[PLIGHT_FLAGS] = 0;
+    m_plain.data[PLIGHT_SURFACE_AREA]       = float(surfaceAreaTotal);
+    ((int*)m_plain.data)[PLIGHT_TYPE]       = PLAIN_LIGHT_TYPE_MESH;
+    ((int*)m_plain.data)[PLIGHT_FLAGS]      = 0;
     ((int*)m_plain.data)[IES_SPHERE_TEX_ID] = INVALID_TEXTURE;
     ((int*)m_plain.data)[IES_SPHERE_PDF_ID] = INVALID_TEXTURE;
 
@@ -842,7 +838,8 @@ std::shared_ptr<ILight> CreateDirectLightFromXmlNode(pugi::xml_node a_node)
   float3 pos(0,0,0);
   float3 norm(0,-1,0);
 
-  float3 intensity = OLD_PHOTOMETRIC_SCALE*HydraXMLHelpers::ReadLightIntensity(a_node);
+  float3 intensity = HydraXMLHelpers::ReadLightIntensity(a_node);
+
   float  radius1   = HydraXMLHelpers::ReadNamedValue1f(a_node.child(L"size"), L"inner_radius");
   float  radius2   = HydraXMLHelpers::ReadNamedValue1f(a_node.child(L"size"), L"outer_radius");
   float  soft      = HydraXMLHelpers::ReadValue1f(a_node.child(L"shadow_softness"));
@@ -858,7 +855,7 @@ std::shared_ptr<ILight> CreateDirectLightFromXmlNode(pugi::xml_node a_node)
 std::shared_ptr<ILight> CreateSphereLightFromXmlNode(pugi::xml_node a_node)
 {
   float3 pos(0, 0, 0);
-  float3 intensity = OLD_PHOTOMETRIC_SCALE*HydraXMLHelpers::ReadLightIntensity(a_node);
+  float3 intensity = HydraXMLHelpers::ReadLightIntensity(a_node);
   float  radius    = HydraXMLHelpers::ReadNamedValue1f(a_node.child(L"size"), L"radius");
 
   return std::make_shared<SphereLight>(pos, radius, intensity);
@@ -866,16 +863,15 @@ std::shared_ptr<ILight> CreateSphereLightFromXmlNode(pugi::xml_node a_node)
 
 std::shared_ptr<ILight> CreateCylinderLightFromXmlNode(pugi::xml_node a_node)
 {
-  const float3 intensity = OLD_PHOTOMETRIC_SCALE*HydraXMLHelpers::ReadLightIntensity(a_node);
+  const float3 intensity    = HydraXMLHelpers::ReadLightIntensity(a_node);
+  const float  radius       = HydraXMLHelpers::ReadNamedValue1f(a_node.child(L"size"), L"radius");
+  const float  height       = HydraXMLHelpers::ReadNamedValue1f(a_node.child(L"size"), L"height");
+  const float  angle        = HydraXMLHelpers::ReadNamedValue1f(a_node.child(L"size"), L"angle");
 
-  const float  radius = HydraXMLHelpers::ReadNamedValue1f(a_node.child(L"size"), L"radius");
-  const float  height = HydraXMLHelpers::ReadNamedValue1f(a_node.child(L"size"), L"height");
-  const float  angle  = HydraXMLHelpers::ReadNamedValue1f(a_node.child(L"size"), L"angle");
+  const float zMin          = -0.5f*height;
+  const float zMax          = +0.5f*height;
 
-  const float zMin = -0.5f*height;
-  const float zMax = +0.5f*height;
-
-  auto colorNode = a_node.child(L"intensity").child(L"color");
+  auto colorNode            = a_node.child(L"intensity").child(L"color");
 
   SWTexSampler samplerColor = DummySampler();
   int32_t      texIdColor   = INVALID_TEXTURE;
@@ -897,7 +893,7 @@ std::shared_ptr<ILight> CreatePointSpotLightFromXmlNode(pugi::xml_node a_node)
   float3 pos(0, 0, 0);
   float3 norm(0, -1, 0);
 
-  float3 intensity   = OLD_PHOTOMETRIC_SCALE*HydraXMLHelpers::ReadLightIntensity(a_node);
+  float3 intensity   = HydraXMLHelpers::ReadLightIntensity(a_node);
 
   const float angle2 = HydraXMLHelpers::ReadValue1f(a_node.child(L"falloff_angle"));
   const float angle1 = HydraXMLHelpers::ReadValue1f(a_node.child(L"falloff_angle2"));

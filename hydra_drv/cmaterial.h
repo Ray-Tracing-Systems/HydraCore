@@ -958,16 +958,18 @@ static inline float phongEvalPDF(__global const PlainMaterial* a_pMat, const flo
 }
 
 
-static inline float PhongEnergyFix(const float a_dotRL, const float3 a_l, const float3 a_n, const float3 a_h)
+static inline float PhongEnergyFix(const float3 a_n, const float a_dotRL, const float3 a_pseudoH)
 { 
-  const float dotNL      = dot(a_n, a_l);
-  const float dotNH      = dot(a_n, a_h);
-
-  //const float geomCosFix = a_dotRL / fmax(dotNL, 1e-6F); // the transfer of geometric cosine in the space of reflection.  
-  const float geomCosFix = a_dotRL / fmax(dotNH, 1e-6F);
+  const float dotNH     = dot(a_n, a_pseudoH);
   
+  // energy saving has been proven.
+  const float energyFix = a_dotRL / fmax(dotNH, 1e-6F); 
 
-  return geomCosFix;
+  // energy saving var. 2 in the proof process.
+  //const float mask      = M_PI * 0.25F;
+  //const float energyFix = (a_dotRL * (1.0F - mask) + mask) / fmax(dotNH, 1e-6F);  
+
+  return energyFix;
 }
 
 static inline float3 phongEvalBxDF(__global const PlainMaterial* a_pMat, const float3 l, const float3 v, const float3 n, const float2 a_texCoord, const int a_evalFlags,
@@ -984,13 +986,15 @@ static inline float3 phongEvalBxDF(__global const PlainMaterial* a_pMat, const f
   const float  gloss    = phongGlosiness(a_pMat, a_texCoord, a_globals, a_tex, a_ptList); 
   const float  cosPower = cosPowerFromGlosiness2(gloss);
   
-  const float3 r        = reflect((-1.0)*v, n);
-  const float3 h        = normalize(r + l);
+  const float3 r        = reflect((-1.0) * v, n);
+  const float3 pseudoH  = normalize(r + l);
   const float  cosAlpha = clamp(dot(l, r), 0.0f, 1.0f); // dotRL  
+  const float glossLobe = pow(cosAlpha, cosPower);
+
   const bool   applyFix = (materialGetFlags(a_pMat) & PLAIN_MATERIAL_ENERGY_FIX_OR_MULTISCATTER) != 0;
-  const float energyFix = applyFix ? PhongEnergyFix(cosAlpha, l, n, h) : 1.0f;
+  const float energyFix = applyFix ? PhongEnergyFix(n, cosAlpha, pseudoH) : 1.0f;
   
-  return color*(cosPower + 2.0f)*INV_TWOPI*pow(cosAlpha, cosPower)*energyFix; // please see "Using the Modified Phong Reflectance Model for Physically ... 
+  return color * (cosPower + 2.0f) * INV_TWOPI * glossLobe * energyFix; // please see "Using the Modified Phong Reflectance Model for Physically ... 
 }
 
 static inline void PhongSampleAndEvalBRDF(__global const PlainMaterial* a_pMat, const float a_r1, const float a_r2, const float3 ray_dir, const float3 a_normal, const float2 a_texCoord,
@@ -1013,18 +1017,18 @@ static inline void PhongSampleAndEvalBRDF(__global const PlainMaterial* a_pMat, 
 
   if (dotNV < 1e-6f || dotNL < 1e-6f || underSurface) // reflection under surface must be zerowed!
   {
-    a_out->color = make_float3(0.0f, 0.0f, 0.0f);
+    a_out->color = make_float3(0.0f, 0.0f, 0.0f);   
     a_out->pdf   = 1.0f;
   }
   else
   {
-    const float3 h = normalize(r + l);
+    const float3 pseudoH = normalize(r + l);
     const float cosAlpha  = clamp(dot(newDir, r), 0.0, 1.0f);
-    const float eqTemp    = pow(cosAlpha, cosPower) * INV_TWOPI;
+    const float glossLobe = pow(cosAlpha, cosPower) * INV_TWOPI;
     const bool  applyFix  = (materialGetFlags(a_pMat) & PLAIN_MATERIAL_ENERGY_FIX_OR_MULTISCATTER) != 0;
-    const float energyFix = applyFix ? PhongEnergyFix(cosAlpha, newDir, a_normal, h) : 1.0f;
-    a_out->pdf            = eqTemp * (cosPower + 1.0f);
-    a_out->color          = eqTemp * (cosPower + 2.0f) * color * energyFix; // please see "Using the Modified Phong Reflectance Model for Physically ... 
+    const float energyFix = applyFix ? PhongEnergyFix(a_normal, cosAlpha, pseudoH) : 1.0f;
+    a_out->pdf            = glossLobe  * (cosPower + 1.0f);
+    a_out->color          = glossLobe *  (cosPower + 2.0f) * color * energyFix; // please see "Using the Modified Phong Reflectance Model for Physically ... 
   }    
 
   a_out->direction  = newDir;
