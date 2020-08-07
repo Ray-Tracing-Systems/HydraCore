@@ -334,6 +334,7 @@ public:
 
 };
 
+
 class IntegratorStupidPTSSS : public IntegratorCommon
 {
 public:
@@ -443,6 +444,20 @@ private:
   void kernel_AddLastBouceContrib(const float3& currColor, const float3& accumuThoroughput,
                                   float3& accumColor);
 
+};
+
+class IntegratorMISPTLoop2Adapt : public IntegratorMISPTLoop2
+{
+public:
+  IntegratorMISPTLoop2Adapt(int w, int h, EngineGlobals* a_pGlobals, int a_createFlags) : IntegratorMISPTLoop2(w, h, a_pGlobals, a_createFlags)
+  {
+    m_samplePerPix.resize(w * h);
+  }
+
+  void DoPass(std::vector<uint>& a_imageLDR);
+
+private:
+  std::vector<uint> m_samplePerPix;
 };
 
 //////////////////////////////////////////////////////////////////////////////////////

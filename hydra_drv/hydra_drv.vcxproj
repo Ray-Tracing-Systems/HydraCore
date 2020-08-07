@@ -185,6 +185,7 @@
     <ClCompile Include="BVHBuilderLoaderWin.cpp" />
     <ClCompile Include="CPUExpLayer.cpp" />
     <ClCompile Include="CPUExp_GBuffer.cpp" />
+    <ClCompile Include="CPUExp_Integrators_MISPT.cpp" />
     <ClCompile Include="CPUExp_IntegratorSSS.cpp" />
     <ClCompile Include="CPUExp_Integrators_Common.cpp" />
     <ClCompile Include="CPUExp_Integrators_LT.cpp" />

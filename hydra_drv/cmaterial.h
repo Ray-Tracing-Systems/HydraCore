@@ -960,15 +960,8 @@ static inline float phongEvalPDF(__global const PlainMaterial* a_pMat, const flo
 
 static inline float PhongEnergyFix(const float3 a_n, const float a_dotRL, const float3 a_pseudoH)
 { 
-  const float dotNH     = dot(a_n, a_pseudoH);
-  
-  // energy saving has been proven.
+  const float dotNH     = dot(a_n, a_pseudoH);  
   const float energyFix = a_dotRL / fmax(dotNH, 1e-6F); 
-
-  // energy saving var. 2 in the proof process.
-  //const float mask      = M_PI * 0.25F;
-  //const float energyFix = (a_dotRL * (1.0F - mask) + mask) / fmax(dotNH, 1e-6F);  
-
   return energyFix;
 }
 

@@ -274,48 +274,38 @@ float3 IntegratorMISPTLoop2::PathTrace(float3 ray_pos, float3 ray_dir, MisData m
       break; 
 
     Lite_Hit hit;
-    kernel_RayTrace(ray_pos, ray_dir,
-                    hit);
+    kernel_RayTrace(ray_pos, ray_dir, hit);
     
-    if(kernel_HitEnvironment(ray_dir, hit, misPrev, flags,
-                             currColor))
+    if(kernel_HitEnvironment(ray_dir, hit, misPrev, flags, currColor))
       break;
    
     SurfaceHit surfElem;
-    kernel_EvalSurface(ray_pos, ray_dir, hit,
-                       surfElem);
+    kernel_EvalSurface(ray_pos, ray_dir, hit, surfElem);
 
-    if(kernel_EvalEmission(ray_pos, ray_dir, surfElem, flags, misPrev, hit, depth,
-                           currColor))
+    if(kernel_EvalEmission(ray_pos, ray_dir, surfElem, flags, misPrev, hit, depth, currColor))
       break;
     
     float  lightPickProb;
     int    lightOffset;
     float4 rndLightData;
-    kernel_LightSelect(surfElem, depth, 
-                       lightPickProb, lightOffset, rndLightData);
+    kernel_LightSelect(surfElem, depth, lightPickProb, lightOffset, rndLightData);
 
     float3 shadowRayPos, shadowRayDir; 
     ShadowSample explicitSam;
-    kernel_LightSample(surfElem, lightOffset, rndLightData,
-                       shadowRayPos, shadowRayDir, explicitSam);
+    kernel_LightSample(surfElem, lightOffset, rndLightData, shadowRayPos, shadowRayDir, explicitSam);
     
     //#pragma hycc compress(half3)
     float3 shadow; 
-    kernel_ShadowTrace(shadowRayPos, shadowRayDir, lightOffset, explicitSam.pos,
-                       shadow);
+    kernel_ShadowTrace(shadowRayPos, shadowRayDir, lightOffset, explicitSam.pos, shadow);
 
     float3 explicitColor;
-    kernel_Shade(surfElem, explicitSam, shadowRayDir, ray_dir, shadow, lightPickProb, lightOffset,
-                 explicitColor);
+    kernel_Shade(surfElem, explicitSam, shadowRayDir, ray_dir, shadow, lightPickProb, lightOffset, explicitColor);
    
     
-    kernel_NextBounce(surfElem, explicitColor,
-                      misPrev, ray_pos, ray_dir, flags, accumColor, accumuThoroughput);
+    kernel_NextBounce(surfElem, explicitColor, misPrev, ray_pos, ray_dir, flags, accumColor, accumuThoroughput);
   } // for
 
-  kernel_AddLastBouceContrib(currColor, accumuThoroughput,
-                             accumColor);
+  kernel_AddLastBouceContrib(currColor, accumuThoroughput, accumColor);
 
   return accumColor;
 }

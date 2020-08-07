@@ -227,6 +227,9 @@
     <ClCompile Include="..\bakeBrdfEnergy\MSTablesTransp.cpp">
       <Filter>Файлы исходного кода</Filter>
     </ClCompile>
+    <ClCompile Include="CPUExp_Integrators_MISPT.cpp">
+      <Filter>CPULayer</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="shaders\image.cl">
