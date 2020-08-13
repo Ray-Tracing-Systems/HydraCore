@@ -451,13 +451,19 @@ class IntegratorMISPTLoop2Adapt : public IntegratorMISPTLoop2
 public:
   IntegratorMISPTLoop2Adapt(int w, int h, EngineGlobals* a_pGlobals, int a_createFlags) : IntegratorMISPTLoop2(w, h, a_pGlobals, a_createFlags)
   {
-    m_samplePerPix.resize(w * h);
+    m_samplePerPix.resize((int)(w * h));
+    //m_pixFinish.resize((int)(w * h));
+
+    for (auto& i : m_samplePerPix) i = 0;   
+    //for (auto& i : m_pixFinish)    i = false;
   }
 
   void DoPass(std::vector<uint>& a_imageLDR);
 
 private:
-  std::vector<uint> m_samplePerPix;
+  std::vector<uint>  m_samplePerPix;
+  //std::vector<bool>  m_pixFinish;
+
 };
 
 //////////////////////////////////////////////////////////////////////////////////////
