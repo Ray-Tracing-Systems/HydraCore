@@ -307,5 +307,5 @@ float3 IntegratorMISPTLoop2::PathTrace(float3 ray_pos, float3 ray_dir, MisData m
 
   kernel_AddLastBouceContrib(currColor, accumuThoroughput, accumColor);
 
-  return accumColor;
+  return clamp(accumColor, 0.0F, 1e6F);
 }

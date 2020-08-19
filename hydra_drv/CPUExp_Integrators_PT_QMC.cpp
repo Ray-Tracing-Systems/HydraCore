@@ -40,7 +40,7 @@ void IntegratorMISPT_QMC::DoPass(std::vector<uint>& a_imageLDR)
   }
   
   m_spp++;
-  GetImageToLDR(a_imageLDR);
+  GetImageToLDR(a_imageLDR, false);
   
   if(m_spp % 17 == 0)
     RandomizeAllGenerators();

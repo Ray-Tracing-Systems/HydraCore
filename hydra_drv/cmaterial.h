@@ -958,10 +958,9 @@ static inline float phongEvalPDF(__global const PlainMaterial* a_pMat, const flo
 }
 
 
-static inline float PhongEnergyFix(const float3 a_n, const float a_dotRL, const float3 a_pseudoH)
+static inline float PhongEnergyFix(const float a_dotNL, const float a_dotNV)
 { 
-  const float dotNH     = dot(a_n, a_pseudoH);  
-  const float energyFix = a_dotRL / fmax(dotNH, 1e-6F); 
+  const float energyFix = 1.0F / fmax(a_dotNL, a_dotNV);
   return energyFix;
 }
 
@@ -985,7 +984,7 @@ static inline float3 phongEvalBxDF(__global const PlainMaterial* a_pMat, const f
   const float glossLobe = pow(cosAlpha, cosPower);
 
   const bool   applyFix = (materialGetFlags(a_pMat) & PLAIN_MATERIAL_ENERGY_FIX_OR_MULTISCATTER) != 0;
-  const float energyFix = applyFix ? PhongEnergyFix(n, cosAlpha, pseudoH) : 1.0f;
+  const float energyFix = applyFix ? PhongEnergyFix(dotNL, dotNV) : 1.0f;
   
   return color * (cosPower + 2.0f) * INV_TWOPI * glossLobe * energyFix; // please see "Using the Modified Phong Reflectance Model for Physically ... 
 }
@@ -1019,7 +1018,7 @@ static inline void PhongSampleAndEvalBRDF(__global const PlainMaterial* a_pMat, 
     const float cosAlpha  = clamp(dot(newDir, r), 0.0, 1.0f);
     const float glossLobe = pow(cosAlpha, cosPower) * INV_TWOPI;
     const bool  applyFix  = (materialGetFlags(a_pMat) & PLAIN_MATERIAL_ENERGY_FIX_OR_MULTISCATTER) != 0;
-    const float energyFix = applyFix ? PhongEnergyFix(a_normal, cosAlpha, pseudoH) : 1.0f;
+    const float energyFix = applyFix ? PhongEnergyFix(dotNL, dotNV) : 1.0f;
     a_out->pdf            = glossLobe  * (cosPower + 1.0f);
     a_out->color          = glossLobe *  (cosPower + 2.0f) * color * energyFix; // please see "Using the Modified Phong Reflectance Model for Physically ... 
   }    

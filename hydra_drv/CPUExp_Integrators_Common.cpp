@@ -312,7 +312,7 @@ void IntegratorCommon::DoPass(std::vector<uint>& a_imageLDR)
   RandomizeAllGenerators();
   
   m_spp++;
-  GetImageToLDR(a_imageLDR);
+  GetImageToLDR(a_imageLDR, true);
   
   //if (m_spp == 1)
     //DebugSaveGbufferImage(L"C:/[Hydra]/rendered_images/torus_gbuff");
@@ -321,7 +321,7 @@ void IntegratorCommon::DoPass(std::vector<uint>& a_imageLDR)
 }
 
 
-void IntegratorCommon::GetImageToLDR(std::vector<uint>& a_imageLDR) const
+void IntegratorCommon::GetImageToLDR(std::vector<uint>& a_imageLDR, const bool a_toneMappingCompress) const
 {
   // get HDR to LDR
   //
@@ -329,7 +329,12 @@ void IntegratorCommon::GetImageToLDR(std::vector<uint>& a_imageLDR) const
 
   for (size_t i = 0; i < a_imageLDR.size(); i++)
   {
-    float4 color = ToneMapping4(m_summColors[i]);
+    float4 color;
+    
+    if (a_toneMappingCompress)
+      color = ToneMapping4Compress(m_summColors[i]);
+    else
+      color = ToneMapping4(m_summColors[i]);
 
     color.x = powf(color.x, gammaPow);
     color.y = powf(color.y, gammaPow);

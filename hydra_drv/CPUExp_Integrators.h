@@ -127,7 +127,7 @@ public:
   virtual void TraceForTest(std::vector<uint>& a_imageLDR) { }
 
   virtual void GetImageHDR(float4* data, int width, int height) const = 0;
-  virtual void GetImageToLDR(std::vector<uint>& a_imageLDR)     const = 0;
+  virtual void GetImageToLDR(std::vector<uint>& a_imageLDR, const bool a_toneMappingCompress) const = 0;
 
   // full core implemenation
   //
@@ -194,7 +194,7 @@ public:
   GBufferAll     gbufferEval(int x, int y);
 
   const EngineGlobals* getEngineGlobals() const { return m_pGlobals; }
-  void GetImageToLDR(std::vector<uint>& a_imageLDR) const;
+  void GetImageToLDR(std::vector<uint>& a_imageLDR, const bool ToneMappingCompress) const;
   void GetImageHDR(float4* a_imageHDR, int w, int h) const;
 
   float3 evalDiffuseColor(float3 ray_dir, const SurfaceHit& a_hit);
@@ -441,29 +441,41 @@ private:
   void kernel_NextBounce(const SurfaceHit& surfElem, const float3& explicitColor,
                          MisData& misPrev, float3& ray_pos, float3& ray_dir, uint& flags, float3& accumColor, float3& accumuThoroughput);
 
-  void kernel_AddLastBouceContrib(const float3& currColor, const float3& accumuThoroughput,
-                                  float3& accumColor);
+  void kernel_AddLastBouceContrib(const float3& currColor, const float3& accumuThoroughput, float3& accumColor);
 
 };
 
 class IntegratorMISPTLoop2Adapt : public IntegratorMISPTLoop2
 {
-public:
+public:  
   IntegratorMISPTLoop2Adapt(int w, int h, EngineGlobals* a_pGlobals, int a_createFlags) : IntegratorMISPTLoop2(w, h, a_pGlobals, a_createFlags)
-  {
-    m_samplePerPix.resize((int)(w * h));
-    //m_pixFinish.resize((int)(w * h));
+  {    
+    m_imgSize  = w * h;
+    m_progress = 0.0F;
 
-    for (auto& i : m_samplePerPix) i = 0;   
-    //for (auto& i : m_pixFinish)    i = false;
+    m_samplePerPix.resize(m_imgSize);
+    m_pixFinish.resize(m_imgSize);
+
+    for (int i = 0; i < m_imgSize; i++)
+    {
+      m_samplePerPix[i] = 0;
+      m_pixFinish[i]    = false;
+    }
   }
 
+  const char* Name() const { return "IntegratorMISPTLoop2Adapt"; }
   void DoPass(std::vector<uint>& a_imageLDR);
 
-private:
-  std::vector<uint>  m_samplePerPix;
-  //std::vector<bool>  m_pixFinish;
 
+private:
+  int                m_imgSize;
+  float              m_progress;
+  std::vector<bool>  m_pixFinish;
+  std::vector<uint>  m_samplePerPix;
+
+  //void NewPositionWithAdapt(int& x, int& y, const LiteMath::float4 summColor, const float imgRadius, RandomGen& gen);
+  void NewPositionWithAdapt2(int& x, int& y, const LiteMath::float4 summColor, const float imgRadius, RandomGen& gen) const; 
+  void NewPositionWithMarkovChain(int& x, int& y, const LiteMath::float4 summColor, const float imgRadius, RandomGen& gen, const int sample) const;
 };
 
 //////////////////////////////////////////////////////////////////////////////////////

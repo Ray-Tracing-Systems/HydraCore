@@ -676,6 +676,7 @@ static inline float3 reflect(float3 dir, float3 normal)
 ///// a simple tone mapping
 static inline float3 ToneMapping(float3 color)  { return make_float3(fmin(color.x, 1.0f), fmin(color.y, 1.0f), fmin(color.z, 1.0f)); }
 static inline float4 ToneMapping4(float4 color) { return make_float4(fmin(color.x, 1.0f), fmin(color.y, 1.0f), fmin(color.z, 1.0f), fmin(color.w, 1.0f)); }
+static inline float4 ToneMapping4Compress(float4 color) { return make_float4(fmin(color.x / (1.0F + color.x), 1.0f), fmin(color.y / (1.0F + color.y), 1.0f), fmin(color.z / (1.0F + color.z), 1.0f), fmin(color.w, 1.0f)); }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////
 ////
