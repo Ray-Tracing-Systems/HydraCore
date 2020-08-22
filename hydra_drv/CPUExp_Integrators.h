@@ -473,9 +473,10 @@ private:
   std::vector<bool>  m_pixFinish;
   std::vector<uint>  m_samplePerPix;
 
-  //void NewPositionWithAdapt(int& x, int& y, const LiteMath::float4 summColor, const float imgRadius, RandomGen& gen);
-  void NewPositionWithAdapt2(int& x, int& y, const LiteMath::float4 summColor, const float imgRadius, RandomGen& gen) const; 
-  void NewPositionWithMarkovChain(int& x, int& y, const LiteMath::float4 summColor, const float imgRadius, RandomGen& gen, const int sample) const;
+  float GetLocalMean(const int x, const int y, const int sizeLocalWindow);
+  int2  NewPositionWithAdapt(const int x, const int y, const float imgRadius);
+  void  NewPositionWithMarkovChain(int2& pos, const float imgRadius);
+  void  ScreenSpaceMLT(int2 & a_pos, const float3 a_colorCurr, const float a_imgRadius, int& a_countAccept);
 };
 
 //////////////////////////////////////////////////////////////////////////////////////
