@@ -451,15 +451,15 @@ public:
   IntegratorMISPTLoop2Adapt(int w, int h, EngineGlobals* a_pGlobals, int a_createFlags) : IntegratorMISPTLoop2(w, h, a_pGlobals, a_createFlags)
   {    
     m_imgSize  = w * h;
-    m_progress = 0.0F;
+    //m_progress = 0.0F;
 
     m_samplePerPix.resize(m_imgSize);
-    m_pixFinish.resize(m_imgSize);
+    //m_pixFinish.resize(m_imgSize);
 
     for (int i = 0; i < m_imgSize; i++)
     {
       m_samplePerPix[i] = 0;
-      m_pixFinish[i]    = false;
+      //m_pixFinish[i]    = false;
     }
   }
 
@@ -469,14 +469,18 @@ public:
 
 private:
   int                m_imgSize;
-  float              m_progress;
-  std::vector<bool>  m_pixFinish;
+  //float              m_progress;
+  //std::vector<bool>  m_pixFinish;
   std::vector<uint>  m_samplePerPix;
 
-  float GetLocalMean(const int x, const int y, const int sizeLocalWindow);
-  int2  NewPositionWithAdapt(const int x, const int y, const float imgRadius);
-  void  NewPositionWithMarkovChain(int2& pos, const float imgRadius);
-  void  ScreenSpaceMLT(int2 & a_pos, const float3 a_colorCurr, const float a_imgRadius, int& a_countAccept);
+  void GetStatisticsLocalWin(const int2 a_pos, const int a_sizeLocalWindow, float& a_summ, float& a_max, float& a_mediana, float& a_mean, const bool a_useWeightSample);
+  int GetSummSppLocalWin(const int2 a_pos, const int a_sizeLocalWindow);
+  float MathExp(const int2 a_pos, const int a_sizeLocalWindow, const bool a_square);
+  float GetLocalDispers(const int2 a_pos, const int a_sizeLocalWindow);
+  int2  NewPositionWithAdapt(const int2 a_pos, const float imgRadius);
+  void  NewPositionWithMarkovChain(int2& pos, float& a_step, RandomGen& a_gen, const float imgRadius);
+  void  ScreenSpaceMLT(int2& a_pos, RandomGen& a_gen, const float a_imgRadius, int& a_sample);
+  int2  GetNewLocalPos(const LiteMath::int2 a_pos, const float a_step, RandomGen& a_gen, const bool a_constantStep, const bool a_fullScreenRnd) const;
 };
 
 //////////////////////////////////////////////////////////////////////////////////////

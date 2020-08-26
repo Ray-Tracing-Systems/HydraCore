@@ -1222,6 +1222,7 @@ static inline float ggxGlosiness(__global const PlainMaterial* a_pMat, const flo
 }
 
 static inline float Luminance(const float3 color) { return dot(color, make_float3(0.2126f, 0.7152f, 0.0722f)); } //https://en.wikipedia.org/wiki/Relative_luminance
+static inline float Luminance(const float4 color) { return dot(make_float3(color.x, color.y, color.z), make_float3(0.2126f, 0.7152f, 0.0722f)); } //https://en.wikipedia.org/wiki/Relative_luminance
 
 static inline float SmithGGXMasking(const float dotNV, float roughSqr)
 {
