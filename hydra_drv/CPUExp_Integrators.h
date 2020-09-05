@@ -407,41 +407,40 @@ public:
 
 private:
 
-  void kernel_InitAccumData(float3& accumColor, float3& accumuThoroughput, float3& currColor);
+  void kernel_InitAccumData(float3* accumColor, float3* accumuThoroughput, float3* currColor);
 
-  void kernel_RayTrace(const float3& ray_pos, const float3& ray_dir, 
-                       Lite_Hit& hit);
+  void kernel_RayTrace(const float3* ray_pos, const float3* ray_dir, 
+                       Lite_Hit* hit);
 
-  bool kernel_HitEnvironment(const float3& ray_dir, const Lite_Hit& hit, const MisData& misPrev, const int& flags,
-                             float3& currColor);
+  bool kernel_HitEnvironment(const float3* ray_dir, const Lite_Hit* hit, const MisData* misPrev, const uint* flags,
+                             float3* currColor);
 
-  void kernel_EvalSurface(const float3& ray_pos, const float3& ray_dir, const Lite_Hit& hit,
-                          SurfaceHit& surfElem);
+  void kernel_EvalSurface(const float3* ray_pos, const float3* ray_dir, const Lite_Hit* hit,
+                          SurfaceHit* surfElem);
 
-  bool kernel_EvalEmission(const float3& ray_pos, const float3& ray_dir, 
-                           const SurfaceHit& surfElem, const int& flags, 
-                           const MisData& misPrev, const Lite_Hit& hit, 
-                           const int depth,  // noreference!
-                           float3& currColor);
+  bool kernel_EvalEmission(const float3* ray_pos, const float3* ray_dir, 
+                           const SurfaceHit* surfElem, const uint* flags, 
+                           const MisData* misPrev, const Lite_Hit* hit, 
+                           const int depth, float3* currColor);
 
-  void kernel_LightSelect(const SurfaceHit& surfElem, const int depth,
-                          float& lightPickProb, int& lightOffset, float4& rndLightData);
+  void kernel_LightSelect(const SurfaceHit* surfElem, const int depth,
+                          float* lightPickProb, int* lightOffset, float4* rndLightData);
 
-  void kernel_LightSample(const SurfaceHit& surfElem, const int& lightOffset, const float4& rndLightData,
-                          float3& shadowRayPos, float3& shadowRayDir, ShadowSample& explicitSam);
+  void kernel_LightSample(const SurfaceHit* surfElem, const int* lightOffset, const float4* rndLightData,
+                          float3* shadowRayPos, float3* shadowRayDir, ShadowSample* explicitSam);
 
 
-  void kernel_ShadowTrace(const float3&  shadowRayPos, const float3&  shadowRayDir, const int& lightOffset, const float3& explicitSamPos,
-                          float3& shadow);
+  void kernel_ShadowTrace(const float3* shadowRayPos, const float3* shadowRayDir, const int* lightOffset, const float3* explicitSamPos,
+                          float3* shadow);
 
-  void kernel_Shade(const SurfaceHit& surfElem, const ShadowSample& explicitSam, const float3& shadowRayDir, const float3& ray_dir,
-                    const float3& shadow, const float& lightPickProb, const int& lightOffset,
-                    float3& explicitColor);
+  void kernel_Shade(const SurfaceHit* surfElem, const ShadowSample* explicitSam, const float3* shadowRayDir, const float3* ray_dir,
+                    const float3* shadow, const float* lightPickProb, const int* lightOffset,
+                    float3* explicitColor);
 
-  void kernel_NextBounce(const SurfaceHit& surfElem, const float3& explicitColor,
-                         MisData& misPrev, float3& ray_pos, float3& ray_dir, uint& flags, float3& accumColor, float3& accumuThoroughput);
+  void kernel_NextBounce(const SurfaceHit* surfElem, const float3* explicitColor,
+                         MisData* misPrev, float3* ray_pos, float3* ray_dir, uint* flags, float3* accumColor, float3* accumuThoroughput);
 
-  void kernel_AddLastBouceContrib(const float3& currColor, const float3& accumuThoroughput, float3& accumColor);
+  void kernel_AddLastBouceContrib(const float3* currColor, const float3* accumuThoroughput, float3* accumColor);
 
 };
 
