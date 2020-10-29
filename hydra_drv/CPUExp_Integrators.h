@@ -445,6 +445,8 @@ private:
 
 };
 
+
+
 class IntegratorMISPTLoop2Adapt : public IntegratorMISPTLoop2
 {
 public:  
@@ -454,33 +456,93 @@ public:
     //m_progress = 0.0F;
 
     m_samplePerPix.resize(m_imgSize);
+    m_stepPass.resize(m_imgSize);
+    m_pdfPp.resize(m_imgSize);
     //m_pixFinish.resize(m_imgSize);
 
     for (int i = 0; i < m_imgSize; i++)
     {
       m_samplePerPix[i] = 0;
+      m_stepPass[i]     = make_float3(0, 0, 0);
+      m_pdfPp[i]        = 0.0F;
       //m_pixFinish[i]    = false;
     }
   }
 
   const char* Name() const { return "IntegratorMISPTLoop2Adapt"; }
-  void DoPass(std::vector<uint>& a_imageLDR);
+  void        DoPass(std::vector<uint>& a_imageLDR);
+  float3      PathTrace(float3 a_rpos, float3 a_rdir, MisData misPrev, int a_currDepth, uint flags, float& a_pdfPp);
+  float3      PathTrace(float3 a_rpos, float3 a_rdir, MisData misPrev, int a_currDepth, uint flags)
+  {
+    return IntegratorMISPTLoop2::PathTrace(a_rpos, a_rdir, misPrev, a_currDepth, flags);
+  }
 
 
 private:
-  int                m_imgSize;
-  //float              m_progress;
-  //std::vector<bool>  m_pixFinish;
-  std::vector<uint>  m_samplePerPix;
+  int                 m_imgSize;
+  //float               m_progress;
+  //std::vector<bool>   m_pixFinish;
+  std::vector<uint>   m_samplePerPix;
+  std::vector<float3> m_stepPass;
+  std::vector<float>  m_pdfPp;
 
-  void GetStatisticsLocalWin(const int2 a_pos, const int a_sizeLocalWindow, float& a_summ, float& a_max, float& a_mediana, float& a_mean, const bool a_useWeightSample);
-  int GetSummSppLocalWin(const int2 a_pos, const int a_sizeLocalWindow);
-  float MathExp(const int2 a_pos, const int a_sizeLocalWindow, const bool a_square);
-  float GetLocalDispers(const int2 a_pos, const int a_sizeLocalWindow);
-  int2  NewPositionWithAdapt(const int2 a_pos, const float imgRadius);
-  void  NewPositionWithMarkovChain(int2& pos, float& a_step, RandomGen& a_gen, const float imgRadius);
-  void  ScreenSpaceMLT(int2& a_pos, RandomGen& a_gen, const float a_imgRadius, int& a_sample);
-  int2  GetNewLocalPos(const LiteMath::int2 a_pos, const float a_step, RandomGen& a_gen, const bool a_constantStep, const bool a_fullScreenRnd) const;
+
+  void   AddColorInSumm(const int2 a_pos, const float3 a_color);
+  void   AddColorAndPdfPpInSumm(const int2 a_pos, const float3 a_color, const float a_pdfPp);
+  void   DrawLine(std::vector<float3>& a_img, const int2 a_pos, const int2 a_nextPos, const float3 a_color) const;
+  void   DrawDot(std::vector<float3>& a_img, const int2 a_pos, const float3 a_color) const;
+  int    GetSummSppLocalWin(const int2 a_pos, const int a_sizeLocalWindow);
+  int    GetIndexFromPos(const int x, const int y) const;
+  int    GetIndexFromPos(const int2 pos) const;
+  int2   GetNewLocalPos(const LiteMath::int2 a_pos, const float a_step, const float2 a_dirOffset) const;
+  float2 GetRndDir(RandomGen& a_gen, const bool a_constantStep) const;
+  int2   GetRndFullScreenPos(RandomGen& a_gen) const;
+  int2   GetPosWithDirAndStep(const int2 a_pos, const float2 a_dirOffset, const float a_step) const;
+
+  void   GetStatisticsLocalWin(const int2 a_pos, const int a_sizeLocalWindow, float& a_mean, float& a_mediana, float& a_max);
+  float  GetLocalDispers(const int2 a_pos, const int a_sizeLocalWindow, const bool a_generalAggregate);
+  float  GetLocalMSE(const int2 a_pos, const int a_sizeLocalWindow, const bool a_generalAggregate);
+  float  GetDispersFromVector(const std::vector<float> a_array, const bool a_generalAggregate) const;
+  float  GetMSEFromVector(const std::vector<float> a_array, const bool a_generalAggregate) const;
+  float  Covariance(const int2 a_pos, const int2 a_nextPos, const int a_sizeLocalWindow, const bool a_generalAggregate);
+  float  Covariance(const std::vector<float> a_array1, const std::vector<float> a_array2, const bool a_generalAggregate) const;
+  float  Correlation(const int2 a_pos, const int2 a_nextPos, const int a_sizeLocalWindow, const bool a_generalAggregate);
+  float  Correlation(const std::vector<float> a_array1, const std::vector<float> a_array2, const bool a_generalAggregate);
+  float  R2Error(const int2 a_pos1, const int2 a_pos2, const int a_sizeLocalWindow, const bool a_generalAggregate);
+  float  R2Error(const std::vector<float> a_array1, const std::vector<float> a_array2, const bool a_generalAggregate);
+  float  MathExp(const int2 a_pos, const int a_sizeLocalWindow, const bool a_square, const bool a_generalAggregate);
+  float  MathExp(const std::vector<float> a_array, const bool a_square, const bool a_generalAggregate) const;
+  float  MathExp2(const int2 a_pos, const int2 a_nextPos, const int a_sizeLocalWindow);
+  float  MathExp2(const std::vector<float> a_array1, const std::vector<float> a_array2, const int a_sizeArray) const;
+
+  void   SimpleScreenRandom(RandomGen& a_gen);
+  void   AdaptWithR2Samples(int2& pos, RandomGen& a_gen, const bool a_drawPath, const float a_imgRadius, int& a_sample);
+  void   AdaptWithLuminance(int2& a_pos, RandomGen& a_gen);
+  void   AdaptWithMarkovChain(int2& a_pos, float& a_step, RandomGen& a_gen, const float a_imgRadius, const bool a_drawPath);
+  void   AdaptWithMarkovChain2(int2& a_pos, RandomGen& a_gen, const float a_imgRadius, int& a_sample);
+  void   AdaptWithVariableStep(int2& a_pos, RandomGen& a_gen, const float a_imgRadius, const bool a_drawPath);
+  void   AdaptWithPDFpp(int2& a_pos, RandomGen& a_gen, const bool a_drawPath);
+
+  //////////////////////////////////////////////////////////////////////////////////////
+
+  void kernel_InitAccumData(float3& accumColor, float3& accumuThoroughput, float3& currColor) const;
+  void kernel_RayTrace(const float3& ray_pos, const float3& ray_dir, Lite_Hit& hit);
+  bool kernel_HitEnvironment(const float3& ray_dir, const Lite_Hit& hit, const MisData& misPrev, const int& flags, float3& currColor) const;
+  void kernel_EvalSurface(const float3& ray_pos, const float3& ray_dir, const Lite_Hit& hit, SurfaceHit& surfElem);
+  bool kernel_EvalEmission(const float3& ray_pos, const float3& ray_dir, const SurfaceHit& surfElem, const int& flags, 
+    const MisData& misPrev, const Lite_Hit& hit, const int depth, float3& currColor); // noreference!   
+
+  void kernel_LightSelect(const SurfaceHit& surfElem, const int depth, float& lightPickProb, int& lightOffset, float4& rndLightData);
+  void kernel_LightSample(const SurfaceHit& surfElem, const int& lightOffset, const float4& rndLightData, float3& shadowRayPos, 
+    float3& shadowRayDir, ShadowSample& explicitSam);
+  void kernel_ShadowTrace(const float3& shadowRayPos, const float3& shadowRayDir, const int& lightOffset, const float3& explicitSamPos,
+    float3& shadow);
+  void kernel_Shade(const SurfaceHit& surfElem, const ShadowSample& explicitSam, const float3& shadowRayDir, const float3& ray_dir,
+    const float3& shadow, const float& lightPickProb, const int& lightOffset, float3& explicitColor);
+  void kernel_NextBounce(const SurfaceHit& surfElem, const float3& explicitColor, MisData& misPrev, float3& ray_pos,
+ float3& ray_dir,
+    uint& flags, float3& accumColor, float3& accumuThoroughput, float& a_pdfPp);
+  void kernel_AddLastBouceContrib(const float3& currColor, const float3& accumuThoroughput, float3& accumColor);
 };
 
 //////////////////////////////////////////////////////////////////////////////////////

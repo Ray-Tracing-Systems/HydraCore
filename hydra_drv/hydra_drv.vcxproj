@@ -161,6 +161,7 @@
     <ClInclude Include="cmatpbrt.h" />
     <ClInclude Include="CPUExp_bxdf.h" />
     <ClInclude Include="CPUExp_Integrators.h" />
+    <ClInclude Include="CPUExp_Integrators_MISPT.h" />
     <ClInclude Include="crandom.h" />
     <ClInclude Include="ctrace.h" />
     <ClInclude Include="FastList.h" />

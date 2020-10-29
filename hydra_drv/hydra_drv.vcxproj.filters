@@ -99,6 +99,9 @@
     <ClInclude Include="cmatpbrt.h">
       <Filter>core</Filter>
     </ClInclude>
+    <ClInclude Include="CPUExp_Integrators_MISPT.h">
+      <Filter>Заголовочные файлы</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="RenderDriverRTE.cpp">
