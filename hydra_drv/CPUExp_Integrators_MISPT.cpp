@@ -614,7 +614,7 @@ void IntegratorMISPTLoop2Adapt::AdaptWithLuminance(int2& a_pos, RandomGen& a_gen
   const int   nextIndex      = GetIndexFromPos(nextPos);
 
   float currLum              = Luminance(currColor);
-  float nextLum              = Luminance(m_summColors[nextIndex]);
+  float nextLum              = LuminanceFloat4(m_summColors[nextIndex]);
 
   currLum                   /= (1.0F + currLum);
   nextLum                   /= (1.0F + nextLum);
@@ -1047,7 +1047,7 @@ void IntegratorMISPTLoop2Adapt::GetStatisticsLocalWin(const int2 a_pos, const in
 
       const int index = GetIndexFromPos(newPos);
 
-      const float val = Luminance(m_summColors[index]);
+      const float val = LuminanceFloat4(m_summColors[index]);
 
       pixels.push_back(val);
       a_mean += val * weight;
@@ -1081,7 +1081,7 @@ float IntegratorMISPTLoop2Adapt::MathExp(const int2 a_pos, const int a_sizeLocal
 
       const int index = GetIndexFromPos(NewX, NewY);
 
-      const float val = Luminance(m_summColors[index]);
+      const float val = LuminanceFloat4(m_summColors[index]);
 
       if (a_square)
         mathExp += (val * val * weight);
@@ -1167,8 +1167,8 @@ float IntegratorMISPTLoop2Adapt::MathExp2(const int2 a_pos, const int2 a_nextPos
       const int   currIndex  = GetIndexFromPos(currNew);
       const int   nextIndex  = GetIndexFromPos(nextNew);
 
-      const float currVal    = Luminance(m_summColors[currIndex]);
-      const float nextVal    = Luminance(m_summColors[nextIndex]);
+      const float currVal    = LuminanceFloat4(m_summColors[currIndex]);
+      const float nextVal    = LuminanceFloat4(m_summColors[nextIndex]);
 
       mathExp += (currVal * nextVal * weight);
     }
