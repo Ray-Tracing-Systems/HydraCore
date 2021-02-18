@@ -2061,7 +2061,7 @@ static inline void initGBufferAll(__private GBufferAll* a_pElem)
   a_pElem->data2.instId   = -1;
 }
 
-#define GBUFFER_SAMPLES 16
+#define GBUFFER_SAMPLES 64
 #define PMPIX_SAMPLES   256 // Production Mode Pixel Samples
 
 static inline float4 packGBuffer1(GBuffer1 a_input)
