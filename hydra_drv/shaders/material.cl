@@ -1355,7 +1355,8 @@ __kernel void GetGBufferSample(__global const float4*    a_rdir,
 
                                __global const HitMatRef*     restrict in_mtlStorage,
                                texture2d_t                   restrict a_shadingTexture,
-                               __global const EngineGlobals* restrict a_globals,
+                               texture2d_t                   restrict a_shadingTextureNormal,
+                               __global const EngineGlobals* restrict a_globals,              // any more params. 
                                int iNumElements)
 {
   int tid = GLOBAL_ID_X;
@@ -1373,6 +1374,8 @@ __kernel void GetGBufferSample(__global const float4*    a_rdir,
     ReadSurfaceHit(in_surfaceHit, tid, iNumElements, 
                    &surfHit);
 
+    float3 hitNorm = surfHit.normal;
+
     ProcTextureList ptl;        
     InitProcTextureList(&ptl);  
     ReadProcTextureList(in_procTexData, tid, iNumElements,
@@ -1381,10 +1384,22 @@ __kernel void GetGBufferSample(__global const float4*    a_rdir,
     float3 diffColor = make_float3(0,0,0);
     __global const PlainMaterial* pHitMaterial = materialAt(a_globals, in_mtlStorage, surfHit.matId);
     if(pHitMaterial != 0)
-      diffColor = materialEvalDiffuse(pHitMaterial, to_float3(a_rdir[tid]), surfHit.normal, surfHit.texCoord, a_globals, a_shadingTexture, &ptl);
+    {
+      diffColor               = materialEvalDiffuse(pHitMaterial, to_float3(a_rdir[tid]), surfHit.normal, surfHit.texCoord, a_globals, a_shadingTexture, &ptl);
+      
+      // Get normal from bump.
+      // To crawl the entire material tree, need do the same as in ReadDiffuseColor. (not implemented yet).
+      const bool hasNormalMap = (materialGetNormalTex(pHitMaterial).x != INVALID_TEXTURE);
+      if (hasNormalMap)
+      {
+        const bool isGlass    = (materialGetType(pHitMaterial) == PLAIN_MAT_CLASS_GLASS);                      // dirty hack for glass; #TODO: fix that more accurate
+        const float3 flatNorm = surfHit.hfi && !isGlass ? (-1.0f)*surfHit.flatNormal : surfHit.flatNormal;     // dirty hack for glass; #TODO: fix that more accurate
+        hitNorm               = BumpMapping(surfHit.tangent, surfHit.biTangent, flatNorm, surfHit.texCoord, pHitMaterial, a_globals, a_shadingTextureNormal, &ptl);
+      }
+    }
 
     samples[LOCAL_ID_X].data1.depth    = liteHit.t;
-    samples[LOCAL_ID_X].data1.norm     = surfHit.normal;
+    samples[LOCAL_ID_X].data1.norm     = hitNorm;    
     samples[LOCAL_ID_X].data1.rgba     = to_float4(diffColor, 0.0f);
     samples[LOCAL_ID_X].data1.matId    = surfHit.matId;
     samples[LOCAL_ID_X].data1.coverage = 0.0f;
@@ -1416,13 +1431,16 @@ __kernel void GetGBufferSample(__global const float4*    a_rdir,
   //
   if (LOCAL_ID_X == 0)
   {
-    float minDiff   = 100000000.0f;
-    int   minDiffId = 0;
+    float  minDiff     = 100000000.0f;
+    int    minDiffId   = 0;
+    float4 summColor   = 0.0f;
+    float3 summNormal  = 0.0f;    
 
     for (int i = 0; i < GBUFFER_SAMPLES; i++)
     {
-      float diff = 0.0f;
-      float coverage = 0.0f;
+      float diff       = 0.0f;
+      float coverage   = 0.0f;      
+
       for (int j = 0; j < GBUFFER_SAMPLES; j++)
       {
         const float thisDiff = gbuffDiff(samples[i], samples[j], a_fov, a_width, a_height);
@@ -1430,7 +1448,7 @@ __kernel void GetGBufferSample(__global const float4*    a_rdir,
         if (thisDiff < 1.0f)
           coverage += 1.0f;
       }
-
+      
       coverage *= (1.0f / (float)GBUFFER_SAMPLES);
       samples[i].data1.coverage = coverage;
 
@@ -1438,13 +1456,20 @@ __kernel void GetGBufferSample(__global const float4*    a_rdir,
       {
         minDiff   = diff;
         minDiffId = i;
-      }
+      }      
+
+      // Supersampling for some pass.
+
+      summColor  += samples[i].data1.rgba;
+      summNormal += samples[i].data1.norm;
     }
+
+    samples[minDiffId].data1.rgba = summColor  / (float)GBUFFER_SAMPLES;
+    samples[minDiffId].data1.norm = summNormal / (float)GBUFFER_SAMPLES;
 
     out_gbuff1[tid / GBUFFER_SAMPLES] = packGBuffer1(samples[minDiffId].data1);
     out_gbuff2[tid / GBUFFER_SAMPLES] = packGBuffer2(samples[minDiffId].data2);
   }
-
 }
 
 __kernel void PutAlphaToGBuffer(__global const float4* restrict in_thoroughput,

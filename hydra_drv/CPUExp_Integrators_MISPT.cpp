@@ -48,8 +48,8 @@ void IntegratorMISPTLoop2Adapt::DoPass(std::vector<uint>& a_imageLDR)
   const float imgRadius       = Distance(m_width, m_height) * 0.5F;  
 
   const bool  multiThreads    = true;
-  const int   minSpp          = 0;
-  const bool  drawPath        = false;//m_spp >= minSpp && (m_spp % 10 == 0);
+  //const int   minSpp          = 0;
+  const bool  drawPath        = true;//m_spp >= minSpp && (m_spp % 10 == 0);
   const bool  drawPdf         = false;//m_spp % 10 == 0;
 
   const int   maxThreads      = omp_get_max_threads();
@@ -64,18 +64,22 @@ void IntegratorMISPTLoop2Adapt::DoPass(std::vector<uint>& a_imageLDR)
 #endif
   {    
     auto&        gen  = randomGen();
-    float        step = imgRadius * 0.25F;
+    //float        step = imgRadius * 0.25F;
     int2         pos  = GetRndFullScreenPos(gen);
-        
+    std::vector<float3> currDir(m_maxDepth);
+    std::vector<float3> nextDir(m_maxDepth);
+    float currResColor = 0.0F;
+
     for (int sample = 0; sample < maxSamples; ++sample)
     {
       //SimpleScreenRandom(gen);
-      //AdaptWithR2Samples(pos, gen, drawPath, imgRadius, sample);
-      //AdaptWithVariableStep(pos, gen, imgRadius, drawPath);
-      //AdaptWithLuminance(pos, gen);
-      //AdaptWithMarkovChain(pos, step, gen, imgRadius, drawPath);
-      //AdaptWithMarkovChain2(pos, gen, imgRadius, sample);
-      AdaptWithPDFpp(pos, gen, drawPath);
+      //R2Samples(pos, gen, drawPath, imgRadius, sample);
+      //VariableStep(pos, gen, imgRadius, drawPath);
+      //AdaptFromLuminance(pos, gen);
+      //MarkovChain(pos, step, gen, imgRadius, drawPath);
+      //MarkovChain2(pos, gen, imgRadius, sample);
+      //WalkWithDispers(pos, gen, imgRadius, drawPath);      
+      MultiDim(pos, gen, currDir, nextDir, currResColor, imgRadius, drawPath);
     }
   }
 
@@ -120,7 +124,7 @@ void IntegratorMISPTLoop2Adapt::DoPass(std::vector<uint>& a_imageLDR)
 //#endif
   for (int i = 0; i < m_imgSize; i++)
   {  
-    // for AdaptWithMarkovChain2()
+    // for MarkovChain2()
 
     //const float spp = fmax((float)(m_samplePerPix[i]), 1.0F);
 
@@ -134,17 +138,8 @@ void IntegratorMISPTLoop2Adapt::DoPass(std::vector<uint>& a_imageLDR)
     //color.y        = powf(color.y, gammaPow);
     //color.z        = powf(color.z, gammaPow);
 
-    // Draw pdfPp
-
-    if (drawPdf)
-    {
-      float colorGamma  = powf(m_pdfPp[i], gammaPow);
-      float4 pdfPpColor = float4(colorGamma, colorGamma, colorGamma, 0);      
-      a_imageLDR[i]     = RealColorToUint32(pdfPpColor);
-    }
 
     // Draw path
-
     if (drawPath)
     {
       const float4 colorPath = float4(m_stepPass[i].x, m_stepPass[i].y, m_stepPass[i].z, 0);
@@ -156,47 +151,6 @@ void IntegratorMISPTLoop2Adapt::DoPass(std::vector<uint>& a_imageLDR)
     }
   }
 
-
-  // Denoise
-
-  //for (int y = 0; y < m_height; y++)
-  //{
-  //  for (int x = 0; x < m_width; x++)
-  //  {
-  //    int2 pos(x, y);
-  //    int2 nextPos(x + 1, y);
-
-  //    if (nextPos.x > m_width - 1) 
-  //      nextPos.x = m_width - 1;
-
-  //    const int sizeLocalWin = 1;
-  //    const int currIndex    = GetIndexFromPos(pos);
-  //    //const int nextIndex    = GetIndexFromPos(nextPos);
-  //    
-  //    float currMean(0);  
-  //    float currMediana(0);
-  //    float currMax(0);
-
-  //    GetStatisticsLocalWin(nextPos, sizeLocalWin, currMean, currMediana, currMax);
-  //    const float errorR2    = clamp(R2Error(pos, nextPos, sizeLocalWin), 0.0F, 1.0F);
-  //    
-  //    const float4 currColor = m_summColors[currIndex];
-  //    //const float4 nextColor = m_summColors[nextIndex];
-  //    
-  //    const float currLum    = Luminance(currColor);
-  //    const float coeffMed   = currMediana / fmax(currLum, 1e-6F);
-
-  //    float4 denoiseColor    = lerp(currColor * coeffMed, currColor, errorR2);
-
-  //    //float4 resColor        = ToneMapping4(float4(lum, lum, lum, 1));
-  //    float4 resColor        = ToneMapping4(denoiseColor);
-
-  //    resColor.x             = powf(resColor.x, gammaPow);
-  //    resColor.y             = powf(resColor.y, gammaPow);
-  //    resColor.z             = powf(resColor.z, gammaPow);      
-  //    a_imageLDR[currIndex]  = RealColorToUint32(resColor);
-  //  }
-  //}
 
   //m_progress = 0;
   //for (int i = 0; i < m_imgSize; i++)
@@ -213,14 +167,8 @@ void IntegratorMISPTLoop2Adapt::DoPass(std::vector<uint>& a_imageLDR)
   //getch();
 }
 
-
-
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-
-
-float3 IntegratorMISPTLoop2Adapt::PathTrace(float3 a_rpos, float3 a_rdir, MisData misPrev, int a_currDepth, uint flags, 
-  float& a_pdfPp)
+float3 IntegratorMISPTLoop2Adapt::PathTrace2(RandomGen& a_gen, float3 a_rpos, float3 a_rdir, MisData misPrev, int a_currDepth, 
+  uint flags, std::vector<float3>& a_currDir, std::vector<float3>& a_nextDir)
 {
   //#pragma hycc exclude(depth, a_currDepth, m_maxDepth)
 
@@ -231,6 +179,9 @@ float3 IntegratorMISPTLoop2Adapt::PathTrace(float3 a_rpos, float3 a_rdir, MisDat
   {
     if (depth >= m_maxDepth)
       break;
+                  
+    a_nextDir[depth] = a_rdir;
+    a_rdir           = a_currDir[depth];
 
     Lite_Hit hit;
     kernel_RayTrace(a_rpos, a_rdir, hit);
@@ -255,18 +206,23 @@ float3 IntegratorMISPTLoop2Adapt::PathTrace(float3 a_rpos, float3 a_rdir, MisDat
 
     //#pragma hycc compress(half3)
     float3 shadow;
-    kernel_ShadowTrace(shadowRayPos, shadowRayDir, lightOffset, explicitSam.pos, shadow);
+    kernel_ShadowTrace(shadowRayPos, shadowRayDir, lightOffset, explicitSam.pos, // please note '&explicitSam.pos' ... 
+      shadow);
 
     float3 explicitColor;
     kernel_Shade(surfElem, explicitSam, shadowRayDir, a_rdir, shadow, lightPickProb, lightOffset, explicitColor);
-
-    kernel_NextBounce(surfElem, explicitColor, misPrev, a_rpos, a_rdir, flags, accumColor, accumuThoroughput, a_pdfPp);
+    kernel_NextBounce(surfElem, explicitColor, misPrev, a_rpos, a_rdir, flags, accumColor, accumuThoroughput);      
   } // for
 
-  kernel_AddLastBouceContrib(currColor, accumuThoroughput, accumColor);
+  kernel_AddLastBouceContrib(currColor, accumuThoroughput, accumColor);  
 
   return clamp(accumColor, 0.0F, 1e6F);
 }
+
+
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
 
 
 void IntegratorMISPTLoop2Adapt::kernel_InitAccumData(float3& accumColor, float3& accumuThoroughput, float3& currColor) const
@@ -431,8 +387,8 @@ void IntegratorMISPTLoop2Adapt::kernel_ShadowTrace(const float3& shadowRayPos, c
     shadow = make_float3(0.0F, 0.0F, 0.0F);
 }
 
-void IntegratorMISPTLoop2Adapt::kernel_Shade(const SurfaceHit& surfElem, const ShadowSample& explicitSam, const float3& shadowRayDir, const float3& ray_dir,
-  const float3& shadow, const float& lightPickProb, const int& lightOffset, float3& explicitColor)
+void IntegratorMISPTLoop2Adapt::kernel_Shade(const SurfaceHit& surfElem, const ShadowSample& explicitSam, const float3& shadowRayDir,
+  const float3& ray_dir, const float3& shadow, const float& lightPickProb, const int& lightOffset, float3& explicitColor)
 {
   if (lightOffset >= 0)
   {
@@ -469,9 +425,8 @@ void IntegratorMISPTLoop2Adapt::kernel_Shade(const SurfaceHit& surfElem, const S
 }
 
 void IntegratorMISPTLoop2Adapt::kernel_NextBounce(const SurfaceHit& surfElem, const float3& explicitColor, MisData& misPrev,
-  float3& ray_pos, float3& ray_dir, uint& flags, float3& accumColor, float3& accumuThoroughput, float& a_pdfPp)
+  float3& ray_pos, float3& ray_dir, uint& flags, float3& accumColor, float3& accumuThoroughput)
 {
-
   const PlainMaterial* pHitMaterial = materialAt(m_pGlobals, m_matStorage, surfElem.matId);
   RandomGen& gen                    = randomGen();
 
@@ -501,7 +456,6 @@ void IntegratorMISPTLoop2Adapt::kernel_NextBounce(const SurfaceHit& surfElem, co
   misPrev.matSamplePdf = matSam.pdf;
   flags                = flagsNextBounceLite(flags, matSam, m_pGlobals);
 
-  a_pdfPp             *= matSam.pdf;
   accumColor          += accumuThoroughput * explicitColor;
   accumuThoroughput   *= cosTheta * bxdfVal;
 }
@@ -529,7 +483,7 @@ void IntegratorMISPTLoop2Adapt::SimpleScreenRandom(RandomGen& a_gen)
 
 
 
-void IntegratorMISPTLoop2Adapt::AdaptWithR2Samples(int2& a_pos, RandomGen& a_gen, const bool a_drawPath, const float a_imgRadius, int& a_sample)
+void IntegratorMISPTLoop2Adapt::R2Samples(int2& a_pos, RandomGen& a_gen, const float a_imgRadius, const bool a_drawPath, int& a_sample)
 {  
   const int maxSpp              = 8;
 
@@ -598,7 +552,7 @@ void IntegratorMISPTLoop2Adapt::AdaptWithR2Samples(int2& a_pos, RandomGen& a_gen
 
 
 
-void IntegratorMISPTLoop2Adapt::AdaptWithLuminance(int2& a_pos, RandomGen& a_gen)
+void IntegratorMISPTLoop2Adapt::AdaptFromLuminance(int2& a_pos, RandomGen& a_gen)
 {
   // Calculate sample
 
@@ -631,7 +585,7 @@ void IntegratorMISPTLoop2Adapt::AdaptWithLuminance(int2& a_pos, RandomGen& a_gen
 
 
 
-void IntegratorMISPTLoop2Adapt::AdaptWithVariableStep(int2& a_pos, RandomGen& a_gen, const float a_imgRadius, const bool a_drawPath)
+void IntegratorMISPTLoop2Adapt::VariableStep(int2& a_pos, RandomGen& a_gen, const float a_imgRadius, const bool a_drawPath)
 {  
   // Get sample
 
@@ -674,43 +628,83 @@ void IntegratorMISPTLoop2Adapt::AdaptWithVariableStep(int2& a_pos, RandomGen& a_
   a_pos = nextPos;
 }
 
-void IntegratorMISPTLoop2Adapt::AdaptWithPDFpp(int2& a_pos, RandomGen& a_gen, const bool a_drawPath)
+
+void IntegratorMISPTLoop2Adapt::WalkWithDispers(int2& a_pos, RandomGen& a_gen, const float a_imgRadius, const bool a_drawPath)
 {
-  // Calculate sample
+  // Calculate samples
 
   float3 ray_pos;
   float3 ray_dir;
-  float  pdfPp               = 1.0F;
   std::tie(ray_pos, ray_dir) = makeEyeRay(a_pos.x, a_pos.y);
-  const float3 sampleColor   = PathTrace(ray_pos, ray_dir, makeInitialMisData(), 0, 0, pdfPp);
 
-  AddColorAndPdfPpInSumm(a_pos, sampleColor, clamp(pdfPp, 0.0F, 1.0F));
+  const int maxSamplesForDisp = 8;
+  std::vector<float> arrayCurrColorLum(maxSamplesForDisp);
 
-  // Get accept probability
-
-  const int2   nextPos       = GetRndFullScreenPos(a_gen);
-  const int    currIndex     = GetIndexFromPos(a_pos);
-  const int    nextIndex     = GetIndexFromPos(nextPos);
-
-  const float  currProb      = 1.0F - m_pdfPp[currIndex];
-  const float  nextProb      = 1.0F - m_pdfPp[nextIndex];
-  const float  acceptProb    = AcceptProb(currProb, nextProb);
-
-
-  if (rndFloat1_Pseudo(&a_gen) < acceptProb || acceptProb < 0.01F)
+  for (size_t i = 0; i < maxSamplesForDisp; ++i)
   {
-    if (a_drawPath)
-      DrawDot(m_stepPass, a_pos, float3(0, 0.1F, 0));
-
-    a_pos = nextPos;
+    const float3 currColor = PathTrace(ray_pos, ray_dir, makeInitialMisData(), 0, 0);
+    AddColorInSumm(a_pos, currColor);
+    
+    arrayCurrColorLum[i]   = Luminance(currColor);
   }
-  else if (a_drawPath)
-    DrawDot(m_stepPass, nextPos, float3(0.2F, 0, 0));
+
+  // Calculate dispersion
+
+  const float disp         = GetMSEFromVector(arrayCurrColorLum, false);
+  const float mean         = MathExp(arrayCurrColorLum, false, false);
+  const float error        = disp / fmax(mean, 1e-6F);
+  const float compError    = error / (1.0F + error);
+      
+  if (a_drawPath)
+    DrawDot(m_stepPass, a_pos, float3(0, 1.0F, 0));
+
+  // step
+
+  const float minStep      = 1.5F;
+  const float maxStep      = a_imgRadius * 0.5F;
+  const float step         = maxStep + compError * (minStep - maxStep);
+
+  const float2 dirOffset   = GetRndDir(a_gen, false);            
+  a_pos = GetNewLocalPos(a_pos, step, dirOffset);
 }
 
 
 
-void IntegratorMISPTLoop2Adapt::AdaptWithMarkovChain(int2& a_pos, float& a_step, RandomGen& a_gen, const float a_imgRadius, const bool a_drawPath)
+void IntegratorMISPTLoop2Adapt::MultiDim(int2& a_pos, RandomGen& a_gen, std::vector<float3>& a_currDir, std::vector<float3>& a_nextDir,
+  float& a_currResColor, const float a_imgRadius, const bool a_drawPath)
+{
+  // Calculate samples
+  float3 ray_pos;
+  float3 ray_dir;
+  std::tie(ray_pos, ray_dir) = makeEyeRay(a_pos.x, a_pos.y);
+  const float3 currColor     = PathTrace2(a_gen, ray_pos, ray_dir, makeInitialMisData(), 0, 0, a_currDir, a_nextDir);
+  
+  AddColorInSumm(a_pos, currColor);
+  
+  const float nextResColor = Luminance(currColor);
+  const float acceptProp   = AcceptProb(a_currResColor, nextResColor);
+
+  if (rndFloat1_Pseudo(&a_gen) < acceptProp && a_currResColor > 0.0F)
+  {
+    for (size_t i = 0; i < m_maxDepth; i++)
+      a_currDir[i] = a_nextDir[i];
+
+    const float2 dirOffset = GetRndDir(a_gen, false);
+    a_pos = GetNewLocalPos(a_pos, a_imgRadius * 0.1F, dirOffset);
+
+    //DrawDot(m_stepPass, a_pos, float3(0, 1.0F, 0));
+  }
+  //else
+  //  DrawDot(m_stepPass, a_pos, float3(1.0F, 0, 0));
+
+  a_currResColor = nextResColor;
+
+}
+
+
+
+
+void IntegratorMISPTLoop2Adapt::MarkovChain(int2& a_pos, RandomGen& a_gen, float& a_step, const float a_imgRadius, const bool a_drawPath)
 {
   // Calculate sample
 
@@ -780,7 +774,7 @@ void IntegratorMISPTLoop2Adapt::AdaptWithMarkovChain(int2& a_pos, float& a_step,
 
 
 
-void IntegratorMISPTLoop2Adapt::AdaptWithMarkovChain2(int2& a_pos, RandomGen& a_gen, const float a_imgRadius, int& a_sample)
+void IntegratorMISPTLoop2Adapt::MarkovChain2(int2& a_pos, RandomGen& a_gen, const float a_imgRadius, int& a_sample)
 {
   // Get first sample
 
@@ -864,7 +858,6 @@ void IntegratorMISPTLoop2Adapt::AddColorAndPdfPpInSumm(const int2 a_pos, const f
   const int   index   = GetIndexFromPos(a_pos);
   const float alpha   = 1.0F / float(m_samplePerPix[index] + 1);
   m_summColors[index] = m_summColors[index] * (1.0F - alpha) + to_float4(a_color, maxcomp(a_color)) * alpha;
-  m_pdfPp[index]      = m_pdfPp[index]      * (1.0F - alpha) +           a_pdfPp                    * alpha;
 
 #pragma omp atomic
   m_samplePerPix[index]++;
@@ -1099,11 +1092,11 @@ float IntegratorMISPTLoop2Adapt::MathExp(const std::vector<float> a_array, const
 
   if (a_square)
   {
-    float summ         = 0.0F;
-    for (auto& i : a_array)
-    {
+    float summ = 0.0F;
+
+    for (auto& i : a_array)    
       summ += (i * i);
-    }
+    
     return summ / (float)sizeArray ;
   }
   else
