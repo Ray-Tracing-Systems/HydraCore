@@ -42,6 +42,7 @@ typedef struct SurfaceInfoT
   float2 tc0;
   float  ao;
   float  ao2;
+  bool   normalCheck;
 
   //#TODO: add custom attributes
 
@@ -151,6 +152,7 @@ __kernel void ProcTexExec(__global       uint*          restrict a_flags,
     surfHit.tc0 = sHit2.texCoord;
     surfHit.ao  = shadow1; 
     surfHit.ao2 = shadow2;
+	surfHit.normalCheck = sHit2.hfi;
 
     __private const SurfaceInfo* sHit = &surfHit;
 
