@@ -1,4 +1,5 @@
 ## Hydra Renderer
+[![Codacy Security Scan](https://github.com/Ray-Tracing-Systems/HydraCore/actions/workflows/codacy-analysis.yml/badge.svg?branch=master)](https://github.com/Ray-Tracing-Systems/HydraCore/actions/workflows/codacy-analysis.yml)
 
 The Hydra Renderer consists of 3 heads:
 
