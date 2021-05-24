@@ -8,6 +8,21 @@
 
 #include "hydra_api/ssemath.h"
 
+
+
+float4 NaN_toZero(const float4& a_color)
+{
+  float4 res = a_color;
+
+  if (std::isnan(a_color.x)) res.x = 0.0F;
+  if (std::isnan(a_color.y)) res.y = 0.0F;
+  if (std::isnan(a_color.z)) res.z = 0.0F;
+  if (std::isnan(a_color.w)) res.w = 0.0F;
+
+  return res;
+}
+
+
 void GPUOCLLayer::AddContributionToScreen(cl_mem& in_color, cl_mem in_indices, bool a_copyToLDRNow, int a_layerId, bool a_repackIndex)
 {
   if (m_screen.m_cpuFrameBuffer)
@@ -47,19 +62,20 @@ void GPUOCLLayer::AddContributionToScreen(cl_mem& in_color, cl_mem in_indices, b
 */
 void AddSamplesContribution(float4* out_color, const float4* colors, int a_size, int a_width, int a_height)
 {
-  for (int i = 0; i < a_size; i++)
+#pragma omp parallel for
+  for (int i = 0; i < a_size; ++i)
   {
-    const float4 color    = colors[i];
+    const float4 color    = NaN_toZero(colors[i]);
     const int packedIndex = as_int(color.w);
     const int x           = (packedIndex & 0x0000FFFF);
     const int y           = (packedIndex & 0xFFFF0000) >> 16;
     const int offset      = y*a_width + x;
 
     if (x >= 0 && y >= 0 && x < a_width && y < a_height)
-    {
-      out_color[offset].x += color.x;
-      out_color[offset].y += color.y;
-      out_color[offset].z += color.z;
+    {      
+        out_color[offset].x += color.x;
+        out_color[offset].y += color.y;
+        out_color[offset].z += color.z;      
     }
   }
 }
@@ -78,9 +94,10 @@ void AddSamplesContributionS(float4* out_color, const float4* colors, const unsi
 {
   const float multInv = 1.0f / 255.0f;
 
-  for (int i = 0; i < a_size; i++)
+#pragma omp parallel for
+  for (int i = 0; i < a_size; ++i)
   {
-    const float4 color    = colors[i];
+    const float4 color    = NaN_toZero(colors[i]);
     const auto   shad     = shadows[i];
 
     const int packedIndex = as_int(color.w);
