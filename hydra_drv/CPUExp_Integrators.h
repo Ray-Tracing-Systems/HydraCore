@@ -469,8 +469,8 @@ public:
   const char* Name() const { return "IntegratorMISPTLoop2Adapt"; }
   
   void        DoPass(std::vector<uint>& a_imageLDR);
-  float3      PathTrace2(float3 a_rpos, float3 a_rdir, MisData misPrev, int a_currDepth, uint a_flags, int& a_resultRayDepth);
-  float3      PathTrace3(RandomGen& a_gen, float3 a_rpos, float3 a_rdir, MisData misPrev, int a_currDepth, uint flags, std::vector<float3>& a_arrDir, const bool a_writeDirr);
+  float3      PathTrace2(float3 a_rpos, float3 a_rdir, MisData a_misPrev, int a_currDepth, uint a_flags, int& a_resultRayDepth);
+  float3      PathTrace3(float3 a_rpos, float3 a_rdir, MisData a_misPrev, int a_currDepth, uint a_flags, float & a_matPdf);
 
   float3      PathTrace(float3 a_rpos, float3 a_rdir, MisData misPrev, int a_currDepth, uint flags)
   {
@@ -511,25 +511,26 @@ private:
   float  R2Error(const std::vector<float> a_array1, const std::vector<float> a_array2, const bool a_generalAggregate);
   float  MathExp(const int2 a_pos, const int a_sizeLocalWindow, const bool a_square, const bool a_generalAggregate);
   float  MathExp(const std::vector<float> a_array, const bool a_square, const bool a_generalAggregate) const;
+  float2 MathExp(const std::vector<float2> a_array, const bool a_square, const bool a_generalAggregate) const;
   float  MathExp2(const int2 a_pos, const int2 a_nextPos, const int a_sizeLocalWindow);
   float  MathExp2(const std::vector<float> a_array1, const std::vector<float> a_array2, const int a_sizeArray) const;
 
   // test adaptive methods.
 
   void   SimpleScreenRandom(RandomGen& a_gen);
-  void   AdaptFromLuminance(int2& a_pos, RandomGen& a_gen);
-  void   AdaptDispers      (int2& a_pos, RandomGen& a_gen);
-  void   R2Samples         (int2& a_pos, RandomGen& a_gen, const float a_imgRadius, const bool a_drawPath, int& a_sample);
-  void   MarkovChain       (int2& a_pos, RandomGen& a_gen, float& a_step, const float a_imgRadius, const bool a_drawPath);
-  void   VariableStep      (int2& a_pos, RandomGen& a_gen, const float a_imgRadius, const bool a_drawPath);
-  void   MarkovChain2      (int2& a_pos, RandomGen& a_gen, const float a_imgRadius, int& a_sample);
-  void   WalkWithDispers   (int2& a_pos, RandomGen& a_gen, const float a_imgRadius, const bool a_drawPath);
-  
+  void   MCMC_lum            (int2& a_pos, RandomGen& a_gen);
+  void   MCMC_dispers        (int2& a_pos, RandomGen& a_gen);
+  void   MCMC_R2             (int2& a_pos, RandomGen& a_gen, float& a_step, const float a_imgRadius, const bool a_drawPath);
+  void   MCMC_R2_area        (int2& a_pos, RandomGen& a_gen, const float a_imgRadius, const bool a_drawPath);
+  void   VariableStep        (int2& a_pos, RandomGen& a_gen, const float a_imgRadius, const bool a_drawPath);
+  void   WalkDispersOneSample(int2& a_pos, RandomGen& a_gen, const float a_imgRadius, const bool a_drawPath);
+  void   WalkAreaDispers     (int2& a_pos, RandomGen& a_gen, const float a_imgRadius, const bool a_drawPath);
+
   // test adaptive multidimensional methods.
   float m_burnMeanColor     = 0.0F;
   void   GenerateRndPath   (RandomGen& a_gen, std::vector<float3>& a_arrDir) const;
   void   MutatePath        (RandomGen& a_gen, std::vector<float3>& a_nextDir, const float a_step) const;
-  void   MultiDim          (RandomGen& a_gen, std::vector<float3>& a_arrCurrDir);
+  //void   MultiDim          (RandomGen& a_gen, std::vector<float3>& a_arrCurrDir);
 
   //////////////////////////////////////////////////////////////////////////////////////
 
