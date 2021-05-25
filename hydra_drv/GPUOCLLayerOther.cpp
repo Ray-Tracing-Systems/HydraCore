@@ -62,7 +62,7 @@ void GPUOCLLayer::AddContributionToScreen(cl_mem& in_color, cl_mem in_indices, b
 */
 void AddSamplesContribution(float4* out_color, const float4* colors, int a_size, int a_width, int a_height)
 {
-#pragma omp parallel for
+  //Cannot be parallelized.
   for (int i = 0; i < a_size; ++i)
   {
     const float4 color    = NaN_toZero(colors[i]);
@@ -94,7 +94,7 @@ void AddSamplesContributionS(float4* out_color, const float4* colors, const unsi
 {
   const float multInv = 1.0f / 255.0f;
 
-#pragma omp parallel for
+  //Cannot be parallelized.
   for (int i = 0; i < a_size; ++i)
   {
     const float4 color    = NaN_toZero(colors[i]);
