@@ -1,6 +1,7 @@
 #ifdef WIN32
 #include "clew/clew.h"
 #else
+#define CL_TARGET_OPENCL_VERSION 100
 #include <CL/cl.h>
 #endif
 

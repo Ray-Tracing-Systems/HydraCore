@@ -9,7 +9,7 @@
             "command": "cd cmake-build-release && make -j4",
             "group": {
                 "kind": "build",
-                "isDefault": true
+                "isDefault": false
             }
         },
         {
