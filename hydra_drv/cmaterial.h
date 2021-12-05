@@ -1599,7 +1599,7 @@ static inline float2 beckmannAlphaXY(__global const PlainMaterial* a_pMat, const
 
 static inline void BeckmanTangentSpace(__global const PlainMaterial* a_pMat, float2 alpha, float3 nz, float3 a_tan, float3 a_bitan, float2 a_texCoord,
                                        __global const EngineGlobals* a_globals, texture2d_t a_tex, __private const ProcTextureList* a_ptList,
-                                       float3* pNx, float3* pNy)
+                                       __private float3* pNx, __private float3* pNy)
 {
   if(fabs(alpha.x - alpha.y) > 1e-5f)
   {
