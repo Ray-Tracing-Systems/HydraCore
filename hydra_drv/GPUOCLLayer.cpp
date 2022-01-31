@@ -1253,7 +1253,7 @@ void GPUOCLLayer::BeginTracingPass()
     //}
     else                                                // PT 
     { 
-      m_vars.m_flags |= HRT_INDIRECT_LIGHT_MODE; // for test
+      //m_vars.m_flags |= HRT_INDIRECT_LIGHT_MODE; // for test
       //m_vars.m_flags |= HRT_DIRECT_LIGHT_MODE;   // for test
      
       m_vars.m_varsI[HRT_KMLT_OR_QMC_LGT_BOUNCES] = kmlt.maxBounceQMC;
