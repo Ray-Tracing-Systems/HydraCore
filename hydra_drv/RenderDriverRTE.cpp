@@ -1250,6 +1250,12 @@ bool RenderDriverRTE::UpdateCamera(pugi::xml_node a_camNode)
     vars.m_varsF[HRT_TILT_ROT_X] = 0.0f;
   }
 
+  if (a_camNode.attribute(L"enable_cpu_plugin") != nullptr)
+  {
+    int hasPlugin = a_camNode.attribute(L"enable_cpu_plugin").as_int();
+    vars.m_varsI[HRT_USE_CPU_PLUGIN] = hasPlugin;
+  }
+
   m_pHWLayer->SetAllFlagsAndVars(vars);
 
   return true;

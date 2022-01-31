@@ -1251,6 +1251,31 @@ void GPUOCLLayer::BeginTracingPass()
     //{ 
     //  KMLT_Pass(NUM_MMLT_PASS, minBounce, maxBounce, 128); // BURN_ITERS
     //}
+    else if(m_vars.m_varsI[HRT_USE_CPU_PLUGIN] >= 1)
+    {
+      //m_vars.m_flags |= HRT_INDIRECT_LIGHT_MODE; // for test
+      //m_vars.m_flags |= HRT_DIRECT_LIGHT_MODE;   // for test
+     
+      m_vars.m_varsI[HRT_KMLT_OR_QMC_LGT_BOUNCES] = kmlt.maxBounceQMC;
+      m_vars.m_varsI[HRT_KMLT_OR_QMC_MAT_BOUNCES] = kmlt.maxBounceQMC;
+      UpdateVarsOnGPU(m_vars);
+
+      if(kmlt.maxBounceQMC != 0) 
+      {
+        runKernel_MakeEyeRaysQMC(m_rays.MEGABLOCKSIZE, m_passNumberForQMC,
+                                 m_rays.samZindex, kmlt.xVectorQMC);
+      }
+      else
+      {
+        runKernel_MakeEyeSamplesOnly(m_rays.MEGABLOCKSIZE, m_passNumberForQMC,
+                                     m_rays.samZindex, kmlt.xVectorQMC);
+      }
+      
+      EvalPT(kmlt.xVectorQMC, m_rays.samZindex, minBounce, maxBounce, m_rays.MEGABLOCKSIZE,
+             m_rays.pathAccColor);
+
+      AddContributionToScreen(m_rays.pathAccColor, m_rays.samZindex);
+    }
     else                                                // PT 
     { 
       //m_vars.m_flags |= HRT_INDIRECT_LIGHT_MODE; // for test

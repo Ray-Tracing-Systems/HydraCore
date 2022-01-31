@@ -487,7 +487,7 @@ enum VARIABLE_FLOAT_NAMES{ // float vars
                            HRT_CAM_FOV                             = 14,
                            HRT_PATH_TRACE_ERROR                    = 15,  
                            HRT_PATH_TRACE_CLAMPING                 = 16,
-                           HRT_DUMMY_VARIABLE                      = 17, 
+                           HRT_USE_CPU_PLUGIN                      = 17, 
 
                            HRT_BSPHERE_CENTER_X                    = 18,
                            HRT_BSPHERE_CENTER_Y                    = 19,
