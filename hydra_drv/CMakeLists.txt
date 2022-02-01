@@ -63,6 +63,7 @@ set(SOURCE_FILES
         CPUExp_GBuffer.cpp
         ../bakeBrdfEnergy/MSTablesGGX2017.cpp
         ../bakeBrdfEnergy/MSTablesTransp.cpp
+        ../cam_plug/SimpleCamPlugin.cpp
     )
 
 if (CMAKE_BUILD_TYPE STREQUAL "Debug")
@@ -72,6 +73,7 @@ endif()
 
 
 include_directories(${HYDRA_API_ROOT_DIR})
+include_directories("../cam_plug")
 
 find_package(OpenMP REQUIRED)
 

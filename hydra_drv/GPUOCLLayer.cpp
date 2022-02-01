@@ -5,6 +5,7 @@
 #include "hydra_api/ssemath.h"
 
 #include "cl_scan_gpu.h"
+#include "../cam_plug/CamHostPluginAPI.h"
 
 const ushort* getGgxTable();
 const ushort* getTranspTable();
@@ -1256,12 +1257,20 @@ void GPUOCLLayer::BeginTracingPass()
       m_vars.m_varsI[HRT_KMLT_OR_QMC_LGT_BOUNCES] = 0;
       m_vars.m_varsI[HRT_KMLT_OR_QMC_MAT_BOUNCES] = 0;
       UpdateVarsOnGPU(m_vars);
+      
+      memsetf4(m_rays.pathAccColor, float4(0,0,0,0), m_rays.MEGABLOCKSIZE, 0); 
 
       runKernel_MakeEyeSamplesOnly(m_rays.MEGABLOCKSIZE, m_passNumberForQMC,
                                    m_rays.samZindex, kmlt.xVectorQMC);
       
-      EvalPT(kmlt.xVectorQMC, m_rays.samZindex, minBounce, maxBounce, m_rays.MEGABLOCKSIZE,
-             m_rays.pathAccColor);
+      runKernel_MakeRaysFromEyeSam(m_rays.samZindex, kmlt.xVectorQMC, m_rays.MEGABLOCKSIZE, m_passNumberForQMC,
+                                   m_rays.rayPos, m_rays.rayDir);
+    
+      trace1D_Rev(minBounce, maxBounce, m_rays.rayPos, m_rays.rayDir, m_rays.MEGABLOCKSIZE,
+                  m_rays.pathAccColor);
+
+      //EvalPT(kmlt.xVectorQMC, m_rays.samZindex, minBounce, maxBounce, m_rays.MEGABLOCKSIZE,
+      //       m_rays.pathAccColor);
 
       AddContributionToScreen(m_rays.pathAccColor, m_rays.samZindex);
     }
