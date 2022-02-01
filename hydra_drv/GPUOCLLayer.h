@@ -18,12 +18,13 @@
 #include "utils/Timer.h"
 #include "bitonic_sort_gpu.h"
 
+#include "../cam_plug/CamHostPluginAPI.h"
+
 /** \brief OpenCL HWLayer.
 * 
 *  This class hold OpenCL buffers (all GPU data) and implement both Path Tracing and MLT on GPU.
 *  
 */
-
 class GPUOCLLayer : public CPUSharedData
 {
   typedef CPUSharedData Base;
@@ -484,6 +485,8 @@ protected:
   void runKernel_MakeRaysFromEyeSam(cl_mem a_zindex, cl_mem a_samples, size_t a_size, int a_passNumber,
                                     cl_mem a_rpos, cl_mem a_rdir);
 
+  void runKernel_TakeHostRays(cl_mem in_rays, cl_mem out_rpos, cl_mem out_rdir, size_t a_size);
+
   void runKernel_InitRandomGen(cl_mem a_buffer, size_t a_size, int a_seed);
   void runKernel_MakeEyeRays(cl_mem a_rpos, cl_mem a_rdir, cl_mem a_zindex, size_t a_size, int a_passNumber);
   void runKernel_MakeLightRays(cl_mem a_rpos, cl_mem a_rdir, cl_mem a_outColor, size_t a_size);
@@ -638,10 +641,29 @@ protected:
   void saveBlocksInfoToFile(cl_mem a_blocks, size_t a_size);
 
   cl_mem getFrameBuffById(int a_id);
+
+  //// for CamHostPlugin
+  //
+  struct CamPluginData
+  {
+    std::shared_ptr<IHostRaysAPI> pCamPlugin = nullptr;
+    cl_mem camRayGPU = nullptr;
+    cl_mem camRayCPU[2] = {nullptr, nullptr};
+    
+    void free()
+    {
+      if(camRayGPU == nullptr)
+        return;
+
+      clReleaseMemObject(camRayGPU);    camRayGPU    = nullptr;
+      clReleaseMemObject(camRayCPU[0]); camRayCPU[0] = nullptr;
+      clReleaseMemObject(camRayCPU[1]); camRayCPU[1] = nullptr;
+    }
+
+  }m_camPlugin;
 };
 
 void RoundBlocks2D(size_t global_item_size[2], size_t local_item_size[2]);
 
 static constexpr bool FORCE_DRAW_SHADOW      = false;
 static constexpr int  NUM_MMLT_PASS          = 32;
-

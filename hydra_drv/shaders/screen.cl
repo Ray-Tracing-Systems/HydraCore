@@ -326,6 +326,43 @@ __kernel void MakeEyeRaysUnifiedSampling(__global float4*              restrict 
   out_packXY[tid] = packXY1616(x, y);
 }
 
+
+__kernel void TakeHostRays(__global float4*             restrict out_pos, 
+                           __global float4*             restrict out_dir, 
+                          __global int*                 restrict out_packXY,
+                          int w, int h, int a_size,
+                          __global const EngineGlobals* restrict a_globals, 
+                          __global const float4*        restrict in_raysFromHost)
+{
+  int tid = GLOBAL_ID_X;
+  if (tid >= a_size)
+    return;
+  
+  __global const float4* rays1 = in_raysFromHost;
+  __global const float4* rays2 = in_raysFromHost + a_size;
+
+  const float4 rayPosAndXY = rays1[tid];
+  float3 ray_pos  = to_float3(rayPosAndXY);
+  float3 ray_dir  = to_float3(rays2[tid]);
+  const int packedIndex = as_int(rayPosAndXY.w);
+
+  int x = (packedIndex & 0x0000FFFF);         ///<! extract x position from color.w
+  int y = (packedIndex & 0xFFFF0000) >> 16;   ///<! extract y position from color.w
+
+  if (x >= w) x = w - 1;
+  if (y >= h) y = h - 1;
+
+  if (x < 0)  x = 0;
+  if (y < 0)  y = 0;
+
+  const float4x4 a_mWorldViewInv = make_float4x4(a_globals->mWorldViewInverse);
+  matrix4x4f_mult_ray3(a_mWorldViewInv, &ray_pos, &ray_dir);
+
+  out_pos   [tid] = to_float4(ray_pos, (float)(x));
+  out_dir   [tid] = to_float4(ray_dir, (float)(y));
+  out_packXY[tid] = packXY1616(x, y);
+}
+
 __kernel void ClearAllInternalTempBuffers(__global uint*      restrict out_flags,
                                           __global float4*    restrict out_color,
                                           __global float4*    restrict out_thoroughput,

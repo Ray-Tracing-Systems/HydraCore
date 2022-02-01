@@ -764,12 +764,13 @@ GPUOCLLayer::~GPUOCLLayer()
 {
   FinishAll();
   
+  m_camPlugin.free();
   MLT_Free();
   kmlt.free();
   m_rays.free();
   m_screen.free();
   m_scene.free();
-
+  
   if (m_globals.cMortonTable)     { clReleaseMemObject(m_globals.cMortonTable);      m_globals.cMortonTable      = nullptr; }
   if (m_globals.qmcTable)         { clReleaseMemObject(m_globals.qmcTable);          m_globals.qmcTable          = nullptr; }
   if (m_globals.hammersley2DGBuff){ clReleaseMemObject(m_globals.hammersley2DGBuff); m_globals.hammersley2DGBuff = nullptr; }
@@ -1146,6 +1147,24 @@ void GPUOCLLayer::InitPathTracing(int seed)
   m_passNumberForQMC = 0;
 
   ClearAccumulatedColor();
+  
+  // reset camera plugin if we have it ...
+  //
+  auto old = m_camPlugin.pCamPlugin;
+  m_camPlugin.pCamPlugin = MakeHostRaysEmitter(m_vars.m_varsI[HRT_USE_CPU_PLUGIN]);
+  if(old == nullptr && m_camPlugin.pCamPlugin != nullptr) // actual plugin init happened first time
+  {
+    m_camPlugin.pCamPlugin->SetParameters(m_width, m_height, m_globsBuffHeader.mProjInverse);
+
+    m_camPlugin.free();
+    cl_int ciErr1 = CL_SUCCESS;
+    m_camPlugin.camRayGPU    = clCreateBuffer(m_globals.ctx, CL_MEM_READ_WRITE, sizeof(RayPart1)*m_rays.MEGABLOCKSIZE + sizeof(RayPart2)*m_rays.MEGABLOCKSIZE, NULL, &ciErr1);
+    m_camPlugin.camRayCPU[0] = clCreateBuffer(m_globals.ctx, CL_MEM_READ_ONLY | CL_MEM_ALLOC_HOST_PTR, sizeof(RayPart1)*m_rays.MEGABLOCKSIZE + sizeof(RayPart2)*m_rays.MEGABLOCKSIZE, NULL, &ciErr1);
+    m_camPlugin.camRayCPU[1] = clCreateBuffer(m_globals.ctx, CL_MEM_READ_ONLY | CL_MEM_ALLOC_HOST_PTR, sizeof(RayPart1)*m_rays.MEGABLOCKSIZE + sizeof(RayPart2)*m_rays.MEGABLOCKSIZE, NULL, &ciErr1);
+  
+    if (ciErr1 != CL_SUCCESS)
+      RUN_TIME_ERROR("[HostRaysAPI]: Error in create rays buffers for Host Camera Plugin");
+  }
 }
 
 void GPUOCLLayer::ClearAccumulatedColor()
@@ -1258,19 +1277,35 @@ void GPUOCLLayer::BeginTracingPass()
       m_vars.m_varsI[HRT_KMLT_OR_QMC_MAT_BOUNCES] = 0;
       UpdateVarsOnGPU(m_vars);
       
-      memsetf4(m_rays.pathAccColor, float4(0,0,0,0), m_rays.MEGABLOCKSIZE, 0); 
+      if(false)
+      //if(m_camPlugin.pCamPlugin != nullptr)
+      {
+        const size_t fullSize = m_rays.MEGABLOCKSIZE*sizeof(RayPart1) + m_rays.MEGABLOCKSIZE*sizeof(RayPart2);
+        cl_int ciErr1   = CL_SUCCESS;
+        RayPart1* rays1 = (RayPart1*)clEnqueueMapBuffer(m_globals.cmdQueue, m_camPlugin.camRayCPU[0], CL_TRUE, CL_MAP_WRITE, 0, fullSize, 0, 0, 0, &ciErr1);
+        RayPart2* rays2 = (RayPart2*)(rays1 + m_rays.MEGABLOCKSIZE);
 
-      runKernel_MakeEyeSamplesOnly(m_rays.MEGABLOCKSIZE, m_passNumberForQMC,
-                                   m_rays.samZindex, kmlt.xVectorQMC);
+        if (ciErr1 != CL_SUCCESS)
+          RUN_TIME_ERROR("[HostRaysAPI]: Error in 'clEnqueueMapBuffer' for Host Camera Plugin");
+
+        m_camPlugin.pCamPlugin->MakeRaysBlock(rays1, rays2, m_rays.MEGABLOCKSIZE);
       
-      runKernel_MakeRaysFromEyeSam(m_rays.samZindex, kmlt.xVectorQMC, m_rays.MEGABLOCKSIZE, m_passNumberForQMC,
-                                   m_rays.rayPos, m_rays.rayDir);
+        clEnqueueCopyBuffer(m_globals.cmdQueue, m_camPlugin.camRayCPU[0], m_camPlugin.camRayGPU, 0, 0, fullSize, 0, nullptr, nullptr);
+        clEnqueueUnmapMemObject(m_globals.cmdQueue, m_camPlugin.camRayCPU[0], rays1, 0, 0, 0);
+
+        runKernel_TakeHostRays(m_camPlugin.camRayGPU, m_rays.rayPos, m_rays.rayDir, m_rays.MEGABLOCKSIZE);
+      }
+      else
+      {
+        memsetf4(m_rays.pathAccColor, float4(0,0,0,0), m_rays.MEGABLOCKSIZE, 0); 
+        runKernel_MakeEyeSamplesOnly(m_rays.MEGABLOCKSIZE, m_passNumberForQMC,
+                                     m_rays.samZindex, kmlt.xVectorQMC);
+        runKernel_MakeRaysFromEyeSam(m_rays.samZindex, kmlt.xVectorQMC, m_rays.MEGABLOCKSIZE, m_passNumberForQMC,
+                                     m_rays.rayPos, m_rays.rayDir);
+      }
     
       trace1D_Rev(minBounce, maxBounce, m_rays.rayPos, m_rays.rayDir, m_rays.MEGABLOCKSIZE,
                   m_rays.pathAccColor);
-
-      //EvalPT(kmlt.xVectorQMC, m_rays.samZindex, minBounce, maxBounce, m_rays.MEGABLOCKSIZE,
-      //       m_rays.pathAccColor);
 
       AddContributionToScreen(m_rays.pathAccColor, m_rays.samZindex);
     }

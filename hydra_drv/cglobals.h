@@ -462,6 +462,7 @@ enum VARIABLE_NAMES { // int vars
                       HRT_SHADOW_MATTE_BACK_COLOR_X= 42,
                       HRT_SHADOW_MATTE_BACK_COLOR_Y= 43,
                       HRT_SHADOW_MATTE_BACK_COLOR_Z= 44,
+                      HRT_USE_CPU_PLUGIN           = 45, 
 };
 
 enum VARIABLE_FLOAT_NAMES{ // float vars
@@ -487,7 +488,7 @@ enum VARIABLE_FLOAT_NAMES{ // float vars
                            HRT_CAM_FOV                             = 14,
                            HRT_PATH_TRACE_ERROR                    = 15,  
                            HRT_PATH_TRACE_CLAMPING                 = 16,
-                           HRT_USE_CPU_PLUGIN                      = 17, 
+                           HRT_DUMMY_FREE                          = 17, 
 
                            HRT_BSPHERE_CENTER_X                    = 18,
                            HRT_BSPHERE_CENTER_Y                    = 19,
