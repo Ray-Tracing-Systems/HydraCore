@@ -1277,23 +1277,30 @@ void GPUOCLLayer::BeginTracingPass()
       m_vars.m_varsI[HRT_KMLT_OR_QMC_MAT_BOUNCES] = 0;
       UpdateVarsOnGPU(m_vars);
       
-      if(false)
-      //if(m_camPlugin.pCamPlugin != nullptr)
+      //if(false)
+      if(m_camPlugin.pCamPlugin != nullptr)
       {
         const size_t fullSize = m_rays.MEGABLOCKSIZE*sizeof(RayPart1) + m_rays.MEGABLOCKSIZE*sizeof(RayPart2);
         cl_int ciErr1   = CL_SUCCESS;
         RayPart1* rays1 = (RayPart1*)clEnqueueMapBuffer(m_globals.cmdQueue, m_camPlugin.camRayCPU[0], CL_TRUE, CL_MAP_WRITE, 0, fullSize, 0, 0, 0, &ciErr1);
         RayPart2* rays2 = (RayPart2*)(rays1 + m_rays.MEGABLOCKSIZE);
-
         if (ciErr1 != CL_SUCCESS)
           RUN_TIME_ERROR("[HostRaysAPI]: Error in 'clEnqueueMapBuffer' for Host Camera Plugin");
-
         m_camPlugin.pCamPlugin->MakeRaysBlock(rays1, rays2, m_rays.MEGABLOCKSIZE);
-      
-        clEnqueueCopyBuffer(m_globals.cmdQueue, m_camPlugin.camRayCPU[0], m_camPlugin.camRayGPU, 0, 0, fullSize, 0, nullptr, nullptr);
         clEnqueueUnmapMemObject(m_globals.cmdQueue, m_camPlugin.camRayCPU[0], rays1, 0, 0, 0);
 
-        runKernel_TakeHostRays(m_camPlugin.camRayGPU, m_rays.rayPos, m_rays.rayDir, m_rays.MEGABLOCKSIZE);
+        clEnqueueCopyBuffer(m_globals.cmdQueue, m_camPlugin.camRayCPU[0], m_camPlugin.camRayGPU, 0, 0, fullSize, 0, nullptr, nullptr);
+
+        runKernel_MakeEyeSamplesOnly(m_rays.MEGABLOCKSIZE, m_passNumberForQMC, m_rays.samZindex, kmlt.xVectorQMC);
+        runKernel_MakeRaysFromEyeSam(m_rays.samZindex, kmlt.xVectorQMC, m_rays.MEGABLOCKSIZE, m_passNumberForQMC, m_rays.rayPos, m_rays.rayDir);
+        
+        //debugDumpF4Buff("rpos1.txt", m_rays.rayPos, true);
+        //debugDumpF4Buff("rdir1.txt", m_rays.rayDir, true);
+
+        runKernel_TakeHostRays(m_camPlugin.camRayGPU, m_rays.rayPos, m_rays.rayDir, m_rays.pathAccColor, m_rays.MEGABLOCKSIZE);
+        
+        //debugDumpF4Buff("rpos2.txt", m_rays.rayPos, true);
+        //debugDumpF4Buff("rdir2.txt", m_rays.rayDir, true);
       }
       else
       {

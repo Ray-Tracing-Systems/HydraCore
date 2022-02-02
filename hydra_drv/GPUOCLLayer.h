@@ -485,7 +485,7 @@ protected:
   void runKernel_MakeRaysFromEyeSam(cl_mem a_zindex, cl_mem a_samples, size_t a_size, int a_passNumber,
                                     cl_mem a_rpos, cl_mem a_rdir);
 
-  void runKernel_TakeHostRays(cl_mem in_rays, cl_mem out_rpos, cl_mem out_rdir, size_t a_size);
+  void runKernel_TakeHostRays(cl_mem in_rays, cl_mem out_rpos, cl_mem out_rdir, cl_mem out_clearColor, size_t a_size);
 
   void runKernel_InitRandomGen(cl_mem a_buffer, size_t a_size, int a_seed);
   void runKernel_MakeEyeRays(cl_mem a_rpos, cl_mem a_rdir, cl_mem a_zindex, size_t a_size, int a_passNumber);
@@ -630,7 +630,7 @@ protected:
 
   bool testSimpleReduction();
   void testDumpRays(const char* a_fNamePos, const char* a_fnameDir);
-  void debugDumpF4Buff(const char* a_fNamePos, cl_mem a_buff);
+  void debugDumpF4Buff(const char* a_fNamePos, cl_mem a_buff, bool a_textMode = false);
 
   bool m_clglSharing;
   bool m_storeShadowInAlphaChannel;

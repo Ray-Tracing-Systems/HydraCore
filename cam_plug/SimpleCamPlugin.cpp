@@ -33,7 +33,7 @@ static inline int myPackXY1616(int x, int y) { return (y << 16) | (x & 0x0000FFF
 
 void SimpleDOF::MakeRaysBlock(RayPart1* out_rayPosAndNear, RayPart2* out_rayDirAndFar, size_t in_blockSize)
 {
-  //#pragma omp parallel for
+  #pragma omp parallel for
   for(int i=0;i<in_blockSize;i++)
   {
     const float rndX = hr_qmc::rndFloat(m_globalCounter+i, 0, table[0]);
