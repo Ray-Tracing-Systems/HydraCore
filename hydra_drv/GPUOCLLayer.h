@@ -483,7 +483,7 @@ protected:
                                 cl_mem a_zindex, cl_mem a_samples);
                                     
   void runKernel_MakeRaysFromEyeSam(cl_mem a_zindex, cl_mem a_samples, size_t a_size, int a_passNumber,
-                                    cl_mem a_rpos, cl_mem a_rdir);
+                                    cl_mem a_rpos, cl_mem a_rdir, cl_mem a_color);
 
   void runKernel_TakeHostRays(cl_mem in_rays, cl_mem out_rpos, cl_mem out_rdir, cl_mem out_clearColor, size_t a_size);
 

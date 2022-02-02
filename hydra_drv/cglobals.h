@@ -1039,24 +1039,18 @@ static inline float3 EyeRayDir(float x, float y, float w, float h, float4x4 a_mV
 
   pos = mul4x4x4(a_mViewProjInv, pos);
   pos /= pos.w;
-
   pos.y *= (-1.0f);
-
   return normalize(to_float3(pos));
 }
-
 
 static inline void matrix4x4f_mult_ray3(float4x4 a_mWorldViewInv, __private float3* ray_pos, __private float3* ray_dir) // g_mWorldViewInv
 {
   float3 pos  = mul(a_mWorldViewInv, (*ray_pos));
   float3 pos2 = mul(a_mWorldViewInv, ((*ray_pos) + 100.0f*(*ray_dir)));
-
   float3 diff = pos2 - pos;
-
   (*ray_pos)  = pos;
   (*ray_dir)  = normalize(diff);
 }
-
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////
 ////

@@ -6,6 +6,9 @@
 #include <vector>
 #include <cstring>
 
+#include "../../HydraAPI/hydra_api/HydraAPI.h" // for XML
+#include "../../HydraAPI/hydra_api/LiteMath.h" // fr float4, may exclude if needed 
+
 struct RayPart1 
 {
   float    origin[3];   ///<! ray origin, x,y,z
@@ -16,11 +19,6 @@ struct RayPart2
 {
   float direction[3];
   float dummy;
-};
-
-struct Color4f
-{
-  float x,y,z,w;
 };
 
 struct IHostRaysAPI
@@ -46,7 +44,7 @@ struct IHostRaysAPI
   \param a_width    - image width
   \param a_height   - image height
   */
-  virtual void AddSamplesContribution(Color4f* out_color, const Color4f* colors, size_t in_blockSize, uint32_t a_width, uint32_t a_height) = 0;
+  virtual void AddSamplesContribution(LiteMath::float4* out_color, const LiteMath::float4* colors, size_t in_blockSize, uint32_t a_width, uint32_t a_height) = 0;
 
 };
 

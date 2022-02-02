@@ -1281,13 +1281,19 @@ void GPUOCLLayer::BeginTracingPass()
       if(m_camPlugin.pCamPlugin != nullptr)
       {
         const size_t fullSize = m_rays.MEGABLOCKSIZE*sizeof(RayPart1) + m_rays.MEGABLOCKSIZE*sizeof(RayPart2);
-        cl_int ciErr1   = CL_SUCCESS;
-        RayPart1* rays1 = (RayPart1*)clEnqueueMapBuffer(m_globals.cmdQueue, m_camPlugin.camRayCPU[0], CL_TRUE, CL_MAP_WRITE, 0, fullSize, 0, 0, 0, &ciErr1);
-        RayPart2* rays2 = (RayPart2*)(rays1 + m_rays.MEGABLOCKSIZE);
-        if (ciErr1 != CL_SUCCESS)
-          RUN_TIME_ERROR("[HostRaysAPI]: Error in 'clEnqueueMapBuffer' for Host Camera Plugin");
-        m_camPlugin.pCamPlugin->MakeRaysBlock(rays1, rays2, m_rays.MEGABLOCKSIZE);
-        clEnqueueUnmapMemObject(m_globals.cmdQueue, m_camPlugin.camRayCPU[0], rays1, 0, 0, 0);
+        cl_int ciErr1 = CL_SUCCESS;
+        
+        //copy data to appropriate buffer
+        {
+          RayPart1* rays1 = (RayPart1*)clEnqueueMapBuffer(m_globals.cmdQueue, m_camPlugin.camRayCPU[0], CL_TRUE, CL_MAP_WRITE, 0, fullSize, 0, 0, 0, &ciErr1);
+          RayPart2* rays2 = (RayPart2*)(rays1 + m_rays.MEGABLOCKSIZE);
+          if (ciErr1 != CL_SUCCESS)
+            RUN_TIME_ERROR("[HostRaysAPI]: Error in 'clEnqueueMapBuffer' for Host Camera Plugin");
+          
+          m_camPlugin.pCamPlugin->MakeRaysBlock(rays1, rays2, m_rays.MEGABLOCKSIZE);
+          
+          clEnqueueUnmapMemObject(m_globals.cmdQueue, m_camPlugin.camRayCPU[0], rays1, 0, 0, 0);
+        }
 
         clEnqueueCopyBuffer(m_globals.cmdQueue, m_camPlugin.camRayCPU[0], m_camPlugin.camRayGPU, 0, 0, fullSize, 0, nullptr, nullptr);
 
@@ -1295,11 +1301,10 @@ void GPUOCLLayer::BeginTracingPass()
       }
       else
       {
-        memsetf4(m_rays.pathAccColor, float4(0,0,0,0), m_rays.MEGABLOCKSIZE, 0); 
         runKernel_MakeEyeSamplesOnly(m_rays.MEGABLOCKSIZE, m_passNumberForQMC,
                                      m_rays.samZindex, kmlt.xVectorQMC);
         runKernel_MakeRaysFromEyeSam(m_rays.samZindex, kmlt.xVectorQMC, m_rays.MEGABLOCKSIZE, m_passNumberForQMC,
-                                     m_rays.rayPos, m_rays.rayDir);
+                                     m_rays.rayPos, m_rays.rayDir, m_rays.pathAccColor);
       }
     
       trace1D_Rev(minBounce, maxBounce, m_rays.rayPos, m_rays.rayDir, m_rays.MEGABLOCKSIZE,

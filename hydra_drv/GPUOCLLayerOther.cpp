@@ -223,7 +223,9 @@ void GPUOCLLayer::AddContributionToScreenCPU(cl_mem& in_color, int a_size, int a
 
     if (lockSuccess)
     {
-      if (m_storeShadowInAlphaChannel)
+      if(m_camPlugin.pCamPlugin != nullptr)
+        m_camPlugin.pCamPlugin->AddSamplesContribution(out_color, colors, size, a_width, a_height);
+      else if (m_storeShadowInAlphaChannel)
         AddSamplesContributionS(out_color, colors, (const unsigned char*)shadows, int(size), a_width, a_height);
       else
         AddSamplesContribution(out_color, colors, int(size), a_width, a_height);

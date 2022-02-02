@@ -279,6 +279,7 @@ __kernel void MakeEyeRaysSamplesOnly(__global RandomGen*           restrict out_
 
 __kernel void MakeEyeRaysUnifiedSampling(__global float4*              restrict out_pos, 
                                          __global float4*              restrict out_dir, 
+                                         __global float4*              restrict out_color, 
                                          __global int*                 restrict out_packXY,
 
                                          int w, int h, int a_size,
@@ -323,6 +324,7 @@ __kernel void MakeEyeRaysUnifiedSampling(__global float4*              restrict 
 
   out_pos   [tid] = to_float4(ray_pos, fx);
   out_dir   [tid] = to_float4(ray_dir, fy);
+  out_color [tid] = make_float4(0,0,0,0);
   out_packXY[tid] = packXY1616(x, y);
 }
 
@@ -360,17 +362,15 @@ __kernel void TakeHostRays(__global float4*             restrict out_pos,
   const float4x4 a_mWorldViewInv = make_float4x4(a_globals->mWorldViewInverse);
   matrix4x4f_mult_ray3(a_mWorldViewInv, &ray_pos, &ray_dir);
   
-  /*
-  RandomGen gen             = out_gens[tid];
-  const float4 lensOffs     = rndFloat4_Pseudo(&gen);
-  out_gens[tid]             = gen;
-  float  fx, fy;
-  float3 ray_pos, ray_dir;
-  MakeEyeRayFromF4Rnd(lensOffs, a_globals,
-                      &ray_pos, &ray_dir, &fx, &fy);
-  int x = (int)(fx);
-  int y = (int)(fy); 
-  */
+  //RandomGen gen             = out_gens[tid];
+  //const float4 lensOffs     = rndFloat4_Pseudo(&gen);
+  //out_gens[tid]             = gen;
+  //float  fx, fy;
+  //float3 ray_pos, ray_dir;
+  //MakeEyeRayFromF4Rnd(lensOffs, a_globals,
+  //                    &ray_pos, &ray_dir, &fx, &fy);
+  //int x = (int)(fx);
+  //int y = (int)(fy); 
 
   out_pos   [tid] = to_float4(ray_pos, (float)(x));
   out_dir   [tid] = to_float4(ray_dir, (float)(y));
