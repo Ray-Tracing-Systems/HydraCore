@@ -57,6 +57,14 @@
         "numeric": "cpp",
         "random": "cpp",
         "regex": "cpp",
-        "string": "cpp"
+        "string": "cpp",
+        "bit": "cpp",
+        "compare": "cpp",
+        "concepts": "cpp",
+        "numbers": "cpp",
+        "ranges": "cpp",
+        "csignal": "cpp",
+        "semaphore": "cpp",
+        "stop_token": "cpp"
     }
 }

@@ -1257,6 +1257,7 @@ bool RenderDriverRTE::UpdateCamera(pugi::xml_node a_camNode)
   }
 
   m_pHWLayer->SetAllFlagsAndVars(vars);
+  m_pHWLayer->SetCamNode(a_camNode);  // for CPU cam plugins
 
   return true;
 }

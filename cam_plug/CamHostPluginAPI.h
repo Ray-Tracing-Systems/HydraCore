@@ -23,7 +23,14 @@ struct RayPart2
 
 struct IHostRaysAPI
 { 
-  virtual void SetParameters(int a_width, int a_height, const float a_projInvMatrix[16]) {}
+  /** 
+   \brief Set camera parameters
+   \param a_width         - image width
+   \param a_height        - image height
+   \param a_projInvMatrix - inverse projection matrix; you may apply it to the ray to get correct perspective
+   \param a_camNode       - all other camera parameters which you can directly by reading this node
+  */
+  virtual void SetParameters(int a_width, int a_height, const float a_projInvMatrix[16], pugi::xml_node a_camNode) {}
 
   /** 
    \brief Put portion of rays in execution queue

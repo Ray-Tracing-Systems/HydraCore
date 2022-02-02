@@ -1154,7 +1154,7 @@ void GPUOCLLayer::InitPathTracing(int seed)
   m_camPlugin.pCamPlugin = MakeHostRaysEmitter(m_vars.m_varsI[HRT_USE_CPU_PLUGIN]);
   if(old == nullptr && m_camPlugin.pCamPlugin != nullptr) // actual plugin init happened first time
   {
-    m_camPlugin.pCamPlugin->SetParameters(m_width, m_height, m_globsBuffHeader.mProjInverse);
+    m_camPlugin.pCamPlugin->SetParameters(m_width, m_height, m_globsBuffHeader.mProjInverse, m_camNode);
 
     m_camPlugin.free();
     cl_int ciErr1 = CL_SUCCESS;

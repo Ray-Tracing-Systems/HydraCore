@@ -9,12 +9,15 @@ class SimpleDOF : public IHostRaysAPI
 public:
   SimpleDOF() { hr_qmc::init(table); m_globalCounter = 0; }
   
-  void SetParameters(int a_width, int a_height, const float a_projInvMatrix[16]) override
+  void SetParameters(int a_width, int a_height, const float a_projInvMatrix[16], pugi::xml_node a_camNode) override
   {
     m_fwidth  = float(a_width);
     m_fheight = float(a_height);
     memcpy(&m_projInv, a_projInvMatrix, sizeof(float4x4));
+    ReadParamsFromNode(a_camNode);
   }
+
+  void ReadParamsFromNode(pugi::xml_node a_camNode);
 
   void MakeRaysBlock(RayPart1* out_rayPosAndNear, RayPart2* out_rayDirAndFar, size_t in_blockSize) override;
   void AddSamplesContribution(float4* out_color, const float4* colors, size_t in_blockSize, uint32_t a_width, uint32_t a_height) override;
@@ -25,8 +28,50 @@ public:
   float m_fwidth  = 1024.0f;
   float m_fheight = 1024.0f;
   float4x4 m_projInv;
+
+  float FOCAL_PLANE_DIST = 10.0f;
+  float DOF_LENS_RADIUS  = 0.0f;
+  bool  DOF_IS_ENABLED = false;
 };
 
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+void SimpleDOF::ReadParamsFromNode(pugi::xml_node a_camNode)
+{
+  if (a_camNode.child(L"enable_dof").text().empty())
+    return;
+
+  int hasDof = a_camNode.child(L"enable_dof").text().as_int();
+  if (hasDof > 0)
+  {
+    DOF_IS_ENABLED  = true;
+    DOF_LENS_RADIUS = a_camNode.child(L"dof_lens_radius").text().as_float();
+    
+    // compute 'FOCAL_PLANE_DIST' from camPos and lookAt parameters 
+    //
+    float3 camPos, camLookAt;
+    {
+      const wchar_t* camPosStr = a_camNode.child(L"position").text().as_string();
+      const wchar_t* camLAtStr = a_camNode.child(L"look_at").text().as_string();
+      if (std::wstring(camPosStr) != L"")
+      {
+        std::wstringstream input(camPosStr);
+        input >> camPos.x >> camPos.y >> camPos.z;
+      }
+      if (std::wstring(camLAtStr) != L"")
+      {
+        std::wstringstream input(camLAtStr);
+        input >> camLookAt.x >> camLookAt.y >> camLookAt.z;
+      }
+    }
+    FOCAL_PLANE_DIST = length(camPos - camLookAt);
+  }
+  else
+    DOF_IS_ENABLED = false;
+}
 
 static inline int myPackXY1616(int x, int y) { return (y << 16) | (x & 0x0000FFFF); }
 
@@ -41,7 +86,6 @@ void SimpleDOF::MakeRaysBlock(RayPart1* out_rayPosAndNear, RayPart2* out_rayDirA
     const float x    = m_fwidth*rndX; 
     const float y    = m_fheight*rndY;
 
-
     float3 ray_pos = float3(0,0,0);
     float3 ray_dir = EyeRayDir(x, y, m_fwidth, m_fheight, m_projInv);
 
@@ -49,9 +93,6 @@ void SimpleDOF::MakeRaysBlock(RayPart1* out_rayPosAndNear, RayPart2* out_rayDirA
     {
       const float lenzX = hr_qmc::rndFloat(m_globalCounter+i, 2, table[0]);
       const float lenzY = hr_qmc::rndFloat(m_globalCounter+i, 3, table[0]);
-
-      const float FOCAL_PLANE_DIST = 12.0f;
-      const float DOF_LENS_RADIUS  = 0.25f;
 
       const float tFocus         = FOCAL_PLANE_DIST / (-ray_dir.z);
       const float3 focusPosition = ray_pos + ray_dir*tFocus;
