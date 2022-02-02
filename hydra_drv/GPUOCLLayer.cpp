@@ -1291,16 +1291,7 @@ void GPUOCLLayer::BeginTracingPass()
 
         clEnqueueCopyBuffer(m_globals.cmdQueue, m_camPlugin.camRayCPU[0], m_camPlugin.camRayGPU, 0, 0, fullSize, 0, nullptr, nullptr);
 
-        runKernel_MakeEyeSamplesOnly(m_rays.MEGABLOCKSIZE, m_passNumberForQMC, m_rays.samZindex, kmlt.xVectorQMC);
-        runKernel_MakeRaysFromEyeSam(m_rays.samZindex, kmlt.xVectorQMC, m_rays.MEGABLOCKSIZE, m_passNumberForQMC, m_rays.rayPos, m_rays.rayDir);
-        
-        //debugDumpF4Buff("rpos1.txt", m_rays.rayPos, true);
-        //debugDumpF4Buff("rdir1.txt", m_rays.rayDir, true);
-
         runKernel_TakeHostRays(m_camPlugin.camRayGPU, m_rays.rayPos, m_rays.rayDir, m_rays.pathAccColor, m_rays.MEGABLOCKSIZE);
-        
-        //debugDumpF4Buff("rpos2.txt", m_rays.rayPos, true);
-        //debugDumpF4Buff("rdir2.txt", m_rays.rayDir, true);
       }
       else
       {

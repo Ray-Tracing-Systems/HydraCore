@@ -340,36 +340,37 @@ __kernel void TakeHostRays(__global float4*             restrict out_pos,
   if (tid >= a_size)
     return;
    
-  //__global const float4* rays1 = in_raysFromHost;
-  //__global const float4* rays2 = in_raysFromHost + a_size;
-  //
-  //const float4 rayPosAndXY = rays1[tid];
-  //float3 ray_pos  = to_float3(rayPosAndXY);
-  //float3 ray_dir  = to_float3(rays2[tid]);
-  //const int packedIndex = as_int(rayPosAndXY.w);
-  //
-  //int x = (packedIndex & 0x0000FFFF);         ///<! extract x position from color.w
-  //int y = (packedIndex & 0xFFFF0000) >> 16;   ///<! extract y position from color.w
-  //
-  //if (x >= w) x = w - 1;
-  //if (y >= h) y = h - 1;
-  //
-  //if (x < 0)  x = 0;
-  //if (y < 0)  y = 0;
-  //
-  //const float4x4 a_mWorldViewInv = make_float4x4(a_globals->mWorldViewInverse);
-  //matrix4x4f_mult_ray3(a_mWorldViewInv, &ray_pos, &ray_dir);
+  __global const float4* rays1 = in_raysFromHost;
+  __global const float4* rays2 = in_raysFromHost + a_size;
   
+  const float4 rayPosAndXY = rays1[tid];
+  float3 ray_pos  = to_float3(rayPosAndXY);
+  float3 ray_dir  = to_float3(rays2[tid]);
+  const int packedIndex = as_int(rayPosAndXY.w);
+  
+  int x = (packedIndex & 0x0000FFFF);         ///<! extract x position from color.w
+  int y = (packedIndex & 0xFFFF0000) >> 16;   ///<! extract y position from color.w
+  
+  if (x >= w) x = w - 1;
+  if (y >= h) y = h - 1;
+  
+  if (x < 0)  x = 0;
+  if (y < 0)  y = 0;
+  
+  const float4x4 a_mWorldViewInv = make_float4x4(a_globals->mWorldViewInverse);
+  matrix4x4f_mult_ray3(a_mWorldViewInv, &ray_pos, &ray_dir);
+  
+  /*
   RandomGen gen             = out_gens[tid];
   const float4 lensOffs     = rndFloat4_Pseudo(&gen);
   out_gens[tid]             = gen;
-
   float  fx, fy;
   float3 ray_pos, ray_dir;
   MakeEyeRayFromF4Rnd(lensOffs, a_globals,
                       &ray_pos, &ray_dir, &fx, &fy);
   int x = (int)(fx);
   int y = (int)(fy); 
+  */
 
   out_pos   [tid] = to_float4(ray_pos, (float)(x));
   out_dir   [tid] = to_float4(ray_dir, (float)(y));

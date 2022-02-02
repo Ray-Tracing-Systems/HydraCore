@@ -10,7 +10,7 @@ class SimpleDOF : public IHostRaysAPI
 public:
   SimpleDOF() { hr_qmc::init(table); m_globalCounter = 0; }
   
-  void SetParameters(int a_width, int a_height, const float a_projInvMatrix[16])
+  void SetParameters(int a_width, int a_height, const float a_projInvMatrix[16]) override
   {
     m_fwidth  = float(a_width);
     m_fheight = float(a_height);
@@ -54,6 +54,7 @@ void SimpleDOF::MakeRaysBlock(RayPart1* out_rayPosAndNear, RayPart2* out_rayDirA
     p2.direction[0] = ray_dir.x;
     p2.direction[1] = ray_dir.y;
     p2.direction[2] = ray_dir.z;
+    p2.dummy        = 0.0f;
     
     out_rayPosAndNear[i] = p1;
     out_rayDirAndFar [i] = p2;

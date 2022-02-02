@@ -25,7 +25,7 @@ struct Color4f
 
 struct IHostRaysAPI
 { 
-  void SetParameters(int a_width, int a_height, const float a_projInvMatrix[16]) {}
+  virtual void SetParameters(int a_width, int a_height, const float a_projInvMatrix[16]) {}
 
   /** 
    \brief Put portion of rays in execution queue
