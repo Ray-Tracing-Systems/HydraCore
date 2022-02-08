@@ -91,7 +91,7 @@ void SimpleDOF::MakeRaysBlock(RayPart1* out_rayPosAndNear, RayPart2* out_rayDirA
     float3 ray_pos = float3(0,0,0);
     float3 ray_dir = EyeRayDir(x, y, m_fwidth, m_fheight, m_projInv);
 
-    if (true) // dof is enabled
+    if (DOF_IS_ENABLED) // dof is enabled
     {
       const float lenzX = hr_qmc::rndFloat(m_globalCounter+i, 2, table[0]);
       const float lenzY = hr_qmc::rndFloat(m_globalCounter+i, 3, table[0]);
@@ -122,7 +122,7 @@ void SimpleDOF::MakeRaysBlock(RayPart1* out_rayPosAndNear, RayPart2* out_rayDirA
     out_rayDirAndFar [i] = p2;
   }
 
-  //std::this_thread::sleep_for(std::chrono::milliseconds(100)); // test big delay
+  //std::this_thread::sleep_for(std::chrono::milliseconds(50)); // test big delay
 
   m_globalCounter += unsigned(in_blockSize);
 } 
