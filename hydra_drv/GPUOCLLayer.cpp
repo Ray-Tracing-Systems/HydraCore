@@ -16,6 +16,8 @@ extern "C" void initQuasirandomGenerator(unsigned int table[QRNG_DIMENSIONS_K][Q
 #undef min
 #undef max
 
+#include <future>
+
 constexpr bool SAVE_BUILD_LOG = false;
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -1217,6 +1219,8 @@ const float4* GPUOCLLayer::GetCPUScreenBuffer(int a_layerId, int& width, int& he
   return resultPtr;     
 }
 
+
+
 void GPUOCLLayer::BeginTracingPass()
 {
   static int firstCall = 0;
@@ -1230,6 +1234,8 @@ void GPUOCLLayer::BeginTracingPass()
 
   //m_vars.m_flags |= HRT_ENABLE_PT_CAUSTICS;
   //UpdateVarsOnGPU(m_vars);
+
+  bool asyncPluginMode = true; // enable parallel evaluation of ray block in CPU plugin
 
   if((m_vars.m_flags & HRT_ENABLE_SBPT) != 0)
   {
@@ -1259,7 +1265,8 @@ void GPUOCLLayer::BeginTracingPass()
   { 
     const int minBounce = 1;
     const int maxBounce = m_vars.m_varsI[HRT_TRACE_DEPTH];
-
+    std::future<int> pluginExecution;
+    
     if ((m_vars.m_flags & HRT_FORWARD_TRACING) != 0)    // LT 
     {
       m_vars.m_varsI[HRT_KMLT_OR_QMC_LGT_BOUNCES] = 0;  // explicit disable reading random numbers from buffer
@@ -1282,24 +1289,11 @@ void GPUOCLLayer::BeginTracingPass()
       //if(false)
       if(m_camPlugin.pCamPlugin != nullptr)
       {
-        const size_t fullSize = m_rays.MEGABLOCKSIZE*sizeof(RayPart1) + m_rays.MEGABLOCKSIZE*sizeof(RayPart2);
-        cl_int ciErr1 = CL_SUCCESS;
-        
         int buffId = m_passNumber % 2;
-
-        //copy data to appropriate buffer
-        {
-          RayPart1* rays1 = (RayPart1*)clEnqueueMapBuffer(m_globals.cmdQueueDevToHost, m_camPlugin.camRayCPU[buffId], CL_TRUE, CL_MAP_WRITE, 0, fullSize, 0, 0, 0, &ciErr1);
-          RayPart2* rays2 = (RayPart2*)(rays1 + m_rays.MEGABLOCKSIZE);
-          if (ciErr1 != CL_SUCCESS)
-            RUN_TIME_ERROR("[HostRaysAPI]: Error in 'clEnqueueMapBuffer' for Host Camera Plugin");
-          
-          m_camPlugin.pCamPlugin->MakeRaysBlock(rays1, rays2, m_rays.MEGABLOCKSIZE);
-          
-          clEnqueueUnmapMemObject(m_globals.cmdQueueDevToHost, m_camPlugin.camRayCPU[buffId], rays1, 0, 0, 0);
-        }
-
-        clEnqueueCopyBuffer(m_globals.cmdQueueDevToHost, m_camPlugin.camRayCPU[buffId], m_camPlugin.camRayGPU[buffId], 0, 0, fullSize, 0, nullptr, nullptr);
+        if(asyncPluginMode)
+          pluginExecution = std::async(std::launch::async, &GPUOCLLayer::DoCamPluginRays, this, buffId);
+        else
+          DoCamPluginRays(buffId);
 
         runKernel_TakeHostRays(m_camPlugin.camRayGPU[1-buffId], m_rays.rayPos, m_rays.rayDir, m_rays.pathAccColor, m_rays.MEGABLOCKSIZE);
       }
@@ -1315,8 +1309,9 @@ void GPUOCLLayer::BeginTracingPass()
         trace1D_Rev(minBounce, maxBounce, m_rays.rayPos, m_rays.rayDir, m_rays.MEGABLOCKSIZE, m_rays.pathAccColor);
 
       AddContributionToScreen(m_rays.pathAccColor, m_rays.samZindex);
-
       
+      if(asyncPluginMode)
+        pluginExecution.get();
     }
     else                                                // PT 
     { 
@@ -1349,6 +1344,25 @@ void GPUOCLLayer::BeginTracingPass()
   { 
     DrawNormals();
   }
+}
+
+int GPUOCLLayer::DoCamPluginRays(int buffId)
+{
+  cl_int ciErr1 = CL_SUCCESS;
+  const size_t fullSize = m_rays.MEGABLOCKSIZE*sizeof(RayPart1) + m_rays.MEGABLOCKSIZE*sizeof(RayPart2);
+  
+  RayPart1* rays1 = (RayPart1*)clEnqueueMapBuffer(m_globals.cmdQueueDevToHost, m_camPlugin.camRayCPU[buffId], CL_TRUE, CL_MAP_WRITE, 0, fullSize, 0, 0, 0, &ciErr1);
+  RayPart2* rays2 = (RayPart2*)(rays1 + m_rays.MEGABLOCKSIZE);
+  if (ciErr1 != CL_SUCCESS)
+    RUN_TIME_ERROR("[HostRaysAPI]: Error in 'clEnqueueMapBuffer' for Host Camera Plugin");
+  
+  m_camPlugin.pCamPlugin->MakeRaysBlock(rays1, rays2, m_rays.MEGABLOCKSIZE);
+  
+  clEnqueueUnmapMemObject(m_globals.cmdQueueDevToHost, m_camPlugin.camRayCPU[buffId], rays1, 0, 0, 0);
+  clEnqueueCopyBuffer(m_globals.cmdQueueDevToHost, m_camPlugin.camRayCPU[buffId], m_camPlugin.camRayGPU[buffId], 0, 0, fullSize, 0, nullptr, nullptr);
+  clFlush(m_globals.cmdQueueDevToHost);
+
+  return 0;
 }
 
 

@@ -1,5 +1,7 @@
 #include "CamHostPluginAPI.h"
 #include <iostream>
+#include <thread> // just for test big delay
+#include <chrono> // std::chrono::seconds
 
 #include "../hydra_drv/cglobals.h"
 #include "../../HydraAPI/hydra_api/HydraAPI.h"
@@ -119,6 +121,8 @@ void SimpleDOF::MakeRaysBlock(RayPart1* out_rayPosAndNear, RayPart2* out_rayDirA
     out_rayPosAndNear[i] = p1;
     out_rayDirAndFar [i] = p2;
   }
+
+  //std::this_thread::sleep_for(std::chrono::milliseconds(100)); // test big delay
 
   m_globalCounter += unsigned(in_blockSize);
 } 
