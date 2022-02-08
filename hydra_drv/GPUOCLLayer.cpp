@@ -1158,9 +1158,11 @@ void GPUOCLLayer::InitPathTracing(int seed)
 
     m_camPlugin.free();
     cl_int ciErr1 = CL_SUCCESS;
-    m_camPlugin.camRayGPU    = clCreateBuffer(m_globals.ctx, CL_MEM_READ_WRITE, sizeof(RayPart1)*m_rays.MEGABLOCKSIZE + sizeof(RayPart2)*m_rays.MEGABLOCKSIZE, NULL, &ciErr1);
-    m_camPlugin.camRayCPU[0] = clCreateBuffer(m_globals.ctx, CL_MEM_READ_ONLY | CL_MEM_ALLOC_HOST_PTR, sizeof(RayPart1)*m_rays.MEGABLOCKSIZE + sizeof(RayPart2)*m_rays.MEGABLOCKSIZE, NULL, &ciErr1);
-    m_camPlugin.camRayCPU[1] = clCreateBuffer(m_globals.ctx, CL_MEM_READ_ONLY | CL_MEM_ALLOC_HOST_PTR, sizeof(RayPart1)*m_rays.MEGABLOCKSIZE + sizeof(RayPart2)*m_rays.MEGABLOCKSIZE, NULL, &ciErr1);
+    size_t totalSize = sizeof(RayPart1)*m_rays.MEGABLOCKSIZE + sizeof(RayPart2)*m_rays.MEGABLOCKSIZE;
+    m_camPlugin.camRayGPU[0] = clCreateBuffer(m_globals.ctx, CL_MEM_READ_WRITE, totalSize, NULL, &ciErr1);
+    m_camPlugin.camRayGPU[1] = clCreateBuffer(m_globals.ctx, CL_MEM_READ_WRITE, totalSize, NULL, &ciErr1);
+    m_camPlugin.camRayCPU[0] = clCreateBuffer(m_globals.ctx, CL_MEM_READ_ONLY | CL_MEM_ALLOC_HOST_PTR, totalSize, NULL, &ciErr1);
+    m_camPlugin.camRayCPU[1] = clCreateBuffer(m_globals.ctx, CL_MEM_READ_ONLY | CL_MEM_ALLOC_HOST_PTR, totalSize, NULL, &ciErr1);
   
     if (ciErr1 != CL_SUCCESS)
       RUN_TIME_ERROR("[HostRaysAPI]: Error in create rays buffers for Host Camera Plugin");
@@ -1283,21 +1285,23 @@ void GPUOCLLayer::BeginTracingPass()
         const size_t fullSize = m_rays.MEGABLOCKSIZE*sizeof(RayPart1) + m_rays.MEGABLOCKSIZE*sizeof(RayPart2);
         cl_int ciErr1 = CL_SUCCESS;
         
+        int buffId = m_passNumber % 2;
+
         //copy data to appropriate buffer
         {
-          RayPart1* rays1 = (RayPart1*)clEnqueueMapBuffer(m_globals.cmdQueue, m_camPlugin.camRayCPU[0], CL_TRUE, CL_MAP_WRITE, 0, fullSize, 0, 0, 0, &ciErr1);
+          RayPart1* rays1 = (RayPart1*)clEnqueueMapBuffer(m_globals.cmdQueueDevToHost, m_camPlugin.camRayCPU[buffId], CL_TRUE, CL_MAP_WRITE, 0, fullSize, 0, 0, 0, &ciErr1);
           RayPart2* rays2 = (RayPart2*)(rays1 + m_rays.MEGABLOCKSIZE);
           if (ciErr1 != CL_SUCCESS)
             RUN_TIME_ERROR("[HostRaysAPI]: Error in 'clEnqueueMapBuffer' for Host Camera Plugin");
           
           m_camPlugin.pCamPlugin->MakeRaysBlock(rays1, rays2, m_rays.MEGABLOCKSIZE);
           
-          clEnqueueUnmapMemObject(m_globals.cmdQueue, m_camPlugin.camRayCPU[0], rays1, 0, 0, 0);
+          clEnqueueUnmapMemObject(m_globals.cmdQueueDevToHost, m_camPlugin.camRayCPU[buffId], rays1, 0, 0, 0);
         }
 
-        clEnqueueCopyBuffer(m_globals.cmdQueue, m_camPlugin.camRayCPU[0], m_camPlugin.camRayGPU, 0, 0, fullSize, 0, nullptr, nullptr);
+        clEnqueueCopyBuffer(m_globals.cmdQueueDevToHost, m_camPlugin.camRayCPU[buffId], m_camPlugin.camRayGPU[buffId], 0, 0, fullSize, 0, nullptr, nullptr);
 
-        runKernel_TakeHostRays(m_camPlugin.camRayGPU, m_rays.rayPos, m_rays.rayDir, m_rays.pathAccColor, m_rays.MEGABLOCKSIZE);
+        runKernel_TakeHostRays(m_camPlugin.camRayGPU[1-buffId], m_rays.rayPos, m_rays.rayDir, m_rays.pathAccColor, m_rays.MEGABLOCKSIZE);
       }
       else
       {
@@ -1306,11 +1310,13 @@ void GPUOCLLayer::BeginTracingPass()
         runKernel_MakeRaysFromEyeSam(m_rays.samZindex, kmlt.xVectorQMC, m_rays.MEGABLOCKSIZE, m_passNumberForQMC,
                                      m_rays.rayPos, m_rays.rayDir, m_rays.pathAccColor);
       }
-    
-      trace1D_Rev(minBounce, maxBounce, m_rays.rayPos, m_rays.rayDir, m_rays.MEGABLOCKSIZE,
-                  m_rays.pathAccColor);
+      
+      if(m_passNumber >= 1)
+        trace1D_Rev(minBounce, maxBounce, m_rays.rayPos, m_rays.rayDir, m_rays.MEGABLOCKSIZE, m_rays.pathAccColor);
 
       AddContributionToScreen(m_rays.pathAccColor, m_rays.samZindex);
+
+      
     }
     else                                                // PT 
     { 

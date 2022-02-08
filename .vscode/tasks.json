@@ -6,7 +6,7 @@
         {
             "label": "BuildRelease",
             "type": "shell",
-            "command": "cd cmake-build-release && make -j4",
+            "command": "cd cmake-build-release && make -j8",
             "group": {
                 "kind": "build",
                 "isDefault": false
@@ -15,7 +15,7 @@
         {
             "label": "BuildDebug",
             "type": "shell",
-            "command": "cd cmake-build-debug && make -j4",
+            "command": "cd cmake-build-debug && make -j8",
             "group": {
                 "kind": "build",
                 "isDefault": false

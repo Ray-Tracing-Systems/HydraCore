@@ -105,7 +105,9 @@ void GPUOCLLayer::AddContributionToScreenCPU2(cl_mem& in_color, cl_mem& in_color
 
   // (2) sync copy of data (sync asyncronious call in future, pin pong) and eval contribution
   //
-  if (m_passNumber != 0)
+  int workingPass = (m_camPlugin.pCamPlugin == nullptr) ? 1 : 2; // for CPU
+
+  if (m_passNumber >= workingPass)
   {
     clEnqueueCopyBuffer(m_globals.cmdQueueDevToHost, m_mlt.pathAuxColor,  m_mlt.pathAuxColorCPU,  0, 0, a_size * sizeof(float4), 0, nullptr, nullptr);
     clEnqueueCopyBuffer(m_globals.cmdQueueDevToHost, m_mlt.pathAuxColor2, m_mlt.pathAuxColorCPU2, 0, 0, a_size * sizeof(float4), 0, nullptr, nullptr);

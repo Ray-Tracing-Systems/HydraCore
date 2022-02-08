@@ -647,15 +647,15 @@ protected:
   struct CamPluginData
   {
     std::shared_ptr<IHostRaysAPI> pCamPlugin = nullptr;
-    cl_mem camRayGPU = nullptr;
+    cl_mem camRayGPU[2] = {nullptr, nullptr};
     cl_mem camRayCPU[2] = {nullptr, nullptr};
     
     void free()
     {
       if(camRayGPU == nullptr)
         return;
-
-      clReleaseMemObject(camRayGPU);    camRayGPU    = nullptr;
+      clReleaseMemObject(camRayGPU[0]); camRayGPU[0] = nullptr;
+      clReleaseMemObject(camRayGPU[1]); camRayGPU[1] = nullptr;
       clReleaseMemObject(camRayCPU[0]); camRayCPU[0] = nullptr;
       clReleaseMemObject(camRayCPU[1]); camRayCPU[1] = nullptr;
     }
