@@ -104,7 +104,7 @@
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>WIN32;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <OpenMPSupport>false</OpenMPSupport>
-      <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
+      <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -149,6 +149,8 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="..\cam_plug\CamHostPluginAPI.h" />
+    <ClInclude Include="..\cam_plug\HydraDLib.h" />
     <ClInclude Include="AbstractMaterial.h" />
     <ClInclude Include="bitonic_sort_gpu.h" />
     <ClInclude Include="cbidir.h" />
@@ -176,6 +178,8 @@
   <ItemGroup>
     <ClCompile Include="..\bakeBrdfEnergy\MSTablesGGX2017.cpp" />
     <ClCompile Include="..\bakeBrdfEnergy\MSTablesTransp.cpp" />
+    <ClCompile Include="..\cam_plug\HydraDLibWin64.cpp" />
+    <ClCompile Include="..\cam_plug\SimpleCamPlugin.cpp" />
     <ClCompile Include="Bitmap.cpp" />
     <ClCompile Include="bitonic_sort_gpu.cpp" />
     <ClCompile Include="cl_scan_gpu.cpp" />

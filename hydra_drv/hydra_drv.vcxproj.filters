@@ -28,6 +28,9 @@
     <Filter Include="core\shaders">
       <UniqueIdentifier>{5b3d17b2-8b30-4939-ba2c-3c7911b6d6bf}</UniqueIdentifier>
     </Filter>
+    <Filter Include="cam_plug">
+      <UniqueIdentifier>{b3be835d-448e-46ce-bb98-ebbfdf0eeec7}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="RenderDriverRTE.h">
@@ -98,6 +101,12 @@
     </ClInclude>
     <ClInclude Include="cmatpbrt.h">
       <Filter>core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\cam_plug\CamHostPluginAPI.h">
+      <Filter>cam_plug</Filter>
+    </ClInclude>
+    <ClInclude Include="..\cam_plug\HydraDLib.h">
+      <Filter>cam_plug</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -226,6 +235,12 @@
     </ClCompile>
     <ClCompile Include="..\bakeBrdfEnergy\MSTablesTransp.cpp">
       <Filter>Файлы исходного кода</Filter>
+    </ClCompile>
+    <ClCompile Include="..\cam_plug\HydraDLibWin64.cpp">
+      <Filter>cam_plug</Filter>
+    </ClCompile>
+    <ClCompile Include="..\cam_plug\SimpleCamPlugin.cpp">
+      <Filter>cam_plug</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

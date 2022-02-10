@@ -1164,7 +1164,7 @@ void GPUOCLLayer::InitPathTracing(int seed)
   
   // reset camera plugin if we have it ...
   //
-  if(m_camPlugin.pCamPlugin == nullptr) // actual plugin init happened first time
+  if(m_camPlugin.pCamPlugin == nullptr && m_camNode.attribute(L"cpu_plugin").as_int() != 0) // actual plugin init happened first time
   {
     const wchar_t* dllPath = m_camNode.attribute(L"cpu_plugin_dll").as_string();
     if(std::wstring(dllPath) != L"")
