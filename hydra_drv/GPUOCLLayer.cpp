@@ -1158,10 +1158,9 @@ void GPUOCLLayer::InitPathTracing(int seed)
   
   // reset camera plugin if we have it ...
   //
-  auto old = m_camPlugin.pCamPlugin;
-  m_camPlugin.pCamPlugin = MakeHostRaysEmitter(m_vars.m_varsI[HRT_USE_CPU_PLUGIN]);
-  if(old == nullptr && m_camPlugin.pCamPlugin != nullptr) // actual plugin init happened first time
+  if(m_camPlugin.pCamPlugin == nullptr) // actual plugin init happened first time
   {
+    m_camPlugin.pCamPlugin = std::shared_ptr<IHostRaysAPI>(MakeHostRaysEmitter(m_vars.m_varsI[HRT_USE_CPU_PLUGIN]), DeleteRaysEmitter);
     m_camPlugin.pCamPlugin->SetParameters(m_width, m_height, m_globsBuffHeader.mProjInverse, m_camNode);
 
     m_camPlugin.free();

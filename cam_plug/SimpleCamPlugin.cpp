@@ -3,6 +3,12 @@
 #include <thread> // just for test big delay
 #include <chrono> // std::chrono::seconds
 
+#include <cstdint>
+#include <cstddef>
+#include <memory>
+#include <vector>
+#include <cstring>
+
 #include "../hydra_drv/cglobals.h"
 #include "../../HydraAPI/hydra_api/HydraAPI.h"
 
@@ -150,11 +156,13 @@ void SimpleDOF::AddSamplesContribution(float* out_color4f, const float* colors4f
 }
 
 
-std::shared_ptr<IHostRaysAPI> MakeHostRaysEmitter(int a_pluginId) ///<! you replace this function or make your own ... the example will be provided
+IHostRaysAPI* MakeHostRaysEmitter(int a_pluginId) ///<! you replace this function or make your own ... the example will be provided
 {
   if(a_pluginId == 0)
     return nullptr;
 
   std::cout << "[MakeHostRaysEmitter]: create plugin #" << a_pluginId << std::endl;
-  return std::make_shared<SimpleDOF>();
+  return new SimpleDOF();
 }
+
+void DeleteRaysEmitter(IHostRaysAPI* pObject) { delete pObject; }
