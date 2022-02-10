@@ -76,14 +76,14 @@
   </light>
 </lights_lib>
 <cam_lib>
-  <camera id="0" name="my camera" type="uvn" cpu_plugin="0" cpu_plugin_dll = "unknown.dll">
+  <camera id="0" name="my camera" type="uvn" cpu_plugin="1" cpu_plugin_dll = "/home/frol/PROG/HydraRepos/HydraCamPluginExample/cmake-build-release/libhydra_cam_plugin.so">
     <fov>45</fov>
     <nearClipPlane>0.01</nearClipPlane>
     <farClipPlane>100.0</farClipPlane>
     <up>0 1 0</up>
     <position>0 0 15</position>
     <look_at>0 0 0</look_at>
-    <enable_dof>0</enable_dof> 
+    <enable_dof>1</enable_dof> 
     <dof_lens_radius>0.25f</dof_lens_radius>
   </camera>
 </cam_lib>
