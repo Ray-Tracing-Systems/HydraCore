@@ -22,7 +22,7 @@ public:
   void ReadParamsFromNode(pugi::xml_node a_camNode);
 
   void MakeRaysBlock(RayPart1* out_rayPosAndNear, RayPart2* out_rayDirAndFar, size_t in_blockSize) override;
-  void AddSamplesContribution(float4* out_color, const float4* colors, size_t in_blockSize, uint32_t a_width, uint32_t a_height) override;
+  void AddSamplesContribution(float* out_color4f, const float* colors4f, size_t in_blockSize, uint32_t a_width, uint32_t a_height) override;
 
   unsigned int table[hr_qmc::QRNG_DIMENSIONS][hr_qmc::QRNG_RESOLUTION];
   unsigned int m_globalCounter = 0;
@@ -127,8 +127,11 @@ void SimpleDOF::MakeRaysBlock(RayPart1* out_rayPosAndNear, RayPart2* out_rayDirA
   m_globalCounter += unsigned(in_blockSize);
 } 
 
-void SimpleDOF::AddSamplesContribution(float4* out_color, const float4* colors, size_t in_blockSize, uint32_t a_width, uint32_t a_height)
+void SimpleDOF::AddSamplesContribution(float* out_color4f, const float* colors4f, size_t in_blockSize, uint32_t a_width, uint32_t a_height)
 {
+  float4*       out_color = (float4*)out_color4f;
+  const float4* colors    = (const float4*)colors4f;
+  
   for (int i = 0; i < in_blockSize; i++)
   {
     const auto color = colors[i];

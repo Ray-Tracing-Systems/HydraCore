@@ -186,6 +186,7 @@ void GPUOCLLayer::AddContributionToScreenCPU(cl_mem& in_color, int a_size, int a
   }
 
   clFlush(m_globals.cmdQueue);
+  clFlush(m_globals.cmdQueueHostToDev);
 
   const bool ltPassOfIBPT = (m_vars.m_flags & HRT_3WAY_MIS_WEIGHTS) && (m_vars.m_flags & HRT_FORWARD_TRACING);
 
@@ -226,7 +227,7 @@ void GPUOCLLayer::AddContributionToScreenCPU(cl_mem& in_color, int a_size, int a
     if (lockSuccess)
     {
       if(m_camPlugin.pCamPlugin != nullptr)
-        m_camPlugin.pCamPlugin->AddSamplesContribution(out_color, colors, size, a_width, a_height);
+        m_camPlugin.pCamPlugin->AddSamplesContribution((float*)out_color, (const float*)colors, size, a_width, a_height);
       else if (m_storeShadowInAlphaChannel)
         AddSamplesContributionS(out_color, colors, (const unsigned char*)shadows, int(size), a_width, a_height);
       else
@@ -261,10 +262,13 @@ void GPUOCLLayer::AddContributionToScreenCPU(cl_mem& in_color, int a_size, int a
     clEnqueueUnmapMemObject(m_globals.cmdQueueDevToHost, m_rays.pathAuxColorCPU, colors, 0, 0, 0);
     if (m_storeShadowInAlphaChannel)
       clEnqueueUnmapMemObject(m_globals.cmdQueueDevToHost, m_rays.pathShadow8BAuxCPU, shadows, 0, 0, 0);
+
+    clFlush(m_globals.cmdQueueDevToHost);
   }
 
-  clFinish(m_globals.cmdQueueDevToHost);
   clFinish(m_globals.cmdQueue);
+  clFinish(m_globals.cmdQueueDevToHost);
+  clFinish(m_globals.cmdQueueHostToDev);
 
   //memsetf4(m_rays.pathAuxColor, float4(0,0,0,0), m_rays.MEGABLOCKSIZE, 0);
   //clFinish(m_globals.cmdQueue);

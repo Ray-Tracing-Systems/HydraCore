@@ -582,7 +582,6 @@ GPUOCLLayer::GPUOCLLayer(int w, int h, int a_flags, int a_deviceId) : Base(w, h,
     RUN_TIME_ERROR("Error in clCreateContext");
 
   m_globals.cmdQueue = clCreateCommandQueue(m_globals.ctx, m_globals.device, 0, &ciErr1); 
-
   if (ciErr1 != CL_SUCCESS)
   {
     std::cerr << "[cl_core]: clCreateCommandQueue(1) status = " << ciErr1 << std::endl;
@@ -590,11 +589,17 @@ GPUOCLLayer::GPUOCLLayer(int w, int h, int a_flags, int a_deviceId) : Base(w, h,
   }
 
   m_globals.cmdQueueDevToHost = clCreateCommandQueue(m_globals.ctx, m_globals.device, 0, &ciErr1);
-
   if (ciErr1 != CL_SUCCESS)
   {
     std::cerr << "[cl_core]: clCreateCommandQueue(2) status = " << ciErr1 << std::endl; 
     RUN_TIME_ERROR("Error in clCreateCommandQueue(2)");
+  }
+
+  m_globals.cmdQueueHostToDev = clCreateCommandQueue(m_globals.ctx, m_globals.device, 0, &ciErr1);
+  if (ciErr1 != CL_SUCCESS)
+  {
+    std::cerr << "[cl_core]: clCreateCommandQueue(3) status = " << ciErr1 << std::endl; 
+    RUN_TIME_ERROR("Error in clCreateCommandQueue(3)");
   }
 
   CHECK_CL(clGetDeviceInfo(m_globals.device, CL_DEVICE_MAX_WORK_GROUP_SIZE, sizeof(size_t), &m_globals.m_maxWorkGroupSize, NULL));
@@ -780,6 +785,7 @@ GPUOCLLayer::~GPUOCLLayer()
 
   if(m_globals.cmdQueue)          { clReleaseCommandQueue(m_globals.cmdQueue);          m_globals.cmdQueue          = nullptr; }
   if(m_globals.cmdQueueDevToHost) { clReleaseCommandQueue(m_globals.cmdQueueDevToHost); m_globals.cmdQueueDevToHost = nullptr; }
+  if(m_globals.cmdQueueHostToDev) { clReleaseCommandQueue(m_globals.cmdQueueHostToDev); m_globals.cmdQueueHostToDev = nullptr; }
   if(m_globals.ctx)               { clReleaseContext     (m_globals.ctx);               m_globals.ctx               = nullptr; }
 }
 
@@ -1351,16 +1357,15 @@ int GPUOCLLayer::DoCamPluginRays(int buffId)
   cl_int ciErr1 = CL_SUCCESS;
   const size_t fullSize = m_rays.MEGABLOCKSIZE*sizeof(RayPart1) + m_rays.MEGABLOCKSIZE*sizeof(RayPart2);
   
-  RayPart1* rays1 = (RayPart1*)clEnqueueMapBuffer(m_globals.cmdQueueDevToHost, m_camPlugin.camRayCPU[buffId], CL_TRUE, CL_MAP_WRITE, 0, fullSize, 0, 0, 0, &ciErr1);
+  RayPart1* rays1 = (RayPart1*)clEnqueueMapBuffer(m_globals.cmdQueueHostToDev, m_camPlugin.camRayCPU[buffId], CL_TRUE, CL_MAP_WRITE, 0, fullSize, 0, 0, 0, &ciErr1);
   RayPart2* rays2 = (RayPart2*)(rays1 + m_rays.MEGABLOCKSIZE);
   if (ciErr1 != CL_SUCCESS)
     RUN_TIME_ERROR("[HostRaysAPI]: Error in 'clEnqueueMapBuffer' for Host Camera Plugin");
   
   m_camPlugin.pCamPlugin->MakeRaysBlock(rays1, rays2, m_rays.MEGABLOCKSIZE);
   
-  clEnqueueUnmapMemObject(m_globals.cmdQueueDevToHost, m_camPlugin.camRayCPU[buffId], rays1, 0, 0, 0);
-  clEnqueueCopyBuffer(m_globals.cmdQueueDevToHost, m_camPlugin.camRayCPU[buffId], m_camPlugin.camRayGPU[buffId], 0, 0, fullSize, 0, nullptr, nullptr);
-  clFlush(m_globals.cmdQueueDevToHost);
+  clEnqueueUnmapMemObject(m_globals.cmdQueueHostToDev, m_camPlugin.camRayCPU[buffId], rays1, 0, 0, 0);
+  clEnqueueCopyBuffer    (m_globals.cmdQueueHostToDev, m_camPlugin.camRayCPU[buffId], m_camPlugin.camRayGPU[buffId], 0, 0, fullSize, 0, nullptr, nullptr);
 
   return 0;
 }

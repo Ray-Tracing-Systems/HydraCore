@@ -372,6 +372,7 @@ protected:
     cl_context       ctx;               // OpenCL context
     cl_command_queue cmdQueue;          // OpenCL command que
     cl_command_queue cmdQueueDevToHost; // OpenCL command que for copying data from GPU to CPU
+    cl_command_queue cmdQueueHostToDev; // OpenCL command que for copying data from CPU to GPU
     cl_platform_id   platform;          // OpenCL platform
     cl_device_id     device;            // OpenCL device
 
