@@ -64,6 +64,7 @@ set(SOURCE_FILES
         ../bakeBrdfEnergy/MSTablesGGX2017.cpp
         ../bakeBrdfEnergy/MSTablesTransp.cpp
         ../cam_plug/SimpleCamPlugin.cpp
+        ../cam_plug/HydraDLibUnix.cpp
     )
 
 if (CMAKE_BUILD_TYPE STREQUAL "Debug")

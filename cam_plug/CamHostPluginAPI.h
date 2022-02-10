@@ -52,7 +52,7 @@ struct IHostRaysAPI
 
 /** 
   \brief Create camera plugin implementation
-  \param a_pluginId - plugin identifier 'cpu_plugin':  <camera id="0" ... cpu_plugin="1"
+  \param a_pluginId - plugin identifier 'cpu_plugin':  <camera id="0" ... cpu_plugin="1">
  */
 IHostRaysAPI* MakeHostRaysEmitter(int a_pluginId);       ///<! you replace this function or make your own ... the example will be provided
 void          DeleteRaysEmitter(IHostRaysAPI* pObject);  ///<! don't forget to provide delete fuction because your DLL has different heap

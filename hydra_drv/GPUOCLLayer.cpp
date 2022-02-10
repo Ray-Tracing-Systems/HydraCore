@@ -6,6 +6,7 @@
 
 #include "cl_scan_gpu.h"
 #include "../cam_plug/CamHostPluginAPI.h"
+#include "../cam_plug/HydraDLib.h"
 
 const ushort* getGgxTable();
 const ushort* getTranspTable();
@@ -1142,6 +1143,11 @@ void GPUOCLLayer::GetHDRImage(float4* data, int width, int height) const
   }
 }
 
+typedef IHostRaysAPI* (*MakeEmitterFT)(int);
+typedef void (*DeleteEmitterFT)(IHostRaysAPI*);
+
+//IHostRaysAPI* MakeHostRaysEmitter(int a_pluginId);       ///<! you replace this function or make your own ... the example will be provided
+//void          DeleteRaysEmitter(IHostRaysAPI* pObject);
 
 void GPUOCLLayer::InitPathTracing(int seed)
 {
@@ -1160,7 +1166,24 @@ void GPUOCLLayer::InitPathTracing(int seed)
   //
   if(m_camPlugin.pCamPlugin == nullptr) // actual plugin init happened first time
   {
-    m_camPlugin.pCamPlugin = std::shared_ptr<IHostRaysAPI>(MakeHostRaysEmitter(m_vars.m_varsI[HRT_USE_CPU_PLUGIN]), DeleteRaysEmitter);
+    const wchar_t* dllPath = m_camNode.attribute(L"cpu_plugin_dll").as_string();
+    if(std::wstring(dllPath) != L"")
+    {
+      const std::string dllPath2 = ws2s(std::wstring(dllPath));
+      std::cout << "[INFO]: load 'IHostRaysAPI' plugin from '" << dllPath2.c_str() << "'" << std::endl; 
+      
+      HydraDllHandle* pHandle = HydraLoadLibrary(dllPath);
+      if(pHandle == nullptr)
+        std::cout << "[ERROR]: can't load 'IHostRaysAPI' plugin from '" << dllPath2.c_str() << "'" << std::endl; 
+      
+      MakeEmitterFT   MakeFunc = (MakeEmitterFT)HydraGetProcAddress(pHandle, "MakeHostRaysEmitter");
+      DeleteEmitterFT DelFunc  = (DeleteEmitterFT)HydraGetProcAddress(pHandle, "DeleteRaysEmitter");
+
+      m_camPlugin.pCamPlugin = std::shared_ptr<IHostRaysAPI>(MakeFunc(m_vars.m_varsI[HRT_USE_CPU_PLUGIN]), DelFunc);
+    }
+    else
+      m_camPlugin.pCamPlugin = std::shared_ptr<IHostRaysAPI>(MakeHostRaysEmitter(m_vars.m_varsI[HRT_USE_CPU_PLUGIN]), DeleteRaysEmitter);
+    
     m_camPlugin.pCamPlugin->SetParameters(m_width, m_height, m_globsBuffHeader.mProjInverse, m_camNode);
 
     m_camPlugin.free();
