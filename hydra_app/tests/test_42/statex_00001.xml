@@ -76,7 +76,7 @@
   </light>
 </lights_lib>
 <cam_lib>
-  <camera id="0" name="my camera" type="uvn" cpu_plugin="1" cpu_plugin_dll = "/home/frol/PROG/HydraRepos/HydraCamPluginExample/cmake-build-release/libhydra_cam_plugin.so">
+  <camera id="0" name="my camera" type="uvn" cpu_plugin="2"> <!-- cpu_plugin_dll = "/home/frol/PROG/HydraRepos/HydraCamPluginExample/cmake-build-release/libhydra_cam_plugin.so" -->
     <fov>45</fov>
     <nearClipPlane>0.01</nearClipPlane>
     <farClipPlane>100.0</farClipPlane>
@@ -85,6 +85,13 @@
     <look_at>0 0 0</look_at>
     <enable_dof>1</enable_dof> 
     <dof_lens_radius>0.25f</dof_lens_radius>
+    <optical_system type = "tabular" order = "sensor_to_scene"> 
+      <line id="0" curvature_radius="1000000.0" thickness="1500.0" ior="1.0" semi_diameter="1000" />
+      <line id="1" curvature_radius="1000000.0" thickness="5.0"    ior="1.0" semi_diameter="2.5" />
+      <line id="2" curvature_radius="24.53"     thickness="8.98"   ior="1.5168" semi_diameter="12.7" comment = "LB1761-B"/>
+      <line id="3" curvature_radius="-24.53"    thickness="22.0"   ior="1.0" semi_diameter="12.7" />
+      <line id="4" curvature_radius="1000000.0" thickness="0"      ior="1.0" semi_diameter="15.21761704" />
+    </optical_system>
   </camera>
 </cam_lib>
 <geometry_lib total_chunks="9">
