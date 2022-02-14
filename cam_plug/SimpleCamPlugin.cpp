@@ -300,7 +300,7 @@ bool TableLens::IntersectSphericalElement(float radius, float zCenter, const flo
     return false;
   
   // Select intersection $t$ based on ray direction and element curvature
-  bool useCloserT = (rayDir.z > 0.0f) ^ (radius < 0);
+  bool useCloserT = (rayDir.z > 0.0f) ^ (radius < 0.0);
   *t = useCloserT ? std::min(t0, t1) : std::max(t0, t1);
   if (*t < 0.0f) 
     return false;
@@ -322,7 +322,7 @@ bool TableLens::TraceLensesFromFilm(const float3 inRayPos, const float3 inRayDir
 
   for(int i=0; i<lines.size(); i++)
   {
-    const LensElementInterface& element = lines[i]; 
+    const LensElementInterface& element = lines[i+1];                                     // lines[i] or lines[i+1] ?
     // Update ray from film accounting for interaction with _element_
     elementZ -= element.thickness;
     
@@ -358,8 +358,8 @@ bool TableLens::TraceLensesFromFilm(const float3 inRayPos, const float3 inRayDir
     if (!isStop) 
     {
       float3 wt;
-      float etaI = (i == 0 || lines[i+1].eta == 0.0f) ? 1.0f : lines[i+1].eta; // strange PBRT conditions
-      float etaT = (lines[i].eta != 0.0f)             ? lines[i].eta : 1.0f;   // strange PBRT conditions
+      float etaI = lines[i+1].eta;                                                           // is this correct?
+      float etaT = lines[i+0].eta;                                                           // is this correct? 
       if (!Refract(normalize((-1.0f)*rayDirLens), n, etaI / etaT, &wt))
         return false;
       rayDirLens = wt;
@@ -394,6 +394,10 @@ void TableLens::MakeRaysBlock(RayPart1* out_rayPosAndNear, RayPart2* out_rayDirA
     {
       ray_pos = float3(0,10000000.0,0.0); // shoot ray to the sky
       ray_dir = float3(0,1,0);
+    }
+    else
+    {
+      int a = 2;
     }
 
     RayPart1 p1;
