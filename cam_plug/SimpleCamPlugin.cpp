@@ -186,6 +186,16 @@ public:
   float m_fheight = 1024.0f;
   float4x4 m_projInv;
 
+  //////////////////////////////////////////////////////////////////////////////////////
+  //////////////////////////////////////////////////////////////////////////////////////
+  
+
+  bool TraceLensesFromFilm(const float3 inRayPos, const float3 inRayDir, 
+                           float3* outRayPos, float3* outRayDir) const;
+
+  bool  IntersectSphericalElement(float radius, float zCenter, const float3 rayPos, const float3 rayDir, 
+                                  float *t, float3 *n) const;
+
   struct LensElementInterface {
     float curvatureRadius;
     float thickness;
@@ -233,9 +243,142 @@ void TableLens::ReadParamsFromNode(pugi::xml_node a_camNode)
   // you may sort 'lines' by 'ids' if you want 
 }
 
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+static constexpr float MachineEpsilon = std::numeric_limits<float>::epsilon();
+
+static inline bool Quadratic(float A, float B, float C, float *t0, float *t1) {
+  // Find quadratic discriminant
+  double discrim = (double)B * (double)B - 4. * (double)A * (double)C;
+  if (discrim < 0.) 
+    return false;
+  double rootDiscrim = std::sqrt(discrim);
+  float floatRootDiscrim   = rootDiscrim;
+  //float floatRootDiscrimErr = MachineEpsilon * rootDiscrim;
+  // Compute quadratic _t_ values
+  float q;
+  if ((float)B < 0)
+      q = -.5 * (B - floatRootDiscrim);
+  else
+      q = -.5 * (B + floatRootDiscrim);
+  *t0 = q / A;
+  *t1 = C / q;
+  if ((float)*t0 > (float)*t1) 
+    std::swap(*t0, *t1);
+  return true;
+}
+
+static inline bool Refract(const float3 wi, const float3 n, float eta, float3 *wt) {
+  // Compute $\cos \theta_\roman{t}$ using Snell's law
+  float cosThetaI  = dot(n, wi);
+  float sin2ThetaI = std::max(float(0), float(1.0f - cosThetaI * cosThetaI));
+  float sin2ThetaT = eta * eta * sin2ThetaI;
+  // Handle total internal reflection for transmission
+  if (sin2ThetaT >= 1) return false;
+  float cosThetaT = std::sqrt(1 - sin2ThetaT);
+  *wt = eta * -wi + (eta * cosThetaI - cosThetaT) * n;
+  return true;
+}
+
+
+static inline float3 faceforward(const float3 n, const float3 v) { return (dot(n, v) < 0.f) ? -n : n; }
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+bool TableLens::IntersectSphericalElement(float radius, float zCenter, const float3 rayPos, const float3 rayDir, 
+                                          float *t, float3 *n) const
+{
+  // Compute _t0_ and _t1_ for ray--element intersection
+  const float3 o = rayPos - float3(0, 0, zCenter);
+  const float  A = rayDir.x * rayDir.x + rayDir.y * rayDir.y + rayDir.z * rayDir.z;
+  const float  B = 2 * (rayDir.x * o.x + rayDir.y * o.y + rayDir.z * o.z);
+  const float  C = o.x * o.x + o.y * o.y + o.z * o.z - radius * radius;
+  float  t0, t1;
+  if (!Quadratic(A, B, C, &t0, &t1)) 
+    return false;
+  
+  // Select intersection $t$ based on ray direction and element curvature
+  bool useCloserT = (rayDir.z > 0.0f) ^ (radius < 0);
+  *t = useCloserT ? std::min(t0, t1) : std::max(t0, t1);
+  if (*t < 0.0f) 
+    return false;
+  
+  // Compute surface normal of element at ray intersection point
+  *n = normalize(o + (*t)*rayDir);
+  *n = faceforward(*n, -1.0f*rayDir);
+  return true;
+}
+
+bool TableLens::TraceLensesFromFilm(const float3 inRayPos, const float3 inRayDir, 
+                                    float3* outRayPos, float3* outRayDir) const
+{
+  float elementZ = 0;
+  // Transform _rCamera_ from camera to lens system space
+  // 
+  float3 rayPosLens = float3(inRayPos.x, inRayPos.y, -inRayPos.z);
+  float3 rayDirLens = float3(inRayDir.x, inRayDir.y, -inRayDir.z);
+
+  for(int i=0; i<lines.size(); i++)
+  {
+    const LensElementInterface& element = lines[i]; 
+    // Update ray from film accounting for interaction with _element_
+    elementZ -= element.thickness;
+    
+    // Compute intersection of ray with lens element
+    float t;
+    float3 n;
+    bool isStop = std::abs(element.thickness < 1e-5f);
+    if (isStop) 
+    {
+      // The refracted ray computed in the previous lens element
+      // interface may be pointed towards film plane(+z) in some
+      // extreme situations; in such cases, 't' becomes negative.
+      if (rayDirLens.z >= 0.0f) 
+        return false;
+      t = (elementZ - rayPosLens.z) / rayDirLens.z;
+    } 
+    else 
+    {
+      const float radius  = element.curvatureRadius;
+      const float zCenter = elementZ + element.curvatureRadius;
+      if (!IntersectSphericalElement(radius, zCenter, rayPosLens, rayDirLens, &t, &n))
+        return false;
+    }
+
+    // Test intersection point against element aperture
+    const float3 pHit = rayPosLens + t*rayDirLens;
+    const float r2    = pHit.x * pHit.x + pHit.y * pHit.y;
+    if (r2 > element.apertureRadius * element.apertureRadius) 
+      return false;
+    
+    rayPosLens = pHit;
+    // Update ray path for from-scene element interface interaction
+    if (!isStop) 
+    {
+      float3 wt;
+      float etaI = (i == 0 || lines[i+1].eta == 0.0f) ? 1.0f : lines[i+1].eta; // strange PBRT conditions
+      float etaT = (lines[i].eta != 0.0f)             ? lines[i].eta : 1.0f;   // strange PBRT conditions
+      if (!Refract(normalize((-1.0f)*rayDirLens), n, etaI / etaT, &wt))
+        return false;
+      rayDirLens = wt;
+    }
+
+    elementZ += element.thickness;
+  }
+
+  // Transform _rLens_ from lens system space back to camera space
+  //
+  (*outRayPos) = float3(rayPosLens.x, rayPosLens.y, -rayPosLens.z);
+  (*outRayDir) = float3(rayDirLens.x, rayDirLens.y, -rayDirLens.z);
+  return false;  
+}
+
+
 void TableLens::MakeRaysBlock(RayPart1* out_rayPosAndNear, RayPart2* out_rayDirAndFar, size_t in_blockSize)
 {
-  #pragma omp parallel for
+  //#pragma omp parallel for
   for(int i=0;i<in_blockSize;i++)
   {
     const float rndX = hr_qmc::rndFloat(m_globalCounter+i, 0, table[0]);
@@ -247,7 +390,11 @@ void TableLens::MakeRaysBlock(RayPart1* out_rayPosAndNear, RayPart2* out_rayDirA
     float3 ray_pos = float3(0,0,0);
     float3 ray_dir = EyeRayDir(x, y, m_fwidth, m_fheight, m_projInv);
 
-    
+    if (!TraceLensesFromFilm(ray_pos, ray_dir, &ray_pos, &ray_dir)) 
+    {
+      ray_pos = float3(0,10000000.0,0.0); // shoot ray to the sky
+      ray_dir = float3(0,1,0);
+    }
 
     RayPart1 p1;
     p1.origin[0]   = ray_pos.x;
