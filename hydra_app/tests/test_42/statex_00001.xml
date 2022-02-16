@@ -81,7 +81,7 @@
     <nearClipPlane>0.01</nearClipPlane>
     <farClipPlane>100.0</farClipPlane>
     <up>0 1 0</up>
-    <position>0 0 15</position>
+    <position>0 0 5</position>
     <look_at>0 0 0</look_at>
     <enable_dof>1</enable_dof> 
     <dof_lens_radius>0.25f</dof_lens_radius>

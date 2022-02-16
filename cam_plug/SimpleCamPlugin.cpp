@@ -386,8 +386,10 @@ bool TableLens::TraceLensesFromFilm(const float3 inRayPos, const float3 inRayDir
     if (!isStop) 
     {
       float3 wt;
-      float etaI = lines[i+0].eta;                                                           // is this correct?
-      float etaT = lines[i+1].eta;                                                           // is this correct? 
+      float etaI = lines[i+0].eta;                                                      
+      float etaT = (i == lines.size()-1) ? 1.0f : lines[i+1].eta;
+      if(etaT == 0.0f)
+        etaT = 1.0f;                                                          
       if (!Refract(normalize((-1.0f)*rayDirLens), n, etaI / etaT, &wt))
         return false;
       rayDirLens = wt;
@@ -399,7 +401,7 @@ bool TableLens::TraceLensesFromFilm(const float3 inRayPos, const float3 inRayDir
   //
   (*outRayPos) = float3(rayPosLens.x, rayPosLens.y, +rayPosLens.z);
   (*outRayDir) = float3(rayDirLens.x, rayDirLens.y, +rayDirLens.z);
-  return false;  
+  return true;  
 }
 
 void TableLens::RunTestRays()
@@ -415,7 +417,7 @@ void TableLens::RunTestRays()
 
 void TableLens::MakeRaysBlock(RayPart1* out_rayPosAndNear, RayPart2* out_rayDirAndFar, size_t in_blockSize)
 {
-  //#pragma omp parallel for
+  #pragma omp parallel for
   for(int i=0;i<in_blockSize;i++)
   {
     const float rndX = hr_qmc::rndFloat(m_globalCounter+i, 0, table[0]);
