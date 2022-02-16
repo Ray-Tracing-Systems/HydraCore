@@ -9,6 +9,7 @@
 #include <vector>
 #include <string>
 #include <cstring>
+#include <algorithm>
 
 #include "../hydra_drv/cglobals.h"
 #include "../../HydraAPI/hydra_api/HydraAPI.h"
@@ -172,9 +173,11 @@ public:
     m_fheight = float(a_height);
     memcpy(&m_projInv, a_projInvMatrix, sizeof(float4x4));
     ReadParamsFromNode(a_camNode);
+    RunTestRays();
   }
 
   void ReadParamsFromNode(pugi::xml_node a_camNode);
+  void RunTestRays();
 
   void MakeRaysBlock(RayPart1* out_rayPosAndNear, RayPart2* out_rayDirAndFar, size_t in_blockSize) override;
   void AddSamplesContribution(float* out_color4f, const float* colors4f, size_t in_blockSize, uint32_t a_width, uint32_t a_height) override;
@@ -202,6 +205,12 @@ public:
     float eta;
     float apertureRadius;
   };
+
+  struct LensElementInterfaceWithId {
+    LensElementInterface lensElement;
+    int id;
+  };
+  
   
   std::vector<LensElementInterface> lines;
 };
@@ -226,21 +235,40 @@ void TableLens::ReadParamsFromNode(pugi::xml_node a_camNode)
     return;
   }
 
-  lines.resize(0);
-  std::vector<int32_t> ids;
+  std::vector<LensElementInterfaceWithId> ids;
+  int currId = 0;
   for(auto line : opticalSys.children(L"line"))
   {
     LensElementInterface layer;
-    int   id = line.attribute(L"id").as_int();
+    int id = currId;
+    if(line.attribute(L"id") != nullptr)
+      id = line.attribute(L"id").as_int();
     layer.curvatureRadius = line.attribute(L"curvature_radius").as_float();
     layer.thickness       = line.attribute(L"thickness").as_float();
     layer.eta             = line.attribute(L"ior").as_float();
-    layer.apertureRadius  = 2.0f*line.attribute(L"semi_diameter").as_float();
-    lines.push_back(layer);
-    ids.push_back(id);
+    if(line.attribute(L"semi_diameter") != nullptr)
+      layer.apertureRadius  = 2.0f*line.attribute(L"semi_diameter").as_float();
+    else if(line.attribute(L"aperture_radius") != nullptr)
+      layer.apertureRadius  = 1.0f*line.attribute(L"aperture_radius").as_float();
+    
+    LensElementInterfaceWithId layer2;
+    layer2.lensElement = layer;
+    layer2.id          = id;
+    ids.push_back(layer2);
+    currId++;
   }
-
+  
   // you may sort 'lines' by 'ids' if you want 
+  //
+  std::wstring order = opticalSys.attribute(L"order").as_string();
+  if(order == L"scene_to_sensor")
+    std::sort(ids.begin(), ids.end(), [](const auto& a, const auto& b) { return a.id > b.id; });
+  else
+    std::sort(ids.begin(), ids.end(), [](const auto& a, const auto& b) { return a.id < b.id; });
+
+  lines.resize(ids.size());
+  for(size_t i=0;i<ids.size(); i++)
+    lines[i] = ids[i].lensElement;
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -317,8 +345,8 @@ bool TableLens::TraceLensesFromFilm(const float3 inRayPos, const float3 inRayDir
   float elementZ = 0;
   // Transform _rCamera_ from camera to lens system space
   // 
-  float3 rayPosLens = float3(inRayPos.x, inRayPos.y, -inRayPos.z);
-  float3 rayDirLens = float3(inRayDir.x, inRayDir.y, -inRayDir.z);
+  float3 rayPosLens = float3(inRayPos.x, inRayPos.y, +inRayPos.z);
+  float3 rayDirLens = float3(inRayDir.x, inRayDir.y, +inRayDir.z);
 
   for(int i=0; i<lines.size(); i++)
   {
@@ -329,7 +357,7 @@ bool TableLens::TraceLensesFromFilm(const float3 inRayPos, const float3 inRayDir
     // Compute intersection of ray with lens element
     float t;
     float3 n;
-    bool isStop = std::abs(element.thickness < 1e-5f);
+    bool isStop = (element.thickness == 0.0f) || (element.curvatureRadius == 0.0f);
     if (isStop) 
     {
       // The refracted ray computed in the previous lens element
@@ -370,9 +398,17 @@ bool TableLens::TraceLensesFromFilm(const float3 inRayPos, const float3 inRayDir
 
   // Transform _rLens_ from lens system space back to camera space
   //
-  (*outRayPos) = float3(rayPosLens.x, rayPosLens.y, -rayPosLens.z);
-  (*outRayDir) = float3(rayDirLens.x, rayDirLens.y, -rayDirLens.z);
+  (*outRayPos) = float3(rayPosLens.x, rayPosLens.y, +rayPosLens.z);
+  (*outRayDir) = float3(rayDirLens.x, rayDirLens.y, +rayDirLens.z);
   return false;  
+}
+
+void TableLens::RunTestRays()
+{
+  float3 rayPos(0,0,1);
+  float3 rayDir(0,0,-1);
+  bool res = TraceLensesFromFilm(rayPos, rayDir, &rayPos, &rayDir);
+  int a = 2;
 }
 
 

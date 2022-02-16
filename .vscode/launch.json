@@ -45,7 +45,7 @@
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}/hydra_app",
             "environment": [],
-            "externalConsole": true,
+            "externalConsole": false,
             "MIMode": "gdb",
             "setupCommands": [
                 {
