@@ -350,14 +350,14 @@ bool TableLens::TraceLensesFromFilm(const float3 inRayPos, const float3 inRayDir
 
   for(int i=0; i<lines.size(); i++)
   {
-    const LensElementInterface& element = lines[i+1];                                     // lines[i] or lines[i+1] ?
+    const LensElementInterface& element = lines[i];                                  
     // Update ray from film accounting for interaction with _element_
     elementZ -= element.thickness;
     
     // Compute intersection of ray with lens element
     float t;
     float3 n;
-    bool isStop = (element.thickness == 0.0f) || (element.curvatureRadius == 0.0f);
+    bool isStop = (element.curvatureRadius == 0.0f);
     if (isStop) 
     {
       // The refracted ray computed in the previous lens element
@@ -386,8 +386,8 @@ bool TableLens::TraceLensesFromFilm(const float3 inRayPos, const float3 inRayDir
     if (!isStop) 
     {
       float3 wt;
-      float etaI = lines[i+1].eta;                                                           // is this correct?
-      float etaT = lines[i+0].eta;                                                           // is this correct? 
+      float etaI = lines[i+0].eta;                                                           // is this correct?
+      float etaT = lines[i+1].eta;                                                           // is this correct? 
       if (!Refract(normalize((-1.0f)*rayDirLens), n, etaI / etaT, &wt))
         return false;
       rayDirLens = wt;
@@ -405,7 +405,9 @@ bool TableLens::TraceLensesFromFilm(const float3 inRayPos, const float3 inRayDir
 
 void TableLens::RunTestRays()
 {
-  float3 rayPos(0,0,1);
+  //float3 rayPos(0,0,1);
+  //float3 rayDir(0,0,-1);
+  float3 rayPos(3.5e-5f, 0, 0.999999821f);
   float3 rayDir(0,0,-1);
   bool res = TraceLensesFromFilm(rayPos, rayDir, &rayPos, &rayDir);
   int a = 2;
