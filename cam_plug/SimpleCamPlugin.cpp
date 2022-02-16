@@ -393,7 +393,6 @@ bool TableLens::TraceLensesFromFilm(const float3 inRayPos, const float3 inRayDir
       rayDirLens = wt;
     }
 
-    elementZ += element.thickness;
   }
 
   // Transform _rLens_ from lens system space back to camera space
