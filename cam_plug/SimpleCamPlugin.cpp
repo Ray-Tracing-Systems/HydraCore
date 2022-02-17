@@ -171,6 +171,8 @@ public:
   {
     m_fwidth  = float(a_width);
     m_fheight = float(a_height);
+    m_aspect  = m_fheight / m_fwidth;
+    CalcPhysSize();
     memcpy(&m_projInv, a_projInvMatrix, sizeof(float4x4));
     ReadParamsFromNode(a_camNode);
     RunTestRays();
@@ -187,7 +189,10 @@ public:
 
   float m_fwidth  = 1024.0f;
   float m_fheight = 1024.0f;
+  float m_aspect  = 1.0f;
+  float2 m_physSize;
   float4x4 m_projInv;
+  float m_diagonal    = 1.0f; // on meter
 
   //////////////////////////////////////////////////////////////////////////////////////
   //////////////////////////////////////////////////////////////////////////////////////
@@ -211,8 +216,17 @@ public:
     int id;
   };
   
-  
   std::vector<LensElementInterface> lines;
+
+  inline float LensRearZ()      const { return lines[0].thickness; }
+  inline float LensRearRadius() const { return lines[0].apertureRadius; }
+
+  
+  void CalcPhysSize()
+  {
+    m_physSize.x = 2.0f*std::sqrt(m_diagonal * m_diagonal / (1.0f + m_aspect * m_aspect));
+    m_physSize.y = m_aspect * m_physSize.x;
+  }
 };
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -234,6 +248,9 @@ void TableLens::ReadParamsFromNode(pugi::xml_node a_camNode)
     std::cout << "[TableLens::ReadParamsFromNode]: node 'optical_system' is not found for camera " << camName.c_str() << std::endl;
     return;
   }
+
+  m_diagonal = opticalSys.attribute(L"sensor_diagonal").as_float();
+  CalcPhysSize();
 
   std::vector<LensElementInterfaceWithId> ids;
   int currId = 0;
@@ -420,14 +437,22 @@ void TableLens::MakeRaysBlock(RayPart1* out_rayPosAndNear, RayPart2* out_rayDirA
   #pragma omp parallel for
   for(int i=0;i<in_blockSize;i++)
   {
-    const float rndX = hr_qmc::rndFloat(m_globalCounter+i, 0, table[0]);
-    const float rndY = hr_qmc::rndFloat(m_globalCounter+i, 1, table[0]);
-    
-    const float x    = m_fwidth*rndX; 
-    const float y    = m_fheight*rndY;
+    const float rndX  = hr_qmc::rndFloat(m_globalCounter+i, 0, table[0]);
+    const float rndY  = hr_qmc::rndFloat(m_globalCounter+i, 1, table[0]);
+    const float sensX = hr_qmc::rndFloat(m_globalCounter+i, 2, table[0]);
+    const float sensY = hr_qmc::rndFloat(m_globalCounter+i, 3, table[0]);
+    const float2 xy   = 0.5f*m_physSize*float2(2.0f*rndX - 1.0f, 2.0f*rndY - 1.0f);
 
-    float3 ray_pos = float3(0,0,0);
-    float3 ray_dir = EyeRayDir(x, y, m_fwidth, m_fheight, m_projInv);
+    const float x  = m_fwidth*rndX; 
+    const float y  = m_fheight*rndY;
+
+    float3 ray_pos = float3(xy.x, xy.y, 0);
+    
+    const float2 rareSam = LensRearRadius()*2.0f*MapSamplesToDisc(float2(sensX - 0.5f, sensY - 0.5f));
+    const float3 shootTo = float3(rareSam.x, rareSam.y, LensRearZ());
+
+    float3 ray_dir  = float3(-1,-1,-1)*normalize(shootTo - ray_pos);
+    //float3 ray_dir2 = EyeRayDir(x, y, m_fwidth, m_fheight, m_projInv);
 
     if (!TraceLensesFromFilm(ray_pos, ray_dir, &ray_pos, &ray_dir)) 
     {
@@ -438,6 +463,8 @@ void TableLens::MakeRaysBlock(RayPart1* out_rayPosAndNear, RayPart2* out_rayDirA
     {
       int a = 2;
     }
+
+    ray_dir = float3(-1,-1,+1)*normalize(ray_dir);
 
     RayPart1 p1;
     p1.origin[0]   = ray_pos.x;

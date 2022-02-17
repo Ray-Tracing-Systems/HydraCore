@@ -81,7 +81,7 @@
     <nearClipPlane>0.01</nearClipPlane>
     <farClipPlane>100.0</farClipPlane>
     <up>0 1 0</up>
-    <position>0 0 5</position>
+    <position>0 0 10</position>
     <look_at>0 0 0</look_at>
     <enable_dof>1</enable_dof> 
     <dof_lens_radius>0.25f</dof_lens_radius>
@@ -92,7 +92,7 @@
       <line id="3" curvature_radius="-24.53"    thickness="22.0"   ior="1.0" semi_diameter="12.7" />
       <line id="4" curvature_radius="1000000.0" thickness="0"      ior="1.0" semi_diameter="15.21761704" />
     </optical_system> -->
-    <optical_system type = "tabular" order = "scene_to_sensor"> 
+    <optical_system type = "tabular" order = "scene_to_sensor" sensor_diagonal = "0.035"> 
       <line id="0"  curvature_radius="0.0302249007"   thickness="0.00083350006" ior="1.62"        aperture_radius="0.0151700005" />
       <line id="1"  curvature_radius="0.0113931"      thickness="0.00741360011" ior="1.0"         aperture_radius="0.0103400005" />
       <line id="2"  curvature_radius="0.0752018988"   thickness="0.00106540008" ior="1.63900006"  aperture_radius="0.00889999978" />
@@ -104,7 +104,7 @@
       <line id="8"  curvature_radius="-0.00522650033" thickness="0.000971400063" ior="1.80499995" aperture_radius="0.00292000012" />
       <line id="9"  curvature_radius="-0.0142884003"  thickness="6.27000045e-05" ior="1.0"        aperture_radius="0.00298000011" />
       <line id="10" curvature_radius="-0.0223726016"  thickness="0.000940000056" ior="1.67299998" aperture_radius="0.00298000011" />
-      <line id="11" curvature_radius="-0.0150404004"  thickness="0.0"            ior="1.0"        aperture_radius="0.00326000014" />
+      <line id="11" curvature_radius="-0.0150404004"  thickness="0.0233591795"   ior="1.0"        aperture_radius="0.00326000014" />
     </optical_system>
   </camera>
 </cam_lib>
