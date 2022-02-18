@@ -238,8 +238,6 @@ std::string  ws2s(const std::wstring& s);
 
 void TableLens::ReadParamsFromNode(pugi::xml_node a_camNode)
 {
-  if (a_camNode.child(L"enable_dof").text().empty())
-    return;
   
   auto opticalSys = a_camNode.child(L"optical_system");
   if(opticalSys == nullptr)
@@ -362,8 +360,8 @@ bool TableLens::TraceLensesFromFilm(const float3 inRayPos, const float3 inRayDir
   float elementZ = 0;
   // Transform _rCamera_ from camera to lens system space
   // 
-  float3 rayPosLens = float3(inRayPos.x, inRayPos.y, +inRayPos.z);
-  float3 rayDirLens = float3(inRayDir.x, inRayDir.y, +inRayDir.z);
+  float3 rayPosLens = float3(inRayPos.x, inRayPos.y, -inRayPos.z);
+  float3 rayDirLens = float3(inRayDir.x, inRayDir.y, -inRayDir.z);
 
   for(int i=0; i<lines.size(); i++)
   {
@@ -416,8 +414,8 @@ bool TableLens::TraceLensesFromFilm(const float3 inRayPos, const float3 inRayDir
 
   // Transform _rLens_ from lens system space back to camera space
   //
-  (*outRayPos) = float3(rayPosLens.x, rayPosLens.y, +rayPosLens.z);
-  (*outRayDir) = float3(rayDirLens.x, rayDirLens.y, +rayDirLens.z);
+  (*outRayPos) = float3(rayPosLens.x, rayPosLens.y, -rayPosLens.z);
+  (*outRayDir) = float3(rayDirLens.x, rayDirLens.y, -rayDirLens.z);
   return true;  
 }
 
@@ -437,41 +435,42 @@ void TableLens::MakeRaysBlock(RayPart1* out_rayPosAndNear, RayPart2* out_rayDirA
   #pragma omp parallel for
   for(int i=0;i<in_blockSize;i++)
   {
-    const float rndX  = hr_qmc::rndFloat(m_globalCounter+i, 0, table[0]);
-    const float rndY  = hr_qmc::rndFloat(m_globalCounter+i, 1, table[0]);
-    const float sensX = hr_qmc::rndFloat(m_globalCounter+i, 2, table[0]);
-    const float sensY = hr_qmc::rndFloat(m_globalCounter+i, 3, table[0]);
-    const float2 xy   = 0.5f*m_physSize*float2(2.0f*rndX - 1.0f, 2.0f*rndY - 1.0f);
+    const float sensX = hr_qmc::rndFloat(m_globalCounter+i, 0, table[0]);
+    const float sensY = hr_qmc::rndFloat(m_globalCounter+i, 1, table[0]);
+    const float lensX = hr_qmc::rndFloat(m_globalCounter+i, 2, table[0]);
+    const float lensY = hr_qmc::rndFloat(m_globalCounter+i, 3, table[0]);
+    const float2 xy   = 0.25f*m_physSize*float2(2.0f*sensX - 1.0f, 2.0f*sensY - 1.0f);
 
-    const float x  = m_fwidth*rndX; 
-    const float y  = m_fheight*rndY;
+    const float x  = m_fwidth*sensX;  
+    const float y  = m_fheight*sensY;
 
     float3 ray_pos = float3(xy.x, xy.y, 0);
     
-    const float2 rareSam = LensRearRadius()*2.0f*MapSamplesToDisc(float2(sensX - 0.5f, sensY - 0.5f));
+    const float2 rareSam = LensRearRadius()*2.0f*MapSamplesToDisc(float2(lensX - 0.5f, lensY - 0.5f));
     const float3 shootTo = float3(rareSam.x, rareSam.y, LensRearZ());
-
-    float3 ray_dir  = float3(-1,-1,-1)*normalize(shootTo - ray_pos);
-    //float3 ray_dir2 = EyeRayDir(x, y, m_fwidth, m_fheight, m_projInv);
-
+    float3 ray_dir = normalize(shootTo - ray_pos);
+    bool rayIsDead = false;
     if (!TraceLensesFromFilm(ray_pos, ray_dir, &ray_pos, &ray_dir)) 
     {
-      ray_pos = float3(0,10000000.0,0.0); // shoot ray to the sky
-      ray_dir = float3(0,1,0);
+      ray_pos = float3(0,-10000000.0,0.0); // shoot ray under the floor
+      ray_dir = float3(0,-1,0);
+      rayIsDead = true;
     }
     else
     {
-      int a = 2;
+      ray_dir = float3(-1,-1,-1)*normalize(ray_dir);
+      ray_pos = float3(-1,-1,-1)*ray_pos;
     }
-
-    ray_dir = float3(-1,-1,+1)*normalize(ray_dir);
 
     RayPart1 p1;
     p1.origin[0]   = ray_pos.x;
     p1.origin[1]   = ray_pos.y;
     p1.origin[2]   = ray_pos.z;
-    p1.xyPosPacked = myPackXY1616(int(x), int(y));
-   
+    if(!rayIsDead)
+      p1.xyPosPacked = myPackXY1616(int(x), int(y)); // packing this value discard contibution from this ray
+    else
+      p1.xyPosPacked = 0xFFFFFFFF;  
+
     RayPart2 p2;
     p2.direction[0] = ray_dir.x;
     p2.direction[1] = ray_dir.y;

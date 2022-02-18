@@ -13,7 +13,7 @@ Input::Input()
   //inLibraryPath = "tests/test_aniso";
   //inLibraryPath = "tests/test_42_with_mirror";  
   //inLibraryPath = "tests/test_42_ggx";
-  inLibraryPath = "tests/test_42";
+  //inLibraryPath = "tests/test_42";
   //inLibraryPath = "../../Diser/DiffuseReference/01_CornellBoxEmpty_direct/scenelib";
   //inLibraryPath = "tests/test_223_small"; ///< cornell box with sphere
   //inLibraryPath = "tests/test_224";
@@ -24,6 +24,7 @@ Input::Input()
 
   //inLibraryPath = "/home/frol/PROG/HydraRepos/HydraAPI-tests/tests_f/test_119";
   //inLibraryPath = "/home/frol/PROG/HydraRepos/HydraAPI/main/demos/demo_02";
+  inLibraryPath = "tests/demo_05";
 
   inDevelopment = false; ///< recompile shaders each time; note that nvidia have their own shader cache!
   inDeviceId    = 0;     ///< opencl device id
