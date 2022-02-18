@@ -238,7 +238,6 @@ std::string  ws2s(const std::wstring& s);
 
 void TableLens::ReadParamsFromNode(pugi::xml_node a_camNode)
 {
-  
   auto opticalSys = a_camNode.child(L"optical_system");
   if(opticalSys == nullptr)
   {
@@ -246,6 +245,10 @@ void TableLens::ReadParamsFromNode(pugi::xml_node a_camNode)
     std::cout << "[TableLens::ReadParamsFromNode]: node 'optical_system' is not found for camera " << camName.c_str() << std::endl;
     return;
   }
+  
+  float scale = 1.0f;
+  if(opticalSys.attribute(L"scale") != nullptr)
+    scale = opticalSys.attribute(L"scale").as_float();
 
   m_diagonal = opticalSys.attribute(L"sensor_diagonal").as_float();
   CalcPhysSize();
@@ -258,13 +261,13 @@ void TableLens::ReadParamsFromNode(pugi::xml_node a_camNode)
     int id = currId;
     if(line.attribute(L"id") != nullptr)
       id = line.attribute(L"id").as_int();
-    layer.curvatureRadius = line.attribute(L"curvature_radius").as_float();
-    layer.thickness       = line.attribute(L"thickness").as_float();
+    layer.curvatureRadius = scale*line.attribute(L"curvature_radius").as_float();
+    layer.thickness       = scale*line.attribute(L"thickness").as_float();
     layer.eta             = line.attribute(L"ior").as_float();
     if(line.attribute(L"semi_diameter") != nullptr)
-      layer.apertureRadius  = 2.0f*line.attribute(L"semi_diameter").as_float();
+      layer.apertureRadius  = scale*2.0f*line.attribute(L"semi_diameter").as_float();
     else if(line.attribute(L"aperture_radius") != nullptr)
-      layer.apertureRadius  = 1.0f*line.attribute(L"aperture_radius").as_float();
+      layer.apertureRadius  = scale*1.0f*line.attribute(L"aperture_radius").as_float();
     
     LensElementInterfaceWithId layer2;
     layer2.lensElement = layer;
@@ -467,9 +470,9 @@ void TableLens::MakeRaysBlock(RayPart1* out_rayPosAndNear, RayPart2* out_rayDirA
     p1.origin[1]   = ray_pos.y;
     p1.origin[2]   = ray_pos.z;
     if(!rayIsDead)
-      p1.xyPosPacked = myPackXY1616(int(x), int(y)); // packing this value discard contibution from this ray
+      p1.xyPosPacked = myPackXY1616(int(x), int(y)); 
     else
-      p1.xyPosPacked = 0xFFFFFFFF;  
+      p1.xyPosPacked = 0xFFFFFFFF;  // packing this value discard contibution from this ray
 
     RayPart2 p2;
     p2.direction[0] = ray_dir.x;
