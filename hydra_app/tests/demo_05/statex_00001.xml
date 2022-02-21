@@ -90,7 +90,7 @@
     <position>0 2 10</position>
     <look_at>0 -0.4 0</look_at>
     <up>0 1 0</up>
-    <optical_system type = "tabular" name="fisheye.10mm.dat" order = "scene_to_sensor" sensor_diagonal = "0.035"> 
+    <!-- <optical_system type = "tabular" name="fisheye.10mm.dat" order = "scene_to_sensor" sensor_diagonal = "0.035"> 
       <line id="0"  curvature_radius="0.0302249007"   thickness="0.00083350006" ior="1.62"        aperture_radius="0.0151700005" />
       <line id="1"  curvature_radius="0.0113931"      thickness="0.00741360011" ior="1.0"         aperture_radius="0.0103400005" />
       <line id="2"  curvature_radius="0.0752018988"   thickness="0.00106540008" ior="1.63900006"  aperture_radius="0.00889999978" />
@@ -103,14 +103,14 @@
       <line id="9"  curvature_radius="-0.0142884003"  thickness="6.27000045e-05" ior="1.0"        aperture_radius="0.00298000011" />
       <line id="10" curvature_radius="-0.0223726016"  thickness="0.000940000056" ior="1.67299998" aperture_radius="0.00298000011" />
       <line id="11" curvature_radius="-0.0150404004"  thickness="0.0233591795"   ior="1.0"        aperture_radius="0.00326000014" />
-    </optical_system>
-    <!--<optical_system type = "tabular" name="thorblas" order = "sensor_to_scene" scale="0.001" sensor_diagonal="0.088969714"> 
-      <line id="0" curvature_radius="1000000.0" thickness="1500.0" ior="1.0" semi_diameter="1000" />
+    </optical_system>  -->
+    <optical_system type = "tabular" name="thorlabs" order = "scene_to_sensor" scale="0.001" sensor_diagonal="0.015781318"> <!-- 0.015781318 0.030435234 -->
+      <!-- <line id="0" curvature_radius="1000000.0" thickness="1500.0" ior="1.0" semi_diameter="1000" /> -->
       <line id="1" curvature_radius="1000000.0" thickness="5.0"    ior="1.0" semi_diameter="2.5" />
       <line id="2" curvature_radius="24.53"     thickness="8.98"   ior="1.5168" semi_diameter="12.7" comment = "LB1761-B"/>
       <line id="3" curvature_radius="-24.53"    thickness="22.0"   ior="1.0" semi_diameter="12.7" />
-      <line id="4" curvature_radius="1000000.0" thickness="0"      ior="1.0" semi_diameter="15.21761704" />
-    </optical_system> -->
+      <!-- <line id="4" curvature_radius="1000000.0" thickness="0"      ior="1.0" semi_diameter="15.21761704" /> -->
+    </optical_system>
   </camera>
 </cam_lib>
 <render_lib>

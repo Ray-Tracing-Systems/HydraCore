@@ -423,13 +423,38 @@ bool TableLens::TraceLensesFromFilm(const float3 inRayPos, const float3 inRayDir
 }
 
 void TableLens::RunTestRays()
-{
-  //float3 rayPos(0,0,1);
+{ 
+  // PBRT:
+  //
+
+  ////float3 rayPos(0,0,1);
+  ////float3 rayDir(0,0,-1);
+  //float3 rayPos(3.5e-5f, 0, 0.999999821f);
   //float3 rayDir(0,0,-1);
-  float3 rayPos(3.5e-5f, 0, 0.999999821f);
-  float3 rayDir(0,0,-1);
-  bool res = TraceLensesFromFilm(rayPos, rayDir, &rayPos, &rayDir);
-  int a = 2;
+  //bool res = TraceLensesFromFilm(rayPos, rayDir, &rayPos, &rayDir);
+  //int a = 2;
+
+  // Zemax data for thorlabs
+  //
+  float3 ray_pos = float3(1.0f, 0.0f, 0);
+  const float2 rareSam = float2(0,0);
+
+  const float3 shootTo = float3(rareSam.x, rareSam.y, LensRearZ());
+  float3 ray_dir = normalize(shootTo - ray_pos);
+  bool rayIsDead = false;
+  if (!TraceLensesFromFilm(ray_pos, ray_dir, &ray_pos, &ray_dir)) 
+  {
+    ray_pos = float3(0,-10000000.0,0.0); // shoot ray under the floor
+    ray_dir = float3(0,-1,0);
+    rayIsDead = true;
+  }
+  else
+  {
+    ray_dir = float3(-1,-1,-1)*normalize(ray_dir);
+    ray_pos = float3(-1,-1,-1)*ray_pos;
+  }
+
+
 }
 
 
