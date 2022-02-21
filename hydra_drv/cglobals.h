@@ -438,7 +438,7 @@ enum VARIABLE_NAMES { // int vars
                       HRT_VAR_ENABLE_RR            = 18,
                       HRT_RENDER_LAYER             = 19,
                       HRT_RENDER_LAYER_DEPTH       = 20,
-                      HRT_IC_ENABLED               = 21,
+                      HRT_SAMPLES_PER_PASS         = 21,
                       HRT_IMAP_ENABLED             = 22,
                       HRT_SPHEREMAP_TEXID0         = 23,
                       HRT_SPHEREMAP_TEXID1         = 24,

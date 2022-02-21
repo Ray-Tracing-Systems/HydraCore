@@ -489,6 +489,7 @@ protected:
                                     cl_mem a_rpos, cl_mem a_rdir, cl_mem a_color);
 
   void runKernel_TakeHostRays(cl_mem in_rays, cl_mem out_rpos, cl_mem out_rdir, cl_mem out_clearColor, size_t a_size);
+  void runKernel_AccumColor(cl_mem a_inColor, cl_mem a_outColor, size_t a_size);
 
   void runKernel_InitRandomGen(cl_mem a_buffer, size_t a_size, int a_seed);
   void runKernel_MakeEyeRays(cl_mem a_rpos, cl_mem a_rdir, cl_mem a_zindex, size_t a_size, int a_passNumber);
@@ -652,6 +653,7 @@ protected:
     std::shared_ptr<IHostRaysAPI> pCamPlugin = nullptr;
     cl_mem camRayGPU[2] = {nullptr, nullptr};
     cl_mem camRayCPU[2] = {nullptr, nullptr};
+    cl_mem accumBuff    = nullptr;
     
     void free()
     {
@@ -661,6 +663,7 @@ protected:
       clReleaseMemObject(camRayGPU[1]); camRayGPU[1] = nullptr;
       clReleaseMemObject(camRayCPU[0]); camRayCPU[0] = nullptr;
       clReleaseMemObject(camRayCPU[1]); camRayCPU[1] = nullptr;
+      clReleaseMemObject(accumBuff);    accumBuff    = nullptr;
     }
 
   }m_camPlugin;

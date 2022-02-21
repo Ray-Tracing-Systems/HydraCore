@@ -1194,6 +1194,7 @@ void GPUOCLLayer::InitPathTracing(int seed)
     m_camPlugin.camRayGPU[1] = clCreateBuffer(m_globals.ctx, CL_MEM_READ_WRITE, totalSize, NULL, &ciErr1);
     m_camPlugin.camRayCPU[0] = clCreateBuffer(m_globals.ctx, CL_MEM_READ_ONLY | CL_MEM_ALLOC_HOST_PTR, totalSize, NULL, &ciErr1);
     m_camPlugin.camRayCPU[1] = clCreateBuffer(m_globals.ctx, CL_MEM_READ_ONLY | CL_MEM_ALLOC_HOST_PTR, totalSize, NULL, &ciErr1);
+    m_camPlugin.accumBuff    = clCreateBuffer(m_globals.ctx, CL_MEM_READ_WRITE, m_rays.MEGABLOCKSIZE*sizeof(float4), NULL, &ciErr1);
   
     if (ciErr1 != CL_SUCCESS)
       RUN_TIME_ERROR("[HostRaysAPI]: Error in create rays buffers for Host Camera Plugin");
@@ -1335,9 +1336,17 @@ void GPUOCLLayer::BeginTracingPass()
       }
       
       if(m_passNumber >= 1)
-        trace1D_Rev(minBounce, maxBounce, m_rays.rayPos, m_rays.rayDir, m_rays.MEGABLOCKSIZE, m_rays.pathAccColor);
+      {
+        const int samplesPerPass = m_vars.m_varsI[HRT_SAMPLES_PER_PASS];
+        memsetf4(m_camPlugin.accumBuff, float4(0,0,0,0), m_rays.MEGABLOCKSIZE);
+        for(int i=0;i<samplesPerPass;i++)
+        {
+          trace1D_Rev(minBounce, maxBounce, m_rays.rayPos, m_rays.rayDir, m_rays.MEGABLOCKSIZE, m_rays.pathAccColor);
+          runKernel_AccumColor(m_rays.pathAccColor, m_camPlugin.accumBuff, m_rays.MEGABLOCKSIZE);
+        }
+      }
 
-      AddContributionToScreen(m_rays.pathAccColor, m_rays.samZindex);
+      AddContributionToScreen(m_camPlugin.accumBuff, m_rays.samZindex);
       
       if(asyncPluginMode)
         pluginExecution.get();

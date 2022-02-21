@@ -1256,6 +1256,16 @@ bool RenderDriverRTE::UpdateCamera(pugi::xml_node a_camNode)
     vars.m_varsI[HRT_USE_CPU_PLUGIN] = hasPlugin;
   }
 
+  if (a_camNode.attribute(L"integrator_iters") != nullptr)
+  {
+    int hasPlugin = a_camNode.attribute(L"integrator_iters").as_int();
+    vars.m_varsI[HRT_SAMPLES_PER_PASS] = hasPlugin;
+  }
+  else
+    vars.m_varsI[HRT_SAMPLES_PER_PASS] = 1;
+
+  //HRT_SAMPLES_PER_PASS
+
   m_pHWLayer->SetAllFlagsAndVars(vars);
   m_pHWLayer->SetCamNode(a_camNode);  // for CPU cam plugins
 

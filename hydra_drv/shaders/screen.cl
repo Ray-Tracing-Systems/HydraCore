@@ -916,8 +916,25 @@ __kernel void CopyShadowTo(__global const uchar* in_shadow, __global float4* out
   out_color[tid]     = make_float4(shadow, shadow, shadow, shadow);
 }
 
+__kernel void AccumColor3f(__global const float4* in_color, __global float4* out_color, int iNumElements)
+{
+  int tid = GLOBAL_ID_X;
+  if (tid >= iNumElements)
+    return;
+  
+  const float4 incomeColor = in_color[tid];
+  float4       currColor   = out_color[tid];
 
-// change 21.03.2020 15:26;
+  currColor.x += incomeColor.x;
+  currColor.y += incomeColor.y;
+  currColor.z += incomeColor.z;
+  currColor.w = incomeColor.w;
+
+  out_color[tid] = currColor;
+}
+
+
+// change 21.02.2022 18:00;
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
