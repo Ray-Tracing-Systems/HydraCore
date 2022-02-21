@@ -25,6 +25,7 @@ Input::Input()
   //inLibraryPath = "/home/frol/PROG/HydraRepos/HydraAPI-tests/tests_f/test_119";
   //inLibraryPath = "/home/frol/PROG/HydraRepos/HydraAPI/main/demos/demo_02";
   inLibraryPath = "tests/demo_05";
+  //inLibraryPath = "tests/test_42";
 
   inDevelopment = false; ///< recompile shaders each time; note that nvidia have their own shader cache!
   inDeviceId    = 0;     ///< opencl device id
@@ -32,8 +33,8 @@ Input::Input()
   enableMLT     = false; ///< if use MMLT, you MUST enable it early, when render process just started (here or via command line).
   boxMode       = false; ///< special 'in the box' mode when render don't react to any commands
 
-  winWidth      = 1024;
-  winHeight     = 1024;
+  winWidth      = 1368;
+  winHeight     = 912;
 
   enableOpenGL1 = false; ///< if you want to draw scene for some debug needs with OpenGL1.
   exitStatus    = false;

@@ -1,5 +1,6 @@
 #include "CamHostPluginAPI.h"
 #include <iostream>
+#include <iomanip> 
 #include <thread> // just for test big delay
 #include <chrono> // std::chrono::seconds
 
@@ -10,6 +11,7 @@
 #include <string>
 #include <cstring>
 #include <algorithm>
+
 
 #include "../hydra_drv/cglobals.h"
 #include "../../HydraAPI/hydra_api/HydraAPI.h"
@@ -193,6 +195,9 @@ public:
   float2 m_physSize;
   float4x4 m_projInv;
   float m_diagonal    = 1.0f; // on meter
+
+  mutable std::vector<float3> m_debugPos;
+  bool m_enableDebug = false;
 
   //////////////////////////////////////////////////////////////////////////////////////
   //////////////////////////////////////////////////////////////////////////////////////
@@ -395,6 +400,8 @@ bool TableLens::TraceLensesFromFilm(const float3 inRayPos, const float3 inRayDir
 
     // Test intersection point against element aperture
     const float3 pHit = rayPosLens + t*rayDirLens;
+    if(m_enableDebug)
+      m_debugPos.push_back(pHit);
     const float r2    = pHit.x * pHit.x + pHit.y * pHit.y;
     if (r2 > element.apertureRadius * element.apertureRadius) 
       return false;
@@ -426,7 +433,6 @@ void TableLens::RunTestRays()
 { 
   // PBRT:
   //
-
   ////float3 rayPos(0,0,1);
   ////float3 rayDir(0,0,-1);
   //float3 rayPos(3.5e-5f, 0, 0.999999821f);
@@ -434,14 +440,12 @@ void TableLens::RunTestRays()
   //bool res = TraceLensesFromFilm(rayPos, rayDir, &rayPos, &rayDir);
   //int a = 2;
 
-  // Zemax data for thorlabs
-  //
-  float3 ray_pos = float3(1.0f, 0.0f, 0);
-  const float2 rareSam = float2(0,0);
+  float3 ray_pos       = float3(1.0f, 0.0f, 0);
+  const float2 rareSam = float2(0, 0); // 0.125f*m_physSize.x // 7,773602061 // 0.003965f
 
   const float3 shootTo = float3(rareSam.x, rareSam.y, LensRearZ());
-  float3 ray_dir = normalize(shootTo - ray_pos);
-  bool rayIsDead = false;
+  float3 ray_dir       = normalize(shootTo - ray_pos);
+  bool rayIsDead       = false;
   if (!TraceLensesFromFilm(ray_pos, ray_dir, &ray_pos, &ray_dir)) 
   {
     ray_pos = float3(0,-10000000.0,0.0); // shoot ray under the floor
@@ -454,7 +458,55 @@ void TableLens::RunTestRays()
     ray_pos = float3(-1,-1,-1)*ray_pos;
   }
 
+  // Zemax data for thorlabs
+  //
+  //float3 ray_pos = float3(0.0f, 0.0f, 0);
+  //const float2 rareSam = float2(LensRearRadius()*1.0f,0);
+  /*
+  std::ofstream fout("z_points.csv");
+  fout << "X_START; X_HIT; Z_HIT;" << std::endl;
+  m_enableDebug = true;
+  for(float x = 0.0f; x < LensRearRadius() ; x += 0.0001f) 
+  {
+    m_debugPos.clear();
 
+    float3 ray_pos = float3(0.0f, 0.0f, 0);
+    const float2 rareSam = float2(x, 0); // 0.125f*m_physSize.x // 7,773602061 // 0.003965f
+  
+    const float3 shootTo = float3(rareSam.x, rareSam.y, LensRearZ());
+    float3 ray_dir       = normalize(shootTo - ray_pos);
+    bool rayIsDead       = false;
+    if (!TraceLensesFromFilm(ray_pos, ray_dir, &ray_pos, &ray_dir)) 
+    {
+      ray_pos = float3(0,-10000000.0,0.0); // shoot ray under the floor
+      ray_dir = float3(0,-1,0);
+      rayIsDead = true;
+    }
+    else
+    {
+      ray_dir = float3(-1,-1,-1)*normalize(ray_dir);
+      ray_pos = float3(-1,-1,-1)*ray_pos;
+    }
+
+    if(m_debugPos.size() > 0)
+    {
+      float3 center(0, 0, -LensRearZ() +  lines[0].curvatureRadius);
+      float distToCenter = length(m_debugPos[0] - center);
+      if(std::abs(distToCenter - std::abs(lines[0].curvatureRadius) > 1e-5f))
+      {
+        int a = 2;
+        std::cout << std::fixed << std::setw(5) << x << " BAD INTERSECTION POINT" << std::endl;
+      }
+      fout << std::fixed << std::setw(5) << x << "; " << m_debugPos[0].x << "; " << m_debugPos[0].z << std::endl;
+    }
+    else
+      fout << std::fixed << std::setw(5) << x << "; " << "missed" << std::endl;
+
+  }
+  
+  fout.close();
+  m_enableDebug = false;
+  */
 }
 
 
