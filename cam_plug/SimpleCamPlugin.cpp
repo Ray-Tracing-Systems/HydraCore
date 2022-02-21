@@ -6,6 +6,7 @@
 
 #include <cstdint>
 #include <cstddef>
+#include <cassert>
 #include <memory>
 #include <vector>
 #include <string>
@@ -31,8 +32,8 @@ public:
 
   void ReadParamsFromNode(pugi::xml_node a_camNode);
 
-  void MakeRaysBlock(RayPart1* out_rayPosAndNear, RayPart2* out_rayDirAndFar, size_t in_blockSize) override;
-  void AddSamplesContribution(float* out_color4f, const float* colors4f, size_t in_blockSize, uint32_t a_width, uint32_t a_height) override;
+  void MakeRaysBlock(RayPart1* out_rayPosAndNear, RayPart2* out_rayDirAndFar, size_t in_blockSize, int passId) override;
+  void AddSamplesContribution(float* out_color4f, const float* colors4f, size_t in_blockSize, uint32_t a_width, uint32_t a_height, int passId) override;
 
   unsigned int table[hr_qmc::QRNG_DIMENSIONS][hr_qmc::QRNG_RESOLUTION];
   unsigned int m_globalCounter = 0;
@@ -87,7 +88,7 @@ void SimpleDOF::ReadParamsFromNode(pugi::xml_node a_camNode)
 
 static inline int myPackXY1616(int x, int y) { return (y << 16) | (x & 0x0000FFFF); }
 
-void SimpleDOF::MakeRaysBlock(RayPart1* out_rayPosAndNear, RayPart2* out_rayDirAndFar, size_t in_blockSize)
+void SimpleDOF::MakeRaysBlock(RayPart1* out_rayPosAndNear, RayPart2* out_rayDirAndFar, size_t in_blockSize, int passId)
 {
   #pragma omp parallel for
   for(int i=0;i<in_blockSize;i++)
@@ -137,7 +138,7 @@ void SimpleDOF::MakeRaysBlock(RayPart1* out_rayPosAndNear, RayPart2* out_rayDirA
   m_globalCounter += unsigned(in_blockSize);
 } 
 
-void SimpleDOF::AddSamplesContribution(float* out_color4f, const float* colors4f, size_t in_blockSize, uint32_t a_width, uint32_t a_height)
+void SimpleDOF::AddSamplesContribution(float* out_color4f, const float* colors4f, size_t in_blockSize, uint32_t a_width, uint32_t a_height, int passId)
 {
   float4*       out_color = (float4*)out_color4f;
   const float4* colors    = (const float4*)colors4f;
@@ -164,6 +165,12 @@ void SimpleDOF::AddSamplesContribution(float* out_color4f, const float* colors4f
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+struct PipeThrough
+{
+  float cosPower4      = 1.0f;
+  uint32_t packedIndex = 0;
+};
+
 class TableLens : public IHostRaysAPI
 {
 public:
@@ -183,8 +190,8 @@ public:
   void ReadParamsFromNode(pugi::xml_node a_camNode);
   void RunTestRays();
 
-  void MakeRaysBlock(RayPart1* out_rayPosAndNear, RayPart2* out_rayDirAndFar, size_t in_blockSize) override;
-  void AddSamplesContribution(float* out_color4f, const float* colors4f, size_t in_blockSize, uint32_t a_width, uint32_t a_height) override;
+  void MakeRaysBlock(RayPart1* out_rayPosAndNear, RayPart2* out_rayDirAndFar, size_t in_blockSize, int passId) override;
+  void AddSamplesContribution(float* out_color4f, const float* colors4f, size_t in_blockSize, uint32_t a_width, uint32_t a_height, int passId) override;
 
   unsigned int table[hr_qmc::QRNG_DIMENSIONS][hr_qmc::QRNG_RESOLUTION];
   unsigned int m_globalCounter = 0;
@@ -208,6 +215,8 @@ public:
 
   bool  IntersectSphericalElement(float radius, float zCenter, const float3 rayPos, const float3 rayDir, 
                                   float *t, float3 *n) const;
+
+  std::vector<PipeThrough> m_pipeline[HOST_RAYS_PIPELINE_LENGTH];
 
   struct LensElementInterface {
     float curvatureRadius;
@@ -510,8 +519,16 @@ void TableLens::RunTestRays()
 }
 
 
-void TableLens::MakeRaysBlock(RayPart1* out_rayPosAndNear, RayPart2* out_rayDirAndFar, size_t in_blockSize)
+void TableLens::MakeRaysBlock(RayPart1* out_rayPosAndNear, RayPart2* out_rayDirAndFar, size_t in_blockSize, int passId)
 {
+  if(m_pipeline[0].size() == 0)
+  {
+    for(int i=0;i<HOST_RAYS_PIPELINE_LENGTH;i++)
+    m_pipeline[i].resize(in_blockSize);
+  }
+
+  const int putID = passId % HOST_RAYS_PIPELINE_LENGTH;
+
   #pragma omp parallel for
   for(int i=0;i<in_blockSize;i++)
   {
@@ -557,8 +574,13 @@ void TableLens::MakeRaysBlock(RayPart1* out_rayPosAndNear, RayPart2* out_rayDirA
     p2.direction[2] = ray_dir.z;
     p2.dummy        = 0.0f;
     
+    PipeThrough pipeData;
+    pipeData.cosPower4   = 1.0f;
+    pipeData.packedIndex = p1.xyPosPacked;
+
     out_rayPosAndNear[i] = p1;
     out_rayDirAndFar [i] = p2;
+    m_pipeline[putID][i] = pipeData;
   }
 
   //std::this_thread::sleep_for(std::chrono::milliseconds(50)); // test big delay
@@ -566,18 +588,23 @@ void TableLens::MakeRaysBlock(RayPart1* out_rayPosAndNear, RayPart2* out_rayDirA
   m_globalCounter += unsigned(in_blockSize);
 } 
 
-void TableLens::AddSamplesContribution(float* out_color4f, const float* colors4f, size_t in_blockSize, uint32_t a_width, uint32_t a_height)
+void TableLens::AddSamplesContribution(float* out_color4f, const float* colors4f, size_t in_blockSize, uint32_t a_width, uint32_t a_height, int passId)
 {
+  const int takeID = (passId + HOST_RAYS_PIPELINE_LENGTH - 1)  % HOST_RAYS_PIPELINE_LENGTH;
+
   float4*       out_color = (float4*)out_color4f;
   const float4* colors    = (const float4*)colors4f;
   
   for (int i = 0; i < in_blockSize; i++)
   {
     const auto color = colors[i];
-    const uint32_t packedIndex = as_int(color.w);
+    const int packedIndex = as_int(color.w);
     const int x      = (packedIndex & 0x0000FFFF);         ///<! extract x position from color.w
     const int y      = (packedIndex & 0xFFFF0000) >> 16;   ///<! extract y position from color.w
     const int offset = y*a_width + x;
+
+    //const PipeThrough& passData = m_pipeline[takeID][i];
+    //assert(passData.packedIndex == packedIndex);
 
     if (x >= 0 && y >= 0 && x < a_width && y < a_height)
     {

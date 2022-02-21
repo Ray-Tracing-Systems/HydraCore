@@ -60,7 +60,7 @@ public:
   void EndTracingPass()   override;
   void EvalGBuffer(IHRSharedAccumImage* a_pAccumImage, const std::vector<int32_t>& a_instIdByInstId) override;
   
-  int DoCamPluginRays(int buffId);
+  int DoCamPluginRays(int buffId, int a_passId);
 
   std::vector<int> MakeAllPixelsList();
   void RunProductionSamplingMode();

@@ -1321,9 +1321,9 @@ void GPUOCLLayer::BeginTracingPass()
       {
         int buffId = m_passNumber % 2;
         if(asyncPluginMode)
-          pluginExecution = std::async(std::launch::async, &GPUOCLLayer::DoCamPluginRays, this, buffId);
+          pluginExecution = std::async(std::launch::async, &GPUOCLLayer::DoCamPluginRays, this, buffId, m_passNumber);
         else
-          DoCamPluginRays(buffId);
+          DoCamPluginRays(buffId, m_passNumber);
 
         runKernel_TakeHostRays(m_camPlugin.camRayGPU[1-buffId], m_rays.rayPos, m_rays.rayDir, m_rays.pathAccColor, m_rays.MEGABLOCKSIZE);
       }
@@ -1384,7 +1384,7 @@ void GPUOCLLayer::BeginTracingPass()
   }
 }
 
-int GPUOCLLayer::DoCamPluginRays(int buffId)
+int GPUOCLLayer::DoCamPluginRays(int buffId, int a_passId)
 {
   cl_int ciErr1 = CL_SUCCESS;
   const size_t fullSize = m_rays.MEGABLOCKSIZE*sizeof(RayPart1) + m_rays.MEGABLOCKSIZE*sizeof(RayPart2);
@@ -1394,7 +1394,7 @@ int GPUOCLLayer::DoCamPluginRays(int buffId)
   if (ciErr1 != CL_SUCCESS)
     RUN_TIME_ERROR("[HostRaysAPI]: Error in 'clEnqueueMapBuffer' for Host Camera Plugin");
   
-  m_camPlugin.pCamPlugin->MakeRaysBlock(rays1, rays2, m_rays.MEGABLOCKSIZE);
+  m_camPlugin.pCamPlugin->MakeRaysBlock(rays1, rays2, m_rays.MEGABLOCKSIZE, a_passId);
   
   clEnqueueUnmapMemObject(m_globals.cmdQueueHostToDev, m_camPlugin.camRayCPU[buffId], rays1, 0, 0, 0);
   clEnqueueCopyBuffer    (m_globals.cmdQueueHostToDev, m_camPlugin.camRayCPU[buffId], m_camPlugin.camRayGPU[buffId], 0, 0, fullSize, 0, nullptr, nullptr);

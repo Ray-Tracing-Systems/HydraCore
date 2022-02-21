@@ -36,7 +36,7 @@ struct IHostRaysAPI
     Please note that it is assumed that rays are uniformly distributed over image plane (and all other integrated dimentions like position on lens) 
     for the whole period of time (all passes), the example will be provided.
   */
-  virtual void MakeRaysBlock(RayPart1* out_rayPosAndNear, RayPart2* out_rayDirAndFar, size_t in_blockSize) = 0;
+  virtual void MakeRaysBlock(RayPart1* out_rayPosAndNear, RayPart2* out_rayDirAndFar, size_t in_blockSize, int passId) = 0;
   
   /**
   \brief Add contribution
@@ -46,7 +46,7 @@ struct IHostRaysAPI
   \param a_width    - image width
   \param a_height   - image height
   */
-  virtual void AddSamplesContribution(float* out_color4f, const float* colors4f, size_t in_blockSize, uint32_t a_width, uint32_t a_height) = 0;
+  virtual void AddSamplesContribution(float* out_color4f, const float* colors4f, size_t in_blockSize, uint32_t a_width, uint32_t a_height, int passId) = 0;
 
 };
 
@@ -56,3 +56,5 @@ struct IHostRaysAPI
  */
 IHostRaysAPI* MakeHostRaysEmitter(int a_pluginId);       ///<! you replace this function or make your own ... the example will be provided
 void          DeleteRaysEmitter(IHostRaysAPI* pObject);  ///<! don't forget to provide delete fuction because your DLL has different heap
+
+static constexpr int HOST_RAYS_PIPELINE_LENGTH = 3;
