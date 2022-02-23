@@ -559,6 +559,8 @@ void TableLens::MakeRaysBlock(RayPart1* out_rayPosAndNear, RayPart2* out_rayDirA
       ray_pos = float3(-1,-1,-1)*ray_pos;
     }
 
+    float cosTheta = std::abs(ray_dir.z);
+
     RayPart1 p1;
     p1.origin[0]   = ray_pos.x;
     p1.origin[1]   = ray_pos.y;
@@ -575,7 +577,7 @@ void TableLens::MakeRaysBlock(RayPart1* out_rayPosAndNear, RayPart2* out_rayDirA
     p2.dummy        = 0.0f;
     
     PipeThrough pipeData;
-    pipeData.cosPower4   = 1.0f;
+    pipeData.cosPower4   = (cosTheta*cosTheta)*(cosTheta*cosTheta);
     pipeData.packedIndex = p1.xyPosPacked;
 
     out_rayPosAndNear[i] = p1;
@@ -590,7 +592,7 @@ void TableLens::MakeRaysBlock(RayPart1* out_rayPosAndNear, RayPart2* out_rayDirA
 
 void TableLens::AddSamplesContribution(float* out_color4f, const float* colors4f, size_t in_blockSize, uint32_t a_width, uint32_t a_height, int passId)
 {
-  const int takeID = (passId + HOST_RAYS_PIPELINE_LENGTH - 1)  % HOST_RAYS_PIPELINE_LENGTH;
+  const int takeID = (passId + HOST_RAYS_PIPELINE_LENGTH - 2) % HOST_RAYS_PIPELINE_LENGTH;
 
   float4*       out_color = (float4*)out_color4f;
   const float4* colors    = (const float4*)colors4f;
@@ -603,14 +605,13 @@ void TableLens::AddSamplesContribution(float* out_color4f, const float* colors4f
     const int y      = (packedIndex & 0xFFFF0000) >> 16;   ///<! extract y position from color.w
     const int offset = y*a_width + x;
 
-    //const PipeThrough& passData = m_pipeline[takeID][i];
-    //assert(passData.packedIndex == packedIndex);
-
-    if (x >= 0 && y >= 0 && x < a_width && y < a_height)
+    if (x >= 0 && y >= 0 && x < a_width && y < a_height && dot3f(color, color) > 0.0f)
     {
-      out_color[offset].x += color.x;
-      out_color[offset].y += color.y;
-      out_color[offset].z += color.z;
+      const PipeThrough& passData = m_pipeline[takeID][i];
+      assert(passData.packedIndex == packedIndex);        ///<! check that we actually took data from 'm_pipeline' for right ray
+      out_color[offset].x += color.x*passData.cosPower4;
+      out_color[offset].y += color.y*passData.cosPower4;
+      out_color[offset].z += color.z*passData.cosPower4;
     }
   }
 }
