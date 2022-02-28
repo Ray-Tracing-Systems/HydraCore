@@ -543,9 +543,12 @@ void TableLens::MakeRaysBlock(RayPart1* out_rayPosAndNear, RayPart2* out_rayDirA
 
     float3 ray_pos = float3(xy.x, xy.y, 0);
     
-    const float2 rareSam = LensRearRadius()*2.0f*MapSamplesToDisc(float2(lensX - 0.5f, lensY - 0.5f));
-    const float3 shootTo = float3(rareSam.x, rareSam.y, LensRearZ());
-    float3 ray_dir = normalize(shootTo - ray_pos);
+    const float2 rareSam  = LensRearRadius()*2.0f*MapSamplesToDisc(float2(lensX - 0.5f, lensY - 0.5f));
+    const float3 shootTo  = float3(rareSam.x, rareSam.y, LensRearZ());
+    const float3 ray_dirF = normalize(shootTo - ray_pos);
+    const float cosTheta  = 1.0f; // std::abs(ray_dirF.z);
+    
+    float3 ray_dir = ray_dirF;
     bool rayIsDead = false;
     if (!TraceLensesFromFilm(ray_pos, ray_dir, &ray_pos, &ray_dir)) 
     {
@@ -558,8 +561,6 @@ void TableLens::MakeRaysBlock(RayPart1* out_rayPosAndNear, RayPart2* out_rayDirA
       ray_dir = float3(-1,-1,-1)*normalize(ray_dir);
       ray_pos = float3(-1,-1,-1)*ray_pos;
     }
-
-    float cosTheta = std::abs(ray_dir.z);
 
     RayPart1 p1;
     p1.origin[0]   = ray_pos.x;
