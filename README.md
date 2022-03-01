@@ -25,7 +25,7 @@ Windows:
 
 Linux:
 1. Clone HydraAPI repo in some folder (for example "myfolder/HydraAPI"). 
-2. Build HydraAPI with Cmake.
+2. (optional) Build HydraAPI with Cmake.
 3. Clone HydraCore repo in the same folder (to form "myfolder/HydraCore").
 4. Set **"inDevelopment = false"** inside "input.cpp". 
 5. Use the following command to build and install HydraCore (for example from "myfolder/HydraCore/build")   

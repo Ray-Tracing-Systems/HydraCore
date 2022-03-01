@@ -546,7 +546,7 @@ void TableLens::MakeRaysBlock(RayPart1* out_rayPosAndNear, RayPart2* out_rayDirA
     const float2 rareSam  = LensRearRadius()*2.0f*MapSamplesToDisc(float2(lensX - 0.5f, lensY - 0.5f));
     const float3 shootTo  = float3(rareSam.x, rareSam.y, LensRearZ());
     const float3 ray_dirF = normalize(shootTo - ray_pos);
-    const float cosTheta  = 1.0f; // std::abs(ray_dirF.z);
+    const float cosTheta  = std::abs(ray_dirF.z);
     
     float3 ray_dir = ray_dirF;
     bool rayIsDead = false;
