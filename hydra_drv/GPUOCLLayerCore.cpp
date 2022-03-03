@@ -107,7 +107,6 @@ void GPUOCLLayer::trace1D_Rev(int a_minBounce, int a_maxBounce, cl_mem a_rpos, c
   if(m_vars.m_varsF[HRT_PATH_TRACE_CLAMPING] < 1e+6f)
     runKernel_ClampFloat4(a_outColor, 0.0f, m_vars.m_varsF[HRT_PATH_TRACE_CLAMPING], a_size);  // perform clamping if it is enabled
 
-
   if (m_vars.m_varsI[HRT_ENABLE_MRAYS_COUNTERS])
   {
     clFinish(m_globals.cmdQueue);

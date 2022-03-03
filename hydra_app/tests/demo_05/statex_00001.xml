@@ -83,7 +83,7 @@
   </light>
 </lights_lib>
 <cam_lib>
-  <camera id="0" name="my camera" type="uvn" integrator_iters="64" cpu_plugin="2"  cpu_plugin_dll="/home/frol/PROG/HydraRepos/HydraCamPluginExample/cmake-build-release/libhydra_cam_plugin.so">
+  <camera id="0" name="my camera" type="uvn" integrator_iters="1" cpu_plugin="2"  cpu_plugin_dll="/home/frol/PROG/HydraRepos/HydraCamPluginExample/cmake-build-release/libhydra_cam_plugin.so">
     <fov>30</fov>
     <nearClipPlane>0.00999999978</nearClipPlane>
     <farClipPlane>1000</farClipPlane>
@@ -114,13 +114,13 @@
 </cam_lib>
 <render_lib>
   <render_settings type="HydraModern" id="0">
-    <width>1368</width>
-    <height>912</height>
+    <width>1024</width>
+    <height>1024</height>
     <method_primary>PT</method_primary>
     <method_secondary>PT</method_secondary>
     <method_tertiary>PT</method_tertiary>
     <method_caustic>PT</method_caustic>
-    <qmc_variant>7</qmc_variant>
+    <qmc_variant>0</qmc_variant>
     <trace_depth>10</trace_depth>
     <diff_trace_depth>4</diff_trace_depth>
     <maxRaysPerPixel>256</maxRaysPerPixel>

@@ -1316,33 +1316,22 @@ void GPUOCLLayer::BeginTracingPass()
       m_vars.m_varsI[HRT_KMLT_OR_QMC_MAT_BOUNCES] = 0;
       UpdateVarsOnGPU(m_vars);
       
-      //if(false)
-      if(m_camPlugin.pCamPlugin != nullptr)
-      {
-        int buffId = m_passNumber % 2;
-        if(asyncPluginMode)
-          pluginExecution = std::async(std::launch::async, &GPUOCLLayer::DoCamPluginRays, this, buffId, m_passNumber);
-        else
-          DoCamPluginRays(buffId, m_passNumber);
-
-        runKernel_TakeHostRays(m_camPlugin.camRayGPU[1-buffId], m_rays.rayPos, m_rays.rayDir, m_rays.pathAccColor, m_rays.MEGABLOCKSIZE);
-      }
+    
+      int buffId = m_passNumber % 2;
+      if(asyncPluginMode)
+        pluginExecution = std::async(std::launch::async, &GPUOCLLayer::DoCamPluginRays, this, buffId, m_passNumber);
       else
-      {
-        runKernel_MakeEyeSamplesOnly(m_rays.MEGABLOCKSIZE, m_passNumberForQMC,
-                                     m_rays.samZindex, kmlt.xVectorQMC);
-        runKernel_MakeRaysFromEyeSam(m_rays.samZindex, kmlt.xVectorQMC, m_rays.MEGABLOCKSIZE, m_passNumberForQMC,
-                                     m_rays.rayPos, m_rays.rayDir, m_rays.pathAccColor);
-      }
-      
+        DoCamPluginRays(buffId, m_passNumber);
+  
       if(m_passNumber >= 1)
       {
         const int samplesPerPass = m_vars.m_varsI[HRT_SAMPLES_PER_PASS];
         memsetf4(m_camPlugin.accumBuff, float4(0,0,0,0), m_rays.MEGABLOCKSIZE);
         for(int i=0;i<samplesPerPass;i++)
         {
+          runKernel_TakeHostRays(m_camPlugin.camRayGPU[1-buffId], m_rays.rayPos, m_rays.rayDir, m_rays.pathAccColor, m_rays.MEGABLOCKSIZE);
           trace1D_Rev(minBounce, maxBounce, m_rays.rayPos, m_rays.rayDir, m_rays.MEGABLOCKSIZE, m_rays.pathAccColor);
-          runKernel_AccumColor(m_rays.pathAccColor, m_camPlugin.accumBuff, m_rays.MEGABLOCKSIZE);
+          runKernel_AccumColor(m_rays.pathAccColor, m_camPlugin.accumBuff, m_rays.MEGABLOCKSIZE, 1.0f/float(samplesPerPass));
         }
       }
 

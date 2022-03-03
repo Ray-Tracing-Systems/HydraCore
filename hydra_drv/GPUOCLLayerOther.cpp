@@ -267,8 +267,8 @@ void GPUOCLLayer::AddContributionToScreenCPU(cl_mem& in_color, int a_size, int a
   }
 
   clFinish(m_globals.cmdQueue);
-  clFinish(m_globals.cmdQueueDevToHost);
   clFinish(m_globals.cmdQueueHostToDev);
+  clFinish(m_globals.cmdQueueDevToHost);
 
   //memsetf4(m_rays.pathAuxColor, float4(0,0,0,0), m_rays.MEGABLOCKSIZE, 0);
   //clFinish(m_globals.cmdQueue);

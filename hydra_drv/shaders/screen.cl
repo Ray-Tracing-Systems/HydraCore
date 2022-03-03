@@ -916,7 +916,7 @@ __kernel void CopyShadowTo(__global const uchar* in_shadow, __global float4* out
   out_color[tid]     = make_float4(shadow, shadow, shadow, shadow);
 }
 
-__kernel void AccumColor3f(__global const float4* in_color, __global float4* out_color, int iNumElements)
+__kernel void AccumColor3f(__global const float4* in_color, __global float4* out_color, int iNumElements, float a_mult)
 {
   int tid = GLOBAL_ID_X;
   if (tid >= iNumElements)
@@ -925,9 +925,9 @@ __kernel void AccumColor3f(__global const float4* in_color, __global float4* out
   const float4 incomeColor = in_color[tid];
   float4       currColor   = out_color[tid];
 
-  currColor.x += incomeColor.x;
-  currColor.y += incomeColor.y;
-  currColor.z += incomeColor.z;
+  currColor.x += incomeColor.x*a_mult;
+  currColor.y += incomeColor.y*a_mult;
+  currColor.z += incomeColor.z*a_mult;
   currColor.w = incomeColor.w;
 
   out_color[tid] = currColor;
