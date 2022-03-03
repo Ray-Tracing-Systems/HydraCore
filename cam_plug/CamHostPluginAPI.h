@@ -1,8 +1,7 @@
 #pragma once 
 
-#include <cstdint>                              // uint32_t
-#include <cstddef>                              // for size_t
-#include "../../HydraAPI/hydra_api/pugixml.hpp" // for XML
+#include <cstdint>      // uint32_t
+#include <cstddef>      // for size_t
 
 struct RayPart1 
 {
@@ -23,9 +22,9 @@ struct IHostRaysAPI
    \param a_width         - image width
    \param a_height        - image height
    \param a_projInvMatrix - inverse projection matrix; you may apply it to the ray to get correct perspective
-   \param a_camNode       - all other camera parameters which you can directly by reading this node
+   \param a_camNodeText   - all other camera parameters which you can directly by reading this node
   */
-  virtual void SetParameters(int a_width, int a_height, const float a_projInvMatrix[16], pugi::xml_node a_camNode) {}
+  virtual void SetParameters(int a_width, int a_height, const float a_projInvMatrix[16], const wchar_t* a_camNodeText) {}
 
   /** 
    \brief Put portion of rays in execution queue

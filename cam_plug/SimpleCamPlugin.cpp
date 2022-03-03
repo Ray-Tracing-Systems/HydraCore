@@ -16,17 +16,22 @@
 
 #include "../hydra_drv/cglobals.h"
 #include "../../HydraAPI/hydra_api/HydraAPI.h"
+#include "../../HydraAPI/hydra_api/pugixml.hpp" // for XML
 
 class SimpleDOF : public IHostRaysAPI
 {
 public:
   SimpleDOF() { hr_qmc::init(table); m_globalCounter = 0; }
   
-  void SetParameters(int a_width, int a_height, const float a_projInvMatrix[16], pugi::xml_node a_camNode) override
+  void SetParameters(int a_width, int a_height, const float a_projInvMatrix[16], const wchar_t* a_camNodeText) override
   {
+
     m_fwidth  = float(a_width);
     m_fheight = float(a_height);
     memcpy(&m_projInv, a_projInvMatrix, sizeof(float4x4));
+    
+    m_doc.load_string(a_camNodeText);
+    pugi::xml_node a_camNode = m_doc.child(L"camera"); //
     ReadParamsFromNode(a_camNode);
   }
 
@@ -34,6 +39,8 @@ public:
 
   void MakeRaysBlock(RayPart1* out_rayPosAndNear, RayPart2* out_rayDirAndFar, size_t in_blockSize, int passId) override;
   void AddSamplesContribution(float* out_color4f, const float* colors4f, size_t in_blockSize, uint32_t a_width, uint32_t a_height, int passId) override;
+
+  pugi::xml_document m_doc;
 
   unsigned int table[hr_qmc::QRNG_DIMENSIONS][hr_qmc::QRNG_RESOLUTION];
   unsigned int m_globalCounter = 0;
@@ -45,6 +52,7 @@ public:
   float FOCAL_PLANE_DIST = 10.0f;
   float DOF_LENS_RADIUS  = 0.0f;
   bool  DOF_IS_ENABLED = false;
+  
 };
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -176,13 +184,16 @@ class TableLens : public IHostRaysAPI
 public:
   TableLens() { hr_qmc::init(table); m_globalCounter = 0; }
   
-  void SetParameters(int a_width, int a_height, const float a_projInvMatrix[16], pugi::xml_node a_camNode) override
+  void SetParameters(int a_width, int a_height, const float a_projInvMatrix[16], const wchar_t* a_camNodeText) override
   {
     m_fwidth  = float(a_width);
     m_fheight = float(a_height);
     m_aspect  = m_fheight / m_fwidth;
     CalcPhysSize();
     memcpy(&m_projInv, a_projInvMatrix, sizeof(float4x4));
+    
+    m_doc.load_string(a_camNodeText);
+    pugi::xml_node a_camNode = m_doc.child(L"camera"); //
     ReadParamsFromNode(a_camNode);
     RunTestRays();
   }
@@ -192,6 +203,8 @@ public:
 
   void MakeRaysBlock(RayPart1* out_rayPosAndNear, RayPart2* out_rayDirAndFar, size_t in_blockSize, int passId) override;
   void AddSamplesContribution(float* out_color4f, const float* colors4f, size_t in_blockSize, uint32_t a_width, uint32_t a_height, int passId) override;
+
+  pugi::xml_document m_doc;
 
   unsigned int table[hr_qmc::QRNG_DIMENSIONS][hr_qmc::QRNG_RESOLUTION];
   unsigned int m_globalCounter = 0;

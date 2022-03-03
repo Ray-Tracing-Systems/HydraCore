@@ -1185,7 +1185,11 @@ void GPUOCLLayer::InitPathTracing(int seed)
     else
       m_camPlugin.pCamPlugin = std::shared_ptr<IHostRaysAPI>(MakeHostRaysEmitter(m_vars.m_varsI[HRT_USE_CPU_PLUGIN]), DeleteRaysEmitter);
     
-    m_camPlugin.pCamPlugin->SetParameters(m_width, m_height, m_globsBuffHeader.mProjInverse, m_camNode);
+    std::wstringstream strout;
+    strout << L"<?xml version=\"1.0\"?>" << std::endl;
+    m_camNode.print(strout);
+    const std::wstring nodeData = strout.str(); 
+    m_camPlugin.pCamPlugin->SetParameters(m_width, m_height, m_globsBuffHeader.mProjInverse, nodeData.c_str());
 
     m_camPlugin.free();
     cl_int ciErr1 = CL_SUCCESS;
