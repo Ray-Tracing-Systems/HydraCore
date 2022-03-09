@@ -17,6 +17,8 @@ struct RayPart2
 
 struct IHostRaysAPI
 { 
+  virtual ~IHostRaysAPI() {}
+  
   /** 
    \brief Set camera parameters
    \param a_width         - image width
