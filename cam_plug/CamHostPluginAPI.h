@@ -48,7 +48,11 @@ struct IHostRaysAPI
   \param a_height   - image height
   */
   virtual void AddSamplesContribution(float* out_color4f, const float* colors4f, size_t in_blockSize, uint32_t a_width, uint32_t a_height, int passId) = 0;
-
+  
+  /**
+  \brief Signal that rendering is finished and you can save image  
+  */
+  virtual void FinishRendering() = 0;
 };
 
 /** 

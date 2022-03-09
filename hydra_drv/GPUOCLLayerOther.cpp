@@ -293,6 +293,12 @@ void GPUOCLLayer::AddContributionToScreenCPU(cl_mem& in_color, int a_size, int a
   
 }
 
+void GPUOCLLayer::CPUPluginFinish()
+{
+  if(m_camPlugin.pCamPlugin != nullptr)
+    m_camPlugin.pCamPlugin->FinishRendering();
+}
+
 void GPUOCLLayer::ContribToExternalImageAccumulator(IHRSharedAccumImage* a_pImage)
 {
   if (!m_screen.m_cpuFrameBuffer)

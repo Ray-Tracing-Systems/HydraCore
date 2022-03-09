@@ -158,6 +158,7 @@ protected:
   * \param a_repackIndex  - in flag for pack (y << 16|x) to color.w again inside this function.
   */
   void AddContributionToScreen (cl_mem& in_color, cl_mem in_indices, bool a_copyToLDRNow = true, int a_layerId = 0, bool a_repackIndex = true);
+  void CPUPluginFinish() override;
 
   std::vector<uchar4> NormalMapFromDisplacement(int w, int h, const uchar4* a_data, float bumpAmt, bool invHeight, float smoothLvl);
   void Denoise(cl_mem textureIn, cl_mem textureOut, int w, int h, float smoothLvl);

@@ -137,6 +137,7 @@ public:
 
   virtual void InitPathTracing(int seed) = 0;
   virtual void ClearAccumulatedColor() = 0;
+  virtual void CPUPluginFinish() {}
 
   // Other
   //

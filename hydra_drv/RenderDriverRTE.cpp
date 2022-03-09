@@ -2070,7 +2070,8 @@ HRRenderUpdateInfo RenderDriverRTE::HaveUpdateNow(int a_maxRaysperPixel)
   
   res.progress    = spp/float(a_maxRaysperPixel);
   res.finalUpdate = (res.progress >= 1.0f); 
- 
+  if(res.finalUpdate)
+    m_pHWLayer->CPUPluginFinish();
   return res;
 }
 

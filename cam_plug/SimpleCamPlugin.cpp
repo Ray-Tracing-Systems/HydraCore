@@ -39,6 +39,7 @@ public:
 
   void MakeRaysBlock(RayPart1* out_rayPosAndNear, RayPart2* out_rayDirAndFar, size_t in_blockSize, int passId) override;
   void AddSamplesContribution(float* out_color4f, const float* colors4f, size_t in_blockSize, uint32_t a_width, uint32_t a_height, int passId) override;
+  void FinishRendering() override { std::cout << "SimpleDOF::FinishRendering is called" << std::endl; }
 
   pugi::xml_document m_doc;
 
@@ -203,6 +204,7 @@ public:
 
   void MakeRaysBlock(RayPart1* out_rayPosAndNear, RayPart2* out_rayDirAndFar, size_t in_blockSize, int passId) override;
   void AddSamplesContribution(float* out_color4f, const float* colors4f, size_t in_blockSize, uint32_t a_width, uint32_t a_height, int passId) override;
+  void FinishRendering() override { std::cout << "TableLens::FinishRendering is called" << std::endl; }
 
   pugi::xml_document m_doc;
 
