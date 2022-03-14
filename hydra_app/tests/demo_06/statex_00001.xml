@@ -1,0 +1,72 @@
+<?xml version="1.0"?>
+<textures_lib total_chunks="3">
+  <texture id="0" name="Map#0" loc="data/chunk_00000.image4ub" offset="8" bytesize="16" width="2" height="2" dl="0" />
+  <texture id="1" name="data/textures/USAF1951_8mp_color_v2.png" path="data/textures/USAF1951_8mp_color_v2.png" loc="data/chunk_00001.image4ub" offset="8" bytesize="30802500" width="2775" height="2775" dl="0" />
+</textures_lib>
+<materials_lib>
+  <material id="0" name="mysimplemat" type="hydra_material">
+    <diffuse brdf_type="lambert">
+      <color val="1.0 1.0 1.0" tex_apply_mode="multiply">
+        <texture id="1" type="texref" matrix="1 0 0 0 0 -1 0 0 0 0 1 0 0 0 0 1" addressing_mode_u="wrap" addressing_mode_v="wrap" filter="nearest" input_gamma="2.20000005" input_alpha="rgb" />
+      </color>
+    </diffuse>
+  </material>
+  <material id="1" name="sky_material" type="hydra_material" light_id="0" visible="1">
+    <emission>
+      <color val="1 1 1" />
+    </emission>
+  </material>
+</materials_lib>
+<geometry_lib total_chunks="3">
+  <mesh id="0" name="my_plane" type="vsgf" bytesize="280" loc="data/chunk_00002.vsgf" offset="0" vertNum="4" triNum="2" dl="0" path="" bbox="    -2 2 -2 2 0 0">
+    <positions type="array4f" bytesize="64" offset="24" apply="vertex" />
+    <normals type="array4f" bytesize="64" offset="88" apply="vertex" />
+    <tangents type="array4f" bytesize="64" offset="152" apply="vertex" />
+    <texcoords type="array2f" bytesize="32" offset="216" apply="vertex" />
+    <indices type="array1i" bytesize="24" offset="248" apply="tlist" />
+    <matindices type="array1i" bytesize="8" offset="272" apply="primitive" />
+  </mesh>
+</geometry_lib>
+<lights_lib>
+  <light id="0" name="sky" type="sky" shape="point" distribution="uniform" visible="1" mat_id="1">
+    <intensity>
+      <color val="1 1 1" />
+      <multiplier val="1" />
+    </intensity>
+  </light>
+</lights_lib>
+<cam_lib>
+  <camera id="0" name="my camera" type="uvn" integrator_iters="8" cpu_plugin="2">
+    <fov>30</fov>
+    <nearClipPlane>0.00999999978</nearClipPlane>
+    <farClipPlane>1000</farClipPlane>
+    <position>0 0 0</position>
+    <look_at>0 0 -1</look_at>
+    <up>0 1 0</up>
+    <optical_system type = "tabular" name="thorlabs" order = "scene_to_sensor" sensor_diagonal="0.0157" scale="0.001"> 
+      <line id="1" curvature_radius="1000000.0" thickness="5.0"    ior="1.0"    semi_diameter="2.5" />
+      <line id="2" curvature_radius="24.53"     thickness="8.98"   ior="1.5168" semi_diameter="12.7" comment = "LB1761-B"/>
+      <line id="3" curvature_radius="-24.53"    thickness="22.0"   ior="1.0"    semi_diameter="12.7" />
+    </optical_system>
+  </camera>
+</cam_lib>
+<render_lib>
+  <render_settings type="HydraModern" id="0">
+    <width>2775</width>
+    <height>2775</height>
+    <method_primary>PT</method_primary>
+    <method_secondary>PT</method_secondary>
+    <method_tertiary>PT</method_tertiary>
+    <method_caustic>PT</method_caustic>
+    <qmc_variant>0</qmc_variant>
+    <trace_depth>10</trace_depth>
+    <diff_trace_depth>4</diff_trace_depth>
+    <maxRaysPerPixel>1024</maxRaysPerPixel>
+  </render_settings>
+</render_lib>
+<scenes>
+  <scene id="0" name="my scene" discard="1" bbox="-2.23582 2.23582 -2.23582 2.23582 -10 -10">
+    <instance id="0" mesh_id="0" rmap_id="-1" scn_id="0" scn_sid="0" matrix="1.11791 0 0 0 0 1.11791 0 0 0 0 1 -10 0 0 0 1 " />
+    <instance_light id="0" light_id="0" matrix="1 0 0 0 0 1 0 100 0 0 1 0 0 0 0 1 " lgroup_id="-1" />
+  </scene>
+</scenes>

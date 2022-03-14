@@ -25,6 +25,7 @@ Input::Input()
   //inLibraryPath = "/home/frol/PROG/HydraRepos/HydraAPI-tests/tests_f/test_119";
   //inLibraryPath = "/home/frol/PROG/HydraRepos/HydraAPI/main/demos/demo_02";
   inLibraryPath = "tests/demo_05";
+  //inLibraryPath = "tests/demo_06";
   //inLibraryPath = "tests/test_42";
 
   inDevelopment = false; ///< recompile shaders each time; note that nvidia have their own shader cache!
