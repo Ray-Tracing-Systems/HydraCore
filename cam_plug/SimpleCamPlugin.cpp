@@ -294,7 +294,7 @@ void TableLens::ReadParamsFromNode(pugi::xml_node a_camNode)
     layer.thickness       = scale*line.attribute(L"thickness").as_float();
     layer.eta             = line.attribute(L"ior").as_float();
     if(line.attribute(L"semi_diameter") != nullptr)
-      layer.apertureRadius  = scale*2.0f*line.attribute(L"semi_diameter").as_float();
+      layer.apertureRadius  = scale*line.attribute(L"semi_diameter").as_float();
     else if(line.attribute(L"aperture_radius") != nullptr)
       layer.apertureRadius  = scale*1.0f*line.attribute(L"aperture_radius").as_float();
     
@@ -537,7 +537,7 @@ void TableLens::RunTestRays()
 void TableLens::MakeRaysBlock(RayPart1* out_rayPosAndNear, RayPart2* out_rayDirAndFar, size_t in_blockSize, int passId)
 {
   const int putID = passId % HOST_RAYS_PIPELINE_LENGTH;
-  std::cout << "[TableLens]: MakeRaysBlock, passId = " << passId << "; putID = " << putID << std::endl; 
+  //std::cout << "[TableLens]: MakeRaysBlock, passId = " << passId << "; putID = " << putID << std::endl; 
   if(m_pipeline[0].size() == 0)
   {
     for(int i=0;i<HOST_RAYS_PIPELINE_LENGTH;i++)
@@ -593,7 +593,7 @@ void TableLens::MakeRaysBlock(RayPart1* out_rayPosAndNear, RayPart2* out_rayDirA
     p2.dummy        = 0.0f;
     
     PipeThrough pipeData;
-    pipeData.cosPower4   = (cosTheta*cosTheta)*(cosTheta*cosTheta);
+    pipeData.cosPower4   = (cosTheta*cosTheta)*(cosTheta*cosTheta)*(35.0f);
     pipeData.packedIndex = p1.xyPosPacked;
 
     out_rayPosAndNear[i] = p1;
@@ -609,8 +609,7 @@ void TableLens::MakeRaysBlock(RayPart1* out_rayPosAndNear, RayPart2* out_rayDirA
 void TableLens::AddSamplesContribution(float* out_color4f, const float* colors4f, size_t in_blockSize, uint32_t a_width, uint32_t a_height, int passId)
 {
   const int takeID = (passId + HOST_RAYS_PIPELINE_LENGTH - 2) % HOST_RAYS_PIPELINE_LENGTH;
-
-  std::cout << "[TableLens]: AddSamContrib, passId = " << passId << "; takeId = " << takeID << std::endl;
+  //std::cout << "[TableLens]: AddSamContrib, passId = " << passId << "; takeId = " << takeID << std::endl;
 
   float4*       out_color = (float4*)out_color4f;
   const float4* colors    = (const float4*)colors4f;

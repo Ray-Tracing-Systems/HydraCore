@@ -244,6 +244,9 @@ bool RenderDriverRTE::UpdateSettings(pugi::xml_node a_settingsNode)
   vars.m_varsF[HRT_PATH_TRACE_ERROR]    = 0.025f;
   vars.m_varsF[HRT_TRACE_PROCEEDINGS_TRESHOLD] = 1e-8f;
 
+  if(a_settingsNode.child(L"outgamma") != nullptr)
+    vars.m_varsF[HRT_IMAGE_GAMMA] = a_settingsNode.child(L"outgamma").text().as_float();
+
   if(a_settingsNode.child(L"mmlt_burn_iters") != nullptr)
     vars.m_varsI[HRT_MMLT_BURN_ITERS] = a_settingsNode.child(L"mmlt_burn_iters").text().as_int();
   else
