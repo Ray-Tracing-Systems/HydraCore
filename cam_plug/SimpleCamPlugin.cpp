@@ -536,13 +536,13 @@ void TableLens::RunTestRays()
 
 void TableLens::MakeRaysBlock(RayPart1* out_rayPosAndNear, RayPart2* out_rayDirAndFar, size_t in_blockSize, int passId)
 {
+  const int putID = passId % HOST_RAYS_PIPELINE_LENGTH;
+  std::cout << "[TableLens]: MakeRaysBlock, passId = " << passId << "; putID = " << putID << std::endl; 
   if(m_pipeline[0].size() == 0)
   {
     for(int i=0;i<HOST_RAYS_PIPELINE_LENGTH;i++)
     m_pipeline[i].resize(in_blockSize);
   }
-
-  const int putID = passId % HOST_RAYS_PIPELINE_LENGTH;
 
   #pragma omp parallel for
   for(int i=0;i<in_blockSize;i++)
@@ -609,6 +609,8 @@ void TableLens::MakeRaysBlock(RayPart1* out_rayPosAndNear, RayPart2* out_rayDirA
 void TableLens::AddSamplesContribution(float* out_color4f, const float* colors4f, size_t in_blockSize, uint32_t a_width, uint32_t a_height, int passId)
 {
   const int takeID = (passId + HOST_RAYS_PIPELINE_LENGTH - 2) % HOST_RAYS_PIPELINE_LENGTH;
+
+  std::cout << "[TableLens]: AddSamContrib, passId = " << passId << "; takeId = " << takeID << std::endl;
 
   float4*       out_color = (float4*)out_color4f;
   const float4* colors    = (const float4*)colors4f;
