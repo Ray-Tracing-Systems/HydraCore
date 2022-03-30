@@ -1,15 +1,11 @@
-set(CMAKE_CXX_STANDARD 14)
+set(CMAKE_CXX_STANDARD 17)
 
 set(SOURCE_FILES
-        Camera.h
         input.cpp
-        input.h
         main_app_console.cpp
         main_app_tests.cpp
         main_app_window.cpp
-        main.cpp
-        main.h
-    )
+        main.cpp)
 
 
 set(EXTERNAL_SRC
@@ -26,23 +22,64 @@ if (CMAKE_BUILD_TYPE STREQUAL "Debug")
     add_definitions(-DDEBUG -D_DEBUG)
 endif()
 
-list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake/Modules")
-find_package(FreeImage REQUIRED)
-include_directories(${FREEIMAGE_INCLUDE_DIRS})
+#list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake/Modules")
+#find_package(FreeImage REQUIRED)
+#include_directories(${FREEIMAGE_INCLUDE_DIRS})
 
-find_package(glfw3 REQUIRED)
-find_package(OpenGL REQUIRED)
+link_directories(${HYDRA_API_ROOT_DIR}/bin)
+
+if(WIN32)
+    # embree ?
+else()
+    link_directories(${CMAKE_SOURCE_DIR}/LIBRARY/lib_x64_linux)
+endif()
+
+
+if(USE_GL)
+    cmake_policy(SET CMP0072 OLD)
+    find_package(OpenGL REQUIRED)
+
+    if(WIN32)
+        include_directories(${ADDITIONAL_INCLUDE_DIRS})
+        link_directories(${ADDITIONAL_LIBRARY_DIRS})
+    else()
+        if(USE_FIND_PACKAGE)
+            find_package(glfw3 REQUIRED)
+            list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake/Modules")
+            find_package(FreeImage REQUIRED)
+            include_directories(${GLFW_INCLUDE_DIRS} ${FREEIMAGE_INCLUDE_DIRS})
+            set(LIBS ${LIBS} ${GLFW_LIBRARIES} ${FREEIMAGE_LIBRARIES})
+        else()
+            include_directories(${ADDITIONAL_INCLUDE_DIRS})
+            link_directories(${ADDITIONAL_LIBRARY_DIRS})
+        endif()
+    endif()
+
+    include_directories(${OPENGL_INCLUDE_DIR})
+endif()
+
 find_package(Threads REQUIRED)
 find_package(OpenMP REQUIRED)
 
-
-link_directories(${CMAKE_SOURCE_DIR}/../HydraAPI/bin/ ${CMAKE_SOURCE_DIR}/LIBRARY/lib_x64_linux/)
-
 add_executable(hydra ${SOURCE_FILES} ${EXTERNAL_SRC})
+
+if(OpenMP_CXX_FOUND)
+    target_link_libraries(hydra PUBLIC OpenMP::OpenMP_CXX)
+endif()
 
 #MESSAGE(WARNING "CMAKE_SOURCE_DIR: " ${CMAKE_SOURCE_DIR} )
 #SET (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=address -fsanitize-address-use-after-scope -fno-omit-frame-pointer -fsanitize=leak -fsanitize=undefined -fsanitize=bounds-strict")
-SET (CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} -ldl -fopenmp")
+
+target_link_libraries(hydra LINK_PUBLIC
+        hydra_drv vsgl3
+        hydrabvhbuilder embree embree_sse42 sys tasking simd lexers
+        OpenCL
+        hydra_api
+        ies_parser mikktspace corto freeimage)
+
+if(USE_GL)
+    target_link_libraries(hydra LINK_PUBLIC ${OPENGL_gl_LIBRARY} ${OPENGL_glu_LIBRARY} glfw)
+endif()
 
 if(WIN32)
     #add_definitions(-DUNICODE -D_UNICODE)
@@ -50,26 +87,8 @@ if(WIN32)
     #target_link_libraries(main LINK_PUBLIC ${OPENGL_gl_LIBRARY} hydra_api glfw3dll )
 else()
     target_compile_options(hydra PRIVATE -fpermissive -Wnarrowing)
-    target_link_libraries(hydra LINK_PUBLIC
-            hydra_drv
-            hydrabvhbuilder embree embree_sse42 sys tasking simd lexers
-            vsgl3
-            ${OpenMP_CXX_LIBRARIES}
-            hydra_api
-            ies_parser
-            mikktspace
-            corto
-            Threads::Threads
-            dl rt stdc++fs
-            glfw
-            ${OPENGL_gl_LIBRARY}
-            ${OPENGL_glu_LIBRARY}
-            ${LIBS}
-            ${FREEIMAGE_LIBRARIES}
-            OpenCL)
+    target_link_libraries(hydra LINK_PUBLIC Threads::Threads dl rt)
 endif()
-
-include_directories(${ADDITIONAL_INCLUDE_DIRS})
 
 
 install(TARGETS hydra DESTINATION hydra)
