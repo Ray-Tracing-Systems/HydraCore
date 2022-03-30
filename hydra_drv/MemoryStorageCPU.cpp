@@ -67,7 +67,7 @@ int32_t IMemoryStorage::Update(int32_t id, const void* a_data, uint64_t a_sizeIn
     if (chunk.begin + sizeInBlocks <= chunk.endMax) // Update in the place it's already located
     {
       if (a_data != nullptr)
-        MemCopyAt(chunk.begin*bytesPerBlock, a_data, a_sizeInBytes);
+        MemCopyAt(size_t(chunk.begin) * size_t(bytesPerBlock), a_data, a_sizeInBytes);
       p->second.endCur = chunk.begin + int(sizeInBlocks);
       return chunk.begin;
     }
@@ -95,10 +95,10 @@ void IMemoryStorage::UpdatePartial(int32_t id, const void* a_data, uint64_t a_of
   const int bytesPerBlock = GetAlignSizeInBytes();
   LChunk chunk = p->second;
 
-  if (a_offsetInBytes + a_sizeInBytes > chunk.endMax*bytesPerBlock)
+  if (a_offsetInBytes + a_sizeInBytes > size_t(chunk.endMax) * bytesPerBlock)
     return;
 
-  size_t offset = chunk.begin*bytesPerBlock + a_offsetInBytes;
+  size_t offset = size_t(chunk.begin) * size_t(bytesPerBlock) + a_offsetInBytes;
 
   assert(a_offsetInBytes % bytesPerBlock == 0);
   assert(offset          % bytesPerBlock == 0);
