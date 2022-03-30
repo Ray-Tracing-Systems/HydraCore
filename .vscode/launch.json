@@ -56,6 +56,30 @@
                     "ignoreFailures": true
                 }
             ]
+        },
+
+        {
+            "name": "(debug) TestProblem",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/cmake-build-debug/hydra_app/hydra",
+            "args": ["-nowindow", "1", 
+                     "-inputlib", "/home/frol/PROG/HydraRepos/hydrasceneoptimizer/scenes/test_42",
+                     "-saveinterval", "300",
+                     "-enable_mlt", "0",
+                     "-outgamma", "1.0"],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}/hydra_app",
+            "environment": [],
+            "externalConsole": false,
+            "MIMode": "gdb",
+            "setupCommands": [
+                {
+                    "description": "Enable pretty-printing for gdb",
+                    "text": "-enable-pretty-printing",
+                    "ignoreFailures": true
+                }
+            ]
         }
         
         
