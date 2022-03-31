@@ -65,13 +65,17 @@ set(SOURCE_FILES
         ../bakeBrdfEnergy/MSTablesTransp.cpp
     )
 
+if(WIN32)
+    set(SOURCE_FILES ${SOURCE_FILES} BVHBuilderLoaderWin.cpp)
+endif()
+
 if (CMAKE_BUILD_TYPE STREQUAL "Debug")
     #MESSAGE(WARNING "DEBUG IS ON")
     add_definitions(-DDEBUG -D_DEBUG)
 endif()
 
-
 include_directories(${HYDRA_API_ROOT_DIR})
+include_directories(${HYDRA_API_UTILS_SRC_DIR})
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -msse4.2")
 

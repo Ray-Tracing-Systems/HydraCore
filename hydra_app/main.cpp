@@ -284,6 +284,9 @@ int main(int argc, const char** argv)
     }
     else
     {
+#if defined(HYDRA_CMAKE) and not defined(USE_GL)
+      std::cout << "[main]: to launch render with window compile HydraAPI and HydraCore with CMake variable USE_GL = ON" << std::endl;
+#else
       int flags = 0;
 
       if (g_input.cpuFB)
@@ -313,7 +316,9 @@ int main(int argc, const char** argv)
       std::cout << "[main]: detached render driver was created for [window_main]" << std::endl;
       //g_hydraApiDisableSceneLoadInfo = true;
       window_main(g_pDriver);
+#endif
     }
+
   }
   catch (std::runtime_error& e)
   {

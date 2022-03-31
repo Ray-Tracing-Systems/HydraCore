@@ -1,12 +1,15 @@
-set(CMAKE_CXX_STANDARD 14)
+set(CMAKE_CXX_STANDARD 17)
 
 set(SOURCE_FILES
         input.cpp
         main_app_console.cpp
         main_app_tests.cpp
-        main_app_window.cpp
         main.cpp)
 
+if(USE_GL)
+    set(SOURCE_FILES ${SOURCE_FILES}
+            main_app_window.cpp)
+endif()
 
 set(EXTERNAL_SRC
         ${HYDRA_API_UTILS_SRC_DIR}/Timer.h
@@ -17,6 +20,7 @@ set(ADDITIONAL_INCLUDE_DIRS ${ADDITIONAL_INCLUDE_DIRS}
 
 include_directories(${ADDITIONAL_INCLUDE_DIRS})
 include_directories(${HYDRA_API_ROOT_DIR})
+include_directories(${HYDRA_API_UTILS_SRC_DIR})
 
 if (CMAKE_BUILD_TYPE STREQUAL "Debug")
     MESSAGE(WARNING "DEBUG IS ON")
@@ -28,7 +32,8 @@ link_directories(${ADDITIONAL_LIBRARY_DIRS})
 
 find_package(Threads REQUIRED)
 find_package(OpenMP)
-if(USE_GL)
+find_package(OpenCL)
+if(USE_GL OR WIN32)
     find_package(OpenGL REQUIRED)
 endif()
 
@@ -43,33 +48,32 @@ find_library(HYDRA_API_IES_PARSER_LIB ies_parser HINTS ${HYDRA_API_LIB_DIR} NO_D
 find_library(HYDRA_API_MIKKTSPACE mikktspace HINTS ${HYDRA_API_LIB_DIR} NO_DEFAULT_PATH)
 find_library(HYDRA_API_CORTO corto HINTS ${HYDRA_API_LIB_DIR} NO_DEFAULT_PATH)
 
-if(WIN32)
-    find_library(HYDRA_API_CLEW clew HINTS ${HYDRA_API_LIB_DIR} NO_DEFAULT_PATH)
-endif()
-
-set(HYDRA_API_ALL_LIBS hydra_api ies_parser mikktspace corto clew)
+set(HYDRA_API_ALL_LIBS ${HYDRA_API_LIB} ${HYDRA_API_IES_PARSER_LIB} ${HYDRA_API_MIKKTSPACE} ${HYDRA_API_CORTO})
 
 #MESSAGE(WARNING "CMAKE_SOURCE_DIR: " ${CMAKE_SOURCE_DIR} )
 #SET (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=address -fsanitize-address-use-after-scope -fno-omit-frame-pointer -fsanitize=leak -fsanitize=undefined -fsanitize=bounds-strict")
+
+if(WIN32)
+    target_link_libraries(hydra LINK_PUBLIC ${HYDRA_API_CLEW})
+#    if(USE_GL)
+        target_link_libraries(hydra LINK_PUBLIC ${OPENGL_gl_LIBRARY} glfw3dll)
+#    endif()
+else()
+    target_compile_options(hydra PRIVATE -fpermissive -Wnarrowing)
+    target_link_libraries(hydra LINK_PUBLIC
+            hydrabvhbuilder embree embree_sse42 sys tasking simd lexers
+            Threads::Threads rt dl
+            OpenCL::OpenCL)
+    if(USE_GL)
+        target_link_libraries(hydra LINK_PUBLIC ${OPENGL_gl_LIBRARY} glfw)
+    endif()
+endif()
 
 target_link_libraries(hydra LINK_PUBLIC
         ${HYDRA_API_ALL_LIBS}
         freeimage
         hydra_drv
-        vsgl3
-        hydrabvhbuilder embree embree_sse42 sys tasking simd lexers)
-
-if(WIN32)
-    if(USE_GL)
-        target_link_libraries(hydra ${OPENGL_gl_LIBRARY} glfw3dll)
-    endif()
-else()
-    target_compile_options(hydra PRIVATE -fpermissive -Wnarrowing)
-    target_link_libraries(hydra LINK_PUBLIC Threads::Threads rt dl OpenCL)
-    if(USE_GL)
-        target_link_libraries(hydra ${OPENGL_gl_LIBRARY} glfw)
-    endif()
-endif()
+        vsgl3)
 
 install(TARGETS hydra DESTINATION hydra)
 
