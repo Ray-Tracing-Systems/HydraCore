@@ -25,10 +25,13 @@ Windows:
 
 Linux:
 1. Clone HydraAPI repo in some folder (for example "myfolder/HydraAPI"). 
-2. Build HydraAPI with Cmake.
-3. Clone HydraCore repo in the same folder (to form "myfolder/HydraCore").
-4. Set **"inDevelopment = false"** inside "input.cpp". 
-5. Use the following command to build and install HydraCore (for example from "myfolder/HydraCore/build")   
+2. Build HydraAPI using provided [instructions](https://github.com/Ray-Tracing-Systems/HydraAPI/blob/master/README.md).
+3. Clone HydraCore repo.
+4. Set **"inDevelopment = false"** inside "input.cpp".
+5. Set CMake variables:
+    - HYDRA_API_ROOT_DIR to path to HydraAPI source dir;
+    - USE_GL and USE_FIND_PACKAGE to same values as HydraAPI build.
+6. Use the following command to build and install HydraCore (for example from "myfolder/HydraCore/build")   
 **cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/home/YourUserName .. && make all install -j 4**
 
 # Command line by examples
