@@ -1,24 +1,21 @@
 set(CMAKE_CXX_STANDARD 14)
 
 set(SOURCE_FILES
-        Camera.h
         input.cpp
-        input.h
         main_app_console.cpp
         main_app_tests.cpp
         main_app_window.cpp
-        main.cpp
-        main.h
-    )
+        main.cpp)
 
 
 set(EXTERNAL_SRC
         ${HYDRA_API_UTILS_SRC_DIR}/Timer.h
         ${HYDRA_API_UTILS_SRC_DIR}/Timer.cpp)
 
-set(ADDITIONAL_INCLUDE_DIRS
+set(ADDITIONAL_INCLUDE_DIRS ${ADDITIONAL_INCLUDE_DIRS}
         ../LIBRARY/include)
 
+include_directories(${ADDITIONAL_INCLUDE_DIRS})
 include_directories(${HYDRA_API_ROOT_DIR})
 
 if (CMAKE_BUILD_TYPE STREQUAL "Debug")
@@ -26,51 +23,53 @@ if (CMAKE_BUILD_TYPE STREQUAL "Debug")
     add_definitions(-DDEBUG -D_DEBUG)
 endif()
 
-list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake/Modules")
-find_package(FreeImage REQUIRED)
-include_directories(${FREEIMAGE_INCLUDE_DIRS})
+link_directories(${CMAKE_SOURCE_DIR}/LIBRARY/lib_x64_linux/)
+link_directories(${ADDITIONAL_LIBRARY_DIRS})
 
-find_package(glfw3 REQUIRED)
-find_package(OpenGL REQUIRED)
 find_package(Threads REQUIRED)
-find_package(OpenMP REQUIRED)
-
-
-link_directories(${CMAKE_SOURCE_DIR}/../HydraAPI/bin/ ${CMAKE_SOURCE_DIR}/LIBRARY/lib_x64_linux/)
+find_package(OpenMP)
+if(USE_GL)
+    find_package(OpenGL REQUIRED)
+endif()
 
 add_executable(hydra ${SOURCE_FILES} ${EXTERNAL_SRC})
 
-#MESSAGE(WARNING "CMAKE_SOURCE_DIR: " ${CMAKE_SOURCE_DIR} )
-#SET (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=address -fsanitize-address-use-after-scope -fno-omit-frame-pointer -fsanitize=leak -fsanitize=undefined -fsanitize=bounds-strict")
-SET (CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} -ldl -fopenmp")
-
-if(WIN32)
-    #add_definitions(-DUNICODE -D_UNICODE)
-    #add_definitions(-DNEED_DIR_CHANGE)
-    #target_link_libraries(main LINK_PUBLIC ${OPENGL_gl_LIBRARY} hydra_api glfw3dll )
-else()
-    target_compile_options(hydra PRIVATE -fpermissive -Wnarrowing)
-    target_link_libraries(hydra LINK_PUBLIC
-            hydra_drv
-            hydrabvhbuilder embree embree_sse42 sys tasking simd lexers
-            vsgl3
-            ${OpenMP_CXX_LIBRARIES}
-            hydra_api
-            ies_parser
-            mikktspace
-            corto
-            Threads::Threads
-            dl rt stdc++fs
-            glfw
-            ${OPENGL_gl_LIBRARY}
-            ${OPENGL_glu_LIBRARY}
-            ${LIBS}
-            ${FREEIMAGE_LIBRARIES}
-            OpenCL)
+if(OpenMP_CXX_FOUND)
+    target_link_libraries(hydra PUBLIC OpenMP::OpenMP_CXX)
 endif()
 
-include_directories(${ADDITIONAL_INCLUDE_DIRS})
+find_library(HYDRA_API_LIB hydra_api HINTS ${HYDRA_API_LIB_DIR} NO_DEFAULT_PATH)
+find_library(HYDRA_API_IES_PARSER_LIB ies_parser HINTS ${HYDRA_API_LIB_DIR} NO_DEFAULT_PATH)
+find_library(HYDRA_API_MIKKTSPACE mikktspace HINTS ${HYDRA_API_LIB_DIR} NO_DEFAULT_PATH)
+find_library(HYDRA_API_CORTO corto HINTS ${HYDRA_API_LIB_DIR} NO_DEFAULT_PATH)
 
+if(WIN32)
+    find_library(HYDRA_API_CLEW clew HINTS ${HYDRA_API_LIB_DIR} NO_DEFAULT_PATH)
+endif()
+
+set(HYDRA_API_ALL_LIBS hydra_api ies_parser mikktspace corto clew)
+
+#MESSAGE(WARNING "CMAKE_SOURCE_DIR: " ${CMAKE_SOURCE_DIR} )
+#SET (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=address -fsanitize-address-use-after-scope -fno-omit-frame-pointer -fsanitize=leak -fsanitize=undefined -fsanitize=bounds-strict")
+
+target_link_libraries(hydra LINK_PUBLIC
+        ${HYDRA_API_ALL_LIBS}
+        freeimage
+        hydra_drv
+        vsgl3
+        hydrabvhbuilder embree embree_sse42 sys tasking simd lexers)
+
+if(WIN32)
+    if(USE_GL)
+        target_link_libraries(hydra ${OPENGL_gl_LIBRARY} glfw3dll)
+    endif()
+else()
+    target_compile_options(hydra PRIVATE -fpermissive -Wnarrowing)
+    target_link_libraries(hydra LINK_PUBLIC Threads::Threads rt dl OpenCL)
+    if(USE_GL)
+        target_link_libraries(hydra ${OPENGL_gl_LIBRARY} glfw)
+    endif()
+endif()
 
 install(TARGETS hydra DESTINATION hydra)
 
@@ -86,7 +85,7 @@ install(FILES ${CMAKE_SOURCE_DIR}/hydra_drv/cfetch.h
               ${CMAKE_SOURCE_DIR}/hydra_drv/shaders/trace.xx
         DESTINATION hydra/shaders)
 
-install(CODE "if(EXISTS \${ENV}\${CMAKE_INSTALL_PREFIX}/hydra/shadercache)
-                FILE(REMOVE_RECURSE \${ENV}\${CMAKE_INSTALL_PREFIX}/hydra/shadercache)
+install(CODE "if(EXISTS \${ENV}\${CMAKE_INSTALL_PREFIX}\${HYDRA_DIR_NAME}/shadercache)
+                FILE(REMOVE_RECURSE \${ENV}\${CMAKE_INSTALL_PREFIX}\${HYDRA_DIR_NAME}/shadercache)
               ENDIF()")
-install(CODE "FILE(MAKE_DIRECTORY \${ENV}\${CMAKE_INSTALL_PREFIX}/hydra/shadercache)")
+install(CODE "FILE(MAKE_DIRECTORY \${ENV}\${CMAKE_INSTALL_PREFIX}\${HYDRA_DIR_NAME}/shadercache)")
