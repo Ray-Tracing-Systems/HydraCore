@@ -32,7 +32,6 @@ link_directories(${ADDITIONAL_LIBRARY_DIRS})
 
 find_package(Threads REQUIRED)
 find_package(OpenMP)
-find_package(OpenCL)
 if(USE_GL OR WIN32)
     find_package(OpenGL REQUIRED)
 endif()
@@ -55,15 +54,14 @@ set(HYDRA_API_ALL_LIBS ${HYDRA_API_LIB} ${HYDRA_API_IES_PARSER_LIB} ${HYDRA_API_
 
 if(WIN32)
     target_link_libraries(hydra LINK_PUBLIC ${HYDRA_API_CLEW})
-#    if(USE_GL)
+    if(USE_GL)
         target_link_libraries(hydra LINK_PUBLIC ${OPENGL_gl_LIBRARY} glfw3dll)
-#    endif()
+    endif()
 else()
     target_compile_options(hydra PRIVATE -fpermissive -Wnarrowing)
     target_link_libraries(hydra LINK_PUBLIC
             hydrabvhbuilder embree embree_sse42 sys tasking simd lexers
-            Threads::Threads rt dl
-            OpenCL::OpenCL)
+            Threads::Threads rt dl OpenCL)
     if(USE_GL)
         target_link_libraries(hydra LINK_PUBLIC ${OPENGL_gl_LIBRARY} glfw)
     endif()

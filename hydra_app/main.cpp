@@ -284,7 +284,7 @@ int main(int argc, const char** argv)
     }
     else
     {
-#if defined(HYDRA_CMAKE) and not defined(USE_GL)
+#if defined(HYDRA_CMAKE) && !defined(USE_GL)
       std::cout << "[main]: to launch render with window compile HydraAPI and HydraCore with CMake variable USE_GL = ON" << std::endl;
 #else
       int flags = 0;

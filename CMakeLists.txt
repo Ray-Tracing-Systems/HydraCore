@@ -18,6 +18,7 @@ set(ADDITIONAL_INCLUDE_DIRS
 set(USE_GL OFF CACHE BOOL "HydraAPI with OpenGL support")
 
 if(WIN32)
+    add_compile_definitions(UNICODE _UNICODE)
     find_library(HYDRA_API_CLEW clew HINTS ${HYDRA_API_LIB_DIR} NO_DEFAULT_PATH)
     set(HYDRA_DIR_NAME "[Hydra]")
     set(ADDITIONAL_LIBRARY_DIRS
@@ -28,6 +29,9 @@ else()
             ${HYDRA_API_ROOT_DIR}/dependencies/lib_x64_linux CACHE STRING "Path to HydraAPI dependencies (freeimage and, if OpenGL is used, glfw)")
 endif()
 
+if(USE_GL)
+    add_compile_definitions(USE_GL)
+endif()
 set(HYDRA_INSTALL_BIN2 "${CMAKE_INSTALL_PREFIX}/${HYDRA_DIR_NAME}/bin2/")
 add_compile_definitions(HYDRA_BIN2=${HYDRA_INSTALL_BIN2})
 add_compile_definitions(HYDRA_CMAKE)

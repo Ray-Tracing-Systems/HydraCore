@@ -430,6 +430,13 @@ GPUOCLLayer::GPUOCLLayer(int w, int h, int a_flags, int a_deviceId) : Base(w, h,
   InitEngineGlobals(&m_globsBuffHeader, getGgxTable(), getTranspTable());
   
   #ifdef WIN32
+
+  // enforce UNICODE define (for some reason cmake compile definitions don't work)
+  // but we use wchar_t* name L"opencl.dll" anyway -> need unicode library loader
+#ifndef UNICODE
+#define UNICODE
+#endif
+
   int initRes = clewInit(L"opencl.dll");
   #else
   int initRes = 0;
