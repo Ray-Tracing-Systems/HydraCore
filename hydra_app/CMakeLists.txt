@@ -72,24 +72,23 @@ else()
     if(USE_GL)
         target_link_libraries(hydra LINK_PUBLIC ${OPENGL_gl_LIBRARY} glfw)
     endif()
-endif()
 
+    install(TARGETS hydra DESTINATION hydra)
 
-install(TARGETS hydra DESTINATION hydra)
+    install(FILES ${CMAKE_SOURCE_DIR}/hydra_drv/cfetch.h
+            ${CMAKE_SOURCE_DIR}/hydra_drv/cglobals.h
+            ${CMAKE_SOURCE_DIR}/hydra_drv/shaders/texproc.cl
+            ${CMAKE_SOURCE_DIR}/hydra_drv/shaders/image.xx
+            ${CMAKE_SOURCE_DIR}/hydra_drv/shaders/light.xx
+            ${CMAKE_SOURCE_DIR}/hydra_drv/shaders/material.xx
+            ${CMAKE_SOURCE_DIR}/hydra_drv/shaders/mlt.xx
+            ${CMAKE_SOURCE_DIR}/hydra_drv/shaders/screen.xx
+            ${CMAKE_SOURCE_DIR}/hydra_drv/shaders/sort.xx
+            ${CMAKE_SOURCE_DIR}/hydra_drv/shaders/trace.xx
+            DESTINATION hydra/shaders)
 
-install(FILES ${CMAKE_SOURCE_DIR}/hydra_drv/cfetch.h
-              ${CMAKE_SOURCE_DIR}/hydra_drv/cglobals.h
-              ${CMAKE_SOURCE_DIR}/hydra_drv/shaders/texproc.cl
-              ${CMAKE_SOURCE_DIR}/hydra_drv/shaders/image.xx
-              ${CMAKE_SOURCE_DIR}/hydra_drv/shaders/light.xx
-              ${CMAKE_SOURCE_DIR}/hydra_drv/shaders/material.xx
-              ${CMAKE_SOURCE_DIR}/hydra_drv/shaders/mlt.xx
-              ${CMAKE_SOURCE_DIR}/hydra_drv/shaders/screen.xx
-              ${CMAKE_SOURCE_DIR}/hydra_drv/shaders/sort.xx
-              ${CMAKE_SOURCE_DIR}/hydra_drv/shaders/trace.xx
-        DESTINATION hydra/shaders)
-
-install(CODE "if(EXISTS \${ENV}\${CMAKE_INSTALL_PREFIX}\${HYDRA_DIR_NAME}/shadercache)
+    install(CODE "if(EXISTS \${ENV}\${CMAKE_INSTALL_PREFIX}\${HYDRA_DIR_NAME}/shadercache)
                 FILE(REMOVE_RECURSE \${ENV}\${CMAKE_INSTALL_PREFIX}\${HYDRA_DIR_NAME}/shadercache)
               ENDIF()")
-install(CODE "FILE(MAKE_DIRECTORY \${ENV}\${CMAKE_INSTALL_PREFIX}\${HYDRA_DIR_NAME}/shadercache)")
+    install(CODE "FILE(MAKE_DIRECTORY \${ENV}\${CMAKE_INSTALL_PREFIX}\${HYDRA_DIR_NAME}/shadercache)")
+endif()

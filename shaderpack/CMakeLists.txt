@@ -21,9 +21,11 @@ if(WIN32)
 else()
     target_compile_options(shaderpack PRIVATE -fpermissive -Wnarrowing)
     target_link_libraries(shaderpack LINK_PUBLIC OpenCL)
+
+    add_custom_command(TARGET shaderpack POST_BUILD
+            COMMAND ${CMAKE_BINARY_DIR}/shaderpack/shaderpack
+            WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+            COMMENT "packing shaders...")
 endif()
 
-add_custom_command(TARGET shaderpack POST_BUILD
-        COMMAND ${CMAKE_BINARY_DIR}/shaderpack/shaderpack
-        WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
-        COMMENT "packing shaders...")
+
