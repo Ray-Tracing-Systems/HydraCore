@@ -5,36 +5,50 @@ The Hydra Renderer consists of 3 heads:
 - HydraAPI (infrastructure)
 - HydraCore (render engine, compute core)
 
-This repo contain the last one.
+This repo contains the last one.
 
 # Build and install
 
-Windows:
-1. Clone HydraAPI repo is some folder (for example "myfolder/HydraAPI"). 
-2. Build HydraAPI with visual studio 2015 or later under windows.
-3. Clone HydraCore repo in the same folder (to form "myfolder/HydraCore").
-4. Set **"inDevelopment = false"** inside "input.cpp". 
-5. Build HydraCore with visual studio 2015 or later under windows.
-6. Run shadepack (set it as a startup ptoject and then press Ctr+F5).
-7. Move all ".xx" files from "HydraCore/hydra_drv/shaders" to "C:/[Hydra]/bin2/shaders/".
-8. Copy file "texproc.cl" from "HydraCore/hydra_drv/shaders" to "C:/[Hydra]/bin2/shaders/".
-9. Copy files "cfetch.h" and "cglobals.h" from "HydraCore/hydra_drv" to "C:/[Hydra]/bin2/shaders/"
-10. Copy hydra.exe from "HydraCore/hydra_app/x64/Release" to "C:/[Hydra]/bin2"
-11. Delete all files inside  "C:/[Hydra]/bin2/shadercache/" if you have them. This will clear Hydra shader cache.
-
-
-Linux:
+### CMake:
 1. Clone HydraAPI repo in some folder (for example "myfolder/HydraAPI"). 
 2. Build HydraAPI using provided [instructions](https://github.com/Ray-Tracing-Systems/HydraAPI/blob/master/README.md).
 3. Clone HydraCore repo.
-4. Set **"inDevelopment = false"** inside "input.cpp".
-5. Set CMake variables:
+4. Set CMake variables:
     - HYDRA_API_ROOT_DIR to path to HydraAPI source dir;
-    - USE_GL and USE_FIND_PACKAGE to same values as HydraAPI build.
-6. Use the following command to build and install HydraCore (for example from "myfolder/HydraCore/build")   
-**cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/home/YourUserName .. && make all install -j 4**
+    - USE_GL to the same value as HydraAPI build.
+5. Build with CMake. Example command to build and install HydraCore (for example from "myfolder/HydraCore/build"):   
+```shell
+cmake -DUSE_GL=OFF -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/home/YourUserName .. && make all install -j 4
+````
 
-# Command line by examples
+Notes:
+If shaders are recompiled every time you run Hydra,
+check **input.cpp** - variable **inDevelopment** should be set to **false**:
+```shell
+inDevelopment = false;
+```
+
+## Windows specific
+
+### Windows MSVC:
+HydraAPI and HydraCore can be built using provided MSVC solutions as well as CMake.
+It can be necessary if you need it to compile 3ds Max plugin.
+1. Clone HydraAPI repo is some folder (for example "myfolder/HydraAPI").
+2. Build HydraAPI with visual studio 2019 or later.
+3. Clone HydraCore repo in the same folder (to form "myfolder/HydraCore").
+4. Set **"inDevelopment = false"** inside "input.cpp".
+5. Build HydraCore with visual studio 2019 or later.
+
+### Windows installation
+1. Run shaderpack (set it as a startup project and then press Ctr+F5).
+2. Move all ".xx" files from "HydraCore/hydra_drv/shaders" to "C:/[Hydra]/bin2/shaders/".
+3. Copy file "texproc.cl" from "HydraCore/hydra_drv/shaders" to "C:/[Hydra]/bin2/shaders/".
+4. Copy files "cfetch.h" and "cglobals.h" from "HydraCore/hydra_drv" to "C:/[Hydra]/bin2/shaders/"
+5. Copy built hydra.exe to "C:/[Hydra]/bin2"
+6. Delete all files inside  "C:/[Hydra]/bin2/shadercache/" if you have them. This will clear Hydra shader cache.
+
+
+# Command line examples
 
 * simple image render
 ```bash
@@ -57,7 +71,7 @@ hydra -nowindow 1 -inputlib "tests/test_42" -width 1024 -height 768 -cpu_fb 0 -s
 Unix:
 
 1. Clone embree2 (we used 2.17 last time). **#NOTE:** do not use embree3, it will not work.
-2. install cmake curces (ccmake).
+2. install cmake curses (ccmake).
 3. mkdir build
 4. ccmake ..
 5. set EMBREE_MAX_ISA to SSE2 **#NOTE:** this is important! Other will not work due to different BVH layout.
@@ -82,7 +96,7 @@ It's almost the same except that you need to pack all to the single "bvh_builder
 We usually edit project for "embree2/tutorials/bvh_access" in Visual Studio. \
 So, you don't have to replace "embree2/tutorials/bvh_access/CMakeLists.txt" with "HydraCore/bvh_builderCMakeLists.txt".
 
-# Licence and dependency
+# License and dependencies
 
 HydraCore uses MIT licence itself, however it depends on the other software as follows (see doc/licence directory):
 
@@ -98,8 +112,8 @@ HydraCore uses MIT licence itself, however it depends on the other software as f
 Most of them are simple MIT-like-licences without any serious restrictions. 
 So in general there should be no problem to use HydraCore in your open source or commercial projects. 
 
-However if you find that for some reason you can't use one of these components, please let us know!
+However, if you find that for some reason you can't use one of these components, please let us know!
 Most of these components can be replaced.
 
-# Acknowlegments
+# Acknowledgments
 This project is supported by RFBR 16-31-60048 "mol_a_dk" and 18-31-20032 "mol_a_ved".

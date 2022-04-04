@@ -52,26 +52,28 @@ set(HYDRA_API_ALL_LIBS ${HYDRA_API_LIB} ${HYDRA_API_IES_PARSER_LIB} ${HYDRA_API_
 #MESSAGE(WARNING "CMAKE_SOURCE_DIR: " ${CMAKE_SOURCE_DIR} )
 #SET (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=address -fsanitize-address-use-after-scope -fno-omit-frame-pointer -fsanitize=leak -fsanitize=undefined -fsanitize=bounds-strict")
 
+target_link_libraries(hydra LINK_PUBLIC
+        hydra_drv
+        ${HYDRA_API_ALL_LIBS}
+        freeimage
+        vsgl3)
+
 if(WIN32)
     target_link_libraries(hydra LINK_PUBLIC ${HYDRA_API_CLEW})
     if(USE_GL)
         target_link_libraries(hydra LINK_PUBLIC ${OPENGL_gl_LIBRARY} glfw3dll)
     endif()
 else()
+    find_package(OpenCL REQUIRED)
     target_compile_options(hydra PRIVATE -fpermissive -Wnarrowing)
     target_link_libraries(hydra LINK_PUBLIC
             hydrabvhbuilder embree embree_sse42 sys tasking simd lexers
-            Threads::Threads rt dl OpenCL)
+            Threads::Threads rt dl OpenCL::OpenCL)
     if(USE_GL)
         target_link_libraries(hydra LINK_PUBLIC ${OPENGL_gl_LIBRARY} glfw)
     endif()
 endif()
 
-target_link_libraries(hydra LINK_PUBLIC
-        ${HYDRA_API_ALL_LIBS}
-        freeimage
-        hydra_drv
-        vsgl3)
 
 install(TARGETS hydra DESTINATION hydra)
 
