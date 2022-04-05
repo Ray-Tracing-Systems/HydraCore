@@ -10,7 +10,11 @@ int main(int argc, const char** argv)
   bool SAVE_BUILD_LOG = false;
 
 #ifdef WIN32
-  std::string inputfolder = "../hydra_drv";
+  #if defined(HYDRA_CMAKE)
+    std::string inputfolder = HYDRA_DRV_PATH;
+  #else
+    std::string inputfolder = "../hydra_drv";
+  #endif
 #else
   std::string inputfolder = HYDRA_DRV_PATH;
 #endif
@@ -75,4 +79,3 @@ int main(int argc, const char** argv)
   
   return 0;
 }
-

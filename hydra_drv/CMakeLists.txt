@@ -1,4 +1,4 @@
-set(CMAKE_CXX_STANDARD 14)
+set(CMAKE_CXX_STANDARD 17)
 
 set(SOURCE_FILES
         cglobals.h
@@ -67,18 +67,23 @@ set(SOURCE_FILES
         ../cam_plug/HydraDLibUnix.cpp
     )
 
+if(WIN32)
+    set(SOURCE_FILES ${SOURCE_FILES} BVHBuilderLoaderWin.cpp)
+endif()
+
 if (CMAKE_BUILD_TYPE STREQUAL "Debug")
     #MESSAGE(WARNING "DEBUG IS ON")
     add_definitions(-DDEBUG -D_DEBUG)
 endif()
 
-
 include_directories(${HYDRA_API_ROOT_DIR})
+<<<<<<< HEAD
 include_directories("../cam_plug")
+=======
+include_directories(${HYDRA_API_UTILS_SRC_DIR})
+>>>>>>> master
 
-find_package(OpenMP REQUIRED)
-
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -msse4.2 -fopenmp")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -msse4.2")
 
 ADD_LIBRARY(hydra_drv STATIC ${SOURCE_FILES})
 

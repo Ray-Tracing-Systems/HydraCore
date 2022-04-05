@@ -111,8 +111,13 @@ size_t ReplaceIncludeWithFile(std::string& a_str, size_t a_pos, const std::strin
   std::ifstream sourceFile(a_fileName.c_str());
 
 #ifdef WIN32
+#ifdef HYDRA_BIN2
+  if (!sourceFile.is_open())
+    sourceFile.open("HYDRA_BIN2" + a_fileName);
+#else
   if (!sourceFile.is_open())
     sourceFile.open(HydraInstallPath() + a_fileName);
+#endif
 #endif
 
   if (!sourceFile.is_open())
