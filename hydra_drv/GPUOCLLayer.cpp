@@ -991,6 +991,7 @@ const char* GPUOCLLayer::GetDeviceName(int* pOCLVer) const
   return m_deviceName;
 }
 
+extern int g_maxCPUThreads;
 
 void GPUOCLLayer::GetLDRImage(uint* data, int width, int height) const
 {
@@ -1018,7 +1019,7 @@ void GPUOCLLayer::GetLDRImage(uint* data, int width, int height) const
 
     if (!HydraSSE::g_useSSE)
     {
-      #pragma omp parallel for
+      #pragma omp parallel for num_threads(g_maxCPUThreads)
       for (int i = 0; i < size; i++)  // #TODO: use sse and fast pow
       {
         float4 color = color0[i];
@@ -1044,7 +1045,7 @@ void GPUOCLLayer::GetLDRImage(uint* data, int width, int height) const
         if (color1 != nullptr && color0 != nullptr)
         {
 
-          #pragma omp parallel for
+          #pragma omp parallel for num_threads(g_maxCPUThreads)
           for (int i = 0; i < size; i++)
           {
             const __m128 colorDL = _mm_mul_ps(normc2, _mm_load_ps(dataHDR1 + i * 4));
@@ -1059,7 +1060,7 @@ void GPUOCLLayer::GetLDRImage(uint* data, int width, int height) const
         }
         else if (color0 != nullptr)
         {
-          #pragma omp parallel for
+          #pragma omp parallel for  num_threads(g_maxCPUThreads)
           for (int i = 0; i < size; i++)
           {
             data[i] = HydraSSE::gammaCorr(dataHDR + i * 4, normc, powerf4);
@@ -1071,7 +1072,7 @@ void GPUOCLLayer::GetLDRImage(uint* data, int width, int height) const
           std::cerr.flush();
         }
 
-        //#pragma omp parallel for
+        //#pragma omp parallel for num_threads(g_maxCPUThreads)
         //for (int i = 0; i < size; i++)
         //{
         //  data[i] = HydraSSE::gammaCorr(dataHDR1 + i*4, normc2, powerf4);
@@ -1079,7 +1080,7 @@ void GPUOCLLayer::GetLDRImage(uint* data, int width, int height) const
       }
       else
       {
-        #pragma omp parallel for
+        #pragma omp parallel for num_threads(g_maxCPUThreads)
         for (int i = 0; i < size; i++)
         {
           data[i] = HydraSSE::gammaCorr(dataHDR + i * 4, normc, powerf4);
@@ -1095,7 +1096,7 @@ void GPUOCLLayer::GetLDRImage(uint* data, int width, int height) const
       cvex::vector<float4> hdrData(width*height);
       GetHDRImage(&hdrData[0], width, height);
 
-      #pragma omp parallel for
+      #pragma omp parallel for num_threads(g_maxCPUThreads)
       for (int i = 0; i < size; i++)  // #TODO: use sse and fast pow
       {
         float4 color = hdrData[i];

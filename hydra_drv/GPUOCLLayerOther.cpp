@@ -300,6 +300,8 @@ void GPUOCLLayer::CPUPluginFinish()
     m_camPlugin.pCamPlugin->FinishRendering();
 }
 
+extern int g_maxCPUThreads;
+
 void GPUOCLLayer::ContribToExternalImageAccumulator(IHRSharedAccumImage* a_pImage)
 {
   if (!m_screen.m_cpuFrameBuffer)
@@ -329,7 +331,7 @@ void GPUOCLLayer::ContribToExternalImageAccumulator(IHRSharedAccumImage* a_pImag
     float* output  = a_pImage->ImageData(0);
     const int size = m_width*m_height;
 
-    #pragma omp parallel for
+    #pragma omp parallel for num_threads(g_maxCPUThreads)
     for (int i = 0; i < size; i++)
     {
       const __m128 color1 = _mm_load_ps(input  + i * 4);

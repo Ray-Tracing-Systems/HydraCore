@@ -11,6 +11,7 @@ using pugi::xml_attribute;
 using namespace HydraXMLHelpers;
 
 bool g_exitDueToSamplesLimit = false;
+int  g_maxCPUThreads = 4;
 
 extern Input g_input;
 extern Camera g_cam;
@@ -234,8 +235,10 @@ static void Draw(std::shared_ptr<IHRRenderDriver> a_pDetachedRenderDriverPointer
         paramNode.force_child(L"maxRaysPerPixel").text() = g_input.maxSamples;
       }
 
-      if (g_input.overrideMaxCPUThreads)
+      if (g_input.overrideMaxCPUThreads) {
+        g_maxCPUThreads = g_input.maxCPUThreads;
         paramNode.force_child(L"max_cpu_threads").text() = g_input.maxCPUThreads;
+      }
     }
     hrRenderClose(renderRef);
     std::cout << "[main]: commit scene ... " << std::endl;

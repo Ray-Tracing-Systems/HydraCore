@@ -72,6 +72,8 @@ int32_t RenderDriverRTE::GetCachedAuxNormalMatId(int32_t a_matId, const PlainMat
   return auxTexId;
 }
 
+extern int g_maxCPUThreads;
+
 const uchar4* RenderDriverRTE::GetAuxNormalMapFromDisaplacement(std::vector<uchar4>& normals, const PlainMaterial& mat, int textureIdNM, pugi::xml_node a_materialNode, int* pW, int* pH)
 {
   const std::wstring btype = a_materialNode.child(L"displacement").attribute(L"type").as_string();
@@ -103,7 +105,7 @@ const uchar4* RenderDriverRTE::GetAuxNormalMapFromDisaplacement(std::vector<ucha
     
     const int totalSize = int(dataConverted.size());
 
-    #pragma omp parallel for
+    #pragma omp parallel for num_threads(g_maxCPUThreads)
     for (int i = 0; i < totalSize; i++)
     {
       const float4 pixIn  = dataIn[i];
