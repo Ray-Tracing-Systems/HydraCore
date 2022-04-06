@@ -256,7 +256,7 @@ void GPUOCLLayer::AddContributionToScreenCPU(cl_mem& in_color, int a_size, int a
     m_sppDone += contribSPP;
 
     if (m_camPlugin.pCamPlugin != nullptr)
-      std::cout << "progress = " << std::setw(4) << std::fixed << 100.0f*m_sppDone / float(m_vars.m_varsI[HRT_MAX_SAMPLES_PER_PIXEL]) << " %" << std::endl;
+      std::cout << "progress = " << 100.0f*m_sppDone / float(m_vars.m_varsI[HRT_MAX_SAMPLES_PER_PIXEL]) << " %" << std::endl;
 
     if (measureTime && lockSuccess)
     {
