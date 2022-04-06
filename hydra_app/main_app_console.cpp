@@ -227,6 +227,15 @@ static void Draw(std::shared_ptr<IHRRenderDriver> a_pDetachedRenderDriverPointer
       }
       else
         paramNode.force_child(L"boxmode").text() = g_input.boxMode ? 1 : 0;
+
+      if(g_input.overrideMaxSamplesInCMD) 
+      {
+        paramNode.force_child(L"minRaysPerPixel").text() = g_input.maxSamples;
+        paramNode.force_child(L"maxRaysPerPixel").text() = g_input.maxSamples;
+      }
+
+      if (g_input.overrideMaxCPUThreads)
+        paramNode.force_child(L"max_cpu_threads").text() = g_input.maxCPUThreads;
     }
     hrRenderClose(renderRef);
     std::cout << "[main]: commit scene ... " << std::endl;

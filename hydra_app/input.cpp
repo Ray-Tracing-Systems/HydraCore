@@ -187,7 +187,15 @@ void Input::ParseCommandLineParams(const std::unordered_map<std::string, std::st
   ReadIntCmd(a_params,    "-width",        &winWidth);
   ReadIntCmd(a_params,    "-height",       &winHeight);
   
-  ReadIntCmd(a_params,    "-maxsamples",       &maxSamples);
+  ReadIntCmd(a_params,    "-spp",              &maxSamples); // yes, same as maxsamples
+  ReadIntCmd(a_params,    "-maxsamples",       &maxSamples); // yes, same as spp
+
+  overrideMaxSamplesInCMD = a_params.find("-spp") != a_params.end() || a_params.find("-maxsamples") != a_params.end();
+
+  ReadIntCmd(a_params, "-max_cpu_threads", &maxCPUThreads); // yes, same as spp
+  overrideMaxCPUThreads = a_params.find("-max_cpu_threads") != a_params.end() || a_params.find("-maxsamples") != a_params.end();
+
+
   ReadIntCmd(a_params,    "-contribsamples",   &maxSamplesContrib);
   ReadIntCmd(a_params,    "-mmltthreads",      &mmltThreads);
   

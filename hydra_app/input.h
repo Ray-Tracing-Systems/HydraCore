@@ -43,6 +43,9 @@ struct Input
   int32_t     maxSamples;
   int32_t     maxSamplesContrib;
   int32_t     mmltThreads;
+  int32_t     maxCPUThreads = 4;
+  bool        overrideMaxSamplesInCMD = false;
+  bool        overrideMaxCPUThreads   = false;
 
   // mouse and keyboad/oher gui input
   //
