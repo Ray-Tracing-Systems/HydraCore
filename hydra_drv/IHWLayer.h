@@ -110,7 +110,8 @@ public:
   virtual void PrepareEngineTables();  ///< copy tables   to linear device memory for further usage them by the compute core
 
   virtual void SetCamMatrices(float mProjInverse[16], float mWorldViewInverse[16], float mProj[16], float mWorldView[16], float a_aspect, float a_fovX, float3 a_lookAt);
-  virtual void SetCamNode(pugi::xml_node a_camNode) { m_camNode = a_camNode; }
+  virtual void SetCamNode(pugi::xml_node a_camNode)   { m_camNode      = a_camNode; }
+  virtual void SetSettingsNode(pugi::xml_node a_node) { m_settingsNode = a_node; }
 
   virtual void SetAllBVH4(const ConvertionResult& a_convertedBVH, IBVHBuilder2* a_inBuilderAPI, int a_flags) = 0;
   virtual void SetAllInstMatrices(const float4x4* a_matrices, int32_t a_matrixNum) = 0;
@@ -214,6 +215,7 @@ protected:
   int m_width;
   int m_height;
   pugi::xml_node m_camNode;
+  pugi::xml_node m_settingsNode;
 
   AllRenderVarialbes m_vars;
 

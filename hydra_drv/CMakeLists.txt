@@ -77,11 +77,7 @@ if (CMAKE_BUILD_TYPE STREQUAL "Debug")
 endif()
 
 include_directories(${HYDRA_API_ROOT_DIR})
-<<<<<<< HEAD
-include_directories("../cam_plug")
-=======
 include_directories(${HYDRA_API_UTILS_SRC_DIR})
->>>>>>> master
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -msse4.2")
 

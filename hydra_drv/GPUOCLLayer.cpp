@@ -1196,6 +1196,7 @@ void GPUOCLLayer::InitPathTracing(int seed)
     std::wstringstream strout;
     strout << L"<?xml version=\"1.0\"?>" << std::endl;
     m_camNode.print(strout);
+    m_settingsNode.print(strout);
     const std::wstring nodeData = strout.str(); 
     m_camPlugin.pCamPlugin->SetParameters(m_width, m_height, m_globsBuffHeader.mProjInverse, nodeData.c_str());
 

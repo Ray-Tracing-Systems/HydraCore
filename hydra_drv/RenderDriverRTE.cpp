@@ -377,9 +377,8 @@ bool RenderDriverRTE::UpdateSettings(pugi::xml_node a_settingsNode)
   else  
     vars.m_varsI[HRT_QMC_VARIANT] = 0;
 
-
-
   m_pHWLayer->SetAllFlagsAndVars(vars);
+  m_pHWLayer->SetSettingsNode(a_settingsNode);
 
   return true;
 }
