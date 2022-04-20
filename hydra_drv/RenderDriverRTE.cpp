@@ -379,7 +379,7 @@ bool RenderDriverRTE::UpdateSettings(pugi::xml_node a_settingsNode)
 
   m_pHWLayer->SetAllFlagsAndVars(vars);
   m_pHWLayer->SetSettingsNode(a_settingsNode);
-
+  m_lastSettings = a_settingsNode;
   return true;
 }
 
@@ -1758,7 +1758,10 @@ void RenderDriverRTE::Draw()
   {
     if (!m_ptInitDone)
     {
-      m_pHWLayer->InitPathTracing(m_legacy.m_lastSeed);
+      int seed = m_legacy.m_lastSeed;
+      if(m_lastSettings.child(L"seed") != nullptr)
+        seed = m_lastSettings.child(L"seed").text().as_int();
+      m_pHWLayer->InitPathTracing(seed);
       m_ptInitDone = true;
  
       auto flagsAndVars = m_pHWLayer->GetAllFlagsAndVars();

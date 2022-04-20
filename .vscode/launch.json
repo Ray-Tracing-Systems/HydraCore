@@ -13,7 +13,7 @@
                         "-out", "z_out.png",
                         "-spp", "16",
                         "-saveinterval", "120", 
-                        "-outgamma", "1"],
+                        "-outgamma", "2.2"],
                         //"-mmltthreads", "262144"],
                         // "-out",    "/home/frol/temp/test_out/image.png",
                         // "-outall", "/home/frol/temp/test_out/gbuff",

@@ -19,7 +19,7 @@
     </diffuse>
     <reflectivity brdf_type="ggx">
       <color>0.367059 0.345882 0</color>
-      <glossiness val = "0.5" />
+      <glossiness val = "0.75" />
       <anisotropy val = "1" />
     </reflectivity>
   </material>
@@ -151,7 +151,7 @@
     <diff_trace_depth>3</diff_trace_depth>
     <maxRaysPerPixel>4096</maxRaysPerPixel>
     <draw_tiles>0</draw_tiles>
-    <qmc_variant>7</qmc_variant>
+    <qmc_variant>0</qmc_variant>
   </render_settings>
 </render_lib>
 <scenes>

@@ -186,7 +186,9 @@ void GPUOCLLayer::AddContributionToScreenCPU(cl_mem& in_color, int a_size, int a
     CHECK_CL(clSetKernelArg(kern, 2, sizeof(cl_int), (void*)&iNumElements));
     CHECK_CL(clEnqueueNDRangeKernel(m_globals.cmdQueue, kern, 1, NULL, &size, &szLocalWorkSize, 0, NULL, NULL));
   }
-
+  
+  auto startExec = std::chrono::high_resolution_clock::now();
+  
   clFlush(m_globals.cmdQueue);
   clFlush(m_globals.cmdQueueHostToDev);
 
@@ -229,8 +231,11 @@ void GPUOCLLayer::AddContributionToScreenCPU(cl_mem& in_color, int a_size, int a
 
     if (lockSuccess)
     {
-      if(m_camPlugin.pCamPlugin != nullptr)
+      if(m_camPlugin.pCamPlugin != nullptr) {
+        auto startContrib = std::chrono::high_resolution_clock::now();
         m_camPlugin.pCamPlugin->AddSamplesContribution((float*)out_color, (const float*)colors, size, a_width, a_height, m_passNumber);
+        m_camPlugin.pipeTime[2] = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - startContrib).count()/1000.f;
+      }
       else if (m_storeShadowInAlphaChannel)
         AddSamplesContributionS(out_color, colors, (const unsigned char*)shadows, int(size), a_width, a_height);
       else
@@ -255,7 +260,7 @@ void GPUOCLLayer::AddContributionToScreenCPU(cl_mem& in_color, int a_size, int a
 
     m_sppDone += contribSPP;
 
-    if (m_camPlugin.pCamPlugin != nullptr)
+    if (m_camPlugin.pCamPlugin != nullptr) 
       std::cout << "progress = " << 100.0f*m_sppDone / float(m_vars.m_varsI[HRT_MAX_SAMPLES_PER_PIXEL]) << " %" << std::endl;
 
     if (measureTime && lockSuccess)
@@ -276,6 +281,14 @@ void GPUOCLLayer::AddContributionToScreenCPU(cl_mem& in_color, int a_size, int a
   clFinish(m_globals.cmdQueueHostToDev);
   clFinish(m_globals.cmdQueueDevToHost);
 
+  m_camPlugin.pipeTime[1] = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - startExec).count()/1000.f;
+
+  if (m_camPlugin.pCamPlugin != nullptr) 
+  {
+    std::cout << "time[0] = " << m_camPlugin.pipeTime[0] << " ms" << std::endl;
+    std::cout << "time[1] = " << m_camPlugin.pipeTime[1] << " ms" << std::endl;
+    std::cout << "time[2] = " << m_camPlugin.pipeTime[2] << " ms" << std::endl;
+  }
   //memsetf4(m_rays.pathAuxColor, float4(0,0,0,0), m_rays.MEGABLOCKSIZE, 0);
   //clFinish(m_globals.cmdQueue);
 

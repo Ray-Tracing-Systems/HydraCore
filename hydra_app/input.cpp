@@ -25,7 +25,6 @@ Input::Input()
   //inLibraryPath = "/home/frol/PROG/HydraRepos/HydraAPI-tests/tests_f/test_119";
   //inLibraryPath = "/home/frol/PROG/HydraRepos/HydraAPI/main/demos/demo_02";
   inLibraryPath = "tests/demo_05";
-  //inLibraryPath = "tests/test_42";
 
   inDevelopment = false; ///< recompile shaders each time; note that nvidia have their own shader cache!
   inDeviceId    = 0;     ///< opencl device id
@@ -53,7 +52,6 @@ Input::Input()
   mmltEnabled         = false;
   
   cameraFreeze        = false;
-  inSeed              = clock();
 
   getGBufferBeforeRender = false; ///< if external application that ise HydraAPI ask to calc gbuffer;
   productionPTMode       = false;
@@ -180,7 +178,7 @@ void Input::ParseCommandLineParams(const std::unordered_map<std::string, std::st
   if (listDevicesAndExit)
     noWindow = true;
 
-  ReadIntCmd (a_params,   "-seed",         &inSeed);
+  //ReadIntCmd (a_params,   "-seed",         &inSeed);
   ReadIntCmd (a_params,   "-cl_device_id", &inDeviceId);
   ReadFloatCmd(a_params,  "-saveinterval", &saveInterval);
 

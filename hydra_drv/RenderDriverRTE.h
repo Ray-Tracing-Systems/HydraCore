@@ -142,6 +142,7 @@ protected:
   std::wstring m_msg;
   std::wstring m_libPath;
   size_t       m_memAllocated;
+  pugi::xml_node m_lastSettings;
 
   // camera parameters
   //

@@ -666,7 +666,8 @@ protected:
       clReleaseMemObject(camRayCPU[1]); camRayCPU[1] = nullptr;
       clReleaseMemObject(accumBuff);    accumBuff    = nullptr;
     }
-
+   
+   float pipeTime[3] = {0,0,0};
   }m_camPlugin;
 };
 

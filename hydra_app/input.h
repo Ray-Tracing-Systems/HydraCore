@@ -35,7 +35,6 @@ struct Input
   std::string   outAllDir;
   std::string   outDir;       // override for output directory
 
-  int32_t     inSeed;
   int32_t     inDeviceId;
   int32_t     winWidth;
   int32_t     winHeight;

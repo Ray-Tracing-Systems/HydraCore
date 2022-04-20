@@ -1388,6 +1388,8 @@ void GPUOCLLayer::BeginTracingPass()
 
 int GPUOCLLayer::DoCamPluginRays(int buffId, int a_passId)
 {
+  auto start = std::chrono::high_resolution_clock::now();
+
   cl_int ciErr1 = CL_SUCCESS;
   const size_t fullSize = m_rays.MEGABLOCKSIZE*sizeof(RayPart1) + m_rays.MEGABLOCKSIZE*sizeof(RayPart2);
   
@@ -1400,7 +1402,8 @@ int GPUOCLLayer::DoCamPluginRays(int buffId, int a_passId)
   
   clEnqueueUnmapMemObject(m_globals.cmdQueueHostToDev, m_camPlugin.camRayCPU[buffId], rays1, 0, 0, 0);
   clEnqueueCopyBuffer    (m_globals.cmdQueueHostToDev, m_camPlugin.camRayCPU[buffId], m_camPlugin.camRayGPU[buffId], 0, 0, fullSize, 0, nullptr, nullptr);
-
+  
+  m_camPlugin.pipeTime[0] = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - start).count()/1000.f;
   return 0;
 }
 
