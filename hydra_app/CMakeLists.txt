@@ -42,24 +42,30 @@ if(OpenMP_CXX_FOUND)
     target_link_libraries(hydra PUBLIC OpenMP::OpenMP_CXX)
 endif()
 
-find_library(HYDRA_API_LIB hydra_api HINTS ${HYDRA_API_LIB_DIR} NO_DEFAULT_PATH)
-find_library(HYDRA_API_IES_PARSER_LIB ies_parser HINTS ${HYDRA_API_LIB_DIR} NO_DEFAULT_PATH)
-find_library(HYDRA_API_MIKKTSPACE mikktspace HINTS ${HYDRA_API_LIB_DIR} NO_DEFAULT_PATH)
-find_library(HYDRA_API_CORTO corto HINTS ${HYDRA_API_LIB_DIR} NO_DEFAULT_PATH)
 
-set(HYDRA_API_ALL_LIBS ${HYDRA_API_LIB} ${HYDRA_API_IES_PARSER_LIB} ${HYDRA_API_MIKKTSPACE} ${HYDRA_API_CORTO})
+find_library(HYDRA_API_LIB_DEBUG            hydra_api  HINTS ${HYDRA_API_LIB_DIR}/Debug NO_DEFAULT_PATH)
+find_library(HYDRA_API_IES_PARSER_LIB_DEBUG ies_parser HINTS ${HYDRA_API_LIB_DIR}/Debug NO_DEFAULT_PATH)
+find_library(HYDRA_API_MIKKTSPACE_DEBUG     mikktspace HINTS ${HYDRA_API_LIB_DIR}/Debug NO_DEFAULT_PATH)
+find_library(HYDRA_API_CORTO_DEBUG          corto      HINTS ${HYDRA_API_LIB_DIR}/Debug NO_DEFAULT_PATH)
+
+
+find_library(HYDRA_API_LIB_RELEASE            hydra_api  HINTS ${HYDRA_API_LIB_DIR}/Release NO_DEFAULT_PATH)
+find_library(HYDRA_API_IES_PARSER_LIB_RELEASE ies_parser HINTS ${HYDRA_API_LIB_DIR}/Release NO_DEFAULT_PATH)
+find_library(HYDRA_API_MIKKTSPACE_RELEASE     mikktspace HINTS ${HYDRA_API_LIB_DIR}/Release NO_DEFAULT_PATH)
+find_library(HYDRA_API_CORTO_RELEASE          corto      HINTS ${HYDRA_API_LIB_DIR}/Release NO_DEFAULT_PATH)
+
 
 #MESSAGE(WARNING "CMAKE_SOURCE_DIR: " ${CMAKE_SOURCE_DIR} )
 #SET (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=address -fsanitize-address-use-after-scope -fno-omit-frame-pointer -fsanitize=leak -fsanitize=undefined -fsanitize=bounds-strict")
 
-target_link_libraries(hydra LINK_PUBLIC
-        hydra_drv
-        ${HYDRA_API_ALL_LIBS}
-        freeimage
-        vsgl3)
+target_link_libraries(hydra LINK_PUBLIC hydra_drv)
+target_link_libraries(hydra LINK_PUBLIC debug ${HYDRA_API_LIB_DEBUG} ${HYDRA_API_IES_PARSER_LIB_DEBUG} ${HYDRA_API_MIKKTSPACE_DEBUG} ${HYDRA_API_CORTO_DEBUG})
+target_link_libraries(hydra LINK_PUBLIC optimized ${HYDRA_API_LIB_RELEASE} ${HYDRA_API_IES_PARSER_LIB_RELEASE} ${HYDRA_API_MIKKTSPACE_RELEASE} ${HYDRA_API_CORTO_RELEASE})
+target_link_libraries(hydra LINK_PUBLIC freeimage vsgl3)
 
 if(WIN32)
-    target_link_libraries(hydra LINK_PUBLIC ${HYDRA_API_CLEW})
+	target_link_libraries(hydra LINK_PUBLIC debug ${HYDRA_API_CLEW_DEBUG})
+	target_link_libraries(hydra LINK_PUBLIC optimized ${HYDRA_API_CLEW_RELEASE})
     if(USE_GL)
         target_link_libraries(hydra LINK_PUBLIC ${OPENGL_gl_LIBRARY} glfw3dll)
     endif()
