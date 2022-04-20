@@ -19,8 +19,8 @@ set(USE_GL OFF CACHE BOOL "HydraAPI with OpenGL support")
 
 if(WIN32)
     add_compile_definitions(UNICODE _UNICODE)
-    find_library(HYDRA_API_CLEW_DEBUG   clew HINTS ${HYDRA_API_LIB_DIR}/Debug   NO_DEFAULT_PATH)
-	find_library(HYDRA_API_CLEW_RELEASE clew HINTS ${HYDRA_API_LIB_DIR}/Release NO_DEFAULT_PATH)
+    find_library(HYDRA_API_CLEW_DEBUG   clew HINTS ${HYDRA_API_LIB_DIR}/Debug   ${HYDRA_API_LIB_DIR} NO_DEFAULT_PATH)
+	  find_library(HYDRA_API_CLEW_RELEASE clew HINTS ${HYDRA_API_LIB_DIR}/Release ${HYDRA_API_LIB_DIR} NO_DEFAULT_PATH)
     set(HYDRA_DIR_NAME "[Hydra]")
     set(ADDITIONAL_LIBRARY_DIRS
             ${HYDRA_API_ROOT_DIR}/dependencies/lib_x64_win CACHE STRING "Path to HydraAPI dependencies (freeimage and, if OpenGL is used, glfw)")
