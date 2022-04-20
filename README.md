@@ -15,7 +15,7 @@ This repo contains the last one.
 3. Clone HydraCore repo.
 4. Set CMake variables:
     - HYDRA_API_ROOT_DIR to path to HydraAPI source dir;
-    - USE_GL to the same value as HydraAPI build.
+    - USE_GL to the same value as HydraAPI build. On Windows you will need to set USE_GL=ON.
 5. Build with CMake. Example command to build and install HydraCore (for example from "myfolder/HydraCore/build"):   
 ```shell
 cmake -DUSE_GL=OFF -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/home/YourUserName .. && make all install -j 4
@@ -47,6 +47,8 @@ It can be necessary if you need it to compile 3ds Max plugin.
 5. Copy built hydra.exe to "C:/[Hydra]/bin2"
 6. Delete all files inside  "C:/[Hydra]/bin2/shadercache/" if you have them. This will clear Hydra shader cache.
 
+### Windows running
+You will need to place dll files (FreeImage.dll, glfw3.dll) together with executable.
 
 # Command line examples
 

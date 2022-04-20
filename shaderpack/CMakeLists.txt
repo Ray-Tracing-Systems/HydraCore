@@ -26,8 +26,8 @@ else()
     target_link_libraries(shaderpack LINK_PUBLIC OpenCL)
 
     add_custom_command(TARGET shaderpack POST_BUILD
-            COMMAND ${CMAKE_BINARY_DIR}/shaderpack/shaderpack
-            WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+            COMMAND ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/shaderpack
+            WORKING_DIRECTORY ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}
             COMMENT "packing shaders...")
 endif()
 
