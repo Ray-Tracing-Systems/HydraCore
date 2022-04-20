@@ -194,12 +194,15 @@ public:
     memcpy(&m_projInv, a_projInvMatrix, sizeof(float4x4));
     
     m_doc.load_string(a_camNodeText);
-    pugi::xml_node a_camNode = m_doc.child(L"camera"); //
+    pugi::xml_node a_camNode      = m_doc.child(L"camera"); //
+    pugi::xml_node a_settingsNode = m_doc.child(L"render_settings"); //
     ReadParamsFromNode(a_camNode);
+    ReadParamsFromSettingsNode(a_settingsNode);
     RunTestRays();
   }
 
   void ReadParamsFromNode(pugi::xml_node a_camNode);
+  void ReadParamsFromSettingsNode(pugi::xml_node a_settingsNode);
   void RunTestRays();
 
   void MakeRaysBlock(RayPart1* out_rayPosAndNear, RayPart2* out_rayDirAndFar, size_t in_blockSize, int passId) override;
@@ -316,6 +319,13 @@ void TableLens::ReadParamsFromNode(pugi::xml_node a_camNode)
   lines.resize(ids.size());
   for(size_t i=0;i<ids.size(); i++)
     lines[i] = ids[i].lensElement;
+}
+
+void TableLens::ReadParamsFromSettingsNode(pugi::xml_node a_settingsNode)
+{
+  std::cout << "[TableLens], render param 'maxRaysPerPixel' = " << a_settingsNode.child(L"maxRaysPerPixel").text().as_int() << std::endl;
+  std::cout << "[TableLens], render param 'trace_depth'     = " << a_settingsNode.child(L"trace_depth").text().as_int() << std::endl;
+  std::cout << "[TableLens], render param 'outgamma'        = " << a_settingsNode.child(L"outgamma").text().as_float() << std::endl;
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -581,11 +591,8 @@ void TableLens::MakeRaysBlock(RayPart1* out_rayPosAndNear, RayPart2* out_rayDirA
     p1.origin[0]   = ray_pos.x;
     p1.origin[1]   = ray_pos.y;
     p1.origin[2]   = ray_pos.z;
-    if(!rayIsDead)
-      p1.xyPosPacked = myPackXY1616(int(x), int(y)); 
-    else
-      p1.xyPosPacked = 0xFFFFFFFF;  // packing this value discard contibution from this ray
-
+    p1.xyPosPacked = myPackXY1616(std::max(int(x - 0.5f), 0), std::max(int(y - 0.5f), 0)); 
+  
     RayPart2 p2;
     p2.direction[0] = ray_dir.x;
     p2.direction[1] = ray_dir.y;
@@ -593,7 +600,7 @@ void TableLens::MakeRaysBlock(RayPart1* out_rayPosAndNear, RayPart2* out_rayDirA
     p2.dummy        = 0.0f;
     
     PipeThrough pipeData;
-    pipeData.cosPower4   = (cosTheta*cosTheta)*(cosTheta*cosTheta)*(35.0f);
+    pipeData.cosPower4   = (cosTheta*cosTheta)*(cosTheta*cosTheta); // /(1000.0f*ray_pos.z*ray_pos.z);
     pipeData.packedIndex = p1.xyPosPacked;
 
     out_rayPosAndNear[i] = p1;
@@ -617,7 +624,7 @@ void TableLens::AddSamplesContribution(float* out_color4f, const float* colors4f
   for (int i = 0; i < in_blockSize; i++)
   {
     const auto color = colors[i];
-    const int packedIndex = as_int(color.w);
+    const uint32_t packedIndex = as_uint(color.w);
     const int x      = (packedIndex & 0x0000FFFF);         ///<! extract x position from color.w
     const int y      = (packedIndex & 0xFFFF0000) >> 16;   ///<! extract y position from color.w
     const int offset = y*a_width + x;
@@ -625,7 +632,19 @@ void TableLens::AddSamplesContribution(float* out_color4f, const float* colors4f
     if (x >= 0 && y >= 0 && x < a_width && y < a_height && dot3f(color, color) > 0.0f)
     {
       const PipeThrough& passData = m_pipeline[takeID][i];
-      assert(passData.packedIndex == packedIndex);        ///<! check that we actually took data from 'm_pipeline' for right ray
+      //assert(passData.packedIndex == packedIndex);        ///<! check that we actually took data from 'm_pipeline' for right ray
+      if(passData.packedIndex != packedIndex)
+      {
+        const int x2 = (passData.packedIndex & 0x0000FFFF);         ///<! extract x position from color.w
+        const int y2 = (passData.packedIndex & 0xFFFF0000) >> 16;   ///<! extract y position from color.w
+
+        std::cout << "warning, bad packed index: " << i << " : xy = (" << x << ", " << y << ") / (" << x2 << ", " << y2 << ")" << std::endl; 
+        std::cout << "color = " << color.x << " " << color.y << " " << color.z << std::endl; 
+        std::cout.flush();
+        continue;
+        //assert(passData.packedIndex == packedIndex);
+      }
+
       out_color[offset].x += color.x*passData.cosPower4;
       out_color[offset].y += color.y*passData.cosPower4;
       out_color[offset].z += color.z*passData.cosPower4;

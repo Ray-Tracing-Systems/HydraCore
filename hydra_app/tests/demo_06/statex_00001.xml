@@ -36,7 +36,7 @@
   </light>
 </lights_lib>
 <cam_lib>
-  <camera id="0" name="my camera" type="uvn" integrator_iters="8" cpu_plugin="2">
+  <camera id="0" name="my camera" type="uvn" integrator_iters="4" cpu_plugin="2">
     <fov>30</fov>
     <nearClipPlane>0.00999999978</nearClipPlane>
     <farClipPlane>1000</farClipPlane>

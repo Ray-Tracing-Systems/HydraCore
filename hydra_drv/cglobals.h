@@ -341,8 +341,9 @@ enum MEGATEX_USAGE{ MEGATEX_SHADING      = 1,
 
     #define COMMON_CPLUS_PLUS_CODE 1
 
-    static inline int   as_int(float x) { return reinterpret_cast<int&>  (x); }
-    static inline float as_float(int x) { return reinterpret_cast<float&>(x); }
+    static inline int      as_int(float x)  { return reinterpret_cast<int&>  (x); }
+    static inline unsigned as_uint(float x) { return reinterpret_cast<unsigned&>  (x); }
+    static inline float    as_float(int x)  { return reinterpret_cast<float&>(x); }
 
     #define _PACKED
 

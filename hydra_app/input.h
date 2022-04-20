@@ -64,5 +64,7 @@ struct Input
   bool cameraFreeze;
   bool productionPTMode;
 
+  std::unordered_map<std::string, std::string> m_allParams;
+
   void ParseCommandLineParams(const std::unordered_map<std::string, std::string>& a_params);
 };
