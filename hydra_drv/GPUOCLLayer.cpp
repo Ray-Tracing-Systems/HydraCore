@@ -18,6 +18,7 @@ extern "C" void initQuasirandomGenerator(unsigned int table[QRNG_DIMENSIONS_K][Q
 #undef max
 
 #include <future>
+#include <chrono>
 
 constexpr bool SAVE_BUILD_LOG = false;
 

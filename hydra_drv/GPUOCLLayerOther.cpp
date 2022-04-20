@@ -7,6 +7,7 @@
 #undef max
 
 #include <iomanip>
+#include <chrono>
 
 #include "hydra_api/ssemath.h"
 
