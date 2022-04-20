@@ -76,7 +76,7 @@
   </light>
 </lights_lib>
 <cam_lib>
-  <camera id="0" name="my camera" type="uvn" integrator_iters="4" cpu_plugin="2"> <!-- cpu_plugin_dll = "/home/frol/PROG/HydraRepos/HydraCamPluginExample/cmake-build-release/libhydra_cam_plugin.so" -->
+  <camera id="0" name="my camera" type="uvn" integrator_iters="8" cpu_plugin="2"> <!-- cpu_plugin_dll = "/home/frol/PROG/HydraRepos/HydraCamPluginExample/cmake-build-release/libhydra_cam_plugin.so" -->
     <fov>45</fov>
     <nearClipPlane>0.01</nearClipPlane>
     <farClipPlane>100.0</farClipPlane>

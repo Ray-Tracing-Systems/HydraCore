@@ -369,7 +369,7 @@ __kernel void TakeHostRays(__global float4*             restrict out_pos,
   //MakeEyeRayFromF4Rnd(lensOffs, a_globals,
   //                    &ray_pos, &ray_dir, &fx, &fy);
   //int x = (int)(fx);
-  //int y = (int)(fy); 
+  //int y = (int)(fy); // //
 
   out_pos   [tid] = to_float4(ray_pos, (float)(x));
   out_dir   [tid] = to_float4(ray_dir, (float)(y));
