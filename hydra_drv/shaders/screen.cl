@@ -21,7 +21,8 @@ __kernel void MakeEyeRays(int offset,                                  // #TODO:
   float4x4 a_mWorldViewInv = make_float4x4(a_globals->mWorldViewInverse);
 
   float3 ray_pos = make_float3(0.0f, 0.0f, 0.0f);
-  float3 ray_dir = EyeRayDir(screenPos.x, screenPos.y, w, h, a_mViewProjInv);
+  float3 ray_dir = EyeRayDirNormalized((screenPos.x + 0.5f)/(float)w, 
+                                       (screenPos.y + 0.5f)/(float)h, a_mViewProjInv);
 
   ray_dir        = tiltCorrection(ray_pos, ray_dir, a_globals);
 
@@ -312,8 +313,8 @@ __kernel void MakeEyeRaysUnifiedSampling(__global float4*              restrict 
   MakeEyeRayFromF4Rnd(lensOffs, a_globals,
                       &ray_pos, &ray_dir, &fx, &fy);
 
-  int x = (int)(fx);
-  int y = (int)(fy);
+  int x = (int)(fx); // - 0.5f as were before !!!
+  int y = (int)(fy); // - 0.5f as were before !!!
 
   if (x >= w) x = w - 1;
   if (y >= h) y = h - 1;

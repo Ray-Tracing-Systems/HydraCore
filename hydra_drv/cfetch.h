@@ -884,7 +884,7 @@ static inline void MakeRandEyeRay(int x, int y, int w, int h, float4 offsets, __
   //}
 
   float3 ray_pos = make_float3(0.0f, 0.0f, 0.0f);
-  float3 ray_dir = EyeRayDir(screenPosF.x, screenPosF.y, (float)w, (float)h, a_mViewProjInv);
+  float3 ray_dir = EyeRayDirNormalized(screenPosF.x/(float)w, screenPosF.y/(float)h, a_mViewProjInv);
 
   // simple AA for PT
   //
@@ -934,7 +934,7 @@ static inline void MakeEyeRayFromF4Rnd(float4 lensOffs, __global const EngineGlo
   const float4x4 a_mWorldViewInv = make_float4x4(a_globals->mWorldViewInverse);
 
   float3 ray_pos = make_float3(0.0f, 0.0f, 0.0f);
-  float3 ray_dir = EyeRayDir(x, y, fwidth, fheight, a_mViewProjInv);
+  float3 ray_dir = EyeRayDirNormalized(x/fwidth, y/fheight, a_mViewProjInv);
   ray_dir        = tiltCorrection(ray_pos, ray_dir, a_globals);
 
   if (a_globals->varsI[HRT_ENABLE_DOF] == 1)

@@ -1031,16 +1031,27 @@ static inline float4x4 transpose(const float4x4 a_mat)
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-static inline float3 EyeRayDir(float x, float y, float w, float h, float4x4 a_mViewProjInv) // g_mViewProjInv
-{
-  float4 pos = make_float4( 2.0f * (x + 0.5f) / w - 1.0f, 
-                           -2.0f * (y + 0.5f) / h + 1.0f, 
-                            0.0f, 
-                            1.0f );
+//static inline float3 EyeRayDir(float x, float y, float w, float h, float4x4 a_mViewProjInv) // g_mViewProjInv
+//{
+//  float4 pos = make_float4( 2.0f * (x + 0.5f) / w - 1.0f, 
+//                           -2.0f * (y + 0.5f) / h + 1.0f, 
+//                            0.0f, 
+//                            1.0f );
+//
+//  pos = mul4x4x4(a_mViewProjInv, pos);
+//  pos /= pos.w;
+//  pos.y *= (-1.0f);
+//  return normalize(to_float3(pos));
+//}
 
+static inline float3 EyeRayDirNormalized(float x, float y, float4x4 a_mViewProjInv) // g_mViewProjInv
+{
+  float4 pos = make_float4(2.0f*x - 1.0f, 
+                           2.0f*y - 1.0f, 
+                           0.0f, 
+                           1.0f );
   pos = mul4x4x4(a_mViewProjInv, pos);
   pos /= pos.w;
-  pos.y *= (-1.0f);
   return normalize(to_float3(pos));
 }
 

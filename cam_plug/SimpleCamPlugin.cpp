@@ -109,7 +109,7 @@ void SimpleDOF::MakeRaysBlock(RayPart1* out_rayPosAndNear, RayPart2* out_rayDirA
     const float y    = m_fheight*rndY;
 
     float3 ray_pos = float3(0,0,0);
-    float3 ray_dir = EyeRayDir(x, y, m_fwidth, m_fheight, m_projInv);
+    float3 ray_dir = EyeRayDirNormalized(x/m_fwidth, y/m_fheight, m_projInv);
 
     if (DOF_IS_ENABLED) // dof is enabled
     {
