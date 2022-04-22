@@ -1134,7 +1134,11 @@ void GPUOCLLayer::GetHDRImage(float4* data, int width, int height) const
   if (m_passNumber - 1 <= 0 || m_spp <= 1e-5f) // remember about pipelined copy!!
     return;
 
-  float normConst = (1.0f / m_spp);
+  float normConst = 1.0f;
+  if(m_sppDone > 0)
+    normConst = (1.0f / m_sppDone); // valid only for CPU FB, remember about pipelined copy. m_spp and m_sppDone are different!!! 
+  else
+    normConst = (1.0f / m_spp);     // may be valid if FB is on GPU
 
   if (m_screen.m_cpuFrameBuffer)
   {

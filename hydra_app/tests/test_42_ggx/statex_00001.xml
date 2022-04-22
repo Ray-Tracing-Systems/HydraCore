@@ -63,7 +63,7 @@
   </material>
   <material id="9" name="my_area_light_material" type="hydra_material" light_id="0" visible="1">
     <emission>
-      <color val="31.4 31.4 31.4" />
+      <color val="30.0 30.0 30.0" />
     </emission>
   </material>
 </materials_lib>
@@ -72,7 +72,7 @@
     <size half_length="1" half_width="1" />
     <intensity>
       <color>1 1 1</color>
-      <multiplier>31.4</multiplier>
+      <multiplier>30.0</multiplier>
     </intensity>
   </light>
 </lights_lib>
@@ -147,9 +147,9 @@
     <method_tertiary>pathtracing</method_tertiary>
     <method_caustic>pathtracing</method_caustic>
     <shadows>1</shadows>
-    <trace_depth>5</trace_depth>
+    <trace_depth>6</trace_depth>
     <diff_trace_depth>4</diff_trace_depth>
-    <maxRaysPerPixel>1024</maxRaysPerPixel>
+    <maxRaysPerPixel>4</maxRaysPerPixel>
     <draw_tiles>0</draw_tiles>
     <qmc_variant>0</qmc_variant>
   </render_settings>
