@@ -28,7 +28,7 @@ Input::Input()
   inLibraryPath = "tests/test_42_ggx";
   //inLibraryPath = "/home/frol/Downloads/rgbd_scene";
 
-  inDevelopment = false;  ///< recompile shaders each time; note that nvidia have their own shader cache!
+  inDevelopment = false; ///< recompile shaders each time; note that nvidia have their own shader cache!
   inDeviceId    = 0;     ///< opencl device id
   cpuFB         = true;  ///< store frame buffer on CPU. Automaticly enabled if
   enableMLT     = false; ///< if use MMLT, you MUST enable it early, when render process just started (here or via command line).

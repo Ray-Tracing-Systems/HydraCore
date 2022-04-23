@@ -177,8 +177,9 @@ void GPUOCLLayer::AddContributionToScreenCPU(cl_mem& in_color, int a_size, int a
   cl_int iNumElements    = cl_int(a_size);
   size_t size            = roundBlocks(size_t(a_size), int(szLocalWorkSize));
 
-  if (repackIndex && (m_vars.m_flags & HRT_FORWARD_TRACING) == 0 && 
-                     (m_vars.m_flags & HRT_ENABLE_MMLT)     == 0) // lt/mmlt already pack index to color, so, don't do that again!!!
+  if (repackIndex && (m_vars.m_flags & HRT_FORWARD_TRACING)   == 0 && 
+                     (m_vars.m_flags & HRT_ENABLE_MMLT)       == 0 && 
+                      m_vars.m_varsI[HRT_ENABLE_SURFACE_PACK] == 0) // lt/mmlt already pack index to color, so, don't do that again. HRT_ENABLE_SURFACE_PACK from the other side needs surface id at this place
   {
     cl_kernel kern = m_progs.screen.kernel("PackIndexToColorW");
 

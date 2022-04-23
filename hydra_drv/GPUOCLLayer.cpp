@@ -42,7 +42,8 @@ void GPUOCLLayer::CL_BUFFERS_RAYS::free()
   if(rayDir)   { clReleaseMemObject(rayDir);   rayDir   = nullptr; }
   if(hits)     { clReleaseMemObject(hits);     hits     = nullptr; }
   if(rayFlags) { clReleaseMemObject(rayFlags); rayFlags = nullptr; }
-                                                                                                     
+  if(surfId)   { clReleaseMemObject(surfId);    surfId  = nullptr; }
+                                                                                                      
   if (hitSurfaceAll)   { clReleaseMemObject(hitSurfaceAll);  hitSurfaceAll    = nullptr; }
   if (hitProcTexData)  { clReleaseMemObject(hitProcTexData); hitProcTexData   = nullptr;}
 
@@ -83,7 +84,7 @@ void GPUOCLLayer::CL_BUFFERS_RAYS::free()
   if(atomicCounterMem) { clReleaseMemObject(atomicCounterMem); atomicCounterMem = nullptr;}
 }
 
-size_t GPUOCLLayer::CL_BUFFERS_RAYS::resize(cl_context ctx, cl_command_queue cmdQueue, size_t a_size, bool a_cpuShare, bool a_cpuFB)
+size_t GPUOCLLayer::CL_BUFFERS_RAYS::resize(cl_context ctx, cl_command_queue cmdQueue, size_t a_size, bool a_cpuShare, bool a_cpuFB, bool a_evalSurfaId)
 {
   free();
 
@@ -99,6 +100,10 @@ size_t GPUOCLLayer::CL_BUFFERS_RAYS::resize(cl_context ctx, cl_command_queue cmd
   rayDir   = clCreateBuffer(ctx, CL_MEM_READ_WRITE | shareFlags, 4*sizeof(cl_float)*MEGABLOCKSIZE, NULL, &ciErr1);   currSize += buff1Size * 4;
   hits     = clCreateBuffer(ctx, CL_MEM_READ_WRITE | shareFlags, sizeof(Lite_Hit)*MEGABLOCKSIZE,   NULL, &ciErr1);   currSize += buff1Size * 1;
   rayFlags = clCreateBuffer(ctx, CL_MEM_READ_WRITE | shareFlags, sizeof(uint)*MEGABLOCKSIZE, NULL, &ciErr1);         currSize += buff1Size * 1;
+  if(a_evalSurfaId) {
+    surfId = clCreateBuffer(ctx, CL_MEM_READ_WRITE, sizeof(uint)*MEGABLOCKSIZE, NULL, &ciErr1);         
+    currSize += buff1Size * 1;
+  }
 
   if (ciErr1 != CL_SUCCESS)
     RUN_TIME_ERROR("Error in resize rays buffers");
@@ -920,7 +925,7 @@ void GPUOCLLayer::ResizeScreen(int width, int height, int a_flags)
   if (m_screen.pbo != nullptr)
     memsetu32(m_screen.pbo, 0, m_width*m_height);
 
-  m_memoryTaken[MEM_TAKEN_RAYS] = m_rays.resize(m_globals.ctx, m_globals.cmdQueue, MEGABLOCK_SIZE, m_globals.cpuTrace, m_screen.m_cpuFrameBuffer);
+  m_memoryTaken[MEM_TAKEN_RAYS] = m_rays.resize(m_globals.ctx, m_globals.cmdQueue, MEGABLOCK_SIZE, m_globals.cpuTrace, m_screen.m_cpuFrameBuffer, true); // TODO: fix true, pass this flag elsewhere, to early for check (m_vars.m_varsI[HRT_ENABLE_SURFACE_PACK] == 1)
 
   MLT_Alloc_For_PT_QMC(1, kmlt.xVectorQMC); // Allocate memory for testing QMC/KMLT F(xVec,bounceNum); THIS IS IMPORTANT CALL! It sets internal KMLT variables
 
@@ -1349,7 +1354,7 @@ void GPUOCLLayer::BeginTracingPass()
         {
           runKernel_TakeHostRays(m_camPlugin.camRayGPU[1-buffId], m_rays.rayPos, m_rays.rayDir, m_rays.pathAccColor, m_rays.MEGABLOCKSIZE);
           trace1D_Rev(minBounce, maxBounce, m_rays.rayPos, m_rays.rayDir, m_rays.MEGABLOCKSIZE, m_rays.pathAccColor);
-          runKernel_AccumColor(m_rays.pathAccColor, m_camPlugin.accumBuff, m_rays.MEGABLOCKSIZE, 1.0f/float(samplesPerPass));
+          runKernel_AccumColor(m_rays.pathAccColor, m_rays.surfId, m_camPlugin.accumBuff, m_rays.MEGABLOCKSIZE, 1.0f/float(samplesPerPass));
         }
       }
 

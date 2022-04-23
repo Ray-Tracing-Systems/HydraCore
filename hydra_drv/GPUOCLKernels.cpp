@@ -172,18 +172,23 @@ void GPUOCLLayer::runKernel_ClearAllInternalTempBuffers(size_t a_size)
   waitIfDebug(__FILE__, __LINE__);
 }
 
-void GPUOCLLayer::runKernel_AccumColor(cl_mem a_inColor, cl_mem a_outColor, size_t a_size, float a_mult)
+void GPUOCLLayer::runKernel_AccumColor(cl_mem a_inColor, cl_mem in_surfId, cl_mem a_outColor, size_t a_size, float a_mult)
 {
   size_t localWorkSize   = CMP_RESULTS_BLOCK_SIZE;
   int iSize              = int(a_size);
   a_size                 = roundBlocks(a_size, int(localWorkSize));
 
+  cl_int insertSurfId   = m_vars.m_varsI[HRT_ENABLE_SURFACE_PACK];
   cl_kernel accumColorK = m_progs.screen.kernel("AccumColor3f");
 
-  CHECK_CL(clSetKernelArg(accumColorK, 0, sizeof(cl_mem),   (void*)&a_inColor));     
-  CHECK_CL(clSetKernelArg(accumColorK, 1, sizeof(cl_mem),   (void*)&a_outColor));    
-  CHECK_CL(clSetKernelArg(accumColorK, 2, sizeof(cl_int),   (void*)&iSize));
-  CHECK_CL(clSetKernelArg(accumColorK, 3, sizeof(cl_float), (void*)&a_mult));
+  //std::cout << "insertSurfId = " << insertSurfId << std::endl;
+
+  CHECK_CL(clSetKernelArg(accumColorK, 0, sizeof(cl_mem),   (void*)&a_inColor));
+  CHECK_CL(clSetKernelArg(accumColorK, 1, sizeof(cl_mem),   (void*)&in_surfId));     
+  CHECK_CL(clSetKernelArg(accumColorK, 2, sizeof(cl_mem),   (void*)&a_outColor));    
+  CHECK_CL(clSetKernelArg(accumColorK, 3, sizeof(cl_int),   (void*)&iSize));
+  CHECK_CL(clSetKernelArg(accumColorK, 4, sizeof(cl_float), (void*)&a_mult));
+  CHECK_CL(clSetKernelArg(accumColorK, 5, sizeof(cl_int),   (void*)&insertSurfId));
 
   CHECK_CL(clEnqueueNDRangeKernel(m_globals.cmdQueue, accumColorK, 1, NULL, &a_size, &localWorkSize, 0, NULL, NULL));
   waitIfDebug(__FILE__, __LINE__);

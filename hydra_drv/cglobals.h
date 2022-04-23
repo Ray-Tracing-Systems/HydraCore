@@ -463,7 +463,8 @@ enum VARIABLE_NAMES { // int vars
                       HRT_SHADOW_MATTE_BACK_COLOR_X= 42,
                       HRT_SHADOW_MATTE_BACK_COLOR_Y= 43,
                       HRT_SHADOW_MATTE_BACK_COLOR_Z= 44,
-                      HRT_USE_CPU_PLUGIN           = 45, 
+                      HRT_USE_CPU_PLUGIN           = 45,
+                      HRT_ENABLE_SURFACE_PACK      = 46, 
 };
 
 enum VARIABLE_FLOAT_NAMES{ // float vars

@@ -142,6 +142,7 @@ protected:
 
   void DrawNormals();
   void CopyShadowTo(cl_mem a_color, size_t a_size);
+  void runKernel_CopySurfaceIdTo(cl_mem a_from, cl_mem a_to, size_t a_size);
   void AddContributionToScreenGPU(cl_mem in_color, cl_mem in_indices, int a_size, int a_width, int a_height, int a_spp, bool a_copyToLDRNow,
                                   cl_mem out_colorHDR, cl_mem out_colorLDR);
 
@@ -310,18 +311,19 @@ protected:
 
   struct CL_BUFFERS_RAYS
   {
-    CL_BUFFERS_RAYS() : rayPos(0), rayDir(0), hits(0), rayFlags(0), hitSurfaceAll(0), hitProcTexData(0),
+    CL_BUFFERS_RAYS() : rayPos(0), rayDir(0), hits(0), rayFlags(0), surfId(0), hitSurfaceAll(0), hitProcTexData(0),
                         pathThoroughput(0), pathMisDataPrev(0), pathShadeColor(0), pathAccColor(0), pathAuxColor(0), pathAuxColorCPU(0), pathShadow8B(0), pathShadow8BAux(0), pathShadow8BAuxCPU(0), 
                         randGenState(0), lsamRev(0), shadowRayPos(0), shadowRayDir(0), accPdf(0), oldFlags(0), oldRayDir(0), oldColor(0),
                         lshadow(0), shadowTemp1i(0), fogAtten(0), samZindex(0), aoCompressed(0), aoCompressed2(0), lightOffsetBuff(0), packedXY(0), debugf4(0), atomicCounterMem(0), MEGABLOCKSIZE(0) {}
 
     void free();
-    size_t resize(cl_context ctx, cl_command_queue cmdQueue, size_t a_size, bool a_cpuShare, bool a_cpuFB);
+    size_t resize(cl_context ctx, cl_command_queue cmdQueue, size_t a_size, bool a_cpuShare, bool a_cpuFB, bool a_evalSurfaId);
 
     cl_mem rayPos;                   // float4, MEGABLOCKSIZE size
     cl_mem rayDir;                   // float4, MEGABLOCKSIZE size 
     cl_mem hits;
     cl_mem rayFlags;
+    cl_mem surfId;
 
     cl_mem hitSurfaceAll;
     cl_mem hitProcTexData;
@@ -490,7 +492,7 @@ protected:
                                     cl_mem a_rpos, cl_mem a_rdir, cl_mem a_color);
 
   void runKernel_TakeHostRays(cl_mem in_rays, cl_mem out_rpos, cl_mem out_rdir, cl_mem out_clearColor, size_t a_size);
-  void runKernel_AccumColor(cl_mem a_inColor, cl_mem a_outColor, size_t a_size, float a_mult);
+  void runKernel_AccumColor(cl_mem a_inColor, cl_mem in_surfId, cl_mem a_outColor, size_t a_size, float a_mult);
 
   void runKernel_InitRandomGen(cl_mem a_buffer, size_t a_size, int a_seed);
   void runKernel_MakeEyeRays(cl_mem a_rpos, cl_mem a_rdir, cl_mem a_zindex, size_t a_size, int a_passNumber);

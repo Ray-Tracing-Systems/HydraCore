@@ -39,7 +39,7 @@
             "request": "launch",
             "program": "${workspaceFolder}/bin/hydra",
             "args": ["-nowindow", "1", 
-                     "-out", "z_out.exr"],
+                     "-out", "z_out.exr", "-pack_surf_id", "1"],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}/hydra_app",
             "environment": [],

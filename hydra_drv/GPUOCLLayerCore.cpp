@@ -47,6 +47,9 @@ void GPUOCLLayer::trace1D_Rev(int a_minBounce, int a_maxBounce, cl_mem a_rpos, c
     runKernel_Trace(a_rpos, a_rdir, a_size,
                     m_rays.hits);
 
+    if (m_vars.m_varsI[HRT_ENABLE_SURFACE_PACK] && bounce == 0)
+      runKernel_CopySurfaceIdTo(m_rays.hits, m_rays.surfId, a_size); // ==> m_rays.surfId
+
     if (m_vars.m_varsI[HRT_ENABLE_MRAYS_COUNTERS] && measureThisBounce)
     {
       clFinish(m_globals.cmdQueue);
@@ -59,7 +62,7 @@ void GPUOCLLayer::trace1D_Rev(int a_minBounce, int a_maxBounce, cl_mem a_rpos, c
 
     runKernel_HitEnvOrLight(m_rays.rayFlags, a_rpos, a_rdir, a_outColor, bounce, a_minBounce, a_size);
 
-    if (FORCE_DRAW_SHADOW && bounce == 1)
+    if (FORCE_DRAW_SHADOW && bounce == 1) // why not bounce == 0 ?
     {
       CopyShadowTo(a_outColor, m_rays.MEGABLOCKSIZE);
       break;
@@ -368,6 +371,22 @@ void GPUOCLLayer::CopyShadowTo(cl_mem a_color, size_t a_size)
 
   CHECK_CL(clSetKernelArg(kern, 0, sizeof(cl_mem), (void*)&m_rays.pathShadow8B));
   CHECK_CL(clSetKernelArg(kern, 1, sizeof(cl_mem), (void*)&a_color)); 
+  CHECK_CL(clSetKernelArg(kern, 2, sizeof(cl_int), (void*)&iSize));
+
+  CHECK_CL(clEnqueueNDRangeKernel(m_globals.cmdQueue, kern, 1, NULL, &a_size, &localWorkSize, 0, NULL, NULL));
+  waitIfDebug(__FILE__, __LINE__);
+}
+
+void GPUOCLLayer::runKernel_CopySurfaceIdTo(cl_mem a_from, cl_mem a_to, size_t a_size)
+{
+  size_t localWorkSize   = CMP_RESULTS_BLOCK_SIZE;
+  int iSize              = int(a_size);
+  a_size                 = roundBlocks(a_size, int(localWorkSize));
+
+  cl_kernel kern         = m_progs.screen.kernel("CopySurfIdTo");
+
+  CHECK_CL(clSetKernelArg(kern, 0, sizeof(cl_mem), (void*)&a_from));
+  CHECK_CL(clSetKernelArg(kern, 1, sizeof(cl_mem), (void*)&a_to)); 
   CHECK_CL(clSetKernelArg(kern, 2, sizeof(cl_int), (void*)&iSize));
 
   CHECK_CL(clEnqueueNDRangeKernel(m_globals.cmdQueue, kern, 1, NULL, &a_size, &localWorkSize, 0, NULL, NULL));

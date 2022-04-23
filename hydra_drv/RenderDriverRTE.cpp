@@ -377,6 +377,11 @@ bool RenderDriverRTE::UpdateSettings(pugi::xml_node a_settingsNode)
   else  
     vars.m_varsI[HRT_QMC_VARIANT] = 0;
 
+  if(a_settingsNode.child(L"pack_surf_id") != nullptr)
+    vars.m_varsI[HRT_ENABLE_SURFACE_PACK] = a_settingsNode.child(L"pack_surf_id").text().as_int();
+  else
+    vars.m_varsI[HRT_ENABLE_SURFACE_PACK] = 0;
+
   m_pHWLayer->SetAllFlagsAndVars(vars);
   m_pHWLayer->SetSettingsNode(a_settingsNode);
   m_lastSettings = a_settingsNode;
