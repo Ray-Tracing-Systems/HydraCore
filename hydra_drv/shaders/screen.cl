@@ -921,7 +921,7 @@ __kernel void CopySurfIdTo(__global const Lite_Hit* in_hit, __global uint* out_s
   int tid = GLOBAL_ID_X;
   if (tid >= iNumElements)
     return;
-  out_surfId[tid] = in_hit[tid].instId;
+  out_surfId[tid] = in_hit[tid].instId; //geomId; //instId;
 }
 
 __kernel void AccumColor3f(__global const float4* in_color, __global const uint* in_surfId, __global float4* out_color, int iNumElements, float a_mult, int a_insertSurfId)

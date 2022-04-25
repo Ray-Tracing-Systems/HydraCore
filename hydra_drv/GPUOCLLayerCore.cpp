@@ -81,7 +81,7 @@ void GPUOCLLayer::trace1D_Rev(int a_minBounce, int a_maxBounce, cl_mem a_rpos, c
       timeForHit       = timeBeforeShadow - timeForHitStart;
     }
 
-    if (m_vars.shadePassEnable(bounce, a_minBounce, a_maxBounce))
+    if (m_vars.shadePassEnable(bounce, a_minBounce, a_maxBounce) && m_scene.instLightInstSize != 0)
     {
       ShadePass(a_rpos, a_rdir, m_rays.pathShadeColor, a_size, measureThisBounce);
     }
