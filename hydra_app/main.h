@@ -29,5 +29,3 @@
 #include "hydra_api/HydraXMLHelpers.h"
 
 #include "Camera.h"
-
-
