@@ -240,10 +240,13 @@ static void Draw(std::shared_ptr<IHRRenderDriver> a_pDetachedRenderDriverPointer
         paramNode.force_child(L"max_cpu_threads").text() = g_input.maxCPUThreads;
       }
 
-      for(auto param : g_input.m_allParams) {
-         std::wstring paramName  = s2ws(param.first.substr(1));
-         std::wstring paramValue = s2ws(param.second);
-         paramNode.force_child(paramName.c_str()).text() = paramValue.c_str();
+      for(auto param : g_input.m_allParams) 
+      {  
+        bool isKey = param.first.size() > 0 && param.first[0] == '-'; 
+        std::wstring paramName  = s2ws(param.first.substr(1));
+        std::wstring paramValue = s2ws(param.second);
+        if(paramName.size() > 0 && isKey && paramName.find(L"\\") == std::wstring::npos && paramName.find(L"/") == std::wstring::npos)
+          paramNode.force_child(paramName.c_str()).text() = paramValue.c_str();
       }
     }
     hrRenderClose(renderRef);
