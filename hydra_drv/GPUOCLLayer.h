@@ -113,7 +113,7 @@ public:
   void RecompileProcTexShaders(const std::string& a_shaderPath) override;
   
   float GetSPP       () const override { return m_spp; }
-  float GetSPPDone   () const override { return m_sppDone + m_spp; }
+  float GetSPPDone   () const override { return m_sppDone; }
   float GetSPPContrib() const override { return m_sppContrib;}
   
 protected:

@@ -233,7 +233,8 @@ void GPUOCLLayer::AddContributionToScreenCPU(cl_mem& in_color, int a_size, int a
 
     if (lockSuccess)
     {
-      if(m_camPlugin.pCamPlugin != nullptr) {
+      if(m_camPlugin.pCamPlugin != nullptr) 
+      {
         auto startContrib = std::chrono::high_resolution_clock::now();
         m_camPlugin.pCamPlugin->AddSamplesContribution((float*)out_color, (const float*)colors, size, a_width, a_height, m_passNumber);
         m_camPlugin.pipeTime[2] = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - startContrib).count()/1000.f;

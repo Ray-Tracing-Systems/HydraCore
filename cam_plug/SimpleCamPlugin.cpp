@@ -672,7 +672,7 @@ void TableLens::AddSamplesContribution(float* out_color4f, const float* colors4f
 
 void TableLens::FinishRendering() 
 {
-  std::cout << "TableLens::FinishRendering is called" << std::endl; 
+  std::cout << "TableLens::FinishRendering is called, m_spp(actual) = " << m_spp << std::endl; 
   std::vector<uint32_t> imageLDR(m_width*m_height);
 
   const float multInv = 1.0f/m_spp;
