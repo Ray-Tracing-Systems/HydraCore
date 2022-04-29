@@ -18,6 +18,8 @@
 #include "../../HydraAPI/hydra_api/HydraAPI.h"
 #include "../../HydraAPI/hydra_api/pugixml.hpp" // for XML
 
+#include "../../HydraAPI/hydra_api/HR_HDRImageTool.h" // for HydraRender::SaveImageToFile
+
 class SimpleDOF : public IHostRaysAPI
 {
 public:
@@ -190,6 +192,8 @@ public:
     m_fwidth  = float(a_width);
     m_fheight = float(a_height);
     m_aspect  = m_fheight / m_fwidth;
+    m_width   = a_width;
+    m_height  = a_height;
     CalcPhysSize();
     memcpy(&m_projInv, a_projInvMatrix, sizeof(float4x4));
     
@@ -207,7 +211,7 @@ public:
 
   void MakeRaysBlock(RayPart1* out_rayPosAndNear, RayPart2* out_rayDirAndFar, size_t in_blockSize, int passId) override;
   void AddSamplesContribution(float* out_color4f, const float* colors4f, size_t in_blockSize, uint32_t a_width, uint32_t a_height, int passId) override;
-  void FinishRendering() override { std::cout << "TableLens::FinishRendering is called" << std::endl; }
+  void FinishRendering() override;
 
   pugi::xml_document m_doc;
 
@@ -217,12 +221,15 @@ public:
   float m_fwidth  = 1024.0f;
   float m_fheight = 1024.0f;
   float m_aspect  = 1.0f;
+  int m_width, m_height;
   float2 m_physSize;
   float4x4 m_projInv;
   float m_diagonal    = 1.0f; // on meter
+  float4*  m_lastColorPointer = nullptr;
 
   mutable std::vector<float3> m_debugPos;
   bool m_enableDebug = false;
+  float   m_spp    = 0;
 
   //////////////////////////////////////////////////////////////////////////////////////
   //////////////////////////////////////////////////////////////////////////////////////
@@ -615,6 +622,13 @@ void TableLens::MakeRaysBlock(RayPart1* out_rayPosAndNear, RayPart2* out_rayDirA
 
 void TableLens::AddSamplesContribution(float* out_color4f, const float* colors4f, size_t in_blockSize, uint32_t a_width, uint32_t a_height, int passId)
 {
+  static bool firstTime = true;
+  if(firstTime)
+  {
+    memset(out_color4f, 0, m_width*m_height*sizeof(float)*4); // force zero color
+    firstTime = false;
+  }
+
   const int takeID = (passId + HOST_RAYS_PIPELINE_LENGTH - 2) % HOST_RAYS_PIPELINE_LENGTH;
   //std::cout << "[TableLens]: AddSamContrib, passId = " << passId << "; takeId = " << takeID << std::endl;
 
@@ -648,10 +662,31 @@ void TableLens::AddSamplesContribution(float* out_color4f, const float* colors4f
       out_color[offset].x += color.x*passData.cosPower4;
       out_color[offset].y += color.y*passData.cosPower4;
       out_color[offset].z += color.z*passData.cosPower4;
+      out_color[offset].w += 1.0f;
     }
   }
+
+  m_spp += float(in_blockSize) / float(a_width*a_height);
+  m_lastColorPointer = (float4*)out_color;
 }
 
+void TableLens::FinishRendering() 
+{
+  std::cout << "TableLens::FinishRendering is called" << std::endl; 
+  std::vector<uint32_t> imageLDR(m_width*m_height);
+
+  const float multInv = 1.0f/m_spp;
+
+  #pragma omp parallel for
+  for(int i=0; i<int(imageLDR.size()); i++)
+  {
+    float value = m_lastColorPointer[i].w*multInv; 
+    int32_t value255 = std::min(int32_t(value*255), 255);
+    imageLDR[i] = value255 | (value255 << 8) | (value255 << 16);
+  }
+  
+  HydraRender::SaveImageToFile("z_alpha_image.png", m_width, m_height, imageLDR.data());
+}
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
