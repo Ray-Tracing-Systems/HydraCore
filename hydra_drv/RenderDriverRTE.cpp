@@ -152,7 +152,7 @@ void RenderDriverRTE::ExecuteCommand(const wchar_t* a_cmd, wchar_t* a_out)
     std::cerr << "[RTE], exitnow" << std::endl;
     //m_pHWLayer->FinishAll();
     //std::cerr << "[RTE], exitnow, after  FinishAll" << std::endl;
-    exit(0);
+    //exit(0);
   }
 #endif
 }

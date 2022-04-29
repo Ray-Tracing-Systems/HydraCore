@@ -157,7 +157,7 @@ int main(int argc, const char** argv)
   //
   std::unordered_map<std::string, std::string> cmdParams;
 
-  for (int i = 0; i < argc; )
+  for (int i = 1; i < argc; )
   {
     std::cout << "argv[" << i << "] =\t" << argv[i] << std::endl;
     
