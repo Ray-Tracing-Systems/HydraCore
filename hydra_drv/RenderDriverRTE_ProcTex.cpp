@@ -133,6 +133,15 @@ void ReadAllProcTexArgsFromMaterialNode(pugi::xml_node a_node, const std::unorde
             datav.push_back(as_float(x));
           }
         }
+        else if (type == L"unsigned")
+        {
+          for (int i = 0; i < arraySize; i++)
+          {
+            unsigned int x = 0;
+            strIn >> x;
+            datav.push_back(as_float(x));
+          }
+        }
         else if (type == L"float")
         {
           for (int i = 0; i < arraySize; i++)
