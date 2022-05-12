@@ -219,7 +219,7 @@ void GPUOCLLayer::AddContributionToScreenCPU(cl_mem& in_color, int a_size, int a
 
     bool lockSuccess = (m_pExternalImage == nullptr);
     if (m_pExternalImage != nullptr)
-      lockSuccess = m_pExternalImage->Lock(250); // can wait 250 ms for success lock
+      lockSuccess = m_pExternalImage->Lock(400);
 
     if (lockSuccess)
     {
