@@ -77,8 +77,8 @@ void sig_handler(int signo)
   {
     case SIGINT : std::cerr << "\n[hydra], SIGINT";      break;
     case SIGABRT: std::cerr << "\n[hydra], SIGABRT";     break;
-    case SIGILL : std::cerr << "\n[hydra], SIGINT";      break;
-    case SIGTERM: std::cerr << "\n[hydra], SIGILL";      break;
+    case SIGILL : std::cerr << "\n[hydra], SIGILL";      break;
+    case SIGTERM: std::cerr << "\n[hydra], SIGTERM";      break;
     case SIGSEGV: std::cerr << "\n[hydra], SIGSEGV";     break;
     case SIGFPE : std::cerr << "\n[hydra], SIGFPE";      break;
     case SIGTSTP : std::cerr << "\n[hydra], SIGTSTP";      break;
@@ -132,7 +132,7 @@ int main(int argc, const char** argv)
   hrInfoCallback(&InfoCallBack);
   hrErrorCallerPlace(L"main");  // for debug needs only
   
-  // if application will terminated in an unusual way, you have to call hrDestroy to safely free all resourced
+  // if application will be terminated in an unusual way, you have to call hrDestroy to safely free all resources
   //
   atexit(&destroy);
 #ifdef WIN32
