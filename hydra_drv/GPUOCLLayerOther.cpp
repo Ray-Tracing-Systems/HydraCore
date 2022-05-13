@@ -224,14 +224,14 @@ void GPUOCLLayer::AddContributionToScreenCPU(cl_mem& in_color, int a_size, int a
     bool lockSuccess = (m_pExternalImage == nullptr);
     if (m_pExternalImage != nullptr)
     {
-#ifndef WIN32
-      { // block termination signal from HydraAPI
-        sigset_t nset;
-        sigaddset(&nset, SIGTERM);
-        //sigfillset(&nset);
-        sigprocmask(SIG_BLOCK, &nset, NULL);
-      }
-#endif
+//#ifndef WIN32
+//      { // block termination signal from HydraAPI
+//        sigset_t nset;
+//        sigaddset(&nset, SIGUSR1);
+//        //sigfillset(&nset);
+//        sigprocmask(SIG_BLOCK, &nset, NULL);
+//      }
+//#endif
       lockSuccess = m_pExternalImage->Lock(400);
     }
 
@@ -251,14 +251,17 @@ void GPUOCLLayer::AddContributionToScreenCPU(cl_mem& in_color, int a_size, int a
           m_sppContrib += contribSPP;
         }
         m_pExternalImage->Unlock();
-#ifndef WIN32
-        { // unblock termination signal from HydraAPI
-          sigset_t nset;
-          sigaddset(&nset, SIGTERM);
-          //sigfillset(&nset);
-          sigprocmask(SIG_UNBLOCK, &nset, NULL);
-        }
-#endif
+
+        if(m_vars.m_varsI[HRT_BOX_MODE_ON] == 1 && m_sppContrib >= m_vars.m_varsI[HRT_CONTRIB_SAMPLES])  // quit immediately
+          exit(0);
+//#ifndef WIN32
+//        { // unblock termination signal from HydraAPI
+//          sigset_t nset;
+//          sigaddset(&nset, SIGUSR1);
+//          //sigfillset(&nset);
+//          sigprocmask(SIG_UNBLOCK, &nset, NULL);
+//        }
+//#endif
       }
     }
     else
