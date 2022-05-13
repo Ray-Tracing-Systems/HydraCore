@@ -27,7 +27,6 @@ public:
   
   void SetParameters(int a_width, int a_height, const float a_projInvMatrix[16], const wchar_t* a_camNodeText) override
   {
-
     m_fwidth  = float(a_width);
     m_fheight = float(a_height);
     memcpy(&m_projInv, a_projInvMatrix, sizeof(float4x4));

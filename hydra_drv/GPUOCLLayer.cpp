@@ -19,6 +19,7 @@ extern "C" void initQuasirandomGenerator(unsigned int table[QRNG_DIMENSIONS_K][Q
 
 #include <future>
 #include <chrono>
+#include <iomanip>
 
 constexpr bool SAVE_BUILD_LOG = false;
 
@@ -1167,7 +1168,7 @@ typedef void (*DeleteEmitterFT)(IHostRaysAPI*);
 //IHostRaysAPI* MakeHostRaysEmitter(int a_pluginId);       ///<! you replace this function or make your own ... the example will be provided
 //void          DeleteRaysEmitter(IHostRaysAPI* pObject);
 
-void GPUOCLLayer::InitPathTracing(int seed)
+void GPUOCLLayer::InitPathTracing(int seed, std::vector<int32_t>* pInstRemapTable)
 {
   std::cout << "[cl_core]: InitRandomGen seed = " << seed << std::endl;
   
@@ -1203,7 +1204,14 @@ void GPUOCLLayer::InitPathTracing(int seed)
     else
       m_camPlugin.pCamPlugin = std::shared_ptr<IHostRaysAPI>(MakeHostRaysEmitter(m_vars.m_varsI[HRT_USE_CPU_PLUGIN]), DeleteRaysEmitter);
     
-    std::wstringstream strout;
+    std::wstringstream strout, strout2;
+    
+    uint64_t address = reinterpret_cast<uint64_t>((void*)pInstRemapTable->data());
+    strout2 << std::noshowbase << std::setw(16) << std::setfill(L"0"[0]) << address;
+    auto str2 = strout2.str();
+    m_settingsNode.force_child(L"remapInstAddress").text() = str2.c_str();
+    m_settingsNode.force_child(L"remapInstSize").text()    = int(pInstRemapTable->size());
+
     strout << L"<?xml version=\"1.0\"?>" << std::endl;
     m_camNode.print(strout);
     m_settingsNode.print(strout);

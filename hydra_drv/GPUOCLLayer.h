@@ -76,7 +76,7 @@ public:
 
   void FinishAll() override;
 
-  void InitPathTracing(int seed);
+  void InitPathTracing(int seed, std::vector<int32_t>* pInstRemapTable) override;
   void ClearAccumulatedColor();
 
   void ResizeScreen(int w, int h, int a_flags);

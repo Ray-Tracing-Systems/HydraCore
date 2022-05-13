@@ -136,7 +136,7 @@ public:
   virtual void EvalGBuffer(IHRSharedAccumImage* a_pAccumImage, const std::vector<int32_t>& a_instIdByInstId) {}
   virtual void FinishAll() {}
 
-  virtual void InitPathTracing(int seed) = 0;
+  virtual void InitPathTracing(int seed, std::vector<int32_t>* pInstRemapTable = nullptr) = 0;
   virtual void ClearAccumulatedColor() = 0;
   virtual void CPUPluginFinish() {}
 

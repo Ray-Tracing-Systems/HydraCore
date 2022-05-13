@@ -1728,7 +1728,7 @@ void RenderDriverRTE::Draw()
     {
       // (1) init random gens
       //
-      m_pHWLayer->InitPathTracing(m_legacy.m_lastSeed);
+      m_pHWLayer->InitPathTracing(m_legacy.m_lastSeed, &m_instIdByInstId);
       m_ptInitDone = true;
       
       auto flagsAndVars = m_pHWLayer->GetAllFlagsAndVars();
@@ -1766,7 +1766,7 @@ void RenderDriverRTE::Draw()
       int seed = m_legacy.m_lastSeed;
       if(m_lastSettings.child(L"seed") != nullptr)
         seed = m_lastSettings.child(L"seed").text().as_int();
-      m_pHWLayer->InitPathTracing(seed);
+      m_pHWLayer->InitPathTracing(seed, &m_instIdByInstId);
       m_ptInitDone = true;
  
       auto flagsAndVars = m_pHWLayer->GetAllFlagsAndVars();
