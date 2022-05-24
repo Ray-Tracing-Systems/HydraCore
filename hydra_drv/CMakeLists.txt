@@ -64,11 +64,12 @@ set(SOURCE_FILES
         ../bakeBrdfEnergy/MSTablesGGX2017.cpp
         ../bakeBrdfEnergy/MSTablesTransp.cpp
         ../cam_plug/SimpleCamPlugin.cpp
-        ../cam_plug/HydraDLibUnix.cpp
     )
 
 if(WIN32)
-    set(SOURCE_FILES ${SOURCE_FILES} BVHBuilderLoaderWin.cpp)
+    set(SOURCE_FILES ${SOURCE_FILES} BVHBuilderLoaderWin.cpp ../cam_plug/HydraDLibWin64.cpp)
+else()
+    set(SOURCE_FILES ${SOURCE_FILES} ../cam_plug/HydraDLibUnix.cpp)
 endif()
 
 if (CMAKE_BUILD_TYPE STREQUAL "Debug")
@@ -76,6 +77,7 @@ if (CMAKE_BUILD_TYPE STREQUAL "Debug")
     add_definitions(-DDEBUG -D_DEBUG)
 endif()
 
+include_directories(${ADDITIONAL_INCLUDE_DIRS})
 include_directories(${HYDRA_API_ROOT_DIR})
 include_directories(${HYDRA_API_UTILS_SRC_DIR})
 

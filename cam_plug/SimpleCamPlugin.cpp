@@ -15,10 +15,10 @@
 
 
 #include "../hydra_drv/cglobals.h"
-#include "../../HydraAPI/hydra_api/HydraAPI.h"
-#include "../../HydraAPI/hydra_api/pugixml.hpp" // for XML
+#include "hydra_api/HydraAPI.h"
+#include "hydra_api/pugixml.hpp" // for XML
 
-#include "../../HydraAPI/hydra_api/HR_HDRImageTool.h" // for HydraRender::SaveImageToFile
+#include "hydra_api/HR_HDRImageTool.h" // for HydraRender::SaveImageToFile
 
 class SimpleDOF : public IHostRaysAPI
 {
