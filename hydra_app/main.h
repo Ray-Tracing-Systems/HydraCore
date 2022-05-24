@@ -14,7 +14,7 @@
 
 #include "utils/Timer.h"
 
-#if defined(USE_GL)
+#if !defined(HYDRA_CMAKE) || defined(USE_GL)
 #if defined(_MSC_VER)
   #include <GLFW/glfw3.h>
   #pragma comment(lib, "glfw3dll.lib")

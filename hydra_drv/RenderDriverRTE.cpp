@@ -363,14 +363,14 @@ bool RenderDriverRTE::UpdateSettings(pugi::xml_node a_settingsNode)
       vars.m_flags |= HRT_PRODUCTION_IMAGE_SAMPLING;
     else
       vars.m_flags = vars.m_flags & ~HRT_PRODUCTION_IMAGE_SAMPLING;
-
-    vars.m_varsI[HRT_CONTRIB_SAMPLES] = a_settingsNode.child(L"contribsamples").text().as_int();
   }
   else
   {
     vars.m_flags = vars.m_flags & ~HRT_PRODUCTION_IMAGE_SAMPLING;
-    vars.m_varsI[HRT_CONTRIB_SAMPLES] = 1000000;
+    //vars.m_varsI[HRT_CONTRIB_SAMPLES] = 1000000;
   }
+
+  vars.m_varsI[HRT_CONTRIB_SAMPLES] = a_settingsNode.child(L"contribsamples").text().as_int();
 
   if(a_settingsNode.child(L"qmc_variant") != nullptr)
     vars.m_varsI[HRT_QMC_VARIANT] = a_settingsNode.child(L"qmc_variant").text().as_int();

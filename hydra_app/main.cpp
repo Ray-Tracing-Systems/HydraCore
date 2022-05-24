@@ -75,15 +75,15 @@ void sig_handler(int signo)
 
   switch(signo)
   {
-    case SIGINT : std::cerr << "\n[hydra], SIGINT";      break;
-    case SIGABRT: std::cerr << "\n[hydra], SIGABRT";     break;
-    case SIGILL : std::cerr << "\n[hydra], SIGINT";      break;
-    case SIGTERM: std::cerr << "\n[hydra], SIGILL";      break;
-    case SIGSEGV: std::cerr << "\n[hydra], SIGSEGV";     break;
-    case SIGFPE : std::cerr << "\n[hydra], SIGFPE";      break;
-    case SIGTSTP : std::cerr << "\n[hydra], SIGTSTP";      break;
-
-    default     : std::cerr << "\n[hydra], SIG_UNKNOWN"; break;
+    case SIGINT  : std::cerr << "\n[hydra]: SIGINT" ; break;
+    case SIGABRT : std::cerr << "\n[hydra]: SIGABRT"; break;
+    case SIGILL  : std::cerr << "\n[hydra]: SIGILL" ; break;
+    case SIGTERM : std::cerr << "\n[hydra]: SIGTERM"; break;
+    case SIGSEGV : std::cerr << "\n[hydra]: SIGSEGV"; break;
+    case SIGFPE  : std::cerr << "\n[hydra]: SIGFPE" ; break;
+    case SIGTSTP : std::cerr << "\n[hydra]: SIGTSTP"; break;
+    case SIGUSR1 : std::cerr << "\n[hydra]: Received signal from HydraAPI to exit now."; break;
+    default      : std::cerr << "\n[hydra]: Received unknown signal."; break;
       break;
   }
 
@@ -99,8 +99,8 @@ void sig_handler(int signo)
     g_pDriver = nullptr;
   }
   destroyedBySig = true;
-
 }
+
 #endif
 
 
@@ -132,24 +132,28 @@ int main(int argc, const char** argv)
   hrInfoCallback(&InfoCallBack);
   hrErrorCallerPlace(L"main");  // for debug needs only
   
-  // if application will terminated in an unusual way, you have to call hrDestroy to safely free all resourced
+  // if application will be terminated in an unusual way, you have to call hrDestroy to safely free all resources
   //
   atexit(&destroy);
 #ifdef WIN32
   SetConsoleCtrlHandler(&HandlerExit, TRUE);  // if some one kill console :)
 #else
   {
-    struct sigaction sigIntHandler;
-    sigIntHandler.sa_handler = sig_handler;
-    sigemptyset(&sigIntHandler.sa_mask);
-    sigIntHandler.sa_flags = SA_RESETHAND;
-    sigaction(SIGINT,  &sigIntHandler, NULL);
-    sigaction(SIGABRT, &sigIntHandler, NULL);
-    sigaction(SIGILL,  &sigIntHandler, NULL);
-    sigaction(SIGTERM, &sigIntHandler, NULL);
-    sigaction(SIGSEGV, &sigIntHandler, NULL);
-    sigaction(SIGFPE,  &sigIntHandler, NULL);
-    sigaction(SIGTSTP,  &sigIntHandler, NULL);
+    {
+      struct sigaction sigIntHandler {};
+      sigIntHandler.sa_handler = sig_handler;
+      sigfillset(&sigIntHandler.sa_mask);
+      //sigemptyset(&sigIntHandler.sa_mask);
+      sigIntHandler.sa_flags = SA_RESETHAND;
+      sigaction(SIGINT, &sigIntHandler, NULL);
+      sigaction(SIGABRT, &sigIntHandler, NULL);
+      sigaction(SIGILL, &sigIntHandler, NULL);
+      sigaction(SIGTERM, &sigIntHandler, NULL);
+      sigaction(SIGSEGV, &sigIntHandler, NULL);
+      sigaction(SIGFPE, &sigIntHandler, NULL);
+      sigaction(SIGTSTP, &sigIntHandler, NULL);
+      sigaction(SIGUSR1, &sigIntHandler, NULL);
+    }
   }
 #endif
 

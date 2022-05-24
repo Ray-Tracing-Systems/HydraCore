@@ -11,6 +11,10 @@
 
 #include "hydra_api/ssemath.h"
 
+#ifndef WIN32
+#include <csignal>
+#endif
+
 void GPUOCLLayer::AddContributionToScreen(cl_mem& in_color, cl_mem in_indices, bool a_copyToLDRNow, int a_layerId, bool a_repackIndex)
 {
   if (m_screen.m_cpuFrameBuffer)
@@ -229,7 +233,17 @@ void GPUOCLLayer::AddContributionToScreenCPU(cl_mem& in_color, int a_size, int a
 
     bool lockSuccess = (m_pExternalImage == nullptr);
     if (m_pExternalImage != nullptr)
-      lockSuccess = m_pExternalImage->Lock(250); // can wait 250 ms for success lock
+    {
+//#ifndef WIN32
+//      { // block termination signal from HydraAPI
+//        sigset_t nset;
+//        sigaddset(&nset, SIGUSR1);
+//        //sigfillset(&nset);
+//        sigprocmask(SIG_BLOCK, &nset, NULL);
+//      }
+//#endif
+      lockSuccess = m_pExternalImage->Lock(400);
+    }
 
     if (lockSuccess)
     {
@@ -253,6 +267,17 @@ void GPUOCLLayer::AddContributionToScreenCPU(cl_mem& in_color, int a_size, int a
           m_sppContrib += contribSPP;
         }
         m_pExternalImage->Unlock();
+
+        if(m_vars.m_varsI[HRT_BOX_MODE_ON] == 1 && m_sppContrib >= m_vars.m_varsI[HRT_CONTRIB_SAMPLES])  // quit immediately
+          exit(0);
+//#ifndef WIN32
+//        { // unblock termination signal from HydraAPI
+//          sigset_t nset;
+//          sigaddset(&nset, SIGUSR1);
+//          //sigfillset(&nset);
+//          sigprocmask(SIG_UNBLOCK, &nset, NULL);
+//        }
+//#endif
       }
     }
     else

@@ -224,7 +224,6 @@ static void Draw(std::shared_ptr<IHRRenderDriver> a_pDetachedRenderDriverPointer
       if(g_input.outLDRImage != "")
       {
         paramNode.force_child(L"boxmode").text()        = 1;
-        paramNode.force_child(L"contribsamples").text() = g_input.maxSamplesContrib;
       }
       else
         paramNode.force_child(L"boxmode").text() = g_input.boxMode ? 1 : 0;
@@ -248,6 +247,9 @@ static void Draw(std::shared_ptr<IHRRenderDriver> a_pDetachedRenderDriverPointer
         if(paramName.size() > 0 && isKey && paramName.find(L"\\") == std::wstring::npos && paramName.find(L"/") == std::wstring::npos)
           paramNode.force_child(paramName.c_str()).text() = paramValue.c_str();
       }
+
+
+      paramNode.force_child(L"contribsamples").text() = g_input.maxSamplesContrib;
     }
     hrRenderClose(renderRef);
     std::cout << "[main]: commit scene ... " << std::endl;
