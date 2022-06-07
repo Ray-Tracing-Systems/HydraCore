@@ -90,11 +90,17 @@ static void DispatchCommand(const char* message)
 
 }
 
+extern std::wstring g_internalLibPath;
+extern std::wstring g_internalSateFile;
+
 bool InitSceneLibAndRTE(HRCameraRef& a_camRef, HRSceneInstRef& a_scnRef, HRRenderRef&  a_renderRef, std::shared_ptr<IHRRenderDriver> a_pDriver)
 {
   hrErrorCallerPlace(L"InitSceneLibAndRTE");
 
   const std::wstring libraryPath = (g_input.inStateFile == "") ? s2ws(g_input.inLibraryPath) : s2ws(g_input.inLibraryPath + "/" + g_input.inStateFile);
+
+  g_internalLibPath  = s2ws(g_input.inLibraryPath);
+  g_internalSateFile = s2ws(g_input.inStateFile.substr(0, g_input.inStateFile.size()-2));
 
   HRInitInfo initInfo;
   initInfo.vbSize                    = 1024; // do not allocate vb.
