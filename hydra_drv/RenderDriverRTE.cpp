@@ -743,7 +743,7 @@ void RenderDriverRTE::GetLastErrorW(wchar_t a_msg[256])
   m_msg = L"";
 }
 
-bool RenderDriverRTE::UpdateImage(int32_t a_texId, int32_t w, int32_t h, int32_t bpp, const void* a_data, pugi::xml_node a_texNode)
+bool RenderDriverRTE::UpdateImage(int32_t a_texId, int32_t w, int32_t h, int32_t bpp, int32_t chan, const void* a_data, pugi::xml_node a_texNode)
 {
   std::wstring type = a_texNode.attribute(L"type").as_string();
 
@@ -804,7 +804,7 @@ bool RenderDriverRTE::UpdateImage(int32_t a_texId, int32_t w, int32_t h, int32_t
 
   texheader.width  = w;
   texheader.height = h;
-  texheader.depth  = 1;
+  texheader.depth  = chan;
   texheader.bpp    = bpp;
 
   const size_t inDataBSz  = size_t(w)*size_t(h)*size_t(bpp);
@@ -1902,6 +1902,7 @@ void RenderDriverRTE::Draw()
     std::cout << "[stat]: nextbounce = " << m_avgStats.nextBounceMs    << "\t ms" << std::endl;
     std::cout << "[stat]: fullbounce = " << m_avgStats.bounceTimeMS    << "\t ms" << std::endl;
     std::cout << "[stat]: sampletime = " << m_avgStats.sampleTimeMS    << "\t ms" << std::endl;
+    std::cout << "[stat]: proctex = " << m_avgStats.procTexMs    << "\t ms" << std::endl;
     std::cout << "[stat]: MSampl/sec = " << msamp << std::endl;
 
     const float traceTimePerCent = 100.0f*(m_avgStats.traversalTimeMs + m_avgStats.shadowTimeMs) / m_avgStats.bounceTimeMS;

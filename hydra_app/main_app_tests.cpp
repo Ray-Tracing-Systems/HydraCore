@@ -31,11 +31,11 @@ float ImagesMSE(const std::wstring& a_path1, const std::wstring& a_path2)
   std::string path1 = ws2s(a_path1);
   std::string path2 = ws2s(a_path2);
   
-  int w1, h1, w2, h2;
+  int w1, h1, w2, h2, chan1, chan2;
   std::vector<float> data1, data2;
   
-  HydraRender::LoadImageFromFile(path1.c_str(), data1, w1, h1);
-  HydraRender::LoadImageFromFile(path2.c_str(), data2, w2, h2);
+  HydraRender::LoadImageFromFile(path1, data1, w1, h1, chan1);
+  HydraRender::LoadImageFromFile(path2, data2, w2, h2, chan2);
   
   if (w1 != w2 || h1 != h2)
     return 10000.0f;
