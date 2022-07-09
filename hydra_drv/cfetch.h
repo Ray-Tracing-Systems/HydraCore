@@ -302,6 +302,13 @@ static inline float4 read_array_uchar4(__global const uchar4* a_data, int offset
   return mult*make_float4((float)c0.x, (float)c0.y, (float)c0.z, (float)c0.w);
 }
 
+static inline float read_array_uchar(__global const unsigned char* a_data, int offset)
+{
+  const float mult = 0.003921568f; // (1.0f/255.0f);
+  const unsigned char c  = a_data[offset];
+  return mult * (float)c;
+}
+
 static inline int4 bilinearOffsets(const float ffx, const float ffy, const int a_flags, const int w, const int h)
 {
 	const int sx = (ffx > 0.0f) ? 1 : -1;
@@ -360,6 +367,7 @@ static inline float read_imagef_sw1(texture2d_t a_tex, const float2 a_texCoord, 
 
   const int w   = header.x;
   const int h   = header.y;
+  const int bpp = header.w;
 
   const float fw  = (float)(w);
   const float fh  = (float)(h);
@@ -402,7 +410,16 @@ static inline float read_imagef_sw1(texture2d_t a_tex, const float2 a_texCoord, 
       py = (py < 0) ? py + h : py;
     }
 
-    res = fdata[py*w + px];
+    const int offset = py*w + px;
+    if (bpp == 4)
+      res = fdata[offset];
+    else if (bpp == 1)
+    {
+      res = read_array_uchar((__global const unsigned char*)(a_tex + 1), offset);
+      //__global const float4* fdata = (__global const float4*)(a_tex + 1);
+
+    }
+    // res = fdata[offset];
   }
   else
   {
@@ -423,12 +440,24 @@ static inline float read_imagef_sw1(texture2d_t a_tex, const float2 a_texCoord, 
 
     const int4 offsets = bilinearOffsets(ffx, ffy, a_flags, w, h);
 
-    const float f1 = fdata[offsets.x];
-    const float f2 = fdata[offsets.y];
-    const float f3 = fdata[offsets.z];
-    const float f4 = fdata[offsets.w];
+    if (bpp == 4)
+    {
+      const float f1 = fdata[offsets.x];
+      const float f2 = fdata[offsets.y];
+      const float f3 = fdata[offsets.z];
+      const float f4 = fdata[offsets.w];
 
-    res = f1 * w1 + f2 * w2 + f3 * w3 + f4 * w4;
+      res = f1 * w1 + f2 * w2 + f3 * w3 + f4 * w4;
+    }
+    else if (bpp == 1)
+    {
+      const float f1 = read_array_uchar((__global const unsigned char*)(a_tex + 1), offsets.x);
+      const float f2 = read_array_uchar((__global const unsigned char*)(a_tex + 1), offsets.y);
+      const float f3 = read_array_uchar((__global const unsigned char*)(a_tex + 1), offsets.z);
+      const float f4 = read_array_uchar((__global const unsigned char*)(a_tex + 1), offsets.w);
+
+      res = f1 * w1 + f2 * w2 + f3 * w3 + f4 * w4;
+    }
   }
 
   return res;
@@ -444,8 +473,8 @@ static inline float4 read_imagef_sw4(texture2d_t a_tex, const float2 a_texCoord,
   const int bpp = header.w;
   if(d == 1)
   {
-    float val = 100 * read_imagef_sw1(a_tex, a_texCoord, a_flags);
-    return make_float4(val, 0, 0, 1);
+    float val = read_imagef_sw1(a_tex, a_texCoord, a_flags);
+    return make_float4(val, val, val, 1);
   }
 
   const float fw  = (float)(w);
