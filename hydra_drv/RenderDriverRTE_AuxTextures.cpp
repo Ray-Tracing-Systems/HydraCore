@@ -187,6 +187,8 @@ void RenderDriverRTE::AverageStats(const MRaysStat& a_stats, MRaysStat& a_statsR
   a_statsRes.samLightTimeMs = (1.0f - alpha)*a_statsRes.samLightTimeMs + a_stats.samLightTimeMs*alpha;
   a_statsRes.shadeTimeMs    = (1.0f - alpha)*a_statsRes.shadeTimeMs + a_stats.shadeTimeMs*alpha;
 
+  a_statsRes.procTexMs     = (1.0f - alpha)*a_statsRes.procTexMs + a_stats.procTexMs*alpha;
+
   a_statsRes.traceTimePerCent = int( (1.0f - alpha)*float(a_statsRes.traceTimePerCent) + float(a_stats.traceTimePerCent*alpha) );
   a_statsRes.traversalTimeMs  = (1.0f - alpha)*a_statsRes.traversalTimeMs + a_stats.traversalTimeMs*alpha;
 

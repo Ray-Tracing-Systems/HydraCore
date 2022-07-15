@@ -321,18 +321,28 @@ protected:
   {
     DummyGBufferImage() : half1(nullptr), half2(nullptr) {}
 
-    bool Create(int w, int h, int d, const char* name, char errMsg[256]) override 
+    bool CreateInternal(int w, int h, int d, int channels, const char* name, char errMsg[ERR_MSG_SZ])
     {
       m_data.resize(w*h*8);
 
       header.width  = w;
       header.height = h;
       header.depth  = d;
+      header.channels = 4;
       header.gbufferIsEmpty = 1;
 
       half1 = m_data.data();
       half2 = m_data.data() + w*h*4;
       return true;
+    }
+    bool Create(int w, int h, int d, const char* name, char errMsg[ERR_MSG_SZ]) override
+    {
+      return CreateInternal(w, h, d, 4, name, errMsg);
+    }
+
+    bool Create(int w, int h, int d, int channels, const char* name, char errMsg[ERR_MSG_SZ]) override
+    {
+      return CreateInternal(w, h, d, channels, name, errMsg);
     }
 
     bool Attach(const char* name, char errMsg[256]) override { return false; }

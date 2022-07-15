@@ -481,10 +481,10 @@ void GPUOCLLayer::MMLT_Pass(int a_passNumber, int minBounce, int maxBounce, int 
     //
     if(m_screen.m_cpuFrameBuffer)
     {
-      int width, height;
-      float4* resultPtr = const_cast<float4*>(GetCPUScreenBuffer(0, width, height));
+      int width, height, channels;
+      float* resultPtr = const_cast<float*>(GetCPUScreenBuffer(0, width, height, channels));
      
-      AddContributionToScreenCPU2(m_mlt.yMultAlpha, m_mlt.xMultOneMinusAlpha, int(m_rays.MEGABLOCKSIZE), width, height,
+      AddContributionToScreenCPU2(m_mlt.yMultAlpha, m_mlt.xMultOneMinusAlpha, int(m_rays.MEGABLOCKSIZE), width, height, channels,
                                   resultPtr);
     }
     else

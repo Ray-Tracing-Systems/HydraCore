@@ -682,7 +682,14 @@ void GPUOCLLayer::runKernel_ComputeHit(cl_mem a_rpos, cl_mem a_rdir, cl_mem a_hi
     CHECK_CL(clSetKernelArg(kernProcT,10, sizeof(cl_mem), (void*)&m_scene.allGlobsData));
     CHECK_CL(clSetKernelArg(kernProcT,11, sizeof(cl_int), (void*)&isize));
 
+//    auto timestart = m_timer.getElapsed();
+//    cl_int cErr = clFinish(m_globals.cmdQueue);
     CHECK_CL(clEnqueueNDRangeKernel(m_globals.cmdQueue, kernProcT, 1, NULL, &a_sizeRun, &localWorkSize, 0, NULL, NULL));
+//    cErr = clFinish(m_globals.cmdQueue);
+//    auto timeEnd = m_timer.getElapsed();
+//    m_stat.procTexMs += (timeEnd - timestart) * 1000;
+
+//    std::cout << (timeEnd - timestart) * 1000 << std::endl;
     waitIfDebug(__FILE__, __LINE__);
   }
 }

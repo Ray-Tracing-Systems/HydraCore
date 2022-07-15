@@ -168,6 +168,13 @@ bool RenderDriverRTE::UpdateSettings(pugi::xml_node a_settingsNode)
   if (a_settingsNode.child(L"height") != nullptr)
     m_height = a_settingsNode.child(L"height").text().as_int();
 
+  auto vars = m_pHWLayer->GetAllFlagsAndVars();
+
+  if (a_settingsNode.child(L"framebuffer_channels") != nullptr)
+    vars.m_varsI[HRT_FBUF_CHANNELS] = a_settingsNode.child(L"framebuffer_channels").text().as_int();
+  else
+    vars.m_varsI[HRT_FBUF_CHANNELS] = 4;
+
   if (m_width < 0 || m_height < 0)
   {
     m_msg = L"RenderDriverRTE::UpdateSettings, bad input resolution";
@@ -178,17 +185,6 @@ bool RenderDriverRTE::UpdateSettings(pugi::xml_node a_settingsNode)
     return false;
   
   m_maxRaysPerPixel = a_settingsNode.child(L"maxRaysPerPixel").text().as_int();
-
-  if (oldWidth != m_width || oldHeight != m_height || m_firstResizeOfScreen)
-  {
-    int flags = MEASURE_RAYS ? GPU_RT_MEMORY_FULL_SIZE_MODE : 0;
-    m_pHWLayer->ResizeScreen(m_width, m_height, (flags | m_initFlags));
-    m_firstResizeOfScreen = false;
-  }
-
-  //
-  //
-  auto vars = m_pHWLayer->GetAllFlagsAndVars();
 
   vars.m_flags |= (HRT_USE_MIS | HRT_COMPUTE_SHADOWS);
 
@@ -385,6 +381,14 @@ bool RenderDriverRTE::UpdateSettings(pugi::xml_node a_settingsNode)
   m_pHWLayer->SetAllFlagsAndVars(vars);
   m_pHWLayer->SetSettingsNode(a_settingsNode);
   m_lastSettings = a_settingsNode;
+
+  if (oldWidth != m_width || oldHeight != m_height || m_firstResizeOfScreen)
+  {
+    int flags = MEASURE_RAYS ? GPU_RT_MEMORY_FULL_SIZE_MODE : 0;
+    m_pHWLayer->ResizeScreen(m_width, m_height, (flags | m_initFlags));
+    m_firstResizeOfScreen = false;
+  }
+
   return true;
 }
 
@@ -727,7 +731,7 @@ HRDriverAllocInfo RenderDriverRTE::AllocAll(HRDriverAllocInfo a_info)
 
   if (newTotalMem >= freeMem)
   {
-    std::cerr << "[AllocAll]: NOT ENOUGHT MEMORY! --- " << std::endl;
+    std::cerr << "[AllocAll]: NOT ENOUGH MEMORY! --- " << std::endl;
   }
 
   m_lastAllocInfo         = a_info;

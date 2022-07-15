@@ -464,7 +464,9 @@ enum VARIABLE_NAMES { // int vars
                       HRT_SHADOW_MATTE_BACK_COLOR_Y= 43,
                       HRT_SHADOW_MATTE_BACK_COLOR_Z= 44,
                       HRT_USE_CPU_PLUGIN           = 45,
-                      HRT_ENABLE_SURFACE_PACK      = 46, 
+                      HRT_ENABLE_SURFACE_PACK      = 46,
+                      HRT_FBUF_CHANNELS            = 47,
+
 };
 
 enum VARIABLE_FLOAT_NAMES{ // float vars
@@ -1761,6 +1763,8 @@ struct MRaysStat
   float nextBounceMs;
 
   float sampleTimeMS;
+
+  float procTexMs;
 };
 
 static inline float probabilityAbsorbRR(uint a_flags, uint a_globalFlags)

@@ -886,9 +886,10 @@ void GPUOCLLayer::ResizeScreen(int width, int height, int a_flags)
     m_screen.color0                 = nullptr;
     m_screen.targetFrameBuffPointer = nullptr;
     m_screen.pbo                    = nullptr;
+    m_screen.m_cpuFbufChannels      = m_vars.m_varsI[HRT_FBUF_CHANNELS];
 
     if(m_pExternalImage == nullptr)
-      m_screen.color0CPU.resize(width*height);
+      m_screen.color0CPU.resize(width * height * m_screen.m_cpuFbufChannels);
 
     std::cout << "[cl_core]: use CPU framebuffer" << std::endl;
   }
@@ -1009,30 +1010,35 @@ void GPUOCLLayer::GetLDRImage(uint* data, int width, int height) const
   cl_mem tempLDRBuff     = m_screen.pbo;
   bool needToFreeLDRBuff = false;
 
-  const float gammaInv   = 1.0f / m_vars.m_varsF[HRT_IMAGE_GAMMA];
-  const int size         = m_width*m_height;
+  const float gammaInv = 1.0f / m_vars.m_varsF[HRT_IMAGE_GAMMA];
+  size_t size          = m_width * m_height;
   
   if (m_screen.m_cpuFrameBuffer) 
   {
     if (m_passNumber - 1 <= 0) // remember about pipelined copy!!
       return;
 
-    int width2, height2;
-    const float4* color0 = GetCPUScreenBuffer(0, width2, height2);
-    const float4* color1 = GetCPUScreenBuffer(1, width2, height2);
+    int width2, height2, channels2;
+    const float* color0 = GetCPUScreenBuffer(0, width2, height2, channels2);
+    const float* color1 = GetCPUScreenBuffer(1, width2, height2, channels2);
 
     float normConst   = 1.0f / m_spp; // 1.0f / float(m_passNumber - 1); // remember about pipelined copy!!
     float normConstDL = 1.0f / m_sppDL; 
 
     if (m_vars.m_flags & HRT_ENABLE_MMLT && (m_vars.m_flags & HRT_ENABLE_SBPT) == 0)  
-      normConst = EstimateMLTNormConst(color0, width, height);
+      normConst = EstimateMLTNormConst((float4*)color0, width, height);
 
-    if (!HydraSSE::g_useSSE)
+    if (!HydraSSE::g_useSSE || channels2 == 1)
     {
       #pragma omp parallel for num_threads(g_maxCPUThreads)
       for (int i = 0; i < size; i++)  // #TODO: use sse and fast pow
       {
-        float4 color = color0[i];
+        float4 color {};
+        if(channels2 == 1)
+          color = {color0[i], color0[i], color0[i], color0[i]};
+        else if(channels2 >= 4)
+          color = {color0[i * 4 + 0], color0[i * 4 + 1], color0[i * 4 + 2], color0[i * 4 + 3]};
+
         color.x = powf(color.x*normConst, gammaInv);
         color.y = powf(color.y*normConst, gammaInv);
         color.z = powf(color.z*normConst, gammaInv);
@@ -1052,34 +1058,43 @@ void GPUOCLLayer::GetLDRImage(uint* data, int width, int height) const
 
       if (m_vars.m_flags & HRT_ENABLE_MMLT && (m_vars.m_flags & HRT_ENABLE_SBPT) == 0)
       {
-        if (color1 != nullptr && color0 != nullptr)
+        assert(channels2 == 4);
+        if(channels2 != 4)
         {
-
-          #pragma omp parallel for num_threads(g_maxCPUThreads)
-          for (int i = 0; i < size; i++)
-          {
-            const __m128 colorDL = _mm_mul_ps(normc2, _mm_load_ps(dataHDR1 + i * 4));
-            const __m128 colorIL = _mm_mul_ps(normc, _mm_load_ps(dataHDR + i * 4));
-            const __m128 color2  = HydraSSE::powf4(_mm_add_ps(colorDL, colorIL), powerf4);
-            const __m128i rgba   = _mm_cvtps_epi32(_mm_min_ps(_mm_mul_ps(color2, const_255), const_255));
-            const __m128i out    = _mm_packus_epi32(rgba, _mm_setzero_si128());
-            const __m128i out2   = _mm_packus_epi16(out, _mm_setzero_si128());
-            data[i] = _mm_cvtsi128_si32(out2);
-          }
-
-        }
-        else if (color0 != nullptr)
-        {
-          #pragma omp parallel for  num_threads(g_maxCPUThreads)
-          for (int i = 0; i < size; i++)
-          {
-            data[i] = HydraSSE::gammaCorr(dataHDR + i * 4, normc, powerf4);
-          }
+          std::cerr << "GPUOCLLayer::GetLDRImage(HRT_ENABLE_MMLT): internal CPU image channels != 4" << std::endl;
+          std::cerr.flush();
         }
         else
         {
-          std::cerr << "GPUOCLLayer::GetLDRImage(HRT_ENABLE_MMLT): both internal CPU images == nullptr!!!" << std::endl;
-          std::cerr.flush();
+          if (color1 != nullptr && color0 != nullptr)
+          {
+            #pragma omp parallel for num_threads(g_maxCPUThreads)
+            for (int i = 0; i < size; i++)
+            {
+              const __m128 colorDL = _mm_mul_ps(normc2, _mm_load_ps(dataHDR1 + i * 4));
+              const __m128 colorIL = _mm_mul_ps(normc, _mm_load_ps(dataHDR + i * 4));
+              const __m128 color2 = HydraSSE::powf4(_mm_add_ps(colorDL, colorIL), powerf4);
+              const __m128i rgba = _mm_cvtps_epi32(_mm_min_ps(_mm_mul_ps(color2, const_255), const_255));
+              const __m128i out = _mm_packus_epi32(rgba, _mm_setzero_si128());
+              const __m128i out2 = _mm_packus_epi16(out, _mm_setzero_si128());
+              data[i] = _mm_cvtsi128_si32(out2);
+            }
+
+          }
+          else if (color0 != nullptr)
+          {
+            #pragma omp parallel for  num_threads(g_maxCPUThreads)
+            for (int i = 0; i < size; i++)
+            {
+              data[i] = HydraSSE::gammaCorr(dataHDR + i * 4, normc, powerf4);
+            }
+          }
+          else
+          {
+            std::cerr << "GPUOCLLayer::GetLDRImage(HRT_ENABLE_MMLT): both internal CPU images == nullptr!!!"
+                      << std::endl;
+            std::cerr.flush();
+          }
         }
 
         //#pragma omp parallel for num_threads(g_maxCPUThreads)
@@ -1090,10 +1105,13 @@ void GPUOCLLayer::GetLDRImage(uint* data, int width, int height) const
       }
       else
       {
-        #pragma omp parallel for num_threads(g_maxCPUThreads)
-        for (int i = 0; i < size; i++)
+        if(channels2 == 4)
         {
-          data[i] = HydraSSE::gammaCorr(dataHDR + i * 4, normc, powerf4);
+          #pragma omp parallel for num_threads(g_maxCPUThreads)
+          for (int i = 0; i < size; i++)
+          {
+            data[i] = HydraSSE::gammaCorr(dataHDR + i * 4, normc, powerf4);
+          }
         }
       }
     }
@@ -1151,11 +1169,17 @@ void GPUOCLLayer::GetHDRImage(float4* data, int width, int height) const
 
   if (m_screen.m_cpuFrameBuffer)
   {
+    if(m_screen.m_cpuFbufChannels != 4)
+      return;
+
     if (m_vars.m_flags & HRT_ENABLE_MMLT)  
-      normConst = EstimateMLTNormConst(m_screen.color0CPU.data(), width, height);
+      normConst = EstimateMLTNormConst((float4*)m_screen.color0CPU.data(), width, height);
 
     for (size_t i = 0; i < (width*height); i++)
-      data[i] = m_screen.color0CPU[i] * normConst;
+    {
+      for(int j = 0; j < m_screen.m_cpuFbufChannels; ++j)
+        data[i][j] = m_screen.color0CPU[i * m_screen.m_cpuFbufChannels + j] * normConst;
+    }
   }
   else if(m_screen.color0 != nullptr)
   {
@@ -1238,8 +1262,8 @@ void GPUOCLLayer::InitPathTracing(int seed, std::vector<int32_t>* pInstRemapTabl
 
 void GPUOCLLayer::ClearAccumulatedColor()
 {
-  if (m_screen.m_cpuFrameBuffer && m_screen.color0CPU.size() != 0)
-    memset(m_screen.color0CPU.data(), 0, m_width*m_height*sizeof(float4));
+  if (m_screen.m_cpuFrameBuffer && !m_screen.color0CPU.empty())
+    memset(m_screen.color0CPU.data(), 0, m_width * m_height * m_screen.m_cpuFbufChannels * sizeof(float));
   else if(m_screen.color0 != nullptr)
     memsetf4(m_screen.color0, make_float4(0, 0, 0, 0.0f), m_width*m_height); // #TODO: change this for 2D memset to support large resolutions!!!!
 
@@ -1258,28 +1282,32 @@ void GPUOCLLayer::ResetPerfCounters()
 }
 
 
-const float4* GPUOCLLayer::GetCPUScreenBuffer(int a_layerId, int& width, int& height) const
+const float* GPUOCLLayer::GetCPUScreenBuffer(int a_layerId, int& width, int& height, int& channels) const
 {
   if(!m_screen.m_cpuFrameBuffer)
     return nullptr;
      
-  const float4* resultPtr = nullptr;
+  const float* resultPtr = nullptr;
   width  = m_width;
   height = m_height;
   
   if (m_pExternalImage != nullptr)
   {
-    resultPtr = (float4*)m_pExternalImage->ImageData(a_layerId);
+    resultPtr = m_pExternalImage->ImageData(a_layerId);
     width     = m_pExternalImage->Header()->width;
     height    = m_pExternalImage->Header()->height;
+    channels  = m_pExternalImage->Header()->channels;
   }
   else
   {
+    channels = m_screen.m_cpuFbufChannels;
     if(a_layerId == 0)
-      resultPtr = m_screen.color0CPU.data();
+      resultPtr = reinterpret_cast<const float *>(m_screen.color0CPU.data());
     else if(a_layerId == 1)
-      resultPtr = m_mlt.colorDLCPU.data();
+      resultPtr = reinterpret_cast<const float *>(m_mlt.colorDLCPU.data());
   }
+
+  std::cout << "GPUOCLLayer::GetCPUScreenBuffer channels = " << channels;
 
   return resultPtr;     
 }

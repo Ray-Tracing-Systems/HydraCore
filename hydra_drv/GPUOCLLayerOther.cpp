@@ -19,12 +19,12 @@ void GPUOCLLayer::AddContributionToScreen(cl_mem& in_color, cl_mem in_indices, b
 {
   if (m_screen.m_cpuFrameBuffer)
   { 
-    int width, height;
-    float4* resultPtr = const_cast<float4*>( GetCPUScreenBuffer(a_layerId, width, height) );
+    int width, height, channels;
+    auto resultPtr = const_cast<float*>( GetCPUScreenBuffer(a_layerId, width, height, channels) );
 
     assert(resultPtr != nullptr);
 
-    AddContributionToScreenCPU(in_color, int(m_rays.MEGABLOCKSIZE), width, height,
+    AddContributionToScreenCPU(in_color, int(m_rays.MEGABLOCKSIZE), width, height, channels,
                                resultPtr, a_repackIndex);
   }
   else
@@ -52,21 +52,27 @@ void GPUOCLLayer::AddContributionToScreen(cl_mem& in_color, cl_mem in_indices, b
 \param a_height   - image height
 
 */
-void AddSamplesContribution(float4* out_color, const float4* colors, int a_size, int a_width, int a_height)
+void AddSamplesContribution(float* out_color, const float4* colors, int a_size, int a_width, int a_height, int a_channels)
 {
+  const int ch = a_channels == 4 ? 3 : a_channels;
+
   for (int i = 0; i < a_size; i++)
   {
     const float4 color    = colors[i];
     const int packedIndex = as_int(color.w);
     const int x           = (packedIndex & 0x0000FFFF);
     const int y           = (packedIndex & 0xFFFF0000) >> 16;
-    const int offset      = y*a_width + x;
+    const int offset      = y * a_width + x;
 
     if (x >= 0 && y >= 0 && x < a_width && y < a_height)
     {
-      out_color[offset].x += color.x;
-      out_color[offset].y += color.y;
-      out_color[offset].z += color.z;
+      for(int j = 0; j < ch; ++j)
+      {
+        out_color[offset * a_channels + j] += color[j];
+      }
+//      out_color[offset].x += color.x;
+//      out_color[offset].y += color.y;
+//      out_color[offset].z += color.z;
     }
   }
 }
@@ -81,9 +87,11 @@ void AddSamplesContribution(float4* out_color, const float4* colors, int a_size,
 \param a_height   - image height
 
 */
-void AddSamplesContributionS(float4* out_color, const float4* colors, const unsigned char* shadows, int a_size, int a_width, int a_height)
+void AddSamplesContributionS(float* out_color, const float4* colors, const unsigned char* shadows, int a_size,
+                             int a_width, int a_height, int a_channels)
 {
   const float multInv = 1.0f / 255.0f;
+  const int ch = a_channels == 4 ? 3 : a_channels;
 
   for (int i = 0; i < a_size; i++)
   {
@@ -97,16 +105,22 @@ void AddSamplesContributionS(float4* out_color, const float4* colors, const unsi
 
     if (x >= 0 && y >= 0 && x < a_width && y < a_height)
     {
-      out_color[offset].x += color.x;
-      out_color[offset].y += color.y;
-      out_color[offset].z += color.z;
-      out_color[offset].w += multInv * float(shad);
+//      out_color[offset].x += color.x;
+//      out_color[offset].y += color.y;
+//      out_color[offset].z += color.z;
+      for(int j = 0; j < ch; ++j)
+      {
+        out_color[offset * a_channels + j] += color[j];
+      }
+      if(a_channels == 4)
+        out_color[offset * a_channels + 3] += multInv * float(shad);
     }
   }
 }
 
 
-void GPUOCLLayer::AddContributionToScreenCPU2(cl_mem& in_color, cl_mem& in_color2, int a_size, int a_width, int a_height, float4* out_color)
+void GPUOCLLayer::AddContributionToScreenCPU2(cl_mem& in_color, cl_mem& in_color2, int a_size, int a_width, int a_height,
+                                              int a_channels, float* out_color)
 {
   clFlush(m_globals.cmdQueue);
 
@@ -131,8 +145,8 @@ void GPUOCLLayer::AddContributionToScreenCPU2(cl_mem& in_color, cl_mem& in_color
 
     if (lockSuccess)
     {
-      AddSamplesContribution(out_color, colors1, int(a_size), a_width, a_height);
-      AddSamplesContribution(out_color, colors2, int(a_size), a_width, a_height);
+      AddSamplesContribution(out_color, colors1, int(a_size), a_width, a_height, a_channels);
+      AddSamplesContribution(out_color, colors2, int(a_size), a_width, a_height, a_channels);
 
       if (m_pExternalImage != nullptr)
       {
@@ -173,7 +187,7 @@ void GPUOCLLayer::AddContributionToScreenCPU2(cl_mem& in_color, cl_mem& in_color
   m_passNumber++;
 }
 
-void GPUOCLLayer::AddContributionToScreenCPU(cl_mem& in_color, int a_size, int a_width, int a_height, float4* out_color, bool repackIndex)
+void GPUOCLLayer::AddContributionToScreenCPU(cl_mem& in_color, int a_size, int a_width, int a_height, int a_channels, float* out_color, bool repackIndex)
 {
   // (1) compute compressed index in color.w; use runKernel_MakeEyeRaysAndClearUnified for that task if CPU FB is enabled!!!
   //
@@ -254,9 +268,9 @@ void GPUOCLLayer::AddContributionToScreenCPU(cl_mem& in_color, int a_size, int a
         m_camPlugin.pipeTime[2] = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - startContrib).count()/1000.f;
       }
       else if (m_storeShadowInAlphaChannel)
-        AddSamplesContributionS(out_color, colors, (const unsigned char*)shadows, int(size), a_width, a_height);
+        AddSamplesContributionS(out_color, colors, (const unsigned char*)shadows, int(size), a_width, a_height, a_channels);
       else
-        AddSamplesContribution(out_color, colors, int(size), a_width, a_height);
+        AddSamplesContribution(out_color, colors, int(size), a_width, a_height, a_channels);
 
       if (m_pExternalImage != nullptr) //#TODO: if ((m_vars.m_flags & HRT_FORWARD_TRACING) == 0) IT IS DIFFERENT FOR LT !!!!!!!!!!
       {
@@ -357,7 +371,7 @@ void GPUOCLLayer::ContribToExternalImageAccumulator(IHRSharedAccumImage* a_pImag
     CHECK_CL(clEnqueueReadBuffer(m_globals.cmdQueue, m_screen.color0, CL_TRUE, 0, m_width*m_height * sizeof(cl_float4), m_screen.color0CPU.data(), 0, NULL, NULL));
   }
 
-  float* input = (float*)m_screen.color0CPU.data();
+  float* input = m_screen.color0CPU.data();
   if (input == nullptr)
   {
     std::cerr << "GPUOCLLayer::ContribToExternalImageAccumulator: nullptr internal image" << std::endl;
@@ -375,14 +389,31 @@ void GPUOCLLayer::ContribToExternalImageAccumulator(IHRSharedAccumImage* a_pImag
   if (lockSuccess)
   {
     float* output  = a_pImage->ImageData(0);
-    const int size = m_width*m_height;
+    const int size = m_width * m_height;
 
-    #pragma omp parallel for num_threads(g_maxCPUThreads)
-    for (int i = 0; i < size; i++)
+    if(m_screen.m_cpuFrameBuffer)
     {
+      assert(a_pImage->Header()->channels == m_screen.m_cpuFbufChannels);
+#pragma omp parallel for num_threads(g_maxCPUThreads)
+      for (int i = 0; i < size; i++)
+      {
+//      const __m128 color1 = _mm_load_ps(input  + i * 4);
+//      const __m128 color2 = _mm_load_ps(output + i * 4);
+//      _mm_store_ps(output + i * 4, _mm_add_ps(color1, color2));
+        for(int j = 0; j < m_screen.m_cpuFbufChannels; ++j)
+          output[i * m_screen.m_cpuFbufChannels + j] += input[i * m_screen.m_cpuFbufChannels + j];
+      }
+    }
+
+    else
+    {
+      #pragma omp parallel for num_threads(g_maxCPUThreads)
+      for (int i = 0; i < size; i++)
+      {
       const __m128 color1 = _mm_load_ps(input  + i * 4);
       const __m128 color2 = _mm_load_ps(output + i * 4);
       _mm_store_ps(output + i * 4, _mm_add_ps(color1, color2));
+      }
     }
 
     a_pImage->Header()->counterRcv++;
@@ -573,7 +604,11 @@ void GPUOCLLayer::RunProductionSamplingMode()
       const int pixelPacked = allPixels[currPos + pixId];
       const int x           = (pixelPacked & 0x0000FFFF);
       const int y           = (pixelPacked & 0xFFFF0000) >> 16;
-      m_screen.color0CPU[y*m_width + x] += (pixColors[pixId]*multf);
+      const int offset      = y * m_width + x;
+
+      int ch = std::min(m_screen.m_cpuFbufChannels, 4); //TODO: spectral?
+      for(int i = 0; i < ch; ++i)
+        m_screen.color0CPU[offset * ch + i] += (pixColors[pixId]*multf)[i];
     }
 
     currPos += pixelsPerPass;
@@ -601,9 +636,10 @@ void GPUOCLLayer::RunProductionSamplingMode()
 
   if(m_pExternalImage != nullptr && !earlyExit)
   {
-    float4* resultPtr = (float4*)m_pExternalImage->ImageData(0);
+    float* resultPtr  = m_pExternalImage->ImageData(0);
     const int width   = m_pExternalImage->Header()->width;
     const int height  = m_pExternalImage->Header()->height;
+    assert(m_pExternalImage->Header()->channels == m_screen.m_cpuFbufChannels);
 
     const bool lockSuccess = m_pExternalImage->Lock(1000); // can wait 1s for success lock
 
@@ -612,11 +648,17 @@ void GPUOCLLayer::RunProductionSamplingMode()
       const int size = m_width*m_height;
 
       #pragma omp parallel for
-      for(int i=0;i<size;i++)
+      for(int i = 0; i < size; i++)
       {
-        const float4 color = m_screen.color0CPU[i];
-        resultPtr[i] += color;
-        m_screen.color0CPU[i] = float4(0,0,0,0);
+        for(int j = 0; j < m_screen.m_cpuFbufChannels; ++j)
+        {
+          const float c = m_screen.color0CPU[i * m_screen.m_cpuFbufChannels + j];
+          resultPtr[i * m_screen.m_cpuFbufChannels + j] += c;
+          m_screen.color0CPU[i * m_screen.m_cpuFbufChannels + j] = 0.0f;
+        }
+//        const float4 color = m_screen.color0CPU[i];
+//        resultPtr[i] += color;
+//        m_screen.color0CPU[i] = float4(0,0,0,0);
       }
 
       m_pExternalImage->Header()->counterRcv++;

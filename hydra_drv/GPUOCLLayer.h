@@ -79,7 +79,7 @@ public:
   void InitPathTracing(int seed, std::vector<int32_t>* pInstRemapTable) override;
   void ClearAccumulatedColor();
 
-  void ResizeScreen(int w, int h, int a_flags);
+  void ResizeScreen(int w, int h, int a_flags) override;
 
   void ContribToExternalImageAccumulator(IHRSharedAccumImage* a_pImage);
 
@@ -146,8 +146,8 @@ protected:
   void AddContributionToScreenGPU(cl_mem in_color, cl_mem in_indices, int a_size, int a_width, int a_height, int a_spp, bool a_copyToLDRNow,
                                   cl_mem out_colorHDR, cl_mem out_colorLDR);
 
-  void AddContributionToScreenCPU(cl_mem& in_color, int a_size, int a_width, int a_height, float4* out_color, bool repackIndex = true);
-  void AddContributionToScreenCPU2(cl_mem& in_color, cl_mem& in_color2, int a_size, int a_width, int a_height, float4* out_color);
+  void AddContributionToScreenCPU(cl_mem& in_color, int a_size, int a_width, int a_height, int a_channels, float* out_color, bool repackIndex = true);
+  void AddContributionToScreenCPU2(cl_mem& in_color, cl_mem& in_color2, int a_size, int a_width, int a_height, int a_channels, float* out_color);
 
   float EstimateMLTNormConst(const float4* data, int width, int height) const;
  
@@ -204,14 +204,16 @@ protected:
 
     bool m_cpuFrameBuffer;
 
-    std::vector<float4, aligned16<float4> > color0CPU;
+//    std::vector<float4, aligned16<float4> > color0CPU;
+    std::vector<float> color0CPU;
+    int m_cpuFbufChannels;
 
 
     cl_mem targetFrameBuffPointer;
 
   } m_screen;
 
-  const float4* GetCPUScreenBuffer(int a_layerId, int& width, int& height) const;
+  const float* GetCPUScreenBuffer(int a_layerId, int& width, int& height, int& channels) const;
 
   struct CL_MLT_DATA
   {
