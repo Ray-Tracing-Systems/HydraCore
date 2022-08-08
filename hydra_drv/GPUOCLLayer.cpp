@@ -1035,9 +1035,9 @@ void GPUOCLLayer::GetLDRImage(uint* data, int width, int height) const
       {
         float4 color {};
         if(channels2 == 1)
-          color = {color0[i], color0[i], color0[i], color0[i]};
+          color = float4{color0[i], color0[i], color0[i], color0[i]};
         else if(channels2 >= 4)
-          color = {color0[i * 4 + 0], color0[i * 4 + 1], color0[i * 4 + 2], color0[i * 4 + 3]};
+          color = float4{color0[i * 4 + 0], color0[i * 4 + 1], color0[i * 4 + 2], color0[i * 4 + 3]};
 
         color.x = powf(color.x*normConst, gammaInv);
         color.y = powf(color.y*normConst, gammaInv);
@@ -1307,7 +1307,7 @@ const float* GPUOCLLayer::GetCPUScreenBuffer(int a_layerId, int& width, int& hei
       resultPtr = reinterpret_cast<const float *>(m_mlt.colorDLCPU.data());
   }
 
-  std::cout << "GPUOCLLayer::GetCPUScreenBuffer channels = " << channels;
+  //std::cout << "GPUOCLLayer::GetCPUScreenBuffer channels = " << channels;
 
   return resultPtr;     
 }
