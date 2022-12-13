@@ -37,7 +37,8 @@ It can be necessary if you need it to compile 3ds Max plugin.
 2. Build HydraAPI with visual studio 2019 or later.
 3. Clone HydraCore repo in the same folder (to form "myfolder/HydraCore").
 4. Set **"inDevelopment = false"** inside "input.cpp".
-5. Build HydraCore with visual studio 2019 or later.
+5. NVidia graphics cards have their own shader cache, so it's better to clear it.
+6. Build HydraCore with visual studio 2019 or later.
 
 ### Windows installation
 1. Run shaderpack (set it as a startup project and then press Ctr+F5).
