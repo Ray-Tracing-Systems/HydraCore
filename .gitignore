@@ -304,3 +304,4 @@ hydra_app/Makefile
 *.user
 bakeBrdfEnergy/x64/
 bakeBrdfEnergy/.vs/
+build_generated/
