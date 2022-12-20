@@ -1,5 +1,7 @@
 #include "GPUOCLLayer.h"
 
+#include <iomanip> // for 'std::setfill('0') << std::setw(5)'
+
 void GPUOCLLayer::testScan()
 {
   std::cout << ">>=========== scan test =========== " << std::endl;
@@ -232,16 +234,27 @@ void GPUOCLLayer::testDumpRays(const char* a_fNamePos, const char* a_fnameDir)
   fout2.close();
 }
 
-void GPUOCLLayer::debugDumpF4Buff(const char* a_fNamePos, cl_mem a_buff)
+void GPUOCLLayer::debugDumpF4Buff(const char* a_fNamePos, cl_mem a_buff, bool a_textMode)
 {
   int size = int(m_rays.MEGABLOCKSIZE);
 
   cvex::vector<float4> temp(size);
   CHECK_CL(clEnqueueReadBuffer(m_globals.cmdQueue, a_buff, CL_TRUE, 0, size*sizeof(float4), &temp[0], 0, NULL, NULL));
 
-  std::ofstream fout(a_fNamePos, std::ios::binary);
-  fout.write((const char*)&size, sizeof(int));
-  fout.write((const char*)&temp[0], temp.size()*sizeof(float4));
-  fout.close();
+  if(a_textMode)
+  {
+    std::ofstream fout(a_fNamePos);
+    fout << size << std::endl;
+    for(int i=0;i<size;i++)
+      fout << std::setfill('0') << std::setw(5) << temp[i].x << " " << temp[i].y << " " << temp[i].z << " " << temp[i].w << std::endl;
+    fout.close();
+  }
+  else
+  {
+    std::ofstream fout(a_fNamePos, std::ios::binary);
+    fout.write((const char*)&size, sizeof(int));
+    fout.write((const char*)&temp[0], temp.size()*sizeof(float4));
+    fout.close();
+  }
 }
 

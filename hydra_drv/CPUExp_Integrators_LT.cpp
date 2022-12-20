@@ -156,8 +156,8 @@ void IntegratorLT::ConnectEye(SurfaceHit a_hit, float3 ray_dir, float3 a_accColo
       const float2 posScreenSpace  = worldPosToScreenSpace(a_hit.pos, m_pGlobals);
       //const float2 posScreenSpace2 = worldPosToScreenSpaceWithDOF(a_hit.pos, m_pGlobals, float2(0,0));
 
-      const int x = int(posScreenSpace.x + 0.5f);
-      const int y = int(posScreenSpace.y + 0.5f);
+      const int x = int(posScreenSpace.x);
+      const int y = int(posScreenSpace.y);
 
       if(x >=0 && x <= m_width-1 && y >=0 && y <= m_height-1)
       { 

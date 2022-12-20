@@ -21,7 +21,8 @@ __kernel void MakeEyeRays(int offset,                                  // #TODO:
   float4x4 a_mWorldViewInv = make_float4x4(a_globals->mWorldViewInverse);
 
   float3 ray_pos = make_float3(0.0f, 0.0f, 0.0f);
-  float3 ray_dir = EyeRayDir(screenPos.x, screenPos.y, w, h, a_mViewProjInv);
+  float3 ray_dir = EyeRayDirNormalized((screenPos.x + 0.5f)/(float)w, 
+                                       (screenPos.y + 0.5f)/(float)h, a_mViewProjInv);
 
   ray_dir        = tiltCorrection(ray_pos, ray_dir, a_globals);
 
@@ -278,6 +279,7 @@ __kernel void MakeEyeRaysSamplesOnly(__global RandomGen*           restrict out_
 
 __kernel void MakeEyeRaysUnifiedSampling(__global float4*              restrict out_pos, 
                                          __global float4*              restrict out_dir, 
+                                         __global float4*              restrict out_color, 
                                          __global int*                 restrict out_packXY,
 
                                          int w, int h, int a_size,
@@ -311,8 +313,8 @@ __kernel void MakeEyeRaysUnifiedSampling(__global float4*              restrict 
   MakeEyeRayFromF4Rnd(lensOffs, a_globals,
                       &ray_pos, &ray_dir, &fx, &fy);
 
-  int x = (int)(fx);
-  int y = (int)(fy);
+  int x = (int)(fx); // - 0.5f as were before !!!
+  int y = (int)(fy); // - 0.5f as were before !!!
 
   if (x >= w) x = w - 1;
   if (y >= h) y = h - 1;
@@ -322,6 +324,57 @@ __kernel void MakeEyeRaysUnifiedSampling(__global float4*              restrict 
 
   out_pos   [tid] = to_float4(ray_pos, fx);
   out_dir   [tid] = to_float4(ray_dir, fy);
+  out_color [tid] = make_float4(0,0,0,0);
+  out_packXY[tid] = packXY1616(x, y);
+}
+
+
+__kernel void TakeHostRays(__global float4*             restrict out_pos, 
+                           __global float4*             restrict out_dir, 
+                           __global float4*             restrict out_color,
+                           __global int*                restrict out_packXY,
+                           __global RandomGen*          restrict out_gens,
+                           int w, int h, int a_size,
+                           __global const EngineGlobals* restrict a_globals, 
+                           __global const float4*        restrict in_raysFromHost)
+{
+  int tid = GLOBAL_ID_X;
+  if (tid >= a_size)
+    return;
+   
+  __global const float4* rays1 = in_raysFromHost;
+  __global const float4* rays2 = in_raysFromHost + a_size;
+  
+  const float4 rayPosAndXY = rays1[tid];
+  float3 ray_pos  = to_float3(rayPosAndXY);
+  float3 ray_dir  = to_float3(rays2[tid]);
+  const int packedIndex = as_int(rayPosAndXY.w);
+  
+  int x = (packedIndex & 0x0000FFFF);         ///<! extract x position from color.w
+  int y = (packedIndex & 0xFFFF0000) >> 16;   ///<! extract y position from color.w
+  
+  if (x >= w) x = w - 1;
+  if (y >= h) y = h - 1;
+  
+  if (x < 0)  x = 0;
+  if (y < 0)  y = 0;
+  
+  const float4x4 a_mWorldViewInv = make_float4x4(a_globals->mWorldViewInverse);
+  matrix4x4f_mult_ray3(a_mWorldViewInv, &ray_pos, &ray_dir);
+  
+  //RandomGen gen             = out_gens[tid];
+  //const float4 lensOffs     = rndFloat4_Pseudo(&gen);
+  //out_gens[tid]             = gen;
+  //float  fx, fy;
+  //float3 ray_pos, ray_dir;
+  //MakeEyeRayFromF4Rnd(lensOffs, a_globals,
+  //                    &ray_pos, &ray_dir, &fx, &fy);
+  //int x = (int)(fx);
+  //int y = (int)(fy); // //
+
+  out_pos   [tid] = to_float4(ray_pos, (float)(x));
+  out_dir   [tid] = to_float4(ray_dir, (float)(y));
+  out_color [tid] = make_float4(0,0,0,0);
   out_packXY[tid] = packXY1616(x, y);
 }
 
@@ -863,12 +916,38 @@ __kernel void CopyShadowTo(__global const uchar* in_shadow, __global float4* out
   out_color[tid]     = make_float4(shadow, shadow, shadow, shadow);
 }
 
+__kernel void CopySurfIdTo(__global const Lite_Hit* in_hit, __global uint* out_surfId, int iNumElements)
+{
+  int tid = GLOBAL_ID_X;
+  if (tid >= iNumElements)
+    return;
+  out_surfId[tid] = in_hit[tid].instId; //geomId; //instId;
+}
 
-// change 21.03.2020 15:26;
+__kernel void AccumColor3f(__global const float4* in_color, __global const uint* in_surfId, __global float4* out_color, int iNumElements, float a_mult, int a_insertSurfId)
+{
+  int tid = GLOBAL_ID_X;
+  if (tid >= iNumElements)
+    return;
+  
+  const float4 incomeColor = in_color[tid];
+  float4       currColor   = out_color[tid];
+
+  currColor.x += incomeColor.x*a_mult;
+  currColor.y += incomeColor.y*a_mult;
+  currColor.z += incomeColor.z*a_mult;
+  currColor.w = incomeColor.w;
+
+  if(a_insertSurfId == 1)
+    currColor.w = as_float(in_surfId[tid]);
+
+  out_color[tid] = currColor;
+}
+
+// change 23.04.2022 11:08;
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-

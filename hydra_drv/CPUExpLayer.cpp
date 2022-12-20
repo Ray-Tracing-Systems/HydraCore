@@ -33,7 +33,7 @@ public:
 
   void BeginTracingPass();
   void EndTracingPass();
-  void InitPathTracing(int seed);
+  void InitPathTracing(int seed, std::vector<int32_t>* pInstRemapTable) override;
   void ClearAccumulatedColor();
 
   void ResizeScreen(int w, int h, int a_flags);
@@ -140,7 +140,7 @@ void CPUExpLayer::GetHDRImage(float4* data, int width, int height) const
   m_pIntegrator->GetImageHDR(data, width, height);
 }
 
-void CPUExpLayer::InitPathTracing(int seed)
+void CPUExpLayer::InitPathTracing(int seed, std::vector<int32_t>* pInstRemapTable)
 {
   m_pIntegrator->Reset();
 }

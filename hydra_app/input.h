@@ -35,7 +35,6 @@ struct Input
   std::string   outAllDir;
   std::string   outDir;       // override for output directory
 
-  int32_t     inSeed;
   int32_t     inDeviceId;
   int32_t     winWidth;
   int32_t     winHeight;
@@ -43,6 +42,9 @@ struct Input
   int32_t     maxSamples;
   int32_t     maxSamplesContrib;
   int32_t     mmltThreads;
+  int32_t     maxCPUThreads = 4;
+  bool        overrideMaxSamplesInCMD = false;
+  bool        overrideMaxCPUThreads   = false;
 
   // mouse and keyboad/oher gui input
   //
@@ -60,6 +62,8 @@ struct Input
   bool mmltEnabled;
   bool cameraFreeze;
   bool productionPTMode;
+
+  std::unordered_map<std::string, std::string> m_allParams;
 
   void ParseCommandLineParams(const std::unordered_map<std::string, std::string>& a_params);
 };

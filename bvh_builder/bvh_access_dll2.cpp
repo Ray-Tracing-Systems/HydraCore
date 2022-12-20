@@ -1,4 +1,5 @@
 #include "bvh_access.h"
+#include "early_split.h"
 
 #include<memory>
 
@@ -256,11 +257,20 @@ inline static embree::BBox3fa CalcBoundingBoxOfChilds(BVH4::NodeRef node)
 }
 
 #include <unordered_set>
+#include <fstream>
 
 #include "../../kernels/geometry/object_intersector.h"
 
 void EmbreeBVH4_2::InsertTrainglesInLeaf(size_t currNodeOffset, BVH4::NodeRef node, EmbreeBVH4_2::LinearTree& lt, int a_meshId, const char* a_treeType)
 {
+  //static std::ofstream debugOut("z_bvh.csv", std::ios::app);
+  //static bool firstTime = true;
+  //if(firstTime)
+  //{
+  //  debugOut << "MeshId; Node Offset; Triangles Num; BoxSA; MaxTriSA;" << std::endl;
+  //  firstTime = false;
+  //}
+
   size_t objListOffset = Alloc1Float4(lt.m_convertedTrinagles);
   lt.m_convertedLayout[currNodeOffset].SetLeftOffset((unsigned int)objListOffset);
 
@@ -275,6 +285,12 @@ void EmbreeBVH4_2::InsertTrainglesInLeaf(size_t currNodeOffset, BVH4::NodeRef no
   //std::unordered_set<int> trisWereAdded;
   const float3 leafMin = lt.m_convertedLayout[currNodeOffset].m_boxMin;
   const float3 leafMax = lt.m_convertedLayout[currNodeOffset].m_boxMax;
+  
+  EarlySplit::Box3f box;
+  box.vmin = leafMin;
+  box.vmax = leafMax;
+  const float saBox = EarlySplit::SurfaceArea(box);
+  //float relativeTriangleSA = 0.0f;
 
   if (laName == "custom")
   {
@@ -300,19 +316,28 @@ void EmbreeBVH4_2::InsertTrainglesInLeaf(size_t currNodeOffset, BVH4::NodeRef no
       const float4 B = vert4f[iB];
       const float4 C = vert4f[iC];
 
-      int triId = triRef.triId;
-      int objId = a_meshId; // 
-      int insId = -1;       // instance matrix id/offset 
-
-      const int oldTriId = triId;
-
-      size_t triOffsetF4 = Alloc3Float4(lt.m_convertedTrinagles);
-
-      lt.m_convertedTrinagles[triOffsetF4 + 0] = float4(A.x, A.y, A.z, as_float(triId));
-      lt.m_convertedTrinagles[triOffsetF4 + 1] = float4(B.x, B.y, B.z, as_float(objId));
-      lt.m_convertedTrinagles[triOffsetF4 + 2] = float4(C.x, C.y, C.z, as_float(insId));
-
-      totalTriNum++;
+      EarlySplit::Triangle t;
+      t.A = A;
+      t.B = B;
+      t.C = C;
+      const float triSA = EarlySplit::SurfaceAreaOfTriangle(t);
+      if(triSA > 0.0f)
+      {
+        //relativeTriangleSA = std::max(relativeTriangleSA, EarlySplit::SurfaceAreaOfTriangle(t));
+        int triId = triRef.triId;
+        int objId = a_meshId; // 
+        int insId = -1;       // instance matrix id/offset 
+  
+        const int oldTriId = triId;
+  
+        size_t triOffsetF4 = Alloc3Float4(lt.m_convertedTrinagles);
+  
+        lt.m_convertedTrinagles[triOffsetF4 + 0] = float4(A.x, A.y, A.z, as_float(triId));
+        lt.m_convertedTrinagles[triOffsetF4 + 1] = float4(B.x, B.y, B.z, as_float(objId));
+        lt.m_convertedTrinagles[triOffsetF4 + 2] = float4(C.x, C.y, C.z, as_float(insId));
+  
+        totalTriNum++;
+      }
     }
   }
   else
@@ -321,24 +346,34 @@ void EmbreeBVH4_2::InsertTrainglesInLeaf(size_t currNodeOffset, BVH4::NodeRef no
     {
       for (size_t j = 0; j < tri[i].size(); j++)
       {
-        size_t triOffsetF4 = Alloc3Float4(lt.m_convertedTrinagles);
+        EarlySplit::Triangle t;
+        t.A = float4(tri[i].v0.x[j], tri[i].v0.y[j], tri[i].v0.z[j], 0);
+        t.B = float4(tri[i].v1.x[j], tri[i].v1.y[j], tri[i].v1.z[j], 0);
+        t.C = float4(tri[i].v2.x[j], tri[i].v2.y[j], tri[i].v2.z[j], 0);
 
-        int triId = tri[i].primID(j);
-        int objId = a_meshId; // 
-        int insId = -1;       // instance matrix id/offset 
-
-        const int oldTriId = triId;
-
-        // you can put some flags here ... 
-        //
-        lt.m_convertedTrinagles[triOffsetF4 + 0] = float4(tri[i].v0.x[j], tri[i].v0.y[j], tri[i].v0.z[j], as_float(triId));
-        lt.m_convertedTrinagles[triOffsetF4 + 1] = float4(tri[i].v1.x[j], tri[i].v1.y[j], tri[i].v1.z[j], as_float(objId));
-        lt.m_convertedTrinagles[triOffsetF4 + 2] = float4(tri[i].v2.x[j], tri[i].v2.y[j], tri[i].v2.z[j], as_float(insId));
-
-        totalTriNum++;
+        const float triSA = EarlySplit::SurfaceAreaOfTriangle(t);  
+        if(triSA > 0.0f)
+        {
+          size_t triOffsetF4 = Alloc3Float4(lt.m_convertedTrinagles);
+  
+          int triId = tri[i].primID(j);
+          int objId = a_meshId; // 
+          int insId = -1;       // instance matrix id/offset 
+  
+          const int oldTriId = triId;
+  
+          // you can put some flags here ... 
+          //
+          lt.m_convertedTrinagles[triOffsetF4 + 0] = float4(tri[i].v0.x[j], tri[i].v0.y[j], tri[i].v0.z[j], as_float(triId));
+          lt.m_convertedTrinagles[triOffsetF4 + 1] = float4(tri[i].v1.x[j], tri[i].v1.y[j], tri[i].v1.z[j], as_float(objId));
+          lt.m_convertedTrinagles[triOffsetF4 + 2] = float4(tri[i].v2.x[j], tri[i].v2.y[j], tri[i].v2.z[j], as_float(insId));
+          totalTriNum++;
+        }
       }
     }
   }
+
+  //debugOut << a_meshId << "; " << currNodeOffset << "; " << totalTriNum << ";" << relativeTriangleSA << saBox << "; " << relativeTriangleSA << std::endl;
 
   int* pTriData       = (int*)&(lt.m_convertedTrinagles[0]);
   int* pTriNumber     = (int*)(&lt.m_convertedTrinagles[objListOffset]); // put tri number to objListData.x .... 

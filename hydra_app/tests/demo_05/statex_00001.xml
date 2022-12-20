@@ -1,0 +1,139 @@
+<?xml version="1.0"?>
+<textures_lib total_chunks="6">
+  <texture id="0" name="Map#0" loc="data/chunk_00000.image4ub" offset="8" bytesize="16" width="2" height="2" dl="0" />
+  <texture id="1" name="/home/frol/PROG/pbrt-v3-scenes/simple/textures/lines.png" path="/home/frol/PROG/pbrt-v3-scenes/simple/textures/lines.png" loc="data/chunk_00001.image4ub" offset="8" bytesize="4194304" width="1024" height="1024" dl="0" />
+</textures_lib>
+<materials_lib>
+  <material id="0" name="mysimplemat" type="hydra_material">
+    <diffuse brdf_type="lambert">
+      <color val="1.0 1.0 1.0" tex_apply_mode="multiply">
+        <texture id="1" type="texref" matrix="-10 0 0 0 0 10 0 0 0 0 10 0 0 0 0 1" addressing_mode_u="wrap" addressing_mode_v="wrap" input_gamma="2.20000005" input_alpha="rgb" />
+      </color>
+    </diffuse>
+  </material>
+  <material id="1" name="glass" type="hydra_material">
+    <reflectivity brdf_type="ggx">
+      <color val="1.0 1.0 1.0" />
+      <glossiness val="1" />
+      <extrusion val="maxcolor" />
+      <fresnel val="1" />
+      <fresnel_ior val="1.5" />
+    </reflectivity>
+    <transparency brdf_type="ggx">
+      <color val="1.0 1.0 1.0" />
+      <glossiness val="1" />
+      <thin_walled val="0" />
+      <fog_color val="1.0 1.0 1.0" />
+      <fog_multiplier val="0" />
+      <ior val="1.5" />
+    </transparency>
+  </material>
+  <material id="2" name="mirror" type="hydra_material">
+    <reflectivity brdf_type="phong">
+      <color val="0.95 0.95 0.95" />
+      <glossiness val="1" />
+    </reflectivity>
+  </material>
+  <material id="3" name="direct_light_material" type="hydra_material" light_id="0" visible="1">
+    <emission>
+      <color val="3.14159 3.14159 3.14159" />
+    </emission>
+  </material>
+</materials_lib>
+<geometry_lib total_chunks="6">
+  <mesh id="0" name="data/meshes/bunny.obj" type="vsgf" bytesize="7897984" loc="data/chunk_00002.vsgf" offset="0" vertNum="99879" triNum="144046" dl="0" path="" bbox="-0.9559 0.6579 0.021 1.6418 -0.543 0.6895">
+    <positions type="array4f" bytesize="1598064" offset="24" apply="vertex" />
+    <normals type="array4f" bytesize="1598064" offset="1598088" apply="vertex" />
+    <tangents type="array4f" bytesize="1598064" offset="3196152" apply="vertex" />
+    <texcoords type="array2f" bytesize="799032" offset="4794216" apply="vertex" />
+    <indices type="array1i" bytesize="1728552" offset="5593248" apply="tlist" />
+    <matindices type="array1i" bytesize="576184" offset="7321800" apply="primitive" />
+  </mesh>
+  <mesh id="1" name="data/meshes/teapot.vsgf" type="vsgf" bytesize="1224088" loc="data/chunk_00003.vsgf" offset="0" vertNum="14544" triNum="25600" dl="0" path="" bbox="-0.952394 1.09017 -0.405052 0.595073 -0.634929 0.634929">
+    <positions type="array4f" bytesize="232704" offset="24" apply="vertex" />
+    <normals type="array4f" bytesize="232704" offset="232728" apply="vertex" />
+    <tangents type="array4f" bytesize="232704" offset="465432" apply="vertex" />
+    <texcoords type="array2f" bytesize="116352" offset="698136" apply="vertex" />
+    <indices type="array1i" bytesize="307200" offset="814488" apply="tlist" />
+    <matindices type="array1i" bytesize="102400" offset="1121688" apply="primitive" />
+  </mesh>
+  <mesh id="2" name="my_plane" type="vsgf" bytesize="280" loc="data/chunk_00004.vsgf" offset="0" vertNum="4" triNum="2" dl="0" path="" bbox="  -100 100 0 0 -100 100">
+    <positions type="array4f" bytesize="64" offset="24" apply="vertex" />
+    <normals type="array4f" bytesize="64" offset="88" apply="vertex" />
+    <tangents type="array4f" bytesize="64" offset="152" apply="vertex" />
+    <texcoords type="array2f" bytesize="32" offset="216" apply="vertex" />
+    <indices type="array1i" bytesize="24" offset="248" apply="tlist" />
+    <matindices type="array1i" bytesize="8" offset="272" apply="primitive" />
+  </mesh>
+  <mesh id="3" name="my_sphere" type="vsgf" bytesize="448480" loc="data/chunk_00005.vsgf" offset="0" vertNum="5151" triNum="10000" dl="0" path="" bbox="    -1 1 -1 1 -1 1">
+    <positions type="array4f" bytesize="82416" offset="24" apply="vertex" />
+    <normals type="array4f" bytesize="82416" offset="82440" apply="vertex" />
+    <tangents type="array4f" bytesize="82416" offset="164856" apply="vertex" />
+    <texcoords type="array2f" bytesize="41208" offset="247272" apply="vertex" />
+    <indices type="array1i" bytesize="120000" offset="288480" apply="tlist" />
+    <matindices type="array1i" bytesize="40000" offset="408480" apply="primitive" />
+  </mesh>
+</geometry_lib>
+<lights_lib>
+  <light id="0" name="direct_light" type="directional" shape="point" distribution="directional" visible="1" mat_id="3">
+    <intensity>
+      <color val="1 1 1" />
+      <multiplier val="3.14159298" />
+    </intensity>
+  </light>
+</lights_lib>
+<cam_lib>
+  <camera id="0" name="my camera" type="uvn" integrator_iters="8" cpu_plugin="2"> <!-- cpu_plugin_dll="/home/frol/PROG/HydraRepos/HydraCamPluginExample/cmake-build-release/libhydra_cam_plugin.so" -->
+    <fov>30</fov>
+    <nearClipPlane>0.00999999978</nearClipPlane>
+    <farClipPlane>1000</farClipPlane>
+    <position>0 2 10</position>
+    <look_at>0 -0.4 0</look_at>
+    <up>0 1 0</up>
+    <optical_system type = "tabular" name="fisheye.10mm.dat" order = "scene_to_sensor" sensor_diagonal = "0.035"> 
+      <line id="0"  curvature_radius="0.0302249007"   thickness="0.00083350006" ior="1.62"        aperture_radius="0.0151700005" />
+      <line id="1"  curvature_radius="0.0113931"      thickness="0.00741360011" ior="1.0"         aperture_radius="0.0103400005" />
+      <line id="2"  curvature_radius="0.0752018988"   thickness="0.00106540008" ior="1.63900006"  aperture_radius="0.00889999978" />
+      <line id="3"  curvature_radius="0.00833490025"  thickness="0.0111549003"  ior="1.0"         aperture_radius="0.00671000034" />
+      <line id="4"  curvature_radius="0.00958819967"  thickness="0.00200540014" ior="1.65400004"  aperture_radius="0.00451000035" />
+      <line id="5"  curvature_radius="0.0438676998"   thickness="0.00538950041" ior="1.0"         aperture_radius="0.00407000026" />
+      <line id="6"  curvature_radius="0.0"            thickness="0.00141630007" ior="0.0"         aperture_radius="0.00275000022" />
+      <line id="7"  curvature_radius="0.0294541009"   thickness="0.00219339994" ior="1.51699996"  aperture_radius="0.00298000011" />
+      <line id="8"  curvature_radius="-0.00522650033" thickness="0.000971400063" ior="1.80499995" aperture_radius="0.00292000012" />
+      <line id="9"  curvature_radius="-0.0142884003"  thickness="6.27000045e-05" ior="1.0"        aperture_radius="0.00298000011" />
+      <line id="10" curvature_radius="-0.0223726016"  thickness="0.000940000056" ior="1.67299998" aperture_radius="0.00298000011" />
+      <line id="11" curvature_radius="-0.0150404004"  thickness="0.0233591795"   ior="1.0"        aperture_radius="0.00326000014" />
+    </optical_system>
+    <!-- <optical_system type = "tabular" name="thorlabs" order = "scene_to_sensor" scale="0.001" sensor_diagonal="0.031562636"> 
+      <line id="1" curvature_radius="1000000.0" thickness="5.0"    ior="1.0"    semi_diameter="2.5" />
+      <line id="2" curvature_radius="24.53"     thickness="8.98"   ior="1.5168" semi_diameter="12.7" comment = "LB1761-B"/>
+      <line id="3" curvature_radius="-24.53"    thickness="22.0"   ior="1.0"    semi_diameter="12.7" />
+    </optical_system>
+    -->
+  </camera>
+</cam_lib>
+<render_lib>
+  <render_settings type="HydraModern" id="0">
+    <width>1024</width>
+    <height>1024</height>
+    <method_primary>PT</method_primary>
+    <method_secondary>PT</method_secondary>
+    <method_tertiary>PT</method_tertiary>
+    <method_caustic>PT</method_caustic>
+    <qmc_variant>0</qmc_variant>
+    <trace_depth>10</trace_depth>
+    <diff_trace_depth>4</diff_trace_depth>
+    <maxRaysPerPixel>256</maxRaysPerPixel>
+  </render_settings>
+</render_lib>
+<scenes>
+  <scene id="0" name="my scene" discard="1" bbox="-100.25 99.75 -1 1 -100 100">
+    <remap_lists>
+      <remap_list id="0" size="2" val="1 2 " />
+    </remap_lists>
+    <instance id="0" mesh_id="2" rmap_id="-1" scn_id="0" scn_sid="0" matrix="1 0 0 -0.25 0 1 0 -1 0 0 1 0 0 0 0 1 " />
+    <instance id="1" mesh_id="3" rmap_id="-1" scn_id="0" scn_sid="0" matrix="1 0 0 -1.3 0 1 0 0 0 0 1 0 0 0 0 1 " />
+    <instance id="2" mesh_id="3" rmap_id="0" scn_id="0" scn_sid="0" matrix="1 0 0 1.3 0 1 0 0 0 0 1 0 0 0 0 1 " />
+    <instance_light id="0" light_id="0" matrix="1 0 0 0 0 1 0 10 0 0 1 0 0 0 0 1 " lgroup_id="-1" />
+  </scene>
+</scenes>

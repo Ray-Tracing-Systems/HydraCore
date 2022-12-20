@@ -47,6 +47,9 @@ void GPUOCLLayer::trace1D_Rev(int a_minBounce, int a_maxBounce, cl_mem a_rpos, c
     runKernel_Trace(a_rpos, a_rdir, a_size,
                     m_rays.hits);
 
+    if (m_vars.m_varsI[HRT_ENABLE_SURFACE_PACK] && bounce == 0)
+      runKernel_CopySurfaceIdTo(m_rays.hits, m_rays.surfId, a_size); // ==> m_rays.surfId
+
     if (m_vars.m_varsI[HRT_ENABLE_MRAYS_COUNTERS] && measureThisBounce)
     {
       clFinish(m_globals.cmdQueue);
@@ -59,7 +62,7 @@ void GPUOCLLayer::trace1D_Rev(int a_minBounce, int a_maxBounce, cl_mem a_rpos, c
 
     runKernel_HitEnvOrLight(m_rays.rayFlags, a_rpos, a_rdir, a_outColor, bounce, a_minBounce, a_size);
 
-    if (FORCE_DRAW_SHADOW && bounce == 1)
+    if (FORCE_DRAW_SHADOW && bounce == 1) // why not bounce == 0 ?
     {
       CopyShadowTo(a_outColor, m_rays.MEGABLOCKSIZE);
       break;
@@ -78,7 +81,7 @@ void GPUOCLLayer::trace1D_Rev(int a_minBounce, int a_maxBounce, cl_mem a_rpos, c
       timeForHit       = timeBeforeShadow - timeForHitStart;
     }
 
-    if (m_vars.shadePassEnable(bounce, a_minBounce, a_maxBounce))
+    if (m_vars.shadePassEnable(bounce, a_minBounce, a_maxBounce) && m_scene.instLightInstSize != 0)
     {
       ShadePass(a_rpos, a_rdir, m_rays.pathShadeColor, a_size, measureThisBounce);
     }
@@ -106,7 +109,6 @@ void GPUOCLLayer::trace1D_Rev(int a_minBounce, int a_maxBounce, cl_mem a_rpos, c
 
   if(m_vars.m_varsF[HRT_PATH_TRACE_CLAMPING] < 1e+6f)
     runKernel_ClampFloat4(a_outColor, 0.0f, m_vars.m_varsF[HRT_PATH_TRACE_CLAMPING], a_size);  // perform clamping if it is enabled
-
 
   if (m_vars.m_varsI[HRT_ENABLE_MRAYS_COUNTERS])
   {
@@ -207,15 +209,14 @@ void GPUOCLLayer::trace1D_Fwd(int a_minBounce, int a_maxBounce, cl_mem a_rpos, c
 void GPUOCLLayer::EvalPT(cl_mem in_xVector, cl_mem in_zind, int minBounce, int maxBounce, size_t a_size,
                          cl_mem a_outColor)
 { 
-  // This is important fix due to dead threads on last state (black env) could contrib old values (!!!)
+  // This is important to clear 'a_outColor' due to dead threads on last state (black env) could contrib old values (!!!)
   // Thus, you have to clear 'kmlt.xMultOneMinusAlpha' as trace1D_Rev result because trace1D_Rev _always_ do "+=" operation on result buffer.
   // 
-  memsetf4(a_outColor, float4(0,0,0,0), m_rays.MEGABLOCKSIZE, 0); 
-  
+
   // create rays from 'in_xVector' samples
   //
   runKernel_MakeRaysFromEyeSam(in_zind, in_xVector, m_rays.MEGABLOCKSIZE, m_passNumberForQMC,
-                               m_rays.rayPos, m_rays.rayDir);
+                               m_rays.rayPos, m_rays.rayDir, a_outColor);
    
   auto temp     = kmlt.currVec;  // save
   auto temp2    = kmlt.currZind; // save 
@@ -370,6 +371,22 @@ void GPUOCLLayer::CopyShadowTo(cl_mem a_color, size_t a_size)
 
   CHECK_CL(clSetKernelArg(kern, 0, sizeof(cl_mem), (void*)&m_rays.pathShadow8B));
   CHECK_CL(clSetKernelArg(kern, 1, sizeof(cl_mem), (void*)&a_color)); 
+  CHECK_CL(clSetKernelArg(kern, 2, sizeof(cl_int), (void*)&iSize));
+
+  CHECK_CL(clEnqueueNDRangeKernel(m_globals.cmdQueue, kern, 1, NULL, &a_size, &localWorkSize, 0, NULL, NULL));
+  waitIfDebug(__FILE__, __LINE__);
+}
+
+void GPUOCLLayer::runKernel_CopySurfaceIdTo(cl_mem a_from, cl_mem a_to, size_t a_size)
+{
+  size_t localWorkSize   = CMP_RESULTS_BLOCK_SIZE;
+  int iSize              = int(a_size);
+  a_size                 = roundBlocks(a_size, int(localWorkSize));
+
+  cl_kernel kern         = m_progs.screen.kernel("CopySurfIdTo");
+
+  CHECK_CL(clSetKernelArg(kern, 0, sizeof(cl_mem), (void*)&a_from));
+  CHECK_CL(clSetKernelArg(kern, 1, sizeof(cl_mem), (void*)&a_to)); 
   CHECK_CL(clSetKernelArg(kern, 2, sizeof(cl_int), (void*)&iSize));
 
   CHECK_CL(clEnqueueNDRangeKernel(m_globals.cmdQueue, kern, 1, NULL, &a_size, &localWorkSize, 0, NULL, NULL));

@@ -267,8 +267,8 @@ void IntegratorThreeWay::ConnectEye(SurfaceHit a_hit, float3 ray_pos, float3 ray
     {
       const float2 posScreenSpace = worldPosToScreenSpace(a_hit.pos, m_pGlobals);
 
-      int x = int(posScreenSpace.x + 0.5f);
-      int y = int(posScreenSpace.y + 0.5f);
+      int x = int(posScreenSpace.x);
+      int y = int(posScreenSpace.y);
 
       if(x >= 0 && x < m_width && y >=0 && y < m_height)
       { 

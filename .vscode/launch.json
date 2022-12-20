@@ -8,10 +8,10 @@
             "name"   : "Launch",
             "type"   : "cppdbg",
             "request": "launch",
-            "program": "${workspaceFolder}/cmake-build-release/hydra_app/hydra",
-            "args"   : ["-nowindow", "0", 
-                        "-saveinterval", "120",
-                        "-enable_mlt", "0"],
+            "program": "${workspaceFolder}/bin/hydra",
+            "args"   : ["-nowindow", "1", 
+                        "-out", "z_out.png",
+                        "-spp", "16"],
                         //"-mmltthreads", "262144"],
                         // "-out",    "/home/frol/temp/test_out/image.png",
                         // "-outall", "/home/frol/temp/test_out/gbuff",
@@ -23,7 +23,7 @@
             "stopAtEntry": false,
             "cwd"    : "${workspaceFolder}/hydra_app",
             "environment": [],
-            "externalConsole": true,
+            "externalConsole": false,
             "MIMode": "gdb",
             "setupCommands": [
                 {
@@ -38,14 +38,37 @@
             "name": "(gdb) Launch",
             "type": "cppdbg",
             "request": "launch",
-            "program": "${workspaceFolder}/cmake-build-debug/hydra_app/hydra",
-            "args": ["-nowindow", "0",
-                     "-saveinterval", "300",
-                     "-enable_mlt", "0"],
+            "program": "${workspaceFolder}/bin/hydra",
+            "args": ["-nowindow", "1", 
+                     "-out", "z_out.png",
+                     "-spp", "16"],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}/hydra_app",
             "environment": [],
-            "externalConsole": true,
+            "externalConsole": false,
+            "MIMode": "gdb",
+            "setupCommands": [
+                {
+                    "description": "Enable pretty-printing for gdb",
+                    "text": "-enable-pretty-printing",
+                    "ignoreFailures": true
+                }
+            ]
+        },
+
+        {
+            "name": "(debug) HydraDLL",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/bin/hydra",
+            "args": ["-inputlib", "/home/frol/PROG/msu-graphics-group/scenes/01_simple_scenes", 
+                     "-statefile", "bunny_cornell.xml",
+                     "-out", "z_out3.png",
+                     "-nowindow", "1", "-pack_surf_id", "1"],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}/hydra_app",
+            "environment": [],
+            "externalConsole": false,
             "MIMode": "gdb",
             "setupCommands": [
                 {

@@ -118,7 +118,7 @@ static inline float2 clipSpaceToScreenSpace(float4 a_pos, const float fw, const 
 {
   const float x = a_pos.x*0.5f + 0.5f;
   const float y = a_pos.y*0.5f + 0.5f;
-  return make_float2(x*fw - 0.5f, y*fh - 0.5f);
+  return make_float2(x*fw, y*fh);
 }
 
 static inline float2 worldPosToScreenSpace(float3 a_wpos, __global const EngineGlobals* a_globals)

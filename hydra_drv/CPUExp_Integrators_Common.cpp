@@ -373,7 +373,7 @@ std::tuple<float3, float3> IntegratorCommon::makeEyeRay2(float x, float y)
   float4x4 a_mWorldViewInv = make_float4x4(a_globals->mWorldViewInverse);
 
   float3 ray_pos = make_float3(0.0f, 0.0f, 0.0f);
-  float3 ray_dir = EyeRayDir(x, y, float(m_width), float(m_height), a_mViewProjInv);
+  float3 ray_dir = EyeRayDirNormalized(x/float(m_width), y/float(m_height), a_mViewProjInv);
 
   ray_dir = tiltCorrection(ray_pos, ray_dir, a_globals);
 

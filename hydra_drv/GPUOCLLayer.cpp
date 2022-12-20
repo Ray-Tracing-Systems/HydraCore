@@ -5,6 +5,8 @@
 #include "hydra_api/ssemath.h"
 
 #include "cl_scan_gpu.h"
+#include "../cam_plug/CamHostPluginAPI.h"
+#include "../cam_plug/HydraDLib.h"
 
 const ushort* getGgxTable();
 const ushort* getTranspTable();
@@ -15,7 +17,14 @@ extern "C" void initQuasirandomGenerator(unsigned int table[QRNG_DIMENSIONS_K][Q
 #undef min
 #undef max
 
+#include <future>
+#include <chrono>
+#include <iomanip>
+
 constexpr bool SAVE_BUILD_LOG = false;
+
+std::wstring g_internalLibPath = L"";
+std::wstring g_internalSateFile = L"";
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -37,7 +46,8 @@ void GPUOCLLayer::CL_BUFFERS_RAYS::free()
   if(rayDir)   { clReleaseMemObject(rayDir);   rayDir   = nullptr; }
   if(hits)     { clReleaseMemObject(hits);     hits     = nullptr; }
   if(rayFlags) { clReleaseMemObject(rayFlags); rayFlags = nullptr; }
-                                                                                                     
+  if(surfId)   { clReleaseMemObject(surfId);    surfId  = nullptr; }
+                                                                                                      
   if (hitSurfaceAll)   { clReleaseMemObject(hitSurfaceAll);  hitSurfaceAll    = nullptr; }
   if (hitProcTexData)  { clReleaseMemObject(hitProcTexData); hitProcTexData   = nullptr;}
 
@@ -78,7 +88,7 @@ void GPUOCLLayer::CL_BUFFERS_RAYS::free()
   if(atomicCounterMem) { clReleaseMemObject(atomicCounterMem); atomicCounterMem = nullptr;}
 }
 
-size_t GPUOCLLayer::CL_BUFFERS_RAYS::resize(cl_context ctx, cl_command_queue cmdQueue, size_t a_size, bool a_cpuShare, bool a_cpuFB)
+size_t GPUOCLLayer::CL_BUFFERS_RAYS::resize(cl_context ctx, cl_command_queue cmdQueue, size_t a_size, bool a_cpuShare, bool a_cpuFB, bool a_evalSurfaId)
 {
   free();
 
@@ -94,6 +104,10 @@ size_t GPUOCLLayer::CL_BUFFERS_RAYS::resize(cl_context ctx, cl_command_queue cmd
   rayDir   = clCreateBuffer(ctx, CL_MEM_READ_WRITE | shareFlags, 4*sizeof(cl_float)*MEGABLOCKSIZE, NULL, &ciErr1);   currSize += buff1Size * 4;
   hits     = clCreateBuffer(ctx, CL_MEM_READ_WRITE | shareFlags, sizeof(Lite_Hit)*MEGABLOCKSIZE,   NULL, &ciErr1);   currSize += buff1Size * 1;
   rayFlags = clCreateBuffer(ctx, CL_MEM_READ_WRITE | shareFlags, sizeof(uint)*MEGABLOCKSIZE, NULL, &ciErr1);         currSize += buff1Size * 1;
+  if(a_evalSurfaId) {
+    surfId = clCreateBuffer(ctx, CL_MEM_READ_WRITE, sizeof(uint)*MEGABLOCKSIZE, NULL, &ciErr1);         
+    currSize += buff1Size * 1;
+  }
 
   if (ciErr1 != CL_SUCCESS)
     RUN_TIME_ERROR("Error in resize rays buffers");
@@ -586,7 +600,6 @@ GPUOCLLayer::GPUOCLLayer(int w, int h, int a_flags, int a_deviceId) : Base(w, h,
     RUN_TIME_ERROR("Error in clCreateContext");
 
   m_globals.cmdQueue = clCreateCommandQueue(m_globals.ctx, m_globals.device, 0, &ciErr1); 
-
   if (ciErr1 != CL_SUCCESS)
   {
     std::cerr << "[cl_core]: clCreateCommandQueue(1) status = " << ciErr1 << std::endl;
@@ -594,11 +607,17 @@ GPUOCLLayer::GPUOCLLayer(int w, int h, int a_flags, int a_deviceId) : Base(w, h,
   }
 
   m_globals.cmdQueueDevToHost = clCreateCommandQueue(m_globals.ctx, m_globals.device, 0, &ciErr1);
-
   if (ciErr1 != CL_SUCCESS)
   {
     std::cerr << "[cl_core]: clCreateCommandQueue(2) status = " << ciErr1 << std::endl; 
     RUN_TIME_ERROR("Error in clCreateCommandQueue(2)");
+  }
+
+  m_globals.cmdQueueHostToDev = clCreateCommandQueue(m_globals.ctx, m_globals.device, 0, &ciErr1);
+  if (ciErr1 != CL_SUCCESS)
+  {
+    std::cerr << "[cl_core]: clCreateCommandQueue(3) status = " << ciErr1 << std::endl; 
+    RUN_TIME_ERROR("Error in clCreateCommandQueue(3)");
   }
 
   CHECK_CL(clGetDeviceInfo(m_globals.device, CL_DEVICE_MAX_WORK_GROUP_SIZE, sizeof(size_t), &m_globals.m_maxWorkGroupSize, NULL));
@@ -770,12 +789,13 @@ GPUOCLLayer::~GPUOCLLayer()
 {
   FinishAll();
   
+  m_camPlugin.free();
   MLT_Free();
   kmlt.free();
   m_rays.free();
   m_screen.free();
   m_scene.free();
-
+  
   if (m_globals.cMortonTable)     { clReleaseMemObject(m_globals.cMortonTable);      m_globals.cMortonTable      = nullptr; }
   if (m_globals.qmcTable)         { clReleaseMemObject(m_globals.qmcTable);          m_globals.qmcTable          = nullptr; }
   if (m_globals.hammersley2DGBuff){ clReleaseMemObject(m_globals.hammersley2DGBuff); m_globals.hammersley2DGBuff = nullptr; }
@@ -783,6 +803,7 @@ GPUOCLLayer::~GPUOCLLayer()
 
   if(m_globals.cmdQueue)          { clReleaseCommandQueue(m_globals.cmdQueue);          m_globals.cmdQueue          = nullptr; }
   if(m_globals.cmdQueueDevToHost) { clReleaseCommandQueue(m_globals.cmdQueueDevToHost); m_globals.cmdQueueDevToHost = nullptr; }
+  if(m_globals.cmdQueueHostToDev) { clReleaseCommandQueue(m_globals.cmdQueueHostToDev); m_globals.cmdQueueHostToDev = nullptr; }
   if(m_globals.ctx)               { clReleaseContext     (m_globals.ctx);               m_globals.ctx               = nullptr; }
 }
 
@@ -865,9 +886,10 @@ void GPUOCLLayer::ResizeScreen(int width, int height, int a_flags)
     m_screen.color0                 = nullptr;
     m_screen.targetFrameBuffPointer = nullptr;
     m_screen.pbo                    = nullptr;
+    m_screen.m_cpuFbufChannels      = m_vars.m_varsI[HRT_FBUF_CHANNELS];
 
     if(m_pExternalImage == nullptr)
-      m_screen.color0CPU.resize(width*height);
+      m_screen.color0CPU.resize(width * height * m_screen.m_cpuFbufChannels);
 
     std::cout << "[cl_core]: use CPU framebuffer" << std::endl;
   }
@@ -908,7 +930,7 @@ void GPUOCLLayer::ResizeScreen(int width, int height, int a_flags)
   if (m_screen.pbo != nullptr)
     memsetu32(m_screen.pbo, 0, m_width*m_height);
 
-  m_memoryTaken[MEM_TAKEN_RAYS] = m_rays.resize(m_globals.ctx, m_globals.cmdQueue, MEGABLOCK_SIZE, m_globals.cpuTrace, m_screen.m_cpuFrameBuffer);
+  m_memoryTaken[MEM_TAKEN_RAYS] = m_rays.resize(m_globals.ctx, m_globals.cmdQueue, MEGABLOCK_SIZE, m_globals.cpuTrace, m_screen.m_cpuFrameBuffer, true); // TODO: fix true, pass this flag elsewhere, to early for check (m_vars.m_varsI[HRT_ENABLE_SURFACE_PACK] == 1)
 
   MLT_Alloc_For_PT_QMC(1, kmlt.xVectorQMC); // Allocate memory for testing QMC/KMLT F(xVec,bounceNum); THIS IS IMPORTANT CALL! It sets internal KMLT variables
 
@@ -980,6 +1002,7 @@ const char* GPUOCLLayer::GetDeviceName(int* pOCLVer) const
   return m_deviceName;
 }
 
+extern int g_maxCPUThreads;
 
 void GPUOCLLayer::GetLDRImage(uint* data, int width, int height) const
 {
@@ -987,30 +1010,35 @@ void GPUOCLLayer::GetLDRImage(uint* data, int width, int height) const
   cl_mem tempLDRBuff     = m_screen.pbo;
   bool needToFreeLDRBuff = false;
 
-  const float gammaInv   = 1.0f / m_vars.m_varsF[HRT_IMAGE_GAMMA];
-  const int size         = m_width*m_height;
+  const float gammaInv = 1.0f / m_vars.m_varsF[HRT_IMAGE_GAMMA];
+  size_t size          = m_width * m_height;
   
   if (m_screen.m_cpuFrameBuffer) 
   {
     if (m_passNumber - 1 <= 0) // remember about pipelined copy!!
       return;
 
-    int width2, height2;
-    const float4* color0 = GetCPUScreenBuffer(0, width2, height2);
-    const float4* color1 = GetCPUScreenBuffer(1, width2, height2);
+    int width2, height2, channels2;
+    const float* color0 = GetCPUScreenBuffer(0, width2, height2, channels2);
+    const float* color1 = GetCPUScreenBuffer(1, width2, height2, channels2);
 
     float normConst   = 1.0f / m_spp; // 1.0f / float(m_passNumber - 1); // remember about pipelined copy!!
     float normConstDL = 1.0f / m_sppDL; 
 
     if (m_vars.m_flags & HRT_ENABLE_MMLT && (m_vars.m_flags & HRT_ENABLE_SBPT) == 0)  
-      normConst = EstimateMLTNormConst(color0, width, height);
+      normConst = EstimateMLTNormConst((float4*)color0, width, height);
 
-    if (!HydraSSE::g_useSSE)
+    if (!HydraSSE::g_useSSE || channels2 == 1)
     {
-      #pragma omp parallel for
+      #pragma omp parallel for num_threads(g_maxCPUThreads)
       for (int i = 0; i < size; i++)  // #TODO: use sse and fast pow
       {
-        float4 color = color0[i];
+        float4 color {};
+        if(channels2 == 1)
+          color = float4{color0[i], color0[i], color0[i], color0[i]};
+        else if(channels2 >= 4)
+          color = float4{color0[i * 4 + 0], color0[i * 4 + 1], color0[i * 4 + 2], color0[i * 4 + 3]};
+
         color.x = powf(color.x*normConst, gammaInv);
         color.y = powf(color.y*normConst, gammaInv);
         color.z = powf(color.z*normConst, gammaInv);
@@ -1030,37 +1058,46 @@ void GPUOCLLayer::GetLDRImage(uint* data, int width, int height) const
 
       if (m_vars.m_flags & HRT_ENABLE_MMLT && (m_vars.m_flags & HRT_ENABLE_SBPT) == 0)
       {
-        if (color1 != nullptr && color0 != nullptr)
+        assert(channels2 == 4);
+        if(channels2 != 4)
         {
-
-          #pragma omp parallel for
-          for (int i = 0; i < size; i++)
-          {
-            const __m128 colorDL = _mm_mul_ps(normc2, _mm_load_ps(dataHDR1 + i * 4));
-            const __m128 colorIL = _mm_mul_ps(normc, _mm_load_ps(dataHDR + i * 4));
-            const __m128 color2  = HydraSSE::powf4(_mm_add_ps(colorDL, colorIL), powerf4);
-            const __m128i rgba   = _mm_cvtps_epi32(_mm_min_ps(_mm_mul_ps(color2, const_255), const_255));
-            const __m128i out    = _mm_packus_epi32(rgba, _mm_setzero_si128());
-            const __m128i out2   = _mm_packus_epi16(out, _mm_setzero_si128());
-            data[i] = _mm_cvtsi128_si32(out2);
-          }
-
-        }
-        else if (color0 != nullptr)
-        {
-          #pragma omp parallel for
-          for (int i = 0; i < size; i++)
-          {
-            data[i] = HydraSSE::gammaCorr(dataHDR + i * 4, normc, powerf4);
-          }
+          std::cerr << "GPUOCLLayer::GetLDRImage(HRT_ENABLE_MMLT): internal CPU image channels != 4" << std::endl;
+          std::cerr.flush();
         }
         else
         {
-          std::cerr << "GPUOCLLayer::GetLDRImage(HRT_ENABLE_MMLT): both internal CPU images == nullptr!!!" << std::endl;
-          std::cerr.flush();
+          if (color1 != nullptr && color0 != nullptr)
+          {
+            #pragma omp parallel for num_threads(g_maxCPUThreads)
+            for (int i = 0; i < size; i++)
+            {
+              const __m128 colorDL = _mm_mul_ps(normc2, _mm_load_ps(dataHDR1 + i * 4));
+              const __m128 colorIL = _mm_mul_ps(normc, _mm_load_ps(dataHDR + i * 4));
+              const __m128 color2 = HydraSSE::powf4(_mm_add_ps(colorDL, colorIL), powerf4);
+              const __m128i rgba = _mm_cvtps_epi32(_mm_min_ps(_mm_mul_ps(color2, const_255), const_255));
+              const __m128i out = _mm_packus_epi32(rgba, _mm_setzero_si128());
+              const __m128i out2 = _mm_packus_epi16(out, _mm_setzero_si128());
+              data[i] = _mm_cvtsi128_si32(out2);
+            }
+
+          }
+          else if (color0 != nullptr)
+          {
+            #pragma omp parallel for  num_threads(g_maxCPUThreads)
+            for (int i = 0; i < size; i++)
+            {
+              data[i] = HydraSSE::gammaCorr(dataHDR + i * 4, normc, powerf4);
+            }
+          }
+          else
+          {
+            std::cerr << "GPUOCLLayer::GetLDRImage(HRT_ENABLE_MMLT): both internal CPU images == nullptr!!!"
+                      << std::endl;
+            std::cerr.flush();
+          }
         }
 
-        //#pragma omp parallel for
+        //#pragma omp parallel for num_threads(g_maxCPUThreads)
         //for (int i = 0; i < size; i++)
         //{
         //  data[i] = HydraSSE::gammaCorr(dataHDR1 + i*4, normc2, powerf4);
@@ -1068,10 +1105,13 @@ void GPUOCLLayer::GetLDRImage(uint* data, int width, int height) const
       }
       else
       {
-        #pragma omp parallel for
-        for (int i = 0; i < size; i++)
+        if(channels2 == 4)
         {
-          data[i] = HydraSSE::gammaCorr(dataHDR + i * 4, normc, powerf4);
+          #pragma omp parallel for num_threads(g_maxCPUThreads)
+          for (int i = 0; i < size; i++)
+          {
+            data[i] = HydraSSE::gammaCorr(dataHDR + i * 4, normc, powerf4);
+          }
         }
       }
     }
@@ -1084,7 +1124,7 @@ void GPUOCLLayer::GetLDRImage(uint* data, int width, int height) const
       cvex::vector<float4> hdrData(width*height);
       GetHDRImage(&hdrData[0], width, height);
 
-      #pragma omp parallel for
+      #pragma omp parallel for num_threads(g_maxCPUThreads)
       for (int i = 0; i < size; i++)  // #TODO: use sse and fast pow
       {
         float4 color = hdrData[i];
@@ -1121,15 +1161,25 @@ void GPUOCLLayer::GetHDRImage(float4* data, int width, int height) const
   if (m_passNumber - 1 <= 0 || m_spp <= 1e-5f) // remember about pipelined copy!!
     return;
 
-  float normConst = (1.0f / m_spp);
+  float normConst = 1.0f;
+  if(m_sppDone > 0)
+    normConst = (1.0f / m_sppDone); // valid only for CPU FB, remember about pipelined copy. m_spp and m_sppDone are different!!! 
+  else
+    normConst = (1.0f / m_spp);     // may be valid if FB is on GPU
 
   if (m_screen.m_cpuFrameBuffer)
   {
+    if(m_screen.m_cpuFbufChannels != 4)
+      return;
+
     if (m_vars.m_flags & HRT_ENABLE_MMLT)  
-      normConst = EstimateMLTNormConst(m_screen.color0CPU.data(), width, height);
+      normConst = EstimateMLTNormConst((float4*)m_screen.color0CPU.data(), width, height);
 
     for (size_t i = 0; i < (width*height); i++)
-      data[i] = m_screen.color0CPU[i] * normConst;
+    {
+      for(int j = 0; j < m_screen.m_cpuFbufChannels; ++j)
+        data[i][j] = m_screen.color0CPU[i * m_screen.m_cpuFbufChannels + j] * normConst;
+    }
   }
   else if(m_screen.color0 != nullptr)
   {
@@ -1139,8 +1189,13 @@ void GPUOCLLayer::GetHDRImage(float4* data, int width, int height) const
   }
 }
 
+typedef IHostRaysAPI* (*MakeEmitterFT)(int);
+typedef void (*DeleteEmitterFT)(IHostRaysAPI*);
 
-void GPUOCLLayer::InitPathTracing(int seed)
+//IHostRaysAPI* MakeHostRaysEmitter(int a_pluginId);       ///<! you replace this function or make your own ... the example will be provided
+//void          DeleteRaysEmitter(IHostRaysAPI* pObject);
+
+void GPUOCLLayer::InitPathTracing(int seed, std::vector<int32_t>* pInstRemapTable)
 {
   std::cout << "[cl_core]: InitRandomGen seed = " << seed << std::endl;
   
@@ -1152,12 +1207,63 @@ void GPUOCLLayer::InitPathTracing(int seed)
   m_passNumberForQMC = 0;
 
   ClearAccumulatedColor();
+  
+  // reset camera plugin if we have it ...
+  //
+  const int cpuPluginId = m_camNode.attribute(L"cpu_plugin").as_int();
+  if(m_camPlugin.pCamPlugin == nullptr && cpuPluginId != 0) // actual plugin init happened first time
+  {
+    const wchar_t* dllPath = m_camNode.attribute(L"cpu_plugin_dll").as_string();
+    if(std::wstring(dllPath) != L"")
+    {
+      const std::string dllPath2 = ws2s(std::wstring(dllPath));
+      std::cout << "[INFO]: load 'IHostRaysAPI' plugin from '" << dllPath2.c_str() << "'" << std::endl; 
+      
+      HydraDllHandle* pHandle = HydraLoadLibrary(dllPath);
+      if(pHandle == nullptr)
+        std::cout << "[ERROR]: can't load 'IHostRaysAPI' plugin from '" << dllPath2.c_str() << "'" << std::endl; 
+      
+      MakeEmitterFT   MakeFunc = (MakeEmitterFT)HydraGetProcAddress(pHandle, "MakeHostRaysEmitter");
+      DeleteEmitterFT DelFunc  = (DeleteEmitterFT)HydraGetProcAddress(pHandle, "DeleteRaysEmitter");
+
+      m_camPlugin.pCamPlugin = std::shared_ptr<IHostRaysAPI>(MakeFunc(m_vars.m_varsI[HRT_USE_CPU_PLUGIN]), DelFunc);
+    }
+    else
+      m_camPlugin.pCamPlugin = std::shared_ptr<IHostRaysAPI>(MakeHostRaysEmitter(m_vars.m_varsI[HRT_USE_CPU_PLUGIN]), DeleteRaysEmitter);
+    
+    std::wstringstream strout, strout2;
+    
+    uint64_t address = reinterpret_cast<uint64_t>((void*)pInstRemapTable->data());
+    strout2 << std::noshowbase << std::setw(16) << std::setfill(L"0"[0]) << address;
+    auto str2 = strout2.str();
+    m_settingsNode.force_child(L"remapInstAddress").text() = str2.c_str();
+    m_settingsNode.force_child(L"remapInstSize").text()    = int(pInstRemapTable->size());
+    m_settingsNode.force_child(L"xmlfilepath").text()      = g_internalLibPath.c_str();
+
+    strout << L"<?xml version=\"1.0\"?>" << std::endl;
+    m_camNode.print(strout);
+    m_settingsNode.print(strout);
+    const std::wstring nodeData = strout.str(); 
+    m_camPlugin.pCamPlugin->SetParameters(m_width, m_height, m_globsBuffHeader.mProjInverse, nodeData.c_str());
+
+    m_camPlugin.free();
+    cl_int ciErr1 = CL_SUCCESS;
+    size_t totalSize = sizeof(RayPart1)*m_rays.MEGABLOCKSIZE + sizeof(RayPart2)*m_rays.MEGABLOCKSIZE;
+    m_camPlugin.camRayGPU[0] = clCreateBuffer(m_globals.ctx, CL_MEM_READ_WRITE, totalSize, NULL, &ciErr1);
+    m_camPlugin.camRayGPU[1] = clCreateBuffer(m_globals.ctx, CL_MEM_READ_WRITE, totalSize, NULL, &ciErr1);
+    m_camPlugin.camRayCPU[0] = clCreateBuffer(m_globals.ctx, CL_MEM_READ_ONLY | CL_MEM_ALLOC_HOST_PTR, totalSize, NULL, &ciErr1);
+    m_camPlugin.camRayCPU[1] = clCreateBuffer(m_globals.ctx, CL_MEM_READ_ONLY | CL_MEM_ALLOC_HOST_PTR, totalSize, NULL, &ciErr1);
+    m_camPlugin.accumBuff    = clCreateBuffer(m_globals.ctx, CL_MEM_READ_WRITE, m_rays.MEGABLOCKSIZE*sizeof(float4), NULL, &ciErr1);
+  
+    if (ciErr1 != CL_SUCCESS)
+      RUN_TIME_ERROR("[HostRaysAPI]: Error in create rays buffers for Host Camera Plugin");
+  }
 }
 
 void GPUOCLLayer::ClearAccumulatedColor()
 {
-  if (m_screen.m_cpuFrameBuffer && m_screen.color0CPU.size() != 0)
-    memset(m_screen.color0CPU.data(), 0, m_width*m_height*sizeof(float4));
+  if (m_screen.m_cpuFrameBuffer && !m_screen.color0CPU.empty())
+    memset(m_screen.color0CPU.data(), 0, m_width * m_height * m_screen.m_cpuFbufChannels * sizeof(float));
   else if(m_screen.color0 != nullptr)
     memsetf4(m_screen.color0, make_float4(0, 0, 0, 0.0f), m_width*m_height); // #TODO: change this for 2D memset to support large resolutions!!!!
 
@@ -1176,31 +1282,37 @@ void GPUOCLLayer::ResetPerfCounters()
 }
 
 
-const float4* GPUOCLLayer::GetCPUScreenBuffer(int a_layerId, int& width, int& height) const
+const float* GPUOCLLayer::GetCPUScreenBuffer(int a_layerId, int& width, int& height, int& channels) const
 {
   if(!m_screen.m_cpuFrameBuffer)
     return nullptr;
      
-  const float4* resultPtr = nullptr;
+  const float* resultPtr = nullptr;
   width  = m_width;
   height = m_height;
   
   if (m_pExternalImage != nullptr)
   {
-    resultPtr = (float4*)m_pExternalImage->ImageData(a_layerId);
+    resultPtr = m_pExternalImage->ImageData(a_layerId);
     width     = m_pExternalImage->Header()->width;
     height    = m_pExternalImage->Header()->height;
+    channels  = m_pExternalImage->Header()->channels;
   }
   else
   {
+    channels = m_screen.m_cpuFbufChannels;
     if(a_layerId == 0)
-      resultPtr = m_screen.color0CPU.data();
+      resultPtr = reinterpret_cast<const float *>(m_screen.color0CPU.data());
     else if(a_layerId == 1)
-      resultPtr = m_mlt.colorDLCPU.data();
+      resultPtr = reinterpret_cast<const float *>(m_mlt.colorDLCPU.data());
   }
+
+  //std::cout << "GPUOCLLayer::GetCPUScreenBuffer channels = " << channels;
 
   return resultPtr;     
 }
+
+
 
 void GPUOCLLayer::BeginTracingPass()
 {
@@ -1215,6 +1327,8 @@ void GPUOCLLayer::BeginTracingPass()
 
   //m_vars.m_flags |= HRT_ENABLE_PT_CAUSTICS;
   //UpdateVarsOnGPU(m_vars);
+
+  bool asyncPluginMode = true; // enable parallel evaluation of ray block in CPU plugin
 
   if((m_vars.m_flags & HRT_ENABLE_SBPT) != 0)
   {
@@ -1244,7 +1358,8 @@ void GPUOCLLayer::BeginTracingPass()
   { 
     const int minBounce = 1;
     const int maxBounce = m_vars.m_varsI[HRT_TRACE_DEPTH];
-
+    std::future<int> pluginExecution;
+    
     if ((m_vars.m_flags & HRT_FORWARD_TRACING) != 0)    // LT 
     {
       m_vars.m_varsI[HRT_KMLT_OR_QMC_LGT_BOUNCES] = 0;  // explicit disable reading random numbers from buffer
@@ -1254,10 +1369,40 @@ void GPUOCLLayer::BeginTracingPass()
       EvalLT(nullptr, minBounce, maxBounce, m_rays.MEGABLOCKSIZE, 
              m_rays.pathAccColor);
     }
-    //else
+    //else if( ... ) // Kelemen MLT is enabled
     //{ 
     //  KMLT_Pass(NUM_MMLT_PASS, minBounce, maxBounce, 128); // BURN_ITERS
     //}
+    else if(m_vars.m_varsI[HRT_USE_CPU_PLUGIN] >= 1)
+    {
+      m_vars.m_varsI[HRT_KMLT_OR_QMC_LGT_BOUNCES] = 0;
+      m_vars.m_varsI[HRT_KMLT_OR_QMC_MAT_BOUNCES] = 0;
+      UpdateVarsOnGPU(m_vars);
+      
+    
+      int buffId = m_passNumber % 2;
+      if(asyncPluginMode)
+        pluginExecution = std::async(std::launch::async, &GPUOCLLayer::DoCamPluginRays, this, buffId, m_passNumber);
+      else
+        DoCamPluginRays(buffId, m_passNumber);
+  
+      if(m_passNumber >= 1)
+      {
+        const int samplesPerPass = m_vars.m_varsI[HRT_SAMPLES_PER_PASS];
+        memsetf4(m_camPlugin.accumBuff, float4(0,0,0,0), m_rays.MEGABLOCKSIZE);
+        for(int i=0;i<samplesPerPass;i++)
+        {
+          runKernel_TakeHostRays(m_camPlugin.camRayGPU[1-buffId], m_rays.rayPos, m_rays.rayDir, m_rays.pathAccColor, m_rays.MEGABLOCKSIZE);
+          trace1D_Rev(minBounce, maxBounce, m_rays.rayPos, m_rays.rayDir, m_rays.MEGABLOCKSIZE, m_rays.pathAccColor);
+          runKernel_AccumColor(m_rays.pathAccColor, m_rays.surfId, m_camPlugin.accumBuff, m_rays.MEGABLOCKSIZE, 1.0f/float(samplesPerPass));
+        }
+      }
+
+      AddContributionToScreen(m_camPlugin.accumBuff, m_rays.samZindex);
+      
+      if(asyncPluginMode)
+        pluginExecution.get();
+    }
     else                                                // PT 
     { 
       //m_vars.m_flags |= HRT_INDIRECT_LIGHT_MODE; // for test
@@ -1289,6 +1434,27 @@ void GPUOCLLayer::BeginTracingPass()
   { 
     DrawNormals();
   }
+}
+
+int GPUOCLLayer::DoCamPluginRays(int buffId, int a_passId)
+{
+  auto start = std::chrono::high_resolution_clock::now();
+
+  cl_int ciErr1 = CL_SUCCESS;
+  const size_t fullSize = m_rays.MEGABLOCKSIZE*sizeof(RayPart1) + m_rays.MEGABLOCKSIZE*sizeof(RayPart2);
+  
+  RayPart1* rays1 = (RayPart1*)clEnqueueMapBuffer(m_globals.cmdQueueHostToDev, m_camPlugin.camRayCPU[buffId], CL_TRUE, CL_MAP_WRITE, 0, fullSize, 0, 0, 0, &ciErr1);
+  RayPart2* rays2 = (RayPart2*)(rays1 + m_rays.MEGABLOCKSIZE);
+  if (ciErr1 != CL_SUCCESS)
+    RUN_TIME_ERROR("[HostRaysAPI]: Error in 'clEnqueueMapBuffer' for Host Camera Plugin");
+  
+  m_camPlugin.pCamPlugin->MakeRaysBlock(rays1, rays2, m_rays.MEGABLOCKSIZE, a_passId);
+  
+  clEnqueueUnmapMemObject(m_globals.cmdQueueHostToDev, m_camPlugin.camRayCPU[buffId], rays1, 0, 0, 0);
+  clEnqueueCopyBuffer    (m_globals.cmdQueueHostToDev, m_camPlugin.camRayCPU[buffId], m_camPlugin.camRayGPU[buffId], 0, 0, fullSize, 0, nullptr, nullptr);
+  
+  m_camPlugin.pipeTime[0] = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - start).count()/1000.f;
+  return 0;
 }
 
 

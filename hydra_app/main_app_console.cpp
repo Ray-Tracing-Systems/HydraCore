@@ -11,6 +11,7 @@ using pugi::xml_attribute;
 using namespace HydraXMLHelpers;
 
 bool g_exitDueToSamplesLimit = false;
+int  g_maxCPUThreads = 4;
 
 extern Input g_input;
 extern Camera g_cam;
@@ -89,11 +90,17 @@ static void DispatchCommand(const char* message)
 
 }
 
+extern std::wstring g_internalLibPath;
+extern std::wstring g_internalSateFile;
+
 bool InitSceneLibAndRTE(HRCameraRef& a_camRef, HRSceneInstRef& a_scnRef, HRRenderRef&  a_renderRef, std::shared_ptr<IHRRenderDriver> a_pDriver)
 {
   hrErrorCallerPlace(L"InitSceneLibAndRTE");
 
   const std::wstring libraryPath = (g_input.inStateFile == "") ? s2ws(g_input.inLibraryPath) : s2ws(g_input.inLibraryPath + "/" + g_input.inStateFile);
+
+  g_internalLibPath  = s2ws(g_input.inLibraryPath);
+  g_internalSateFile = s2ws(g_input.inStateFile.substr(0, g_input.inStateFile.size()-2));
 
   HRInitInfo initInfo;
   initInfo.vbSize                    = 1024; // do not allocate vb.
@@ -226,6 +233,26 @@ static void Draw(std::shared_ptr<IHRRenderDriver> a_pDetachedRenderDriverPointer
       }
       else
         paramNode.force_child(L"boxmode").text() = g_input.boxMode ? 1 : 0;
+
+      if(g_input.overrideMaxSamplesInCMD) 
+      {
+        paramNode.force_child(L"minRaysPerPixel").text() = g_input.maxSamples;
+        paramNode.force_child(L"maxRaysPerPixel").text() = g_input.maxSamples;
+      }
+
+      if (g_input.overrideMaxCPUThreads) {
+        g_maxCPUThreads = g_input.maxCPUThreads;
+        paramNode.force_child(L"max_cpu_threads").text() = g_input.maxCPUThreads;
+      }
+
+      for(auto param : g_input.m_allParams) 
+      {  
+        bool isKey = param.first.size() > 0 && param.first[0] == '-'; 
+        std::wstring paramName  = s2ws(param.first.substr(1));
+        std::wstring paramValue = s2ws(param.second);
+        if(paramName.size() > 0 && isKey && paramName.find(L"\\") == std::wstring::npos && paramName.find(L"/") == std::wstring::npos)
+          paramNode.force_child(paramName.c_str()).text() = paramValue.c_str();
+      }
 
 
       paramNode.force_child(L"contribsamples").text() = g_input.maxSamplesContrib;

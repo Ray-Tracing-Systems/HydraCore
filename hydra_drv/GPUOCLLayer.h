@@ -18,12 +18,13 @@
 #include "utils/Timer.h"
 #include "bitonic_sort_gpu.h"
 
+#include "../cam_plug/CamHostPluginAPI.h"
+
 /** \brief OpenCL HWLayer.
 * 
 *  This class hold OpenCL buffers (all GPU data) and implement both Path Tracing and MLT on GPU.
 *  
 */
-
 class GPUOCLLayer : public CPUSharedData
 {
   typedef CPUSharedData Base;
@@ -59,6 +60,8 @@ public:
   void EndTracingPass()   override;
   void EvalGBuffer(IHRSharedAccumImage* a_pAccumImage, const std::vector<int32_t>& a_instIdByInstId) override;
   
+  int DoCamPluginRays(int buffId, int a_passId);
+
   std::vector<int> MakeAllPixelsList();
   void RunProductionSamplingMode();
 
@@ -73,10 +76,10 @@ public:
 
   void FinishAll() override;
 
-  void InitPathTracing(int seed);
+  void InitPathTracing(int seed, std::vector<int32_t>* pInstRemapTable) override;
   void ClearAccumulatedColor();
 
-  void ResizeScreen(int w, int h, int a_flags);
+  void ResizeScreen(int w, int h, int a_flags) override;
 
   void ContribToExternalImageAccumulator(IHRSharedAccumImage* a_pImage);
 
@@ -110,7 +113,7 @@ public:
   void RecompileProcTexShaders(const std::string& a_shaderPath) override;
   
   float GetSPP       () const override { return m_spp; }
-  float GetSPPDone   () const override { return m_sppDone + m_spp; }
+  float GetSPPDone   () const override { return m_sppDone; }
   float GetSPPContrib() const override { return m_sppContrib;}
   
 protected:
@@ -139,11 +142,12 @@ protected:
 
   void DrawNormals();
   void CopyShadowTo(cl_mem a_color, size_t a_size);
+  void runKernel_CopySurfaceIdTo(cl_mem a_from, cl_mem a_to, size_t a_size);
   void AddContributionToScreenGPU(cl_mem in_color, cl_mem in_indices, int a_size, int a_width, int a_height, int a_spp, bool a_copyToLDRNow,
                                   cl_mem out_colorHDR, cl_mem out_colorLDR);
 
-  void AddContributionToScreenCPU(cl_mem& in_color, int a_size, int a_width, int a_height, float4* out_color, bool repackIndex = true);
-  void AddContributionToScreenCPU2(cl_mem& in_color, cl_mem& in_color2, int a_size, int a_width, int a_height, float4* out_color);
+  void AddContributionToScreenCPU(cl_mem& in_color, int a_size, int a_width, int a_height, int a_channels, float* out_color, bool repackIndex = true);
+  void AddContributionToScreenCPU2(cl_mem& in_color, cl_mem& in_color2, int a_size, int a_width, int a_height, int a_channels, float* out_color);
 
   float EstimateMLTNormConst(const float4* data, int width, int height) const;
  
@@ -155,6 +159,7 @@ protected:
   * \param a_repackIndex  - in flag for pack (y << 16|x) to color.w again inside this function.
   */
   void AddContributionToScreen (cl_mem& in_color, cl_mem in_indices, bool a_copyToLDRNow = true, int a_layerId = 0, bool a_repackIndex = true);
+  void CPUPluginFinish() override;
 
   std::vector<uchar4> NormalMapFromDisplacement(int w, int h, const uchar4* a_data, float bumpAmt, bool invHeight, float smoothLvl);
   void Denoise(cl_mem textureIn, cl_mem textureOut, int w, int h, float smoothLvl);
@@ -199,14 +204,16 @@ protected:
 
     bool m_cpuFrameBuffer;
 
-    std::vector<float4, aligned16<float4> > color0CPU;
+//    std::vector<float4, aligned16<float4> > color0CPU;
+    std::vector<float> color0CPU;
+    int m_cpuFbufChannels;
 
 
     cl_mem targetFrameBuffPointer;
 
   } m_screen;
 
-  const float4* GetCPUScreenBuffer(int a_layerId, int& width, int& height) const;
+  const float* GetCPUScreenBuffer(int a_layerId, int& width, int& height, int& channels) const;
 
   struct CL_MLT_DATA
   {
@@ -306,18 +313,19 @@ protected:
 
   struct CL_BUFFERS_RAYS
   {
-    CL_BUFFERS_RAYS() : rayPos(0), rayDir(0), hits(0), rayFlags(0), hitSurfaceAll(0), hitProcTexData(0),
+    CL_BUFFERS_RAYS() : rayPos(0), rayDir(0), hits(0), rayFlags(0), surfId(0), hitSurfaceAll(0), hitProcTexData(0),
                         pathThoroughput(0), pathMisDataPrev(0), pathShadeColor(0), pathAccColor(0), pathAuxColor(0), pathAuxColorCPU(0), pathShadow8B(0), pathShadow8BAux(0), pathShadow8BAuxCPU(0), 
                         randGenState(0), lsamRev(0), shadowRayPos(0), shadowRayDir(0), accPdf(0), oldFlags(0), oldRayDir(0), oldColor(0),
                         lshadow(0), shadowTemp1i(0), fogAtten(0), samZindex(0), aoCompressed(0), aoCompressed2(0), lightOffsetBuff(0), packedXY(0), debugf4(0), atomicCounterMem(0), MEGABLOCKSIZE(0) {}
 
     void free();
-    size_t resize(cl_context ctx, cl_command_queue cmdQueue, size_t a_size, bool a_cpuShare, bool a_cpuFB);
+    size_t resize(cl_context ctx, cl_command_queue cmdQueue, size_t a_size, bool a_cpuShare, bool a_cpuFB, bool a_evalSurfaId);
 
     cl_mem rayPos;                   // float4, MEGABLOCKSIZE size
     cl_mem rayDir;                   // float4, MEGABLOCKSIZE size 
     cl_mem hits;
     cl_mem rayFlags;
+    cl_mem surfId;
 
     cl_mem hitSurfaceAll;
     cl_mem hitProcTexData;
@@ -369,6 +377,7 @@ protected:
     cl_context       ctx;               // OpenCL context
     cl_command_queue cmdQueue;          // OpenCL command que
     cl_command_queue cmdQueueDevToHost; // OpenCL command que for copying data from GPU to CPU
+    cl_command_queue cmdQueueHostToDev; // OpenCL command que for copying data from CPU to GPU
     cl_platform_id   platform;          // OpenCL platform
     cl_device_id     device;            // OpenCL device
 
@@ -482,7 +491,10 @@ protected:
                                 cl_mem a_zindex, cl_mem a_samples);
                                     
   void runKernel_MakeRaysFromEyeSam(cl_mem a_zindex, cl_mem a_samples, size_t a_size, int a_passNumber,
-                                    cl_mem a_rpos, cl_mem a_rdir);
+                                    cl_mem a_rpos, cl_mem a_rdir, cl_mem a_color);
+
+  void runKernel_TakeHostRays(cl_mem in_rays, cl_mem out_rpos, cl_mem out_rdir, cl_mem out_clearColor, size_t a_size);
+  void runKernel_AccumColor(cl_mem a_inColor, cl_mem in_surfId, cl_mem a_outColor, size_t a_size, float a_mult);
 
   void runKernel_InitRandomGen(cl_mem a_buffer, size_t a_size, int a_seed);
   void runKernel_MakeEyeRays(cl_mem a_rpos, cl_mem a_rdir, cl_mem a_zindex, size_t a_size, int a_passNumber);
@@ -627,7 +639,7 @@ protected:
 
   bool testSimpleReduction();
   void testDumpRays(const char* a_fNamePos, const char* a_fnameDir);
-  void debugDumpF4Buff(const char* a_fNamePos, cl_mem a_buff);
+  void debugDumpF4Buff(const char* a_fNamePos, cl_mem a_buff, bool a_textMode = false);
 
   bool m_clglSharing;
   bool m_storeShadowInAlphaChannel;
@@ -638,10 +650,32 @@ protected:
   void saveBlocksInfoToFile(cl_mem a_blocks, size_t a_size);
 
   cl_mem getFrameBuffById(int a_id);
+
+  //// for CamHostPlugin
+  //
+  struct CamPluginData
+  {
+    std::shared_ptr<IHostRaysAPI> pCamPlugin = nullptr;
+    cl_mem camRayGPU[2] = {nullptr, nullptr};
+    cl_mem camRayCPU[2] = {nullptr, nullptr};
+    cl_mem accumBuff    = nullptr;
+    
+    void free()
+    {
+      if(camRayGPU == nullptr)
+        return;
+      clReleaseMemObject(camRayGPU[0]); camRayGPU[0] = nullptr;
+      clReleaseMemObject(camRayGPU[1]); camRayGPU[1] = nullptr;
+      clReleaseMemObject(camRayCPU[0]); camRayCPU[0] = nullptr;
+      clReleaseMemObject(camRayCPU[1]); camRayCPU[1] = nullptr;
+      clReleaseMemObject(accumBuff);    accumBuff    = nullptr;
+    }
+   
+   float pipeTime[3] = {0,0,0};
+  } m_camPlugin;
 };
 
 void RoundBlocks2D(size_t global_item_size[2], size_t local_item_size[2]);
 
 static constexpr bool FORCE_DRAW_SHADOW      = false;
 static constexpr int  NUM_MMLT_PASS          = 32;
-

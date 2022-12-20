@@ -341,8 +341,9 @@ enum MEGATEX_USAGE{ MEGATEX_SHADING      = 1,
 
     #define COMMON_CPLUS_PLUS_CODE 1
 
-    static inline int   as_int(float x) { return reinterpret_cast<int&>  (x); }
-    static inline float as_float(int x) { return reinterpret_cast<float&>(x); }
+    static inline int      as_int(float x)  { return reinterpret_cast<int&>  (x); }
+    static inline unsigned as_uint(float x) { return reinterpret_cast<unsigned&>  (x); }
+    static inline float    as_float(int x)  { return reinterpret_cast<float&>(x); }
 
     #define _PACKED
 
@@ -438,7 +439,7 @@ enum VARIABLE_NAMES { // int vars
                       HRT_VAR_ENABLE_RR            = 18,
                       HRT_RENDER_LAYER             = 19,
                       HRT_RENDER_LAYER_DEPTH       = 20,
-                      HRT_IC_ENABLED               = 21,
+                      HRT_SAMPLES_PER_PASS         = 21,
                       HRT_IMAP_ENABLED             = 22,
                       HRT_SPHEREMAP_TEXID0         = 23,
                       HRT_SPHEREMAP_TEXID1         = 24,
@@ -462,6 +463,10 @@ enum VARIABLE_NAMES { // int vars
                       HRT_SHADOW_MATTE_BACK_COLOR_X= 42,
                       HRT_SHADOW_MATTE_BACK_COLOR_Y= 43,
                       HRT_SHADOW_MATTE_BACK_COLOR_Z= 44,
+                      HRT_USE_CPU_PLUGIN           = 45,
+                      HRT_ENABLE_SURFACE_PACK      = 46,
+                      HRT_FBUF_CHANNELS            = 47,
+
 };
 
 enum VARIABLE_FLOAT_NAMES{ // float vars
@@ -487,7 +492,7 @@ enum VARIABLE_FLOAT_NAMES{ // float vars
                            HRT_CAM_FOV                             = 14,
                            HRT_PATH_TRACE_ERROR                    = 15,  
                            HRT_PATH_TRACE_CLAMPING                 = 16,
-                           HRT_DUMMY_VARIABLE                      = 17, 
+                           HRT_DUMMY_FREE                          = 17, 
 
                            HRT_BSPHERE_CENTER_X                    = 18,
                            HRT_BSPHERE_CENTER_Y                    = 19,
@@ -1029,33 +1034,38 @@ static inline float4x4 transpose(const float4x4 a_mat)
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-static inline float3 EyeRayDir(float x, float y, float w, float h, float4x4 a_mViewProjInv) // g_mViewProjInv
-{
-  float4 pos = make_float4( 2.0f * (x + 0.5f) / w - 1.0f, 
-                           -2.0f * (y + 0.5f) / h + 1.0f, 
-                            0.0f, 
-                            1.0f );
+//static inline float3 EyeRayDir(float x, float y, float w, float h, float4x4 a_mViewProjInv) // g_mViewProjInv
+//{
+//  float4 pos = make_float4( 2.0f * (x + 0.5f) / w - 1.0f, 
+//                           -2.0f * (y + 0.5f) / h + 1.0f, 
+//                            0.0f, 
+//                            1.0f );
+//
+//  pos = mul4x4x4(a_mViewProjInv, pos);
+//  pos /= pos.w;
+//  pos.y *= (-1.0f);
+//  return normalize(to_float3(pos));
+//}
 
+static inline float3 EyeRayDirNormalized(float x, float y, float4x4 a_mViewProjInv) // g_mViewProjInv
+{
+  float4 pos = make_float4(2.0f*x - 1.0f, 
+                           2.0f*y - 1.0f, 
+                           0.0f, 
+                           1.0f );
   pos = mul4x4x4(a_mViewProjInv, pos);
   pos /= pos.w;
-
-  pos.y *= (-1.0f);
-
   return normalize(to_float3(pos));
 }
-
 
 static inline void matrix4x4f_mult_ray3(float4x4 a_mWorldViewInv, __private float3* ray_pos, __private float3* ray_dir) // g_mWorldViewInv
 {
   float3 pos  = mul(a_mWorldViewInv, (*ray_pos));
   float3 pos2 = mul(a_mWorldViewInv, ((*ray_pos) + 100.0f*(*ray_dir)));
-
   float3 diff = pos2 - pos;
-
   (*ray_pos)  = pos;
   (*ray_dir)  = normalize(diff);
 }
-
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////
 ////
@@ -1753,6 +1763,8 @@ struct MRaysStat
   float nextBounceMs;
 
   float sampleTimeMS;
+
+  float procTexMs;
 };
 
 static inline float probabilityAbsorbRR(uint a_flags, uint a_globalFlags)

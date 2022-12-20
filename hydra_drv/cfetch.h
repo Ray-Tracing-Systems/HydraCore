@@ -302,6 +302,13 @@ static inline float4 read_array_uchar4(__global const uchar4* a_data, int offset
   return mult*make_float4((float)c0.x, (float)c0.y, (float)c0.z, (float)c0.w);
 }
 
+static inline float read_array_uchar(__global const unsigned char* a_data, int offset)
+{
+  const float mult = 0.003921568f; // (1.0f/255.0f);
+  const unsigned char c  = a_data[offset];
+  return mult * (float)c;
+}
+
 static inline int4 bilinearOffsets(const float ffx, const float ffy, const int a_flags, const int w, const int h)
 {
 	const int sx = (ffx > 0.0f) ? 1 : -1;
@@ -354,6 +361,107 @@ static inline int4 bilinearOffsets(const float ffx, const float ffy, const int a
 	return make_int4(offset0, offset1, offset2, offset3);
 }
 
+static inline float read_imagef_sw1(texture2d_t a_tex, const float2 a_texCoord, const int a_flags)
+{
+  const int4 header = (*a_tex);
+
+  const int w   = header.x;
+  const int h   = header.y;
+  const int bpp = header.w;
+
+  const float fw  = (float)(w);
+  const float fh  = (float)(h);
+
+  float ffx = a_texCoord.x * fw - 0.5f;
+  float ffy = a_texCoord.y * fh - 0.5f;
+
+  if ((a_flags & TEX_CLAMP_U) != 0 && ffx < 0) ffx = 0.0f;
+  if ((a_flags & TEX_CLAMP_V) != 0 && ffy < 0) ffy = 0.0f;
+
+  // fetch pixels
+  //
+  __global const float* fdata = (__global const float*)(a_tex + 1);
+
+  float res;
+  if(a_flags & TEX_POINT_SAM)
+  {
+    int px = (int)(ffx + 0.5f);
+    int py = (int)(ffy + 0.5f);
+
+    if (a_flags & TEX_CLAMP_U)
+    {
+      px = (px >= w) ? w - 1 : px;
+      px = (px < 0)  ? 0     : px;
+    }
+    else
+    {
+      px = px % w;
+      px = (px < 0) ? px + w : px;
+    }
+
+    if (a_flags & TEX_CLAMP_V)
+    {
+      py = (py >= h) ? h - 1 : py;
+      py = (py < 0)  ? 0     : py;
+    }
+    else
+    {
+      py = py % h;
+      py = (py < 0) ? py + h : py;
+    }
+
+    const int offset = py*w + px;
+    if (bpp == 4)
+      res = fdata[offset];
+    else if (bpp == 1)
+    {
+      res = read_array_uchar((__global const unsigned char*)(a_tex + 1), offset);
+      //__global const float4* fdata = (__global const float4*)(a_tex + 1);
+
+    }
+    // res = fdata[offset];
+  }
+  else
+  {
+    const int px = (int)(ffx);
+    const int py = (int)(ffy);
+
+    // Calculate the weights for each pixel
+    //
+    const float fx = fabs(ffx - (float)px);
+    const float fy = fabs(ffy - (float)py);
+    const float fx1 = 1.0f - fx;
+    const float fy1 = 1.0f - fy;
+
+    const float w1 = fx1 * fy1;
+    const float w2 = fx  * fy1;
+    const float w3 = fx1 * fy;
+    const float w4 = fx  * fy;
+
+    const int4 offsets = bilinearOffsets(ffx, ffy, a_flags, w, h);
+
+    if (bpp == 4)
+    {
+      const float f1 = fdata[offsets.x];
+      const float f2 = fdata[offsets.y];
+      const float f3 = fdata[offsets.z];
+      const float f4 = fdata[offsets.w];
+
+      res = f1 * w1 + f2 * w2 + f3 * w3 + f4 * w4;
+    }
+    else if (bpp == 1)
+    {
+      const float f1 = read_array_uchar((__global const unsigned char*)(a_tex + 1), offsets.x);
+      const float f2 = read_array_uchar((__global const unsigned char*)(a_tex + 1), offsets.y);
+      const float f3 = read_array_uchar((__global const unsigned char*)(a_tex + 1), offsets.z);
+      const float f4 = read_array_uchar((__global const unsigned char*)(a_tex + 1), offsets.w);
+
+      res = f1 * w1 + f2 * w2 + f3 * w3 + f4 * w4;
+    }
+  }
+
+  return res;
+}
 
 static inline float4 read_imagef_sw4(texture2d_t a_tex, const float2 a_texCoord, const int a_flags)
 {
@@ -361,8 +469,13 @@ static inline float4 read_imagef_sw4(texture2d_t a_tex, const float2 a_texCoord,
 
   const int w   = header.x;
   const int h   = header.y;
-  //const int d   = header.z;
+  const int d   = header.z;
   const int bpp = header.w;
+  if(d == 1)
+  {
+    float val = read_imagef_sw1(a_tex, a_texCoord, a_flags);
+    return make_float4(val, val, val, 1);
+  }
 
   const float fw  = (float)(w);
   const float fh  = (float)(h);
@@ -460,86 +573,6 @@ static inline float4 read_imagef_sw4(texture2d_t a_tex, const float2 a_texCoord,
     const float outa = f1.w * w1 + f2.w * w2 + f3.w * w3 + f4.w * w4;
 
     res = make_float4(outr, outg, outb, outa);
-  }
-
-  return res;
-}
-
-static inline float read_imagef_sw1(texture2d_t a_tex, const float2 a_texCoord, const int a_flags)
-{
-  const int4 header = (*a_tex);
-
-  const int w   = header.x;
-  const int h   = header.y;
-
-  const float fw  = (float)(w);
-  const float fh  = (float)(h);
-
-  float ffx = a_texCoord.x*fw - 0.5f;
-  float ffy = a_texCoord.y*fh - 0.5f;
-
-  if ((a_flags & TEX_CLAMP_U) != 0 && ffx < 0) ffx = 0.0f;
-  if ((a_flags & TEX_CLAMP_V) != 0 && ffy < 0) ffy = 0.0f;
-
-  // fetch pixels
-  //  
-  __global const float* fdata = (__global const float*)(a_tex + 1);
-
-  float res;
-  if(a_flags & TEX_POINT_SAM)
-  {
-    int px = (int)(ffx + 0.5f);
-    int py = (int)(ffy + 0.5f);
-
-    if (a_flags & TEX_CLAMP_U)
-    {
-      px = (px >= w) ? w - 1 : px;
-      px = (px < 0)  ? 0     : px;
-    }
-    else
-    {
-      px = px % w;
-      px = (px < 0) ? px + w : px;
-    }
-
-    if (a_flags & TEX_CLAMP_V)
-    {
-      py = (py >= h) ? h - 1 : py;
-      py = (py < 0)  ? 0     : py;
-    }
-    else
-    {
-      py = py % h;
-      py = (py < 0) ? py + h : py;
-    }
-    
-    res = fdata[py*w + px];
-  }
-  else
-  {
-    const int px = (int)(ffx);
-    const int py = (int)(ffy);
-
-    // Calculate the weights for each pixel
-    //
-    const float fx = fabs(ffx - (float)px);
-    const float fy = fabs(ffy - (float)py);
-    const float fx1 = 1.0f - fx;
-    const float fy1 = 1.0f - fy;
-
-    const float w1 = fx1 * fy1;
-    const float w2 = fx  * fy1;
-    const float w3 = fx1 * fy;
-    const float w4 = fx  * fy;
-
-    const int4 offsets = bilinearOffsets(ffx, ffy, a_flags, w, h);
-
-    const float f1 = fdata[offsets.x];
-    const float f2 = fdata[offsets.y];
-    const float f3 = fdata[offsets.z];
-    const float f4 = fdata[offsets.w];
-
-    res = f1 * w1 + f2 * w2 + f3 * w3 + f4 * w4;
   }
 
   return res;
@@ -884,7 +917,7 @@ static inline void MakeRandEyeRay(int x, int y, int w, int h, float4 offsets, __
   //}
 
   float3 ray_pos = make_float3(0.0f, 0.0f, 0.0f);
-  float3 ray_dir = EyeRayDir(screenPosF.x, screenPosF.y, (float)w, (float)h, a_mViewProjInv);
+  float3 ray_dir = EyeRayDirNormalized(screenPosF.x/(float)w, screenPosF.y/(float)h, a_mViewProjInv);
 
   // simple AA for PT
   //
@@ -934,7 +967,7 @@ static inline void MakeEyeRayFromF4Rnd(float4 lensOffs, __global const EngineGlo
   const float4x4 a_mWorldViewInv = make_float4x4(a_globals->mWorldViewInverse);
 
   float3 ray_pos = make_float3(0.0f, 0.0f, 0.0f);
-  float3 ray_dir = EyeRayDir(x, y, fwidth, fheight, a_mViewProjInv);
+  float3 ray_dir = EyeRayDirNormalized(x/fwidth, y/fheight, a_mViewProjInv);
   ray_dir        = tiltCorrection(ray_pos, ray_dir, a_globals);
 
   if (a_globals->varsI[HRT_ENABLE_DOF] == 1)

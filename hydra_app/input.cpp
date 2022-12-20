@@ -12,7 +12,8 @@ Input::Input()
   //inLibraryPath = "tests/test_42_beckmann"; ///< cornell box with teapot
   //inLibraryPath = "tests/test_aniso";
   //inLibraryPath = "tests/test_42_with_mirror";  
-  inLibraryPath = "tests/test_42";
+  //inLibraryPath = "tests/test_42_ggx";
+  //inLibraryPath = "tests/test_42";
   //inLibraryPath = "../../Diser/DiffuseReference/01_CornellBoxEmpty_direct/scenelib";
   //inLibraryPath = "tests/test_223_small"; ///< cornell box with sphere
   //inLibraryPath = "tests/test_224";
@@ -23,6 +24,9 @@ Input::Input()
 
   //inLibraryPath = "/home/frol/PROG/HydraRepos/HydraAPI-tests/tests_f/test_119";
   //inLibraryPath = "/home/frol/PROG/HydraRepos/HydraAPI/main/demos/demo_02";
+  inLibraryPath = "tests/demo_05";
+  //inLibraryPath = "tests/test_42_ggx";
+  //inLibraryPath = "/home/frol/Downloads/rgbd_scene";
 
   inDevelopment = false; ///< recompile shaders each time; note that nvidia have their own shader cache!
   inDeviceId    = 0;     ///< opencl device id
@@ -30,8 +34,8 @@ Input::Input()
   enableMLT     = false; ///< if use MMLT, you MUST enable it early, when render process just started (here or via command line).
   boxMode       = false; ///< special 'in the box' mode when render don't react to any commands
 
-  winWidth      = 1024;
-  winHeight     = 1024;
+  winWidth      = 1024; //1368;
+  winHeight     = 1024; //912;
 
   enableOpenGL1 = false; ///< if you want to draw scene for some debug needs with OpenGL1.
   exitStatus    = false;
@@ -50,7 +54,6 @@ Input::Input()
   mmltEnabled         = false;
   
   cameraFreeze        = false;
-  inSeed              = clock();
 
   getGBufferBeforeRender = false; ///< if external application that ise HydraAPI ask to calc gbuffer;
   productionPTMode       = false;
@@ -160,6 +163,7 @@ void hr_setrenderpath(const std::string& a_rhs);
 
 void Input::ParseCommandLineParams(const std::unordered_map<std::string, std::string>& a_params)
 {
+  m_allParams = a_params;
   ReadBoolCmd(a_params,   "-nowindow",        &noWindow);
   ReadBoolCmd(a_params,   "-cpu_fb",          &cpuFB);
   ReadBoolCmd(a_params,   "-enable_mlt",      &enableMLT);
@@ -176,14 +180,22 @@ void Input::ParseCommandLineParams(const std::unordered_map<std::string, std::st
   if (listDevicesAndExit)
     noWindow = true;
 
-  ReadIntCmd (a_params,   "-seed",         &inSeed);
+  //ReadIntCmd (a_params,   "-seed",         &inSeed);
   ReadIntCmd (a_params,   "-cl_device_id", &inDeviceId);
   ReadFloatCmd(a_params,  "-saveinterval", &saveInterval);
 
   ReadIntCmd(a_params,    "-width",        &winWidth);
   ReadIntCmd(a_params,    "-height",       &winHeight);
   
-  ReadIntCmd(a_params,    "-maxsamples",       &maxSamples);
+  ReadIntCmd(a_params,    "-spp",              &maxSamples); // yes, same as maxsamples
+  ReadIntCmd(a_params,    "-maxsamples",       &maxSamples); // yes, same as spp
+
+  overrideMaxSamplesInCMD = a_params.find("-spp") != a_params.end() || a_params.find("-maxsamples") != a_params.end();
+
+  ReadIntCmd(a_params, "-max_cpu_threads", &maxCPUThreads); // yes, same as spp
+  overrideMaxCPUThreads = a_params.find("-max_cpu_threads") != a_params.end() || a_params.find("-maxsamples") != a_params.end();
+
+
   ReadIntCmd(a_params,    "-contribsamples",   &maxSamplesContrib);
   ReadIntCmd(a_params,    "-mmltthreads",      &mmltThreads);
   

@@ -152,7 +152,7 @@ void RenderDriverRTE::ExecuteCommand(const wchar_t* a_cmd, wchar_t* a_out)
     std::cerr << "[RTE], exitnow" << std::endl;
     //m_pHWLayer->FinishAll();
     //std::cerr << "[RTE], exitnow, after  FinishAll" << std::endl;
-    exit(0);
+    //exit(0);
   }
 #endif
 }
@@ -168,6 +168,13 @@ bool RenderDriverRTE::UpdateSettings(pugi::xml_node a_settingsNode)
   if (a_settingsNode.child(L"height") != nullptr)
     m_height = a_settingsNode.child(L"height").text().as_int();
 
+  auto vars = m_pHWLayer->GetAllFlagsAndVars();
+
+  if (a_settingsNode.child(L"framebuffer_channels") != nullptr)
+    vars.m_varsI[HRT_FBUF_CHANNELS] = a_settingsNode.child(L"framebuffer_channels").text().as_int();
+  else
+    vars.m_varsI[HRT_FBUF_CHANNELS] = 4;
+
   if (m_width < 0 || m_height < 0)
   {
     m_msg = L"RenderDriverRTE::UpdateSettings, bad input resolution";
@@ -178,17 +185,6 @@ bool RenderDriverRTE::UpdateSettings(pugi::xml_node a_settingsNode)
     return false;
   
   m_maxRaysPerPixel = a_settingsNode.child(L"maxRaysPerPixel").text().as_int();
-
-  if (oldWidth != m_width || oldHeight != m_height || m_firstResizeOfScreen)
-  {
-    int flags = MEASURE_RAYS ? GPU_RT_MEMORY_FULL_SIZE_MODE : 0;
-    m_pHWLayer->ResizeScreen(m_width, m_height, (flags | m_initFlags));
-    m_firstResizeOfScreen = false;
-  }
-
-  //
-  //
-  auto vars = m_pHWLayer->GetAllFlagsAndVars();
 
   vars.m_flags |= (HRT_USE_MIS | HRT_COMPUTE_SHADOWS);
 
@@ -243,6 +239,9 @@ bool RenderDriverRTE::UpdateSettings(pugi::xml_node a_settingsNode)
   vars.m_varsF[HRT_TEXINPUT_GAMMA]      = 2.2f;
   vars.m_varsF[HRT_PATH_TRACE_ERROR]    = 0.025f;
   vars.m_varsF[HRT_TRACE_PROCEEDINGS_TRESHOLD] = 1e-8f;
+
+  if(a_settingsNode.child(L"outgamma") != nullptr)
+    vars.m_varsF[HRT_IMAGE_GAMMA] = a_settingsNode.child(L"outgamma").text().as_float();
 
   if(a_settingsNode.child(L"mmlt_burn_iters") != nullptr)
     vars.m_varsI[HRT_MMLT_BURN_ITERS] = a_settingsNode.child(L"mmlt_burn_iters").text().as_int();
@@ -374,7 +373,21 @@ bool RenderDriverRTE::UpdateSettings(pugi::xml_node a_settingsNode)
   else  
     vars.m_varsI[HRT_QMC_VARIANT] = 0;
 
+  if(a_settingsNode.child(L"pack_surf_id") != nullptr)
+    vars.m_varsI[HRT_ENABLE_SURFACE_PACK] = a_settingsNode.child(L"pack_surf_id").text().as_int();
+  else
+    vars.m_varsI[HRT_ENABLE_SURFACE_PACK] = 0;
+
   m_pHWLayer->SetAllFlagsAndVars(vars);
+  m_pHWLayer->SetSettingsNode(a_settingsNode);
+  m_lastSettings = a_settingsNode;
+
+  if (oldWidth != m_width || oldHeight != m_height || m_firstResizeOfScreen)
+  {
+    int flags = MEASURE_RAYS ? GPU_RT_MEMORY_FULL_SIZE_MODE : 0;
+    m_pHWLayer->ResizeScreen(m_width, m_height, (flags | m_initFlags));
+    m_firstResizeOfScreen = false;
+  }
 
   return true;
 }
@@ -718,7 +731,7 @@ HRDriverAllocInfo RenderDriverRTE::AllocAll(HRDriverAllocInfo a_info)
 
   if (newTotalMem >= freeMem)
   {
-    std::cerr << "[AllocAll]: NOT ENOUGHT MEMORY! --- " << std::endl;
+    std::cerr << "[AllocAll]: NOT ENOUGH MEMORY! --- " << std::endl;
   }
 
   m_lastAllocInfo         = a_info;
@@ -734,7 +747,7 @@ void RenderDriverRTE::GetLastErrorW(wchar_t a_msg[256])
   m_msg = L"";
 }
 
-bool RenderDriverRTE::UpdateImage(int32_t a_texId, int32_t w, int32_t h, int32_t bpp, const void* a_data, pugi::xml_node a_texNode)
+bool RenderDriverRTE::UpdateImage(int32_t a_texId, int32_t w, int32_t h, int32_t bpp, int32_t chan, const void* a_data, pugi::xml_node a_texNode)
 {
   std::wstring type = a_texNode.attribute(L"type").as_string();
 
@@ -795,7 +808,7 @@ bool RenderDriverRTE::UpdateImage(int32_t a_texId, int32_t w, int32_t h, int32_t
 
   texheader.width  = w;
   texheader.height = h;
-  texheader.depth  = 1;
+  texheader.depth  = chan;
   texheader.bpp    = bpp;
 
   const size_t inDataBSz  = size_t(w)*size_t(h)*size_t(bpp);
@@ -1250,7 +1263,24 @@ bool RenderDriverRTE::UpdateCamera(pugi::xml_node a_camNode)
     vars.m_varsF[HRT_TILT_ROT_X] = 0.0f;
   }
 
+  if (a_camNode.attribute(L"cpu_plugin") != nullptr)
+  {
+    int hasPlugin = a_camNode.attribute(L"cpu_plugin").as_int();
+    vars.m_varsI[HRT_USE_CPU_PLUGIN] = hasPlugin;
+  }
+
+  if (a_camNode.attribute(L"integrator_iters") != nullptr)
+  {
+    int hasPlugin = a_camNode.attribute(L"integrator_iters").as_int();
+    vars.m_varsI[HRT_SAMPLES_PER_PASS] = hasPlugin;
+  }
+  else
+    vars.m_varsI[HRT_SAMPLES_PER_PASS] = 1;
+
+  //HRT_SAMPLES_PER_PASS
+
   m_pHWLayer->SetAllFlagsAndVars(vars);
+  m_pHWLayer->SetCamNode(a_camNode);  // for CPU cam plugins
 
   return true;
 }
@@ -1702,7 +1732,7 @@ void RenderDriverRTE::Draw()
     {
       // (1) init random gens
       //
-      m_pHWLayer->InitPathTracing(m_legacy.m_lastSeed);
+      m_pHWLayer->InitPathTracing(m_legacy.m_lastSeed, &m_instIdByInstId);
       m_ptInitDone = true;
       
       auto flagsAndVars = m_pHWLayer->GetAllFlagsAndVars();
@@ -1737,7 +1767,10 @@ void RenderDriverRTE::Draw()
   {
     if (!m_ptInitDone)
     {
-      m_pHWLayer->InitPathTracing(m_legacy.m_lastSeed);
+      int seed = m_legacy.m_lastSeed;
+      if(m_lastSettings.child(L"seed") != nullptr)
+        seed = m_lastSettings.child(L"seed").text().as_int();
+      m_pHWLayer->InitPathTracing(seed, &m_instIdByInstId);
       m_ptInitDone = true;
  
       auto flagsAndVars = m_pHWLayer->GetAllFlagsAndVars();
@@ -1873,6 +1906,7 @@ void RenderDriverRTE::Draw()
     std::cout << "[stat]: nextbounce = " << m_avgStats.nextBounceMs    << "\t ms" << std::endl;
     std::cout << "[stat]: fullbounce = " << m_avgStats.bounceTimeMS    << "\t ms" << std::endl;
     std::cout << "[stat]: sampletime = " << m_avgStats.sampleTimeMS    << "\t ms" << std::endl;
+    std::cout << "[stat]: proctex = " << m_avgStats.procTexMs    << "\t ms" << std::endl;
     std::cout << "[stat]: MSampl/sec = " << msamp << std::endl;
 
     const float traceTimePerCent = 100.0f*(m_avgStats.traversalTimeMs + m_avgStats.shadowTimeMs) / m_avgStats.bounceTimeMS;
@@ -2049,11 +2083,11 @@ HRRenderUpdateInfo RenderDriverRTE::HaveUpdateNow(int a_maxRaysperPixel)
   res.haveUpdateMSG = (m_msg != L"");
   res.msg           = m_msg.c_str();
 
-  const float spp = m_pHWLayer->GetSPP();
-  
+  const float spp = m_pHWLayer->GetSPPDone();
   res.progress    = spp/float(a_maxRaysperPixel);
   res.finalUpdate = (res.progress >= 1.0f); 
- 
+  if(res.finalUpdate)
+    m_pHWLayer->CPUPluginFinish();
   return res;
 }
 
