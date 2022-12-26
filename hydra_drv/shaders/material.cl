@@ -1353,7 +1353,7 @@ __kernel void GetGBufferSample(__global const float4*    a_rdir,
                                __global float4*          restrict out_gbuff1,
                                __global float4*          restrict out_gbuff2,
 
-                               __global const HitMatRef*     restrict in_mtlStorage,
+                               __global const float4*        restrict in_mtlStorage,
                                texture2d_t                   restrict a_shadingTexture,
                                texture2d_t                   restrict a_shadingTextureNormal,
                                __global const EngineGlobals* restrict a_globals,              // any more params. 
