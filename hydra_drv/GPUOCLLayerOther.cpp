@@ -367,7 +367,7 @@ void GPUOCLLayer::ContribToExternalImageAccumulator(IHRSharedAccumImage* a_pImag
   if (!m_screen.m_cpuFrameBuffer)
   {
     if(m_screen.color0CPU.size() != m_width * m_height)
-      m_screen.color0CPU.resize(m_width*m_height);
+      m_screen.color0CPU.resize(m_width*m_height * m_screen.m_cpuFbufChannels);
     CHECK_CL(clEnqueueReadBuffer(m_globals.cmdQueue, m_screen.color0, CL_TRUE, 0, m_width*m_height * sizeof(cl_float4), m_screen.color0CPU.data(), 0, NULL, NULL));
   }
 
@@ -505,10 +505,10 @@ void GPUOCLLayer::RunProductionSamplingMode()
 
   Timer timer(true);
 
-  if(m_screen.color0CPU.size() != m_width*m_height)
+  if(m_screen.color0CPU.size() != m_width*m_height*m_screen.m_cpuFbufChannels)
   {
-    m_screen.color0CPU.resize(m_width*m_height);
-    memset(m_screen.color0CPU.data(), 0, m_screen.color0CPU.size()*sizeof(float4));
+    m_screen.color0CPU.resize(m_width*m_height * m_screen.m_cpuFbufChannels);
+    memset(m_screen.color0CPU.data(), 0, m_screen.color0CPU.size()*sizeof(float));
   }
 
   // (1) create pixels list
