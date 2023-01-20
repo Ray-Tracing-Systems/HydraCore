@@ -12,7 +12,8 @@ Input::Input()
   //inLibraryPath = "tests/test_42_beckmann"; ///< cornell box with teapot
   //inLibraryPath = "tests/test_aniso";
   //inLibraryPath = "tests/test_42_with_mirror";  
-  inLibraryPath = "tests/test_42_ggx";
+  //inLibraryPath = "tests/test_42_ggx";
+  inLibraryPath = "tests/014_Bump_height"; 
   //inLibraryPath = "tests/test_42";
   //inLibraryPath = "../../Diser/DiffuseReference/01_CornellBoxEmpty_direct/scenelib";
   //inLibraryPath = "tests/test_223_small"; ///< cornell box with sphere

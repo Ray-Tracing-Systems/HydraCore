@@ -1,5 +1,6 @@
 #include "GPUOCLLayer.h"
 #include "crandom.h"
+#include "hydra_api/HR_HDRImageTool.h";
 
 #include "MemoryStorageCPU.h"
 #include "MemoryStorageOCL.h"
@@ -588,6 +589,9 @@ std::vector<uchar4> GPUOCLLayer::NormalMapFromDisplacement(int w, int h, const u
     std::swap(textureIn, textureOut);
   }
 
+
+
+
   // run kernel NormalmapFromHeight
   {
     const int w2 = blocks(w, 16) * 16;
@@ -624,6 +628,19 @@ std::vector<uchar4> GPUOCLLayer::NormalMapFromDisplacement(int w, int h, const u
 
   clReleaseMemObject(textureIn);  textureIn  = 0;
   clReleaseMemObject(textureOut); textureOut = 0;
+
+  //save hydra image for check correct calculate normal map
+//  std::vector<int32_t> finalData(w * h);
+//
+//#pragma omp parallel for
+//  for (int y = 0; y < h; y++)
+//    for (int x = 0; x < w; x++)
+//    {
+//      const int i = y * w + x;
+//      finalData[i] = RealColorToUint32(resData[i].x / 255.0F, resData[i].y / 255.0F, resData[i].z / 255.0F, resData[i].w / 256.0F);
+//    }
+//
+//  HydraRender::SaveImageToFile(std::string("NormalmapTest.png"), w, h, (unsigned int*)&finalData[0]);
 
   return resData;
 }
