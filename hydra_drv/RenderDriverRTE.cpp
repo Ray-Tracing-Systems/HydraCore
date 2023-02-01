@@ -59,7 +59,7 @@ RenderDriverRTE::RenderDriverRTE(const wchar_t* a_options, int w, int h, int a_d
   else
 	  m_initFlags = GPU_RT_HW_LAYER_OCL;    
 
-  m_useConvertedLayout      = false || (m_initFlags & GPU_RT_HW_LAYER_OCL);
+  m_useConvertedLayout      = true || (m_initFlags & GPU_RT_HW_LAYER_OCL);
   m_useBvhInstInsert        = false;
   m_texShadersWasRecompiled = false;
 

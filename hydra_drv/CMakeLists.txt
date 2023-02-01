@@ -75,6 +75,8 @@ endif()
 if (CMAKE_BUILD_TYPE STREQUAL "Debug")
     #MESSAGE(WARNING "DEBUG IS ON")
     add_definitions(-DDEBUG -D_DEBUG)
+else()
+    add_definitions(-DNDEBUG)
 endif()
 
 include_directories(${ADDITIONAL_INCLUDE_DIRS})

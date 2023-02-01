@@ -294,16 +294,8 @@ void IntegratorCommon::DoPass(std::vector<uint>& a_imageLDR)
       float3 ray_pos, ray_dir;
       std::tie(ray_pos, ray_dir) = makeEyeRay(x, y);
 
-      if (x == 1008 && y == 0)
-        int a = 2;
-
 			const float3 color = PathTrace(ray_pos, ray_dir, makeInitialMisData(), 0, 0); 
       const float maxCol = maxcomp(color);
-
-      if(!isfinite(color.x) || !isfinite(color.y) || !isfinite(color.z))
-      {
-        int a = 2;
-      }
 
       m_summColors[y*m_width + x] = m_summColors[y*m_width + x] * (1.0f - alpha) + to_float4(color, maxCol)*alpha;
     }
@@ -356,7 +348,7 @@ std::tuple<float3,float3> IntegratorCommon::makeEyeRay(int x, int y)
   EngineGlobals* a_globals = m_pGlobals;
 
   RandomGen& gen = randomGen();
-  float4 offsets = rndUniform(&gen, -1.0f, 1.0f);
+  float4 offsets = float4(0,0,0,0); //rndUniform(&gen, -1.0f, 1.0f);
 
   float3 ray_pos, ray_dir;
   MakeRandEyeRay(x, y, m_width, m_height, offsets, m_pGlobals, 

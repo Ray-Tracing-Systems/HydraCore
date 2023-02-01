@@ -337,7 +337,7 @@ static void Draw(std::shared_ptr<IHRRenderDriver> a_pDetachedRenderDriverPointer
     g_input.exitStatus = true;
   }
 
-  if (g_input.saveInterval > 1.0f)  // save intermediate image if this is enabled
+  //if (g_input.saveInterval > 1.0f)  // save intermediate image if this is enabled
   {
     const float time     = timer.getElapsed();
     const int saveImages = int(time / g_input.saveInterval);
@@ -347,7 +347,7 @@ static void Draw(std::shared_ptr<IHRRenderDriver> a_pDetachedRenderDriverPointer
     //std::cout << "time          = " << time << std::endl;
     //std::cout << "saveInterval  = " << g_input.saveInterval << std::endl;
 
-    if (saveImages > saveImageLast)
+    //if (saveImages > saveImageLast)
     {
       std::wstringstream fname1, fname2;
       if(g_input.outDir == "")
@@ -374,6 +374,7 @@ static void Draw(std::shared_ptr<IHRRenderDriver> a_pDetachedRenderDriverPointer
       saveImageLast = saveImages*2-1; // to save 1, 2, 4, 8, ... ; and saveImages to save 1, 2, 3, 4, ... 
       std::wcout << L"image " << outStr1.c_str() << L" saved " << std::endl;
     }
+    exit(0);
   }
 
 }

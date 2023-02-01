@@ -24,9 +24,11 @@ Input::Input()
 
   //inLibraryPath = "/home/frol/PROG/HydraRepos/HydraAPI-tests/tests_f/test_119";
   //inLibraryPath = "/home/frol/PROG/HydraRepos/HydraAPI/main/demos/demo_02";
-  inLibraryPath = "tests/demo_05";
+  //inLibraryPath = "tests/demo_05";
   //inLibraryPath = "tests/test_42_ggx";
   //inLibraryPath = "/home/frol/Downloads/rgbd_scene";
+  inLibraryPath = "/home/frol/PROG/msu-graphics-group/scenes/01_simple_scenes/sphere_plane_obj.xml";
+  //inLibraryPath = "/home/frol/PROG/msu-graphics-group/scenes/01_simple_scenes/bunny_cornell_obj.xml";
 
   inDevelopment = false; ///< recompile shaders each time; note that nvidia have their own shader cache!
   inDeviceId    = 0;     ///< opencl device id
