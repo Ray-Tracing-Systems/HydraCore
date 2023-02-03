@@ -188,8 +188,8 @@ int main(int argc, const char** argv)
     std::stringstream devStr;
     devStr << g_input.inDeviceId;
     
-    const std::string stdpath = g_input.inLogDirCust + "stdout" + devStr.str() + ".txt";
-    const std::string errpath = g_input.inLogDirCust + "stderr" + devStr.str() + ".txt";
+    const std::string stdpath = g_input.inLogDirCust + "\\" + "stdout" + devStr.str() + ".txt";
+    const std::string errpath = g_input.inLogDirCust + "\\" + "stderr" + devStr.str() + ".txt";
     
     std::cout << "[main]: redirect stdout to " << stdpath.c_str() << std::endl;
     std::cout << "[main]: redirect stderr to " << errpath.c_str() << std::endl;
