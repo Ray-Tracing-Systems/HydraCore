@@ -674,7 +674,7 @@ GPUOCLLayer::GPUOCLLayer(int w, int h, int a_flags, int a_deviceId) : Base(w, h,
     std::remove(yoshaderpathBin.c_str());
   }
 
-  const bool doublesForTriIntersection = true;
+  const bool doublesForTriIntersection = false;
 
   std::string options = GetOCLShaderCompilerOptions();
   std::cout << "[cl_core]: building cl programs ..." << std::endl;

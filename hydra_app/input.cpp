@@ -27,7 +27,7 @@ Input::Input()
   //inLibraryPath = "/home/frol/PROG/HydraRepos/HydraAPI/main/demos/demo_02";
   //inLibraryPath = "tests/demo_05";
   //inLibraryPath = "tests/test_42_ggx";
-  //inLibraryPath = "/home/frol/Downloads/rgbd_scene";
+  //inLibraryPath = "/home/frol/Downloads/bugreport/scene_04_RGBD_10M/";
 
   inDevelopment = true;  ///< recompile shaders each time; note that nvidia have their own shader cache!
   inDeviceId    = 0;     ///< opencl device id

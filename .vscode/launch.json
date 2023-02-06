@@ -11,7 +11,7 @@
             "program": "${workspaceFolder}/bin/hydra",
             "args"   : ["-nowindow", "1", 
                         "-out", "z_out.png",
-                        "-spp", "256"],
+                        "-spp", "4"],
                         //"-mmltthreads", "262144"],
                         // "-out",    "/home/frol/temp/test_out/image.png",
                         // "-outall", "/home/frol/temp/test_out/gbuff",
@@ -33,17 +33,26 @@
                 }
             ]
         },
-        
+
         {
-            "name": "(gdb) Launch",
-            "type": "cppdbg",
+            "name"   : "Launch (depth_scene)",
+            "type"   : "cppdbg",
             "request": "launch",
             "program": "${workspaceFolder}/bin/hydra",
-            "args": ["-nowindow", "1", 
-                     "-out", "z_out.png",
-                     "-spp", "16"],
+            "args"   : ["-nowindow", "1", 
+                        "-inputlib", "/home/frol/Downloads/bugreport/scene_04_RGBD_10M", "-statefile", "1m_lens_1M_hydra_rtx.xml",
+                        "-out", "z_out.png",
+                        "-spp", "4"],
+                        //"-mmltthreads", "262144"],
+                        // "-out",    "/home/frol/temp/test_out/image.png",
+                        // "-outall", "/home/frol/temp/test_out/gbuff",
+                        // "-outdir", "/home/frol/temp2"],
+                        // "-mmltthreads", "262144",
+                        // "-evalgbuffer", "1",
+                        // "-cl_device_id","1"],
+
             "stopAtEntry": false,
-            "cwd": "${workspaceFolder}/hydra_app",
+            "cwd"    : "${workspaceFolder}/hydra_app",
             "environment": [],
             "externalConsole": false,
             "MIMode": "gdb",
@@ -55,29 +64,6 @@
                 }
             ]
         },
-
-        {
-            "name": "(debug) HydraDLL",
-            "type": "cppdbg",
-            "request": "launch",
-            "program": "${workspaceFolder}/bin/hydra",
-            "args": ["-inputlib", "/home/frol/PROG/msu-graphics-group/scenes/01_simple_scenes", 
-                     "-statefile", "bunny_cornell.xml",
-                     "-out", "z_out3.png",
-                     "-nowindow", "1", "-pack_surf_id", "1"],
-            "stopAtEntry": false,
-            "cwd": "${workspaceFolder}/hydra_app",
-            "environment": [],
-            "externalConsole": false,
-            "MIMode": "gdb",
-            "setupCommands": [
-                {
-                    "description": "Enable pretty-printing for gdb",
-                    "text": "-enable-pretty-printing",
-                    "ignoreFailures": true
-                }
-            ]
-        }
         
         
 
