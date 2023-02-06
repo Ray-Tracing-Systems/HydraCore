@@ -57,6 +57,9 @@ static inline float2 RayBoxIntersectionLite2(float3 ray_pos, float3 ray_dir, flo
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+#ifndef DOUBLE_RAY_TRIANGLE
+
 static inline Lite_Hit IntersectAllPrimitivesInLeaf1(const float3 ray_pos, const float3 ray_dir,
                                                     const int leaf_offset, const float t_min, 
                                                     Lite_Hit a_result,
@@ -125,7 +128,7 @@ static inline Lite_Hit IntersectAllPrimitivesInLeaf(const float3 ray_pos, const 
                                                   #else
                                                      __global const float4* a_objListTex,
                                                   #endif
-                                                     const int a_instId)
+                                                     const int instId)
 {
   const int2 objectListInfo = getObjectList(leaf_offset, a_objListTex);
 
@@ -169,13 +172,151 @@ static inline Lite_Hit IntersectAllPrimitivesInLeaf(const float3 ray_pos, const 
       a_result.t      = t;
       a_result.primId = primId;
       a_result.geomId = geomId;
-      a_result.instId = a_instId;
+      a_result.instId = instId;
     }
 
   }
 
   return a_result;
 }
+
+#else
+
+static inline Lite_Hit IntersectAllPrimitivesInLeaf(const float3 a_ray_pos, const float3 a_ray_dir,
+                                                    const int leaf_offset, const float t_min, 
+                                                    Lite_Hit a_result,
+                                                  #ifdef USE_1D_TEXTURES
+                                                     __read_only image1d_buffer_t a_objListTex,
+                                                  #else
+                                                     __global const float4* a_objListTex,
+                                                  #endif
+                                                     const int a_instId)
+{
+  const double3 ray_pos = to_double3(a_ray_pos);
+  const double3 ray_dir = to_double3(a_ray_dir);
+  
+  const int2 objectListInfo = getObjectList(leaf_offset, a_objListTex);
+
+  const int NUM_FETCHES_TRI = 3; // sizeof(struct ObjectListTriangle) / sizeof(float4);
+  const int triAddressStart = objectListInfo.x; 
+  const int triAddressEnd   = triAddressStart + objectListInfo.y*NUM_FETCHES_TRI;
+ 
+  for (int triAddress = triAddressStart; triAddress < triAddressEnd; triAddress += NUM_FETCHES_TRI)
+  {
+   #ifdef USE_1D_TEXTURES
+    const float4 data1 = read_imagef(a_objListTex, triAddress + 0);
+    const float4 data2 = read_imagef(a_objListTex, triAddress + 1);
+    const float4 data3 = read_imagef(a_objListTex, triAddress + 2);
+   #else
+    const float4 data1 = a_objListTex[triAddress + 0]; 
+    const float4 data2 = a_objListTex[triAddress + 1]; 
+    const float4 data3 = a_objListTex[triAddress + 2]; 
+   #endif
+
+    const double3 A_pos = to_double3(to_float3(data1));
+    const double3 B_pos = to_double3(to_float3(data2));
+    const double3 C_pos = to_double3(to_float3(data3));
+
+    const int primId   = as_int(data1.w);
+    const int geomId   = as_int(data2.w);
+
+    const double3 edge1 = B_pos - A_pos;
+    const double3 edge2 = C_pos - A_pos;
+    const double3 pvec  = cross(ray_dir, edge2);
+    const double3 tvec  = ray_pos - A_pos;
+    const double3 qvec  = cross(tvec, edge1);
+    const double  det   = dot(edge1, pvec);
+    if(det != 0.0)
+    {
+      const double invDet = 1.0/det;
+  
+      const double v = dot(tvec, pvec)*invDet;
+      const double u = dot(qvec, ray_dir)*invDet;
+      const double t = dot(edge2, qvec)*invDet;
+      const double eps = 1e-10f; // 1e-6f for float
+      if (v > -eps && u > -eps && (u + v < 1.0f + eps) && t > t_min && t < a_result.t)
+      {
+        a_result.t      = (float)t;
+        a_result.primId = primId;
+        a_result.geomId = geomId;
+        a_result.instId = a_instId;
+      }
+    }
+
+  }
+
+  return a_result;
+}
+
+static inline Lite_Hit IntersectAllPrimitivesInLeaf1(const float3 a_ray_pos, const float3 a_ray_dir,
+                                                    const int leaf_offset, const float t_min, 
+                                                    Lite_Hit a_result,
+                                                  #ifdef USE_1D_TEXTURES
+                                                     __read_only image1d_buffer_t a_objListTex
+                                                  #else
+                                                     __global const float4* a_objListTex
+                                                  #endif
+                                                  )
+{
+  const double3 ray_pos = to_double3(a_ray_pos);
+  const double3 ray_dir = to_double3(a_ray_dir);
+  
+  const int2 objectListInfo = getObjectList(leaf_offset, a_objListTex);
+
+  const int NUM_FETCHES_TRI = 3; // sizeof(struct ObjectListTriangle) / sizeof(float4);
+  const int triAddressStart = objectListInfo.x; 
+  const int triAddressEnd   = triAddressStart + objectListInfo.y*NUM_FETCHES_TRI;
+ 
+  for (int triAddress = triAddressStart; triAddress < triAddressEnd; triAddress += NUM_FETCHES_TRI)
+  {
+   #ifdef USE_1D_TEXTURES
+    const float4 data1 = read_imagef(a_objListTex, triAddress + 0);
+    const float4 data2 = read_imagef(a_objListTex, triAddress + 1);
+    const float4 data3 = read_imagef(a_objListTex, triAddress + 2);
+   #else
+    const float4 data1 = a_objListTex[triAddress + 0]; 
+    const float4 data2 = a_objListTex[triAddress + 1]; 
+    const float4 data3 = a_objListTex[triAddress + 2]; 
+   #endif
+
+    const double3 A_pos = to_double3(to_float3(data1));
+    const double3 B_pos = to_double3(to_float3(data2));
+    const double3 C_pos = to_double3(to_float3(data3));
+
+    const int primId   = as_int(data1.w);
+    const int geomId   = as_int(data2.w);
+    const int instId   = as_int(data3.w);
+
+    const double3 edge1 = B_pos - A_pos;
+    const double3 edge2 = C_pos - A_pos;
+    const double3 pvec  = cross(ray_dir, edge2);
+    const double3 tvec  = ray_pos - A_pos;
+    const double3 qvec  = cross(tvec, edge1);
+    const double  det   = dot(edge1, pvec);
+    if(det != 0.0)
+    {
+      const double invDet = 1.0/det;
+  
+      const double v = dot(tvec, pvec)*invDet;
+      const double u = dot(qvec, ray_dir)*invDet;
+      const double t = dot(edge2, qvec)*invDet;
+      const double eps = 1e-10f; // 1e-6f for float
+      if (v > -eps && u > -eps && (u + v < 1.0f + eps) && t > t_min && t < a_result.t)
+      {
+        a_result.t      = (float)t;
+        a_result.primId = primId;
+        a_result.geomId = geomId;
+        a_result.instId = instId;
+      }
+    }
+
+  }
+
+  return a_result;
+}
+
+#endif
+
 
 
 static inline float2 decompressTexCoord16(unsigned int packed)

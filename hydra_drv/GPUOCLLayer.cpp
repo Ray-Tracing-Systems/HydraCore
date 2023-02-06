@@ -649,6 +649,8 @@ GPUOCLLayer::GPUOCLLayer(int w, int h, int a_flags, int a_deviceId) : Base(w, h,
 
   std::string sshaderpathBin  = installPath2 + "shadercache/" + "screen_" + devHash + ".bin";
   std::string tshaderpathBin  = installPath2 + "shadercache/" + "tracex_" + devHash + ".bin";
+  std::string tshaderpathBin2 = installPath2 + "shadercache/" + "trace2_" + devHash + ".bin";
+
   std::string soshaderpathBin = installPath2 + "shadercache/" + "sortxx_" + devHash + ".bin";
   std::string ioshaderpathBin = installPath2 + "shadercache/" + "imagex_" + devHash + ".bin";
   std::string moshaderpathBin = installPath2 + "shadercache/" + "mltxxx_" + devHash + ".bin";
@@ -664,12 +666,15 @@ GPUOCLLayer::GPUOCLLayer(int w, int h, int a_flags, int a_deviceId) : Base(w, h,
   {
     std::remove(sshaderpathBin.c_str());
     std::remove(tshaderpathBin.c_str());
+    std::remove(tshaderpathBin2.c_str());
     std::remove(soshaderpathBin.c_str());
     std::remove(ioshaderpathBin.c_str());
     std::remove(moshaderpathBin.c_str());
     std::remove(loshaderpathBin.c_str());
     std::remove(yoshaderpathBin.c_str());
   }
+
+  const bool doublesForTriIntersection = true;
 
   std::string options = GetOCLShaderCompilerOptions();
   std::cout << "[cl_core]: building cl programs ..." << std::endl;
@@ -683,9 +688,18 @@ GPUOCLLayer::GPUOCLLayer(int w, int h, int a_flags, int a_deviceId) : Base(w, h,
 
   std::cout << "[cl_core]: building " << sshaderpath.c_str() <<  "   ... " << std::endl;
   m_progs.screen = CLProgram(m_globals.device, m_globals.ctx, sshaderpath.c_str(), options.c_str(), HydraInstallPath(), loadEncrypted, sshaderpathBin, SAVE_BUILD_LOG);
-
-  std::cout << "[cl_core]: building " << tshaderpath.c_str() << "    ..." << std::endl;
-  m_progs.trace  = CLProgram(m_globals.device, m_globals.ctx, tshaderpath.c_str(), options.c_str(), HydraInstallPath(), loadEncrypted, tshaderpathBin, SAVE_BUILD_LOG);
+  
+  if(doublesForTriIntersection)
+  {
+    std::string options2 = options + " -D DOUBLE_RAY_TRIANGLE";
+    std::cout << "[cl_core]: building " << tshaderpath.c_str() << " (double) " << std::endl;
+    m_progs.trace  = CLProgram(m_globals.device, m_globals.ctx, tshaderpath.c_str(), options2.c_str(), HydraInstallPath(), loadEncrypted, tshaderpathBin2, SAVE_BUILD_LOG);
+  }
+  else
+  {
+    std::cout << "[cl_core]: building " << tshaderpath.c_str() << "    ..." << std::endl;
+    m_progs.trace  = CLProgram(m_globals.device, m_globals.ctx, tshaderpath.c_str(), options.c_str(), HydraInstallPath(), loadEncrypted, tshaderpathBin, SAVE_BUILD_LOG);
+  }
 
   std::cout << "[cl_core]: building " << lshaderpath.c_str() << "    ..." << std::endl;
   m_progs.lightp = CLProgram(m_globals.device, m_globals.ctx, lshaderpath.c_str(), options.c_str(), HydraInstallPath(), loadEncrypted, loshaderpathBin, SAVE_BUILD_LOG);

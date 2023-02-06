@@ -239,6 +239,24 @@ enum MEGATEX_USAGE{ MEGATEX_SHADING      = 1,
      return res;
    }
 
+   static inline double3 make_double3(double a, double b, double c)
+   {
+     double3 res;
+     res.x = a;
+     res.y = b;
+     res.z = c;
+     return res;
+   }
+
+   static inline double3 to_double3(float3 v)
+   {
+     double3 res;
+     res.x = (double)v.x;
+     res.y = (double)v.y;
+     res.z = (double)v.z;
+     return res;
+   }
+
    static inline float2 to_float2(float4 f4)
    {
      float2 res;

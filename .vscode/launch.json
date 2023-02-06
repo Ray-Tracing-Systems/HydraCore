@@ -11,7 +11,7 @@
             "program": "${workspaceFolder}/bin/hydra",
             "args"   : ["-nowindow", "1", 
                         "-out", "z_out.png",
-                        "-spp", "16"],
+                        "-spp", "256"],
                         //"-mmltthreads", "262144"],
                         // "-out",    "/home/frol/temp/test_out/image.png",
                         // "-outall", "/home/frol/temp/test_out/gbuff",

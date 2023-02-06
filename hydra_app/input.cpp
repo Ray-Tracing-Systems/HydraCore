@@ -12,8 +12,8 @@ Input::Input()
   //inLibraryPath = "tests/test_42_beckmann"; ///< cornell box with teapot
   //inLibraryPath = "tests/test_aniso";
   //inLibraryPath = "tests/test_42_with_mirror";  
-  //inLibraryPath = "tests/test_42_ggx";
-  inLibraryPath = "tests/014_Bump_height"; 
+  inLibraryPath = "tests/test_42_ggx";
+  //inLibraryPath = "tests/014_Bump_height"; 
   //inLibraryPath = "tests/test_42";
   //inLibraryPath = "../../Diser/DiffuseReference/01_CornellBoxEmpty_direct/scenelib";
   //inLibraryPath = "tests/test_223_small"; ///< cornell box with sphere
@@ -29,7 +29,7 @@ Input::Input()
   //inLibraryPath = "tests/test_42_ggx";
   //inLibraryPath = "/home/frol/Downloads/rgbd_scene";
 
-  inDevelopment = false; ///< recompile shaders each time; note that nvidia have their own shader cache!
+  inDevelopment = true;  ///< recompile shaders each time; note that nvidia have their own shader cache!
   inDeviceId    = 0;     ///< opencl device id
   cpuFB         = true;  ///< store frame buffer on CPU. Automaticly enabled if
   enableMLT     = false; ///< if use MMLT, you MUST enable it early, when render process just started (here or via command line).
