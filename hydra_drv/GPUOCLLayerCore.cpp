@@ -329,7 +329,7 @@ void GPUOCLLayer::trace1DPrimaryOnly(cl_mem a_rpos, cl_mem a_rdir, cl_mem a_outC
 
   //
   //
-  if (false)
+  if (true)
   {
     CHECK_CL(clSetKernelArg(kernShowN, 0, sizeof(cl_mem), (void*)&m_rays.hitSurfaceAll));
     CHECK_CL(clSetKernelArg(kernShowN, 1, sizeof(cl_mem), (void*)&a_outColor));
@@ -339,7 +339,7 @@ void GPUOCLLayer::trace1DPrimaryOnly(cl_mem a_rpos, cl_mem a_rdir, cl_mem a_outC
     CHECK_CL(clEnqueueNDRangeKernel(m_globals.cmdQueue, kernShowN, 1, NULL, &a_size, &localWorkSize, 0, NULL, NULL));
     waitIfDebug(__FILE__, __LINE__);
   }
-  else if(true)
+  else if(false)
   {
     CHECK_CL(clSetKernelArg(kernShowTG, 0, sizeof(cl_mem), (void*)&m_rays.hitSurfaceAll));
     CHECK_CL(clSetKernelArg(kernShowTG, 1, sizeof(cl_mem), (void*)&a_outColor));
