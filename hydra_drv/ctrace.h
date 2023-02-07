@@ -182,7 +182,7 @@ static inline Lite_Hit IntersectAllPrimitivesInLeaf(const float3 ray_pos, const 
 
 #else
 
-static inline Lite_Hit IntersectAllPrimitivesInLeaf(const float3 a_ray_pos, const float3 a_ray_dir,
+static inline Lite_Hit IntersectAllPrimitivesInLeaf(const float3 ray_pos, const float3 ray_dir,
                                                     const int leaf_offset, const float t_min, 
                                                     Lite_Hit a_result,
                                                   #ifdef USE_1D_TEXTURES
@@ -192,9 +192,6 @@ static inline Lite_Hit IntersectAllPrimitivesInLeaf(const float3 a_ray_pos, cons
                                                   #endif
                                                      const int instId)
 {
-  const double3 ray_pos = to_double3(a_ray_pos);
-  const double3 ray_dir = to_double3(a_ray_dir);
-  
   const int2 objectListInfo = getObjectList(leaf_offset, a_objListTex);
 
   const int NUM_FETCHES_TRI = 3; // sizeof(struct ObjectListTriangle) / sizeof(float4);
@@ -247,7 +244,7 @@ static inline Lite_Hit IntersectAllPrimitivesInLeaf(const float3 a_ray_pos, cons
   return a_result;
 }
 
-static inline Lite_Hit IntersectAllPrimitivesInLeaf1(const float3 a_ray_pos, const float3 a_ray_dir,
+static inline Lite_Hit IntersectAllPrimitivesInLeaf1(const float3 ray_pos, const float3 ray_dir,
                                                     const int leaf_offset, const float t_min, 
                                                     Lite_Hit a_result,
                                                   #ifdef USE_1D_TEXTURES
@@ -256,10 +253,7 @@ static inline Lite_Hit IntersectAllPrimitivesInLeaf1(const float3 a_ray_pos, con
                                                      __global const float4* a_objListTex
                                                   #endif
                                                   )
-{
-  const double3 ray_pos = to_double3(a_ray_pos);
-  const double3 ray_dir = to_double3(a_ray_dir);
-  
+{ 
   const int2 objectListInfo = getObjectList(leaf_offset, a_objListTex);
 
   const int NUM_FETCHES_TRI = 3; // sizeof(struct ObjectListTriangle) / sizeof(float4);
