@@ -35,6 +35,28 @@
         },
 
         {
+            "name"   : "Launch (window)",
+            "type"   : "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/bin/hydra",
+            "args"   : ["AAA", "BBB"],
+                      
+
+            "stopAtEntry": false,
+            "cwd"    : "${workspaceFolder}/hydra_app",
+            "environment": [],
+            "externalConsole": false,
+            "MIMode": "gdb",
+            "setupCommands": [
+                {
+                    "description": "Enable pretty-printing for gdb",
+                    "text": "-enable-pretty-printing",
+                    "ignoreFailures": true
+                }
+            ]
+        },
+
+        {
             "name"   : "Launch (depth_scene)",
             "type"   : "cppdbg",
             "request": "launch",

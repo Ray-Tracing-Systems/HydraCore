@@ -12,7 +12,7 @@ Input::Input()
   //inLibraryPath = "tests/test_42_beckmann"; ///< cornell box with teapot
   //inLibraryPath = "tests/test_aniso";
   //inLibraryPath = "tests/test_42_with_mirror";  
-  inLibraryPath = "tests/test_42_ggx";
+  //inLibraryPath = "tests/test_42_ggx";
   //inLibraryPath = "tests/014_Bump_height"; 
   //inLibraryPath = "tests/test_42";
   //inLibraryPath = "../../Diser/DiffuseReference/01_CornellBoxEmpty_direct/scenelib";
@@ -23,15 +23,15 @@ Input::Input()
   //inLibraryPath = "tests/test_pool";
   //inLibraryPath = "C:/[Hydra]/pluginFiles/scenelib/";
 
-  //inLibraryPath = "/home/frol/PROG/HydraRepos/HydraAPI-tests/tests_f/test_119";
+  inLibraryPath = "/home/frol/PROG/HydraRepos3/HydraAPI-tests/tests_f/test_126";
   //inLibraryPath = "/home/frol/PROG/HydraRepos/HydraAPI/main/demos/demo_02";
   //inLibraryPath = "tests/demo_05";
   //inLibraryPath = "tests/test_42_ggx";
   //inLibraryPath = "/home/frol/Downloads/bugreport/scene_04_RGBD_10M/";
 
-  inDevelopment = false; ///< recompile shaders each time; note that nvidia have their own shader cache!
+  inDevelopment = true;  ///< recompile shaders each time; note that nvidia have their own shader cache!
   inDeviceId    = 0;     ///< opencl device id
-  cpuFB         = true;  ///< store frame buffer on CPU. Automaticly enabled if
+  cpuFB         = false; ///< store frame buffer on CPU. Automaticly enabled if
   enableMLT     = false; ///< if use MMLT, you MUST enable it early, when render process just started (here or via command line).
   boxMode       = false; ///< special 'in the box' mode when render don't react to any commands
   doubleRT      = false; ///< double prec. for ray triangle intersection

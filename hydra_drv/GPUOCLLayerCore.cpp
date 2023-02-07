@@ -293,9 +293,10 @@ int GPUOCLLayer::CountNumActiveThreads(cl_mem a_rayFlags, size_t a_size)
 
 void GPUOCLLayer::trace1DPrimaryOnly(cl_mem a_rpos, cl_mem a_rdir, cl_mem a_outColor, size_t a_size, size_t a_offset)
 {
-  cl_kernel kernShowN = m_progs.trace.kernel("ShowNormals");
-  cl_kernel kernShowT = m_progs.trace.kernel("ShowTexCoord");
-  cl_kernel kernFill  = m_progs.trace.kernel("ColorIndexTriangles");
+  cl_kernel kernShowN  = m_progs.trace.kernel("ShowNormals");
+  cl_kernel kernShowT  = m_progs.trace.kernel("ShowTexCoord");
+  cl_kernel kernFill   = m_progs.trace.kernel("ColorIndexTriangles");
+  cl_kernel kernShowTG = m_progs.trace.kernel("ShowTangent");
 
   //cl_kernel kern = m_progs.screen.kernel("FillColorTest");
 
@@ -328,7 +329,7 @@ void GPUOCLLayer::trace1DPrimaryOnly(cl_mem a_rpos, cl_mem a_rdir, cl_mem a_outC
 
   //
   //
-  if (true)
+  if (false)
   {
     CHECK_CL(clSetKernelArg(kernShowN, 0, sizeof(cl_mem), (void*)&m_rays.hitSurfaceAll));
     CHECK_CL(clSetKernelArg(kernShowN, 1, sizeof(cl_mem), (void*)&a_outColor));
@@ -336,6 +337,15 @@ void GPUOCLLayer::trace1DPrimaryOnly(cl_mem a_rpos, cl_mem a_rdir, cl_mem a_outC
     CHECK_CL(clSetKernelArg(kernShowN, 3, sizeof(cl_int), (void*)&ioffset));
 
     CHECK_CL(clEnqueueNDRangeKernel(m_globals.cmdQueue, kernShowN, 1, NULL, &a_size, &localWorkSize, 0, NULL, NULL));
+    waitIfDebug(__FILE__, __LINE__);
+  }
+  else if(true)
+  {
+    CHECK_CL(clSetKernelArg(kernShowTG, 0, sizeof(cl_mem), (void*)&m_rays.hitSurfaceAll));
+    CHECK_CL(clSetKernelArg(kernShowTG, 1, sizeof(cl_mem), (void*)&a_outColor));
+    CHECK_CL(clSetKernelArg(kernShowTG, 2, sizeof(cl_int), (void*)&isize));
+    CHECK_CL(clSetKernelArg(kernShowTG, 3, sizeof(cl_int), (void*)&ioffset));
+    CHECK_CL(clEnqueueNDRangeKernel(m_globals.cmdQueue, kernShowTG, 1, NULL, &a_size, &localWorkSize, 0, NULL, NULL));
     waitIfDebug(__FILE__, __LINE__);
   }
   else if (false)
