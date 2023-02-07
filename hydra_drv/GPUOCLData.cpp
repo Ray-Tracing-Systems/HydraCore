@@ -1,6 +1,6 @@
 #include "GPUOCLLayer.h"
 #include "crandom.h"
-#include "hydra_api/HR_HDRImageTool.h";
+#include "hydra_api/HR_HDRImageTool.h"
 
 #include "MemoryStorageCPU.h"
 #include "MemoryStorageOCL.h"

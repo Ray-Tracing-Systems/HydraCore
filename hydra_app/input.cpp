@@ -29,12 +29,13 @@ Input::Input()
   //inLibraryPath = "tests/test_42_ggx";
   //inLibraryPath = "/home/frol/Downloads/bugreport/scene_04_RGBD_10M/";
 
-  inDevelopment = true;  ///< recompile shaders each time; note that nvidia have their own shader cache!
+  inDevelopment = false; ///< recompile shaders each time; note that nvidia have their own shader cache!
   inDeviceId    = 0;     ///< opencl device id
   cpuFB         = true;  ///< store frame buffer on CPU. Automaticly enabled if
   enableMLT     = false; ///< if use MMLT, you MUST enable it early, when render process just started (here or via command line).
   boxMode       = false; ///< special 'in the box' mode when render don't react to any commands
-
+  doubleRT      = false; ///< double prec. for ray triangle intersection
+ 
   winWidth      = 1024; //1368;
   winHeight     = 1024; //912;
 
@@ -177,6 +178,7 @@ void Input::ParseCommandLineParams(const std::unordered_map<std::string, std::st
   ReadBoolCmd(a_params,   "-alloc_image_b",   &allocInternalImageB);
   ReadBoolCmd(a_params,   "-evalgbuffer",     &getGBufferBeforeRender);
   ReadBoolCmd(a_params,   "-boxmode",         &boxMode);
+  ReadBoolCmd(a_params,   "bash",       &doubleRT);
  
   if (listDevicesAndExit)
     noWindow = true;

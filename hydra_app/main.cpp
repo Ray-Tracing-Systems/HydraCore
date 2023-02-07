@@ -259,6 +259,10 @@ int main(int argc, const char** argv)
         else if (g_input.mmltThreads == 16384)
           flags |= GPU_MMLT_THREADS_16K;
       }
+
+      if(g_input.doubleRT)
+        flags |= GPU_RT_DOUBLE_FOR_TRIS;
+
       g_pDriver = std::shared_ptr<IHRRenderDriver>(CreateDriverRTE(L"", g_input.winWidth, g_input.winHeight, g_input.inDeviceId, flags, g_pExternalImage));
 
       std::cout << "[main]: detached render driver was created for [console_main]" << std::endl;

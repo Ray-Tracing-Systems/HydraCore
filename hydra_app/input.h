@@ -20,6 +20,7 @@ struct Input
   bool inDevelopment;
   bool getGBufferBeforeRender;
   bool boxMode;
+  bool doubleRT;
 
   std::string   inLibraryPath;
   std::string   inTargetState;

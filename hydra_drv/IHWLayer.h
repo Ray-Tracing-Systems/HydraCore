@@ -335,6 +335,7 @@ enum {GPU_RT_MEMORY_FULL_SIZE_MODE     = 2,
       GPU_MMLT_THREADS_131K            = 65536*2,
       GPU_MMLT_THREADS_65K             = 65536*4,
       GPU_MMLT_THREADS_16K             = 65536*8,
+      GPU_RT_DOUBLE_FOR_TRIS           = 65536*16,
       };
 
 #define RECOMPILE_PROCTEX_FROM_STRING 

@@ -3,6 +3,7 @@
 
 #include "hydra_api/xxhash.h"
 #include "hydra_api/ssemath.h"
+#include "hydra_api/HydraInternal.h" // for mkdir
 
 #include "cl_scan_gpu.h"
 #include "../cam_plug/CamHostPluginAPI.h"
@@ -647,15 +648,17 @@ GPUOCLLayer::GPUOCLLayer(int w, int h, int a_flags, int a_deviceId) : Base(w, h,
   else
     devHash += "0";
 
-  std::string sshaderpathBin  = installPath2 + "shadercache/" + "screen_" + devHash + ".bin";
-  std::string tshaderpathBin  = installPath2 + "shadercache/" + "tracex_" + devHash + ".bin";
-  std::string tshaderpathBin2 = installPath2 + "shadercache/" + "trace2_" + devHash + ".bin";
+  std::string shaderpath = installPath2 + "shadercache/";
+  hr_mkdir(shaderpath.c_str());
 
-  std::string soshaderpathBin = installPath2 + "shadercache/" + "sortxx_" + devHash + ".bin";
-  std::string ioshaderpathBin = installPath2 + "shadercache/" + "imagex_" + devHash + ".bin";
-  std::string moshaderpathBin = installPath2 + "shadercache/" + "mltxxx_" + devHash + ".bin";
-  std::string loshaderpathBin = installPath2 + "shadercache/" + "lightx_" + devHash + ".bin";
-  std::string yoshaderpathBin = installPath2 + "shadercache/" + "matsxx_" + devHash + ".bin";
+  std::string sshaderpathBin  = shaderpath + "screen_" + devHash + ".bin";
+  std::string tshaderpathBin  = shaderpath + "tracex_" + devHash + ".bin";
+  std::string tshaderpathBin2 = shaderpath + "trace2_" + devHash + ".bin";
+  std::string soshaderpathBin = shaderpath + "sortxx_" + devHash + ".bin";
+  std::string ioshaderpathBin = shaderpath + "imagex_" + devHash + ".bin";
+  std::string moshaderpathBin = shaderpath + "mltxxx_" + devHash + ".bin";
+  std::string loshaderpathBin = shaderpath + "lightx_" + devHash + ".bin";
+  std::string yoshaderpathBin = shaderpath + "matsxx_" + devHash + ".bin";
 
   bool inDevelopment = (a_flags & GPU_RT_IN_DEVELOPMENT);
   std::string loadEncrypted = "load"; // ("crypt", "load", "")
@@ -674,7 +677,7 @@ GPUOCLLayer::GPUOCLLayer(int w, int h, int a_flags, int a_deviceId) : Base(w, h,
     std::remove(yoshaderpathBin.c_str());
   }
 
-  const bool doublesForTriIntersection = false;
+  const bool doublesForTriIntersection = ((a_flags & GPU_RT_DOUBLE_FOR_TRIS) != 0);
 
   std::string options = GetOCLShaderCompilerOptions();
   std::cout << "[cl_core]: building cl programs ..." << std::endl;
