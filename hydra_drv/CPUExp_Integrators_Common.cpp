@@ -284,9 +284,7 @@ void IntegratorCommon::DoPass(std::vector<uint>& a_imageLDR)
   //
   const float alpha = 1.0f / float(m_spp + 1);
   
-  #ifdef NDEBUG
-  #pragma omp parallel for
-  #endif
+  #pragma omp parallel for collapse (2)
   for (int y = 0; y < m_height; y++)
   {
     for (int x = 0; x < m_width; x++)

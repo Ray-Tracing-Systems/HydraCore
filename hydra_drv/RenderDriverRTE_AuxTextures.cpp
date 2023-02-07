@@ -167,7 +167,7 @@ bool RenderDriverRTE::UpdateImageAux(int32_t a_texId, int32_t w, int32_t h, int3
 
   texheader.width  = w;
   texheader.height = h;
-  texheader.depth  = 1;
+  texheader.depth  = 4;
   texheader.bpp    = bpp;
 
   const size_t inDataBSz  = size_t(w)*size_t(h)*size_t(bpp);
@@ -180,15 +180,13 @@ bool RenderDriverRTE::UpdateImageAux(int32_t a_texId, int32_t w, int32_t h, int3
   m_pTexStorageAux->UpdatePartial(a_texId, &texheader, 0, sizeof(SWTextureHeader));
   m_pTexStorageAux->UpdatePartial(a_texId, a_data, headerSize, inDataBSz);
   
-  #if DEBUG
-  if (true)
+  if (false)
   {
     std::wstringstream nameOut;
     nameOut << L"out/normalmap_" << a_texId << L".bmp";
     const std::wstring fname = nameOut.str();
     SaveBMP(fname.c_str(), (const int*)a_data, w, h);
   }
-  #endif
 
   return true;
 }
