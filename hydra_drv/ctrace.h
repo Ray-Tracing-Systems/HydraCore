@@ -192,8 +192,8 @@ static inline Lite_Hit IntersectAllPrimitivesInLeaf(const float3 a_ray_pos, cons
                                                   #endif
                                                      const int instId)
 {
-  const double3 ray_pos = to_double3(a_ray_pos);
-  const double3 ray_dir = to_double3(a_ray_dir);
+  const float3 ray_pos = a_ray_pos;
+  const float3 ray_dir = a_ray_dir;
   
   const int2 objectListInfo = getObjectList(leaf_offset, a_objListTex);
 
@@ -220,26 +220,74 @@ static inline Lite_Hit IntersectAllPrimitivesInLeaf(const float3 a_ray_pos, cons
     const int primId   = as_int(data1.w);
     const int geomId   = as_int(data2.w);
 
-    const float3 edge1 = B_pos - A_pos;
-    const float3 edge2 = C_pos - A_pos;
-    const float3 pvec  = cross(ray_dir, edge2);
-    const float3 tvec  = ray_pos - A_pos;
-    const float3 qvec  = cross(tvec, edge1);
+    float3 edge1 = B_pos - A_pos;
+    float3 edge2 = C_pos - A_pos;
+    float3 pvec  = cross(ray_dir, edge2);
+    float3 tvec  = ray_pos - A_pos;
+    float3 qvec  = cross(tvec, edge1);
 
-    const double det  = (double)(dot(edge1, pvec));
-    if(det != 0.0)
+    float det = dot(edge1, pvec);
+    if(det != 0.0f)
     {
-      const double invDet = 1.0/det;
-      const double v   = (double)(dot(tvec, pvec))*invDet;
-      const double u   = (double)(dot(qvec, ray_dir))*invDet;
-      const double t   = (double)(dot(edge2, qvec))*invDet;
-      const double eps = 1e-10f; // 1e-6f for float
+      const float invDet = 1.0/det;
+      const float v   = dot(tvec, pvec)*invDet;
+      const float u   = dot(qvec, ray_dir)*invDet;
+      const float t   = dot(edge2, qvec)*invDet;
+      const float eps = 1e-10f; // 1e-6f for float
       if (v > -eps && u > -eps && (u + v < 1.0f + eps) && t > t_min && t < a_result.t)
       {
         a_result.t      = (float)t;
         a_result.primId = primId;
         a_result.geomId = geomId;
         a_result.instId = instId;
+      }
+    }
+    else
+    {
+      edge1 = B_pos - C_pos;
+      edge2 = A_pos - C_pos;
+      pvec  = cross(ray_dir, edge2);
+      tvec  = ray_pos - A_pos;
+      qvec  = cross(tvec, edge1);
+      det   = dot(edge1, pvec);
+      if(det != 0.0f)
+      {
+        const float invDet = 1.0/det;
+        const float v   = dot(tvec, pvec)*invDet;
+        const float u   = dot(qvec, ray_dir)*invDet;
+        const float t   = dot(edge2, qvec)*invDet;
+        const float eps = 1e-10f; // 1e-6f for float
+        if (v > -eps && u > -eps && (u + v < 1.0f + eps) && t > t_min && t < a_result.t)
+        {
+          a_result.t      = (float)t;
+          a_result.primId = primId;
+          a_result.geomId = geomId;
+          a_result.instId = instId;
+        }
+      }
+      else
+      {
+        edge1 = A_pos - B_pos;
+        edge2 = C_pos - B_pos;
+        pvec  = cross(ray_dir, edge2);
+        tvec  = ray_pos - A_pos;
+        qvec  = cross(tvec, edge1);
+        det   = dot(edge1, pvec);
+        if(det != 0.0f)
+        {
+          const float invDet = 1.0/det;
+          const float v   = dot(tvec, pvec)*invDet;
+          const float u   = dot(qvec, ray_dir)*invDet;
+          const float t   = dot(edge2, qvec)*invDet;
+          const float eps = 1e-10f; // 1e-6f for float
+          if (v > -eps && u > -eps && (u + v < 1.0f + eps) && t > t_min && t < a_result.t)
+          {
+            a_result.t      = (float)t;
+            a_result.primId = primId;
+            a_result.geomId = geomId;
+            a_result.instId = instId;
+          }
+        }
       }
     }
   }
@@ -257,8 +305,8 @@ static inline Lite_Hit IntersectAllPrimitivesInLeaf1(const float3 a_ray_pos, con
                                                   #endif
                                                   )
 {
-  const double3 ray_pos = to_double3(a_ray_pos);
-  const double3 ray_dir = to_double3(a_ray_dir);
+  const float3 ray_pos = a_ray_pos;
+  const float3 ray_dir = a_ray_dir;
   
   const int2 objectListInfo = getObjectList(leaf_offset, a_objListTex);
 
@@ -292,14 +340,20 @@ static inline Lite_Hit IntersectAllPrimitivesInLeaf1(const float3 a_ray_pos, con
     const float3 tvec  = ray_pos - A_pos;
     const float3 qvec  = cross(tvec, edge1);
     
-    const double det = (double)(dot(edge1, pvec));
-    if(det != 0.0)
+    float3 edge1 = B_pos - A_pos;
+    float3 edge2 = C_pos - A_pos;
+    float3 pvec  = cross(ray_dir, edge2);
+    float3 tvec  = ray_pos - A_pos;
+    float3 qvec  = cross(tvec, edge1);
+
+    float det = dot(edge1, pvec);
+    if(det != 0.0f)
     {
-      const double invDet = 1.0/det;
-      const double v   = (double)(dot(tvec, pvec))*invDet;
-      const double u   = (double)(dot(qvec, ray_dir))*invDet;
-      const double t   = (double)(dot(edge2, qvec))*invDet;
-      const double eps = 1e-10f; // 1e-6f for float
+      const float invDet = 1.0/det;
+      const float v   = dot(tvec, pvec)*invDet;
+      const float u   = dot(qvec, ray_dir)*invDet;
+      const float t   = dot(edge2, qvec)*invDet;
+      const float eps = 1e-10f; // 1e-6f for float
       if (v > -eps && u > -eps && (u + v < 1.0f + eps) && t > t_min && t < a_result.t)
       {
         a_result.t      = (float)t;
@@ -308,7 +362,54 @@ static inline Lite_Hit IntersectAllPrimitivesInLeaf1(const float3 a_ray_pos, con
         a_result.instId = instId;
       }
     }
-
+    else
+    {
+      edge1 = B_pos - C_pos;
+      edge2 = A_pos - C_pos;
+      pvec  = cross(ray_dir, edge2);
+      tvec  = ray_pos - A_pos;
+      qvec  = cross(tvec, edge1);
+      det   = dot(edge1, pvec);
+      if(det != 0.0f)
+      {
+        const float invDet = 1.0/det;
+        const float v   = dot(tvec, pvec)*invDet;
+        const float u   = dot(qvec, ray_dir)*invDet;
+        const float t   = dot(edge2, qvec)*invDet;
+        const float eps = 1e-10f; // 1e-6f for float
+        if (v > -eps && u > -eps && (u + v < 1.0f + eps) && t > t_min && t < a_result.t)
+        {
+          a_result.t      = (float)t;
+          a_result.primId = primId;
+          a_result.geomId = geomId;
+          a_result.instId = instId;
+        }
+      }
+      else
+      {
+        edge1 = A_pos - B_pos;
+        edge2 = C_pos - B_pos;
+        pvec  = cross(ray_dir, edge2);
+        tvec  = ray_pos - A_pos;
+        qvec  = cross(tvec, edge1);
+        det   = dot(edge1, pvec);
+        if(det != 0.0f)
+        {
+          const float invDet = 1.0/det;
+          const float v   = dot(tvec, pvec)*invDet;
+          const float u   = dot(qvec, ray_dir)*invDet;
+          const float t   = dot(edge2, qvec)*invDet;
+          const float eps = 1e-10f; // 1e-6f for float
+          if (v > -eps && u > -eps && (u + v < 1.0f + eps) && t > t_min && t < a_result.t)
+          {
+            a_result.t      = (float)t;
+            a_result.primId = primId;
+            a_result.geomId = geomId;
+            a_result.instId = instId;
+          }
+        }
+      }
+    }
   }
 
   return a_result;
