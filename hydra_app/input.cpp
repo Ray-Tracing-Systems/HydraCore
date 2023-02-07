@@ -178,7 +178,7 @@ void Input::ParseCommandLineParams(const std::unordered_map<std::string, std::st
   ReadBoolCmd(a_params,   "-alloc_image_b",   &allocInternalImageB);
   ReadBoolCmd(a_params,   "-evalgbuffer",     &getGBufferBeforeRender);
   ReadBoolCmd(a_params,   "-boxmode",         &boxMode);
-  ReadBoolCmd(a_params,   "bash",       &doubleRT);
+  ReadBoolCmd(a_params,   "-double_rt",       &doubleRT);
  
   if (listDevicesAndExit)
     noWindow = true;
