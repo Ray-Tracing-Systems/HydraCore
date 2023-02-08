@@ -12,7 +12,7 @@ Input::Input()
   //inLibraryPath = "tests/test_42_beckmann"; ///< cornell box with teapot
   //inLibraryPath = "tests/test_aniso";
   //inLibraryPath = "tests/test_42_with_mirror";  
-  //inLibraryPath = "tests/test_42_ggx";
+  inLibraryPath = "tests/test_42_ggx";
   //inLibraryPath = "tests/014_Bump_height"; 
   //inLibraryPath = "tests/test_42";
   //inLibraryPath = "../../Diser/DiffuseReference/01_CornellBoxEmpty_direct/scenelib";
@@ -23,7 +23,7 @@ Input::Input()
   //inLibraryPath = "tests/test_pool";
   //inLibraryPath = "C:/[Hydra]/pluginFiles/scenelib/";
 
-  inLibraryPath = "/home/frol/PROG/HydraRepos3/HydraAPI-tests/tests_f/test_126";
+  //inLibraryPath = "/home/frol/PROG/HydraRepos3/HydraAPI-tests/tests_f/test_126";
   //inLibraryPath = "/home/frol/PROG/HydraRepos/HydraAPI/main/demos/demo_02";
   //inLibraryPath = "tests/demo_05";
   //inLibraryPath = "tests/test_42_ggx";
