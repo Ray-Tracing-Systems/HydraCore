@@ -23,7 +23,7 @@ Input::Input()
   //inLibraryPath = "tests/test_pool";
   //inLibraryPath = "C:/[Hydra]/pluginFiles/scenelib/";
 
-  //inLibraryPath = "/home/frol/PROG/HydraRepos3/HydraAPI-tests/tests_f/test_126";
+  //inLibraryPath = "/home/frol/PROG/HydraRepos3/HydraAPI-tests/tests_f/test_203";
   //inLibraryPath = "/home/frol/PROG/HydraRepos/HydraAPI/main/demos/demo_02";
   //inLibraryPath = "tests/demo_05";
   //inLibraryPath = "tests/test_42_ggx";

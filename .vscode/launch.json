@@ -12,7 +12,7 @@
             "args"   : ["-nowindow", "1", 
                         "-out", "z_out.png",
                         "-spp", "4", 
-                        "-cl_device_id", "-1", 
+                        //"-cl_device_id", "-1", 
                         "-saveinterval", "2.0"],
                         //"-mmltthreads", "262144"],
                         // "-out",    "/home/frol/temp/test_out/image.png",
