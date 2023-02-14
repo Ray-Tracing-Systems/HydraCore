@@ -138,7 +138,6 @@ void IntegratorMISPT_AQMC::DoPass(std::vector<uint>& a_imageLDR)
     }
   }
 
-  constexpr float gammaPow = 1.0f/2.2f;
   const float scaleInv     = 1.0f / float(m_spp + 1);
 
   #pragma omp parallel for
@@ -146,9 +145,9 @@ void IntegratorMISPT_AQMC::DoPass(std::vector<uint>& a_imageLDR)
   {
     float4 color = m_hdrData[i];
 
-    color.x = powf(clamp(color.x*scaleInv, 0.0f, 1.0f), gammaPow);
-    color.y = powf(clamp(color.y*scaleInv, 0.0f, 1.0f), gammaPow);
-    color.z = powf(clamp(color.z*scaleInv, 0.0f, 1.0f), gammaPow);
+    color.x = linearToSRGB(clamp(color.x*scaleInv, 0.0f, 1.0f));
+    color.y = linearToSRGB(clamp(color.y*scaleInv, 0.0f, 1.0f));
+    color.z = linearToSRGB(clamp(color.z*scaleInv, 0.0f, 1.0f));
     color.w = 1.0f;
 
     a_imageLDR[i] = RealColorToUint32(color);

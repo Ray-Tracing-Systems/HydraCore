@@ -504,13 +504,12 @@ __kernel void RealColorToRGB256(__global   float4* in_color,
     return;
 
   float4 color = in_color[Index2D(x, y, a_width)];
-    
-  float gammaPow = 1.0f / a_gamma;  // gamma correction
+  //float gammaPow = 1.0f / a_gamma;  // gamma correction
 
-  color.x = pow(color.x, gammaPow);
-  color.y = pow(color.y, gammaPow);
-  color.z = pow(color.z, gammaPow);
-  color.w = pow(color.w, gammaPow);
+  color.x = linearToSRGB(color.x);
+  color.y = linearToSRGB(color.y);
+  color.z = linearToSRGB(color.z);
+  color.w = linearToSRGB(color.w);
 
   out_color[Index2D(x, y, a_width)] = RealColorToUint32(ToneMapping4(color));
 } 

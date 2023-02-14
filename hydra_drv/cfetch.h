@@ -658,11 +658,9 @@ static inline float3 sample2D(int a_samplerOffset, float2 texCoord, __global con
   if(offset < 0)
     return make_float3(1, 1, 1);
 
-  float4 texColor4 = read_imagef_sw4(a_texStorage + offset, texCoordT, sampler.flags); 
-
-  texColor4.x = pow(texColor4.x, sampler.gamma);
-  texColor4.y = pow(texColor4.y, sampler.gamma);
-  texColor4.z = pow(texColor4.z, sampler.gamma);
+  float4 texColor4 = read_imagef_sw4(a_texStorage + offset, texCoordT, sampler.flags);
+  if(sampler.gamma != 1.0f)
+    texColor4 = sRGBToLinear3f(texColor4); 
 
   if (sampler.flags & TEX_ALPHASRC_W)
   {
@@ -695,14 +693,10 @@ static inline float3 sample2DExt(int a_samplerOffset, float2 texCoord,
   else
     texColor2 = make_float4(1, 1, 1, 1);
 
-  //float4 texColor4 = make_float4(1, 1, 1, -1.0f);
   float4 texColor1 = readProcTex(sampler.texId, a_ptList);
-
   float4 texColor4 = (fabs(texColor1.w + 1.0f) < 1e-5f) ? texColor2 : texColor1;
-  
-  texColor4.x = pow(texColor4.x, sampler.gamma);
-  texColor4.y = pow(texColor4.y, sampler.gamma);
-  texColor4.z = pow(texColor4.z, sampler.gamma);
+  if(sampler.gamma != 1.0f)
+    texColor4 = sRGBToLinear3f(texColor4);
 
   if (sampler.flags & TEX_ALPHASRC_W)
   {
@@ -731,10 +725,8 @@ static inline float3 sample2DUI2(int a_samplerOffset, float2 texCoord, __global 
   const int offset = textureHeaderOffset(a_globals, sampler.texId);
 
   float4 texColor4 = read_imagef_sw4(a_texStorage + offset, texCoordT, sampler.flags);
-
-  texColor4.x = pow(texColor4.x, sampler.gamma);
-  texColor4.y = pow(texColor4.y, sampler.gamma);
-  texColor4.z = pow(texColor4.z, sampler.gamma);
+  if(sampler.gamma != 1.0f)
+    texColor4 = sRGBToLinear3f(texColor4);
 
   if (sampler.flags & TEX_ALPHASRC_W)
   {
@@ -790,11 +782,8 @@ static inline float3 sample2DAux(int2 a_samplerOffset, float2 texCoord, __global
   //const int offset = textureAuxHeaderOffset(a_globals, sampler.texId);
 
   float4 texColor4 = read_imagef_sw4(a_texStorage + offset, texCoordT, sampler.flags);
-
-  texColor4.x = pow(texColor4.x, sampler.gamma);
-  texColor4.y = pow(texColor4.y, sampler.gamma);
-  texColor4.z = pow(texColor4.z, sampler.gamma);
-
+  if(sampler.gamma != 1.0f)
+    texColor4 = sRGBToLinear3f(texColor4);
   if (sampler.flags & TEX_ALPHASRC_W)
   {
     texColor4.x = texColor4.w;
@@ -821,15 +810,13 @@ static inline float3 sample2DAuxExt(int2 a_samplerOffset, float2 texCoord, __glo
   if (sampler.texId == 0)
     return make_float3(1, 1, 1);
 
-  const int offset = textureAuxHeaderOffset(a_globals, a_samplerOffset.x);
-
+  const int offset       = textureAuxHeaderOffset(a_globals, a_samplerOffset.x);
   const float4 texColor2 = read_imagef_sw4(a_texStorage + offset, texCoordT, sampler.flags);
   const float4 texColor1 = readProcTex(sampler.texId, a_ptList);
   float4 texColor4       = (fabs(texColor1.w + 1.0f) < 1e-5f) ? texColor2 : texColor1;
-
-  texColor4.x = pow(texColor4.x, sampler.gamma);
-  texColor4.y = pow(texColor4.y, sampler.gamma);
-  texColor4.z = pow(texColor4.z, sampler.gamma);
+  
+  if(sampler.gamma != 1.0f)
+    texColor4 = sRGBToLinear3f(texColor4);
 
   if (sampler.flags & TEX_ALPHASRC_W)
   {

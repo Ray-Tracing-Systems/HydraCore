@@ -280,12 +280,13 @@ void IntegratorCommon::DoPass(std::vector<uint>& a_imageLDR)
   if (m_width*m_height != a_imageLDR.size())
     RUN_TIME_ERROR("DoPass: bad output bufffer size");
 
+  std::cout << "IntegratorCommon::DoPass: enter " << std::endl; 
   // Update HDR image
   //
   const float alpha = 1.0f / float(m_spp + 1);
   
-  #ifdef NDEBUG
-  #pragma omp parallel for
+  #ifndef _NDEBUG
+  #pragma omp parallel for collapse(2) default (shared)
   #endif
   for (int y = 0; y < m_height; y++)
   {
@@ -294,18 +295,11 @@ void IntegratorCommon::DoPass(std::vector<uint>& a_imageLDR)
       float3 ray_pos, ray_dir;
       std::tie(ray_pos, ray_dir) = makeEyeRay(x, y);
 
-      if (x == 1008 && y == 0)
-        int a = 2;
+      //if (x == 1008 && y == 0)
+      //  int a = 2;
 
 			const float3 color = PathTrace(ray_pos, ray_dir, makeInitialMisData(), 0, 0); 
-      const float maxCol = maxcomp(color);
-
-      if(!isfinite(color.x) || !isfinite(color.y) || !isfinite(color.z))
-      {
-        int a = 2;
-      }
-
-      m_summColors[y*m_width + x] = m_summColors[y*m_width + x] * (1.0f - alpha) + to_float4(color, maxCol)*alpha;
+      m_summColors[y*m_width + x] = m_summColors[y*m_width + x] * (1.0f - alpha) + to_float4(color, 0.0f)*alpha;
     }
   }
 
@@ -330,11 +324,9 @@ void IntegratorCommon::GetImageToLDR(std::vector<uint>& a_imageLDR) const
   for (size_t i = 0; i < a_imageLDR.size(); i++)
   {
     float4 color = ToneMapping4(m_summColors[i]);
-
-    color.x = powf(color.x, gammaPow);
-    color.y = powf(color.y, gammaPow);
-    color.z = powf(color.z, gammaPow);
-
+    color.x = linearToSRGB(color.x);
+    color.y = linearToSRGB(color.y);
+    color.z = linearToSRGB(color.z);
     a_imageLDR[i] = RealColorToUint32(color);
   }
 }

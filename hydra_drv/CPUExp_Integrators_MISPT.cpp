@@ -84,38 +84,11 @@ void IntegratorMISPTLoop2Adapt::DoPass(std::vector<uint>& a_imageLDR)
   }
 
   RandomizeAllGenerators();
-
     
   // get HDR to LDR and scale
 
   GetImageToLDR(a_imageLDR);
   
-  const float gammaPow = 1.0F / m_pGlobals->varsF[HRT_IMAGE_GAMMA];  // gamma correction
-  
-//  float summ = 0.0F;
-//  
-//  for (int i = 0; i < m_imgSize; ++i)
-//  {
-//    summ += Mean(m_summColors[i]);
-//  }
-//
-//  const float meanColor = fmax(summ / (float)a_imageLDR.size(), 1e-6F);
-//
-//  for (int i = 0; i < a_imageLDR.size(); i++)
-//{
-//  float4 color    = m_summColors[i];    
-//  color.x /= meanColor;
-//  color.y /= meanColor;
-//  color.z /= meanColor;
-//
-//  color          = ToneMapping4Compress(color);
-//  color.x        = powf(color.x, gammaPow);
-//  color.y        = powf(color.y, gammaPow);
-//  color.z        = powf(color.z, gammaPow);
-//
-//  a_imageLDR[i] = RealColorToUint32(color);
-//}
-
   
   const int meanSpp = int(std::accumulate(m_samplePerPix.begin(), m_samplePerPix.end(), 0) / (float)m_imgSize);
 
@@ -124,21 +97,7 @@ void IntegratorMISPTLoop2Adapt::DoPass(std::vector<uint>& a_imageLDR)
 //#endif
   for (int i = 0; i < m_imgSize; i++)
   {  
-    // for MarkovChain2()
-
-    //const float spp = fmax((float)(m_samplePerPix[i]), 1.0F);
-
-    //float4 color    = m_summColors[i];    
-    //color.x /= spp;
-    //color.y /= spp;
-    //color.z /= spp;
-
-    //color          = ToneMapping4Compress(color);
-    //color.x        = powf(color.x, gammaPow);
-    //color.y        = powf(color.y, gammaPow);
-    //color.z        = powf(color.z, gammaPow);
-
-
+  
     // Draw path
     if (drawPath)
     {
@@ -151,20 +110,9 @@ void IntegratorMISPTLoop2Adapt::DoPass(std::vector<uint>& a_imageLDR)
     }
   }
 
-
-  //m_progress = 0;
-  //for (int i = 0; i < m_imgSize; i++)
-  //  if (m_pixFinish[i])
-  //    m_progress += 1;
-
-  //m_progress = m_progress / (float)maxSample * 100.0F;
   m_spp = meanSpp;
 
   std::cout << "[" << this->Name() << "]: mean spp     = " << meanSpp << std::endl;
-
-  //std::cout << "[" << this->Name() << "]: progress = " << m_progress << std::endl;
-
-  //getch();
 }
 
 float3 IntegratorMISPTLoop2Adapt::PathTrace2(RandomGen& a_gen, float3 a_rpos, float3 a_rdir, MisData misPrev, int a_currDepth, 

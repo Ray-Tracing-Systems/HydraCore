@@ -589,8 +589,6 @@ void IntegratorMMLT::DoPass(std::vector<uint>& a_imageLDR)
 
   // (4) get final image
   //
-  constexpr float gammaPow = 1.0f / 2.2f;
-
   const float scaleInv = 1.0f / float(m_spp + 1);
 
   #pragma omp parallel for
@@ -598,9 +596,9 @@ void IntegratorMMLT::DoPass(std::vector<uint>& a_imageLDR)
   {
     float4 color = direct[i] + kScaleIndirect*indirect[i]; 
 
-    color.x = powf(clamp(color.x, 0.0f, 1.0f), gammaPow);
-    color.y = powf(clamp(color.y, 0.0f, 1.0f), gammaPow);
-    color.z = powf(clamp(color.z, 0.0f, 1.0f), gammaPow);
+    color.x = linearToSRGB(clamp(color.x, 0.0f, 1.0f));
+    color.y = linearToSRGB(clamp(color.y, 0.0f, 1.0f));
+    color.z = linearToSRGB(clamp(color.z, 0.0f, 1.0f));
     color.w = 1.0f;
 
     a_imageLDR[i] = RealColorToUint32(color);

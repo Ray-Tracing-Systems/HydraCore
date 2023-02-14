@@ -544,7 +544,6 @@ static inline float3 backColorOfSecondEnv(float3 ray_dir, float2 screen, __globa
 {
   const float texCoordX = screen.x / a_globals->varsF[HRT_WIDTH_F];
   const float texCoordY = screen.y / a_globals->varsF[HRT_HEIGHT_F];
-  const float gammaInv  = a_globals->varsF[HRT_BACK_TEXINPUT_GAMMA];
   const int offset      = textureHeaderOffset(a_globals, a_globals->varsI[HRT_SHADOW_MATTE_BACK]);
  
   const float3 backColorMult = make_float3(a_globals->varsF[HRT_SHADOW_MATTE_BACK_COLOR_X], 
@@ -562,9 +561,12 @@ static inline float3 backColorOfSecondEnv(float3 ray_dir, float2 screen, __globa
   else
     envColor = backColorMult*to_float3(read_imagef_sw4(in_texStorage1 + offset, make_float2(texCoordX, texCoordY), TEX_CLAMP_U | TEX_CLAMP_V));
   
-  envColor.x = pow(envColor.x, gammaInv);
-  envColor.y = pow(envColor.y, gammaInv);
-  envColor.z = pow(envColor.z, gammaInv);
+  if(a_globals->varsF[HRT_BACK_TEXINPUT_GAMMA] != 1.0f)
+  {
+    envColor.x = sRGBToLinear(envColor.x);
+    envColor.y = sRGBToLinear(envColor.y);
+    envColor.z = sRGBToLinear(envColor.z);
+  }
   
   return envColor;
 }

@@ -76,5 +76,6 @@
         "__string": "cpp",
         "__tree": "cpp",
         "set": "cpp"
-    }
+    },
+    "cmake.configureOnOpen": false
 }

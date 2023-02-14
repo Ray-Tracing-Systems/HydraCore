@@ -1027,8 +1027,7 @@ void GPUOCLLayer::GetLDRImage(uint* data, int width, int height) const
   cl_mem tempLDRBuff     = m_screen.pbo;
   bool needToFreeLDRBuff = false;
 
-  const float gammaInv = 1.0f / m_vars.m_varsF[HRT_IMAGE_GAMMA];
-  size_t size          = m_width * m_height;
+  size_t size = m_width * m_height;
   
   if (m_screen.m_cpuFrameBuffer) 
   {
@@ -1056,15 +1055,16 @@ void GPUOCLLayer::GetLDRImage(uint* data, int width, int height) const
         else if(channels2 >= 4)
           color = float4{color0[i * 4 + 0], color0[i * 4 + 1], color0[i * 4 + 2], color0[i * 4 + 3]};
 
-        color.x = powf(color.x*normConst, gammaInv);
-        color.y = powf(color.y*normConst, gammaInv);
-        color.z = powf(color.z*normConst, gammaInv);
-        color.w = powf(color.w*normConst, gammaInv);
+        color.x = linearToSRGB(color.x*normConst);
+        color.y = linearToSRGB(color.y*normConst);
+        color.z = linearToSRGB(color.z*normConst);
+        color.w = linearToSRGB(color.w*normConst);
         data[i] = RealColorToUint32(ToneMapping4(color));
       }
     }
-    else
+    else // todo: remove all this shit!
     {
+      const float gammaInv   = 1.0f / m_vars.m_varsF[HRT_IMAGE_GAMMA];
       const __m128 powerf4   = _mm_set_ps(gammaInv, gammaInv, gammaInv, gammaInv);
       const __m128 normc     = _mm_set_ps(normConst, normConst, normConst, normConst);
       const __m128 normc2    = _mm_set_ps(normConstDL, normConstDL, normConstDL, normConstDL);
@@ -1108,17 +1108,10 @@ void GPUOCLLayer::GetLDRImage(uint* data, int width, int height) const
           }
           else
           {
-            std::cerr << "GPUOCLLayer::GetLDRImage(HRT_ENABLE_MMLT): both internal CPU images == nullptr!!!"
-                      << std::endl;
+            std::cerr << "GPUOCLLayer::GetLDRImage(HRT_ENABLE_MMLT): both internal CPU images == nullptr!!!" << std::endl;
             std::cerr.flush();
           }
         }
-
-        //#pragma omp parallel for num_threads(g_maxCPUThreads)
-        //for (int i = 0; i < size; i++)
-        //{
-        //  data[i] = HydraSSE::gammaCorr(dataHDR1 + i*4, normc2, powerf4);
-        //}
       }
       else
       {
@@ -1145,10 +1138,10 @@ void GPUOCLLayer::GetLDRImage(uint* data, int width, int height) const
       for (int i = 0; i < size; i++)  // #TODO: use sse and fast pow
       {
         float4 color = hdrData[i];
-        color.x = powf(color.x, gammaInv);
-        color.y = powf(color.y, gammaInv);
-        color.z = powf(color.z, gammaInv);
-        color.w = powf(color.w, gammaInv);
+        color.x = linearToSRGB(color.x);
+        color.y = linearToSRGB(color.y);
+        color.z = linearToSRGB(color.z);
+        color.w = linearToSRGB(color.w);
         data[i] = RealColorToUint32(ToneMapping4(color));
       }
       

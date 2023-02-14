@@ -3019,4 +3019,23 @@ static inline float WrapVal(float a_val)
     return a_val;
 }
 
+static inline float sRGBToLinear(float s) // https://entropymine.com/imageworsener/srgbformula/
+{
+  if(s <= 0.0404482362771082f)
+    return s*0.077399381f;
+  else 
+    return pow((s+0.055f)*0.947867299f, 2.4f);
+}
+
+static inline float linearToSRGB(float l)
+{
+  if(l <= 0.00313066844250063f)
+    return l*12.92f;
+  else
+    return 1.055*pow(l, 1.0f/2.4f) - 0.055;
+}
+
+static inline float4 sRGBToLinear4f(float4 s) { return make_float4(sRGBToLinear(s.x), sRGBToLinear(s.y), sRGBToLinear(s.z), sRGBToLinear(s.w)); }
+static inline float4 sRGBToLinear3f(float4 s) { return make_float4(sRGBToLinear(s.x), sRGBToLinear(s.y), sRGBToLinear(s.z), s.w); }
+
 #endif

@@ -35,6 +35,74 @@
         },
 
         {
+            "name"   : "test_103",
+            "type"   : "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/bin/hydra",
+            "args"   : ["-inputlib", "/home/frol/PROG/HydraRepos4/HydraAPI-tests/tests_f/test_103/", "-statefile", "statex_00001.xml", "-nowindow", "1", 
+                        "-out", "/home/frol/PROG/HydraRepos4/HydraAPI-tests/tests_images/test_103/z_out_h2_cpu.bmp",
+                        "-spp", "64",
+                        "-cl_device_id","-1"],
+                        //"-mmltthreads", "262144"],
+                        // "-out",    "/home/frol/temp/test_out/image.png",
+                        // "-outall", "/home/frol/temp/test_out/gbuff",
+                        // "-outdir", "/home/frol/temp2"],
+                        // "-mmltthreads", "262144",
+                        // "-evalgbuffer", "1",
+                        // "-cl_device_id","1"],
+
+            "stopAtEntry": false,
+            "cwd"    : "${workspaceFolder}/hydra_app",
+            "environment": [],
+            "externalConsole": false,
+            "MIMode": "gdb",
+            "setupCommands": [
+                {
+                    "description": "Enable pretty-printing for gdb",
+                    "text": "-enable-pretty-printing",
+                    "ignoreFailures": true
+                }
+            ]
+        },
+
+
+        {
+            "name"   : "Launch (window)",
+            "type"   : "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/bin/hydra",
+            "args"   : [//"-inputlib", "/home/frol/PROG/huawei/cbvh_raytrace/scenes/01_simple_scenes", "-statefile", "bunny_cornell.xml",
+                        //"-inputlib", "/home/frol/PROG/huawei/cbvh_raytrace/scenes/01_simple_scenes", "-statefile", "instanced_objects.xml",
+                        //"-inputlib", "/home/frol/PROG/huawei/cbvh_raytrace/scenes/03_dragon", "-statefile", "dragon.xml",
+                        //"-inputlib", "/home/frol/PROG/huawei/cbvh_raytrace/scenes/03_dragon", "-statefile", "dragon.xml",
+                        //"-inputlib", "/home/frol/PROG/huawei/cbvh_raytrace/scenes/04_bonsai", "-statefile", "bonsai.xml",
+                        //"-inputlib", "/home/frol/PROG/huawei/cbvh_raytrace/scenes/05_sponza", "-statefile", "sponza_c.xml",
+                        //"-inputlib", "/home/frol/PROG/huawei/cbvh_raytrace/scenes/06_cry_sponza", "-statefile", "cry_sponza_c.xml",
+                        //"-inputlib", "/home/frol/PROG/huawei/cbvh_raytrace/scenes/07_bistro", "-statefile", "bistro_c.xml",
+                        //"-inputlib", "/home/frol/PROG/huawei/cbvh_raytrace/scenes/08_bath", "-statefile", "bathroom_c.xml",
+                        //"-inputlib", "/home/frol/PROG/huawei/cbvh_raytrace/scenes/09_hair_balls", "-statefile", "hairballs.xml",
+                        //"-inputlib", "/home/frol/PROG/huawei/cbvh_raytrace/scenes/10_audi_a8", "-statefile", "audi_a8.xml",
+                        //"-inputlib", "/home/frol/PROG/huawei/cbvh_raytrace/scenes/11_audi_a8_opt", "-statefile", "audi_a8_opt.xml",
+                        //"-inputlib", "/home/frol/PROG/huawei/cbvh_raytrace/scenes/12_human_sophi", "-statefile", "human_sophi.xml",
+                        //"-inputlib", "/home/frol/PROG/huawei/cbvh_raytrace/scenes/13_hero", "-statefile", "hero.xml",
+                        "-inputlib", "/home/frol/PROG/huawei/cbvh_raytrace/scenes/14_village", "-statefile", "village.xml",
+                        ],
+
+            "stopAtEntry": false,
+            "cwd"    : "${workspaceFolder}/hydra_app",
+            "environment": [],
+            "externalConsole": false,
+            "MIMode": "gdb",
+            "setupCommands": [
+                {
+                    "description": "Enable pretty-printing for gdb",
+                    "text": "-enable-pretty-printing",
+                    "ignoreFailures": true
+                }
+            ]
+        },
+
+        {
             "name"   : "Launch (depth_scene)",
             "type"   : "cppdbg",
             "request": "launch",
