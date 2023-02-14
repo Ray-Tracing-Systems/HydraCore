@@ -42,6 +42,13 @@ public:
   MRaysStat GetRaysStat();
 
   bool StoreCPUData()     const { return true; }
+  float GetSPP() const override 
+  {
+    if(m_pIntegrator == nullptr)
+      return 0.0f;
+    else 
+      return m_pIntegrator->GetSpp();
+  }
 
 protected:
 
@@ -121,7 +128,6 @@ void CPUExpLayer::PrepareEngineGlobals()
   Base::PrepareEngineGlobals();
   m_pIntegrator->SetConstants((EngineGlobals*)&m_cdataPrepared[0]);
   m_pIntegrator->SetMaxDepth(m_vars.m_varsI[HRT_TRACE_DEPTH]);
-  //m_pIntegrator->SetMaxDepth(2);
 }
 
 void CPUExpLayer::GetLDRImage(uint* data, int width, int height) const
@@ -290,8 +296,6 @@ void CPUExpLayer::ResetPerfCounters()
 void CPUExpLayer::BeginTracingPass()
 {
   m_pIntegrator->DoPass(m_tempImage);
-  //m_pIntegrator->TracePrimary(m_tempImage);
-  //m_pIntegrator->TraceForTest(m_tempImage);
 }
 
 void CPUExpLayer::EndTracingPass()

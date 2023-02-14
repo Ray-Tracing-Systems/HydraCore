@@ -66,10 +66,14 @@ set(SOURCE_FILES
         ../cam_plug/SimpleCamPlugin.cpp
     )
 
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -msse4.2")
+find_package(OpenMP)
+
 if(WIN32)
     set(SOURCE_FILES ${SOURCE_FILES} BVHBuilderLoaderWin.cpp ../cam_plug/HydraDLibWin64.cpp)
 else()
     set(SOURCE_FILES ${SOURCE_FILES} ../cam_plug/HydraDLibUnix.cpp)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fopenmp")
 endif()
 
 if (CMAKE_BUILD_TYPE STREQUAL "Debug")
@@ -80,8 +84,6 @@ endif()
 include_directories(${ADDITIONAL_INCLUDE_DIRS})
 include_directories(${HYDRA_API_ROOT_DIR})
 include_directories(${HYDRA_API_UTILS_SRC_DIR})
-
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -msse4.2")
 
 ADD_LIBRARY(hydra_drv STATIC ${SOURCE_FILES})
 
