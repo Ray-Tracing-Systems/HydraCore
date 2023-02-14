@@ -427,7 +427,8 @@ int2 AddIesTexTableToStorage(const std::wstring pathW, IMemoryStorage* a_storage
     data2[0] = as_float(w);
     data2[1] = as_float(h);
     data2[2] = as_float(1);
-    data2[3] = as_float(int(sphericalTexture.size() + 1));
+    data2[3] = as_float(4);
+    //data2[3] = as_float(int(sphericalTexture.size() + 1));
 
     double avgVal = 0.0f;
     for (size_t i = 0; i < sphericalTexture.size(); i++)
@@ -441,7 +442,7 @@ int2 AddIesTexTableToStorage(const std::wstring pathW, IMemoryStorage* a_storage
 
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-    HDRImageLite tempImage(w, h, 1, &sphericalTexture[0]);
+    HDRImageLite tempImage(w, h, 1, sphericalTexture.data());
     tempImage.gaussBlur(2, 1.5f);
     for (int i = 0; i < tempImage.width()*tempImage.height(); i++) // prevent pixels with zero pdf
       sphericalTexture[i] = tempImage.data()[i] + 0.05f*float(avgVal);
@@ -453,7 +454,8 @@ int2 AddIesTexTableToStorage(const std::wstring pathW, IMemoryStorage* a_storage
     data3[0] = as_float(w);
     data3[1] = as_float(h);
     data3[2] = as_float(1);
-    data3[3] = as_float(int(data2.size()));
+    data3[3] = as_float(4);
+    //data3[3] = as_float(int(data2.size()));
     for (size_t i = 0; i < data2.size(); i++)
       data3[i + 4] = data2[i];
     

@@ -568,6 +568,25 @@ __kernel void ShowNormals(__global const float4* restrict in_surfaceHit, __globa
   a_color[tid + iOffset] = to_float4(norm, 0.0f);
 }
 
+__kernel void ShowTangent(__global const float4* restrict in_surfaceHit, __global float4* restrict a_color, int iNumElements, int iOffset)
+{
+  int tid = GLOBAL_ID_X;
+  if (tid >= iNumElements)
+    return;
+
+  SurfaceHit sHit;
+  ReadSurfaceHit(in_surfaceHit, tid, iNumElements, 
+                 &sHit);
+
+  float3 norm = sHit.tangent;
+
+  norm.x = fabs(norm.x);
+  norm.y = fabs(norm.y);
+  norm.z = fabs(norm.z);
+
+  a_color[tid + iOffset] = to_float4(norm, 0.0f);
+}
+
 
 __kernel void ShowTexCoord(__global const float4* restrict in_surfaceHit, __global float4* a_color, int iNumElements, int iOffset)
 {

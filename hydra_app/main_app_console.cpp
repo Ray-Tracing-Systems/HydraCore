@@ -336,7 +336,7 @@ static void Draw(std::shared_ptr<IHRRenderDriver> a_pDetachedRenderDriverPointer
     }
     g_input.exitStatus = true;
   }
-
+  
   if (g_input.saveInterval > 1.0f)  // save intermediate image if this is enabled
   {
     const float time     = timer.getElapsed();

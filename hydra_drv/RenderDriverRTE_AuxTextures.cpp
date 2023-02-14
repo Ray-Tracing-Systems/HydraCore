@@ -95,9 +95,29 @@ const uchar4* RenderDriverRTE::GetAuxNormalMapFromDisaplacement(std::vector<ucha
   (*pH) = header->y;
 
   const uchar4* pBumpData = (const uchar4*)(header + 1);
-
   std::vector<uchar4> dataConverted;
-  if (header->w == 16) // convert to 8 bit
+
+  if(header->z == 1 && header->w == 1)
+  {
+    dataConverted.resize(header->x*header->y);
+    const int totalSize = int(dataConverted.size());
+    const unsigned char* dataIn = (const unsigned char*)(header + 1);
+
+    #pragma omp parallel for num_threads(g_maxCPUThreads)
+    for (int i = 0; i < totalSize; i++)
+    {
+      const unsigned char pixIn = dataIn[i];
+      uchar4 res;
+      res.x = pixIn;
+      res.y = pixIn;
+      res.z = pixIn;
+      res.w = pixIn;
+      dataConverted[i] = res;
+    }
+    
+    pBumpData = dataConverted.data();
+  }
+  else if (header->w == 16) // convert to 8 bit
   {
     dataConverted.resize(header->x*header->y);
     const float4* dataIn  = (const float4*)(header + 1);
@@ -129,7 +149,7 @@ const uchar4* RenderDriverRTE::GetAuxNormalMapFromDisaplacement(std::vector<ucha
 
     auto params = BumpAmtAndLvl(a_materialNode);
     normals     = m_pHWLayer->NormalMapFromDisplacement(header->x, header->y, pBumpData, params.x, invHeight, params.y);
-    pNormals    = &normals[0];
+    pNormals    = normals.data();
   }
   else if (btype == L"normal_bump") // #TODO: process (header->w == 16) case ... 
   {
@@ -147,7 +167,7 @@ bool RenderDriverRTE::UpdateImageAux(int32_t a_texId, int32_t w, int32_t h, int3
 
   texheader.width  = w;
   texheader.height = h;
-  texheader.depth  = 1;
+  texheader.depth  = 4;
   texheader.bpp    = bpp;
 
   const size_t inDataBSz  = size_t(w)*size_t(h)*size_t(bpp);
@@ -159,7 +179,7 @@ bool RenderDriverRTE::UpdateImageAux(int32_t a_texId, int32_t w, int32_t h, int3
 
   m_pTexStorageAux->UpdatePartial(a_texId, &texheader, 0, sizeof(SWTextureHeader));
   m_pTexStorageAux->UpdatePartial(a_texId, a_data, headerSize, inDataBSz);
-
+  
   if (false)
   {
     std::wstringstream nameOut;

@@ -890,7 +890,7 @@ static inline void MakeRandEyeRay(int x, int y, int w, int h, float4 offsets, __
   const float4x4 a_mViewProjInv  = make_float4x4(a_globals->mProjInverse);
   const float4x4 a_mWorldViewInv = make_float4x4(a_globals->mWorldViewInverse);
 
-  float2 screenPosF = make_float2((float)x, (float)y);
+  float2 screenPosF = make_float2((float)x + 0.5f, (float)y + 0.5f);
   // area to render -> blow up
   //{
   //  float fw = ((float)w);

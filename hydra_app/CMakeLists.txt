@@ -38,6 +38,7 @@ endif()
 
 add_executable(hydra ${SOURCE_FILES} ${EXTERNAL_SRC})
 
+find_package(OpenMP REQUIRED)
 if(OpenMP_CXX_FOUND)
     target_link_libraries(hydra PUBLIC OpenMP::OpenMP_CXX)
 endif()

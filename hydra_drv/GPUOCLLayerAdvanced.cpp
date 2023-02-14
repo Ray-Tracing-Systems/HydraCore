@@ -414,7 +414,7 @@ void GPUOCLLayer::MMLT_Pass(int a_passNumber, int minBounce, int maxBounce, int 
     memsetf4(m_mlt.xMultOneMinusAlpha, float4(0,0,0,0), m_rays.MEGABLOCKSIZE, 0); waitIfDebug(__FILE__, __LINE__);
   } 
   
-  if(m_spp < 1e-5f) // run init stage and burning in
+  if(m_spp <= 1) // run init stage and burning in
   {
     m_avgBrightness = MMLT_BurningIn(minBounce, maxBounce, BURN_ITERS,
                                      m_mlt.rstateNew, m_mlt.dNew, m_mlt.splitData, m_mlt.scaleTable, m_mlt.perBounceActiveThreads);

@@ -280,9 +280,6 @@ void IntegratorCommon::DoPass(std::vector<uint>& a_imageLDR)
   if (m_width*m_height != a_imageLDR.size())
     RUN_TIME_ERROR("DoPass: bad output bufffer size");
 
-  std::cout << "IntegratorCommon::DoPass: enter " << std::endl; 
-  // Update HDR image
-  //
   const float alpha = 1.0f / float(m_spp + 1);
   
   #ifndef _NDEBUG

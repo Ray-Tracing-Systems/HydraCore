@@ -11,14 +11,38 @@
             "program": "${workspaceFolder}/bin/hydra",
             "args"   : ["-nowindow", "1", 
                         "-out", "z_out.png",
-                        "-spp", "4"],
+                        "-spp", "4", 
+                        //"-cl_device_id", "-1", 
+                        "-saveinterval", "2.0"],
                         //"-mmltthreads", "262144"],
                         // "-out",    "/home/frol/temp/test_out/image.png",
                         // "-outall", "/home/frol/temp/test_out/gbuff",
                         // "-outdir", "/home/frol/temp2"],
                         // "-mmltthreads", "262144",
                         // "-evalgbuffer", "1",
-                        // "-cl_device_id","1"],
+                        // "-cl_device_id","-1"],
+
+            "stopAtEntry": false,
+            "cwd"    : "${workspaceFolder}/hydra_app",
+            "environment": [],
+            "externalConsole": false,
+            "MIMode": "gdb",
+            "setupCommands": [
+                {
+                    "description": "Enable pretty-printing for gdb",
+                    "text": "-enable-pretty-printing",
+                    "ignoreFailures": true
+                }
+            ]
+        },
+
+        {
+            "name"   : "Launch (window)",
+            "type"   : "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/bin/hydra",
+            "args"   : ["AAA", "BBB"],
+                      
 
             "stopAtEntry": false,
             "cwd"    : "${workspaceFolder}/hydra_app",
