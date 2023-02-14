@@ -556,10 +556,10 @@ static inline float3 backColorOfSecondEnv(float3 ray_dir, float2 screen, __globa
   {
     float sintheta = 0.0f;
     const float2 texCoord = sphereMapTo2DTexCoord(ray_dir, &sintheta);
-    envColor = backColorMult*to_float3(read_imagef_sw4(in_texStorage1 + offset, texCoord, TEX_CLAMP_U | TEX_CLAMP_V));
+    envColor = backColorMult*to_float3(read_imagef_sw4(in_texStorage1 + offset, texCoord, TEX_CLAMP_U | TEX_CLAMP_V, true));
   }
   else
-    envColor = backColorMult*to_float3(read_imagef_sw4(in_texStorage1 + offset, make_float2(texCoordX, texCoordY), TEX_CLAMP_U | TEX_CLAMP_V));
+    envColor = backColorMult*to_float3(read_imagef_sw4(in_texStorage1 + offset, make_float2(texCoordX, texCoordY), TEX_CLAMP_U | TEX_CLAMP_V, true));
   
   if(a_globals->varsF[HRT_BACK_TEXINPUT_GAMMA] != 1.0f)
   {

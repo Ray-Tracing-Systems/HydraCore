@@ -414,12 +414,7 @@ static inline float read_imagef_sw1(texture2d_t a_tex, const float2 a_texCoord, 
     if (bpp == 4)
       res = fdata[offset];
     else if (bpp == 1)
-    {
-      res = read_array_uchar((__global const unsigned char*)(a_tex + 1), offset);
-      //__global const float4* fdata = (__global const float4*)(a_tex + 1);
-
-    }
-    // res = fdata[offset];
+      res = sRGBToLinear(read_array_uchar((__global const unsigned char*)(a_tex + 1), offset));
   }
   else
   {
@@ -451,10 +446,10 @@ static inline float read_imagef_sw1(texture2d_t a_tex, const float2 a_texCoord, 
     }
     else if (bpp == 1)
     {
-      const float f1 = read_array_uchar((__global const unsigned char*)(a_tex + 1), offsets.x);
-      const float f2 = read_array_uchar((__global const unsigned char*)(a_tex + 1), offsets.y);
-      const float f3 = read_array_uchar((__global const unsigned char*)(a_tex + 1), offsets.z);
-      const float f4 = read_array_uchar((__global const unsigned char*)(a_tex + 1), offsets.w);
+      const float f1 = sRGBToLinear(read_array_uchar((__global const unsigned char*)(a_tex + 1), offsets.x));
+      const float f2 = sRGBToLinear(read_array_uchar((__global const unsigned char*)(a_tex + 1), offsets.y));
+      const float f3 = sRGBToLinear(read_array_uchar((__global const unsigned char*)(a_tex + 1), offsets.z));
+      const float f4 = sRGBToLinear(read_array_uchar((__global const unsigned char*)(a_tex + 1), offsets.w));
 
       res = f1 * w1 + f2 * w2 + f3 * w3 + f4 * w4;
     }
@@ -463,7 +458,7 @@ static inline float read_imagef_sw1(texture2d_t a_tex, const float2 a_texCoord, 
   return res;
 }
 
-static inline float4 read_imagef_sw4(texture2d_t a_tex, const float2 a_texCoord, const int a_flags)
+static inline float4 read_imagef_sw4(texture2d_t a_tex, const float2 a_texCoord, const int a_flags, bool a_srgb)
 {
   const int4 header = (*a_tex);
 
@@ -517,8 +512,12 @@ static inline float4 read_imagef_sw4(texture2d_t a_tex, const float2 a_texCoord,
 
     const int offset = py*w + px;
 
-    if (bpp == 4)
+    if (bpp == 4) 
+    {
       res = read_array_uchar4((__global const uchar4*)(a_tex + 1), offset);
+      if(a_srgb)
+        res = sRGBToLinear4f(res);
+    }
     else if (bpp == 16)
     {
       __global const float4* fdata = (__global const float4*)(a_tex + 1);
@@ -554,11 +553,17 @@ static inline float4 read_imagef_sw4(texture2d_t a_tex, const float2 a_texCoord,
       f2 = read_array_uchar4((__global const uchar4*)(a_tex + 1), offsets.y);
       f3 = read_array_uchar4((__global const uchar4*)(a_tex + 1), offsets.z);
       f4 = read_array_uchar4((__global const uchar4*)(a_tex + 1), offsets.w);
+      if(a_srgb)
+      {
+        f1 = sRGBToLinear4f(f1);
+        f2 = sRGBToLinear4f(f2);
+        f3 = sRGBToLinear4f(f3);
+        f4 = sRGBToLinear4f(f4);
+      }
     }
     else if (bpp == 16)
     {
       __global const float4* fdata = (__global const float4*)(a_tex + 1);
-
       f1 = fdata[offsets.x];
       f2 = fdata[offsets.y];
       f3 = fdata[offsets.z];
@@ -658,10 +663,7 @@ static inline float3 sample2D(int a_samplerOffset, float2 texCoord, __global con
   if(offset < 0)
     return make_float3(1, 1, 1);
 
-  float4 texColor4 = read_imagef_sw4(a_texStorage + offset, texCoordT, sampler.flags);
-  if(sampler.gamma != 1.0f)
-    texColor4 = sRGBToLinear3f(texColor4); 
-
+  float4 texColor4 = read_imagef_sw4(a_texStorage + offset, texCoordT, sampler.flags, (sampler.gamma != 1.0f));
   if (sampler.flags & TEX_ALPHASRC_W)
   {
     texColor4.x = texColor4.w;
@@ -689,14 +691,12 @@ static inline float3 sample2DExt(int a_samplerOffset, float2 texCoord,
   int offset = textureHeaderOffset(a_globals, sampler.texId);
   float4 texColor2;
   if (offset >= 0)
-    texColor2 = read_imagef_sw4(a_texStorage + offset, texCoordT, sampler.flags);
+    texColor2 = read_imagef_sw4(a_texStorage + offset, texCoordT, sampler.flags, (sampler.gamma != 1.0f));
   else
     texColor2 = make_float4(1, 1, 1, 1);
 
   float4 texColor1 = readProcTex(sampler.texId, a_ptList);
   float4 texColor4 = (fabs(texColor1.w + 1.0f) < 1e-5f) ? texColor2 : texColor1;
-  if(sampler.gamma != 1.0f)
-    texColor4 = sRGBToLinear3f(texColor4);
 
   if (sampler.flags & TEX_ALPHASRC_W)
   {
@@ -724,10 +724,7 @@ static inline float3 sample2DUI2(int a_samplerOffset, float2 texCoord, __global 
 
   const int offset = textureHeaderOffset(a_globals, sampler.texId);
 
-  float4 texColor4 = read_imagef_sw4(a_texStorage + offset, texCoordT, sampler.flags);
-  if(sampler.gamma != 1.0f)
-    texColor4 = sRGBToLinear3f(texColor4);
-
+  float4 texColor4 = read_imagef_sw4(a_texStorage + offset, texCoordT, sampler.flags, (sampler.gamma != 1.0f));
   if (sampler.flags & TEX_ALPHASRC_W)
   {
     texColor4.x = texColor4.w;
@@ -750,8 +747,7 @@ static inline float3 sample2DLite(int a_samplerOffset, float2 texCoord, __global
     return make_float3(1, 1, 1);
 
   const int offset = textureHeaderOffset(a_globals, sampler.texId);
-
-  float4 texColor4 = read_imagef_sw4(a_texStorage + offset, texCoordT, sampler.flags);
+  float4 texColor4 = read_imagef_sw4(a_texStorage + offset, texCoordT, sampler.flags, (sampler.gamma != 1.0f));
 
   if (sampler.flags & TEX_ALPHASRC_W)
   {
@@ -781,9 +777,7 @@ static inline float3 sample2DAux(int2 a_samplerOffset, float2 texCoord, __global
   const int offset = textureAuxHeaderOffset(a_globals, a_samplerOffset.x);
   //const int offset = textureAuxHeaderOffset(a_globals, sampler.texId);
 
-  float4 texColor4 = read_imagef_sw4(a_texStorage + offset, texCoordT, sampler.flags);
-  if(sampler.gamma != 1.0f)
-    texColor4 = sRGBToLinear3f(texColor4);
+  float4 texColor4 = read_imagef_sw4(a_texStorage + offset, texCoordT, sampler.flags, (sampler.gamma != 1.0f));
   if (sampler.flags & TEX_ALPHASRC_W)
   {
     texColor4.x = texColor4.w;
@@ -811,12 +805,9 @@ static inline float3 sample2DAuxExt(int2 a_samplerOffset, float2 texCoord, __glo
     return make_float3(1, 1, 1);
 
   const int offset       = textureAuxHeaderOffset(a_globals, a_samplerOffset.x);
-  const float4 texColor2 = read_imagef_sw4(a_texStorage + offset, texCoordT, sampler.flags);
+  const float4 texColor2 = read_imagef_sw4(a_texStorage + offset, texCoordT, sampler.flags, (sampler.gamma != 1.0f));
   const float4 texColor1 = readProcTex(sampler.texId, a_ptList);
   float4 texColor4       = (fabs(texColor1.w + 1.0f) < 1e-5f) ? texColor2 : texColor1;
-  
-  if(sampler.gamma != 1.0f)
-    texColor4 = sRGBToLinear3f(texColor4);
 
   if (sampler.flags & TEX_ALPHASRC_W)
   {

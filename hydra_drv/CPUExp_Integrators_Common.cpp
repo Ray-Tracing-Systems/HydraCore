@@ -282,7 +282,7 @@ void IntegratorCommon::DoPass(std::vector<uint>& a_imageLDR)
 
   const float alpha = 1.0f / float(m_spp + 1);
   
-  #ifndef _NDEBUG
+  #ifndef _DEBUG
   #pragma omp parallel for collapse(2) default (shared)
   #endif
   for (int y = 0; y < m_height; y++)
@@ -292,10 +292,14 @@ void IntegratorCommon::DoPass(std::vector<uint>& a_imageLDR)
       float3 ray_pos, ray_dir;
       std::tie(ray_pos, ray_dir) = makeEyeRay(x, y);
 
-      //if (x == 1008 && y == 0)
-      //  int a = 2;
+      if (x == 511 && (y == 1024-340-1))
+        int a = 2;
 
-			const float3 color = PathTrace(ray_pos, ray_dir, makeInitialMisData(), 0, 0); 
+			float3 color = PathTrace(ray_pos, ray_dir, makeInitialMisData(), 0, 0); 
+
+      if (x == 511 && (y == 1024-340-1))
+        color = float3(1,0,0);
+
       m_summColors[y*m_width + x] = m_summColors[y*m_width + x] * (1.0f - alpha) + to_float4(color, 0.0f)*alpha;
     }
   }
