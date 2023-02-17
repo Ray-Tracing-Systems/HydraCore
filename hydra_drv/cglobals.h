@@ -3037,5 +3037,6 @@ static inline float linearToSRGB(float l)
 
 static inline float4 sRGBToLinear4f(float4 s) { return make_float4(sRGBToLinear(s.x), sRGBToLinear(s.y), sRGBToLinear(s.z), sRGBToLinear(s.w)); }
 static inline float4 sRGBToLinear3f(float4 s) { return make_float4(sRGBToLinear(s.x), sRGBToLinear(s.y), sRGBToLinear(s.z), s.w); }
+static inline float3 sRGBToLinear33f(float3 s) { return make_float3(sRGBToLinear(s.x), sRGBToLinear(s.y), sRGBToLinear(s.z)); }
 
 #endif

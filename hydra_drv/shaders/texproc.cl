@@ -24,7 +24,7 @@ static inline float4 InternalFetch(int a_texId, const float2 texCoord, const int
   else
   {
     const int offset = textureHeaderOffset(in_globals, a_texId);
-    return read_imagef_sw4(in_texStorage1 + offset, texCoord, a_flags, true);
+    return read_imagef_sw4(in_texStorage1 + offset, texCoord, a_flags, false);
   }
 }
 
@@ -183,7 +183,15 @@ __kernel void ProcTexExec(__global       uint*          restrict a_flags,
     //
     //#PUT_YOUR_PROCEDURAL_TEXTURES_EVAL_HERE:
 
-    // (4) take what we need from all array
+    // (4) Note that we perform gamma transform after tex evaluation which is not correct but work in such way in Hydra2
+    //
+    ptl.fdata4[0] = sRGBToLinear33f(ptl.fdata4[0]); 
+    ptl.fdata4[1] = sRGBToLinear33f(ptl.fdata4[1]);
+    ptl.fdata4[2] = sRGBToLinear33f(ptl.fdata4[2]);
+    ptl.fdata4[3] = sRGBToLinear33f(ptl.fdata4[3]);
+    ptl.fdata4[4] = sRGBToLinear33f(ptl.fdata4[4]);
+
+    // (5) take what we need from all array
     //
     WriteProcTextureList(out_procTexData, tid, iNumElements, &ptl);
   }
