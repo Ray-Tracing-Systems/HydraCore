@@ -24,7 +24,7 @@ static inline float4 InternalFetch(int a_texId, const float2 texCoord, const int
   else
   {
     const int offset = textureHeaderOffset(in_globals, a_texId);
-    return read_imagef_sw4(in_texStorage1 + offset, texCoord, a_flags);
+    return read_imagef_sw4(in_texStorage1 + offset, texCoord, a_flags, true);
   }
 }
 
