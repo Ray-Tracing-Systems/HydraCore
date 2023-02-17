@@ -695,12 +695,14 @@ GPUOCLLayer::GPUOCLLayer(int w, int h, int a_flags, int a_deviceId) : Base(w, h,
   if(doublesForTriIntersection)
   {
     std::string options2 = options + " -D DOUBLE_RAY_TRIANGLE";
-    std::cout << "[cl_core]: building " << tshaderpath.c_str() << " (double) " << std::endl;
+    std::cout << "[cl_core]: building " << tshaderpath.c_str()     << " (double) " << std::endl;
+    std::cout << "[cl_core]: shdr_bin " << tshaderpathBin2.c_str() << " (double) " << std::endl;    
     m_progs.trace  = CLProgram(m_globals.device, m_globals.ctx, tshaderpath.c_str(), options2.c_str(), HydraInstallPath(), loadEncrypted, tshaderpathBin2, SAVE_BUILD_LOG);
   }
   else
   {
-    std::cout << "[cl_core]: building " << tshaderpath.c_str() << "    ..." << std::endl;
+    std::cout << "[cl_core]: building " << tshaderpath.c_str()    << " (float)" << std::endl;
+    std::cout << "[cl_core]: shdr_bin " << tshaderpathBin.c_str() << " (float) " << std::endl;    
     m_progs.trace  = CLProgram(m_globals.device, m_globals.ctx, tshaderpath.c_str(), options.c_str(), HydraInstallPath(), loadEncrypted, tshaderpathBin, SAVE_BUILD_LOG);
   }
 
@@ -728,9 +730,17 @@ GPUOCLLayer::GPUOCLLayer(int w, int h, int a_flags, int a_deviceId) : Base(w, h,
 
     if (!isFileExists(sshaderpathBin))
       m_progs.screen.saveBinary(sshaderpathBin);
-
-    if (!isFileExists(tshaderpathBin))
-      m_progs.trace.saveBinary(tshaderpathBin);
+    
+    if(doublesForTriIntersection) 
+    {
+      if(!isFileExists(tshaderpathBin2))
+        m_progs.trace.saveBinary(tshaderpathBin2);
+    }
+    else
+    {
+      if(!isFileExists(tshaderpathBin))
+        m_progs.trace.saveBinary(tshaderpathBin);
+    }
 
     if (!isFileExists(loshaderpathBin))
       m_progs.lightp.saveBinary(loshaderpathBin);

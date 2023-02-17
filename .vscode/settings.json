@@ -75,6 +75,7 @@
         "__hash_table": "cpp",
         "__string": "cpp",
         "__tree": "cpp",
-        "set": "cpp"
+        "set": "cpp",
+        "__nullptr": "cpp"
     }
 }
