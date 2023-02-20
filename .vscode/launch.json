@@ -82,6 +82,31 @@
                 }
             ]
         },
+
+        {
+            "name"   : "Launch (depth_scene2)",
+            "type"   : "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/bin/hydra",
+            "args"   : ["-nowindow", "1", 
+                        "-double_rt", "1",
+                        "-inputlib", "/home/frol/hydra/scene_04_RGBD_10M", "-statefile", "1m_lens_1M_hydra_rtx2.xml",
+                        "-out", "z_out.png",
+                        "-spp", "4"],
+
+            "stopAtEntry": false,
+            "cwd"    : "${workspaceFolder}/hydra_app",
+            "environment": [],
+            "externalConsole": false,
+            "MIMode": "gdb",
+            "setupCommands": [
+                {
+                    "description": "Enable pretty-printing for gdb",
+                    "text": "-enable-pretty-printing",
+                    "ignoreFailures": true
+                }
+            ]
+        },
         
         
 

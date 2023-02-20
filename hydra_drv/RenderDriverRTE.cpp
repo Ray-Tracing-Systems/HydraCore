@@ -9,6 +9,7 @@
 
 #include "hydra_api/HydraXMLHelpers.h"
 #include "hydra_api/HydraInternal.h"
+#include "hydra_api/HR_HDRImageTool.h" // for SaveImage
 
 #include "hydra_api/LiteMath.h"
 
@@ -826,6 +827,25 @@ bool RenderDriverRTE::UpdateImage(int32_t a_texId, int32_t w, int32_t h, int32_t
 
   m_pTexStorage->UpdatePartial(a_texId, &texheader, 0, sizeof(SWTextureHeader));
   m_pTexStorage->UpdatePartial(a_texId, a_data, headerSize, inDataBSz);
+
+  ////save hydra image for check correct calculate normal map
+  ////
+  //const float4* resData = (const float4*)a_data;
+  //std::vector<int32_t> finalData(w * h);
+  ////#pragma omp parallel for
+  //float mult = 1.0f/300.5f;
+  //for (int y = 0; y < h; y++) 
+  //{
+  //  for (int x = 0; x < w; x++)
+  //  {
+  //    const int i = y * w + x;
+  //    finalData[i] = RealColorToUint32(resData[i].x*mult, resData[i].y*mult, resData[i].z*mult, 1.0f);
+  //
+  //    if(x >= 2000 && x <=2100 && y >= 1500 && y <= 1600)
+  //      std::cout << resData[i].x << " " << resData[i].y << " " << resData[i].z << std::endl;
+  //  }
+  //}
+  //HydraRender::SaveImageToFile(std::string("/home/frol/hydra/UpdateImage_test.png"), w, h, (unsigned int*)&finalData[0]);
 
   return true;
 }

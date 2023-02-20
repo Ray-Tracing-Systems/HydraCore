@@ -629,7 +629,7 @@ std::vector<uchar4> GPUOCLLayer::NormalMapFromDisplacement(int w, int h, const u
   clReleaseMemObject(textureIn);  textureIn  = 0;
   clReleaseMemObject(textureOut); textureOut = 0;
 
-  //save hydra image for check correct calculate normal map
+//save hydra image for check correct calculate normal map
 //  std::vector<int32_t> finalData(w * h);
 //
 //#pragma omp parallel for
