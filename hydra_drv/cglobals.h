@@ -21,6 +21,7 @@
 #define TEX_CLAMP_V        8
 #define TEX_COORD_SECOND   16
 #define TEX_COORD_CAM_PROJ 32
+#define TEX_DATA_HDR       64
 
 
 // they are related because data are storen in one int32 variable triAlphaTest
