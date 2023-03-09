@@ -70,9 +70,10 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -msse4.2")
 find_package(OpenMP)
 
 if(WIN32)
-    set(SOURCE_FILES ${SOURCE_FILES} BVHBuilderLoaderWin.cpp ../cam_plug/HydraDLibWin64.cpp)
+    set(SOURCE_FILES ${SOURCE_FILES} BVHBuilderLoaderWin.cpp 
+                                     ../../HydraAPI/hydra_api/HydraDLibWin64.cpp)
 else()
-    set(SOURCE_FILES ${SOURCE_FILES} ../cam_plug/HydraDLibUnix.cpp)
+    set(SOURCE_FILES ${SOURCE_FILES} ../../HydraAPI/hydra_api/HydraDLibUnix.cpp)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fopenmp")
 endif()
 

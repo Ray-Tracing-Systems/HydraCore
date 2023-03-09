@@ -7,7 +7,7 @@
 
 #include "cl_scan_gpu.h"
 #include "../cam_plug/CamHostPluginAPI.h"
-#include "../cam_plug/HydraDLib.h"
+#include "hydra_api/HydraDLib.h"
 
 const ushort* getGgxTable();
 const ushort* getTranspTable();
