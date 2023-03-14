@@ -73,7 +73,7 @@ __kernel void BVH4TraversalInstKernel(__global const float4* restrict  rpos,    
 
 __kernel void BVH4TraversalInstKernelA(__global const float4* restrict  rpos,     __global const float4* restrict  rdir, 
                                        __global const float4* restrict  a_bvh,    __global const float4* restrict  a_tris, __global const uint2*  restrict a_alpha,  
-                                       __global const float4* restrict  a_texStorage, __global const EngineGlobals* restrict a_globals,
+                                       __global const int4*   restrict  a_texStorage, __global const EngineGlobals* restrict a_globals,
                                        __global const uint*   restrict  in_flags, __global Lite_Hit*     restrict  out_hits, int iRunId, int iNumElements)
 {
   const int tid     = GLOBAL_ID_X;
@@ -99,7 +99,7 @@ __kernel void BVH4TraversalInstKernelA(__global const float4* restrict  rpos,   
 
 __kernel void BVH4TraversalInstKernelAS(__global const float4* restrict  rpos,     __global const float4* restrict  rdir, 
                                         __global const float4* restrict  a_bvh,    __global const float4* restrict  a_tris, __global const uint2*  restrict a_alpha,  
-                                        __global const float4* restrict  a_texStorage, __global const EngineGlobals* restrict a_globals,
+                                        __global const int4*   restrict  a_texStorage, __global const EngineGlobals* restrict a_globals,
                                         __global const uint*   restrict  in_flags, __global Lite_Hit* restrict  out_hits, __global RandomGen* restrict out_gens,
                                         int iRunId, int iNumElements)
 {
@@ -361,7 +361,7 @@ __kernel void BVH4TraversalInstShadowKenrelAS(__global const uint*         restr
                                               __global const float4*        restrict a_bvh,
                                               __global const float4*        restrict a_tris,
                                               __global const uint2*         restrict a_alpha,
-                                              __global const float4*        restrict a_texStorage, 
+                                              __global const int4*          restrict a_texStorage, 
                                               __global const EngineGlobals* restrict a_globals,
                                                int a_runId, int a_size)
 {
@@ -505,7 +505,7 @@ __kernel void BVH4TraversalInstShadowKenrelAS_Packed(__global const uint*       
                                                      __global const float4*        restrict a_bvh,
                                                      __global const float4*        restrict a_tris,
                                                      __global const uint2*         restrict a_alpha,
-                                                     __global const float4*        restrict a_texStorage, 
+                                                     __global const int4*          restrict a_texStorage, 
                                                      __global const EngineGlobals* restrict a_globals,
                                                      int a_runId, int a_size)
 {
@@ -642,7 +642,7 @@ __kernel void ColorIndexTriangles(__global Lite_Hit* in_hits,
   
 }
 
-// change 22.03.2020 11:08;
+// change 14.03.2023 12:17;
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////

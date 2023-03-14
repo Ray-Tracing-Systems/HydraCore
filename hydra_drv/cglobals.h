@@ -311,7 +311,7 @@ enum MEGATEX_USAGE{ MEGATEX_SHADING      = 1,
    }
    
   #else                              // Common C++
-    
+
     #ifdef WIN32
       #define ALIGN_S(x) __declspec(align(x))
     #else
@@ -2359,7 +2359,8 @@ static inline void WriteProcTextureList(__global float4* fdata, int tid, int siz
 
 }
 
-static inline void ReadProcTextureList(__global float4* fdata, int tid, int size,
+
+static inline void ReadProcTextureList(const __global float4* fdata, int tid, int size,
                                        __private ProcTextureList* a_pList)
 {
   if (fdata == 0)

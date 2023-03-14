@@ -40,7 +40,7 @@ struct Input
   int32_t     winWidth;
   int32_t     winHeight;
   
-  int32_t     maxSamples;
+  int32_t     maxSamples = 0;
   int32_t     maxSamplesContrib;
   int32_t     mmltThreads;
   int32_t     maxCPUThreads = 4;
@@ -51,7 +51,7 @@ struct Input
   //
   float camMoveSpeed;
   float mouseSensitivity;
-  float saveInterval;
+  float saveInterval = 0.0f;
 
   // dynamic data
   //

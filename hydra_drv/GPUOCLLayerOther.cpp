@@ -394,7 +394,7 @@ void GPUOCLLayer::ContribToExternalImageAccumulator(IHRSharedAccumImage* a_pImag
     if(m_screen.m_cpuFrameBuffer)
     {
       assert(a_pImage->Header()->channels == m_screen.m_cpuFbufChannels);
-#pragma omp parallel for num_threads(g_maxCPUThreads)
+      #pragma omp parallel for num_threads(g_maxCPUThreads)
       for (int i = 0; i < size; i++)
       {
 //      const __m128 color1 = _mm_load_ps(input  + i * 4);

@@ -70,7 +70,7 @@ __kernel void LightSampleForwardKernel(__global float4*        restrict out_rpos
                                        __global float4*        restrict out_thoroughput,   // just for clearing them
                                        __global float4*        restrict out_fog,           // just for clearing them
                                                                                         
-                                       __global const float4*  restrict a_texStorage1,     // 
+                                       __global const int4*    restrict a_texStorage1,     // 
                                        __global const float4*  restrict a_pdfStorage, 
                                        __global const EngineGlobals* restrict a_globals,
                                        const int iNumElements)
@@ -152,7 +152,7 @@ __kernel void LightSample(__global const int2*    restrict in_zind,
                           __global float4*        restrict out_srpos,
                           __global float4*        restrict out_srdir,
 
-                          __global const float4*  restrict a_texStorage1,  //
+                          __global const int4*    restrict a_texStorage1,  //
                           __global const float4*  restrict a_texStorage2,  //
                           __global const float4*  restrict a_pdfStorage,   //
                           
@@ -280,7 +280,7 @@ __kernel void MakeAORays(__global const uint*      restrict in_flags,
                          __global float4*          restrict out_rpos,
                          __global float4*          restrict out_rdir,
   
-                         __global const float4*    restrict in_texStorage1,
+                         __global const int4*      restrict in_texStorage1,
                          __global const float4*    restrict in_mtlStorage,
                          __global const EngineGlobals* restrict a_globals,
                          int iterNum, int iNumElements)
@@ -345,7 +345,7 @@ __kernel void MakeAORaysPacked4(__global const uint*      restrict in_flags,
                                 __global int4*            restrict out_rdir,
                                 __global int*             restrict out_instId,
                                 
-                                __global const float4*    restrict in_texStorage1,
+                                __global const int4*      restrict in_texStorage1,
                                 __global const float4*    restrict in_mtlStorage,
                                 __global const EngineGlobals* restrict a_globals,
                                 int aoId, int iNumElements)
@@ -469,7 +469,7 @@ __kernel void PackAO4(__global const uint*     restrict in_flags,
   out_ao[tid] = (uchar)(aoRes*255.0f);
 }
 
-// change 22.03.2020 11:08;
+// change 14.03.2023 12:24;
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////

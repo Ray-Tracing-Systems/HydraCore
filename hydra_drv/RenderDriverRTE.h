@@ -85,7 +85,7 @@ struct RenderDriverRTE : public IHRRenderDriver
 
   void Draw();
 
-  HRRenderUpdateInfo HaveUpdateNow(int a_maxRaysPerPixel);
+  HRRenderUpdateInfo HaveUpdateNow(int a_maxRaysPerPixel) override;
 
   void GetFrameBufferHDR(int32_t w, int32_t h, float*   a_out, const wchar_t* a_layerName) override;
   void GetFrameBufferLDR(int32_t w, int32_t h, int32_t* a_out) override;

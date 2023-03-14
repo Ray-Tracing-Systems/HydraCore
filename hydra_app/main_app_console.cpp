@@ -147,6 +147,9 @@ bool InitSceneLibAndRTE(HRCameraRef& a_camRef, HRSceneInstRef& a_scnRef, HRRende
         auto now_ms = std::chrono::time_point_cast<std::chrono::milliseconds>(currtime).time_since_epoch().count();
         node2.force_child(L"seed").text() = int(now_ms & 0xEFFFFFFF);
       }
+
+      if(g_input.maxSamples != 0) // override spp
+        node2.force_child(L"maxRaysPerPixel").text() = g_input.maxSamples;
       
       // override rendering method if it as set via command line
       //
@@ -278,7 +281,7 @@ static void Draw(std::shared_ptr<IHRRenderDriver> a_pDetachedRenderDriverPointer
   //hrCommit(scnRef, renderRef, camRef);
   hrDrawPassOnly(scnRef, renderRef, camRef);
   
-  HRRenderUpdateInfo info = hrRenderHaveUpdate(renderRef);
+  HRRenderUpdateInfo info = hrRenderHaveUpdate(renderRef); //
   
   if (info.finalUpdate && g_input.boxMode)  // save final image
   {

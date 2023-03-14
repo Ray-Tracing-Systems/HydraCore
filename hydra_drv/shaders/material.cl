@@ -71,8 +71,8 @@ __kernel void UpdateForwardPdfFor3Way(__global const uint*          restrict a_f
                                       __global const MisData*       restrict in_misDataCurr,
                                       __global PerRayAcc*           restrict a_pdfAcc,
                                       
-                                      __global const float4*        restrict in_texStorage1,
-                                      __global const float4*        restrict in_texStorage2,
+                                      __global const int4*          restrict in_texStorage1,
+                                      __global const int4*          restrict in_texStorage2,
                                       __global const float4*        restrict in_mtlStorage,
                                       __global const EngineGlobals* restrict a_globals,
                                       
@@ -158,8 +158,8 @@ __kernel void ConnectToEyeKernel(__global const uint*          restrict a_flags,
                                  
                                  __global const float4*        restrict in_mtlStorage,
                                  __global const EngineGlobals* restrict a_globals,
-                                 __global const float4*        restrict in_texStorage1,
-                                 __global const float4*        restrict in_texStorage2,
+                                 __global const int4*          restrict in_texStorage1,
+                                 __global const int4*          restrict in_texStorage2,
                                  __constant ushort*            restrict a_mortonTable256,
                                  
                                  __global const float4*        restrict a_colorIn,
@@ -317,8 +317,8 @@ __kernel void HitEnvOrLightKernel(__global const float4*    restrict in_rpos,
                                   __global PerRayAcc*       restrict a_pdfAccCopy,
                                   __global float*           restrict a_pdfCamA,
                                   
-                                  __global const float4*    restrict in_texStorage1,
-                                  __global const float4*    restrict in_texStorage2,
+                                  __global const int4*      restrict in_texStorage1,
+                                  __global const int4*      restrict in_texStorage2,
                                   __global const float4*    restrict in_mtlStorage,
                                   __global const float4*    restrict in_pdfStorage,
                                   __global const EngineGlobals*  restrict a_globals,
@@ -593,8 +593,8 @@ __kernel void Shade(__global const float4*    restrict a_rpos,
                     __global float4*          restrict out_color,
                     __global uchar*           restrict out_shadow,
                      
-                    __global const float4*    restrict in_texStorage1,
-                    __global const float4*    restrict in_texStorage2,
+                    __global const int4*      restrict in_texStorage1,
+                    __global const int4*      restrict in_texStorage2,
                     __global const float4*    restrict in_mtlStorage,
                     __global const float4*    restrict in_pdfStorage,
                     __global const EngineGlobals* restrict a_globals,
@@ -774,8 +774,8 @@ __kernel void NextBounce(__global const int2*      restrict in_zind,
                          __global PerRayAcc*       restrict a_pdfAcc,        // used only by 3-Way PT/LT passes
                          __global float*           restrict a_camPdfA,       // used only by 3-Way PT/LT passes
 
-                         __global const float4*    restrict in_texStorage1,    
-                         __global const float4*    restrict in_texStorage2,
+                         __global const int4*      restrict in_texStorage1,    
+                         __global const int4*      restrict in_texStorage2,
                          __global const float4*    restrict in_mtlStorage,
                          __global const float4*    restrict in_pdfStorage,   //
  
@@ -1508,7 +1508,7 @@ __kernel void PutAlphaToGBuffer(__global const float4* restrict in_thoroughput,
   }
 }
 
-// change 22.03.2020 11:08;
+// change 14.03.2020 12:40;
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////

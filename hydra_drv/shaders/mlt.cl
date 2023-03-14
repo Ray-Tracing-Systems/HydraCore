@@ -634,8 +634,8 @@ __kernel void KMLTMakeProposal(__global const RandomGen* restrict in_gens,
 
 }
 
-static inline MMLTReadMaterialBounceRands(__global const float* restrict in_numbers, int bounce, int tid, int iNumElements,
-                                          __private float a_out[MMLT_FLOATS_PER_BOUNCE])
+static inline void  MMLTReadMaterialBounceRands(__global const float* restrict in_numbers, int bounce, int tid, int iNumElements,
+                                                __private float a_out[MMLT_FLOATS_PER_BOUNCE])
 {
   const int bounceOffset = MMLT_HEAD_TOTAL_SIZE + MMLT_COMPRESSED_F_PERB*bounce;
 
@@ -738,8 +738,8 @@ __kernel void MMLTCameraPathBounce(__global   float4*        restrict a_rpos,
                                    __global PdfVertex*       restrict a_pdfVert,       // (!) MMLT pdfArray 
                                    __global float4*          restrict a_vertexSup,     // (!) MMLT out Path Vertex supplemental to surfaceHit data
 
-                                   __global const float4*    restrict in_texStorage1,    
-                                   __global const float4*    restrict in_texStorage2,
+                                   __global const int4*      restrict in_texStorage1,    
+                                   __global const int4*      restrict in_texStorage2,
                                    __global const float4*    restrict in_mtlStorage,
                                    __global const float4*    restrict in_pdfStorage,   //
 
@@ -1077,7 +1077,7 @@ __kernel void MMLTLightSampleForward(__global   float4*        restrict a_rpos,
                                      __global float4*          restrict a_vertexSup,     // (!) MMLT out Path Vertex supplemental to surfaceHit data
                                      __global int*             restrict a_spec,          // (!) MMLTLightPathBounce only !!! prev bounce is specular.
                                     
-                                     __global const float4*        restrict in_texStorage1,    
+                                     __global const int4*          restrict in_texStorage1,    
                                      __global const float4*        restrict in_pdfStorage,   //
                                      __global const EngineGlobals* restrict a_globals,
                                      const int   iNumElements)
@@ -1148,8 +1148,8 @@ __kernel void MMLTLightPathBounce (__global   float4*        restrict a_rpos,
                                    __global PdfVertex*       restrict a_pdfVert,       // (!) MMLT pdfArray 
                                    __global float4*          restrict a_vertexSup,     // (!) MMLT out Path Vertex supplemental to surfaceHit data
 
-                                   __global const float4*    restrict in_texStorage1,    
-                                   __global const float4*    restrict in_texStorage2,
+                                   __global const int4*      restrict in_texStorage1,    
+                                   __global const int4*      restrict in_texStorage2,
                                    __global const float4*    restrict in_mtlStorage,
                                    __global const float4*    restrict in_pdfStorage,   //
 
@@ -1343,7 +1343,7 @@ __kernel void MMLTMakeShadowRay(__global const int2  *  restrict in_splitInfo,
 
                                 __global const float4*         restrict in_mtlStorage,
                                 __global const float4*         restrict in_pdfStorage,
-                                __global const float4*         restrict in_texStorage1,
+                                __global const int4*           restrict in_texStorage1,
                                 __global const EngineGlobals*  restrict a_globals,
                                 const int iNumElements)
 {
@@ -1482,8 +1482,8 @@ __kernel void MMLTConnect(__global const int2  *  restrict in_splitInfo,
                           __global       float4*  restrict out_color,
                           __global int2*          restrict out_zind,
 
-                          __global const float4*         restrict in_texStorage1,    
-                          __global const float4*         restrict in_texStorage2,
+                          __global const int4*           restrict in_texStorage1,    
+                          __global const int4*           restrict in_texStorage2,
                           __global const float4*         restrict in_mtlStorage,
                           __global const float4*         restrict in_pdfStorage,  
                           __global const EngineGlobals*  restrict a_globals,
@@ -1717,7 +1717,7 @@ __kernel void UpdateZIndexFromColorW(__global const float4*  restrict in_color,
   out_zind[tid]      = make_int2(zid, tid);
 }
 
-// change 21.03.2020 15:26;
+// change 14.03.2020 12:47;
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
