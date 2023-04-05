@@ -257,6 +257,8 @@ static void Draw(std::shared_ptr<IHRRenderDriver> a_pDetachedRenderDriverPointer
           paramNode.force_child(paramName.c_str()).text() = paramValue.c_str();
       }
 
+      if(g_input.getGBufferBeforeRender || g_input.saveGBufferAfterRender)
+        paramNode.force_child(L"evalgbuffer").text() = 1;
 
       paramNode.force_child(L"contribsamples").text() = g_input.maxSamplesContrib;
     }
@@ -317,13 +319,6 @@ static void Draw(std::shared_ptr<IHRRenderDriver> a_pDetachedRenderDriverPointer
         hrRenderSaveGBufferLayerLDR(renderRef, shadowName.c_str(),L"shadow");
 
         /*
-        hrRenderSaveGBufferLayerLDR(renderRef, L"tests_images/test_77/z_out2.png", L"depth");
-        hrRenderSaveGBufferLayerLDR(renderRef, L"tests_images/test_77/z_out3.png", L"normals");
-        hrRenderSaveGBufferLayerLDR(renderRef, L"tests_images/test_77/z_out4.png", L"texcoord");
-        hrRenderSaveGBufferLayerLDR(renderRef, L"tests_images/test_77/z_out5.png", L"diffcolor");
-        hrRenderSaveGBufferLayerLDR(renderRef, L"tests_images/test_77/z_out6.png", L"alpha");
-        hrRenderSaveGBufferLayerLDR(renderRef, L"tests_images/test_77/z_out7.png", L"shadow");
-
         const unsigned int palette[20] = { 0xffff0000, 0xff00ff00, 0xff0000ff, 0xff0082c8,
                                            0xfff58231, 0xff911eb4, 0xff46f0f0, 0xfff032e6,
                                            0xffd2f53c, 0xfffabebe, 0xff008080, 0xffe6beff,
@@ -335,6 +330,38 @@ static void Draw(std::shared_ptr<IHRRenderDriver> a_pDetachedRenderDriverPointer
         hrRenderSaveGBufferLayerLDR(renderRef, L"tests_images/test_77/z_out10.png", L"instid", (const int32_t*)palette, 20);
       
         */
+      }
+      else if(g_input.saveGBufferAfterRender)
+      { 
+        const std::wstring outAlbedo   = s2ws(g_input.outAlbedo);
+        const std::wstring outNormal   = s2ws(g_input.outNormal);
+        const std::wstring outDepth    = s2ws(g_input.outDepth);
+        const std::wstring outAlpha    = s2ws(g_input.outAlpha);
+        const std::wstring outShadow   = s2ws(g_input.outShadow);
+        const std::wstring outCoverage = s2ws(g_input.outCoverage);
+        const std::wstring outMatId    = s2ws(g_input.outMatId);
+        const std::wstring outObjId    = s2ws(g_input.outObjId);
+        const std::wstring outInstId   = s2ws(g_input.outInstId); 
+
+        if(outAlbedo != L"")
+          hrRenderSaveGBufferLayerLDR(renderRef, outAlbedo.c_str(), L"diffcolor");
+        if(outNormal != L"")
+          hrRenderSaveGBufferLayerLDR(renderRef, outNormal.c_str(), L"normals");
+        if(outDepth != L"")
+          hrRenderSaveGBufferLayerLDR(renderRef, outDepth.c_str(), L"depth");
+        if(outCoverage != L"")
+          hrRenderSaveGBufferLayerLDR(renderRef, outCoverage.c_str(), L"coverage");
+        if(outAlpha != L"")
+          hrRenderSaveGBufferLayerLDR(renderRef, outAlpha.c_str(), L"alpha");
+        if(outShadow != L"")
+          hrRenderSaveGBufferLayerLDR(renderRef, outShadow.c_str(), L"shadow");
+
+        if(outMatId != L"")
+          hrRenderSaveGBufferLayerLDR(renderRef, outMatId.c_str(), L"matid");
+        if(outObjId != L"")
+          hrRenderSaveGBufferLayerLDR(renderRef, outObjId.c_str(), L"objid");
+        if(outInstId != L"")
+          hrRenderSaveGBufferLayerLDR(renderRef, outInstId.c_str(), L"instid");
       }
     }
     g_input.exitStatus = true;
@@ -394,6 +421,7 @@ static void GetGBuffer(std::shared_ptr<IHRRenderDriver> a_pDetachedRenderDriverP
     paramNode.force_child(L"boxmode").text()        = g_input.boxMode ? 1 : 0;
     paramNode.force_child(L"maxsamples").text()     = g_input.maxSamples;
     paramNode.force_child(L"contribsamples").text() = g_input.maxSamplesContrib;
+    paramNode.force_child(L"evalgbuffer").text()    = 1;
   }
   hrRenderClose(renderRef);
   

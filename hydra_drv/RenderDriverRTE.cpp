@@ -1940,6 +1940,7 @@ void RenderDriverRTE::EvalGBuffer()
   else
   {
     std::cerr << "EvalGBuffer: nullptr external AccumImage, save gbuffer to internal image" << std::endl;
+    m_gbufferImage.shadowCopy.resize(m_width*m_height);
     char errMsg[256];
     m_gbufferImage.Create(m_width, m_height, 3, "gbuffer-only", errMsg);
     m_pHWLayer->EvalGBuffer(&m_gbufferImage, m_instIdByInstId);

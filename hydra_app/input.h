@@ -18,7 +18,8 @@ struct Input
   bool listDevicesAndExit;
   bool cpuFB;
   bool inDevelopment;
-  bool getGBufferBeforeRender;
+  bool getGBufferBeforeRender = false;
+  bool saveGBufferAfterRender = false;
   bool boxMode;
   bool doubleRT;
 
@@ -35,6 +36,16 @@ struct Input
   std::string   outLDRImage;
   std::string   outAllDir;
   std::string   outDir;       // override for output directory
+
+  std::string   outAlbedo;
+  std::string   outNormal;
+  std::string   outDepth;
+  std::string   outAlpha;
+  std::string   outShadow;
+  std::string   outCoverage;
+  std::string   outMatId;
+  std::string   outObjId;
+  std::string   outInstId;
 
   int32_t     inDeviceId;
   int32_t     winWidth;

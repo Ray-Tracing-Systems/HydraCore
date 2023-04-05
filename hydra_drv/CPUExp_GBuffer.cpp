@@ -278,6 +278,8 @@ void TestCompressGBuffer(std::vector<GBufferAll>& a_gbuff)
 
 }
 
+void HR_MyDebugSaveBMP(const wchar_t* fname, const int* pixels, int w, int h);
+
 void DebugSaveFuckingGBufferAsManyImages(int a_width, int a_height, const std::vector<GBufferAll>& gbuffer, const wchar_t* a_path)
 {
   // (2) save gbuffer to different layers for debug purpose
@@ -285,44 +287,44 @@ void DebugSaveFuckingGBufferAsManyImages(int a_width, int a_height, const std::v
   std::cout << "saving images ... " << std::endl;
   {
     const std::wstring folder = std::wstring(a_path) + L"/";
-    const std::wstring depthFile = folder + L"01_depth.png";
-    const std::wstring normalsFile = folder + L"02_normals.png";
-    const std::wstring texcolorFile = folder + L"03_texcolor.png";
-    const std::wstring texcooordFile = folder + L"04_texcoord.png";
-    const std::wstring coverageFile = folder + L"05_coverage.png";
-    const std::wstring objIdFile = folder + L"06_objid.png";
-    const std::wstring instIdFile = folder + L"07_instid.png";
-    const std::wstring matIdFile = folder + L"08_matid.png";
-    const std::wstring alphaFile = folder + L"09_alpha.png";
+    const std::wstring depthFile = folder + L"01_depth.bmp";
+    const std::wstring normalsFile = folder + L"02_normals.bmp";
+    const std::wstring texcolorFile = folder + L"03_texcolor.bmp";
+    const std::wstring texcooordFile = folder + L"04_texcoord.bmp";
+    const std::wstring coverageFile = folder + L"05_coverage.bmp";
+    const std::wstring objIdFile = folder + L"06_objid.bmp";
+    const std::wstring instIdFile = folder + L"07_instid.bmp";
+    const std::wstring matIdFile = folder + L"08_matid.bmp";
+    const std::wstring alphaFile = folder + L"09_alpha.bmp";
 
     std::vector<int32_t> tmpImage(a_width*a_height);
 
     DebugGetDepthImage(gbuffer, tmpImage);
-    HR_SaveLDRImageToFile(depthFile.c_str(), a_width, a_height, &tmpImage[0]);
+    HR_MyDebugSaveBMP(depthFile.c_str(), tmpImage.data(), a_width, a_height);
 
     GetNormalsImage(gbuffer, tmpImage);
-    HR_SaveLDRImageToFile(normalsFile.c_str(), a_width, a_height, &tmpImage[0]);
+    HR_MyDebugSaveBMP(normalsFile.c_str(), tmpImage.data(), a_width, a_height);
 
     GetTexColor(gbuffer, tmpImage);
-    HR_SaveLDRImageToFile(texcolorFile.c_str(), a_width, a_height, &tmpImage[0]);
+    HR_MyDebugSaveBMP(texcolorFile.c_str(), tmpImage.data(), a_width, a_height);
 
     GetTexCooord(gbuffer, tmpImage);
-    HR_SaveLDRImageToFile(texcooordFile.c_str(), a_width, a_height, &tmpImage[0]);
+    HR_MyDebugSaveBMP(texcooordFile.c_str(), tmpImage.data(), a_width, a_height);
 
     GetCoverageImage(gbuffer, tmpImage);
-    HR_SaveLDRImageToFile(coverageFile.c_str(), a_width, a_height, &tmpImage[0]);
+    HR_MyDebugSaveBMP(coverageFile.c_str(), tmpImage.data(), a_width, a_height);
 
     GetObjectId(gbuffer, tmpImage);
-    HR_SaveLDRImageToFile(objIdFile.c_str(), a_width, a_height, &tmpImage[0]);
+    HR_MyDebugSaveBMP(objIdFile.c_str(), tmpImage.data(), a_width, a_height);
 
     GetInstId(gbuffer, tmpImage);
-    HR_SaveLDRImageToFile(instIdFile.c_str(), a_width, a_height, &tmpImage[0]);
+    HR_MyDebugSaveBMP(instIdFile.c_str(), tmpImage.data(), a_width, a_height);
 
     GetMatId(gbuffer, tmpImage);
-    HR_SaveLDRImageToFile(matIdFile.c_str(), a_width, a_height, &tmpImage[0]);
+    HR_MyDebugSaveBMP(matIdFile.c_str(), tmpImage.data(), a_width, a_height);
 
     GetAlphaImage(gbuffer, tmpImage);
-    HR_SaveLDRImageToFile(alphaFile.c_str(), a_width, a_height, &tmpImage[0]);
+    HR_MyDebugSaveBMP(alphaFile.c_str(), tmpImage.data(), a_width, a_height);
   }
   std::cout << "end of images ... " << std::endl;
 }
@@ -337,7 +339,7 @@ void IntegratorCommon::DebugSaveGbufferImage(const wchar_t* a_path)
   DebugSaveFuckingGBufferAsManyImages(m_width, m_height, gbuffer, a_path);
 }
 
-bool HR_SaveHDRImageToFileHDR(const wchar_t* a_fileName, int w, int h, const float* a_data, const float a_scale = 1.0f);
+//bool HR_SaveHDRImageToFileHDR(const wchar_t* a_fileName, int w, int h, const float* a_data, const float a_scale = 1.0f);
 
 float MedianOfMaxColorInWindow(const float4* a_data, int a_x, int a_y, int a_width, int a_height, int a_windowSize,
                                float* pAvg)
@@ -416,7 +418,7 @@ void IntegratorCommon::DebugSaveNoiseImage(const wchar_t* a_path, const float4* 
     errImage[i] = normConst*float4(val,val,val, 1.0f);
   }
 
-  HR_SaveHDRImageToFileHDR(a_path, m_width, m_height, (const float*)&errImage[0]);
+  //HR_SaveHDRImageToFileHDR(a_path, m_width, m_height, (const float*)&errImage[0]);
 }
 
 void IntegratorCommon::SpreadNoise(const std::vector<GBufferAll>& a_gbuff, std::vector<float>& a_noise)

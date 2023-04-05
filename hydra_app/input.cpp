@@ -190,9 +190,8 @@ void Input::ParseCommandLineParams(const std::unordered_map<std::string, std::st
 
   ReadIntCmd(a_params,    "-width",        &winWidth);
   ReadIntCmd(a_params,    "-height",       &winHeight);
-  
-  ReadIntCmd(a_params,    "-spp",              &maxSamples); // yes, same as maxsamples
-  ReadIntCmd(a_params,    "-maxsamples",       &maxSamples); // yes, same as spp
+  ReadIntCmd(a_params,    "-spp",          &maxSamples); // yes, same as maxsamples
+  ReadIntCmd(a_params,    "-maxsamples",   &maxSamples); // yes, same as spp
 
   overrideMaxSamplesInCMD = a_params.find("-spp") != a_params.end() || a_params.find("-maxsamples") != a_params.end();
 
@@ -213,6 +212,25 @@ void Input::ParseCommandLineParams(const std::unordered_map<std::string, std::st
   ReadStringCmd(a_params, "-logdir",      &inLogDirCust);
   ReadStringCmd(a_params, "-sharedimage", &inSharedImageName);
   
+  std::string* gbuffLayers[] = {&outAlbedo, &outNormal, &outDepth, &outAlpha, &outShadow, &outCoverage, &outMatId, &outObjId, &outInstId};
+  ReadStringCmd(a_params, "--albedo",   &outAlbedo);
+  ReadStringCmd(a_params, "--normal",   &outNormal);
+  ReadStringCmd(a_params, "--depth",    &outDepth);
+  ReadStringCmd(a_params, "--alpha",    &outAlpha);
+  ReadStringCmd(a_params, "--shadow",   &outShadow);
+  ReadStringCmd(a_params, "--coverage", &outCoverage);
+
+  ReadStringCmd(a_params, "--matid",  &outMatId);
+  ReadStringCmd(a_params, "--objid",  &outObjId);
+  ReadStringCmd(a_params, "--instid", &outInstId);
+
+  for(auto pName : gbuffLayers) {
+    if ((*pName) != "") {
+      getGBufferBeforeRender = true;
+      saveGBufferAfterRender = true;
+    }
+  }
+
   if(inTargetState != "")
     inLibraryPath = inLibraryPath + "/" + inTargetState;
  
