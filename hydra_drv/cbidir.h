@@ -622,7 +622,7 @@ static inline float3 environmentColorExtended(float3 ray_pos, float3 ray_dir, Mi
     const bool transparent   = ((otherFlags & RAY_EVENT_T) != 0) && ((otherFlags & RAY_EVENT_D) == 0) && ((otherFlags & RAY_EVENT_G) == 0); 
     
     if (backTextureId != INVALID_TEXTURE && (rayBounce == 0 || transparent))
-      envColor = backColorOfSecondEnv(ray_dir, make_float2((float)screenX, (float)screenY), a_globals, in_texStorage1);
+      envColor = backColorOfSecondEnv(ray_dir, make_float2((float)screenX + 0.5f, (float)screenY + 0.5f), a_globals, in_texStorage1);
   }
 
   return envColor;
