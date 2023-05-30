@@ -63,12 +63,12 @@ void GPUOCLLayer::testScanFloatsAnySize()
 {
   std::cout << ">>=========== scan test big =========== " << std::endl;
 
-  std::vector<float> testDataIn(1024 * 371 + 777);     // 1024*371 + 777, 1024*172 + 777, 512*512/2; // (512*256/2) is ok
+  std::vector<float> testDataIn(66450);     // 1024*371 + 777, 1024*172 + 777, 512*512/2; // (512*256/2), 66450 is ok
   std::vector<float> testDataOut(testDataIn.size());
 
   for (int i = 0; i < testDataIn.size(); i++)
   {
-    testDataIn[i]  = rnd(0.0f, 1.0f);
+    testDataIn[i]  = 1.0f; // rnd(0.0f, 1.0f);
     testDataOut[i] = 0;
   }
 

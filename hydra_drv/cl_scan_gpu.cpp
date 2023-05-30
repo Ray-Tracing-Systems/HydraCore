@@ -104,8 +104,8 @@ void scan1f_gpu(cl_mem a_inBuff, size_t a_size, ScanCLArgs args)
   }
 
   currMip--;
-  currMip--;
-  lastSizeV.pop_back();
+  //currMip--;
+  //lastSizeV.pop_back();
 
   // up, propagate phase
   //
