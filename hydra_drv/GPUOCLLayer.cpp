@@ -779,6 +779,10 @@ GPUOCLLayer::GPUOCLLayer(int w, int h, int a_flags, int a_deviceId) : Base(w, h,
   m_sppContrib        = 0.0f;
   m_avgBrightness     = 1.0f;
   m_tablesBeenUpdated = false;
+  
+  //if(!scan_alloc_internal(65536*16, m_globals.ctx))
+  //  RUN_TIME_ERROR("Error in scan_alloc_internal");
+  //testScanFloatsAnySize();
 }
 
 void GPUOCLLayer::RecompileProcTexShaders(const std::string& a_shaderPath)
