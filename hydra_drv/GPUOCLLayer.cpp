@@ -1058,7 +1058,8 @@ void GPUOCLLayer::GetLDRImage(uint* data, int width, int height) const
     if (m_vars.m_flags & HRT_ENABLE_MMLT && (m_vars.m_flags & HRT_ENABLE_SBPT) == 0)  
       normConst = EstimateMLTNormConst((float4*)color0, width, height);
 
-    if (!HydraSSE::g_useSSE || channels2 == 1)
+    //if (!HydraSSE::g_useSSE || channels2 == 1) // this is old-style gamma-correction
+    if(true)
     {
       #pragma omp parallel for num_threads(g_maxCPUThreads)
       for (int i = 0; i < size; i++)  // #TODO: use sse and fast pow
