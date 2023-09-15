@@ -315,10 +315,10 @@ bool RenderDriverRTE::UpdateSettings(pugi::xml_node a_settingsNode)
   }
 
   if (a_settingsNode.child(L"trace_depth") != nullptr)
-    vars.m_varsI[HRT_TRACE_DEPTH] = a_settingsNode.child(L"trace_depth").text().as_int();
+    vars.m_varsI[HRT_TRACE_DEPTH] = a_settingsNode.child(L"trace_depth").text().as_int() + 1;
 
   if (a_settingsNode.child(L"diff_trace_depth") != nullptr)
-    vars.m_varsI[HRT_DIFFUSE_TRACE_DEPTH] = a_settingsNode.child(L"diff_trace_depth").text().as_int();
+    vars.m_varsI[HRT_DIFFUSE_TRACE_DEPTH] = a_settingsNode.child(L"diff_trace_depth").text().as_int() + 1;
 
   if (a_settingsNode.child(L"pt_error") != nullptr)
     vars.m_varsF[HRT_PATH_TRACE_ERROR] = 0.01f*a_settingsNode.child(L"pt_error").text().as_float();
@@ -338,7 +338,10 @@ bool RenderDriverRTE::UpdateSettings(pugi::xml_node a_settingsNode)
     vars.m_varsI[HRT_SILENT_MODE] = 1;
 
   if (vars.m_flags & HRT_STUPID_PT_MODE)
+  {
     vars.m_varsI[HRT_TRACE_DEPTH]++;
+    vars.m_varsI[HRT_DIFFUSE_TRACE_DEPTH]++;
+  }
 
   if (a_settingsNode.child(L"evalgbuffer") != nullptr)
     vars.m_varsI[HRT_STORE_SHADOW_COLOR_W] = a_settingsNode.child(L"evalgbuffer").text().as_int();
