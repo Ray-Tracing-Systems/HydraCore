@@ -20,13 +20,46 @@ This repo contains the last one.
 ```shell
 cmake -DUSE_GL=OFF -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/home/YourUserName .. && make all install -j 4
 ````
-
 Notes:
 If shaders are recompiled every time you run Hydra,
 check **input.cpp** - variable **inDevelopment** should be set to **false**:
 ```shell
 inDevelopment = false;
 ```
+6. Make sure that OpenCL is installed. This command should display the full information about your graphics card.
+```
+clinfo
+```
+If this is not the case, install OpenCL. An example for Linux(Ubuntu):
+#### 1.Install NVIDIA proprietary drivers:
+```
+sudo apt update
+sudo ubuntu-drivers autoinstall
+sudo reboot
+```
+#### 2.Check the driver operation:
+```
+nvidia-smi
+```
+If you see information about your GPU, the driver is working correctly.
+
+#### 3.Install the necessary OpenCL packages:
+```
+sudo apt install acl-icq-libopencl1 nvidia-opencl-device
+```
+#### 4.Check for OpenCL configuration:
+```
+ls /etc/OpenCL/vendors/
+```
+There should be an nvidia.icd file.
+
+#### 5.Check the OpenCL installation:
+```
+clinfo
+```
+If you see the full information - OpenCL is installed.
+
+
 
 ## Windows specific
 
